@@ -13,7 +13,7 @@
  *
  * This component renders nothing — it is a pure side-effect manager.
  */
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { useUserStore } from '../store/userStore';
 
@@ -23,6 +23,7 @@ const BACKGROUND_GRACE_MS   = 30_000;   // keep online 30 s after tab hides
 export default function PresenceManager() {
   const socket  = useSocket();
   const { user, isAuthenticated } = useUserStore();
+  const [isReconnecting, setIsReconnecting] = useState(false);
 
   const heartbeatTimer    = useRef<ReturnType<typeof setInterval> | null>(null);
   const backgroundTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
@@ -120,6 +121,22 @@ export default function PresenceManager() {
       }
     };
 
+    // ── Manager Reconnect Events ──
+    const handleReconnectAttempt = (attempt: number) => {
+      console.log(`📡 Socket reconnecting... (Attempt ${attempt})`);
+      setIsReconnecting(true);
+    };
+    const handleReconnect = () => {
+      setIsReconnecting(false);
+    };
+    const handleReconnectFailed = () => {
+      setIsReconnecting(false);
+    };
+
+    socket.io.on('reconnect_attempt', handleReconnectAttempt);
+    socket.io.on('reconnect', handleReconnect);
+    socket.io.on('reconnect_failed', handleReconnectFailed);
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online',  handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -130,6 +147,9 @@ export default function PresenceManager() {
       if (backgroundTimer.current) clearTimeout(backgroundTimer.current);
       socket.off('connect',    onConnect);
       socket.off('disconnect', onDisconnect);
+      socket.io.off('reconnect_attempt', handleReconnectAttempt);
+      socket.io.off('reconnect', handleReconnect);
+      socket.io.off('reconnect_failed', handleReconnectFailed);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online',  handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -137,5 +157,31 @@ export default function PresenceManager() {
     };
   }, [socket, isAuthenticated, user?.user_id]);
 
-  return null; // renders nothing
+  if (!isReconnecting) return null;
+
+  return (
+    <div style={{
+      position: 'fixed',
+      top: 10,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      backgroundColor: '#f59e0b',
+      color: '#fff',
+      padding: '6px 16px',
+      borderRadius: '20px',
+      fontSize: '0.875rem',
+      fontWeight: 500,
+      zIndex: 9999,
+      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+      display: 'flex',
+      alignItems: 'center',
+      gap: '8px'
+    }}>
+      <div style={{
+        width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 1s linear infinite'
+      }} />
+      Reconnecting...
+    </div>
+  );
 }
+

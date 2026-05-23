@@ -75,7 +75,8 @@ import {
   ChevronRight,
   ChevronLeft,
   Play,
-  Pause
+  Pause,
+  Forward
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -86,6 +87,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { StatusBarBackground, KeyboardAwareChatLayout } from '../components/SafeLayout';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
+import {
+  getCachedInbox, setCachedInbox,
+  getCachedMessages, setCachedMessages,
+  appendMessageToCache,
+  getPendingReadReceipts, setPendingReadReceipts, clearPendingReadReceipts
+} from '../lib/chatCache';
 
 // --- Types ---
 interface ChatConversation {
@@ -910,6 +917,13 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState('');
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
+  const [replyToMessage, setReplyToMessage] = useState<any | null>(null);
+  const [editingMessage, setEditingMessage] = useState<any | null>(null);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
+  const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
@@ -1132,14 +1146,24 @@ export default function Messages() {
 
   // --- Handlers ---
   const fetchInbox = async () => {
-    setLoading(true);
+    // 1. Render instantly from IndexedDB cache
+    const cached = await getCachedInbox();
+    if (cached && cached.length > 0) {
+      setConversations(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    // 2. Fetch fresh data from network and update
     try {
       const res = await api.get('/messages/inbox');
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
+      setCachedInbox(list); // persist to IndexedDB in background
     } catch (err: any) {
       console.error('Failed to fetch inbox', err.response?.data || err);
-      setConversations([]);
+      if (!cached || cached.length === 0) setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -1179,11 +1203,24 @@ export default function Messages() {
   };
 
   const fetchMessages = async (chatId: string) => {
+    // 1. Show cached messages immediately for instant UI
+    const cached = await getCachedMessages(chatId);
+    if (cached && cached.length > 0) {
+      setMessages(cached);
+      scrollToBottom();
+    }
+
+    // 2. Fetch fresh from network
     try {
       const res = await api.get(`/messages/chat/${chatId}`);
-      // Backend returns: { status, data: [...messages], chatId }
       const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-      setMessages(msgs);
+      // Deduplicate: merge server list with any optimistic local msgs
+      setMessages(prev => {
+        const serverIds = new Set(msgs.map((m: any) => m.message_id));
+        const localOnly = prev.filter(m => !serverIds.has(m.message_id));
+        return [...msgs, ...localOnly];
+      });
+      setCachedMessages(chatId, msgs); // persist to IndexedDB
       scrollToBottom();
     } catch (err) {
       console.error('Failed to fetch messages', err);
@@ -1376,6 +1413,49 @@ export default function Messages() {
       }
     };
 
+    const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
+      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
+    };
+
+    const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
+      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
+    };
+
+    const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
+      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
+    };
+
+    const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
+      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
+    };
+
+    const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
+      setMessages(prev => prev.filter(m => m.message_id !== data.messageId));
+    };
+
+    const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
+      setMessages(prev => prev.map(m => {
+        if (m.message_id === data.messageId) {
+          const reactions = m.reactions || [];
+          if (reactions.some(r => r.user_id === data.userId)) {
+            return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
+          }
+          return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
+        }
+        return m;
+      }));
+    };
+
+    const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
+      setMessages(prev => prev.map(m => {
+        if (m.message_id === data.messageId) {
+          const reactions = m.reactions || [];
+          return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
+        }
+        return m;
+      }));
+    };
+
     socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
@@ -1384,6 +1464,13 @@ export default function Messages() {
     socket.on('user-typing', handleUserTyping);
     socket.on('user-note-update', handleUserNoteUpdate);
     socket.on('group:presence:update', handleGroupPresenceUpdate);
+    socket.on('message-pinned', handleMessagePinned);
+    socket.on('message-unpinned', handleMessageUnpinned);
+    socket.on('message-edited', handleMessageEdited);
+    socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
+    socket.on('message-deleted-me', handleMessageDeletedMe);
+    socket.on('new-reaction', handleNewReaction);
+    socket.on('reaction-removed', handleReactionRemoved);
 
     const handleReconnect = () => {
       const activeChat = selectedChatRef.current;
@@ -1402,6 +1489,13 @@ export default function Messages() {
       socket.off('user-typing', handleUserTyping);
       socket.off('user-note-update', handleUserNoteUpdate);
       socket.off('group:presence:update', handleGroupPresenceUpdate);
+      socket.off('message-pinned', handleMessagePinned);
+      socket.off('message-unpinned', handleMessageUnpinned);
+      socket.off('message-edited', handleMessageEdited);
+      socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
+      socket.off('message-deleted-me', handleMessageDeletedMe);
+      socket.off('new-reaction', handleNewReaction);
+      socket.off('reaction-removed', handleReactionRemoved);
       socket.off('connect', handleReconnect);
     };
   }, [socket, user?.id, user?.user_id]);
@@ -1451,11 +1545,28 @@ export default function Messages() {
     if (!content.trim() && !isRich) return;
     if (!selectedChat) return;
 
+    if (editingMessage) {
+      const msgId = editingMessage.message_id;
+      setMessages(prev => prev.map(m => m.message_id === msgId ? { ...m, content, edited: true, edited_at: new Date().toISOString() } : m));
+      socket?.emit('edit-message', {
+        messageId: msgId,
+        chatId: selectedChat.chat_id,
+        content
+      }, (response: { success: boolean, error?: string }) => {
+        if (!response.success) {
+          alert(response.error || 'Failed to edit message');
+        }
+      });
+      setNewMessage('');
+      setEditingMessage(null);
+      return;
+    }
+
     if (!isRich) triggerWordEffect(content);
     setSending(true);
 
     const tempId = `temp_${Date.now()}`;
-    const optimisticMsg: ChatMessage = {
+    const optimisticMsg: any = {
       message_id: tempId,
       sender_id: user?.id || user?.user_id || '',
       content: content || (specialType ? `Shared ${specialType}` : ''),
@@ -1467,6 +1578,13 @@ export default function Messages() {
       media_url: mediaUrl,
       mediaUrl: mediaUrl
     };
+
+    if (replyToMessage) {
+      optimisticMsg.reply_to_message_id = replyToMessage.message_id;
+      optimisticMsg.reply_content = replyToMessage.content;
+      optimisticMsg.reply_type = replyToMessage.type || 'text';
+      optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
+    }
     
     setMessages(prev => [...prev, optimisticMsg]);
     if (!contentOverride && !isRich) setNewMessage('');
@@ -1483,19 +1601,36 @@ export default function Messages() {
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     }
 
-    // Transmit exclusively via WebSocket payload
-    socket?.emit('send-message', {
+    const payload: any = {
        chatId: selectedChat.chat_id,
        partnerId: selectedChat.partner_id,
        content: content || (specialType ? `Shared ${specialType}` : ''),
        type: specialType || 'text',
        mediaUrl: mediaUrl
-    }, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
+    };
+
+    if (replyToMessage) {
+      payload.replyToId = replyToMessage.message_id;
+    }
+
+    const currentReplyTo = replyToMessage;
+    setReplyToMessage(null);
+
+    // Transmit exclusively via WebSocket payload
+    socket?.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
        setSending(false);
        if (response.success && response.messageId) {
           // ACK received — use server-returned sentAt (never client Date)
           setMessages(prev => prev.map(m => m.message_id === tempId
-            ? { ...m, message_id: response.messageId!, status: 'sent', sent_at: response.sentAt || m.sent_at }
+            ? { 
+                ...m, 
+                message_id: response.messageId!, 
+                status: 'sent', 
+                sent_at: response.sentAt || m.sent_at,
+                reply_to_message_id: currentReplyTo?.message_id || null,
+                reply_content: currentReplyTo?.content || null,
+                reply_type: currentReplyTo?.type || null
+              }
             : m
           ));
           setConversations((prev: any[]) => {
@@ -1618,6 +1753,10 @@ export default function Messages() {
     const term = messageSearch.trim().toLowerCase();
     return messages.filter(m => (m.content ?? '').toLowerCase().includes(term));
   }, [messages, messageSearch]);
+
+  const pinnedMessages = useMemo(() => {
+    return messages.filter(m => m.pinned);
+  }, [messages]);
 
   const startNewChat = (contact: any) => {
     const existing = conversations.find(c => c.partner_id === contact.user_id);
@@ -2109,6 +2248,49 @@ export default function Messages() {
                 </div>
               </header>
 
+              {/* Pinned Messages Carousel */}
+              <AnimatePresence>
+                {pinnedMessages.length > 0 && (
+                  <motion.div 
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="relative z-20 overflow-hidden border-b border-white/5 bg-[#1b1b24]/95 backdrop-blur-xl shadow-lg"
+                  >
+                    <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar scroll-smooth snap-x">
+                      {pinnedMessages.map(msg => (
+                        <div key={`pinned-${msg.message_id}`} className="snap-start flex-shrink-0 flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/10 rounded-xl px-3.5 py-2 max-w-[220px] cursor-pointer">
+                          <Pin size={14} strokeWidth={2.5} className="text-[#ff1493] shrink-0" />
+                          <div className="flex flex-col min-w-0">
+                            <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">
+                              {msg.sender_id === (user?.id || user?.user_id) ? 'You' : selectedChat.partner_name}
+                            </span>
+                            <span className="text-[12px] font-medium text-white/90 truncate mt-0.5">
+                              {msg.type === 'text' || !msg.type ? msg.content : `[${msg.type.toUpperCase()}]`}
+                            </span>
+                          </div>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (socket && selectedChat) {
+                                socket.emit('unpin-message', {
+                                  messageId: msg.message_id,
+                                  chatId: selectedChat.chat_id,
+                                  isGroup: selectedChat.type === 'group'
+                                });
+                              }
+                            }}
+                            className="ml-1 w-6 h-6 rounded-full flex items-center justify-center bg-white/5 text-white/40 hover:text-white hover:bg-white/10 transition-all shrink-0"
+                          >
+                            <X size={12} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
                 <div className="flex flex-col">
                   {filteredMessages.flatMap((msg, i) => {
@@ -2458,14 +2640,79 @@ export default function Messages() {
       </KeyboardAwareChatLayout>
 
       {/* MODALS */}
+      <AnimatePresence>
+        {showDeleteConfirm && messageToDelete && (
+          <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#1b1b24] border border-white/10 rounded-[20px] w-full max-w-[320px] overflow-hidden shadow-2xl"
+            >
+              <div className="p-6 text-center border-b border-white/5">
+                <h3 className="text-[16px] font-bold text-white mb-2">Delete message?</h3>
+                <p className="text-[13px] text-white/50">Are you sure you want to delete this message?</p>
+              </div>
+              <div className="flex flex-col p-2 gap-1">
+                {messageToDelete?.sender_id === (user?.id || user?.user_id) && 
+                  (Date.now() - new Date(messageToDelete.created_at || messageToDelete.sent_at || Date.now()).getTime()) <= 15 * 60 * 1000 && (
+                  <button 
+                    onClick={() => {
+                      if (socket && selectedChat) {
+                        socket.emit('delete-for-everyone', {
+                          messageId: messageToDelete.message_id,
+                          chatId: selectedChat.chat_id,
+                          isGroup: selectedChat.type === 'group'
+                        });
+                      }
+                      setShowDeleteConfirm(false);
+                      setMessageToDelete(null);
+                    }}
+                    className="w-full py-3.5 px-4 rounded-xl text-[14px] font-semibold text-[#ff1493] bg-[#ff1493]/10 hover:bg-[#ff1493]/20 transition-all text-center"
+                  >
+                    Delete for everyone
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    setMessages(prev => prev.filter(m => m.message_id !== messageToDelete.message_id));
+                    if (socket && selectedChat) {
+                      socket.emit('delete-for-me', {
+                        messageId: messageToDelete.message_id,
+                        chatId: selectedChat.chat_id,
+                        isGroup: selectedChat.type === 'group'
+                      });
+                    }
+                    setShowDeleteConfirm(false);
+                    setMessageToDelete(null);
+                  }}
+                  className="w-full py-3.5 px-4 rounded-xl text-[14px] font-medium text-rose-500 hover:bg-rose-500/10 transition-all text-center"
+                >
+                  Delete for me
+                </button>
+                <button 
+                  onClick={() => {
+                    setShowDeleteConfirm(false);
+                    setMessageToDelete(null);
+                  }}
+                  className="w-full py-3.5 px-4 rounded-xl text-[14px] font-medium text-white/70 hover:bg-white/5 transition-all text-center mt-1"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       <MessageActionSheet
         isOpen={activeMessageMenu?.type === 'longPress'}
         isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
         themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
         onClose={() => setActiveMessageMenu(null)}
         onReply={() => {
-          if (activeMessageMenu?.msg?.content) {
-            handleTyping(`> ${activeMessageMenu.msg.content.substring(0, 50)}...\n\n`);
+          if (activeMessageMenu?.msg) {
+            setReplyToMessage(activeMessageMenu.msg);
           }
           setActiveMessageMenu(null);
         }}
@@ -2474,8 +2721,9 @@ export default function Messages() {
           setActiveMessageMenu(null);
         }}
         onDelete={() => {
-          if (activeMessageMenu?.msg?.message_id) {
-            handleDeleteMessage(activeMessageMenu.msg.message_id);
+          if (activeMessageMenu?.msg) {
+            setMessageToDelete(activeMessageMenu.msg);
+            setShowDeleteConfirm(true);
           }
           setActiveMessageMenu(null);
         }}
@@ -2495,22 +2743,32 @@ export default function Messages() {
         isOpen={activeMessageMenu?.type === 'click'}
         onClose={() => setActiveMessageMenu(null)}
         onPin={() => {
-          // Future pin logic
+          if (activeMessageMenu?.msg && socket && selectedChat) {
+            if (activeMessageMenu.msg.pinned) {
+              socket.emit('unpin-message', { messageId: activeMessageMenu.msg.message_id, chatId: selectedChat.chat_id });
+            } else {
+              socket.emit('pin-message', { messageId: activeMessageMenu.msg.message_id, chatId: selectedChat.chat_id });
+            }
+          }
           setActiveMessageMenu(null);
         }}
         onEdit={() => {
-          if (activeMessageMenu?.msg?.content) {
-            handleTyping(activeMessageMenu.msg.content);
+          if (activeMessageMenu?.msg) {
+            setEditingMessage(activeMessageMenu.msg);
+            setNewMessage(activeMessageMenu.msg.content);
           }
           setActiveMessageMenu(null);
         }}
         onForward={() => {
-          // Future forward logic
+          if (activeMessageMenu?.msg) {
+            setSelectedForwardChatIds([]);
+            setShowForwardModal(true);
+          }
           setActiveMessageMenu(null);
         }}
         onDetails={() => {
           if (activeMessageMenu?.msg) {
-            alert(`Sent at: ${new Date(activeMessageMenu.msg.sent_at).toLocaleString()}`);
+            alert(`Sent at: ${new Date(activeMessageMenu.msg.sent_at).toLocaleString()}\nStatus: ${activeMessageMenu.msg.status || 'sent'}\nForwarded: ${activeMessageMenu.msg.forwarded ? 'Yes' : 'No'}`);
           }
           setActiveMessageMenu(null);
         }}
@@ -2530,6 +2788,118 @@ export default function Messages() {
           setActiveMessageMenu(null);
         }}
       />
+
+      {/* ── FORWARD MODAL ── */}
+      <AnimatePresence>
+        {showForwardModal && (
+          <>
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/60 z-[130] backdrop-blur-sm" 
+              onClick={() => setShowForwardModal(false)} 
+            />
+            <motion.div 
+              initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="fixed bottom-0 left-0 right-0 h-[85vh] bg-[#121212] rounded-t-[32px] z-[131] flex flex-col shadow-[0_-10px_40px_rgba(0,0,0,0.5)] border-t border-white/10 overflow-hidden"
+            >
+              <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mt-4 shrink-0" />
+              <div className="px-6 py-4 flex items-center justify-between border-b border-white/5 shrink-0">
+                <h2 className="text-[18px] font-black text-white italic tracking-tight uppercase">Forward To</h2>
+                <button 
+                  onClick={() => setShowForwardModal(false)} 
+                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white/50 hover:text-white"
+                >
+                  <X size={18} strokeWidth={2.5} />
+                </button>
+              </div>
+              
+              <div className="p-4 shrink-0">
+                <div className="bg-white/5 rounded-2xl flex items-center px-4 h-[44px] focus-within:bg-white/10 transition-colors border border-white/5">
+                  <Search size={18} className="text-white/40 mr-2" strokeWidth={2.5} />
+                  <input 
+                    type="text" 
+                    placeholder="Search chats..."
+                    value={forwardSearchQuery}
+                    onChange={(e) => setForwardSearchQuery(e.target.value)}
+                    className="flex-1 bg-transparent text-[15px] font-medium text-white placeholder:text-white/30 outline-none border-none focus:ring-0 w-full"
+                  />
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-24">
+                {conversations
+                  .filter(c => c.partner_name?.toLowerCase().includes(forwardSearchQuery.toLowerCase()))
+                  .map(chat => {
+                    const isSelected = selectedForwardChatIds.includes(chat.chat_id);
+                    return (
+                      <button 
+                        key={chat.chat_id}
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedForwardChatIds(prev => prev.filter(id => id !== chat.chat_id));
+                          } else {
+                            setSelectedForwardChatIds(prev => [...prev, chat.chat_id]);
+                          }
+                          if (navigator.vibrate) navigator.vibrate(30);
+                        }}
+                        className="w-full flex items-center gap-4 px-6 py-3.5 hover:bg-white/[0.04] transition-all"
+                      >
+                        <div className="relative shrink-0">
+                          <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-12 h-12 rounded-full object-cover border border-white/10 shadow-sm" alt="" />
+                          {(chat.partner_online || chat.group_online_count) && (
+                            <div className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#121212]" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 text-left flex flex-col justify-center">
+                          <span className="text-[15px] font-semibold text-white/90 truncate block">{chat.partner_name}</span>
+                          <span className="text-[12px] text-white/40 truncate block">{chat.is_group || chat.chat_type === 'group' ? 'Group' : 'User'}</span>
+                        </div>
+                        <div className={clsx("w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-all", isSelected ? 'bg-[#ff1493] border-[#ff1493]' : 'border-white/20')}>
+                          {isSelected && <Check size={14} strokeWidth={3} className="text-white" />}
+                        </div>
+                      </button>
+                    );
+                })}
+              </div>
+              
+              <AnimatePresence>
+                {selectedForwardChatIds.length > 0 && (
+                  <motion.div 
+                    initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
+                    className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-[#121212] via-[#121212] to-transparent pointer-events-none"
+                  >
+                    <button
+                      onClick={() => {
+                        selectedForwardChatIds.forEach(chatId => {
+                          const targetChat = conversations.find(c => c.chat_id === chatId);
+                          if (socket && targetChat && activeMessageMenu?.msg) {
+                            socket.emit('send-message', {
+                              chatId: targetChat.chat_id,
+                              content: activeMessageMenu.msg.content,
+                              type: activeMessageMenu.msg.type || 'text',
+                              mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                              forwarded: true,
+                              isGroup: targetChat.is_group || targetChat.chat_type === 'group'
+                            });
+                          }
+                        });
+                        if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
+                        setShowForwardModal(false);
+                        setSelectedForwardChatIds([]);
+                        setActiveMessageMenu(null);
+                      }}
+                      className="w-full h-[52px] rounded-2xl bg-[#ff1493] text-white font-black text-[15px] uppercase tracking-widest shadow-[0_8px_24px_rgba(255,20,147,0.4)] hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 pointer-events-auto"
+                    >
+                      <Forward size={20} strokeWidth={2.5} /> Send ({selectedForwardChatIds.length})
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showNewChatModal && (

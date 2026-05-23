@@ -354,9 +354,9 @@ class Message {
      * Delete for everyone
      */
     static async deleteForEveryone(messageId, userId, isAdminOverride = false, adminUsername = '') {
-        let content = '[Message deleted]';
+        let content = 'This message was deleted';
         if (isAdminOverride && adminUsername) {
-            content = `[Message deleted by admin ${adminUsername}]`;
+            content = `This message was deleted by admin ${adminUsername}`;
         }
 
         const query = isAdminOverride 
@@ -398,7 +398,7 @@ class Message {
     static async editMessage(messageId, userId, newContent) {
         const [result] = await db.query(
             `UPDATE messages 
-             SET content = ?, edited_at = NOW() 
+             SET content = ?, edited_at = NOW(), edited = 1 
              WHERE message_id = ? AND sender_id = ? 
                AND is_deleted_for_everyone = 0
                AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,

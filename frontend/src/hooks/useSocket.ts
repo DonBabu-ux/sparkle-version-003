@@ -30,7 +30,8 @@ const getOrCreateSocket = (userId: string, token: string): Socket => {
     reconnection: true,
     reconnectionAttempts: Infinity,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    reconnectionDelayMax: 30000,
+    randomizationFactor: 0.1,
     timeout: 20000,
     transports: ['polling', 'websocket'],
   });

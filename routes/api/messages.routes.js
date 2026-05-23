@@ -27,6 +27,9 @@ router.delete('/chat/:chatId', messageController.deleteConversation);
 router.delete('/:messageId', messageController.deleteMessage);
 router.patch('/:messageId', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
+router.post('/:messageId/pin', messageController.pinMessage);
+router.post('/:messageId/unpin', messageController.unpinMessage);
+router.post('/:messageId/forward', messageController.forwardMessage);
 
 // Conversation messages (Keep these at the end)
 router.get('/chat/:chatId', messageController.getConversationMessages);

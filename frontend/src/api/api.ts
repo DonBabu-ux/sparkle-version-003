@@ -127,33 +127,36 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      try {
-        const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
-        const newToken = data.token;
-        const newRefreshToken = data.refreshToken;
-
-        useUserStore.getState().setToken(newToken, newRefreshToken);
-        
-        processQueue(null, newToken);
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      } catch (refreshError: any) {
-        processQueue(refreshError, null);
-        
-        // Handle refresh network failure
-        if (!refreshError.response) {
-           console.error('📡 Token refresh failed due to network error. Staying logged in.');
-           return Promise.reject(refreshError);
-        }
-
-        // ONLY log out if the refresh token is explicitly rejected (401/403)
-        if (refreshError.response && (refreshError.response.status === 401 || refreshError.response.status === 403)) {
+      // New retry wrapper for token refresh
+      const MAX_REFRESH_RETRIES = 3;
+      let attempt = 0;
+      const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
+      
+      while (attempt < MAX_REFRESH_RETRIES) {
+        try {
+          const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
+          const newToken = data.token;
+          const newRefreshToken = data.refreshToken;
+          useUserStore.getState().setToken(newToken, newRefreshToken);
+          processQueue(null, newToken);
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+          isRefreshing = false;
+          return api(originalRequest);
+        } catch (refreshError: any) {
+          attempt++;
+          if (attempt >= MAX_REFRESH_RETRIES) {
+            processQueue(refreshError, null);
             useUserStore.getState().logout();
+            isRefreshing = false;
+            return Promise.reject(refreshError);
+          }
+          // Backoff: Attempt 1 -> 1s, Attempt 2 -> 3s
+          const backoff = attempt === 1 ? 1000 : 3000;
+          console.warn(`Refresh token attempt ${attempt} failed, retrying in ${backoff}ms`);
+          await delay(backoff);
         }
-        return Promise.reject(refreshError);
-      } finally {
-        isRefreshing = false;
       }
+      isRefreshing = false;
     }
     return Promise.reject(error);
   }

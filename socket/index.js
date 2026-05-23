@@ -384,14 +384,24 @@ const initializeSocket = (server) => {
         });
 
         // Delete message for everyone
-        socket.on('delete-for-everyone', async (data) => {
+        socket.on('delete-for-everyone', async (data, callback) => {
             const { messageId, chatId } = data;
             try {
                 const msg = await Message.getById(messageId);
-                if (!msg) return;
+                if (!msg) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                    return;
+                }
 
                 let success = false;
+                const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
+
                 if (msg.sender_id === socket.userId) {
+                    if (timeDiffMins > 15) {
+                        socket.emit('message-error', { error: 'Delete window expired (max 15 mins)' });
+                        if (typeof callback === 'function') callback({ success: false, error: 'Delete window expired (max 15 mins)' });
+                        return;
+                    }
                     success = await Message.deleteForEveryone(messageId, socket.userId);
                 } else if (chatId) {
                     // Check if it's a group and user is admin
@@ -403,9 +413,198 @@ const initializeSocket = (server) => {
 
                 if (success) {
                     io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
+                    if (typeof callback === 'function') callback({ success: true });
+                } else {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied or failed to delete' });
                 }
             } catch (error) {
                 logger.error('Delete for everyone error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Delete message for me
+        socket.on('delete-for-me', async (data, callback) => {
+            const { messageId, chatId } = data;
+            try {
+                const success = await Message.deleteForMe(messageId, socket.userId);
+                if (success) {
+                    socket.emit('message-deleted-me', { messageId, chatId });
+                    if (typeof callback === 'function') callback({ success: true });
+                } else {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to delete message locally' });
+                }
+            } catch (error) {
+                logger.error('Delete for me error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Pin Message
+        socket.on('pin-message', async (data, callback) => {
+            const { messageId, chatId } = data;
+            try {
+                // If it is a group chat, verify if only admins can pin/unpin or if user is admin
+                const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (groupExists.length > 0) {
+                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
+                    if (!isAdmin) {
+                        socket.emit('message-error', { error: 'Only admins can pin messages in group chats' });
+                        if (typeof callback === 'function') callback({ success: false, error: 'Only admins can pin messages' });
+                        return;
+                    }
+                }
+
+                // Check pin limit: maximum 5 pinned messages per chat
+                const [pinnedCount] = await pool.query(
+                    'SELECT COUNT(*) as count FROM messages WHERE (chat_id = ? OR conversation_id = ?) AND pinned = 1',
+                    [chatId, chatId]
+                );
+                if (pinnedCount[0].count >= 5) {
+                    socket.emit('message-error', { error: 'Pin limit reached (maximum 5 pinned messages allowed)' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Pin limit reached (max 5)' });
+                    return;
+                }
+
+                const [result] = await pool.query(
+                    'UPDATE messages SET pinned = 1, pinned_at = NOW(), pinned_by = ? WHERE message_id = ?',
+                    [socket.userId, messageId]
+                );
+
+                if (result.affectedRows > 0) {
+                    io.to(`chat:${chatId}`).emit('message-pinned', { messageId, chatId, pinnedBy: socket.userId });
+                    if (typeof callback === 'function') callback({ success: true });
+                } else {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                }
+            } catch (error) {
+                logger.error('Pin message error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Unpin Message
+        socket.on('unpin-message', async (data, callback) => {
+            const { messageId, chatId } = data;
+            try {
+                // If group, check if admin
+                const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (groupExists.length > 0) {
+                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
+                    if (!isAdmin) {
+                        socket.emit('message-error', { error: 'Only admins can unpin messages in group chats' });
+                        if (typeof callback === 'function') callback({ success: false, error: 'Only admins can unpin messages' });
+                        return;
+                    }
+                }
+
+                const [result] = await pool.query(
+                    'UPDATE messages SET pinned = 0, pinned_at = NULL, pinned_by = NULL WHERE message_id = ?',
+                    [messageId]
+                );
+
+                if (result.affectedRows > 0) {
+                    io.to(`chat:${chatId}`).emit('message-unpinned', { messageId, chatId });
+                    if (typeof callback === 'function') callback({ success: true });
+                } else {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                }
+            } catch (error) {
+                logger.error('Unpin message error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Edit Message
+        socket.on('edit-message', async (data, callback) => {
+            const { messageId, chatId, content } = data;
+            try {
+                const success = await Message.editMessage(messageId, socket.userId, content);
+                if (success) {
+                    io.to(`chat:${chatId}`).emit('message-edited', { messageId, chatId, content, editedAt: new Date().toISOString() });
+                    if (typeof callback === 'function') callback({ success: true });
+                } else {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message. Messages can only be edited by the sender within 15 minutes.' });
+                }
+            } catch (error) {
+                logger.error('Edit message error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Forward Message
+        socket.on('forward-message', async (data, callback) => {
+            const { messageId, targetChatIds } = data;
+            try {
+                const originalMsg = await Message.getById(messageId);
+                if (!originalMsg) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Original message not found' });
+                    return;
+                }
+
+                const forwardedMessages = [];
+                for (const targetChatId of targetChatIds) {
+                    const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
+                    
+                    let recipientId = null;
+                    if (pc.length > 0) {
+                        recipientId = pc[0].participant1_id === socket.userId ? pc[0].participant2_id : pc[0].participant1_id;
+                    }
+
+                    const messageId = crypto.randomUUID();
+                    const sentAt = new Date();
+                    const personalChatId = pc.length > 0 ? targetChatId : null;
+                    const groupChatId = pc.length > 0 ? null : targetChatId;
+
+                    await pool.query(`
+                        INSERT INTO messages (
+                            message_id, chat_id, conversation_id, personal_chat_id, 
+                            sender_id, recipient_id, content, type, media_url, 
+                            status, is_read, sent_at, context,
+                            forwarded, forwarded_from
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?)
+                    `, [
+                        messageId, 
+                        groupChatId, 
+                        personalChatId, 
+                        personalChatId, 
+                        socket.userId, 
+                        recipientId, 
+                        originalMsg.content, 
+                        originalMsg.type, 
+                        originalMsg.media_url, 
+                        sentAt, 
+                        socket.user.username
+                    ]);
+
+                    if (personalChatId) {
+                        await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
+                    } else if (groupChatId) {
+                        await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
+                    }
+
+                    const [fullMessage] = await pool.query(`
+                        SELECT m.*, 
+                               u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+                        FROM messages m
+                        JOIN users u ON m.sender_id = u.user_id
+                        WHERE m.message_id = ?
+                    `, [messageId]);
+
+                    const message = {
+                        ...fullMessage[0],
+                        sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
+                        read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
+                    };
+
+                    io.to(`chat:${targetChatId}`).emit('new-message', message);
+                    forwardedMessages.push(message);
+                }
+
+                if (typeof callback === 'function') callback({ success: true, messages: forwardedMessages });
+            } catch (error) {
+                logger.error('Forward message error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
             }
         });
 

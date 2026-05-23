@@ -1,5 +1,8 @@
 const Message = require('../models/Message');
 const GroupChat = require('../models/GroupChat');
+const GroupMember = require('../models/GroupMember');
+const pool = require('../config/database');
+const crypto = require('crypto');
 
 class MessageController {
     /**
@@ -99,12 +102,34 @@ class MessageController {
     async deleteMessage(req, res) {
         try {
             const { messageId } = req.params;
-            const { forEveryone } = req.body;
+            const { forEveryone, chatId } = req.body;
             const userId = req.user.user_id || req.user.userId;
 
             if (forEveryone) {
-                const success = await Message.deleteForEveryone(messageId, userId);
-                return res.json({ status: success ? 'success' : 'error', message: success ? 'Deleted for everyone' : 'Could not delete' });
+                const msg = await Message.getById(messageId);
+                if (!msg) {
+                    return res.status(404).json({ status: 'error', error: 'Message not found' });
+                }
+                const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
+                
+                let success = false;
+                if (msg.sender_id === userId) {
+                    if (timeDiffMins > 15) {
+                        return res.status(403).json({ status: 'error', error: 'Delete window expired (max 15 mins)' });
+                    }
+                    success = await Message.deleteForEveryone(messageId, userId);
+                } else if (chatId) {
+                    const isAdmin = await GroupMember.isAdmin(chatId, userId);
+                    if (isAdmin) {
+                        success = await Message.deleteForEveryone(messageId, userId, true, req.user.username || 'admin');
+                    }
+                }
+
+                if (success) {
+                    return res.json({ status: 'success', message: 'Deleted for everyone' });
+                } else {
+                    return res.status(403).json({ status: 'error', error: 'Permission denied or delete failed' });
+                }
             } else {
                 await Message.deleteForMe(messageId, userId);
                 return res.json({ status: 'success', message: 'Deleted for me' });
@@ -204,6 +229,145 @@ class MessageController {
             const archived = req.body.archived !== false;
             await Message.archiveConversation(userId, chatId, archived);
             res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async pinMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const { chatId } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+
+            if (!chatId) {
+                return res.status(400).json({ status: 'error', error: 'chatId is required' });
+            }
+
+            const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+            if (groupExists.length > 0) {
+                const isAdmin = await GroupMember.isAdmin(chatId, userId);
+                if (!isAdmin) {
+                    return res.status(403).json({ status: 'error', error: 'Only admins can pin messages in group chats' });
+                }
+            }
+
+            const [pinnedCount] = await pool.query(
+                'SELECT COUNT(*) as count FROM messages WHERE (chat_id = ? OR conversation_id = ?) AND pinned = 1',
+                [chatId, chatId]
+            );
+            if (pinnedCount[0].count >= 5) {
+                return res.status(400).json({ status: 'error', error: 'Pin limit reached (maximum 5 pinned messages allowed)' });
+            }
+
+            const [result] = await pool.query(
+                'UPDATE messages SET pinned = 1, pinned_at = NOW(), pinned_by = ? WHERE message_id = ?',
+                [userId, messageId]
+            );
+
+            if (result.affectedRows > 0) {
+                res.json({ status: 'success' });
+            } else {
+                res.status(404).json({ status: 'error', error: 'Message not found' });
+            }
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async unpinMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const { chatId } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+
+            if (!chatId) {
+                return res.status(400).json({ status: 'error', error: 'chatId is required' });
+            }
+
+            const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+            if (groupExists.length > 0) {
+                const isAdmin = await GroupMember.isAdmin(chatId, userId);
+                if (!isAdmin) {
+                    return res.status(403).json({ status: 'error', error: 'Only admins can unpin messages in group chats' });
+                }
+            }
+
+            const [result] = await pool.query(
+                'UPDATE messages SET pinned = 0, pinned_at = NULL, pinned_by = NULL WHERE message_id = ?',
+                [messageId]
+            );
+
+            if (result.affectedRows > 0) {
+                res.json({ status: 'success' });
+            } else {
+                res.status(404).json({ status: 'error', error: 'Message not found' });
+            }
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async forwardMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const { targetChatIds } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+
+            if (!targetChatIds || !Array.isArray(targetChatIds)) {
+                return res.status(400).json({ status: 'error', error: 'targetChatIds array is required' });
+            }
+
+            const originalMsg = await Message.getById(messageId);
+            if (!originalMsg) {
+                return res.status(404).json({ status: 'error', error: 'Original message not found' });
+            }
+
+            const forwardedMessages = [];
+            for (const targetChatId of targetChatIds) {
+                const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
+                
+                let recipientId = null;
+                if (pc.length > 0) {
+                    recipientId = pc[0].participant1_id === userId ? pc[0].participant2_id : pc[0].participant1_id;
+                }
+
+                const newMsgId = crypto.randomUUID();
+                const sentAt = new Date();
+                const personalChatId = pc.length > 0 ? targetChatId : null;
+                const groupChatId = pc.length > 0 ? null : targetChatId;
+
+                await pool.query(`
+                    INSERT INTO messages (
+                        message_id, chat_id, conversation_id, personal_chat_id, 
+                        sender_id, recipient_id, content, type, media_url, 
+                        status, is_read, sent_at, context,
+                        forwarded, forwarded_from
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?)
+                `, [
+                    newMsgId, 
+                    groupChatId, 
+                    personalChatId, 
+                    personalChatId, 
+                    userId, 
+                    recipientId, 
+                    originalMsg.content, 
+                    originalMsg.type, 
+                    originalMsg.media_url, 
+                    sentAt, 
+                    req.user.username || 'user'
+                ]);
+
+                if (personalChatId) {
+                    await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
+                } else if (groupChatId) {
+                    await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
+                }
+
+                forwardedMessages.push({ messageId: newMsgId, chatId: targetChatId });
+            }
+
+            res.json({ status: 'success', data: forwardedMessages });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
         }

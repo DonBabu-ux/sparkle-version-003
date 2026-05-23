@@ -1,0 +1,27 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Message {
+  id            String   @id @default(uuid())
+  content       String
+  senderId      String
+  groupId       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  pinned        Boolean  @default(false)
+  pinnedAt      DateTime?
+  pinnedBy      String?
+  edited        Boolean  @default(false)
+  editedAt      DateTime?
+  deleted       Boolean  @default(false)
+  deletedFor    Json?
+  forwarded     Boolean  @default(false)
+  forwardedFrom String?
+  // relations (if any) can be added later
+}

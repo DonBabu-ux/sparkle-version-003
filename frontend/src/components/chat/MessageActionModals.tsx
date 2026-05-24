@@ -87,30 +87,40 @@ interface MoreModalProps {
   onEdit: () => void;
   onForward: () => void;
   onDetails: () => void;
+  isPinned?: boolean;
 }
 
 export const MessageMoreModal: React.FC<MoreModalProps> = ({
-  isOpen, onClose, onPin, onEdit, onForward, onDetails
+  isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false
 }) => {
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div 
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[110]" 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 z-[110]" 
             onClick={onClose} 
           />
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] bg-[#1e1e1e] rounded-lg shadow-2xl z-[111] overflow-hidden border border-white/10"
+            initial={{ opacity: 0, scale: 0.9, y: '-40%' }} 
+            animate={{ opacity: 1, scale: 1, y: '-50%' }} 
+            exit={{ opacity: 0, scale: 0.9, y: '-40%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[111] overflow-hidden border border-white/[0.08]"
           >
-            <div className="flex flex-col">
-              <MoreOption icon={<Pin size={20} />} label="Pin Message" onClick={onPin} />
-              <MoreOption icon={<Edit3 size={20} />} label="Edit Message" onClick={onEdit} />
-              <MoreOption icon={<Forward size={20} />} label="Forward" onClick={onForward} />
-              <div className="h-px bg-white/10 mx-6" />
-              <MoreOption icon={<Info size={20} />} label="Message Details" onClick={onDetails} />
+            <div className="flex flex-col py-1.5">
+              <MoreOption 
+                icon={<Pin size={18} className={isPinned ? "text-[#ff1493]" : "text-white/60"} />} 
+                label={isPinned ? "Unpin Message" : "Pin Message"} 
+                onClick={onPin} 
+              />
+              <MoreOption icon={<Edit3 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
+              <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
+              <div className="h-px bg-white/[0.06] my-1" />
+              <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
             </div>
           </motion.div>
         </>

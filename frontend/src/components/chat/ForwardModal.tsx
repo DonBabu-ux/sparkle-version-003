@@ -1,130 +1,247 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowLeft, Users } from 'lucide-react';
+import { Search, ArrowLeft, Check, X, Forward } from 'lucide-react';
+
+interface ForwardContact {
+  id: string;
+  name: string;
+  username?: string;
+  avatar_url?: string;
+  type?: 'user' | 'group';
+}
 
 interface ForwardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSelectContact?: (contactId: string) => void;
+  contacts: ForwardContact[];
+  onForward: (selectedIds: string[]) => void;
 }
 
-export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, onSelectContact }) => {
+const MAX_SELECT = 5;
+
+export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, contacts, onForward }) => {
   const [search, setSearch] = useState('');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [activeTab, setActiveTab] = useState<'all' | 'groups'>('all');
 
-  // Mock lists based on the reference image
-  const frequentlyContacted = [
-    { id: '1', name: 'Evon', status: '' },
-    { id: '2', name: 'HEART 💜 SPACE 💖', status: 'Naty Leila, You' },
-    { id: '3', name: 'Wanjiku Wangui', status: '' },
-    { id: '4', name: '📞🍁eunice🎀🦋', status: '' },
-    { id: '5', name: 'Kairo Community Digital Training 2025', status: 'Ajira, Gateri, hivatraders, joycwanjiku2, Naty Leila, Remmy, +...' },
-  ];
+  const filteredContacts = useMemo(() => {
+    const term = search.toLowerCase();
+    return contacts.filter(c => {
+      const matchesSearch = (c.name || c.username || '').toLowerCase().includes(term);
+      if (activeTab === 'groups') return matchesSearch && c.type === 'group';
+      return matchesSearch;
+    });
+  }, [contacts, search, activeTab]);
 
-  const recentChats = [
-    { id: '6', name: 'Esther Baby Girl', status: '' },
-    { id: '7', name: 'Naty Leila', status: '' },
-    { id: '8', name: 'mem Eric', status: '' },
-    { id: '9', name: 'KARU BLACK MARKET @## 2025/2026', status: '+254 103 166139, +254 115 285644, +254 115 984880, +254 ...' },
-    { id: '10', name: 'NYÜMBA YA MÛMBI (Karatina University)', status: '+254 115 571587, +254 116 386944, +254 705 428668, +254 ...' },
-    { id: '11', name: 'Campus Sprite Challenge Team Nelson', status: '+254 108 379091, +254 734 615730, +254 739 745466, +254 ...' },
-    { id: '12', name: 'senior49 🗿', status: '' },
-    { id: '13', name: 'dazzler🌜', status: '' },
-    { id: '14', name: 'SCO COLLECTION', status: '+254 112 863759, +254 707 354751, +254 708 374345, +254 ...' },
-    { id: '15', name: '🎧EAR BUDS/HEADPHONES 🎧 PLUG', status: '' },
-  ];
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      if (prev.includes(id)) return prev.filter(i => i !== id);
+      if (prev.length >= MAX_SELECT) return prev;
+      return [...prev, id];
+    });
+  };
+
+  const handleForward = () => {
+    if (selectedIds.length > 0) {
+      onForward(selectedIds);
+      setSelectedIds([]);
+      setSearch('');
+      onClose();
+    }
+  };
+
+  const handleClose = () => {
+    setSelectedIds([]);
+    setSearch('');
+    onClose();
+  };
+
+  const getAvatar = (c: ForwardContact) =>
+    c.avatar_url && c.avatar_url.startsWith('http')
+      ? c.avatar_url
+      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username || c.name}`;
 
   return (
     <AnimatePresence>
       {isOpen && (
-        <motion.div
-          initial={{ opacity: 0, x: '100%' }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: '100%' }}
-          transition={{ type: 'tween', duration: 0.25 }}
-          className="fixed inset-0 bg-[#0b141a] text-white z-[200] flex flex-col"
-        >
-          {/* Header */}
-          <div className="flex items-center px-4 h-16 bg-[#0b141a] border-b border-gray-800">
-            <button onClick={onClose} className="p-2 -ml-2 rounded-full hover:bg-white/10 active:bg-white/20">
-              <ArrowLeft size={24} className="text-white" />
-            </button>
-            <h2 className="text-xl font-medium ml-4 flex-1">Forward to...</h2>
-            <div className="flex items-center gap-4">
-              <button className="p-2 rounded-full hover:bg-white/10 active:bg-white/20">
-                <Users size={22} className="text-white" />
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/70 z-[190]"
+            onClick={handleClose}
+          />
+
+          {/* Bottom Sheet */}
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 240 }}
+            className="fixed bottom-0 left-0 right-0 z-[200] flex flex-col bg-[#0b141a] rounded-t-[24px] overflow-hidden"
+            style={{ maxHeight: '90vh' }}
+          >
+            {/* Handle */}
+            <div className="flex justify-center pt-3 pb-1 shrink-0">
+              <div className="w-10 h-1 bg-white/20 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center px-4 py-3 border-b border-white/10 shrink-0">
+              <button onClick={handleClose} className="p-2 -ml-2 rounded-full hover:bg-white/10 transition-colors">
+                <ArrowLeft size={22} className="text-white" />
               </button>
-              <button className="p-2 -mr-2 rounded-full hover:bg-white/10 active:bg-white/20">
-                <Search size={22} className="text-white" />
-              </button>
-            </div>
-          </div>
-
-          {/* List Area */}
-          <div className="flex-1 overflow-y-auto">
-            {/* My Status */}
-            <div className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer">
-              <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center relative flex-shrink-0">
-                <div className="w-5 h-5 bg-[#0b141a] rounded-full absolute bottom-0 right-0 flex items-center justify-center">
-                  <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center text-[#0b141a] text-xs font-bold">+</div>
-                </div>
-              </div>
-              <div className="ml-4 flex-1">
-                <h3 className="text-[16px] font-medium text-[#e9edef]">My status</h3>
-                <p className="text-[14px] text-[#8696a0]">My contacts +</p>
-              </div>
-              <div className="w-6 h-6 rounded-full border border-[#8696a0]" />
+              <h2 className="text-[17px] font-semibold text-white ml-3 flex-1">Forward to...</h2>
+              {selectedIds.length > 0 && (
+                <span className="text-[12px] font-bold text-[#ff1493]">
+                  {selectedIds.length}/{MAX_SELECT}
+                </span>
+              )}
             </div>
 
-            {/* Frequently Contacted */}
-            <div className="px-4 py-2 mt-2">
-              <span className="text-[14px] text-[#8696a0] font-medium">Frequently contacted</span>
-            </div>
-            {frequentlyContacted.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => {
-                  onSelectContact?.(c.id);
-                  onClose();
-                }}
-                className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.name}`} alt="" className="w-full h-full object-cover" />
-                </div>
-                <div className="ml-4 flex-1 overflow-hidden">
-                  <h3 className="text-[16px] text-[#e9edef] truncate">{c.name}</h3>
-                  {c.status && <p className="text-[14px] text-[#8696a0] truncate">{c.status}</p>}
-                </div>
-                <div className="w-6 h-6 rounded-full border border-[#8696a0] ml-2 flex-shrink-0" />
+            {/* Search */}
+            <div className="px-4 py-3 shrink-0">
+              <div className="flex items-center bg-white/[0.08] border border-white/10 rounded-2xl px-4 h-11 gap-3 focus-within:border-[#ff1493]/40 transition-all">
+                <Search size={16} className="text-white/40 shrink-0" />
+                <input
+                  type="text"
+                  placeholder="Search people and groups..."
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  className="bg-transparent flex-1 text-[14px] text-white placeholder:text-white/30 outline-none"
+                  autoComplete="off"
+                />
+                {search && (
+                  <button onClick={() => setSearch('')} className="text-white/40 hover:text-white">
+                    <X size={16} />
+                  </button>
+                )}
               </div>
-            ))}
+            </div>
 
-            {/* Recent Chats */}
-            <div className="px-4 py-2 mt-2">
-              <span className="text-[14px] text-[#8696a0] font-medium">Recent chats</span>
+            {/* Tabs */}
+            <div className="flex px-4 gap-3 mb-2 shrink-0">
+              {(['all', 'groups'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-1.5 rounded-full text-[12px] font-bold transition-all ${
+                    activeTab === tab
+                      ? 'bg-[#ff1493] text-white shadow-lg shadow-[#ff1493]/25'
+                      : 'bg-white/10 text-white/50 hover:bg-white/15'
+                  }`}
+                >
+                  {tab === 'all' ? 'All' : 'Groups'}
+                </button>
+              ))}
             </div>
-            {recentChats.map((c) => (
-              <div
-                key={c.id}
-                onClick={() => {
-                  onSelectContact?.(c.id);
-                  onClose();
-                }}
-                className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
-              >
-                <div className="w-12 h-12 rounded-full bg-gray-600 flex-shrink-0 overflow-hidden">
-                  <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${c.name}`} alt="" className="w-full h-full object-cover" />
+
+            {/* Selected chips */}
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="px-4 pb-3 flex flex-wrap gap-2 overflow-hidden shrink-0"
+                >
+                  {selectedIds.map(id => {
+                    const c = contacts.find(x => x.id === id);
+                    return c ? (
+                      <span key={id} className="inline-flex items-center gap-1.5 bg-[#ff1493]/20 border border-[#ff1493]/30 text-[#ff1493] rounded-full px-3 py-1 text-[12px] font-semibold">
+                        {c.name || c.username}
+                        <button onClick={() => toggleSelect(id)} className="hover:text-white transition-colors">
+                          <X size={12} strokeWidth={3} />
+                        </button>
+                      </span>
+                    ) : null;
+                  })}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Contact list */}
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+              {filteredContacts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 gap-3">
+                  <Search size={36} className="text-white/10" />
+                  <p className="text-[13px] text-white/30 font-medium">No results found</p>
                 </div>
-                <div className="ml-4 flex-1 overflow-hidden">
-                  <h3 className="text-[16px] text-[#e9edef] truncate">{c.name}</h3>
-                  {c.status && <p className="text-[14px] text-[#8696a0] truncate">{c.status}</p>}
-                </div>
-                <div className="w-6 h-6 rounded-full border border-[#8696a0] ml-2 flex-shrink-0" />
-              </div>
-            ))}
-          </div>
-        </motion.div>
+              ) : (
+                filteredContacts.map(contact => {
+                  const isSelected = selectedIds.includes(contact.id);
+                  return (
+                    <motion.div
+                      key={contact.id}
+                      onClick={() => toggleSelect(contact.id)}
+                      whileTap={{ scale: 0.98 }}
+                      className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-white/5 transition-colors active:bg-white/10"
+                    >
+                      <div className="relative shrink-0">
+                        <img
+                          src={getAvatar(contact)}
+                          className="w-12 h-12 rounded-full object-cover bg-gray-700"
+                          alt=""
+                        />
+                        {contact.type === 'group' && (
+                          <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-purple-500 rounded-full border-2 border-[#0b141a] flex items-center justify-center">
+                            <span className="text-[7px] font-black text-white">G</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-semibold text-white truncate">{contact.name}</p>
+                        {contact.username && (
+                          <p className="text-[12px] text-white/40 truncate">@{contact.username}</p>
+                        )}
+                      </div>
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 border-2 transition-all ${
+                        isSelected
+                          ? 'bg-[#ff1493] border-[#ff1493]'
+                          : 'border-white/30'
+                      }`}>
+                        {isSelected && <Check size={13} strokeWidth={3} className="text-white" />}
+                      </div>
+                    </motion.div>
+                  );
+                })
+              )}
+              {/* Bottom padding */}
+              <div className="h-24" />
+            </div>
+
+            {/* Send button */}
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.div
+                  initial={{ y: 80, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 80, opacity: 0 }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                  className="absolute bottom-0 left-0 right-0 p-5 flex justify-between items-center"
+                  style={{ background: 'linear-gradient(to top, #0b141a 60%, transparent)' }}
+                >
+                  <span className="text-[13px] font-semibold text-white/60">
+                    {selectedIds.length} selected
+                  </span>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleForward}
+                    className="w-14 h-14 rounded-full bg-[#ff1493] flex items-center justify-center shadow-xl shadow-[#ff1493]/35"
+                  >
+                    <Forward size={22} strokeWidth={2.5} className="text-white -ml-0.5" />
+                  </motion.button>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </>
       )}
     </AnimatePresence>
   );
 };
+
+export default ForwardModal;

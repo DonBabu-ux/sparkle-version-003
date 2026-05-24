@@ -535,6 +535,12 @@ const initializeSocket = (server) => {
         // Forward Message
         socket.on('forward-message', async (data, callback) => {
             const { messageId, targetChatIds } = data;
+            
+            if (!Array.isArray(targetChatIds) || targetChatIds.length > 5) {
+                if (typeof callback === 'function') callback({ success: false, error: 'Cannot forward to more than 5 people at a time.' });
+                return;
+            }
+
             try {
                 const originalMsg = await Message.getById(messageId);
                 if (!originalMsg) {
@@ -597,7 +603,9 @@ const initializeSocket = (server) => {
                         read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
                     };
 
-                    io.to(`chat:${targetChatId}`).emit('new-message', message);
+                    socket.emit('new-message', message);
+                    socket.emit('message-sent', message);
+                    socket.to(`chat:${targetChatId}`).emit('new-message', message);
                     forwardedMessages.push(message);
                 }
 

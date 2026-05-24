@@ -100,6 +100,7 @@ interface ChatConversation {
   partner_id: string;
   partner_avatar?: string;
   partner_name: string;
+  partner_username?: string;
   partner_online?: boolean;
   is_archived?: boolean;
   is_group?: boolean;
@@ -922,6 +923,8 @@ export default function Messages() {
   const [replyToMessage, setReplyToMessage] = useState<any | null>(null);
   const [editingMessage, setEditingMessage] = useState<any | null>(null);
   const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
+  const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
   const [forwardSearchQuery, setForwardSearchQuery] = useState('');
   const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
   const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
@@ -1979,7 +1982,7 @@ export default function Messages() {
           <header className="px-5 pt-4 pb-2 overflow-visible bg-[#13131a]">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
-                   <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username}`)}>
+                   <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username || user?.user_id}`)}>
                      <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/[0.12] shadow-lg" alt="" />
                    </div>
                    <h1 className="text-[26px] font-bold text-white/90 tracking-tight">Chats</h1>
@@ -2190,7 +2193,7 @@ export default function Messages() {
                   >
                     <ArrowLeft size={20} strokeWidth={2.5} />
                   </button>
-                  <div className="relative group cursor-pointer shrink-0" onClick={() => navigate(`/profile/${selectedChat.partner_name}`)}>
+                  <div className="relative group cursor-pointer shrink-0" onClick={() => navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`)}>
                     <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
                   </div>
                   <div className="ml-2 flex-1 min-w-0 flex flex-col justify-center">
@@ -2259,7 +2262,25 @@ export default function Messages() {
                   >
                     <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar scroll-smooth snap-x">
                       {pinnedMessages.map(msg => (
-                        <div key={`pinned-${msg.message_id}`} className="snap-start flex-shrink-0 flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] transition-colors border border-white/10 rounded-xl px-3.5 py-2 max-w-[220px] cursor-pointer">
+                        <div 
+                          key={`pinned-${msg.message_id}`} 
+                          onClick={() => {
+                            const el = document.getElementById(`msg-${msg.message_id}`);
+                            if (el) {
+                              el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                              const originalBg = el.style.backgroundColor;
+                              const originalBoxShadow = el.style.boxShadow;
+                              el.style.transition = 'all 0.4s ease';
+                              el.style.backgroundColor = 'rgba(255, 20, 147, 0.35)';
+                              el.style.boxShadow = '0 0 20px rgba(255, 20, 147, 0.4)';
+                              setTimeout(() => {
+                                el.style.backgroundColor = originalBg;
+                                el.style.boxShadow = originalBoxShadow;
+                              }, 1200);
+                            }
+                          }}
+                          className="snap-start flex-shrink-0 flex items-center gap-2.5 bg-white/[0.03] hover:bg-white/[0.06] active:scale-95 transition-all border border-white/10 rounded-xl px-3.5 py-2 max-w-[220px] cursor-pointer"
+                        >
                           <Pin size={14} strokeWidth={2.5} className="text-[#ff1493] shrink-0" />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">
@@ -2274,7 +2295,7 @@ export default function Messages() {
                               e.stopPropagation();
                               if (socket && selectedChat) {
                                 socket.emit('unpin-message', {
-                                  messageId: msg.message_id,
+                                  messageId: msg.message_id || msg.id,
                                   chatId: selectedChat.chat_id,
                                   isGroup: selectedChat.type === 'group'
                                 });
@@ -2319,7 +2340,7 @@ export default function Messages() {
                     ) : null;
 
                     const bubble = (
-                      <div key={msg.message_id || i} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
+                      <div key={msg.message_id || i} id={`msg-${msg.message_id}`} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
                         <div className={clsx("max-w-[75%] md:max-w-[60%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div 
                             onContextMenu={(e) => {
@@ -2742,6 +2763,7 @@ export default function Messages() {
       <MessageMoreModal
         isOpen={activeMessageMenu?.type === 'click'}
         onClose={() => setActiveMessageMenu(null)}
+        isPinned={!!activeMessageMenu?.msg?.pinned}
         onPin={() => {
           if (activeMessageMenu?.msg && socket && selectedChat) {
             if (activeMessageMenu.msg.pinned) {
@@ -2824,9 +2846,9 @@ export default function Messages() {
               <div 
                 className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
                 onClick={async () => {
-                  if (activeMessageMenu?.msg) {
+                  if (forwardingMessage) {
                     try {
-                      const { content, mediaUrl, media_url, type } = activeMessageMenu.msg;
+                      const { content, mediaUrl, media_url, type } = forwardingMessage;
                       const media = mediaUrl || media_url;
                       await api.post('/stories', {
                         media_type: type === 'image' || type === 'video' ? type : 'text',
@@ -2834,7 +2856,7 @@ export default function Messages() {
                         media_url: media || undefined
                       });
                       setShowForwardModal(false);
-                      setActiveMessageMenu(null);
+                      setForwardingMessage(null);
                       alert('Added to Sparkle Story!');
                     } catch (e) {
                       console.error(e);
@@ -2865,18 +2887,18 @@ export default function Messages() {
                 <div
                   key={`recent-${chat.chat_id}`}
                   onClick={() => {
-                    if (socket && activeMessageMenu?.msg) {
+                    if (socket && forwardingMessage) {
                       socket.emit('send-message', {
                         chatId: chat.chat_id,
-                        content: activeMessageMenu.msg.content,
-                        type: activeMessageMenu.msg.type || 'text',
-                        mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                        content: forwardingMessage.content,
+                        type: forwardingMessage.type || 'text',
+                        mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
                         forwarded: true,
                         isGroup: chat.is_group || chat.chat_type === 'group'
                       });
                       if (navigator.vibrate) navigator.vibrate([50]);
                       setShowForwardModal(false);
-                      setActiveMessageMenu(null);
+                      setForwardingMessage(null);
                     }
                   }}
                   className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
@@ -2907,22 +2929,21 @@ export default function Messages() {
                 <div
                   key={`follower-${contact.user_id || contact.id}`}
                   onClick={async () => {
-                    // Create chat first if needed, then forward
-                    if (activeMessageMenu?.msg) {
+                    if (forwardingMessage) {
                       try {
                         const res = await api.post('/messages/chat', { partnerId: contact.user_id || contact.id });
                         if (res.data?.chat_id && socket) {
                           socket.emit('send-message', {
                             chatId: res.data.chat_id,
-                            content: activeMessageMenu.msg.content,
-                            type: activeMessageMenu.msg.type || 'text',
-                            mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                            content: forwardingMessage.content,
+                            type: forwardingMessage.type || 'text',
+                            mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
                             forwarded: true,
                             isGroup: false
                           });
                           if (navigator.vibrate) navigator.vibrate([50]);
                           setShowForwardModal(false);
-                          setActiveMessageMenu(null);
+                          setForwardingMessage(null);
                         }
                       } catch (err) {
                         console.error('Failed to forward to follower', err);
@@ -2952,12 +2973,12 @@ export default function Messages() {
                     onClick={() => {
                       selectedForwardChatIds.forEach(chatId => {
                         const targetChat = conversations.find(c => c.chat_id === chatId);
-                        if (socket && targetChat && activeMessageMenu?.msg) {
+                        if (socket && targetChat && forwardingMessage) {
                           socket.emit('send-message', {
                             chatId: targetChat.chat_id,
-                            content: activeMessageMenu.msg.content,
-                            type: activeMessageMenu.msg.type || 'text',
-                            mediaUrl: activeMessageMenu.msg.mediaUrl || activeMessageMenu.msg.media_url,
+                            content: forwardingMessage.content,
+                            type: forwardingMessage.type || 'text',
+                            mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
                             forwarded: true,
                             isGroup: targetChat.is_group || targetChat.chat_type === 'group'
                           });
@@ -2966,7 +2987,7 @@ export default function Messages() {
                       if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
                       setShowForwardModal(false);
                       setSelectedForwardChatIds([]);
-                      setActiveMessageMenu(null);
+                      setForwardingMessage(null);
                     }}
                     className="w-14 h-14 rounded-full bg-[#00a884] text-white shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
                   >
@@ -3300,7 +3321,7 @@ export default function Messages() {
           onClose={() => setShowChatSettings(false)}
           onNavigateProfile={() => {
             setShowChatSettings(false);
-            navigate(`/profile/${selectedChat.partner_name}`);
+            navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`);
           }}
         />
       )}

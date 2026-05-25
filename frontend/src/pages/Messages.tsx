@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 
 import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
+import { useChatStore } from '../store/chatStore';
+import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
@@ -585,6 +587,20 @@ const ChatInput = memo(({
       }}
     >
       <div className="w-full">
+  {replyMessage && (
+    <ReplyPreview
+      onClear={() => {
+        setReplyToMessage(null);
+        // Clear store reply target as well
+        useChatStore.getState().setReplyTarget(undefined);
+      }}
+      avatarUrl={replyMessage.sender_id ? getAvatarUrl(replyMessage.sender_id) : undefined}
+      messageId={replyMessage.message_id}
+      content={replyMessage.content}
+      type={replyMessage.type}
+      media_url={replyMessage.media_url}
+    />
+  )}
         <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
           {!isMenuCollapsed ? (
             <div className="flex items-center shrink-0">

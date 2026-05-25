@@ -393,7 +393,7 @@ class Message {
     }
 
     /**
-     * Edit a message (only by sender, within 15 minutes)
+     * Edit a message (only by sender, within 5 minutes)
      */
     static async editMessage(messageId, userId, newContent) {
         const [result] = await db.query(
@@ -401,7 +401,7 @@ class Message {
              SET content = ?, edited_at = NOW(), edited = 1 
              WHERE message_id = ? AND sender_id = ? 
                AND is_deleted_for_everyone = 0
-               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
+               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 5`,
             [newContent, messageId, userId]
         );
         return result.affectedRows > 0;

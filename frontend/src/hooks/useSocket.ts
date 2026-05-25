@@ -33,7 +33,7 @@ const getOrCreateSocket = (userId: string, token: string): Socket => {
     reconnectionDelayMax: 30000,
     randomizationFactor: 0.1,
     timeout: 20000,
-    transports: ['polling', 'websocket'],
+    transports: ['websocket'],
   });
 
   s.on('connect', () => {

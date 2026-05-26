@@ -89,12 +89,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { StatusBarBackground, KeyboardAwareChatLayout } from '../components/SafeLayout';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
-import {
-  getCachedInbox, setCachedInbox,
-  getCachedMessages, setCachedMessages,
-  appendMessageToCache,
-  getPendingReadReceipts, setPendingReadReceipts, clearPendingReadReceipts
-} from '../lib/chatCache';
+
 
 // --- Types ---
 interface ChatConversation {
@@ -398,7 +393,9 @@ const ChatInput = memo(({
   setShowAttachmentMenu,
   showAttachmentMenu,
   onVoiceSend,
-  theme
+  theme,
+  replyToMessage,
+  setReplyToMessage
 }: any) => {
   const [localMessage, setLocalMessage] = useState(initialMessage || '');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -587,18 +584,18 @@ const ChatInput = memo(({
       }}
     >
       <div className="w-full">
-  {replyMessage && (
+  {replyToMessage && (
     <ReplyPreview
       onClear={() => {
         setReplyToMessage(null);
         // Clear store reply target as well
         useChatStore.getState().setReplyTarget(undefined);
       }}
-      avatarUrl={replyMessage.sender_id ? getAvatarUrl(replyMessage.sender_id) : undefined}
-      messageId={replyMessage.message_id}
-      content={replyMessage.content}
-      type={replyMessage.type}
-      media_url={replyMessage.media_url}
+      avatarUrl={replyToMessage.sender_id ? getAvatarUrl(replyToMessage.sender_id) : undefined}
+      messageId={replyToMessage.message_id}
+      content={replyToMessage.content}
+      type={replyToMessage.type}
+      media_url={replyToMessage.media_url}
     />
   )}
         <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
@@ -899,6 +896,8 @@ const uploadFileWithProgress = async (
   return response.data?.url || response.data?.data?.url || response.data?.secure_url;
 };
 
+const EMPTY_MESSAGES_ARRAY: any[] = [];
+
 export default function Messages() {
   const { user } = useUserStore();
   const { setActiveModal } = useModalStore();
@@ -908,7 +907,8 @@ export default function Messages() {
   const targetChatId = searchParams.get('chat');
 
   // --- State ---
-  const [conversations, setConversations] = useState<ChatConversation[]>([]);
+  const conversations = useChatStore(state => state.conversations);
+  const setConversations = useChatStore(state => state.setConversations);
   const getTabBadgeCount = (tabId: string) => {
     if (tabId === 'all') return conversations.length;
     if (tabId === 'unread') {
@@ -927,7 +927,21 @@ export default function Messages() {
     return 0;
   };
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  // Zustand store hooks for messages
+  const messages = useChatStore(state => state.messages[selectedChat?.chat_id || ''] ?? EMPTY_MESSAGES_ARRAY);
+  const setStoreMessages = useChatStore(state => state.setMessages);
+  const addMessage = useChatStore(state => state.addMessage);
+  const editMessage = useChatStore(state => state.editMessage);
+  const deleteMessage = useChatStore(state => state.deleteMessage);
+  const replyTarget = useChatStore(state => state.replyTarget);
+  const setReplyTarget = useChatStore(state => state.setReplyTarget);
+  const updateMessages = (updater: (msgs: any[]) => any[]) => {
+    const chatId = selectedChat?.chat_id;
+    if (!chatId) return;
+    const current = useChatStore.getState().messages[chatId] || [];
+    const updated = updater(current);
+    setStoreMessages(chatId, updated);
+  };
   const [messageSearch, setMessageSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -1173,24 +1187,14 @@ export default function Messages() {
 
   // --- Handlers ---
   const fetchInbox = async () => {
-    // 1. Render instantly from IndexedDB cache
-    const cached = await getCachedInbox();
-    if (cached && cached.length > 0) {
-      setConversations(cached);
-      setLoading(false);
-    } else {
-      setLoading(true);
-    }
-
-    // 2. Fetch fresh data from network and update
+    setLoading(true);
     try {
       const res = await api.get('/messages/inbox');
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
-      setCachedInbox(list); // persist to IndexedDB in background
     } catch (err: any) {
       console.error('Failed to fetch inbox', err.response?.data || err);
-      if (!cached || cached.length === 0) setConversations([]);
+      setConversations([]);
     } finally {
       setLoading(false);
     }
@@ -1230,10 +1234,10 @@ export default function Messages() {
   };
 
   const fetchMessages = async (chatId: string) => {
-    // 1. Show cached messages immediately for instant UI
-    const cached = await getCachedMessages(chatId);
+    // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
+    const cached: any[] = [];
     if (cached && cached.length > 0) {
-      setMessages(cached);
+      setStoreMessages(chatId, cached);
       scrollToBottom();
     }
 
@@ -1242,12 +1246,11 @@ export default function Messages() {
       const res = await api.get(`/messages/chat/${chatId}`);
       const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       // Deduplicate: merge server list with any optimistic local msgs
-      setMessages(prev => {
+      updateMessages(prev => {
         const serverIds = new Set(msgs.map((m: any) => m.message_id));
         const localOnly = prev.filter(m => !serverIds.has(m.message_id));
         return [...msgs, ...localOnly];
       });
-      setCachedMessages(chatId, msgs); // persist to IndexedDB
       scrollToBottom();
     } catch (err) {
       console.error('Failed to fetch messages', err);
@@ -1286,7 +1289,7 @@ export default function Messages() {
 
       // 1. If it belongs to current active chat, update message array
       if (isCurrentChat) {
-        setMessages(prev => {
+        updateMessages(prev => {
           if (prev.some(m => m.message_id === msg.message_id)) return prev;
           return [...prev, msg];
         });
@@ -1355,7 +1358,7 @@ export default function Messages() {
       const myId = user?.id || user?.user_id;
       if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
 
-      setMessages(prev => prev.map(m => {
+      updateMessages(prev => prev.map(m => {
         if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
           return { ...m, status: 'delivered' };
         }
@@ -1373,7 +1376,7 @@ export default function Messages() {
       const myId = user?.id || user?.user_id;
       if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
 
-      setMessages(prev => prev.map(m => {
+      updateMessages(prev => prev.map(m => {
         // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
         if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
           return { ...m, status: 'read', read_at: data.readAt };
@@ -1441,27 +1444,27 @@ export default function Messages() {
     };
 
     const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
-      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
+      updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
     };
 
     const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
-      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
+      updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
     };
 
     const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
-      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
+      updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
     };
 
     const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
-      setMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
+      updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
     };
 
     const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
-      setMessages(prev => prev.filter(m => m.message_id !== data.messageId));
+      updateMessages(prev => prev.filter(m => m.message_id !== data.messageId));
     };
 
     const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-      setMessages(prev => prev.map(m => {
+      updateMessages(prev => prev.map(m => {
         if (m.message_id === data.messageId) {
           const reactions = m.reactions || [];
           if (reactions.some(r => r.user_id === data.userId)) {
@@ -1474,7 +1477,7 @@ export default function Messages() {
     };
 
     const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-      setMessages(prev => prev.map(m => {
+      updateMessages(prev => prev.map(m => {
         if (m.message_id === data.messageId) {
           const reactions = m.reactions || [];
           return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
@@ -1574,7 +1577,7 @@ export default function Messages() {
 
     if (editingMessage) {
       const msgId = editingMessage.message_id;
-      setMessages(prev => prev.map(m => m.message_id === msgId ? { ...m, content, edited: true, edited_at: new Date().toISOString() } : m));
+      updateMessages(prev => prev.map(m => m.message_id === msgId ? { ...m, content, edited: true, edited_at: new Date().toISOString() } : m));
       socket?.emit('edit-message', {
         messageId: msgId,
         chatId: selectedChat.chat_id,
@@ -1613,7 +1616,7 @@ export default function Messages() {
       optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
     }
 
-    setMessages(prev => [...prev, optimisticMsg]);
+    updateMessages(prev => [...prev, optimisticMsg]);
     if (!contentOverride && !isRich) setNewMessage('');
 
     // Auto scroll if was at bottom
@@ -1648,7 +1651,7 @@ export default function Messages() {
       setSending(false);
       if (response.success && response.messageId) {
         // ACK received — use server-returned sentAt (never client Date)
-        setMessages(prev => prev.map(m => m.message_id === tempId
+        updateMessages(prev => prev.map(m => m.message_id === tempId
           ? {
             ...m,
             message_id: response.messageId!,
@@ -1676,7 +1679,7 @@ export default function Messages() {
         });
       } else {
         console.error('Failed to send via socket', response.error);
-        setMessages(prev => prev.filter(m => m.message_id !== tempId));
+        updateMessages(prev => prev.filter(m => m.message_id !== tempId));
       }
     });
   };
@@ -1708,7 +1711,7 @@ export default function Messages() {
   };
 
   const handleDeleteMessage = async (msgId: string) => {
-    setMessages(prev => prev.filter(m => m.message_id !== msgId));
+    updateMessages(prev => prev.filter(m => m.message_id !== msgId));
     if (socket && selectedChat) {
       socket.emit('delete-for-everyone', {
         messageId: msgId,
@@ -1719,7 +1722,7 @@ export default function Messages() {
   };
 
   const handleReactToMessage = async (msgId: string, emoji: string) => {
-    setMessages(prev => prev.map(m => {
+    updateMessages(prev => prev.map(m => {
       if (m.message_id === msgId) {
         return { ...m, reactions: [...(m.reactions || []), { emoji, user_id: user?.id || user?.user_id }] };
       }
@@ -2659,6 +2662,8 @@ export default function Messages() {
                 showAttachmentMenu={showAttachmentSheet}
                 onVoiceSend={handleVoiceSend}
                 theme={currentChatTheme}
+                replyToMessage={replyToMessage}
+                setReplyToMessage={setReplyToMessage}
               />
             </>
           ) : loading ? (
@@ -2720,7 +2725,7 @@ export default function Messages() {
                   )}
                 <button
                   onClick={() => {
-                    setMessages(prev => prev.filter(m => m.message_id !== messageToDelete.message_id));
+                    updateMessages(prev => prev.filter(m => m.message_id !== messageToDelete.message_id));
                     if (socket && selectedChat) {
                       socket.emit('delete-for-me', {
                         messageId: messageToDelete.message_id,

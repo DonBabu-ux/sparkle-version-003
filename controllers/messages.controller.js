@@ -1,6 +1,4 @@
-const Message = require('../models/Message');
-const GroupChat = require('../models/GroupChat');
-const GroupMember = require('../models/GroupMember');
+const { Message, GroupChat, GroupMember } = require('../models');
 const pool = require('../config/database');
 const crypto = require('crypto');
 

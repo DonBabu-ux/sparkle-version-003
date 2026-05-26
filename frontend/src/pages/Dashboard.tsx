@@ -106,7 +106,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
     const isFresh = lastFetched && (Date.now() - lastFetched < 30000);
     
     // Only skip if it's an initial load AND we have fresh data AND not forcing
-    if (isInitial && isFresh && posts.length > 0 && !force) {
+    if (isInitial && isFresh && (posts?.length ?? 0) > 0 && !force) {
       setLoading(false);
       return; 
     }

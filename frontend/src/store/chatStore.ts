@@ -66,7 +66,9 @@ interface ChatState {
   socketStatus: 'connected' | 'disconnected' | 'connecting';
   replyTarget?: string; // message_id being replied to
 
-  setConversations: (convs: ChatConversation[]) => void;
+  setConversations: (
+    convs: ChatConversation[] | ((prev: ChatConversation[]) => ChatConversation[])
+  ) => void;
   updateConversation: (chatId: string, updates: Partial<ChatConversation>) => void;
   setActiveConversationId: (chatId: string | null) => void;
   setMessages: (chatId: string, msgs: ChatMessage[]) => void;
@@ -96,7 +98,13 @@ export const useChatStore = create<ChatState>()(
         socketStatus: 'disconnected',
         replyTarget: undefined,
 
-        setConversations: (convs) => set(() => ({ conversations: convs })),
+        setConversations: (convs) =>
+          set((state) => ({
+            conversations:
+              typeof convs === 'function'
+                ? convs(state.conversations)
+                : convs,
+          })),
 
         updateConversation: (chatId, updates) =>
           set((state) => ({

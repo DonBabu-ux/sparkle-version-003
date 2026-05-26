@@ -927,22 +927,21 @@ export default function Messages() {
     return 0;
   };
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
-  // Zustand store hooks for messages
-  const messages = useChatStore(state => state.messagesByConversation[selectedChat?.chat_id || ''] ?? EMPTY_MESSAGES_ARRAY);
-  const setStoreMessages = useChatStore(state => state.setMessages);
-  const addMessage = useChatStore(state => state.addMessage);
-  const editMessage = useChatStore(state => state.editMessage);
-  const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
-  const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
-  const replyTarget = useChatStore(state => state.replyTarget);
-  const setReplyTarget = useChatStore(state => state.setReplyTarget);
-  const updateMessages = (updater: (msgs: any[]) => any[]) => {
-    const chatId = selectedChat?.chat_id;
-    if (!chatId) return;
-    const current = useChatStore.getState().messagesByConversation[chatId] || [];
-    const updated = updater(current);
-    setStoreMessages(chatId, updated);
-  };
+const chatId = selectedChat?.chat_id ?? '';
+const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
+const setStoreMessages = useChatStore(state => state.setMessages);
+const addMessage = useChatStore(state => state.addMessage);
+const editMessage = useChatStore(state => state.editMessage);
+const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
+const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
+const replyTarget = useChatStore(state => state.replyTarget);
+const setReplyTarget = useChatStore(state => state.setReplyTarget);
+const updateMessages = (updater: (msgs: any[]) => any[]) => {
+  if (!chatId) return;
+  const current = useChatStore.getState().messagesByConversation[chatId] || [];
+  const updated = updater(current);
+  setStoreMessages(chatId, updated);
+};
   const [messageSearch, setMessageSearch] = useState('');
 const [loading, setLoading] = useState(true);
 const [sending, setSending] = useState(false);

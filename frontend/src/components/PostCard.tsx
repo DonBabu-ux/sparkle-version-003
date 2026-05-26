@@ -14,6 +14,7 @@ import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import { useNetworkStore } from '../store/networkStore';
 import { useOfflineQueueStore } from '../store/offlineQueueStore';
+import { useFeedStore } from '../store/feedStore';
 import { formatCount } from '../utils/format';
 import MentionText from './MentionText';
 import Avatar from './Avatar';
@@ -114,9 +115,15 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
   const { isOffline } = useNetworkStore();
   const { enqueueAction } = useOfflineQueueStore();
 
-  const [isSparked, setIsSparked] = useState(post.is_sparked);
-  const [sparkCount, setSparkCount] = useState(post.spark_count || 0);
-  const [isSaved, setIsSaved] = useState(post.is_saved);
+  // Unified single source of truth selector from useFeedStore
+  const storePost = useFeedStore(state => state.postsById[post.post_id]) || post;
+  const patchPost = useFeedStore(state => state.patchPost);
+  const removePost = useFeedStore(state => state.removePost);
+
+  const isSparked = storePost.is_sparked;
+  const sparkCount = storePost.spark_count || 0;
+  const isSaved = storePost.is_saved;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -140,11 +147,12 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
     }
     
     const newSparked = fromDoubleTap ? true : !isSparked;
-    setIsSparked(newSparked);
-    setSparkCount(prev => Math.max(0, prev + (newSparked ? 1 : -1)));
+    const newCount = Math.max(0, sparkCount + (newSparked ? 1 : -1));
+
+    // Optimistically update normalized store
+    patchPost(post.post_id, { is_sparked: newSparked, spark_count: newCount });
 
     if (isOffline) {
-      // Optimistic offline update
       enqueueAction({
         type: 'LIKE_POST',
         endpoint: `/posts/${post.post_id}/like`,
@@ -157,18 +165,23 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
     try {
       await api.post(`/posts/${post.post_id}/like`);
     } catch (err) {
-      setIsSparked(!newSparked);
-      setSparkCount(prev => Math.max(0, prev + (!newSparked ? 1 : -1)));
+      // Rollback on failure
+      patchPost(post.post_id, { is_sparked: !newSparked, spark_count: sparkCount });
     }
   };
 
   const handleSavePost = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    setIsSaved(!isSaved);
+    const newSaved = !isSaved;
+
+    // Optimistically update normalized store
+    patchPost(post.post_id, { is_saved: newSaved });
+
     try {
       await api.post(`/posts/${post.post_id}/save`);
     } catch (err) {
-      setIsSaved(!isSaved);
+      // Rollback on failure
+      patchPost(post.post_id, { is_saved: !newSaved });
     }
   };
 
@@ -182,6 +195,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
       } else {
         await api.delete(`/posts/${post.post_id}`);
       }
+      removePost(post.post_id);
       triggerRefresh();
     } catch (err) {
       setDeleting(false);

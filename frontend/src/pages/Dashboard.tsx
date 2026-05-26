@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import PostCard from '../components/PostCard';
@@ -70,7 +70,8 @@ export default function Dashboard() {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
-  const { posts, stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched } = useFeedStore();
+  const { stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched, orderedPostIds, postsById } = useFeedStore();
+const posts = orderedPostIds.map(id => postsById[id]);
   
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);

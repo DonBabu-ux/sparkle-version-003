@@ -15,6 +15,7 @@ import {
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Spinner from '../components/ui/Spinner';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
+import { PullToRefreshProvider, usePullToRefresh } from '../components/PullToRefreshProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
@@ -71,6 +72,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
   const { stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched, orderedPostIds, postsById } = useFeedStore();
+  const { start: refreshDashboard } = usePullToRefresh('dashboard', () => fetchDashboardData(true, true));
 const posts = orderedPostIds.map(id => postsById[id]);
   
   const [newPostContent, setNewPostContent] = useState('');
@@ -205,8 +207,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
   // Feed managed by VirtualizedFeed component
   
   return (
+    <PullToRefreshProvider>
     <AppScreen immersive={true} className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
+          <button onClick={refreshDashboard} className="p-2 bg-primary text-white rounded ml-2">Refresh</button>
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
@@ -330,5 +334,6 @@ const posts = orderedPostIds.map(id => postsById[id]);
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </AppScreen>
+    </PullToRefreshProvider>
   );
 }

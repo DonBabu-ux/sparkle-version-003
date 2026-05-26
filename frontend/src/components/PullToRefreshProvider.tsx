@@ -57,32 +57,13 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
     }
   );
 
-  return (
-    <PullToRefreshContext.Provider value={{ triggerRefresh, isRefreshing }}>
-      <div ref={containerRef} style={{ overflowY: 'auto', height: '100vh', WebkitOverflowScrolling: 'touch' }}>
-        <AnimatePresence>
-          {/** Simple spinner/loader shown while any refresh is active */}
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 40, opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            style={{
-              background: 'rgba(250,250,250,0.9)',
-              color: '#333',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              borderBottom: '1px solid rgba(0,0,0,0.1)',
-              backdropFilter: 'blur(5px)',
-            }}
-          >
-            Refreshing…
-          </motion.div>
-        </AnimatePresence>
-        {children}
-      </div>
-    </PullToRefreshContext.Provider>
-  );
+return (
+  <PullToRefreshContext.Provider value={{ triggerRefresh, isRefreshing }}>
+    <div ref={containerRef} className="no-scrollbar" style={{ overflowY: 'auto', height: '100vh', WebkitOverflowScrolling: 'touch' }}>
+      {children}
+    </div>
+  </PullToRefreshContext.Provider>
+);
 };
 
 /** Hook for pages to perform pull‑to‑refresh */

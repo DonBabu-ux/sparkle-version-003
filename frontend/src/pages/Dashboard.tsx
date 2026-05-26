@@ -212,34 +212,32 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <Navbar />
 
       <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+        <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
+          <div className="flex gap-4 items-center mb-5">
+            <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
+            <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
+              What's on your mind, {user?.name || user?.username}?
+            </button>
+          </div>
+          <div className="border-t border-black/5 dark:border-white/5 pt-3 flex items-center justify-around">
+            <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-red-500/5 rounded-xl transition-all cursor-pointer group text-red-500/60 dark:text-red-400">
+              <Video size={20} className="text-red-500 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Video</span>
+              <input type="file" className="hidden" accept="video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+            </label>
+            <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-500/5 rounded-xl transition-all cursor-pointer group text-emerald-500/60 dark:text-emerald-400">
+              <Image size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
+              <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+            </label>
+            <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
+              <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Feeling</span>
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
           <section className="flex flex-col gap-0 bg-white dark:bg-black">
-            {/* COMPOSER */}
-            <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 -mt-4 animate-fade-in border border-black/5 dark:border-white/5">
-              <div className="flex gap-4 items-center mb-5">
-                <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
-                <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
-                  What's on your mind, {user?.name || user?.username}?
-                </button>
-              </div>
-              <div className="border-t border-black/5 dark:border-white/5 pt-3 flex items-center justify-around">
-                <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-red-500/5 rounded-xl transition-all cursor-pointer group text-red-500/60 dark:text-red-400">
-                  <Video size={20} className="text-red-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Video</span>
-                  <input type="file" className="hidden" accept="video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
-                </label>
-                <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-500/5 rounded-xl transition-all cursor-pointer group text-emerald-500/60 dark:text-emerald-400">
-                  <Image size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
-                  <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
-                </label>
-                <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
-                  <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Feeling</span>
-                </button>
-              </div>
-            </div>
-
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
             <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">

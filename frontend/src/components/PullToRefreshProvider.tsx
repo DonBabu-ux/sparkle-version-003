@@ -66,7 +66,15 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 40, opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            style={{ background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              background: 'rgba(250,250,250,0.9)',
+              color: '#333',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderBottom: '1px solid rgba(0,0,0,0.1)',
+              backdropFilter: 'blur(5px)',
+            }}
           >
             Refreshing…
           </motion.div>

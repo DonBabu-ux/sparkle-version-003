@@ -11,7 +11,7 @@ export default function Onboarding() {
       
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+      
 
       <main className="max-w-4xl mx-auto px-6 pt-32 md:pt-48 pb-56 relative z-10">
         

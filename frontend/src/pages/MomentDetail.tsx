@@ -64,7 +64,7 @@ export default function MomentDetail() {
       
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+      
 
       <main className="flex-1 lg:ml-72 p-6 md:p-12 relative z-10 flex flex-col items-center pt-16 md:pt-12">
         <div className="w-full max-w-[550px]">

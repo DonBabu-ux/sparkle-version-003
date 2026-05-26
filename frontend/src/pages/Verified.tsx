@@ -67,7 +67,7 @@ export default function Verified() {
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-red-200/20 rounded-full blur-[80px] md:blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[250px] md:w-[500px] h-[250px] md:h-[500px] bg-pink-200/20 rounded-full blur-[60px] md:blur-[120px] pointer-events-none z-0" />
+      
 
       <div className="max-w-2xl mx-auto pt-10 md:pt-16 px-4 md:px-6 relative z-10 pb-20">
         {/* Header */}

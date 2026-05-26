@@ -63,7 +63,7 @@ export default function ResetPassword() {
     <div className="min-h-screen bg-[#fdf2f4] flex items-center justify-center p-6 font-sans overflow-hidden">
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/20 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      
 
       <div className="w-full max-w-6xl bg-white/80 backdrop-blur-3xl rounded-[56px] shadow-2xl flex overflow-hidden animate-fade-in border border-white relative z-10">
         

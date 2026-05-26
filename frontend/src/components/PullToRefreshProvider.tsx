@@ -79,7 +79,12 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
 
 /** Hook for pages to perform pull‑to‑refresh */
 export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise<void>) => {
-  const { triggerRefresh, isRefreshing } = useContext(PullToRefreshContext)!;
+  const context = useContext(PullToRefreshContext);
+  if (!context) {
+    console.warn('PullToRefreshContext not found');
+    return { start: async () => {}, refreshing: false };
+  }
+  const { triggerRefresh, isRefreshing } = context;
   const latestIdRef = useRef<number>(0);
 
   const start = async () => {

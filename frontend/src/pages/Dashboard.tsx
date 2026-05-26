@@ -67,7 +67,7 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
   );
 }
 
-export default function Dashboard() {
+function DashboardContent() {
   const { user } = useUserStore();
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
@@ -207,7 +207,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
   // Feed managed by VirtualizedFeed component
   
   return (
-    <PullToRefreshProvider>
+    <>
     <AppScreen immersive={true} className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
           <button onClick={refreshDashboard} className="p-2 bg-primary text-white rounded ml-2">Refresh</button>
@@ -216,7 +216,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
           <section className="flex flex-col gap-0 bg-white dark:bg-black">
             {/* COMPOSER */}
-            <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 animate-fade-in border border-black/5 dark:border-white/5">
+            <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 -mt-4 animate-fade-in border border-black/5 dark:border-white/5">
               <div className="flex gap-4 items-center mb-5">
                 <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
                 <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
@@ -334,6 +334,14 @@ const posts = orderedPostIds.map(id => postsById[id]);
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
     </AppScreen>
+    </>
+  );
+}
+
+export default function Dashboard() {
+  return (
+    <PullToRefreshProvider>
+      <DashboardContent />
     </PullToRefreshProvider>
   );
 }

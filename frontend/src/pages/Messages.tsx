@@ -80,6 +80,7 @@ import {
   Pause,
   Forward
 } from 'lucide-react';
+import { useCall } from '../components/MockCallProvider';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';
@@ -2270,8 +2271,8 @@ return (
                 </div>
               </div>
               <div className="flex items-center gap-0.5 relative z-10 shrink-0">
-                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Phone size={17} strokeWidth={2.2} /></button>
-                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}><Video size={18} strokeWidth={2.2} /></button>
+                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice')}><Phone size={17} strokeWidth={2.2} /></button>
+                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video')}><Video size={18} strokeWidth={2.2} /></button>
                 <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
                   <Info size={19} strokeWidth={2.2} />
                 </button>

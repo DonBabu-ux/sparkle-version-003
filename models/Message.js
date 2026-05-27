@@ -172,11 +172,24 @@ class Message {
             `;
             const [messages] = await db.query(query, [chatId, chatId, userId]);
             // Ensure all dates are returned as ISO strings for client-side UTC parsing
-            const normalized = messages.map(m => ({
-                ...m,
-                sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
-                read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null
-            }));
+            const normalized = messages.map(m => {
+                const timeDiffMins = (Date.now() - new Date(m.sent_at).getTime()) / 60000;
+                const isOwn = m.sender_id === userId;
+                return {
+                    ...m,
+                    sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
+                    read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
+                    reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
+                    permissions: {
+                        canEdit: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
+                        canDeleteForMe: true,
+                        canDeleteForEveryone: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
+                        canReply: !m.is_deleted_for_everyone,
+                        canReact: !m.is_deleted_for_everyone,
+                        canPin: !m.is_deleted_for_everyone
+                    }
+                };
+            });
             return { chatId, messages: normalized };
         } else {
             query = `
@@ -202,11 +215,24 @@ class Message {
             `;
             const [messages] = await db.query(query, [chatId, userId]);
             // Ensure all dates are returned as ISO strings for client-side UTC parsing
-            const normalized = messages.map(m => ({
-                ...m,
-                sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
-                read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null
-            }));
+            const normalized = messages.map(m => {
+                const timeDiffMins = (Date.now() - new Date(m.sent_at).getTime()) / 60000;
+                const isOwn = m.sender_id === userId;
+                return {
+                    ...m,
+                    sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
+                    read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
+                    reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
+                    permissions: {
+                        canEdit: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
+                        canDeleteForMe: true,
+                        canDeleteForEveryone: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
+                        canReply: !m.is_deleted_for_everyone,
+                        canReact: !m.is_deleted_for_everyone,
+                        canPin: !m.is_deleted_for_everyone
+                    }
+                };
+            });
             return { chatId, messages: normalized };
         }
     }
@@ -393,19 +419,19 @@ class Message {
     }
 
     /**
-     * Edit a message (only by sender, within 5 minutes)
+     * Edit a message (only by sender, within 15 minutes)
      */
-    static async editMessage(messageId, userId, newContent) {
-        const [result] = await db.query(
-            `UPDATE messages 
-             SET content = ?, edited_at = NOW(), edited = 1 
-             WHERE message_id = ? AND sender_id = ? 
-               AND is_deleted_for_everyone = 0
-               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 5`,
-            [newContent, messageId, userId]
-        );
-        return result.affectedRows > 0;
-    }
+     static async editMessage(messageId, userId, newContent) {
+         const [result] = await db.query(
+             `UPDATE messages 
+              SET content = ?, edited_at = NOW(), edited = 1 
+              WHERE message_id = ? AND sender_id = ? 
+                AND is_deleted_for_everyone = 0
+                AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
+             [newContent, messageId, userId]
+         );
+         return result.affectedRows > 0;
+     }
 
     /**
      * Search messages within a conversation

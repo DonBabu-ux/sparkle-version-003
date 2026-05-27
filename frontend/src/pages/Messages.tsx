@@ -903,6 +903,7 @@ export default function Messages() {
   const { user } = useUserStore();
   const { setActiveModal } = useModalStore();
   const socket = useSocket();
+  const { startCall } = useCall();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetChatId = searchParams.get('chat');
@@ -2271,8 +2272,8 @@ return (
                 </div>
               </div>
               <div className="flex items-center gap-0.5 relative z-10 shrink-0">
-                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice')}><Phone size={17} strokeWidth={2.2} /></button>
-                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video')}><Video size={18} strokeWidth={2.2} /></button>
+                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', selectedChat.partner_name, selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', selectedChat.partner_name, selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                 <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
                   <Info size={19} strokeWidth={2.2} />
                 </button>

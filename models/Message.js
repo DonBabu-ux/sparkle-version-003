@@ -421,7 +421,7 @@ class Message {
     /**
      * Edit a message (only by sender, within 15 minutes)
      */
-     static async editMessage(messageId, userId, newContent) {
+     
          const [result] = await db.query(
              `UPDATE messages 
               SET content = ?, edited_at = NOW(), edited = 1 
@@ -508,6 +508,14 @@ class Message {
             const values = messages.map(m => `(UUID(), '${m.message_id}', '${userId}')`).join(',');
             await db.query(`INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id) VALUES ${values}`);
         }
+        return true;
+    }
+
+    /**
+    * Increment forward count for a message (used for forwarding analytics)
+    */
+    static async incrementForwardCount(messageId) {
+        await db.query(`UPDATE messages SET forward_count = IFNULL(forward_count, 0) + 1 WHERE message_id = ?`, [messageId]);
         return true;
     }
 

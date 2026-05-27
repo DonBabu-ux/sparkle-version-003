@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const messageController = require('../../controllers/messages.controller');
+const forwardController = require('../../controllers/forward.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 router.use(authMiddleware);
@@ -29,10 +30,11 @@ router.patch('/:messageId', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
 router.post('/:messageId/pin', messageController.pinMessage);
 router.post('/:messageId/unpin', messageController.unpinMessage);
-router.post('/:messageId/forward', messageController.forwardMessage);
+router.post('/:messageId/forward', forwardController.forwardMessage);
 
 // Conversation messages (Keep these at the end)
 router.get('/chat/:chatId', messageController.getConversationMessages);
 router.get('/:chatId', messageController.getConversationMessages);
 
 module.exports = router;
+

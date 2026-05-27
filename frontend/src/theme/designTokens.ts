@@ -1,4 +1,4 @@
-// src/theme/designTokens.ts
+// src/theme/designTokens.ts (updated with call UI tokens)
 export const designTokens = {
   // New tokens for modern UI
   editBadge: {
@@ -15,6 +15,16 @@ export const designTokens = {
   gif: {
     maxHeight: '200px',
     borderRadius: '8px',
+  },
+  // Call UI tokens
+  call: {
+    overlayBg: 'rgba(0,0,0,0.6)',
+    previewBg: 'rgba(0,0,0,0.3)',
+    previewShadow: '0 4px 12px rgba(0,0,0,0.4)',
+    gradientDuration: '8s',
+    blurAmount: '8px',
+    transition: '0.3s ease-in-out',
+    borderRadius: '12px',
   },
   // Existing design tokens
   colors: {

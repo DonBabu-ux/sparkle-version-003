@@ -5,6 +5,7 @@ import {
   Bluetooth, Phone, PhoneOff, RefreshCw, Signal, 
   User, ShieldAlert, Wifi, Battery, Minimize2, Maximize2
 } from 'lucide-react';
+import { LocalPreview } from './video/LocalPreview';
 
 export const CallOverlay = () => {
   const {
@@ -187,7 +188,7 @@ export const CallOverlay = () => {
                   alt="" 
                   className={`w-32 h-32 rounded-full object-cover shadow-2xl transition-all duration-700 ${isFrontCamera ? 'scale-x-[-1]' : ''}`}
                 />
-                <span className="text-xs tracking-widest text-emerald-400/80 font-mono mt-4 uppercase">Simulating HD Stream</span>
+
               </div>
             </div>
           ) : (
@@ -282,30 +283,7 @@ export const CallOverlay = () => {
 
         {/* FLOATING MINI PREVIEW (For Video Call Active Connected State) */}
         {isVideo && state === 'connected' && (
-          <div className="absolute right-4 top-24 z-20 w-28 h-40 bg-black/40 rounded-xl overflow-hidden border border-white/15 shadow-2xl backdrop-blur-md">
-            {isCameraOn ? (
-              <div className="w-full h-full relative">
-                {/* Simulated Camera preview */}
-                <div className="absolute inset-0 bg-gradient-to-tr from-[#14151F] to-[#25283B] flex items-center justify-center">
-                  <User size={32} className="text-white/30" />
-                </div>
-                <div className="absolute bottom-2 left-2 right-2 flex justify-between items-center z-10">
-                  <span className="text-[9px] bg-black/50 text-white/80 px-1.5 py-0.5 rounded font-mono">You</span>
-                  <button 
-                    onClick={switchCamera} 
-                    className="p-1 bg-white/20 hover:bg-white/30 active:scale-90 rounded-full transition-all"
-                  >
-                    <RefreshCw size={10} className="text-white" />
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-zinc-900/90 text-white/50 text-center px-2">
-                <CameraOff size={20} className="mb-1 opacity-70" />
-                <span className="text-[9px]">Camera Off</span>
-              </div>
-            )}
-          </div>
+          <LocalPreview isCameraOn={isCameraOn} />
         )}
 
         {/* BOTTOM ACTION BAR (Mute, Speaker, Bluetooth, Decline, Accept buttons) */}

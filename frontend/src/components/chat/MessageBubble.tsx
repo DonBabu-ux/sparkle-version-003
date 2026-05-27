@@ -1,9 +1,10 @@
 // src/components/chat/MessageBubble.tsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useChatStore } from '../../store/chatStore';
 import { designTokens } from '../../theme/designTokens';
 import { X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLongPress } from '../../hooks/useLongPress';
 
 interface MessagePermissions {
   canEdit?: boolean;
@@ -29,43 +30,69 @@ interface MessageBubbleProps {
   onReply: (msgId: string) => void;
 }
 
-// Hook for long‑press detection
-
-  const timerRef = useRef<number>();
-  const start = () => {
-    // @ts-ignore
-    timerRef.current = window.setTimeout(onLongPress, ms);
-  };
-  const cancel = () => {
-    // @ts-ignore
-    clearTimeout(timerRef.current);
-  };
-  return {
-    onMouseDown: start,
-    onMouseUp: cancel,
-    onMouseLeave: cancel,
-    onTouchStart: start,
-    onTouchEnd: cancel,
-  };
-};
-
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrentUser, onReply }) => {
   const editMessage = useChatStore((s) => s.editMessage);
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(message.content);
   const [showOverlay, setShowOverlay] = useState(false);
+  const [showMoreActions, setShowMoreActions] = useState(false);
 
   const canEdit = message.permissions?.canEdit ?? false;
 
+  // Handlers for delete and forward actions
+  const handleDeleteForMe = async () => {
+    try {
+      await fetch(`/api/messages/${message.message_id}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forEveryone: false }),
+      });
+      const chatId = useChatStore.getState().activeConversationId as string;
+      if (chatId) useChatStore.getState().deleteMessageLocal(chatId, message.message_id);
+      setShowOverlay(false);
+    } catch (err) {
+      console.error('Delete for me failed', err);
+    }
+  };
+
+  const handleDeleteForEveryone = async () => {
+    try {
+      await fetch(`/api/messages/${message.message_id}/delete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ forEveryone: true, chatId: useChatStore.getState().activeConversationId }),
+      });
+      const chatId = useChatStore.getState().activeConversationId as string;
+      if (chatId) useChatStore.getState().deleteMessageForEveryone(chatId, message.message_id, 'This message was deleted');
+      setShowOverlay(false);
+    } catch (err) {
+      console.error('Delete for everyone failed', err);
+    }
+  };
+
+  const handleForward = async () => {
+    const targetChatIds = prompt('Enter comma‑separated chat IDs to forward to:');
+    if (!targetChatIds) return;
+    try {
+      await fetch(`/api/messages/${message.message_id}/forward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetChatIds: targetChatIds.split(',').map(id => id.trim()) }),
+      });
+      setShowOverlay(false);
+    } catch (err) {
+      console.error('Forward failed', err);
+    }
+  };
+
   const handleEdit = () => {
     if (draft.trim() && draft !== message.content) {
-      editMessage(message.message_id, draft);
+      const chatId = useChatStore.getState().activeConversationId as string;
+      if (chatId) editMessage(chatId, message.message_id, draft);
     }
     setIsEditing(false);
   };
 
-  const [showMoreActions, setShowMoreActions] = useState(false);
-    
   // Close overlay when clicking outside the bubble
   useEffect(() => {
     if (!showOverlay) return;
@@ -134,27 +161,51 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
           <Check size={14} />
         </button>
       </div>
-      {showOverlay && (
-        <div className="absolute z-10 mt-2 p-2 bg-white dark:bg-gray-800 rounded shadow-lg flex space-x-2">
-          {!showMoreActions ? (
-            <>
-              <span className="cursor-pointer">👍</span>
-              <span className="cursor-pointer">❤️</span>
-              <span className="cursor-pointer">😂</span>
-              <span className="cursor-pointer">🙌</span>
-              <button className="ml-2 text-sm" onClick={() => setShowMoreActions(true)}>
-                More
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col text-sm">
-              <button onClick={() => setShowMoreActions(false)}>Back</button>
-              <span>Delete</span>
-              <span>Forward</span>
-            </div>
-          )}
-        </div>
-      )}
+        {/* Action Overlay */}
+        {showOverlay && (
+          <div className="absolute z-10 mt-2 p-2 bg-white dark:bg-gray-800 rounded shadow-lg flex flex-col space-y-1 min-w-[120px]">
+            {/* Quick reactions */}
+            {!showMoreActions && (
+              <>
+                <div className="flex space-x-2 mb-1">
+                  <span className="cursor-pointer" role="img" aria-label="thumbs up">👍</span>
+                  <span className="cursor-pointer" role="img" aria-label="heart">❤️</span>
+                  <span className="cursor-pointer" role="img" aria-label="laugh">😂</span>
+                  <span className="cursor-pointer" role="img" aria-label="clap">🙌</span>
+                </div>
+                <button className="text-sm text-left" onClick={() => setShowMoreActions(true)}>
+                  More
+                </button>
+              </>
+            )}
+            {/* Expanded actions */}
+            {showMoreActions && (
+              <div className="flex flex-col text-sm space-y-1">
+                <button onClick={() => setShowMoreActions(false)} className="text-left">
+                  Back
+                </button>
+                {message.permissions?.canDeleteForMe && (
+                  <button onClick={handleDeleteForMe} className="text-left text-red-600">
+                    Delete for Me
+                  </button>
+                )}
+                {message.permissions?.canDeleteForEveryone && (
+                  <button onClick={handleDeleteForEveryone} className="text-left text-red-800">
+                    Delete for Everyone
+                  </button>
+                )}
+                {message.permissions?.canReply && (
+                  <button onClick={() => onReply(message.message_id)} className="text-left">
+                    Reply
+                  </button>
+                )}
+                <button onClick={handleForward} className="text-left">
+                  Forward
+                </button>
+              </div>
+            )}
+          </div>
+        )}
     </div>
   );
 };

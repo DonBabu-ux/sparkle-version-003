@@ -30,7 +30,7 @@ interface MessageBubbleProps {
 }
 
 // Hook for long‑press detection
-const useLongPress = (onLongPress: () => void, ms = 500) => {
+
   const timerRef = useRef<number>();
   const start = () => {
     // @ts-ignore
@@ -64,8 +64,8 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
     setIsEditing(false);
   };
 
-  const longPressHandlers = useLongPress(() => setShowOverlay(true), 500);
-
+  const [showMoreActions, setShowMoreActions] = useState(false);
+    
   // Close overlay when clicking outside the bubble
   useEffect(() => {
     if (!showOverlay) return;
@@ -73,11 +73,14 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
       const target = e.target as HTMLElement;
       if (!target.closest('.message-bubble')) {
         setShowOverlay(false);
+        setShowMoreActions(false);
       }
     };
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [showOverlay]);
+
+  const longPressHandlers = useLongPress(() => setShowOverlay(true), 500);
 
   return (
     <div id={message.message_id} className="flex flex-col mb-3" style={{ alignItems: isCurrentUser ? 'flex-end' : 'flex-start' }}>
@@ -133,13 +136,23 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
       </div>
       {showOverlay && (
         <div className="absolute z-10 mt-2 p-2 bg-white dark:bg-gray-800 rounded shadow-lg flex space-x-2">
-          <span className="cursor-pointer">👍</span>
-          <span className="cursor-pointer">❤️</span>
-          <span className="cursor-pointer">😂</span>
-          <span className="cursor-pointer">🙌</span>
-          <button className="ml-2 text-sm" onClick={() => setShowOverlay(false)}>
-            More
-          </button>
+          {!showMoreActions ? (
+            <>
+              <span className="cursor-pointer">👍</span>
+              <span className="cursor-pointer">❤️</span>
+              <span className="cursor-pointer">😂</span>
+              <span className="cursor-pointer">🙌</span>
+              <button className="ml-2 text-sm" onClick={() => setShowMoreActions(true)}>
+                More
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col text-sm">
+              <button onClick={() => setShowMoreActions(false)}>Back</button>
+              <span>Delete</span>
+              <span>Forward</span>
+            </div>
+          )}
         </div>
       )}
     </div>

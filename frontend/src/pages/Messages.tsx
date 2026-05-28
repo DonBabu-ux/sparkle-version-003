@@ -2421,118 +2421,128 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               )}
 
                               <div className="relative text-[14.5px]">
-                                {(!msg.type || msg.type === 'text') && (
+                                {msg.is_deleted_for_everyone ? (
                                   <>
-                                    <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
+                                    <span className="italic text-white/40 select-none">This message was deleted</span>
                                     {/* Spacer to prevent timestamp overlap */}
                                     <span className="inline-block w-[75px] h-[1px]"></span>
                                   </>
-                                )}
+                                ) : (
+                                  <>
+                                    {(!msg.type || msg.type === 'text') && (
+                                      <>
+                                        <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
+                                        {/* Spacer to prevent timestamp overlap */}
+                                        <span className="inline-block w-[75px] h-[1px]"></span>
+                                      </>
+                                    )}
 
-                                {msg.type === 'image' && (
-                                  <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setLightboxUrl(msg.media_url || msg.mediaUrl || '')}>
-                                    <img src={msg.media_url || msg.mediaUrl} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
-                                    {msg.content && (
-                                      <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
-                                        {msg.content}
+                                    {msg.type === 'image' && (
+                                      <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setLightboxUrl(msg.media_url || msg.mediaUrl || '')}>
+                                        <img src={msg.media_url || msg.mediaUrl} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
+                                        {msg.content && (
+                                          <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
+                                            {msg.content}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
-                                  </div>
-                                )}
 
-                                {msg.type === 'video' && (
-                                  <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
-                                    <video src={msg.media_url || msg.mediaUrl} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
-                                    {msg.content && (
-                                      <div className="p-2 text-[13px] text-white/95 font-semibold">
-                                        {msg.content}
+                                    {msg.type === 'video' && (
+                                      <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
+                                        <video src={msg.media_url || msg.mediaUrl} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
+                                        {msg.content && (
+                                          <div className="p-2 text-[13px] text-white/95 font-semibold">
+                                            {msg.content}
+                                          </div>
+                                        )}
                                       </div>
                                     )}
-                                  </div>
-                                )}
 
-                                {(msg.type === 'voice_note' || msg.type === 'audio') && (
-                                  <div className="my-1">
-                                    <VoiceNotePlayer url={msg.media_url || msg.mediaUrl || ''} />
-                                  </div>
-                                )}
+                                    {(msg.type === 'voice_note' || msg.type === 'audio') && (
+                                      <div className="my-1">
+                                        <VoiceNotePlayer url={msg.media_url || msg.mediaUrl || ''} />
+                                      </div>
+                                    )}
 
-                                {msg.type === 'document' && (
-                                  <a
-                                    href={msg.media_url || msg.mediaUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
-                                  >
-                                    <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                                      <FileText size={20} strokeWidth={2.5} />
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-[13px] font-bold text-white truncate leading-tight">
-                                        {msg.content || 'Document attachment'}
-                                      </div>
-                                      <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
-                                        Attachment • FILE
-                                      </div>
-                                    </div>
-                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
-                                      <Download size={16} strokeWidth={2.5} />
-                                    </div>
-                                  </a>
-                                )}
-
-                                {msg.type === 'location' && (
-                                  <div className="rounded-[16px] overflow-hidden max-w-[260px] border border-white/10 bg-black/40 my-1">
-                                    <div className="relative h-[120px] bg-slate-900 flex items-center justify-center">
-                                      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-400 via-pink-400 to-indigo-900" />
-                                      <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-                                        <div className="w-8 h-8 rounded-full bg-[#ff1493]/20 border border-[#ff1493] flex items-center justify-center animate-ping" />
-                                        <MapPin size={24} className="text-[#ff1493] drop-shadow-md absolute" strokeWidth={3} />
-                                      </div>
-                                      <span className="absolute bottom-2 right-2 bg-black/60 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest text-white/80 uppercase">LIVE MAP</span>
-                                    </div>
-                                    <div className="p-3">
-                                      <h5 className="font-bold text-[13px] text-white truncate leading-tight">
-                                        {msg.content || 'Shared Location'}
-                                      </h5>
-                                      <p className="text-[10.5px] text-white/40 font-bold uppercase tracking-wider mt-0.5 leading-none">
-                                        Open in Maps
-                                      </p>
+                                    {msg.type === 'document' && (
                                       <a
-                                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(msg.content || 'Location')}`}
+                                        href={msg.media_url || msg.mediaUrl}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="mt-2.5 block w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
+                                        className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
                                       >
-                                        View Route
+                                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                                          <FileText size={20} strokeWidth={2.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                          <div className="text-[13px] font-bold text-white truncate leading-tight">
+                                            {msg.content || 'Document attachment'}
+                                          </div>
+                                          <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
+                                            Attachment • FILE
+                                          </div>
+                                        </div>
+                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
+                                          <Download size={16} strokeWidth={2.5} />
+                                        </div>
                                       </a>
-                                    </div>
-                                  </div>
-                                )}
+                                    )}
 
-                                {msg.type === 'contact' && (
-                                  <div className="bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-[#ff1493] flex items-center justify-center text-white text-[15px] font-black shrink-0 shadow-lg shadow-pink-500/20">
-                                        {msg.content ? msg.content.charAt(0).toUpperCase() : 'C'}
+                                    {msg.type === 'location' && (
+                                      <div className="rounded-[16px] overflow-hidden max-w-[260px] border border-white/10 bg-black/40 my-1">
+                                        <div className="relative h-[120px] bg-slate-900 flex items-center justify-center">
+                                          <div className="absolute inset-0 opacity-40 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-sky-400 via-pink-400 to-indigo-900" />
+                                          <div className="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
+                                            <div className="w-8 h-8 rounded-full bg-[#ff1493]/20 border border-[#ff1493] flex items-center justify-center animate-ping" />
+                                            <MapPin size={24} className="text-[#ff1493] drop-shadow-md absolute" strokeWidth={3} />
+                                          </div>
+                                          <span className="absolute bottom-2 right-2 bg-black/60 px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest text-white/80 uppercase">LIVE MAP</span>
+                                        </div>
+                                        <div className="p-3">
+                                          <h5 className="font-bold text-[13px] text-white truncate leading-tight">
+                                            {msg.content || 'Shared Location'}
+                                          </h5>
+                                          <p className="text-[10.5px] text-white/40 font-bold uppercase tracking-wider mt-0.5 leading-none">
+                                            Open in Maps
+                                          </p>
+                                          <a
+                                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(msg.content || 'Location')}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="mt-2.5 block w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
+                                          >
+                                            View Route
+                                          </a>
+                                        </div>
                                       </div>
-                                      <div className="flex-1 min-w-0">
-                                        <h4 className="font-bold text-[13px] text-white truncate leading-tight">
-                                          {msg.content || 'Contact Card'}
-                                        </h4>
-                                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
-                                          {msg.media_url || msg.mediaUrl || '+1 (555) 019-2834'}
-                                        </p>
+                                    )}
+
+                                    {msg.type === 'contact' && (
+                                      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-10 h-10 rounded-full bg-[#ff1493] flex items-center justify-center text-white text-[15px] font-black shrink-0 shadow-lg shadow-pink-500/20">
+                                            {msg.content ? msg.content.charAt(0).toUpperCase() : 'C'}
+                                          </div>
+                                          <div className="flex-1 min-w-0">
+                                            <h4 className="font-bold text-[13px] text-white truncate leading-tight">
+                                              {msg.content || 'Contact Card'}
+                                            </h4>
+                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
+                                              {msg.media_url || msg.mediaUrl || '+1 (555) 019-2834'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <button
+                                          type="button"
+                                          onClick={() => startNewChat({ user_id: 'mock_partner', username: msg.content, name: msg.content, avatar_url: '' })}
+                                          className="w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
+                                        >
+                                          Message Contact
+                                        </button>
                                       </div>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={() => startNewChat({ user_id: 'mock_partner', username: msg.content, name: msg.content, avatar_url: '' })}
-                                      className="w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
-                                    >
-                                      Message Contact
-                                    </button>
-                                  </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -2780,15 +2790,35 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setShowDeleteConfirm(true);
           setActiveMessageMenu(null);
         }}
-        onReact={() => {
+        onMore={() => {
+          setActiveMessageMenu(prev => prev ? { ...prev, type: 'click' } : null);
+        }}
+        onReact={(emoji) => {
+          if (activeMessageMenu?.msg?.message_id) {
+            handleReactToMessage(activeMessageMenu.msg.message_id, emoji);
+          }
+          setActiveMessageMenu(null);
+        }}
+        onOpenEmojiPicker={() => {
           setShowFullEmojiPicker(true);
         }}
+        onForward={() => {
+          if (activeMessageMenu?.msg) {
+            setForwardingMessage(activeMessageMenu.msg);
+            setSelectedForwardChatIds([]);
+            setShowForwardModal(true);
+          }
+          setActiveMessageMenu(null);
+        }}
+        isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
+        themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
       />
 
       <MessageMoreModal
         isOpen={activeMessageMenu?.type === 'click'}
         onClose={() => setActiveMessageMenu(null)}
         isPinned={!!activeMessageMenu?.msg?.pinned}
+        isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
         onPin={() => {
           if (activeMessageMenu?.msg && socket && selectedChat) {
             if (activeMessageMenu.msg.pinned) {
@@ -2818,6 +2848,10 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           if (activeMessageMenu?.msg) {
             alert(`Sent at: ${new Date(activeMessageMenu.msg.sent_at).toLocaleString()}\nStatus: ${activeMessageMenu.msg.status || 'sent'}\nForwarded: ${activeMessageMenu.msg.forwarded ? 'Yes' : 'No'}`);
           }
+          setActiveMessageMenu(null);
+        }}
+        onReport={() => {
+          alert('Thank you for reporting. Our moderation team will review this message shortly.');
           setActiveMessageMenu(null);
         }}
       />

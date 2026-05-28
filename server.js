@@ -21,6 +21,7 @@ const webRoutes = require('./routes/web');
 
 const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
+const { authMiddleware } = require('./middleware/auth.middleware');
 const { startKeepAlive } = require('./utils/keep-alive');
 const firebaseConfig = require('./config/firebase.config');
 const { initializeSocket } = require('./socket');

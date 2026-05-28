@@ -1,5 +1,6 @@
 // socketService.ts
 import { io, Socket } from 'socket.io-client';
+import { useUserStore } from '../store/userStore';
 
 // Determine the proper SOCKET_URL based on environment
 const isLocalhost =
@@ -47,9 +48,40 @@ export const createSocket = (userId: string, token: string): Socket => {
     _socket.on('disconnect', (reason) => {
       console.warn('⚡ Socket disconnected:', reason);
     });
-    _socket.on('connect_error', (err) => {
+    // Handle connection errors, especially authentication failures
+    _socket.on('connect_error', async (err) => {
       console.error('❌ Socket connection error:', err);
+      // If the error indicates authentication failure, try refreshing the token
+      if (err?.message?.includes('Authentication') || err?.message?.includes('jwt')) {
+        try {
+          // Call the auth refresh endpoint (API route)
+          const refreshToken = useUserStore.getState().refreshToken;
+          const response = await fetch(`${SOCKET_URL}/api/auth/refresh`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ refreshToken })
+          });
+          if (response.ok) {
+            const data = await response.json();
+            const newToken = data.accessToken || data.token;
+            if (newToken) {
+              // Recreate socket with new token
+              _socket?.disconnect();
+              _socket = null;
+              createSocket(_currentUserId!, newToken);
+              console.log('🔄 Token refreshed and socket reconnected');
+            }
+          } else {
+            console.warn('⚠️ Token refresh failed, socket will remain disconnected');
+          }
+        } catch (e) {
+          console.error('⚠️ Error during token refresh:', e);
+        }
+      }
     });
+// Duplicate connect_error listener removed
+
   }
   return _socket;
 };

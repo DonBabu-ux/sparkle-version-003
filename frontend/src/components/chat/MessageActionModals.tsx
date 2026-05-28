@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus } from 'lucide-react';
+import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 
@@ -18,10 +18,11 @@ interface ActionSheetProps {
   onOpenEmojiPicker: () => void;
   isMe: boolean;
   themeColor?: string;
+  onForward?: () => void;
 }
 
 export const MessageActionSheet: React.FC<ActionSheetProps> = ({
-  isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493"
+  isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493", onForward
 }) => {
   return (
     <AnimatePresence>
@@ -69,8 +70,12 @@ export const MessageActionSheet: React.FC<ActionSheetProps> = ({
             {/* Action Bar (Sleek Rectangle) */}
             <div className="bg-[#1e1e1e] w-full max-w-[340px] rounded-[16px] py-3 px-2 border border-white/10 flex justify-around shadow-2xl">
               <ActionButton icon={<Reply size={22} />} label="Reply" onClick={onReply} color={themeColor} />
-              <ActionButton icon={<Copy size={22} />} label="Copy" onClick={onCopy} color={themeColor} />
-              {isMe && <ActionButton icon={<Trash2 size={22} />} label="Delete" onClick={onDelete} color="#ef4444" />}
+              {isMe ? (
+                <ActionButton icon={<Copy size={22} />} label="Copy" onClick={onCopy} color={themeColor} />
+              ) : (
+                <ActionButton icon={<Forward size={22} />} label="Forward" onClick={onForward} color={themeColor} />
+              )}
+              <ActionButton icon={<Trash2 size={22} />} label="Delete" onClick={onDelete} color="#ef4444" />
               <ActionButton icon={<MoreHorizontal size={22} />} label="More" onClick={onMore} color={themeColor} />
             </div>
           </motion.div>
@@ -88,10 +93,12 @@ interface MoreModalProps {
   onForward: () => void;
   onDetails: () => void;
   isPinned?: boolean;
+  isMe?: boolean;
+  onReport?: () => void;
 }
 
 export const MessageMoreModal: React.FC<MoreModalProps> = ({
-  isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false
+  isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false, isMe = false, onReport
 }) => {
   return (
     <AnimatePresence>
@@ -112,15 +119,34 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[111] overflow-hidden border border-white/[0.08]"
           >
             <div className="flex flex-col py-1.5">
-              <MoreOption 
-                icon={<Pin size={18} className={isPinned ? "text-[#ff1493]" : "text-white/60"} />} 
-                label={isPinned ? "Unpin Message" : "Pin Message"} 
-                onClick={onPin} 
-              />
-              <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
-              <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
-              <div className="h-px bg-white/[0.06] my-1" />
-              <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
+              {isMe ? (
+                <>
+                  <MoreOption 
+                    icon={<Pin size={18} className={isPinned ? "text-[#ff1493]" : "text-white/60"} />} 
+                    label={isPinned ? "Unpin Message" : "Pin Message"} 
+                    onClick={onPin} 
+                  />
+                  <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
+                  <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                  <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
+                </>
+              ) : (
+                <>
+                  <MoreOption 
+                    icon={<AlertTriangle size={18} className="text-rose-500" />} 
+                    label="Report" 
+                    onClick={onReport} 
+                  />
+                  <MoreOption 
+                    icon={<Pin size={18} className={isPinned ? "text-[#ff1493]" : "text-white/60"} />} 
+                    label={isPinned ? "Unpin Message" : "Pin Message"} 
+                    onClick={onPin} 
+                  />
+                  <div className="h-px bg-white/[0.06] my-1" />
+                  <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
+                </>
+              )}
             </div>
           </motion.div>
         </>

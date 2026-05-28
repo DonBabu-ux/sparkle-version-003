@@ -386,8 +386,8 @@ class Message {
         }
 
         const query = isAdminOverride 
-            ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ? WHERE message_id = ?`
-            : `UPDATE messages SET is_deleted_for_everyone = 1, content = ? WHERE message_id = ? AND sender_id = ?`;
+            ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ?`
+            : `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ? AND sender_id = ?`;
         
         const params = isAdminOverride ? [content, messageId] : [content, messageId, userId];
         const [result] = await db.query(query, params);

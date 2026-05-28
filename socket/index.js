@@ -1,4 +1,5 @@
 const socketIO = require('socket.io');
+const perms = require('../backend/services/messagePermission');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
@@ -392,30 +393,18 @@ const initializeSocket = (server) => {
                     if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
                     return;
                 }
-
-                let success = false;
-                const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
-
-                if (msg.sender_id === socket.userId) {
-                    if (timeDiffMins > 15) {
-                        socket.emit('message-error', { error: 'Delete window expired (max 15 mins)' });
-                        if (typeof callback === 'function') callback({ success: false, error: 'Delete window expired (max 15 mins)' });
-                        return;
-                    }
-                    success = await Message.deleteForEveryone(messageId, socket.userId);
-                } else if (chatId) {
-                    // Check if it's a group and user is admin
-                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
-                    if (isAdmin) {
-                        success = await Message.deleteForEveryone(messageId, socket.userId, true, socket.user.username);
-                    }
+                // Determine conversation type for permission check
+                const conv = { type: (chatId && (await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId])).length > 0 ? 'group' : 'private') };
+                if (!perms.canDeleteForEveryone(socket.user, msg, conv)) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied: cannot delete this message for everyone.' });
+                    return;
                 }
-
+                const success = await Message.deleteForEveryone(messageId, socket.userId, conv.type === 'group', socket.user.username);
                 if (success) {
                     io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
                     if (typeof callback === 'function') callback({ success: true });
                 } else {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied or failed to delete' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to delete message for everyone.' });
                 }
             } catch (error) {
                 logger.error('Delete for everyone error:', error);
@@ -444,15 +433,18 @@ const initializeSocket = (server) => {
         socket.on('pin-message', async (data, callback) => {
             const { messageId, chatId } = data;
             try {
-                // If it is a group chat, verify if only admins can pin/unpin or if user is admin
                 const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
-                if (groupExists.length > 0) {
-                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
-                    if (!isAdmin) {
-                        socket.emit('message-error', { error: 'Only admins can pin messages in group chats' });
-                        if (typeof callback === 'function') callback({ success: false, error: 'Only admins can pin messages' });
-                        return;
-                    }
+                // Determine conversation type for permission check
+                const conv = { type: (groupExists.length > 0) ? 'group' : 'private' };
+                const msg = await Message.getById(messageId);
+                if (!msg) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                    return;
+                }
+                if (!perms.canPinMessage(socket.user, msg, conv)) {
+                    socket.emit('message-error', { error: 'You do not have permission to pin this message' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied' });
+                    return;
                 }
 
                 // Check pin limit: maximum 5 pinned messages per chat
@@ -487,15 +479,17 @@ const initializeSocket = (server) => {
         socket.on('unpin-message', async (data, callback) => {
             const { messageId, chatId } = data;
             try {
-                // If group, check if admin
                 const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
-                if (groupExists.length > 0) {
-                    const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
-                    if (!isAdmin) {
-                        socket.emit('message-error', { error: 'Only admins can unpin messages in group chats' });
-                        if (typeof callback === 'function') callback({ success: false, error: 'Only admins can unpin messages' });
-                        return;
-                    }
+                const conv = { type: (groupExists.length > 0) ? 'group' : 'private' };
+                const msg = await Message.getById(messageId);
+                if (!msg) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                    return;
+                }
+                if (!perms.canPinMessage(socket.user, msg, conv)) {
+                    socket.emit('message-error', { error: 'You do not have permission to unpin this message' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied' });
+                    return;
                 }
 
                 const [result] = await pool.query(
@@ -519,12 +513,21 @@ const initializeSocket = (server) => {
         socket.on('edit-message', async (data, callback) => {
             const { messageId, chatId, content } = data;
             try {
+                const msg = await Message.getById(messageId);
+                if (!msg) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
+                    return;
+                }
+                if (!perms.canEditMessage(socket.user, msg)) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied: cannot edit this message.' });
+                    return;
+                }
                 const success = await Message.editMessage(messageId, socket.userId, content);
                 if (success) {
                     io.to(`chat:${chatId}`).emit('message-edited', { messageId, chatId, content, editedAt: new Date().toISOString() });
                     if (typeof callback === 'function') callback({ success: true });
                 } else {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message. Messages can only be edited by the sender within 15 minutes.' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message due to server error.' });
                 }
             } catch (error) {
                 logger.error('Edit message error:', error);

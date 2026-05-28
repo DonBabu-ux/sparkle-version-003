@@ -1,4 +1,4 @@
-const db = require('../db'); // adjust path to your DB instance
+const db = require('../../config/database'); // adjust path to your DB instance
 
 /**
  * Message model abstraction.
@@ -95,5 +95,6 @@ class Message {
     const [result] = await db.query('UPDATE messages SET content = ?, edited = TRUE WHERE id = ?', [newContent, messageId]);
     return result.affectedRows > 0;
   }
+}
 
 module.exports = Message;

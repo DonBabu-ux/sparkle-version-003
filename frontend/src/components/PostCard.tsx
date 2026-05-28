@@ -19,6 +19,7 @@ import { formatCount } from '../utils/format';
 import MentionText from './MentionText';
 import Avatar from './Avatar';
 import { ProgressiveImage } from './ProgressiveImage';
+import { VideoPlayer } from './VideoPlayer';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
 
@@ -589,7 +590,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           ) : post.media_url ? (
             <div className="w-full flex items-center justify-center">
               {isVideo ? (
-                <video src={getMediaUrl(post.media_url)} className="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain" />
+                <VideoPlayer src={getMediaUrl(post.media_url)} />
               ) : (
                 <ProgressiveImage
                   src={post.media_url}

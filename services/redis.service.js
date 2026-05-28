@@ -18,22 +18,44 @@ class RedisService {
     }
 
     initialize() {
+        // Enable Redis if ENABLE_REDIS_CACHE is true, regardless of DISABLE_QUEUE which only disables queue workers
+        const enableCache = process.env.ENABLE_REDIS_CACHE === 'true';
+        if (!enableCache) {
+            logger.warn('Redis Service: Caching disabled via ENABLE_REDIS_CACHE flag.');
+            this.isEnabled = false;
+            this.client = null;
+            return;
+        }
+
+        if (process.env.DISABLE_QUEUE === 'true') {
+            logger.warn('Redis Service: Disabled via DISABLE_QUEUE flag.');
+            this.isEnabled = false;
+            this.client = null;
+            return;
+        }
         try {
             const url = process.env.UPSTASH_REDIS_REST_URL;
             const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 
             if (!url || !token) {
                 logger.warn('Redis Service: UPSTASH_REDIS_REST_URL or TOKEN missing. Redis is DISABLED.');
+                this.isEnabled = false;
+                this.client = null;
                 return;
             }
 
-            this.client = new Redis({
-                url: url,
-                token: token,
-            });
-
-            this.isEnabled = true;
-            logger.info('Redis Service: Initialized successfully (REST API)');
+            try {
+                this.client = new Redis({
+                    url: url,
+                    token: token,
+                });
+                this.isEnabled = true;
+                logger.info('Redis Service: Initialized successfully (REST API)');
+            } catch (err) {
+                logger.error('Redis Service: Initialization failed (likely allowlist issue):', err.message);
+                this.isEnabled = false;
+                this.client = null;
+            }
         } catch (error) {
             logger.error('Redis Service: Initialization failed:', error);
             this.isEnabled = false;

@@ -1,4 +1,4 @@
-import { MessagePermissions } from "./messagePermissions";
+import type { MessagePermissions } from "./messagePermissions";
 
 export interface Message {
   id: string;

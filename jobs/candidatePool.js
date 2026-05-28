@@ -17,7 +17,7 @@ async function buildCandidatePool() {
                    COALESCE(p.view_count, 0) as views
             FROM posts p
             JOIN users u ON p.user_id = u.user_id
-            WHERE p.created_at > NOW() - INTERVAL 30 DAY
+            WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
             AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
             ORDER BY p.created_at DESC
             LIMIT 1000

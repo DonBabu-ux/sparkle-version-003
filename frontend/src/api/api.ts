@@ -12,8 +12,10 @@ const isNative = window.location.protocol === 'capacitor:';
 
 // URLs
 const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
-// Logic: Strictly live for production shipping
-let defaultBaseURL = LIVE_URL; 
+const LOCAL_URL = 'http://localhost:3000/api';
+
+// Logic: Use live server for APK (isNative) and localhost/env for localhost
+let defaultBaseURL = isNative ? LIVE_URL : (isLocalhost ? LOCAL_URL : LIVE_URL);
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || defaultBaseURL,

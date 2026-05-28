@@ -1,6 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Post } from '../types/post';
+import { SEEDED_POSTS } from '../utils/seededFeed';
+
+// Initialize with seed posts
+const initialPostsById: Record<string, Post> = {};
+const initialOrderedPostIds: string[] = [];
+SEEDED_POSTS.forEach(post => {
+  initialPostsById[post.post_id] = post;
+  initialOrderedPostIds.push(post.post_id);
+});
 
 /**
  * Production-grade Home Feed Store with Normalized State (Batch 4 Rebuild)
@@ -49,8 +58,8 @@ export interface FeedState {
 export const useFeedStore = create<FeedState>()(
   persist(
     (set, get) => ({
-      orderedPostIds: [],
-      postsById: {},
+      orderedPostIds: initialOrderedPostIds,
+      postsById: initialPostsById,
       optimisticPosts: {},
       paginationState: {
         offset: 0,
@@ -67,38 +76,19 @@ export const useFeedStore = create<FeedState>()(
       lastFetched: null,
 
       setPosts: (posts) => set((state) => {
-        const postsById: Record<string, Post> = {};
-        const orderedPostIds: string[] = [];
+        const postsById = { ...state.postsById };
+        const orderedPostIds = [...state.orderedPostIds];
 
-        // Apply ranking score calculations with temporary post boost
-        const rankedPosts = [...posts].sort((a, b) => {
-          let scoreA = 0;
-          let scoreB = 0;
-          
-          // Check for temporal new post boost
-          const now = Date.now();
-          const createdA = new Date(a.created_at).getTime();
-          const createdB = new Date(b.created_at).getTime();
-
-          // 500 points boost for posts newer than 1 hour
-          if (now - createdA < 3600000) {
-            scoreA += 500;
-          }
-          if (now - createdB < 3600000) {
-            scoreB += 500;
-          }
-
-          // Merge engagement metrics
-          scoreA += (a.spark_count || 0) * 10 + (a.comment_count || 0) * 5;
-          scoreB += (b.spark_count || 0) * 10 + (b.comment_count || 0) * 5;
-
-          return scoreB - scoreA;
-        });
-
-        rankedPosts.forEach((post) => {
+        posts.forEach((post) => {
           if (post.post_id) {
-            postsById[post.post_id] = post;
-            orderedPostIds.push(post.post_id);
+            postsById[post.post_id] = {
+              ...(postsById[post.post_id] || {}),
+              ...post
+            };
+            if (!orderedPostIds.includes(post.post_id)) {
+              // Incoming fresh posts unshifted to the top
+              orderedPostIds.unshift(post.post_id);
+            }
           }
         });
 
@@ -115,10 +105,14 @@ export const useFeedStore = create<FeedState>()(
         const orderedPostIds = [...state.orderedPostIds];
 
         newPosts.forEach((post) => {
-          // Deduplication rule
-          if (post.post_id && !postsById[post.post_id]) {
-            postsById[post.post_id] = post;
-            orderedPostIds.push(post.post_id);
+          if (post.post_id) {
+            postsById[post.post_id] = {
+              ...(postsById[post.post_id] || {}),
+              ...post
+            };
+            if (!orderedPostIds.includes(post.post_id)) {
+              orderedPostIds.push(post.post_id);
+            }
           }
         });
 
@@ -135,9 +129,11 @@ export const useFeedStore = create<FeedState>()(
 
         // Process in reverse to maintain order at the top
         [...newPosts].reverse().forEach((post) => {
-          // Deduplication rule
           if (post.post_id) {
-            postsById[post.post_id] = post;
+            postsById[post.post_id] = {
+              ...(postsById[post.post_id] || {}),
+              ...post
+            };
             if (!orderedPostIds.includes(post.post_id)) {
               orderedPostIds.unshift(post.post_id);
             }

@@ -1,11 +1,12 @@
-import React, { createContext, useContext, ReactNode, useRef, useEffect } from 'react';
+import React, { createContext, useContext, ReactNode, useRef, useEffect, useState } from 'react';
 import { useRefreshStore } from '../store/refreshStore';
 import { useGesture } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { RefreshCw } from 'lucide-react';
 
 interface PullToRefreshContextProps {
   /** Trigger a programmatic refresh for the given pageKey */
-  triggerRefresh: (pageKey: string) => void;
+  triggerRefresh: (pageKey: string) => number;
   /** Current refreshing state for the pageKey */
   isRefreshing: (pageKey: string) => boolean;
 }
@@ -14,41 +15,39 @@ const PullToRefreshContext = createContext<PullToRefreshContextProps | null>(nul
 
 export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => {
   const startRefresh = useRefreshStore(state => state.startRefresh);
-  const finishRefresh = useRefreshStore(state => state.finishRefresh);
   const isRefreshingMap = useRefreshStore(state => state.isRefreshing);
 
   const triggerRefresh = (pageKey: string) => {
-    const reqId = startRefresh(pageKey);
-    // Simulate async work – callers should call finishRefresh when their fetch resolves.
-    // This provider only manages state, not data fetching.
-    // Consumers receive the requestId via the hook for coordination.
-    return reqId;
+    return startRefresh(pageKey);
   };
 
   const isRefreshing = (pageKey: string) => !!isRefreshingMap[pageKey];
+  const isAnyRefreshing = Object.values(isRefreshingMap).some(Boolean);
 
   // Gesture handling for elastic pull-down
   const containerRef = useRef<HTMLDivElement>(null);
-  const y = useRef(0);
-  const [_, setY] = React.useState(0);
+  const [pullY, setPullY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
 
   useGesture(
     {
-      onDrag: ({ down, movement: [mx, my] }) => {
-        // Only vertical drag from top
-        if (containerRef.current && containerRef.current.scrollTop === 0) {
-          y.current = down ? Math.min(my, 120) : 0;
-          setY(y.current);
+      onDrag: ({ down, movement: [, my] }) => {
+        if (containerRef.current && containerRef.current.scrollTop === 0 && my > 0) {
+          setIsDragging(true);
+          // Apply native-feeling logarithmic resistance formula
+          const resistance = Math.min(my * 0.4, 90);
+          setPullY(down ? resistance : 0);
+        } else {
+          setPullY(0);
+          setIsDragging(false);
         }
       },
       onDragEnd: ({ movement: [, my] }) => {
-        if (my > 80) {
-          // Dispatch a generic "global" refresh event – pages listen via pageKey
-          // Here we simply trigger a dummy refresh for "global"; actual pages use the hook directly.
-          triggerRefresh('global');
+        setIsDragging(false);
+        if (containerRef.current && containerRef.current.scrollTop === 0 && my > 70) {
+          window.dispatchEvent(new CustomEvent('pull-to-refresh-trigger'));
         }
-        y.current = 0;
-        setY(0);
+        setPullY(0);
       },
     },
     {
@@ -57,13 +56,57 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
     }
   );
 
-return (
-  <PullToRefreshContext.Provider value={{ triggerRefresh, isRefreshing }}>
-    <div ref={containerRef} className="no-scrollbar" style={{ overflowY: 'auto', height: '100vh', WebkitOverflowScrolling: 'touch' }}>
-      {children}
-    </div>
-  </PullToRefreshContext.Provider>
-);
+  return (
+    <PullToRefreshContext.Provider value={{ triggerRefresh, isRefreshing }}>
+      <div 
+        ref={containerRef} 
+        className="no-scrollbar relative w-full select-none" 
+        style={{ 
+          overflowY: 'auto', 
+          height: '100vh', 
+          WebkitOverflowScrolling: 'touch',
+          touchAction: 'pan-y'
+        }}
+      >
+        {/* Animated Refresh Indicator Container */}
+        <AnimatePresence>
+          {(pullY > 10 || isAnyRefreshing) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ 
+                height: isAnyRefreshing ? 60 : Math.max(0, pullY), 
+                opacity: 1 
+              }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="w-full flex items-center justify-center overflow-hidden shrink-0 z-50 bg-transparent"
+            >
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg">
+                <RefreshCw 
+                  size={16} 
+                  className={`text-primary ${isAnyRefreshing ? 'animate-spin' : ''}`}
+                  style={{
+                    transform: !isAnyRefreshing ? `rotate(${pullY * 4}deg)` : undefined
+                  }}
+                />
+                <span className="text-[10px] font-black uppercase tracking-widest text-black/50 dark:text-white/50">
+                  {isAnyRefreshing ? 'Updating...' : pullY > 60 ? 'Release to refresh' : 'Pull down to update'}
+                </span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        <motion.div
+          animate={{ y: isAnyRefreshing ? 0 : pullY * 0.5 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+          className="w-full min-h-full"
+        >
+          {children}
+        </motion.div>
+      </div>
+    </PullToRefreshContext.Provider>
+  );
 };
 
 /** Hook for pages to perform pull‑to‑refresh */
@@ -81,21 +124,24 @@ export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise
     latestIdRef.current = requestId;
     try {
       await refreshCallback();
-      // only finish if still latest
       finishRefresh(pageKey, requestId);
     } catch (e) {
-      // rollback state on error
       cancelRefresh(pageKey, requestId);
     }
   };
 
+  useEffect(() => {
+    const handleTrigger = () => {
+      start();
+    };
+    window.addEventListener('pull-to-refresh-trigger', handleTrigger);
+    return () => {
+      window.removeEventListener('pull-to-refresh-trigger', handleTrigger);
+    };
+  }, [refreshCallback]);
+
   // Expose the current refreshing flag
   const refreshing = isRefreshing(pageKey);
-
-  // Optional: attach to window pull‑to‑refresh event (if needed)
-  useEffect(() => {
-    // No automatic trigger – page can call start() on user gesture via provider's UI.
-  }, []);
 
   return { start, refreshing };
 };

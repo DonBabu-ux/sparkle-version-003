@@ -4,11 +4,16 @@ const Message = require('../models/Message');
 const { canPinMessage, canEditMessage, canDeleteForMe, canDeleteForEveryone, canReactMessage, canForwardMessage } = require('../services/messagePermission');
 
 // Assuming you have a socket.io instance exported from your server entry
-const io = require('../socket'); // adjust path as needed
+const { getIO } = require('../../socket'); 
 
 /** Helper to send socket events to the conversation room */
 function emitToConversation(conversationId, event, payload) {
-  io.to(`conversation:${conversationId}`).emit(event, payload);
+  try {
+    const io = getIO();
+    io.to(`conversation:${conversationId}`).emit(event, payload);
+  } catch (err) {
+    console.error('Socket not initialized during broadcast:', err.message);
+  }
 }
 
 // GET message permissions (used by frontend modal)

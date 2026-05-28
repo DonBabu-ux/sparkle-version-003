@@ -1,8 +1,8 @@
 // src/store/messageStore.ts
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { Message } from '../types/message';
-import { MessagePermissions } from '../types/messagePermissions';
+import type { Message } from '../types/message';
+import type { MessagePermissions } from '../types/messagePermissions';
 
 export interface MessageState {
   messages: Record<string, Message>;

@@ -1,0 +1,294 @@
+# /DASHBOARD FEED FIX — USE EXISTING 750 SEEDED POSTS AS INITIAL RENDER SOURCE WITHOUT BREAKING CURRENT ALGORITHM
+
+This fix applies specifically to:
+
+```txt
+/dashboard
+```
+
+NOT a separate “homefeed” implementation.
+
+The issue is that the `/dashboard` feed is currently prioritizing heavy live Cloudinary media too early, causing:
+
+* frozen dashboard
+* delayed rendering
+* blocked UI
+* feed hanging
+* white loading states
+* poor responsiveness
+
+However, the app ALREADY contains approximately:
+
+* 750 seeded posts
+* seeded videos
+* seeded stories
+* seeded users
+* seeded media assets
+
+These seeded entries already exist and must be reused properly.
+
+IMPORTANT:
+
+DO NOT:
+
+* generate new seeded data
+* replace the current ranking algorithm
+* bypass the current feed algorithm
+* destroy recommendation logic
+* hardcode feed order
+* remove live content
+
+The current algorithm must remain intact.
+
+This fix is ONLY about improving INITIAL RENDER PRIORITY and perceived performance on `/dashboard`.
+
+---
+
+# THE CURRENT PROBLEM
+
+The `/dashboard` feed currently waits too aggressively for:
+
+* Cloudinary assets
+* uploaded media
+* remote hydration
+* live fetch completion
+
+before rendering meaningful UI.
+
+That is the architectural mistake.
+
+The result:
+
+* dashboard appears stuck
+* scroll becomes delayed
+* videos hang
+* stories delay
+* rendering blocks
+
+---
+
+# REQUIRED SOLUTION
+
+The EXISTING seeded dataset should act as:
+
+* initial render source
+* fallback feed layer
+* visual bootstrap layer
+* offline-safe feed state
+* perceived performance accelerator
+
+The seeded data is NOT replacing the algorithm.
+
+It is only providing immediate feed population while live ranking/hydration finishes.
+
+---
+
+# DO NOT BREAK THE EXISTING FEED ALGORITHM
+
+The existing recommendation/ranking algorithm should STILL control:
+
+* feed ordering
+* personalization
+* engagement ranking
+* trending logic
+* recommendations
+* scoring
+* relevance
+* pagination
+
+The seeded data must simply become the FAST FIRST PAINT layer.
+
+---
+
+# CORRECT ARCHITECTURE
+
+Correct behavior:
+
+```ts id="5pw92n"
+renderDashboard(seedCachedFeedImmediately);
+
+hydrateRankedFeedInBackground();
+
+mergeRankedFeedWithoutBlockingUI();
+```
+
+The algorithm still runs normally in the background.
+
+---
+
+# WRONG ARCHITECTURE
+
+Avoid:
+
+```ts id="q7doz9"
+await fetchCloudinaryMedia();
+await buildFullRankedFeed();
+renderDashboard();
+```
+
+because that blocks rendering and freezes `/dashboard`.
+
+---
+
+# REQUIRED FEED FLOW
+
+## STEP 1 — INSTANT RENDER
+
+Immediately render from EXISTING seeded dataset already available in app.
+
+This gives:
+
+* instant populated dashboard
+* immediate scrollability
+* instant stories
+* instant reels
+* instant visual content
+
+No blank screen.
+
+---
+
+## STEP 2 — BACKGROUND HYDRATION
+
+After dashboard already visible:
+
+* fetch live ranked feed
+* fetch Cloudinary content
+* run recommendation engine
+* hydrate engagement metrics
+* fetch realtime content
+
+WITHOUT blocking UI.
+
+---
+
+## STEP 3 — INTELLIGENT MERGING
+
+Merge live ranked feed progressively into current dashboard state.
+
+NOT destructive replacement.
+
+Correct:
+
+```ts id="d7x5fp"
+mergeFeed(existingDashboardFeed, rankedLiveFeed);
+```
+
+Wrong:
+
+```ts id="ww6ud4"
+setFeed(rankedLiveFeed);
+```
+
+because that causes:
+
+* flashing
+* jumps
+* freezes
+* scroll resets
+* disappearing posts
+
+---
+
+# IMPORTANT — SEEDED DATA IS A BOOTSTRAP LAYER
+
+The existing 750 seeded posts should act as:
+
+* startup feed bootstrap
+* rendering stabilizer
+* loading fallback
+* offline-safe content
+* UI continuity layer
+
+NOT as permanent forced feed ranking.
+
+The recommendation algorithm still owns final ranking logic.
+
+---
+
+# STORIES REQUIREMENT
+
+Stories on `/dashboard` should ALSO prioritize existing seeded stories first.
+
+Do NOT block stories while waiting for uploaded media.
+
+Stories should appear instantly.
+
+---
+
+# VIDEO REQUIREMENTS
+
+Seeded videos should:
+
+* autoplay only when visible
+* pause offscreen
+* lazy load
+* release memory when recycled
+
+Only active viewport video should play.
+
+---
+
+# PULL TO REFRESH — REQUIRED
+
+Implement modern pull-to-refresh specifically on `/dashboard`.
+
+When user pulls downward:
+
+* show animated refresh indicator
+* keep current feed visible
+* refresh live ranked content in background
+* merge smoothly
+* preserve scroll stability
+
+No blank reset.
+No feed flashing.
+No white screen.
+
+---
+
+# REFRESH FLOW
+
+User pulls down
+→ refresh icon appears
+→ current seeded/live feed stays visible
+→ latest ranked content fetched
+→ dashboard reconciles incrementally
+→ refresh animation disappears smoothly
+
+---
+
+# PERFORMANCE REQUIREMENTS
+
+The existing 750 seeded posts must be handled efficiently.
+
+Use:
+
+* FlatList virtualization
+* FlashList/recycler architecture
+* memoized feed cards
+* viewport rendering
+* lazy hydration
+* incremental media loading
+
+DO NOT render all 750 simultaneously.
+
+---
+
+# FINAL REQUIREMENT
+
+The AI must understand this clearly:
+
+The fix is NOT replacing the current dashboard algorithm.
+
+The fix is:
+
+1. use the already existing 750 seeded posts as the INITIAL `/dashboard` render source
+2. keep `/dashboard` visually alive instantly
+3. allow the current ranking algorithm to hydrate progressively afterward
+4. prevent Cloudinary media from blocking first render
+5. preserve personalization/recommendation systems
+6. maintain realtime feed behavior
+7. eliminate frozen dashboard states
+
+The seeded dataset is a PERFORMANCE BOOTSTRAP LAYER — not a replacement for the existing feed algorithm.

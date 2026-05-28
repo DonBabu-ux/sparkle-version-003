@@ -2,7 +2,21 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 
-const DEFAULT_BASE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const isLocalhost = 
+  typeof window !== 'undefined' && (
+    window.location.hostname === 'localhost' || 
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname.startsWith('192.168.') ||
+    window.location.hostname.startsWith('10.') ||
+    window.location.hostname.startsWith('172.')
+  );
+
+const isNative = typeof window !== 'undefined' && window.location.protocol === 'capacitor:';
+
+const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const LOCAL_URL = 'http://localhost:3000/api';
+
+const DEFAULT_BASE_URL = isNative ? LIVE_URL : (isLocalhost ? LOCAL_URL : LIVE_URL);
 const APK_VERSION = '1.0.0'; // PACKAGED NATIVE APK VERSION BOUNDS
 const LOCAL_STORAGE_VERSION_KEY = 'sparkle_ota_js_version';
 const ACTIVE_OTA_KEY = 'sparkle_active_ota';

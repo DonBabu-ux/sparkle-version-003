@@ -1,6 +1,6 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
-
+const redisService = require('../services/redis.service');
 class DashboardController {
     // ============ DASHBOARD HOMEPAGE ============
     async renderDashboard(req, res) {
@@ -86,10 +86,17 @@ class DashboardController {
     async getFeedAPI(req, res) {
         try {
             const { page = 1, limit = 10 } = req.query;
+            const cacheKey = `dashboard:feed:${req.user.user_id}:page:${page}:limit:${limit}`;
+            const cached = await redisService.get(cacheKey);
+            if (cached) {
+                return res.json({ success: true, data: JSON.parse(cached) });
+            }
             const feed = await this.getFeedData(req.user.user_id, parseInt(page), parseInt(limit));
-            res.json({ success: true, data: feed });
+            // Cache for 60 seconds
+            await redisService.set(cacheKey, JSON.stringify(feed), 60);
+            return res.json({ success: true, data: feed });
         } catch (error) {
-            res.status(500).json({ success: false, error: error.message });
+            return res.status(500).json({ success: false, error: error.message });
         }
     }
 
@@ -146,6 +153,25 @@ class DashboardController {
     }
 
     async getFeedData(userId, page = 1, limit = 10) {
+        // Safe URL helper functions
+        const getSafeMediaUrl = (url) => {
+            if (!url) return null;
+            let safeUrl = url.replace(/\\/g, '/');
+            if (!safeUrl.startsWith('/') && safeUrl.startsWith('uploads/')) {
+                safeUrl = '/' + safeUrl;
+            }
+            if (safeUrl.startsWith('/uploads/')) return safeUrl;
+            if (safeUrl.includes('fbcdn.net') || safeUrl.includes('fbsbx.com')) {
+                return '/uploads/defaults/no-image.png';
+            }
+            return safeUrl;
+        };
+
+        const getSafeAvatarUrl = (url) => {
+            if (!url) return null;
+            return url;
+        };
+
         // Check following count
         const [followingResult] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [userId]);
         const followsCount = followingResult[0].count;
@@ -159,6 +185,7 @@ class DashboardController {
             (
                 ((SELECT COUNT(*) FROM sparks WHERE post_id = p.post_id) + (SELECT COUNT(*) FROM comments WHERE post_id = p.post_id)) * 4.0 +
                 (CASE WHEN DATEDIFF(NOW(), p.created_at) < 1 THEN 30.0 ELSE (30.0 / (DATEDIFF(NOW(), p.created_at) + 1)) END) +
+                (CASE WHEN p.is_seed = 1 OR u.username LIKE 'seed_user_%' THEN 50000.0 ELSE 0 END) +
                 (RAND() * 30.0)
             ) as rec_score
             FROM posts p
@@ -166,6 +193,8 @@ class DashboardController {
             LEFT JOIN sparks s ON p.post_id = s.post_id AND s.user_id = ?
             LEFT JOIN bookmarks sp ON p.post_id = sp.post_id AND sp.user_id = ?
         `;
+
+        let rawPosts = [];
 
         if (followsCount === 0) {
             // Show random + trending
@@ -175,7 +204,7 @@ class DashboardController {
                 ORDER BY rec_score DESC
                 LIMIT ? OFFSET ?
             `, [userId, userId, limit, offset]);
-            return posts;
+            rawPosts = posts || [];
         } else {
             // 70% following, 30% recommended
             const limitFollowing = Math.ceil(limit * 0.7);
@@ -198,16 +227,46 @@ class DashboardController {
             `, [userId, userId, userId, userId, limitRec, offsetRec]);
 
             // Combine and sort by date or mix them. Mixing interweaves them nicely.
-            let combined = [];
             let i = 0, j = 0;
             while (i < followingPosts.length || j < recPosts.length) {
-                if (i < followingPosts.length) combined.push(followingPosts[i++]);
-                if (i < followingPosts.length) combined.push(followingPosts[i++]);
-                if (j < recPosts.length) combined.push(recPosts[j++]);
+                if (i < followingPosts.length) rawPosts.push(followingPosts[i++]);
+                if (i < followingPosts.length) rawPosts.push(followingPosts[i++]);
+                if (j < recPosts.length) rawPosts.push(recPosts[j++]);
             }
-            return combined;
         }
+
+        // Hydrate media files from post_media and sanitize
+        if (rawPosts.length > 0) {
+            const postIds = rawPosts.map(p => p.post_id);
+            const [mediaRows] = await pool.query(`
+                SELECT post_id, media_url as url, media_type as type 
+                FROM post_media 
+                WHERE post_id IN (?) 
+                ORDER BY upload_order ASC
+            `, [postIds]).catch(() => [[]]);
+
+            const mediaMap = {};
+            (mediaRows || []).forEach(m => {
+                if (!mediaMap[m.post_id]) mediaMap[m.post_id] = [];
+                mediaMap[m.post_id].push({
+                    url: getSafeMediaUrl(m.url),
+                    type: m.type
+                });
+            });
+
+            return rawPosts.map(post => ({
+                ...post,
+                media_url: getSafeMediaUrl(post.media_url),
+                avatar_url: getSafeAvatarUrl(post.avatar_url),
+                media_files: mediaMap[post.post_id] || [],
+                timestamp: post.created_at,
+                _id: post.post_id
+            }));
+        }
+
+        return [];
     }
+
 
     async getNotificationData(userId) {
         const [notifications] = await pool.query(`

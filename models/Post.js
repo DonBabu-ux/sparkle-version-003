@@ -563,7 +563,7 @@ class Post {
             if (!candidatePool || candidatePool.length === 0) {
                 const [fallbackPosts] = await pool.query(`
                     SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
-                           p.group_id, p.location, p.created_at, p.category,
+                           p.group_id, p.location, p.created_at, p.category, p.is_seed,
                            u.username, u.name as user_name, u.avatar_url,
                            u.campus as user_affiliation, u.is_private, u.profile_visibility,
                            COALESCE(p.spark_count, 0) as sparks,
@@ -571,7 +571,7 @@ class Post {
                            COALESCE(p.share_count, 0) as shares,
                            COALESCE(p.view_count, 0) as views
                     FROM posts p JOIN users u ON p.user_id = u.user_id
-                    WHERE p.created_at > NOW() - INTERVAL 30 DAY
+                    WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
                     AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                     AND p.group_id IS NULL
                     ORDER BY p.created_at DESC LIMIT 500
@@ -650,7 +650,8 @@ class Post {
                 // Time Decay (Algorithm 7.7) - Higher lambda = faster decay
                 const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
                 const lambda = 0.1;
-                const timeDecay = Math.exp(-lambda * ageHours);
+                const isSeeded = post.is_seed === 1 || (post.username && post.username.startsWith('seed_user_'));
+                const timeDecay = isSeeded ? Math.max(0.8, Math.exp(-lambda * (ageHours / 240))) : Math.exp(-lambda * ageHours);
                 
                 const affinity = followingIds.has(post.user_id) ? 1.5 : 1.0;
                 const randomFactor = Math.random() * 0.05;

@@ -2,15 +2,27 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { io, Socket } from 'socket.io-client';
 import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Edit2, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag, PackageCheck, BadgeDollarSign, ScanSearch, MapPin, Repeat2, CalendarClock } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
+import { useSocket } from '../hooks/useSocket';
 
-const SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.startsWith('172.');
+
+const isNative = window.location.protocol === 'capacitor:';
+
+const LIVE_SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
+const LOCAL_SOCKET_URL = 'http://localhost:3000';
+
+const SOCKET_URL = isNative ? LIVE_SOCKET_URL : (isLocalhost ? LOCAL_SOCKET_URL : LIVE_SOCKET_URL);
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
 
@@ -63,7 +75,7 @@ const MarketplaceChat = () => {
   const location = useLocation();
   const { user, token } = useUserStore();
   
-  const [socket, setSocket] = useState<Socket | null>(null);
+  const socket = useSocket();
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [conversation, setConversation] = useState<ConversationInfo | null>(null);
@@ -178,54 +190,39 @@ const MarketplaceChat = () => {
   }, [conversationId, user]);
 
   useEffect(() => {
-    if (!user || !token || !conversationId) return;
+    if (!socket || !conversationId) return;
 
-    const newSocket = io(`${SOCKET_URL}/marketplace`, {
-      auth: { token, userId: user.user_id || user.id },
-      reconnectionAttempts: 5,
-      reconnectionDelay: 1000,
-      timeout: 10000
-    });
+    socket.emit('join_conversation', conversationId);
 
-    newSocket.on('connect', () => {
-      console.log('🛒 Marketplace socket connected');
-      newSocket.emit('join_conversation', conversationId);
-    });
-
-    newSocket.on('connect_error', (err) => {
-      console.warn('🛒 Marketplace socket connection error:', err.message);
-    });
-
-    newSocket.on('receive_message', (msg: Message) => {
+    const handleReceiveMessage = (msg: Message) => {
       setMessages(prev => {
-        // Prevent duplicate messages if socket emits multiple times
         if (prev.find(m => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
-      newSocket.emit('mark_read', { messageId: msg.id, conversationId });
-    });
+      socket.emit('mark_read', { messageId: msg.id, conversationId });
+    };
 
-    newSocket.on('user_status_change', ({ userId, status }) => {
-      if (conversation && (userId === conversation.seller_id || userId === conversation.buyer_id) && userId !== (user.user_id || user.id)) {
+    const handleStatusChange = ({ userId, status }: any) => {
+      if (conversation && (userId === conversation.seller_id || userId === conversation.buyer_id) && userId !== (user?.user_id || user?.id)) {
         setIsOpponentOnline(status === 'online');
       }
-    });
+    };
 
-    newSocket.on('user_typing', ({ userId, isTyping }) => {
-      if (userId !== (user.user_id || user.id)) {
+    const handleTyping = ({ userId, isTyping }: any) => {
+      if (userId !== (user?.user_id || user?.id)) {
         setOpponentTyping(isTyping);
       }
-    });
+    };
 
-    newSocket.on('message_edited', (data) => {
+    const handleMessageEdited = (data: any) => {
       setMessages(prev => prev.map(m => m.id === data.messageId ? { ...m, message_text: data.newText, is_edited: true } : m));
-    });
+    };
 
-    newSocket.on('message_deleted', (data) => {
+    const handleMessageDeleted = (data: any) => {
       setMessages(prev => prev.filter(m => m.id !== data.messageId));
-    });
+    };
 
-    newSocket.on('message_reaction', (data) => {
+    const handleMessageReaction = (data: any) => {
       setMessages(prev => prev.map(m => {
         if (m.id === data.messageId) {
           const reactions = m.reactions || [];
@@ -238,15 +235,25 @@ const MarketplaceChat = () => {
         }
         return m;
       }));
-    });
+    };
 
-    setSocket(newSocket);
+    socket.on('receive_message', handleReceiveMessage);
+    socket.on('user_status_change', handleStatusChange);
+    socket.on('user_typing', handleTyping);
+    socket.on('message_edited', handleMessageEdited);
+    socket.on('message_deleted', handleMessageDeleted);
+    socket.on('message_reaction', handleMessageReaction);
 
     return () => {
-      newSocket.emit('leave_conversation', conversationId);
-      newSocket.disconnect();
+      socket.off('receive_message', handleReceiveMessage);
+      socket.off('user_status_change', handleStatusChange);
+      socket.off('user_typing', handleTyping);
+      socket.off('message_edited', handleMessageEdited);
+      socket.off('message_deleted', handleMessageDeleted);
+      socket.off('message_reaction', handleMessageReaction);
+      socket.emit('leave_conversation', conversationId);
     };
-  }, [user?.user_id, user?.id, token, conversationId]); // Removed 'conversation' to prevent reconnections on status changes
+  }, [socket, conversationId, conversation, user?.user_id, user?.id]);
 
   const handleDelete = async (messageId: string) => {
     if (!socket) return;

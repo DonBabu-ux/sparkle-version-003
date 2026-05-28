@@ -1,6 +1,18 @@
 import defaultAvatar from '../assets/avatar.png';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const isLocalhost = 
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.startsWith('172.');
+
+const isNative = window.location.protocol === 'capacitor:';
+
+const LIVE_URL = 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const LOCAL_URL = 'http://localhost:3000/api';
+
+const API_URL = import.meta.env.VITE_API_URL || (isNative ? LIVE_URL : (isLocalhost ? LOCAL_URL : LIVE_URL));
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 

@@ -1,7 +1,12 @@
 const express = require('express');
 const router = express.Router();
+
+// Root controller has ALL standard message methods (getInbox, sendMessage, etc.)
 const messageController = require('../../controllers/messages.controller');
-const forwardController = require('../../controllers/forward.controller');
+// Backend permission-aware controller for new permission endpoints
+const permissionController = require('../../backend/controllers/message.controller');
+// Dedicated forward controller with full forwarding logic
+const forwardController = require('../../backend/controllers/forward.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 router.use(authMiddleware);
@@ -24,17 +29,19 @@ router.post('/chat/:chatId/archive', messageController.archiveConversation);
 router.post('/chat/:chatId/mute', messageController.muteConversation);
 router.delete('/chat/:chatId', messageController.deleteConversation);
 
-// Per-message actions
+// Per-message actions (using root controller which has full DB + pool integration)
 router.delete('/:messageId', messageController.deleteMessage);
 router.patch('/:messageId', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
 router.post('/:messageId/pin', messageController.pinMessage);
 router.post('/:messageId/unpin', messageController.unpinMessage);
-router.post('/:messageId/forward', forwardController.forwardMessage);
+router.post('/:messageId/forward', messageController.forwardMessage);
 
-// Conversation messages (Keep these at the end)
+// Message permissions (used by frontend action modal)
+router.get('/:messageId/permissions', permissionController.getMessagePermissions);
+
+// Conversation messages (Keep these at the end to avoid route conflicts)
 router.get('/chat/:chatId', messageController.getConversationMessages);
 router.get('/:chatId', messageController.getConversationMessages);
 
 module.exports = router;
-

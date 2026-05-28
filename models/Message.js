@@ -421,17 +421,17 @@ class Message {
     /**
      * Edit a message (only by sender, within 15 minutes)
      */
-     
-         const [result] = await db.query(
-             `UPDATE messages 
-              SET content = ?, edited_at = NOW(), edited = 1 
-              WHERE message_id = ? AND sender_id = ? 
-                AND is_deleted_for_everyone = 0
-                AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
-             [newContent, messageId, userId]
-         );
-         return result.affectedRows > 0;
-     }
+    static async editMessage(messageId, userId, newContent) {
+        const [result] = await db.query(
+            `UPDATE messages 
+             SET content = ?, edited_at = NOW(), edited = 1 
+             WHERE message_id = ? AND sender_id = ? 
+               AND is_deleted_for_everyone = 0
+               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 15`,
+            [newContent, messageId, userId]
+        );
+        return result.affectedRows > 0;
+    }
 
     /**
      * Search messages within a conversation

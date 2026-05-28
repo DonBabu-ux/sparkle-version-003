@@ -9,6 +9,7 @@
   "scripts": {
     "start": "node --watch server.js",
     "dev": "node --watch server.js",
+    "seed": "node seed-data.js",
     "seed:prod": "set NODE_ENV=production&& node seed-data.js",
     "start:prod": "npm run seed:prod && node server.js",
     "build:css": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css",

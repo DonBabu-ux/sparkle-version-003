@@ -21,6 +21,7 @@ router.post('/', authMiddleware, mutationRateLimiter, postUpload.array('media', 
     next();
 }, validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);
+router.post('/:id/like', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);
 router.post('/:id/save', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.savePost);
 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);
 router.post('/:id/comments', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), validate(addCommentSchema), postController.addComment);

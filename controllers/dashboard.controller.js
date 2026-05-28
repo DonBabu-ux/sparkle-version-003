@@ -176,6 +176,20 @@ class DashboardController {
         const [followingResult] = await pool.query('SELECT COUNT(*) as count FROM follows WHERE follower_id = ?', [userId]);
         const followsCount = followingResult[0].count;
 
+        // Fetch seeded posts for first page
+        let seededPosts = [];
+        if (page === 1) {
+            const [seedRows] = await pool.query(`
+                SELECT p.*, u.username, u.name as user_name, u.avatar_url, u.campus, u.major
+                FROM posts p
+                JOIN users u ON p.user_id = u.user_id
+                WHERE p.is_seed = 1
+                ORDER BY p.created_at DESC
+                LIMIT 750
+            `);
+            seededPosts = seedRows || [];
+        }
+
         const baseSelect = `
             SELECT p.*, u.username, u.name as user_name, u.avatar_url, u.campus, u.major,
             CASE WHEN s.user_id IS NOT NULL THEN 1 ELSE 0 END as is_sparked,
@@ -235,36 +249,7 @@ class DashboardController {
             }
         }
 
-        // Hydrate media files from post_media and sanitize
-        if (rawPosts.length > 0) {
-            const postIds = rawPosts.map(p => p.post_id);
-            const [mediaRows] = await pool.query(`
-                SELECT post_id, media_url as url, media_type as type 
-                FROM post_media 
-                WHERE post_id IN (?) 
-                ORDER BY upload_order ASC
-            `, [postIds]).catch(() => [[]]);
 
-            const mediaMap = {};
-            (mediaRows || []).forEach(m => {
-                if (!mediaMap[m.post_id]) mediaMap[m.post_id] = [];
-                mediaMap[m.post_id].push({
-                    url: getSafeMediaUrl(m.url),
-                    type: m.type
-                });
-            });
-
-            return rawPosts.map(post => ({
-                ...post,
-                media_url: getSafeMediaUrl(post.media_url),
-                avatar_url: getSafeAvatarUrl(post.avatar_url),
-                media_files: mediaMap[post.post_id] || [],
-                timestamp: post.created_at,
-                _id: post.post_id
-            }));
-        }
-
-        return [];
     }
 
 

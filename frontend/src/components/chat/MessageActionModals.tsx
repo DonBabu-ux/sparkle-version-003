@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit3, Forward, Info, Plus } from 'lucide-react';
+import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus } from 'lucide-react';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 
@@ -117,7 +117,7 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
                 label={isPinned ? "Unpin Message" : "Pin Message"} 
                 onClick={onPin} 
               />
-              <MoreOption icon={<Edit3 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
+              <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
               <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
               <div className="h-px bg-white/[0.06] my-1" />
               <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />

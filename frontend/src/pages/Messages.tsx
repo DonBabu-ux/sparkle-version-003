@@ -88,9 +88,7 @@ import ChatSettingsModal from '../components/chat/ChatSettingsModal';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
-import { StatusBarBackground, KeyboardAwareChatLayout } from '../components/SafeLayout';
-import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
-
+import { useMessageSocket } from '../hooks/useMessageSocket';
 
 // --- Types ---
 interface ChatConversation {
@@ -907,6 +905,9 @@ export default function Messages() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const targetChatId = searchParams.get('chat');
+
+  // Activate real-time message socket updates
+  useMessageSocket();
 
   // --- State ---
   const conversations = useChatStore(state => state.conversations);

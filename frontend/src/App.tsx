@@ -152,14 +152,14 @@ function App() {
   // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
   if (!hydrated || showSplash) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black transition-colors duration-500">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#ffe6f2] transition-colors duration-500">
         <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
           {/* Logo container with soft shadow and pulsing animations */}
-          <div className="w-32 h-32 md:w-44 md:h-44 mb-6 rounded-3xl bg-white dark:bg-zinc-900 shadow-[0_12px_40px_rgba(255,20,147,0.15)] dark:shadow-[0_12px_40px_rgba(255,20,147,0.05)] border border-pink-500/10 flex items-center justify-center p-6 transition-all duration-500 scale-100 animate-pulse-slow">
-            <img 
-              src="/sparklelogo.png" 
-              alt="Sparkle" 
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(255,20,147,0.25)]" 
+          <div className="w-64 h-64 md:w-96 md:h-96 mb-6 rounded-3xl bg-[#ffe6f2] shadow-[0_12px_40px_rgba(255,20,147,0.15)] border border-pink-500/10 flex items-center justify-center p-6 transition-all duration-500 scale-100 animate-pulse-slow">
+            <img
+              src="/sparklelogo.png"
+              alt="Sparkle"
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(255,20,147,0.25)]"
             />
           </div>
           
@@ -174,11 +174,12 @@ function App() {
           </div>
           
           {/* Centered micro-animation indicator */}
-          <div className="mt-12 flex items-center justify-center gap-1.5">
-            <span className="w-2.5 h-2.5 bg-[#ff1493] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-            <span className="w-2.5 h-2.5 bg-[#fb7185] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-            <span className="w-2.5 h-2.5 bg-[#ff1493] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-          </div>
+          <div className="mt-12 flex items-center justify-center relative w-10 h-10">
+  <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute top-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '0ms' }} />
+  <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute right-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '150ms' }} />
+  <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute bottom-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '300ms' }} />
+  <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute left-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '450ms' }} />
+</div>
         </div>
         <style>{`
           @keyframes pulse-slow {
@@ -195,6 +196,14 @@ function App() {
           .animate-shimmer {
             background-size: 200% auto;
             animation: shimmer 4s infinite linear;
+          }
+          /* Loading dot pulse: fade in/out */
+          @keyframes dotPulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+          }
+          .animate-dot-pulse {
+            animation: dotPulse 1.2s infinite;
           }
         `}</style>
       </div>

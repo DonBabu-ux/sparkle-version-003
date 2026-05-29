@@ -85,9 +85,6 @@ export default function Navbar() {
       {!['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile', '/messages'].some(path => location.pathname.startsWith(path)) && (
         <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
-            <div className="w-10 h-10 bg-white dark:bg-zinc-900 rounded-xl flex items-center justify-center shadow-lg shadow-primary/5 border border-black/5 dark:border-white/5 overflow-hidden">
-              <img src="/sparklelogo.png" alt="Sparkle" className="w-8 h-8 object-contain" />
-            </div>
             <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
           </Link>
           

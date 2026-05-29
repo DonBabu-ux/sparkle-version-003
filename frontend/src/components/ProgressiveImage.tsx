@@ -50,6 +50,15 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
       preloadRef.current.onload = null;
       preloadRef.current = null;
     }
+
+    // Safety Guardian: Force fully visible state after 1000ms to guarantee no blank space
+    const forceShowTimer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 1000);
+
+    return () => {
+      clearTimeout(forceShowTimer);
+    };
   }, [src, saveDataMode, quality, width]);
 
   // Clean up preloader on unmount
@@ -121,13 +130,13 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
           onLoad={handleImageLoad}
           onError={() => setError(true)}
           className={`w-full h-auto block transition-opacity duration-300 ${
-            isLoaded ? 'opacity-100' : 'opacity-0'
+            isLoaded ? 'opacity-100' : 'opacity-50'
           } ${imageClassName}`}
           style={{ 
             maxHeight: 'inherit',
             ...props.style
           }}
-          loading="lazy"
+          loading="eager"
         />
       )}
 

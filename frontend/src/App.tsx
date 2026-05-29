@@ -95,6 +95,14 @@ import NotFound from './pages/NotFound';
 function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSplash(false);
+    }, 2500); // 2.5 second splash screen
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     // Wait for Zustand persist to finish loading from async Capacitor storage.
@@ -141,12 +149,54 @@ function App() {
     }
   }, [theme]);
 
-  // Show a minimal spinner while the store rehydrates from storage
-  if (!hydrated) {
+  // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
+  if (!hydrated || showSplash) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: '#f0f2f5' }}>
-        <div style={{ width: 40, height: 40, border: '3px solid #e0e0e0', borderTop: '3px solid #1877F2', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-white to-slate-50 dark:from-zinc-950 dark:to-black transition-colors duration-500">
+        <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
+          {/* Logo container with soft shadow and pulsing animations */}
+          <div className="w-32 h-32 md:w-44 md:h-44 mb-6 rounded-3xl bg-white dark:bg-zinc-900 shadow-[0_12px_40px_rgba(255,20,147,0.15)] dark:shadow-[0_12px_40px_rgba(255,20,147,0.05)] border border-pink-500/10 flex items-center justify-center p-6 transition-all duration-500 scale-100 animate-pulse-slow">
+            <img 
+              src="/sparklelogo.png" 
+              alt="Sparkle" 
+              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(255,20,147,0.25)]" 
+            />
+          </div>
+          
+          {/* Premium Brand Text */}
+          <div className="relative mt-2">
+            <h1 className="font-heading text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-[#ff1493] via-[#fb7185] to-[#ff1493] -webkit-background-clip: text-webkit-text-fill-color bg-clip-text text-transparent italic animate-shimmer">
+              Sparkle
+            </h1>
+            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-zinc-500 mt-2">
+              Connect. Share. Shine.
+            </p>
+          </div>
+          
+          {/* Centered micro-animation indicator */}
+          <div className="mt-12 flex items-center justify-center gap-1.5">
+            <span className="w-2.5 h-2.5 bg-[#ff1493] rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+            <span className="w-2.5 h-2.5 bg-[#fb7185] rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+            <span className="w-2.5 h-2.5 bg-[#ff1493] rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+          </div>
+        </div>
+        <style>{`
+          @keyframes pulse-slow {
+            0%, 100% { transform: scale(1); filter: brightness(1); }
+            50% { transform: scale(1.03); filter: brightness(1.05); }
+          }
+          .animate-pulse-slow {
+            animation: pulse-slow 3s infinite ease-in-out;
+          }
+          @keyframes shimmer {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+          }
+          .animate-shimmer {
+            background-size: 200% auto;
+            animation: shimmer 4s infinite linear;
+          }
+        `}</style>
       </div>
     );
   }

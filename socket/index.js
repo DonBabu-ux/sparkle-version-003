@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const Message = require('../models/Message');
+const ScreenshotAudit = require('../models/ScreenshotAudit');
 const User = require('../models/User');
 const GroupMember = require('../models/GroupMember');
 
@@ -164,6 +165,32 @@ const initializeSocket = (server) => {
                 username: socket.user.username,
                 isTyping: !!isTyping
             });
+        });
+        // Register screenshot attempt event
+        socket.on('screenshotAttempt', async (data) => {
+            try {
+                const { chatId = null, method = 'screenshot' } = data || {};
+                const ip = socket.handshake.address || null;
+                await ScreenshotAudit.create({
+                    userId: socket.userId,
+                    chatId,
+                    method,
+                    ip
+                });
+                // Notify the initiating user
+                socket.emit('screenshot_attempt', { method, chatId });
+                // Optionally notify participants in the chat
+                if (chatId) {
+                    socket.to(`chat:${chatId}`).emit('privacy_alert', {
+                        userId: socket.userId,
+                        method,
+                        chatId,
+                        message: `${socket.user.username} attempted a ${method}`
+                    });
+                }
+            } catch (e) {
+                logger.error('Screenshot attempt handling error:', e);
+            }
         });
 
         // Send Message

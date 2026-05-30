@@ -3,25 +3,47 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "mysql"
+  url = env("DATABASE_URL")
+// url removed for Prisma 7; use prisma.config.ts
 }
 
 model Message {
-  id            String   @id @default(uuid())
-  content       String
-  senderId      String
-  groupId       String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  pinned        Boolean  @default(false)
-  pinnedAt      DateTime?
-  pinnedBy      String?
-  edited        Boolean  @default(false)
-  editedAt      DateTime?
-  deleted       Boolean  @default(false)
-  deletedFor    Json?
-  forwarded     Boolean  @default(false)
-  forwardedFrom String?
+  id                String   @id @default(uuid())
+  content           String
+  senderId          String
+  groupId           String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  pinned            Boolean  @default(false)
+  pinnedAt          DateTime?
+  pinnedBy          String?
+  edited            Boolean  @default(false)
+  editedAt          DateTime?
+  deleted           Boolean  @default(false)
+  deletedFor        Json?
+  forwarded         Boolean  @default(false)
+  forwardedFrom     String?
+  // privacy snapshot fields
+  allowForward      Boolean  @default(true)
+  allowCopy         Boolean  @default(true)
+  blockScreenshot   Boolean  @default(false)
+  blurScreenRecording Boolean @default(true)
+  notifyScreenshotAttempts Boolean @default(true)
   // relations (if any) can be added later
+}
+
+model ChatPrivacySettings {
+  id                Int      @id @default(autoincrement())
+  chatId            Int
+  userId            Int
+  allowForward      Boolean  @default(true)
+  allowCopy         Boolean  @default(true)
+  blockScreenshot   Boolean  @default(false)
+  blockScreenRecord Boolean  @default(false)
+  notifyScreenshot  Boolean  @default(false)
+  notifyRecording   Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  @@unique([chatId, userId])
 }

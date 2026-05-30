@@ -24,9 +24,6 @@ let _currentUserId: string | null = null;
  */
 export const createSocket = (userId: string, token: string): Socket => {
   if (_socket && _currentUserId === userId) {
-    // Existing socket for this user – ensure token is up to date via auth payload
-    // Note: socket.io client does not expose a direct way to update auth after init.
-    // For simplicity we reconnect with new credentials.
     if ((_socket as any).auth?.token !== token) {
       _socket.disconnect();
       _socket = null;
@@ -40,8 +37,13 @@ export const createSocket = (userId: string, token: string): Socket => {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 10000,
+      autoConnect: false, // Don't connect immediately, allow connection error handling & refresh check
     });
     _currentUserId = userId;
+    
+    // Connect right after
+    _socket.connect();
+
     // Basic event listeners (can be extended elsewhere)
     _socket.on('connect', () => {
       console.log('🔗 Socket connected for user', userId);

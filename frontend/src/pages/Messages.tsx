@@ -1120,8 +1120,10 @@ useEffect(() => {
   };
 
   socket.on('privacy_updated', handlePrivacyUpdated);
+  socket.on('conversation_privacy_updated', handlePrivacyUpdated);
   return () => {
     socket.off('privacy_updated', handlePrivacyUpdated);
+    socket.off('conversation_privacy_updated', handlePrivacyUpdated);
   };
 }, [socket, selectedChat, activeMessageMenu]);
 

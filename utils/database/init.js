@@ -1,3 +1,4 @@
+require('dotenv').config();
 const pool = require('../../config/database');
 const logger = require('../logger');
 
@@ -651,8 +652,51 @@ const initMessagesTable = async () => {
         }
 
         logger.debug('✅ Messages table verified');
+
+        // Add privacy snapshot columns to messages table
+        const privacyCols = [
+            { name: 'allow_forward', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'allow_copy', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'block_screenshot', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'blur_screen_recording', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'notify_screenshot_attempts', type: 'TINYINT(1) DEFAULT 1' }
+        ];
+        for (const col of privacyCols) {
+            try {
+                await pool.query(`ALTER TABLE messages ADD COLUMN ${col.name} ${col.type}`);
+                logger.debug(`✅ Added privacy snapshot column ${col.name} to messages table`);
+            } catch (err) {
+                if (err.code !== 'ER_DUP_FIELDNAME') {
+                    logger.warn(`Could not add privacy snapshot column ${col.name} to messages:`, err.message);
+                }
+            }
+        }
     } catch (err) {
         logger.error('❌ Failed to init messages table:', err.message);
+        throw err;
+    }
+};
+
+const initChatPrivacySettingsTable = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS chat_privacy_settings (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                chat_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                allow_forward TINYINT(1) DEFAULT 1,
+                allow_copy TINYINT(1) DEFAULT 1,
+                block_screenshot TINYINT(1) DEFAULT 0,
+                blur_screen_recording TINYINT(1) DEFAULT 1,
+                notify_screenshot_attempts TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_chat_user (chat_id, user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        logger.debug('✅ chat_privacy_settings table verified');
+    } catch (err) {
+        logger.error('❌ Failed to init chat_privacy_settings table:', err.message);
         throw err;
     }
 };
@@ -1391,6 +1435,7 @@ const initDB = async () => {
         try { await initStorySharesTable(); } catch (e) { logger.warn('Story shares init failed:', e.message); }
         try { await initCommentLikesTable(); } catch (e) { logger.warn('Comment likes init failed:', e.message); }
         try { await initPersonalChatsTable(); } catch (e) { logger.warn('Personal chats init failed:', e.message); }
+        try { await initChatPrivacySettingsTable(); } catch (e) { logger.warn('Chat privacy settings table init failed:', e.message); }
         try { await initLostFoundTable(); } catch (e) { logger.warn('LostFound init failed:', e.message); }
         try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
         try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }

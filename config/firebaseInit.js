@@ -15,6 +15,20 @@ function initializeFirebaseAdmin() {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
       ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
       : null;
+
+    if (serviceAccount) {
+      const requiredFields = [
+        "project_id",
+        "private_key",
+        "client_email"
+      ];
+      for (const field of requiredFields) {
+        if (!serviceAccount[field]) {
+          throw new Error(`Missing Firebase field: ${field}`);
+        }
+      }
+    }
+
     const credential = serviceAccount
       ? admin.credential.cert(serviceAccount)
       : admin.credential.applicationDefault();
@@ -24,8 +38,7 @@ function initializeFirebaseAdmin() {
     return admin.app();
   } catch (err) {
     logger.error('❌ Firebase Admin initialization failed:', err.message);
-    // Fail silently; downstream code should handle missing admin.
-    return null;
+    throw err; // Do not allow Sparkle to start with broken Firebase credentials
   }
 }
 

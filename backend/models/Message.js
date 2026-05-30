@@ -24,9 +24,33 @@ class Message {
       viewPolicy,
       context,
     } = payload;
+
+    // Fetch sender's custom privacy settings for this chat
+    let allowForward = 1;
+    let allowCopy = 1;
+    let blockScreenshot = 0;
+    let blurScreenRecording = 1;
+    let notifyScreenshotAttempts = 1;
+
+    try {
+      const [rows] = await db.query(
+        'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+        [chatId, senderId]
+      );
+      if (rows && rows.length > 0) {
+        allowForward = rows[0].allow_forward;
+        allowCopy = rows[0].allow_copy;
+        blockScreenshot = rows[0].block_screenshot;
+        blurScreenRecording = rows[0].blur_screen_recording;
+        notifyScreenshotAttempts = rows[0].notify_screenshot_attempts;
+      }
+    } catch (err) {
+      console.error('Error fetching chat privacy settings for message snapshot:', err);
+    }
+
     const [result] = await db.query(
-      `INSERT INTO messages (chat_id, sender_id, content, type, media_url, story_id, reply_to_message_id, marketplace_listing_id, view_policy, context, forward_count, created_at) 
-       VALUES (?,?,?,?,?,?,?,?,?,?,0, NOW())`,
+      `INSERT INTO messages (chat_id, sender_id, content, type, media_url, story_id, reply_to_message_id, marketplace_listing_id, view_policy, context, forward_count, allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, created_at) 
+       VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?, NOW())`,
       [
         chatId,
         senderId,
@@ -38,6 +62,11 @@ class Message {
         marketplaceListingId,
         viewPolicy,
         context,
+        allowForward,
+        allowCopy,
+        blockScreenshot,
+        blurScreenRecording,
+        notifyScreenshotAttempts,
       ]
     );
     return result.insertId;

@@ -7,4 +7,5 @@ export interface MessagePermissions {
   canForward: boolean;
   canReply: boolean;
   canReact: boolean;
+  canCopy?: boolean;
 }

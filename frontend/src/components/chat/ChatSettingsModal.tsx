@@ -57,6 +57,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [disappearingMsgs, setDisappearingMsgs] = useState('Off');
   const [readReceipts, setReadReceipts] = useState(true);
   const [typingIndicator, setTypingIndicator] = useState(true);
+  const [allowForward, setAllowForward] = useState(true);
+  const [allowCopy, setAllowCopy] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
   
@@ -173,7 +175,17 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} primaryColor={currentTheme?.colors.primary} />
-                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} primaryColor={currentTheme?.colors.primary} />
+                                      <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} primaryColor={currentTheme?.colors.primary} />
+                    <ActionItem icon={Eye} label="Allow forwarding" subtext={allowForward ? "Enabled" : "Disabled"} toggle={allowForward} onClick={() => {
+                      const newVal = !allowForward;
+                      setAllowForward(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, { allowForward: newVal, allowCopy }).catch(console.error);
+                    }} primaryColor={currentTheme?.colors.primary} />
+                    <ActionItem icon={Eye} label="Allow copy" subtext={allowCopy ? "Enabled" : "Disabled"} toggle={allowCopy} onClick={() => {
+                      const newVal = !allowCopy;
+                      setAllowCopy(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, { allowForward, allowCopy: newVal }).catch(console.error);
+                    }} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem 
                     icon={MinusCircle} 
                     label="Block" 
@@ -489,7 +501,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               <div className="p-6 flex-1 flex flex-col items-center justify-center text-center">
                 <Wand2 size={48} className="text-purple-500 mb-6" />
                 <h3 className="text-2xl font-black text-white mb-2">Describe your vibe</h3>
-                <p className="text-sm text-white/50 mb-8 max-w-sm">Type any concept, color, or mood, and AI will generate a complete theme.</p>
+                <p className="text-sm text-white/50 mb-8 max-w-sm">Type any concept, color, or mood, and Sparkle AI will generate a complete theme.</p>
                 
                 <div className="w-full max-w-sm mb-6 relative">
                   <input 

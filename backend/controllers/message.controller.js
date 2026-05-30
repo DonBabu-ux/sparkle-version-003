@@ -2,6 +2,7 @@
 
 const Message = require('../models/Message');
 const { canPinMessage, canEditMessage, canDeleteForMe, canDeleteForEveryone, canReactMessage, canForwardMessage } = require('../services/messagePermission');
+const db = require('../../config/database');
 
 // Assuming you have a socket.io instance exported from your server entry
 const { getIO } = require('../../socket'); 
@@ -23,6 +24,33 @@ async function getMessagePermissions(req, res) {
   const message = await Message.getById(messageId);
   if (!message) return res.status(404).json({ error: 'Message not found' });
   const conversationId = message.conversationId;
+
+  // Default privacy settings (BALANCED)
+  let privacySettings = {
+    allowForward: true,
+    allowCopy: true,
+    blockScreenshots: false,
+    blurScreenRecording: true,
+    notifyScreenshotAttempts: true,
+  };
+
+  // Fetch stored privacy settings based on conversation type
+  try {
+    if (message.conversationType === 'group') {
+      const [rows] = await db.query('SELECT privacy_settings FROM group_chats WHERE chat_id = ?', [conversationId]);
+      if (rows[0] && rows[0].privacy_settings) {
+        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+      }
+    } else {
+      const [rows] = await db.query('SELECT privacy_settings FROM personal_chats WHERE chat_id = ?', [conversationId]);
+      if (rows[0] && rows[0].privacy_settings) {
+        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching privacy settings:', err);
+  }
+
   // Build permissions object
   const permissions = {
     isSender: message.senderId === user.id,
@@ -31,9 +59,9 @@ async function getMessagePermissions(req, res) {
     canDeleteForEveryone: canDeleteForEveryone(user, message, { type: message.conversationType }),
     canPin: canPinMessage(user, message, { type: message.conversationType }),
     canReact: canReactMessage(user, message),
-    canForward: canForwardMessage(user, message),
+    canForward: privacySettings.allowForward && canForwardMessage(user, message),
     canReply: true, // always allowed
-    canCopy: true, // always allowed
+    canCopy: privacySettings.allowCopy && true,
   };
   return res.json({ permissions });
 }
@@ -125,7 +153,31 @@ async function forwardMessage(req, res) {
   const user = req.user;
   const message = await Message.getById(messageId);
   if (!message) return res.status(404).json({ error: 'Message not found' });
+
+  // Fetch privacy settings for the source conversation
+  let privacySettings = { allowForward: true };
+  try {
+    if (message.conversationType === 'group') {
+      const [rows] = await db.query('SELECT privacy_settings FROM group_chats WHERE id = ?', [message.conversationId]);
+      if (rows[0] && rows[0].privacy_settings) {
+        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+      }
+    } else {
+      const [rows] = await db.query('SELECT privacy_settings FROM personal_chats WHERE id = ?', [message.conversationId]);
+      if (rows[0] && rows[0].privacy_settings) {
+        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+      }
+    }
+  } catch (err) {
+    console.error('Error fetching privacy settings:', err);
+  }
+
+  if (!privacySettings.allowForward) {
+    return res.status(403).json({ error: 'Forwarding disabled by privacy settings' });
+  }
+
   if (!canForwardMessage(user, message)) return res.status(403).json({ error: 'Forbidden' });
+
   const newId = await Message.sendMessage({
     chatId: targetConversationId,
     senderId: user.id,
@@ -133,12 +185,32 @@ async function forwardMessage(req, res) {
     type: message.type,
     mediaUrl: message.mediaUrl,
     replyToId: null,
-    // other fields left as default
   });
-  // Increment forward count on original
   await Message.incrementForwardCount(messageId);
   emitToConversation(targetConversationId, 'message_new', { messageId: newId });
   return res.json({ success: true, newMessageId: newId });
+}
+
+// PATCH privacy settings for a conversation
+async function updatePrivacySettings(req, res) {
+  const { chatId } = req.params;
+  const { allowForward, allowCopy } = req.body;
+  // Determine conversation type
+  let conversationType = null;
+  const [groupRows] = await db.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+  if (groupRows.length) conversationType = 'group';
+  else {
+    const [personalRows] = await db.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+    if (personalRows.length) conversationType = 'personal';
+  }
+  if (!conversationType) {
+    return res.status(404).json({ error: 'Conversation not found' });
+  }
+  const privacySettings = { allowForward, allowCopy };
+  const tableName = conversationType === 'group' ? 'group_chats' : 'personal_chats';
+  await db.query(`UPDATE ${tableName} SET privacy_settings = ? WHERE chat_id = ?`, [JSON.stringify(privacySettings), chatId]);
+  emitToConversation(chatId, 'privacy_updated', { chatId, ...privacySettings });
+  return res.json({ success: true, privacySettings });
 }
 
 module.exports = {
@@ -150,4 +222,5 @@ module.exports = {
   deleteForMe,
   deleteForEveryone,
   forwardMessage,
+  updatePrivacySettings,
 };

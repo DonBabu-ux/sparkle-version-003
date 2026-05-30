@@ -321,6 +321,29 @@ class MessageController {
                 return res.status(404).json({ status: 'error', error: 'Original message not found' });
             }
 
+            // Fetch privacy settings for the source conversation
+            let privacySettings = { allowForward: true };
+            const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
+            try {
+                if (originalMsg.chat_id) {
+                    const [rows] = await pool.query('SELECT privacy_settings FROM group_chats WHERE chat_id = ?', [sourceChatId]);
+                    if (rows[0] && rows[0].privacy_settings) {
+                        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+                    }
+                } else if (sourceChatId) {
+                    const [rows] = await pool.query('SELECT privacy_settings FROM personal_chats WHERE chat_id = ?', [sourceChatId]);
+                    if (rows[0] && rows[0].privacy_settings) {
+                        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
+                    }
+                }
+            } catch (err) {
+                console.error('Error fetching privacy settings during forward:', err);
+            }
+
+            if (!privacySettings.allowForward) {
+                return res.status(403).json({ status: 'error', error: 'Forwarding is disabled for this conversation by privacy settings' });
+            }
+
             const forwardedMessages = [];
             for (const targetChatId of targetChatIds) {
                 const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);

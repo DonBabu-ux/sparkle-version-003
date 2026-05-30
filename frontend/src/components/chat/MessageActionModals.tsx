@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle } from 'lucide-react';
+import { MessagePermissions } from '../../types/messagePermissions';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 
@@ -19,10 +20,11 @@ interface ActionSheetProps {
   isMe: boolean;
   themeColor?: string;
   onForward?: () => void;
+  permissions?: MessagePermissions;
 }
 
 export const MessageActionSheet: React.FC<ActionSheetProps> = ({
-  isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493", onForward
+  isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493", onForward, permissions
 }) => {
   return (
     <AnimatePresence>
@@ -70,9 +72,10 @@ export const MessageActionSheet: React.FC<ActionSheetProps> = ({
             {/* Action Bar (Sleek Rectangle) */}
             <div className="bg-[#1e1e1e] w-full max-w-[340px] rounded-[16px] py-3 px-2 border border-white/10 flex justify-around shadow-2xl">
               <ActionButton icon={<Reply size={22} />} label="Reply" onClick={onReply} color={themeColor} />
-              {isMe ? (
+              {(!permissions || permissions.canCopy !== false) && (
                 <ActionButton icon={<Copy size={22} />} label="Copy" onClick={onCopy} color={themeColor} />
-              ) : (
+              )}
+              {(!permissions || permissions.canForward !== false) && (
                 <ActionButton icon={<Forward size={22} />} label="Forward" onClick={onForward} color={themeColor} />
               )}
               <ActionButton icon={<Trash2 size={22} />} label="Delete" onClick={onDelete} color="#ef4444" />
@@ -95,10 +98,11 @@ interface MoreModalProps {
   isPinned?: boolean;
   isMe?: boolean;
   onReport?: () => void;
+  permissions?: MessagePermissions;
 }
 
 export const MessageMoreModal: React.FC<MoreModalProps> = ({
-  isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false, isMe = false, onReport
+  isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false, isMe = false, onReport, permissions
 }) => {
   return (
     <AnimatePresence>
@@ -127,7 +131,9 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
                     onClick={onPin} 
                   />
                   <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
-                  <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
+                  {(!permissions || permissions.canForward !== false) && (
+                    <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
+                  )}
                   <div className="h-px bg-white/[0.06] my-1" />
                   <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
                 </>
@@ -143,6 +149,9 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
                     label={isPinned ? "Unpin Message" : "Pin Message"} 
                     onClick={onPin} 
                   />
+                  {(!permissions || permissions.canForward !== false) && (
+                    <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
+                  )}
                   <div className="h-px bg-white/[0.06] my-1" />
                   <MoreOption icon={<Info size={18} className="text-white/60" />} label="Message Details" onClick={onDetails} />
                 </>

@@ -427,6 +427,17 @@ const initGroupsTable = async () => {
             }
         }
 
+        // Migration: add privacy_settings column if missing
+        try {
+          const [cols] = await pool.query("SHOW COLUMNS FROM groups LIKE 'privacy_settings'");
+          if (cols.length === 0) {
+            await pool.query("ALTER TABLE groups ADD COLUMN privacy_settings JSON NULL");
+            logger.info('Added privacy_settings column to groups table');
+          }
+        } catch (e) {
+          logger.warn('Failed to add privacy_settings column to groups:', e.message);
+        }
+
         logger.debug('✅ Groups table verified');
     } catch (err) {
         logger.error('❌ Failed to init groups table:', err.message);
@@ -562,7 +573,17 @@ const initPersonalChatsTable = async () => {
                 INDEX idx_marketplace_chat (marketplace_listing_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
-        logger.debug('✅ Personal chats table verified');
+        // Migration: add privacy_settings column if missing
+try {
+  const [cols] = await pool.query("SHOW COLUMNS FROM personal_chats LIKE 'privacy_settings'");
+  if (cols.length === 0) {
+    await pool.query("ALTER TABLE personal_chats ADD COLUMN privacy_settings JSON NULL");
+    logger.info('Added privacy_settings column to personal_chats table');
+  }
+} catch (e) {
+  logger.warn('Failed to add privacy_settings column to personal_chats:', e.message);
+}
+logger.debug('✅ Personal chats table verified');
     } catch (err) {
         logger.error('❌ Failed to init personal chats table:', err.message);
         throw err;

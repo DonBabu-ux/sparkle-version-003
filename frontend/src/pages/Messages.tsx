@@ -11,6 +11,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
+import { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, StatusBarBackground } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
 import debounce from 'lodash.debounce';
@@ -953,6 +954,7 @@ const [sending, setSending] = useState(false);
 const [newMessage, setNewMessage] = useState('');
 const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
 const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
+const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
 const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
 const [replyToMessage, setReplyToMessage] = useState<any | null>(null);
@@ -1079,6 +1081,49 @@ useEffect(() => {
   }
   return () => document.body.classList.remove('list-modal-open');
 }, [showNewListFlow, showReorderModal]);
+
+// Fetch permissions for active message when menu opens
+useEffect(() => {
+  if (activeMessageMenu?.msg?.message_id) {
+    api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
+      .then(res => {
+        if (res.data?.permissions) {
+          setActiveMessagePermissions(res.data.permissions);
+        }
+      })
+      .catch(err => {
+        console.error("Error fetching message permissions:", err);
+        setActiveMessagePermissions(undefined);
+      });
+  } else {
+    setActiveMessagePermissions(undefined);
+  }
+}, [activeMessageMenu]);
+
+// Listen to real-time privacy settings update
+useEffect(() => {
+  if (!socket || !selectedChat) return;
+
+  const handlePrivacyUpdated = (data: { chatId: string; allowForward: boolean; allowCopy: boolean }) => {
+    if (data.chatId === selectedChat.chat_id) {
+      // Refresh active message permissions if the menu is open
+      if (activeMessageMenu?.msg?.message_id) {
+        api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
+          .then(res => {
+            if (res.data?.permissions) {
+              setActiveMessagePermissions(res.data.permissions);
+            }
+          })
+          .catch(console.error);
+      }
+    }
+  };
+
+  socket.on('privacy_updated', handlePrivacyUpdated);
+  return () => {
+    socket.off('privacy_updated', handlePrivacyUpdated);
+  };
+}, [socket, selectedChat, activeMessageMenu]);
 
 // --- Local Storage Sync & Persistence Effects ---
 useEffect(() => {
@@ -2812,6 +2857,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         }}
         isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
         themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
+        permissions={activeMessagePermissions}
       />
 
       <MessageMoreModal
@@ -2854,6 +2900,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           alert('Thank you for reporting. Our moderation team will review this message shortly.');
           setActiveMessageMenu(null);
         }}
+        permissions={activeMessagePermissions}
       />
 
       <FullEmojiPickerModal

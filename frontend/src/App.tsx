@@ -162,7 +162,7 @@ function App() {
               className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(255,20,147,0.25)]"
             />
           </div>
-          
+
           {/* Premium Brand Text */}
           <div className="relative mt-2">
             <h1 className="font-heading text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-[#ff1493] via-[#fb7185] to-[#ff1493] -webkit-background-clip: text-webkit-text-fill-color bg-clip-text text-transparent italic animate-shimmer">
@@ -172,14 +172,14 @@ function App() {
               Connect. Share. Shine.
             </p>
           </div>
-          
+
           {/* Centered micro-animation indicator */}
           <div className="mt-12 flex items-center justify-center relative w-10 h-10">
-  <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute top-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '0ms' }} />
-  <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute right-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '150ms' }} />
-  <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute bottom-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '300ms' }} />
-  <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute left-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '450ms' }} />
-</div>
+            <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute top-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '0ms' }} />
+            <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute right-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '150ms' }} />
+            <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute bottom-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '300ms' }} />
+            <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute left-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '450ms' }} />
+          </div>
         </div>
         <style>{`
           @keyframes pulse-slow {
@@ -313,10 +313,10 @@ function App() {
                 </div>
               </Router>
             </MockCallProvider>
-            </GlobalThemeProvider>
-          </NetworkStatusProvider>
-        </CameraProvider>
-      </OTAUpdateProvider>
+          </GlobalThemeProvider>
+        </NetworkStatusProvider>
+      </CameraProvider>
+    </OTAUpdateProvider>
 
   );
 }

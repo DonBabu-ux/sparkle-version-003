@@ -36,8 +36,9 @@ export const createSocket = (userId: string, token: string): Socket => {
   if (!_socket) {
     _socket = io(SOCKET_URL, {
       auth: { token, userId },
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
       timeout: 10000,
     });
     _currentUserId = userId;

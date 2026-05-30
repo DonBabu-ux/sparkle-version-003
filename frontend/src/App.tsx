@@ -10,6 +10,7 @@ import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MockCallProvider } from './components/MockCallProvider';
 import { CallOverlay } from './components/CallOverlay';
+import { SocketProvider } from './context/SocketProvider';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';

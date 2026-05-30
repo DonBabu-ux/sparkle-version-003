@@ -23,6 +23,8 @@ const OFFLINE_GRACE_MS = 30_000;
  * and they remain online with no status change.
  */
 const pendingOfflineTimers = new Map();
+// Map to track a single active socket per user
+const userSockets = new Map();
 
 /**
  * Tracks active typing sessions per socket: Map<socketId, Set<chatId>>
@@ -72,15 +74,21 @@ const initializeSocket = (server) => {
             }
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            const user = await User.findById(decoded.userId);
+            // Log minimal auth info for debugging (no sensitive data)
+            logger.debug(`🔌 Socket Auth: Authenticating user ID ${decoded.userId || decoded.id}`);
+            // Support different token structures (id vs userId vs nested user.id)
+            const tokenUserId = decoded.userId || decoded.id || (decoded.user && decoded.user.id);
+            const user = await User.findById(tokenUserId);
 
             if (!user) {
-                logger.warn(`🔌 Socket Auth: User not found for ID ${decoded.userId}`);
+                logger.warn(`🔌 Socket Auth: User not found for ID ${tokenUserId}`);
                 return next(new Error('User not found'));
             }
 
             socket.user = user;
+            // Store the DB primary key for later use
             socket.userId = user.user_id;
+            logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
             next();
         } catch (error) {
             logger.error(`🔌 Socket Auth Error [${socket.id}]:`, error.message);
@@ -91,6 +99,16 @@ const initializeSocket = (server) => {
 
     io.on('connection', async (socket) => {
         logger.info(`🔌 User connected: ${socket.userId} (${socket.user.username})`);
+
+        // ── Duplicate connection protection ──
+        if (userSockets.has(socket.userId)) {
+            const oldSocket = userSockets.get(socket.userId);
+            if (oldSocket && oldSocket.id !== socket.id) {
+                logger.warn(`🔌 Duplicate socket detected for user ${socket.userId}. Disconnecting old socket ${oldSocket.id}`);
+                oldSocket.disconnect(true);
+            }
+        }
+        userSockets.set(socket.userId, socket);
 
         // ── Cancel any pending offline timer for this user (reconnect within grace window) ──
         if (pendingOfflineTimers.has(socket.userId)) {
@@ -123,6 +141,7 @@ const initializeSocket = (server) => {
 
         // Join user to their personal room
         socket.join(`user:${socket.userId}`);
+            console.log(`Joined room user:${socket.userId}`);
 
         // Join all chat rooms (personal and group) they're part of
         await joinUserChatRooms(socket);
@@ -197,6 +216,7 @@ const initializeSocket = (server) => {
         socket.on('send-message', async (data, callback) => {
             try {
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
+            logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
 
@@ -228,6 +248,7 @@ const initializeSocket = (server) => {
                     viewPolicy,
                     context
                 });
+                console.log('MESSAGE SAVED', messageId);
 
                 // Get the saved message with sender info and reply info
                 const [fullMessage] = await pool.query(`
@@ -259,6 +280,7 @@ const initializeSocket = (server) => {
 
                 // 3. Emit to all in the chat room
                 socket.to(`chat:${finalChatId}`).emit('new-message', message);
+            console.log('MESSAGE EMITTED', finalChatId);
 
                 // 4. Handle push notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
@@ -365,16 +387,34 @@ const initializeSocket = (server) => {
 
         // Explicit offline signal (tab close / beforeunload)
         socket.on('presence:offline', async () => {
-            try {
-                logger.info(`📴 Explicit offline signal from ${socket.userId}`);
-                await User.setOnlineStatus(socket.userId, false);
-                broadcastOnlineStatus(socket, false);
-            } catch (e) {
-                logger.error('presence:offline error:', e);
-            }
-        });
+                    try {
+                        logger.info(`📴 Explicit offline signal from ${socket.userId}`);
+                        await User.setOnlineStatus(socket.userId, false);
+                        broadcastOnlineStatus(socket, false);
+                    } catch (e) {
+                        logger.error('presence:offline error:', e);
+                    }
+                });
 
-        // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
+        // Handle disconnect (including network loss)
+        socket.on('disconnect', async (reason) => {
+            logger.info(`🔌 Socket disconnect: ${socket.id} reason=${reason}`);
+            // Remove from userSockets map
+            if (userSockets.get(socket.userId) === socket) {
+                userSockets.delete(socket.userId);
+            }
+            // Start offline grace timer
+            const timer = setTimeout(async () => {
+                try {
+                    await User.setOnlineStatus(socket.userId, false);
+                    broadcastOnlineStatus(socket, false);
+                } catch (e) {
+                    logger.error('Error setting offline status:', e);
+                }
+                pendingOfflineTimers.delete(socket.userId);
+            }, OFFLINE_GRACE_MS);
+            pendingOfflineTimers.set(socket.userId, timer);
+        });// Custom heartbeat ping-pong (supplements socket.io's built-in ping)
         socket.on('sparkle-ping', () => {
             socket.emit('sparkle-pong', { ts: Date.now() });
         });

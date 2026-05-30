@@ -172,7 +172,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads'), {
     etag: true
 }));
 
-// Ensure missing static files in /uploads don't hit the auth middleware or EJS engine
+const { initializeFirebaseAdmin } = require('./config/firebaseInit');
+initializeFirebaseAdmin();
 app.use('/uploads', (req, res) => {
     res.status(404).send('Image not found');
 });

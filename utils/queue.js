@@ -2,16 +2,13 @@ const { Queue, Worker, QueueEvents } = require('bullmq');
 const IORedis = require('ioredis');
 const logger = require('./logger');
 
-// Optional environment flag to disable queue entirely (useful for environments without Redis access)
-const DISABLE_QUEUE = process.env.DISABLE_QUEUE === 'true';
+// NOTE: Queue disabling via DISABLE_QUEUE removed – Redis will be enabled when REDIS_URL is set.
 
 // Redis configuration (Production-Ready)
 const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_TCP_URL;
 let connection = null;
 
-if (DISABLE_QUEUE) {
-  logger.warn('Redis Queue is disabled via DISABLE_QUEUE flag.');
-} else if (redisUrl) {
+if (redisUrl) {
   try {
     connection = new IORedis(redisUrl, {
       maxRetriesPerRequest: null,

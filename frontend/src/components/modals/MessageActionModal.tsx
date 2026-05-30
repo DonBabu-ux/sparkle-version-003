@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Reply, Copy, Trash2, Pin, Edit3, Forward, Info, Smile } from 'lucide-react';
-import { MessagePermissions } from '../../types/messagePermissions';
+import type { MessagePermissions } from '../../types/messagePermissions';
 
 // Quick reactions
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '😡', '👍', '🔥', '💯'];

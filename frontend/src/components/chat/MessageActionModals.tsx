@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, AlertTriangle } from 'lucide-react';
-import { MessagePermissions } from '../../types/messagePermissions';
+import type { MessagePermissions } from '../../types/messagePermissions';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 

@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLongPress } from '../../hooks/useLongPress';
 import { MessageActionModal } from '../modals/MessageActionModal';
 import { FullEmojiPickerModal } from './MessageActionModals';
-import { MessagePermissions } from '../../types/messagePermissions';
+import type { MessagePermissions } from '../../types/messagePermissions';
 
 interface MessageBubbleProps {
   message: {

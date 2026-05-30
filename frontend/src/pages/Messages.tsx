@@ -11,7 +11,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
-import { MessagePermissions } from '../types/messagePermissions';
+import type { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, StatusBarBackground } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
 import debounce from 'lodash.debounce';

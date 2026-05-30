@@ -39,6 +39,7 @@ router.post('/:messageId/forward', messageController.forwardMessage);
 
 // Message permissions (used by frontend action modal)
 router.get('/:messageId/permissions', permissionController.getMessagePermissions);
+router.get('/:chatId/privacy', permissionController.getPrivacySettings);
 router.patch('/:chatId/privacy', permissionController.updatePrivacySettings);
 
 

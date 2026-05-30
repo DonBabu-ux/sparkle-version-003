@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, 
@@ -59,8 +59,26 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [typingIndicator, setTypingIndicator] = useState(true);
   const [allowForward, setAllowForward] = useState(true);
   const [allowCopy, setAllowCopy] = useState(true);
+  const [blockScreenshots, setBlockScreenshots] = useState(false);
+  const [blurScreenRecording, setBlurScreenRecording] = useState(true);
+  const [notifyScreenshotAttempts, setNotifyScreenshotAttempts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
+
+  // Load privacy settings from backend when modal opens
+  useEffect(() => {
+    api
+      .get(`/messages/${chat.chat_id || chat.id}/privacy`)
+      .then((res) => {
+        const data = res.data || {};
+        setAllowForward(data.allowForward ?? true);
+        setAllowCopy(data.allowCopy ?? true);
+        setBlockScreenshots(data.blockScreenshots ?? false);
+        setBlurScreenRecording(data.blurScreenRecording ?? true);
+        setNotifyScreenshotAttempts(data.notifyScreenshotAttempts ?? true);
+      })
+      .catch(console.error);
+  }, [chat.chat_id, chat.id]);
   
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
   const [blurValue, setBlurValue] = useState(20);
@@ -179,12 +197,57 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     <ActionItem icon={Eye} label="Allow forwarding" subtext={allowForward ? "Enabled" : "Disabled"} toggle={allowForward} onClick={() => {
                       const newVal = !allowForward;
                       setAllowForward(newVal);
-                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, { allowForward: newVal, allowCopy }).catch(console.error);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        allowForward: newVal,
+                        allowCopy,
+                        blockScreenshots,
+                        blurScreenRecording,
+                        notifyScreenshotAttempts,
+                      }).catch(console.error);
                     }} primaryColor={currentTheme?.colors.primary} />
                     <ActionItem icon={Eye} label="Allow copy" subtext={allowCopy ? "Enabled" : "Disabled"} toggle={allowCopy} onClick={() => {
                       const newVal = !allowCopy;
                       setAllowCopy(newVal);
-                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, { allowForward, allowCopy: newVal }).catch(console.error);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        allowForward,
+                        allowCopy: newVal,
+                        blockScreenshots,
+                        blurScreenRecording,
+                        notifyScreenshotAttempts,
+                      }).catch(console.error);
+                    }} primaryColor={currentTheme?.colors.primary} />
+                    <ActionItem icon={Shield} label="Block screenshots" subtext={blockScreenshots ? "Enabled" : "Disabled"} toggle={blockScreenshots} onClick={() => {
+                      const newVal = !blockScreenshots;
+                      setBlockScreenshots(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        allowForward,
+                        allowCopy,
+                        blockScreenshots: newVal,
+                        blurScreenRecording,
+                        notifyScreenshotAttempts,
+                      }).catch(console.error);
+                    }} primaryColor={currentTheme?.colors.primary} />
+                    <ActionItem icon={Shield} label="Blur on screen recording" subtext={blurScreenRecording ? "Enabled" : "Disabled"} toggle={blurScreenRecording} onClick={() => {
+                      const newVal = !blurScreenRecording;
+                      setBlurScreenRecording(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        allowForward,
+                        allowCopy,
+                        blockScreenshots,
+                        blurScreenRecording: newVal,
+                        notifyScreenshotAttempts,
+                      }).catch(console.error);
+                    }} primaryColor={currentTheme?.colors.primary} />
+                    <ActionItem icon={Shield} label="Notify screenshot attempts" subtext={notifyScreenshotAttempts ? "Enabled" : "Disabled"} toggle={notifyScreenshotAttempts} onClick={() => {
+                      const newVal = !notifyScreenshotAttempts;
+                      setNotifyScreenshotAttempts(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        allowForward,
+                        allowCopy,
+                        blockScreenshots,
+                        blurScreenRecording,
+                        notifyScreenshotAttempts: newVal,
+                      }).catch(console.error);
                     }} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem 
                     icon={MinusCircle} 

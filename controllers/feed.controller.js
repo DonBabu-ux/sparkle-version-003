@@ -95,6 +95,7 @@ const getFeedPosts = async (req, res) => {
         const affiliation = req.user.affiliation || req.user.campus || 'all';
         const {
             limit = 10,
+            offset = 0,
             force = false,
             mode = 'for_you',
             seed = 0,

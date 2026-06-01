@@ -306,6 +306,32 @@ class MessageController {
         }
     }
 
+    async copyMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const originalMsg = await Message.getById(messageId);
+            if (!originalMsg) {
+                return res.status(404).json({ status: 'error', error: 'Original message not found' });
+            }
+
+            const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
+            
+            // Check original sender's copy protection
+            const [privacyRows] = await pool.query(
+                'SELECT allow_copy FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                [sourceChatId, originalMsg.sender_id]
+            );
+
+            if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_copy) {
+                return res.status(403).json({ status: 'error', error: 'Copying is disabled by message owner privacy settings' });
+            }
+
+            res.json({ status: 'success', data: { content: originalMsg.content } });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
     async forwardMessage(req, res) {
         try {
             const { messageId } = req.params;
@@ -321,27 +347,16 @@ class MessageController {
                 return res.status(404).json({ status: 'error', error: 'Original message not found' });
             }
 
-            // Fetch privacy settings for the source conversation
-            let privacySettings = { allowForward: true };
             const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
-            try {
-                if (originalMsg.chat_id) {
-                    const [rows] = await pool.query('SELECT privacy_settings FROM group_chats WHERE chat_id = ?', [sourceChatId]);
-                    if (rows[0] && rows[0].privacy_settings) {
-                        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
-                    }
-                } else if (sourceChatId) {
-                    const [rows] = await pool.query('SELECT privacy_settings FROM personal_chats WHERE chat_id = ?', [sourceChatId]);
-                    if (rows[0] && rows[0].privacy_settings) {
-                        privacySettings = { ...privacySettings, ...JSON.parse(rows[0].privacy_settings) };
-                    }
-                }
-            } catch (err) {
-                console.error('Error fetching privacy settings during forward:', err);
-            }
+            
+            // Check original sender's forward protection
+            const [privacyRows] = await pool.query(
+                'SELECT allow_forward FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                [sourceChatId, originalMsg.sender_id]
+            );
 
-            if (!privacySettings.allowForward) {
-                return res.status(403).json({ status: 'error', error: 'Forwarding is disabled for this conversation by privacy settings' });
+            if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_forward) {
+                return res.status(403).json({ status: 'error', error: 'Forwarding is disabled by message owner privacy settings' });
             }
 
             const forwardedMessages = [];

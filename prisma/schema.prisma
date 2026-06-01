@@ -4,9 +4,8 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url = env("DATABASE_URL")
-// url removed for Prisma 7; use prisma.config.ts
 }
+
 
 model Message {
   id                String   @id @default(uuid())

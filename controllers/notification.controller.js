@@ -75,33 +75,77 @@ const notificationController = {
 
             // optionally filter for unread only (used by polling)
             const unreadOnly = req.query.unreadOnly === 'true' || req.query.unreadOnly === '1';
+
+            // Union query: capture attempts + regular notifications
             let baseSql = `
-                SELECT n.*, u.username as actor_username, u.name as actor_name, u.avatar_url as actor_avatar
-                FROM notifications n
-                LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
-                WHERE n.user_id = ?`;
-            const params = [userId];
+                SELECT * FROM (
+                    SELECT 
+                        n.notification_id AS notification_id,
+                        n.type AS type,
+                        n.title AS title,
+                        n.content AS content,
+                        n.created_at AS created_at,
+                        n.is_read AS is_read,
+                        u.avatar_url AS actor_avatar,
+                        COALESCE(n.related_user_id, n.actor_id) AS actor_id,
+                        u.name AS actor_name,
+                        u.username AS actor_username,
+                        n.action_url AS action_url,
+                        n.aggregation_count AS aggregation_count,
+                        n.related_id AS related_post_id
+                    FROM notifications n
+                    LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
+                    WHERE n.user_id = ?
+
+                    UNION ALL
+
+                    SELECT 
+                        cn.id AS notification_id,
+                        'capture_attempt' AS type,
+                        '⚠️ Screen Capture Attempt' AS title,
+                        CASE 
+                            WHEN ca.attempt_type = 'SCREENSHOT_ATTEMPT' THEN 'attempted to capture a screenshot of your chat'
+                            WHEN ca.attempt_type = 'SCREEN_RECORD_ATTEMPT' THEN 'attempted to record your chat screen'
+                            ELSE 'attempted to capture your content'
+                        END AS content,
+                        ca.created_at AS created_at,
+                        cn.is_read AS is_read,
+                        u.avatar_url AS actor_avatar,
+                        ca.actor_user_id AS actor_id,
+                        u.name AS actor_name,
+                        u.username AS actor_username,
+                        CONCAT('/messages?chat=', ca.chat_id) AS action_url,
+                        1 AS aggregation_count,
+                        ca.chat_id AS related_post_id
+                    FROM capture_notifications cn
+                    JOIN capture_attempts ca ON ca.id = cn.capture_attempt_id
+                    LEFT JOIN users u ON u.user_id = ca.actor_user_id
+                    WHERE cn.recipient_user_id = ?
+                ) AS unified_notifications
+                WHERE 1=1`;
+
+            const params = [userId, userId];
             if (unreadOnly) {
-                baseSql += ` AND n.is_read = 0`;
+                baseSql += ` AND is_read = 0`;
             }
-            baseSql += ` ORDER BY CASE WHEN n.type = 'system_welcome' AND n.is_read = 0 THEN 1 ELSE 0 END DESC, n.created_at DESC LIMIT ? OFFSET ?`;
+            baseSql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
             params.push(limit, offset);
 
             const [rows] = await pool.query(baseSql, params);
 
             const notifications = rows.map(n => ({
-                id: n.id || n.notification_id,
-                message: n.message || n.content || n.title,
+                id: n.notification_id,
+                message: n.content || n.title,
                 type: n.type,
                 is_read: !!n.is_read,
                 created_at: n.created_at,
-                related_user: n.actor_id || n.related_user_id ? {
-                    id: n.related_user_id || n.actor_id,
+                related_user: n.actor_id ? {
+                    id: n.actor_id,
                     username: n.actor_username,
                     name: n.actor_name,
                     avatar: n.actor_avatar
                 } : null,
-                related_post_id: n.related_post_id || n.related_id,
+                related_post_id: n.related_post_id,
                 
                 // Backwards compatibility keys
                 notification_id: n.notification_id,

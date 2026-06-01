@@ -36,11 +36,16 @@ router.post('/:messageId/react', messageController.reactToMessage);
 router.post('/:messageId/pin', messageController.pinMessage);
 router.post('/:messageId/unpin', messageController.unpinMessage);
 router.post('/:messageId/forward', messageController.forwardMessage);
+router.post('/chat/:chatId/messages/:messageId/copy', messageController.copyMessage);
+router.post('/chat/:chatId/messages/:messageId/forward', messageController.forwardMessage);
+router.post('/:chatId/messages/:messageId/copy', messageController.copyMessage);
+router.post('/:chatId/messages/:messageId/forward', messageController.forwardMessage);
 
 // Message permissions (used by frontend action modal)
 router.get('/:messageId/permissions', permissionController.getMessagePermissions);
 router.get('/:chatId/privacy', permissionController.getPrivacySettings);
 router.patch('/:chatId/privacy', permissionController.updatePrivacySettings);
+router.post('/:chatId/capture-attempt', permissionController.recordCaptureAttempt);
 
 
 // Conversation messages (Keep these at the end to avoid route conflicts)

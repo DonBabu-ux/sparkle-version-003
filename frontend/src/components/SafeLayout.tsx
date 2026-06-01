@@ -112,39 +112,17 @@ export const KeyboardSafeContainer: React.FC<{
   className?: string;
   style?: React.CSSProperties;
 }> = ({ children, className = '', style }) => {
-  const [viewportHeight, setViewportHeight] = useState<string>('100%');
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handleResize = () => {
-      // Set height of container strictly to the visual viewport height
-      setViewportHeight(`${vv.height}px`);
-      // Prevent Android Chrome from natively scrolling the page and leaving a gap
-      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    };
-
-    vv.addEventListener('resize', handleResize);
-    vv.addEventListener('scroll', handleResize);
-    handleResize();
-
-    return () => {
-      vv.removeEventListener('resize', handleResize);
-      vv.removeEventListener('scroll', handleResize);
-    };
-  }, []);
-
+  // Use static full viewport height to allow browser to handle keyboard overlays.
+  const containerStyle: React.CSSProperties = {
+    height: '100vh',
+    maxHeight: '100vh',
+    overflow: 'hidden',
+    position: 'relative',
+    ...style,
+    // Ensure any additional className can override.
+  };
   return (
-    <div
-      className={`flex flex-col w-full overflow-hidden transition-all duration-150 ${className}`}
-      style={{
-        height: viewportHeight,
-        maxHeight: viewportHeight,
-        position: 'relative',
-        ...style
-      }}
-    >
+    <div className={`flex flex-col w-full ${className}`} style={containerStyle}>
       {children}
     </div>
   );

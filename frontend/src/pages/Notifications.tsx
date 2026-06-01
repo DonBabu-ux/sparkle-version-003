@@ -133,6 +133,7 @@ export default function Notifications() {
       case 'group': return '#8b5cf6';
       case 'marketplace': return '#14b8a6';
       case 'poke': return '#6366f1';
+      case 'capture_attempt': return '#ef4444';
       default: return '#1877f2';
     }
   };
@@ -146,6 +147,7 @@ export default function Notifications() {
       case 'group': return <Users size={12} className="text-white" strokeWidth={3} />;
       case 'marketplace': return <ShoppingBag size={12} className="text-white" strokeWidth={3} />;
       case 'poke': return <Hand size={12} className="text-white fill-white" />;
+      case 'capture_attempt': return <AlertOctagon size={12} className="text-white fill-white" />;
       default: return <Bell size={12} className="text-white fill-white" />;
     }
   };

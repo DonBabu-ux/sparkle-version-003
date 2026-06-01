@@ -5,7 +5,7 @@ const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload, messageUpload } = require('../../middleware/upload.middleware');
 
 // Root is /api/upload
-router.post('/', authMiddleware, upload.single('media'), uploadController.uploadMedia);
+router.post('/', upload.single('media'), uploadController.uploadMedia);
 router.post('/message', authMiddleware, messageUpload.single('file'), uploadController.uploadMedia);
 
 module.exports = router;

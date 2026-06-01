@@ -679,9 +679,10 @@ const initMessagesTable = async () => {
 
 const initChatPrivacySettingsTable = async () => {
     try {
+        // 1. chat_privacy_settings
         await pool.query(`
             CREATE TABLE IF NOT EXISTS chat_privacy_settings (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                id CHAR(36) PRIMARY KEY,
                 chat_id CHAR(36) NOT NULL,
                 user_id CHAR(36) NOT NULL,
                 allow_forward TINYINT(1) DEFAULT 1,
@@ -694,9 +695,66 @@ const initChatPrivacySettingsTable = async () => {
                 UNIQUE KEY unique_chat_user (chat_id, user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
-        logger.debug('✅ chat_privacy_settings table verified');
+        
+        try {
+            await pool.query('CREATE INDEX idx_chat_privacy_settings_lookup ON chat_privacy_settings(chat_id, user_id)');
+        } catch (e) {}
+
+        // 2. capture_attempts
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS capture_attempts (
+                id CHAR(36) PRIMARY KEY,
+                chat_id CHAR(36) NOT NULL,
+                owner_user_id CHAR(36) NOT NULL,
+                actor_user_id CHAR(36) NOT NULL,
+                attempt_type VARCHAR(50) NOT NULL,
+                detection_method VARCHAR(50),
+                device_info JSON,
+                metadata JSON,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+        
+        try {
+            await pool.query('CREATE INDEX idx_capture_attempts_owner ON capture_attempts(owner_user_id, created_at DESC)');
+        } catch (e) {}
+        try {
+            await pool.query('CREATE INDEX idx_capture_attempts_chat ON capture_attempts(chat_id, created_at DESC)');
+        } catch (e) {}
+
+        // 3. capture_notifications
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS capture_notifications (
+                id CHAR(36) PRIMARY KEY,
+                recipient_user_id CHAR(36) NOT NULL,
+                capture_attempt_id CHAR(36) NOT NULL,
+                is_read TINYINT(1) DEFAULT 0,
+                delivered_via_websocket TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_attempt_recipient (capture_attempt_id, recipient_user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 4. capture_audit_log (immutable)
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS capture_audit_log (
+                id CHAR(36) PRIMARY KEY,
+                capture_attempt_id CHAR(36) NOT NULL,
+                actor_user_id CHAR(36) NOT NULL,
+                owner_user_id CHAR(36) NOT NULL,
+                chat_id CHAR(36) NOT NULL,
+                action VARCHAR(100) NOT NULL,
+                before_state JSON,
+                after_state JSON,
+                ip_address VARCHAR(45),
+                user_agent TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ chat_privacy_settings and capture tables verified');
     } catch (err) {
-        logger.error('❌ Failed to init chat_privacy_settings table:', err.message);
+        logger.error('❌ Failed to init chat_privacy_settings and capture tables:', err.message);
         throw err;
     }
 };

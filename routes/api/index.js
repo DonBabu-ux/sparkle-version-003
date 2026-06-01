@@ -6,6 +6,7 @@ const userTabsRoutes = require('./userTabs.routes');
 
 const userRoutes = require('./user.routes');
 const messagesRoutes = require('./messages.routes');
+const privacyRoutes = require('./privacy.routes');
 const postsRoutes = require('./posts.routes');
 const storiesRoutes = require('./stories.routes');
 const momentsRoutes = require('./moments.routes');

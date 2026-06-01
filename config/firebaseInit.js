@@ -12,7 +12,7 @@ function initializeFirebaseAdmin() {
       return admin.app();
     }
     // Attempt to initialize using service account JSON from env or file path
-    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON && process.env.FIREBASE_SERVICE_ACCOUNT_JSON !== '{}'
       ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON)
       : null;
 
@@ -29,6 +29,11 @@ function initializeFirebaseAdmin() {
       }
     }
 
+    if (!serviceAccount && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+      logger.warn('⚠️  Firebase Admin credentials not configured. Skipping initialization.');
+      return null;
+    }
+
     const credential = serviceAccount
       ? admin.credential.cert(serviceAccount)
       : admin.credential.applicationDefault();
@@ -38,8 +43,9 @@ function initializeFirebaseAdmin() {
     return admin.app();
   } catch (err) {
     logger.error('❌ Firebase Admin initialization failed:', err.message);
-    throw err; // Do not allow Sparkle to start with broken Firebase credentials
+    return null; // Do not allow optional/broken Firebase to crash Sparkle server
   }
 }
+
 
 module.exports = { initializeFirebaseAdmin };

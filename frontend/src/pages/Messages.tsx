@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
+import { registerPlugin } from '@capacitor/core';
 
 import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
@@ -12,7 +13,7 @@ import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
 import type { MessagePermissions } from '../types/messagePermissions';
-import { KeyboardAwareChatLayout, StatusBarBackground } from '../components/SafeLayout';
+import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
 import debounce from 'lodash.debounce';
 import data from '@emoji-mart/data';
@@ -405,36 +406,12 @@ const ChatInput = memo(({
   const [giphySearch, setGiphySearch] = useState('');
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  const initialHeightRef = useRef(window.innerHeight);
-
-  useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
-
-    const handleResize = () => {
-      setIsKeyboardOpen(initialHeightRef.current - vv.height > 120);
-    };
-
-    vv.addEventListener('resize', handleResize);
-    vv.addEventListener('scroll', handleResize);
-    handleResize();
-
-    return () => {
-      vv.removeEventListener('resize', handleResize);
-      vv.removeEventListener('scroll', handleResize);
-    };
-  }, []);
 
   const [isRecording, setIsRecording] = useState(false);
   const [recordTime, setRecordTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-  const recordIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [slideOffset, setSlideOffset] = useState(0);
-  const initialXRef = useRef(0);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
+const handlePointerDown = (e: React.PointerEvent) => {
     e.target.setPointerCapture(e.pointerId);
     startRecording();
     initialXRef.current = e.clientX;
@@ -577,15 +554,8 @@ const ChatInput = memo(({
   };
 
   return (
-    <footer
-      className="z-30 shrink-0 border-t border-white/5 transition-all duration-300"
-      style={{
-        backgroundColor: themeBg,
-        borderTopColor: 'rgba(255,255,255,0.05)',
-        paddingBottom: isKeyboardOpen ? '8px' : 'calc(env(safe-area-inset-bottom) + 8px)'
-      }}
-    >
-      <div className="w-full">
+    <ChatInputDock className="z-30 shrink-0 border-t border-white/5 transition-all duration-300" backgroundColor={themeBg}>
+      <div className="w-full max-w-[1200px] mx-auto">
         {replyToMessage && (
           <ReplyPreview
             onClear={() => {
@@ -863,14 +833,12 @@ const ChatInput = memo(({
           )}
         </AnimatePresence>
       </div>
-    </footer>
+    
+  </ChatInputDock>
   );
 });
 
-const uploadFileWithProgress = async (
-  fileOrUrl: string | File,
-  onProgress: (progress: number) => void
-) => {
+async function uploadFileWithProgress(fileOrUrl, onProgress) {
   const formData = new FormData();
 
   if (fileOrUrl instanceof File) {
@@ -888,14 +856,14 @@ const uploadFileWithProgress = async (
   }
 
   const response = await api.post('/upload/message', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
+    // Axios sets multipart headers automatically
     onUploadProgress: (progressEvent) => {
       const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
       onProgress(percent);
-    }
+    },
   });
 
-  return response.data?.url || response.data?.data?.url || response.data?.secure_url;
+  return response.data?.url || response.data?.data?.url || response.data?.secure_url || '';
 };
 
 const EMPTY_MESSAGES_ARRAY: any[] = [];
@@ -911,6 +879,30 @@ export default function Messages() {
 
   // Activate real-time message socket updates
   useMessageSocket();
+
+  // --- Per-Chat Privacy Protection States & Dynamic Capacitor Bridge ---
+  const [activePrivacy, setActivePrivacy] = useState<{
+    screenshotProtection: boolean;
+    screenRecordingProtection: boolean;
+    copyProtection: boolean;
+    forwardProtection: boolean;
+    captureNotifications: boolean;
+  } | null>(null);
+  const [privacyAlert, setPrivacyAlert] = useState<{
+    message: string;
+    actorUserId: string;
+    timestamp: string;
+  } | null>(null);
+
+  const toggleAndroidSecure = async (enabled: boolean) => {
+    try {
+      const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
+      await (enabled ? PrivacyProtection.enablePrivacyProtection() : PrivacyProtection.disablePrivacyProtection());
+      console.log(`[PrivacyProtection] Dynamic FLAG_SECURE ${enabled ? 'ENABLED' : 'DISABLED'}`);
+    } catch (err) {
+      console.warn('[PrivacyProtection] Android/Capacitor dynamic bridge is offline or unavailable');
+    }
+  };
 
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
@@ -1119,11 +1111,26 @@ useEffect(() => {
     }
   };
 
+  const handleCaptureAttempt = (data: any) => {
+    if (data.payload?.chatId === selectedChat.chat_id) {
+      setPrivacyAlert({
+        message: `⚠️ Alert: Screen capture attempt detected via ${data.payload.detectionMethod || 'system'}!`,
+        actorUserId: data.payload.actorUserId,
+        timestamp: data.payload.timestamp
+      });
+      setTimeout(() => {
+        setPrivacyAlert(null);
+      }, 6000);
+    }
+  };
+
   socket.on('privacy_updated', handlePrivacyUpdated);
   socket.on('conversation_privacy_updated', handlePrivacyUpdated);
+  socket.on('capture_attempt', handleCaptureAttempt);
   return () => {
     socket.off('privacy_updated', handlePrivacyUpdated);
     socket.off('conversation_privacy_updated', handlePrivacyUpdated);
+    socket.off('capture_attempt', handleCaptureAttempt);
   };
 }, [socket, selectedChat, activeMessageMenu]);
 
@@ -1235,6 +1242,28 @@ useEffect(() => {
   if (selectedChat) {
     fetchMessages(selectedChat.chat_id);
   }
+}, [selectedChat?.chat_id]);
+
+useEffect(() => {
+  if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+    api.get(`/messages/${selectedChat.chat_id}/privacy`)
+      .then(res => {
+        setActivePrivacy(res.data);
+        toggleAndroidSecure(!!res.data?.screenshotProtection);
+      })
+      .catch(err => {
+        console.error('Failed to load chat privacy settings:', err);
+        setActivePrivacy(null);
+        toggleAndroidSecure(false);
+      });
+  } else {
+    setActivePrivacy(null);
+    toggleAndroidSecure(false);
+  }
+
+  return () => {
+    toggleAndroidSecure(false);
+  };
 }, [selectedChat?.chat_id]);
 
 // --- Handlers ---
@@ -2326,8 +2355,20 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
                     <Info size={19} strokeWidth={2.2} />
                   </button>
-                </div>
+                    </div>
               </header>
+
+              {privacyAlert && (
+                <div className="absolute top-[56px] left-0 right-0 z-[100] px-4 py-2.5 bg-rose-500/90 text-white backdrop-blur-md shadow-lg border-b border-rose-500/20 text-xs font-bold flex items-center justify-between transition-all duration-300">
+                  <div className="flex items-center gap-2">
+                    <ShieldAlert size={16} className="text-white shrink-0 animate-bounce" />
+                    <span>{privacyAlert.message}</span>
+                  </div>
+                  <button type="button" onClick={() => setPrivacyAlert(null)} className="text-white/60 hover:text-white p-1 ml-2">
+                    <X size={16} />
+                  </button>
+                </div>
+              )}
 
               {/* Pinned Messages Carousel */}
               <AnimatePresence>

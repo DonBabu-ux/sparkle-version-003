@@ -1,4 +1,5 @@
 const db = require('../../config/database'); // adjust path to your DB instance
+const crypto = require('crypto');
 
 /**
  * Message model abstraction.
@@ -7,7 +8,7 @@ const db = require('../../config/database'); // adjust path to your DB instance
  */
 class Message {
   static async getById(id) {
-    const [rows] = await db.query('SELECT * FROM messages WHERE id = ?', [id]);
+    const [rows] = await db.query('SELECT * FROM messages WHERE message_id = ?', [id]);
     return rows[0] || null;
   }
 
@@ -24,6 +25,8 @@ class Message {
       viewPolicy,
       context,
     } = payload;
+
+    const messageId = crypto.randomUUID();
 
     // Fetch sender's custom privacy settings for this chat
     let allowForward = 1;
@@ -48,10 +51,11 @@ class Message {
       console.error('Error fetching chat privacy settings for message snapshot:', err);
     }
 
-    const [result] = await db.query(
-      `INSERT INTO messages (chat_id, sender_id, content, type, media_url, story_id, reply_to_message_id, marketplace_listing_id, view_policy, context, forward_count, allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, created_at) 
-       VALUES (?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?, NOW())`,
+    await db.query(
+      `INSERT INTO messages (message_id, chat_id, sender_id, content, type, media_url, story_id, reply_to_message_id, marketplace_listing_id, view_policy, context, forward_count, allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, created_at) 
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,0,?,?,?,?,?, NOW())`,
       [
+        messageId,
         chatId,
         senderId,
         content,
@@ -69,61 +73,62 @@ class Message {
         notifyScreenshotAttempts,
       ]
     );
-    return result.insertId;
+    return messageId;
   }
 
   // Increment forward count atomically and return new count.
   static async incrementForwardCount(messageId) {
     // Update forward count
-    const [result] = await db.query('UPDATE messages SET forward_count = forward_count + 1 WHERE id = ?', [messageId]);
+    const [result] = await db.query('UPDATE messages SET forward_count = forward_count + 1 WHERE message_id = ?', [messageId]);
     if (result.affectedRows === 0) return null;
-    const [rows] = await db.query('SELECT forward_count FROM messages WHERE id = ?', [messageId]);
+    const [rows] = await db.query('SELECT forward_count FROM messages WHERE message_id = ?', [messageId]);
     return rows[0].forward_count;
   }
 
   // Update permissions for a message (store JSON object)
   static async updatePermissions(messageId, permissions) {
-    const [result] = await db.query('UPDATE messages SET permissions = ? WHERE id = ?', [JSON.stringify(permissions), messageId]);
+    const [result] = await db.query('UPDATE messages SET permissions = ? WHERE message_id = ?', [JSON.stringify(permissions), messageId]);
     return result.affectedRows > 0;
   }
 
   // Toggle reaction (return updated reactions object)
   static async toggleReaction(messageId, userId, reaction) {
-    const [rows] = await db.query('SELECT reactions FROM messages WHERE id = ?', [messageId]);
+    const [rows] = await db.query('SELECT reactions FROM messages WHERE message_id = ?', [messageId]);
     let reactions = rows[0].reactions ? JSON.parse(rows[0].reactions) : {};
     if (!reactions[reaction]) reactions[reaction] = [];
     const idx = reactions[reaction].indexOf(userId);
     if (idx === -1) reactions[reaction].push(userId);
     else reactions[reaction].splice(idx, 1);
-    const [result] = await db.query('UPDATE messages SET reactions = ? WHERE id = ?', [JSON.stringify(reactions), messageId]);
+    const [result] = await db.query('UPDATE messages SET reactions = ? WHERE message_id = ?', [JSON.stringify(reactions), messageId]);
     return result.affectedRows > 0 ? reactions : null;
   }
 
   // Add deleted for a specific user (soft delete)
   static async addDeletedFor(messageId, userId) {
-    const [result] = await db.query('UPDATE messages SET deleted_for = JSON_ARRAY_APPEND(COALESCE(deleted_for, JSON_ARRAY()), ?, ?) WHERE id = ?', ["$", userId, messageId]);
+    const [result] = await db.query('UPDATE messages SET deleted_for = JSON_ARRAY_APPEND(COALESCE(deleted_for, JSON_ARRAY()), ?, ?) WHERE message_id = ?', ["$", userId, messageId]);
     return result.affectedRows > 0;
   }
 
   // Mark as deleted for all (hard delete)
   static async markAsDeletedForAll(messageId) {
-    const [result] = await db.query('DELETE FROM messages WHERE id = ?', [messageId]);
+    const [result] = await db.query('DELETE FROM messages WHERE message_id = ?', [messageId]);
     return result.affectedRows > 0;
   }
 
   // Edit content (wrapper for editMessage)
   static async editContent(messageId, { text, media }) {
-    const [result] = await db.query('UPDATE messages SET content = ?, edited = TRUE WHERE id = ?', [text || media, messageId]);
+    const [result] = await db.query('UPDATE messages SET content = ?, edited = TRUE WHERE message_id = ?', [text || media, messageId]);
     // Return updated info, for simplicity just timestamp
-    const [rows] = await db.query('SELECT edited_at FROM messages WHERE id = ?', [messageId]);
+    const [rows] = await db.query('SELECT edited_at FROM messages WHERE message_id = ?', [messageId]);
     return { editedAt: rows[0].edited_at };
   }
 
   // Existing editMessage method (kept for compatibility)
   static async editMessage(messageId, newContent) {
-    const [result] = await db.query('UPDATE messages SET content = ?, edited = TRUE WHERE id = ?', [newContent, messageId]);
+    const [result] = await db.query('UPDATE messages SET content = ?, edited = TRUE WHERE message_id = ?', [newContent, messageId]);
     return result.affectedRows > 0;
   }
 }
 
 module.exports = Message;
+

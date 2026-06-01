@@ -146,10 +146,47 @@ async function forwardMessage(req, res) {
   return res.json({ success: true, newMessageId: newId });
 }
 
+const crypto = require('crypto');
+
+// Custom in-memory store for rate limiting setting changes and websocket alerts
+const settingsRateLimits = new Map(); // key: userId:chatId -> timestamp[]
+const socketAlertThrottles = new Map(); // key: ownerId:chatId -> timestamp[]
+
+/** Participant validation helper */
+async function checkParticipant(chatId, userId) {
+  // Check personal chats
+  const [personalRows] = await db.query(
+    'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
+    [chatId]
+  );
+  if (personalRows && personalRows.length > 0) {
+    const chat = personalRows[0];
+    if (chat.participant1_id === userId || chat.participant2_id === userId) {
+      return { isParticipant: true, isGroup: false, partnerId: chat.participant1_id === userId ? chat.participant2_id : chat.participant1_id };
+    }
+  }
+  
+  // Check group chats members
+  const [groupRows] = await db.query(
+    'SELECT user_id FROM group_members WHERE chat_id = ? AND user_id = ?',
+    [chatId, userId]
+  );
+  if (groupRows && groupRows.length > 0) {
+    return { isParticipant: true, isGroup: true };
+  }
+
+  return { isParticipant: false };
+}
+
 // GET privacy settings for a user in a conversation
 async function getPrivacySettings(req, res) {
   const { chatId } = req.params;
   const user = req.user;
+
+  const { isParticipant } = await checkParticipant(chatId, user.id);
+  if (!isParticipant) {
+    return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
+  }
 
   const [rows] = await db.query(
     'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
@@ -157,17 +194,17 @@ async function getPrivacySettings(req, res) {
   );
 
   const settings = (rows && rows[0]) ? {
-    allowForward: !!rows[0].allow_forward,
-    allowCopy: !!rows[0].allow_copy,
-    blockScreenshots: !!rows[0].block_screenshot,
-    blurScreenRecording: !!rows[0].blur_screen_recording,
-    notifyScreenshotAttempts: !!rows[0].notify_screenshot_attempts
+    screenshotProtection: !!rows[0].block_screenshot,
+    screenRecordingProtection: !!rows[0].blur_screen_recording,
+    copyProtection: !rows[0].allow_copy,
+    forwardProtection: !rows[0].allow_forward,
+    captureNotifications: !!rows[0].notify_screenshot_attempts
   } : {
-    allowForward: true,
-    allowCopy: true,
-    blockScreenshots: false,
-    blurScreenRecording: true,
-    notifyScreenshotAttempts: true
+    screenshotProtection: false,
+    screenRecordingProtection: false,
+    copyProtection: false,
+    forwardProtection: false,
+    captureNotifications: true
   };
 
   return res.json(settings);
@@ -178,24 +215,41 @@ async function updatePrivacySettings(req, res) {
   const { chatId } = req.params;
   const user = req.user;
   const {
-    allowForward,
-    allowCopy,
-    blockScreenshots,
-    blurScreenRecording,
-    notifyScreenshotAttempts,
+    screenshotProtection,
+    screenRecordingProtection,
+    copyProtection,
+    forwardProtection,
+    captureNotifications,
   } = req.body;
 
-  const privacySettings = {
-    allowForward: allowForward !== undefined ? allowForward : true,
-    allowCopy: allowCopy !== undefined ? allowCopy : true,
-    blockScreenshots: blockScreenshots !== undefined ? blockScreenshots : false,
-    blurScreenRecording: blurScreenRecording !== undefined ? blurScreenRecording : true,
-    notifyScreenshotAttempts: notifyScreenshotAttempts !== undefined ? notifyScreenshotAttempts : true,
-  };
+  const { isParticipant } = await checkParticipant(chatId, user.id);
+  if (!isParticipant) {
+    return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
+  }
+
+  // Rate Limiting: 10 requests per minute per user per chat
+  const limitKey = `${user.id}:${chatId}`;
+  const now = Date.now();
+  const userHistory = settingsRateLimits.get(limitKey) || [];
+  const oneMinuteAgo = now - 60000;
+  const activeRequests = userHistory.filter(t => t > oneMinuteAgo);
+  if (activeRequests.length >= 10) {
+    return res.status(429).json({ error: 'Too many settings changes. Limit is 10 per minute.' });
+  }
+  activeRequests.push(now);
+  settingsRateLimits.set(limitKey, activeRequests);
+
+  const blockScreenshots = screenshotProtection !== undefined ? (screenshotProtection ? 1 : 0) : 0;
+  const blurScreenRecording = screenRecordingProtection !== undefined ? (screenRecordingProtection ? 1 : 0) : 0;
+  const allowCopy = copyProtection !== undefined ? (copyProtection ? 0 : 1) : 1;
+  const allowForward = forwardProtection !== undefined ? (forwardProtection ? 0 : 1) : 1;
+  const notifyScreenshot = captureNotifications !== undefined ? (captureNotifications ? 1 : 0) : 1;
+
+  const settingId = crypto.randomUUID();
 
   await db.query(
-    `INSERT INTO chat_privacy_settings (chat_id, user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO chat_privacy_settings (id, chat_id, user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE
      allow_forward = VALUES(allow_forward),
      allow_copy = VALUES(allow_copy),
@@ -203,26 +257,127 @@ async function updatePrivacySettings(req, res) {
      blur_screen_recording = VALUES(blur_screen_recording),
      notify_screenshot_attempts = VALUES(notify_screenshot_attempts)`,
     [
+      settingId,
       chatId,
       user.id,
-      privacySettings.allowForward ? 1 : 0,
-      privacySettings.allowCopy ? 1 : 0,
-      privacySettings.blockScreenshots ? 1 : 0,
-      privacySettings.blurScreenRecording ? 1 : 0,
-      privacySettings.notifyScreenshotAttempts ? 1 : 0,
+      allowForward,
+      allowCopy,
+      blockScreenshots,
+      blurScreenRecording,
+      notifyScreenshot,
     ]
   );
+
+  const privacySettings = {
+    screenshotProtection: !!blockScreenshots,
+    screenRecordingProtection: !!blurScreenRecording,
+    copyProtection: !allowCopy,
+    forwardProtection: !allowForward,
+    captureNotifications: !!notifyScreenshot
+  };
 
   // Emit privacy update only to this specific user to update their own UI/chat list settings
   try {
     const io = getIO();
-    // Assuming user has a personal room, or emit to conversation checking recipient client-side
     io.to(`user:${user.id}`).emit('conversation_privacy_updated', { chatId, ...privacySettings });
   } catch (err) {
     console.error('Socket error during per-user privacy broadcast:', err.message);
   }
 
   return res.json({ success: true, privacySettings });
+}
+
+// POST capture attempt logging & alerts
+async function recordCaptureAttempt(req, res) {
+  const { chatId } = req.params;
+  const user = req.user;
+  const { attemptType, detectionMethod, deviceInfo, metadata } = req.body;
+
+  const { isParticipant, partnerId } = await checkParticipant(chatId, user.id);
+  if (!isParticipant) {
+    return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
+  }
+
+  // The targeted content owner is the partner in a 1-to-1 conversation
+  const ownerId = partnerId || null;
+  if (!ownerId) {
+    return res.json({ success: true, message: 'Group chat attempts tracked without alert routing' });
+  }
+
+  // Check if there is an attempt within last 30 seconds
+  const [existingAttempts] = await db.query(
+    'SELECT id, metadata FROM capture_attempts WHERE actor_user_id = ? AND chat_id = ? AND created_at > NOW() - INTERVAL 30 SECOND LIMIT 1',
+    [user.id, chatId]
+  );
+
+  let attemptId;
+  if (existingAttempts && existingAttempts.length > 0) {
+    attemptId = existingAttempts[0].id;
+    let oldMeta = {};
+    try {
+      oldMeta = typeof existingAttempts[0].metadata === 'string' ? JSON.parse(existingAttempts[0].metadata) : (existingAttempts[0].metadata || {});
+    } catch(e) {}
+    const attemptCount = (oldMeta.attempt_count || 1) + 1;
+    const updatedMeta = JSON.stringify({ ...oldMeta, attempt_count: attemptCount });
+    
+    await db.query(
+      'UPDATE capture_attempts SET metadata = ? WHERE id = ?',
+      [updatedMeta, attemptId]
+    );
+  } else {
+    attemptId = crypto.randomUUID();
+    const initialMeta = JSON.stringify({ attempt_count: 1, ...(metadata || {}) });
+    
+    await db.query(
+      'INSERT INTO capture_attempts (id, chat_id, owner_user_id, actor_user_id, attempt_type, detection_method, device_info, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [attemptId, chatId, ownerId, user.id, attemptType || 'SCREENSHOT_ATTEMPT', detectionMethod || 'UNKNOWN', JSON.stringify(deviceInfo || {}), initialMeta]
+    );
+
+    // Save persistent notification
+    const notificationId = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO capture_notifications (id, recipient_user_id, capture_attempt_id) VALUES (?, ?, ?)',
+      [notificationId, ownerId, attemptId]
+    );
+  }
+
+  // Immutable Audit Log entry
+  const auditId = crypto.randomUUID();
+  await db.query(
+    'INSERT INTO capture_audit_log (id, capture_attempt_id, actor_user_id, owner_user_id, chat_id, action) VALUES (?, ?, ?, ?, ?, ?)',
+    [auditId, attemptId, user.id, ownerId, chatId, 'CAPTURE_ATTEMPT_LOGGED']
+  );
+
+  // Rate Limit WebSocket real-time delivery: Max 2 alerts per minute per chat per owner
+  const throttleKey = `${ownerId}:${chatId}`;
+  const now = Date.now();
+  const alertHistory = socketAlertThrottles.get(throttleKey) || [];
+  const oneMinuteAgo = now - 60000;
+  const activeAlerts = alertHistory.filter(t => t > oneMinuteAgo);
+  
+  if (activeAlerts.length < 2) {
+    activeAlerts.push(now);
+    socketAlertThrottles.set(throttleKey, activeAlerts);
+
+    // Emit Real-time WebSocket Alert
+    try {
+      const io = getIO();
+      io.to(`user:${ownerId}`).emit('capture_attempt', {
+        type: 'capture_attempt',
+        payload: {
+          chatId,
+          attemptType: attemptType || 'SCREENSHOT_ATTEMPT',
+          detectionMethod: detectionMethod || 'UNKNOWN',
+          timestamp: new Date().toISOString(),
+          actorUserId: user.id
+        }
+      });
+    } catch (err) {
+      console.error('Socket alert dispatch failed:', err.message);
+    }
+  }
+
+  return res.json({ success: true, attemptId });
 }
 
 module.exports = {
@@ -236,4 +391,5 @@ module.exports = {
   forwardMessage,
   updatePrivacySettings,
   getPrivacySettings,
+  recordCaptureAttempt,
 };

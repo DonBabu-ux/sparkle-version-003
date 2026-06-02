@@ -53,9 +53,13 @@ async function checkParticipant(chatId, userId) {
     }
   }
 
-  // Check group chats members
+  // Validate userId
+  if (!userId) {
+    return { isParticipant: false };
+  }
+  // Check group chats members using correct column name
   const [groupRows] = await db.query(
-    'SELECT user_id FROM group_members WHERE room_id = ? AND user_id = ?',
+    'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ?',
     [chatId, userId]
   );
   if (groupRows && groupRows.length > 0) {

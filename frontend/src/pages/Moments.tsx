@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { 
   Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, 
@@ -12,6 +13,8 @@ import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { useInteractionStore } from '../store/interactionStore';
+import { FeedPaginationAudit } from '../services/feedPaginationAudit';
 import { trackingService } from '../services/TrackingService';
 import { getMediaUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
@@ -125,7 +128,7 @@ const TikTokLoader = () => (
 
 // Using imported CommentIcon (aliased MessageCircle) instead of local SVG to maintain Lucide consistency
 
-const ReelItem = ({ 
+const ReelItem = React.memo(({ 
   moment, 
   onLike, 
   onSave,
@@ -556,7 +559,7 @@ const ReelItem = ({
       </div>
     </div>
   );
-};
+});
 
 export default function Moments() {
   const { id } = useParams();
@@ -599,6 +602,17 @@ export default function Moments() {
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [showHDIntro, setShowHDIntro] = useState(false);
+
+  // Zustand Interaction Store integration
+  const interactionStore = useInteractionStore.getState();
+
+  // Local Toast alert state
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   // Fetch Giphy Stickers
   useEffect(() => {
@@ -668,12 +682,13 @@ export default function Moments() {
   };
 
   const fetchMoments = useCallback(async (pageNum = 0, isRefresh = false) => {
-    if (fetchingMore || (pageNum === page && pageNum !== 0)) return;
+    if (fetchingMore) return;
     
     if (pageNum === 0) setLoading(true);
     else setFetchingMore(true);
 
     try {
+      FeedPaginationAudit.logRequest(pageNum, 12);
       const refreshParam = isRefresh ? '&refresh=true' : '';
       const res = await api.get(`/moments/stream?page=${pageNum}&limit=12${refreshParam}`);
       const { moments: newMoments, pagination } = res.data;
@@ -701,8 +716,10 @@ export default function Moments() {
         return unique;
       });
 
-      setHasMore(pagination?.hasMore ?? allData.length >= 8);
+      const nextHasMore = pagination?.hasMore ?? (allData.length >= 12);
+      setHasMore(nextHasMore);
       setPage(pageNum);
+      FeedPaginationAudit.logResponse(allData.length, nextHasMore);
     } catch (err) {
       console.error('Moments fetch error:', err);
     } finally {
@@ -710,9 +727,12 @@ export default function Moments() {
       setFetchingMore(false);
       setIsRefreshing(false);
     }
-  }, [id]);
+  }, [id, fetchingMore]);
 
-  useEffect(() => { fetchMoments(0); }, [id]);
+  useEffect(() => { 
+    FeedPaginationAudit.reset();
+    fetchMoments(0); 
+  }, [id]);
 
   // Show HD Intro on first load
   useEffect(() => {
@@ -734,6 +754,7 @@ export default function Moments() {
   const handleRefresh = useCallback(() => {
     setActiveIndex(0);
     if (scrollRef.current) scrollRef.current.scrollTop = 0;
+    FeedPaginationAudit.reset();
     fetchMoments(0, true);
   }, [fetchMoments]);
 
@@ -792,6 +813,7 @@ export default function Moments() {
         isFallback: data.isFallback || false,
         timestamp: now
       };
+
 
       // Ensure unique search results
       const uniqueResults = [];
@@ -898,6 +920,9 @@ export default function Moments() {
   };
 
   const handleLike = async (momentId: string) => {
+    if (useInteractionStore.getState().isPending('pendingLikes', momentId)) {
+      return;
+    }
     if (!user) {
       navigate('/login');
       return;
@@ -906,17 +931,24 @@ export default function Moments() {
     if (idx === -1) return;
     const m = moments[idx];
     const wasLiked = m.is_liked;
-    
+
+    // Optimistic UI update
     setMoments(prev => prev.map(item => item.moment_id === momentId ? {
       ...item, is_liked: !wasLiked, like_count: (item.like_count || 0) + (wasLiked ? -1 : 1)
     } : item));
-    
+
+    // Mark as pending
+    useInteractionStore.getState().setPending('pendingLikes', momentId, true);
     try {
       await api.post(`/moments/${momentId}/spark`);
-    } catch {
+    } catch (err) {
+      // Revert UI on failure
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_liked: wasLiked, like_count: (item.like_count || 0) + (wasLiked ? 1 : -1)
       } : item));
+      showToast('Unable to update like. Please try again.', 'error');
+    } finally {
+      useInteractionStore.getState().setPending('pendingLikes', momentId, false);
     }
   };
 
@@ -925,19 +957,33 @@ export default function Moments() {
       navigate('/login');
       return;
     }
+    if (useInteractionStore.getState().isPending('pendingBookmarks', momentId)) return;
+    useInteractionStore.getState().setPending('pendingBookmarks', momentId, true);
+
     const idx = moments.findIndex(m => m.moment_id === momentId);
-    if (idx === -1) return;
+    if (idx === -1) {
+      useInteractionStore.getState().setPending('pendingBookmarks', momentId, false);
+      return;
+    }
     const m = moments[idx];
     const wasSaved = m.is_saved;
-    
+
+    // Optimistic UI toggle
     setMoments(prev => prev.map(item => item.moment_id === momentId ? {
       ...item, is_saved: !wasSaved
     } : item));
-    
+
     try {
       await api.post(`/moments/${momentId}/save`);
     } catch (err) {
-       console.error('Save error', err);
+      console.error('Save error', err);
+      // Rollback UI on failure
+      setMoments(prev => prev.map(item => item.moment_id === momentId ? {
+        ...item, is_saved: wasSaved
+      } : item));
+      showToast('Unable to update bookmark. Please try again.', 'error');
+    } finally {
+      useInteractionStore.getState().setPending('pendingBookmarks', momentId, false);
     }
   };
 
@@ -956,7 +1002,7 @@ export default function Moments() {
   const handleAddComment = async (e?: React.FormEvent, stickerUrl?: string) => {
     if (e) e.preventDefault();
     const content = stickerUrl || newComment;
-    if (!content.trim() || !activeMomentId || submittingComment) return;
+    if (!content.trim() || !activeMomentId) return;
 
     if (!user) {
       navigate('/login');
@@ -1041,6 +1087,19 @@ export default function Moments() {
   return (
     <div className="fixed inset-0 bg-black flex flex-col font-sans overflow-hidden">
       <Navbar />
+
+      {/* Minimal Toast */}
+      {toast && (
+        <div 
+          className={clsx(
+            "fixed bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-2xl shadow-2xl z-[9999] font-black text-[10px] uppercase tracking-widest transition-all duration-300 animate-fade-in",
+            toast.type === 'success' ? 'bg-black text-white' : 'bg-red-500 text-white'
+          )}
+        >
+          {toast.type === 'success' ? <Sparkles size={16} className="text-primary" strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
+          {toast.message}
+        </div>
+      )}
 
       {/* Pull to Refresh Spinner */}
       {(pullOffset > 0 || isRefreshing) && (

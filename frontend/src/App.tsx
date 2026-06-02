@@ -3,6 +3,13 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
+// import FloatingAIButton from './components/FloatingAIButton';
+import SparkleAIScreen from './pages/ai/SparkleAIScreen';
+// import StudyAssistantScreen from './pages/ai/StudyAssistantScreen';
+// import CaptionGeneratorScreen from './pages/ai/CaptionGeneratorScreen';
+// import BioGeneratorScreen from './pages/ai/BioGeneratorScreen';
+import SearchSparkleScreen from './pages/ai/SearchSparkleScreen';
+import FriendDiscoveryScreen from './pages/ai/FriendDiscoveryScreen';
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
 import { CameraProvider } from './components/camera/CameraProvider';
@@ -309,8 +316,15 @@ function App() {
 
                     {/* ── Phase 5: Public & Static ── */}
                     <Route path="/about" element={<About />} />
+                    <Route path="/ai" element={<SparkleAIScreen />} />
+                    {/* <Route path="/ai/study" element={<StudyAssistantScreen />} /> */}
+                    {/* <Route path="/ai/caption" element={<CaptionGeneratorScreen />} /> */}
+                    {/* <Route path="/ai/bio" element={<BioGeneratorScreen />} /> */}
+                    <Route path="/ai/search" element={<SearchSparkleScreen />} />
+                    <Route path="/ai/friend" element={<FriendDiscoveryScreen />} />
                     <Route path="*" element={<NotFound />} />
                   </Routes>
+                  {/* <FloatingAIButton /> */}
                 </div>
               </Router>
             </MockCallProvider>

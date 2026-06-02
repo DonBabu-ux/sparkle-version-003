@@ -4,7 +4,7 @@ const webpush = require('web-push');
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
-        'mailto:sparkle@example.com',
+        'mailto:lilbeelogics@gmail.com',
         process.env.VAPID_PUBLIC_KEY,
         process.env.VAPID_PRIVATE_KEY
     );
@@ -22,11 +22,11 @@ const notificationController = {
         try {
             const userId = req.user.userId || req.user.user_id;
             const subscription = req.body;
-            
+
             if (!subscription || !subscription.endpoint) {
                 return res.status(400).json({ error: 'Invalid subscription object' });
             }
-            
+
             // Check if exists
             const [existing] = await pool.query('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, subscription.endpoint]);
             if (existing.length === 0) {
@@ -64,7 +64,7 @@ const notificationController = {
             res.status(500).json({ error: 'Failed to register FCM token' });
         }
     },
-    
+
     // Get user's notifications
     getNotifications: async (req, res) => {
         try {
@@ -146,7 +146,7 @@ const notificationController = {
                     avatar: n.actor_avatar
                 } : null,
                 related_post_id: n.related_post_id,
-                
+
                 // Backwards compatibility keys
                 notification_id: n.notification_id,
                 content: n.content,
@@ -169,7 +169,7 @@ const notificationController = {
     renderNotifications: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;
-            
+
             // Mark all as read when opening the page
             await pool.query('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0', [userId]);
 
@@ -204,12 +204,12 @@ const notificationController = {
             });
         } catch (error) {
             console.error('Render Notifications Error:', error);
-            res.status(500).render('error', { 
+            res.status(500).render('error', {
                 title: 'Error',
                 message: 'Failed to load notifications',
                 error: error,
                 user: req.user
-             });
+            });
         }
     },
 
@@ -227,7 +227,7 @@ const notificationController = {
     getUnreadCount: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;
-            
+
             const [[{ unread_count }]] = await pool.query(`
                 SELECT COUNT(*) as unread_count 
                 FROM notifications 
@@ -333,7 +333,7 @@ const notificationController = {
                     const endRaw = (userPrefs.dnd_end_time || '07:00').toString();
                     const start = startRaw.length > 5 ? startRaw.substring(0, 5) : startRaw;
                     const end = endRaw.length > 5 ? endRaw.substring(0, 5) : endRaw;
-                    
+
                     let isDndActive = false;
                     if (start <= end) {
                         isDndActive = currentTime >= start && currentTime <= end;
@@ -358,7 +358,7 @@ const notificationController = {
                     const newCount = existing.aggregation_count + 1;
                     const actorName = data.actor_name || 'Someone';
                     const newContent = `${actorName} and ${newCount - 1} others sparked your post`;
-                    
+
                     await connection.query(
                         `UPDATE notifications 
                          SET aggregation_count = ?, 
@@ -378,7 +378,7 @@ const notificationController = {
                                 [data.actor_id]
                             );
                             if (actor) actorInfo = actor;
-                        } catch (_) {}
+                        } catch (_) { }
                     }
 
                     // Emit socket with updated info
@@ -448,7 +448,7 @@ const notificationController = {
                     created_at: new Date().toISOString()
                 });
             }
-            
+
             // Send web push notification
             try {
                 // Check if user has push enabled globally
@@ -463,7 +463,7 @@ const notificationController = {
                         icon: actorInfo.actor_avatar || '/images/logo.png',
                         url: data.action_url || '/'
                     });
-                    
+
                     for (const sub of subs) {
                         try {
                             await webpush.sendNotification({
@@ -489,7 +489,7 @@ const notificationController = {
             return null;
         }
     },
-    
+
     // Create an internal/system notification (for Batch 3 anonymous features)
     createInternalNotification: async (userId, type, category, message, actionUrl = null) => {
         try {

@@ -1,5 +1,5 @@
 const socketIO = require('socket.io');
-const perms = require('../backend/services/messagePermission');
+const perms = require('../backend outdated/services/messagePermission');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
@@ -141,14 +141,14 @@ const initializeSocket = (server) => {
 
         // Join user to their personal room
         socket.join(`user:${socket.userId}`);
-            console.log(`Joined room user:${socket.userId}`);
+        console.log(`Joined room user:${socket.userId}`);
 
         // Join all chat rooms (personal and group) they're part of
         await joinUserChatRooms(socket);
 
         // Broadcast online status to followers
         broadcastOnlineStatus(socket, true);
-        
+
         // Broadcast group presence updates
         broadcastGroupPresence(io, socket);
 
@@ -216,7 +216,7 @@ const initializeSocket = (server) => {
         socket.on('send-message', async (data, callback) => {
             try {
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
-            logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
+                logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
 
@@ -280,19 +280,19 @@ const initializeSocket = (server) => {
 
                 // 3. Emit to all in the chat room
                 socket.to(`chat:${finalChatId}`).emit('new-message', message);
-            console.log('MESSAGE EMITTED', finalChatId);
+                console.log('MESSAGE EMITTED', finalChatId);
 
                 // 4. Handle push notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
-                     const presence = await User.getUserPresence(recipientId);
-                     if (presence && !presence.is_online) {
-                         await queuePushNotification(recipientId, {
-                             type: 'message',
-                             title: socket.user.name,
-                             body: type === 'text' ? content : `Sent a ${type}`,
-                             data: { chatId: finalChatId, messageId }
-                         });
-                     }
+                    const presence = await User.getUserPresence(recipientId);
+                    if (presence && !presence.is_online) {
+                        await queuePushNotification(recipientId, {
+                            type: 'message',
+                            title: socket.user.name,
+                            body: type === 'text' ? content : `Sent a ${type}`,
+                            data: { chatId: finalChatId, messageId }
+                        });
+                    }
                 }
             } catch (error) {
                 logger.error('Send message error:', error);
@@ -307,7 +307,7 @@ const initializeSocket = (server) => {
         socket.on('open_message', async ({ messageId }, callback) => {
             try {
                 const messageData = await Message.getById(messageId);
-                
+
                 // Server enforcement check
                 if (messageData && messageData.view_policy !== 'unlimited') {
                     if (messageData.views_used >= messageData.views_allowed) {
@@ -316,7 +316,7 @@ const initializeSocket = (server) => {
                         return;
                     }
                 }
-                
+
                 if (typeof callback === 'function') callback({ status: 'ok' });
 
                 const result = await Message.processMessageView(messageId);
@@ -324,9 +324,9 @@ const initializeSocket = (server) => {
                     io.to(`chat:${result.chatId}`).emit('message_deleted', messageId);
                 } else if (result && result.action === 'updated') {
                     // Notify everyone in the room that views_used changed
-                    io.to(`chat:${messageData.conversation_id || messageData.chat_id}`).emit('message_view_update', { 
-                        messageId, 
-                        viewsUsed: result.viewsUsed 
+                    io.to(`chat:${messageData.conversation_id || messageData.chat_id}`).emit('message_view_update', {
+                        messageId,
+                        viewsUsed: result.viewsUsed
                     });
                 }
             } catch (error) {
@@ -339,7 +339,7 @@ const initializeSocket = (server) => {
         socket.on('mark-read', async (chatId) => {
             try {
                 await Message.updateStatus(chatId, socket.userId, 'read');
-                
+
                 // Broadcast to everyone in the room (including sender on other devices)
                 io.to(`chat:${chatId}`).emit('messages-read', {
                     chatId,
@@ -387,14 +387,14 @@ const initializeSocket = (server) => {
 
         // Explicit offline signal (tab close / beforeunload)
         socket.on('presence:offline', async () => {
-                    try {
-                        logger.info(`📴 Explicit offline signal from ${socket.userId}`);
-                        await User.setOnlineStatus(socket.userId, false);
-                        broadcastOnlineStatus(socket, false);
-                    } catch (e) {
-                        logger.error('presence:offline error:', e);
-                    }
-                });
+            try {
+                logger.info(`📴 Explicit offline signal from ${socket.userId}`);
+                await User.setOnlineStatus(socket.userId, false);
+                broadcastOnlineStatus(socket, false);
+            } catch (e) {
+                logger.error('presence:offline error:', e);
+            }
+        });
 
         // Handle disconnect (including network loss)
         socket.on('disconnect', async (reason) => {
@@ -431,7 +431,7 @@ const initializeSocket = (server) => {
                     emoji
                 });
             } catch (error) {
-                 logger.error('Add reaction error:', error);
+                logger.error('Add reaction error:', error);
             }
         });
 
@@ -447,7 +447,7 @@ const initializeSocket = (server) => {
                     emoji
                 });
             } catch (error) {
-                 logger.error('Remove reaction error:', error);
+                logger.error('Remove reaction error:', error);
             }
         });
 
@@ -605,7 +605,7 @@ const initializeSocket = (server) => {
         // Forward Message
         socket.on('forward-message', async (data, callback) => {
             const { messageId, targetChatIds } = data;
-            
+
             if (!Array.isArray(targetChatIds) || targetChatIds.length > 5) {
                 if (typeof callback === 'function') callback({ success: false, error: 'Cannot forward to more than 5 people at a time.' });
                 return;
@@ -621,7 +621,7 @@ const initializeSocket = (server) => {
                 const forwardedMessages = [];
                 for (const targetChatId of targetChatIds) {
                     const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
-                    
+
                     let recipientId = null;
                     if (pc.length > 0) {
                         recipientId = pc[0].participant1_id === socket.userId ? pc[0].participant2_id : pc[0].participant1_id;
@@ -640,16 +640,16 @@ const initializeSocket = (server) => {
                             forwarded, forwarded_from
                         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?)
                     `, [
-                        messageId, 
-                        groupChatId, 
-                        personalChatId, 
-                        personalChatId, 
-                        socket.userId, 
-                        recipientId, 
-                        originalMsg.content, 
-                        originalMsg.type, 
-                        originalMsg.media_url, 
-                        sentAt, 
+                        messageId,
+                        groupChatId,
+                        personalChatId,
+                        personalChatId,
+                        socket.userId,
+                        recipientId,
+                        originalMsg.content,
+                        originalMsg.type,
+                        originalMsg.media_url,
+                        sentAt,
                         socket.user.username
                     ]);
 
@@ -700,10 +700,10 @@ const initializeSocket = (server) => {
                 io.to(`chat:${chatId}`).emit('disappearing_messages_update', { chatId, duration });
 
                 // System message notice
-                const systemMsg = duration > 0 
-                  ? `Disappearing messages turned on (${duration === 24 ? '24 hours' : duration/24 + ' days'})`
-                  : 'Disappearing messages turned off';
-                
+                const systemMsg = duration > 0
+                    ? `Disappearing messages turned on (${duration === 24 ? '24 hours' : duration / 24 + ' days'})`
+                    : 'Disappearing messages turned off';
+
                 await Message.sendMessage({
                     chatId,
                     senderId: socket.userId,
@@ -800,7 +800,7 @@ const broadcastGroupPresence = async (io, socket) => {
     try {
         const conversations = await Message.getUserConversations(socket.userId);
         const groupChats = conversations.filter(c => c.chat_type === 'group');
-        
+
         for (const group of groupChats) {
             const chatId = group.chat_id;
             const room = io.sockets.adapter.rooms.get(`chat:${chatId}`);
@@ -832,7 +832,7 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
 
         // Get Group Peers
         const groupPeers = await GroupMember.getGroupPeers(socket.userId);
-        
+
         // Merge unique IDs
         const targetIds = new Set([
             ...followers.map(f => f.follower_id),
@@ -869,12 +869,16 @@ const queuePushNotification = async (userId, notification) => {
         // Fallback: search for existing notification mechanism
         logger.warn('Push notification table might not exist, using standard notifications...');
         try {
-             await pool.query(`
+            if (notification.type === 'message') {
+                // Do not insert message notification in database (stop in-app notifications for messages)
+                return;
+            }
+            await pool.query(`
                 INSERT INTO notifications (notification_id, user_id, type, title, content, created_at)
                 VALUES (UUID(), ?, ?, ?, ?, NOW())
             `, [userId, notification.type, notification.title, notification.body]);
         } catch (innerErr) {
-             logger.error('Failed to queue fallback notification:', innerErr.message);
+            logger.error('Failed to queue fallback notification:', innerErr.message);
         }
     }
 };
@@ -901,11 +905,11 @@ const notifyOrderUpdate = (orderData) => {
     try {
         if (!io) return;
         const { order_id, buyer_id, seller_id, status } = orderData;
-        
+
         // Notify both parties
         io.to(`user:${buyer_id}`).emit('marketplace:order_update', { orderId: order_id, status });
         io.to(`user:${seller_id}`).emit('marketplace:order_update', { orderId: order_id, status });
-        
+
         logger.info(`📡 Order update broadcasted: ${order_id} -> ${status}`);
     } catch (error) {
         logger.error('notifyOrderUpdate error:', error);

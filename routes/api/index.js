@@ -16,6 +16,8 @@ const marketplaceRoutes = require('./marketplace.routes');
 const confessionRoutes = require('./confession.routes');
 const skillMarketRoutes = require('./skill-market.routes');
 const highlightsRoutes = require('./highlights.routes');
+const aiRoutes = require('./ai.routes');
+router.use('/ai', aiRoutes);
 
 const uploadRoutes = require('./upload.routes');
 const shareRoutes = require('./share.routes');

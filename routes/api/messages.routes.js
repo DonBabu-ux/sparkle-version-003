@@ -4,9 +4,8 @@ const router = express.Router();
 // Root controller has ALL standard message methods (getInbox, sendMessage, etc.)
 const messageController = require('../../controllers/messages.controller');
 // Backend permission-aware controller for new permission endpoints
-const permissionController = require('../../backend/controllers/message.controller');
-// Dedicated forward controller with full forwarding logic
-const forwardController = require('../../backend/controllers/forward.controller');
+const permissionController = require('../../controllers/permission.controller');
+
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 router.use(authMiddleware);

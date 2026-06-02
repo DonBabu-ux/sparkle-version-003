@@ -1,0 +1,76 @@
+/* Sparkle AIScreen styling – premium glassmorphism, gradient header, responsive layout */
+
+.sparkle-ai-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #111 0%, #1a1a2e 100%);
+  color: #f0f0f0;
+  font-family: 'Inter', sans-serif;
+}
+
+.sparkle-ai-header {
+  padding: 2rem 1rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sparkle-ai-title {
+  font-size: 2.5rem;
+  margin: 0;
+  color: #ff1493;
+}
+
+.sparkle-ai-subtitle {
+  margin-top: 0.5rem;
+  font-size: 1.2rem;
+  color: #e0e0e0;
+}
+
+.sparkle-ai-features {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.sparkle-ai-feature-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.sparkle-ai-feature-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.sparkle-ai-feature-button .icon-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.sparkle-ai-chat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.chat-placeholder {
+  font-size: 1.2rem;
+  color: #aaa;
+  text-align: center;
+}

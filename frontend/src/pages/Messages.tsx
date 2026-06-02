@@ -408,6 +408,7 @@ const ChatInput = memo(({
   const [loadingGiphy, setLoadingGiphy] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
+  const [slideOffset, setSlideOffset] = useState(0);
   const [recordTime, setRecordTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);

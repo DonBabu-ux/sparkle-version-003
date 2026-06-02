@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const permissionController = require('../../backend/controllers/message.controller');
+const permissionController = require('../../controllers/permission.controller');
 
 // Get privacy settings for a chat for the authenticated user
 router.get('/:chatId/privacy', permissionController.getPrivacySettings);

@@ -112,18 +112,49 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Unified startup initialization: wait for Zustand persistence hydration,
+  // then validate token (if any) with a timeout. Guarantees splash is cleared.
   useEffect(() => {
-    // Wait for Zustand persist to finish loading from async Capacitor storage.
-    // Without this, token is null on first render → 401 on every protected request.
-    if (useUserStore.persist.hasHydrated()) {
-      setHydrated(true);
-    } else {
-      const unsub = useUserStore.persist.onFinishHydration(() => {
+    const runInit = async () => {
+      // 1️⃣ Wait for Zustand persistence to hydrate
+      if (useUserStore.persist.hasHydrated()) {
         setHydrated(true);
-      });
-      return () => unsub();
-    }
-  }, []);
+      } else {
+        await new Promise<void>((resolve) => {
+          const unsub = useUserStore.persist.onFinishHydration(() => {
+            setHydrated(true);
+            resolve();
+          });
+          // Clean‑up in case the component unmounts early
+          return () => unsub();
+        });
+      }
+
+      // 2️⃣ Validate existing auth token (if any) with a hard timeout
+      if (token || refreshToken) {
+        try {
+          // Helper to enforce a timeout (default 5 s)
+          const runWithTimeout = async <T>(p: Promise<T>, timeoutMs: number): Promise<T> => {
+            return Promise.race([
+              p,
+              new Promise<T>((_, reject) =>
+                setTimeout(() => reject(new Error('Auth validation timeout')), timeoutMs)
+              ),
+            ]);
+          };
+          await runWithTimeout(authApi.validateToken(), 5000);
+          console.info('✅ Initial token validation succeeded');
+        } catch (err) {
+          console.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
+        }
+      }
+
+      // Ensure splash screen is hidden regardless of outcome
+      setShowSplash(false);
+    };
+
+    runInit();
+  }, []); // run once on mount
 
   useEffect(() => {
     if (!hydrated) return;
@@ -133,19 +164,7 @@ function App() {
     });
   }, [hydrated]);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    const initAuth = async () => {
-      if (token || refreshToken) {
-        try {
-          await authApi.validateToken();
-        } catch (err) {
-          console.error('Initial auth validation failed:', err);
-        }
-      }
-    };
-    initAuth();
-  }, [hydrated]);
+  // (initAuth logic moved into unified startup block above)
 
   const theme = useUserStore(state => state.theme);
 

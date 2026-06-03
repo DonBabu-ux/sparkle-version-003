@@ -48,3 +48,6 @@ build/
 AGENTS.md
 diagram-design/
 .agent/
+# Keystore and signing credentials (do not commit)
+android/app/sparkle-release.jks
+android/gradle.properties

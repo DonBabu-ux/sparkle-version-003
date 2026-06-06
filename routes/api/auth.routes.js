@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
 const supabaseController = require('../../controllers/supabase.controller');
+const { csrfProtection } = require('../../middleware/security.middleware');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 // Check if validation middleware exists

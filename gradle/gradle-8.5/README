@@ -9,3 +9,4 @@ If you are using the "bin" distribution, a copy of the User Manual is available 
 Typing `gradle help` prints the command line help.
 
 Typing `gradle tasks` shows all the tasks of a Gradle build.
+

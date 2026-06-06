@@ -1,0 +1,182 @@
+Summary of the codebase (Sparkle Version 003)
+
+High-level overview
+- Node.js + Express + EJS web server.
+- Uses MySQL via a shared pool (config/database) and Prisma (present in dependencies) for some parts.
+- Supports real-time features with Socket.IO (initializeSocket in server.js).
+- Includes background workers/jobs for notifications, inactivity notifications, and media cleanup.
+- Implements multiple product areas: Moments (social feed), Marketplace (commerce + chat), Messaging (direct/group chat), and other feature areas exposed via API routes.
+
+Entry point / server bootstrap
+- server.js:
+  - Sets up global middleware:
+    - securityHeaders, CORS (with allowlist of localhost/capacitor and deployed origins), JSON/urlencoded parsing, cookie-parser, sanitizeInput.
+    - Logging via morgan + custom logger.
+    - Static serving for /images (aggressive caching) and /uploads + public assets.
+  - Initializes Firebase Admin + Email service.
+  - Starts workers/jobs:
+    - ./workers/notification.worker
+    - ./workers/inactivityNotifier
+    - ./jobs/candidatePool
+    - ./jobs/media-cleanup.job (initMediaJobs)
+  - Defines EJS view engine and /api debug routes (development only).
+  - Mounts routing:
+    - /api -> apiRoutes with apiRateLimiter.
+    - / -> webRoutes.
+  - Adds /api/ping diagnostic endpoint.
+  - Provides strong error handling for both API (JSON) and web (EJS error views).
+  - Graceful shutdown on SIGINT/SIGTERM.
+
+Routing structure
+- api/* routes (REST/JSON):
+  - ai, analytics, audio, auth, campus, clubs, confession, giphy, groupChat, groups, highlights, index, link-preview, lost-found, marketplace, marketplaceChatRoutes, media-admin, messages, moderation, moments, notifications, ota, posts, privacy, realtime, search, share, skill-market, stickers, stories, support, upload, user, userTabs.
+- routes/web/* routes (server-rendered pages):
+  - admin/*, auth/*, dashboard, feed, groups, lost-found, marketplace, messaging, moments, profile, skill-market, social, support.
+
+Web marketplace pages
+- routes/web/marketplace.routes.js:
+  - Public:
+    - GET /marketplace (renderMarketplace)
+    - GET /marketplace/listings/:id and /marketplace/item/:id (renderListingDetail)
+    - GET /marketplace/profile/:userId (renderSellerProfile)
+  - Authenticated:
+    - GET /marketplace/my-shop (renderUserListings)
+    - GET /marketplace/sell (renderSell)
+    - GET /marketplace/orders (renderOrders)
+    - GET /marketplace/wishlist (renderWishlist)
+  - Compatibility redirects for /my-listings and /create-listing.
+
+Marketplace controller responsibilities
+- controllers/marketplace.controller.js:
+  - Normalizes req.user into a consistent shape (normalizeUser) adding defaults:
+    - avatar_url, user_id, affiliation/campus, name.
+  - Media URL safety helper (getSafeMediaUrl) to avoid invalid/unsafe URLs.
+
+  Web render endpoints
+  - renderMarketplace:
+    - Reads filters from query (category, affiliation/campus, sort, min/max price, minRating, condition, search).
+    - Fetches listings via Marketplace.getListings.
+    - Fetches recommended listings via Marketplace.getRecommendations.
+    - Fetches counts (favorites/wishlist/notifications) via Marketplace.getCounts.
+    - Renders views/marketplace.ejs with listings + recommendations.
+  - renderListingDetail:
+    - Fetches a listing with media via Marketplace.getListingWithMedia.
+    - Fetches reviews via Marketplace.getListingReviews.
+    - Renders views/marketplace/listing-detail.ejs.
+  - renderUserListings / renderOrders / renderSell / renderSellerProfile / renderWishlist:
+    - Require auth where appropriate.
+    - Fetch domain data via Marketplace model and render relevant EJS templates.
+
+  API endpoints (selected behaviors)
+  - Listings + browsing:
+    - getListings (filters + pagination; returns JSON)
+    - getCategories
+    - getTrending (popular listings)
+    - getListingById
+    - getRecommendations
+  - Listing CRUD:
+    - createListing:
+      - Uses multer-uploaded files from middleware (req.files).
+      - Registers media in a media registry (MediaService.registerMedia) and constructs listingData.
+      - Creates listing via Marketplace.createListing.
+    - updateListing:
+      - Verifies ownership (listing.seller_id vs current user).
+      - Supports optional new uploads; registers each media file.
+      - Calls Marketplace.updateListing.
+    - deleteListing:
+      - Deletes listing by ID and current user.
+  - Favorites / wishlist:
+    - toggleFavorite, getFavorites
+    - toggleWishlist
+  - Marketplace chat:
+    - contactSeller, getUserChats, getChatMessages, sendMessage.
+  - Orders:
+    - placeOrder (validated), updateOrderStatus, confirmMeetup.
+    - Includes Firebase DB push when both meetups confirmed.
+    - getOrderById and getOrders.
+  - Engagement + safety:
+    - recordView and recordShare:
+      - Updates DB counters (view_count/share_count) and notifies sellers at milestone counts.
+    - boostListing
+    - reportListing, blockUser
+    - markAsSold, relistItem
+  - Reviews:
+    - createReview, getUserReviews
+
+Moments controller responsibilities
+- controllers/moments.controller.js:
+  - Ensures supporting tables exist on-demand at startup:
+    - moment_likes, moment_comments, moment_comment_likes, saved_moments, moment_hashtags, user_interests, search_history.
+  - Ensures additional columns on moments and moment_comments tables if missing.
+  - renderMoments:
+    - Prepares the “initial” moments feed and renders views/moments.ejs.
+    - Fetches:
+      - recent moments (7-day window) enriched with like/save/follow flags.
+      - trending hashtags (from moment_hashtags in last 7 days)
+      - suggested users (randomized non-followed users)
+      - user interests/categories (from user_interests)
+    - Passes csrfToken and env values to the template.
+  - getMomentsStream:
+    - JSON API endpoint for the feed stream.
+    - Supports pagination and query/type filters.
+    - Captures “search intent” using sessionInterestService.recordEvent.
+    - Asynchronously triggers candidate pool generation via momentsRankingService.generateCandidatePools.
+    - Responds using momentsRankingService.getRankedFeed.
+  - createMoment:
+    - Accepts caption + category and supports single or array upload patterns.
+    - Detects mimetype to choose image/video.
+    - If video, derives streaming_url (.m3u8) and thumbnail_url (.jpg).
+    - Extracts hashtags from caption, inserts into moment_hashtags.
+    - Registers media in media registry (MediaService.registerMedia).
+    - Inserts moment into moments table within a transaction.
+  - sparkMoment:
+    - Likes/unlikes moment by toggling moment_likes entry and updating moments.like_count.
+    - Creates a notification to moment owner on like.
+  - saveMoment, addComment, getComments, likeComment:
+    - Manage save state and comment tree (parent_comment_id).
+    - Like/unlike for comments via moment_comment_likes.
+    - Notifications on new comments.
+  - followUser:
+    - Toggles follows record and sends a follow notification.
+  - trackShare/trackView/trackEngagement:
+    - Increments share/view counters and records telemetry for engagement.
+  - prewarm:
+    - Called by server.js at startup.
+    - Ensures tables/columns and triggers candidate pool generation.
+
+Messaging controller responsibilities
+- controllers/messages.controller.js:
+  - Defines MessageController (exported singleton) handling conversation and message operations.
+  - Supported operations (from the visible portion):
+    - getMutualGroups: fetch mutual groups via GroupChat.getMutualGroups.
+    - getInbox: list conversations via Message.getUserConversations.
+    - getConversationMessages: fetch messages for a conversation/chat.
+    - sendMessage: sends text/media messages through Message.sendMessage.
+    - startConversation: creates or returns an existing conversation.
+    - deleteMessage: supports delete-for-everyone with a time window and group admin permissions.
+    - reactToMessage: add/remove reaction.
+    - editMessage: edit within allowed rules (delegated to Message.editMessage).
+    - searchMessages
+    - muteConversation, markRead, deleteConversation, archiveConversation.
+    - pin/unpin messages for group chats with constraints and admin checks.
+    - copyMessage and forwardMessage:
+      - Enforces chat privacy settings (allow_copy/allow_forward).
+      - Creates new forwarded messages and updates relevant chat timestamps.
+
+Domain models (overview)
+- models/* include entities for:
+  - User, Group, GroupChat, GroupMember.
+  - Marketplace, MemoryMarketplace (in-memory implementation used for tests/dev).
+  - Message, Post, LostFound, Confession, SkillMarket, etc.
+
+Overall architecture pattern
+- Controllers orchestrate:
+  - input validation (often via validate + schemas)
+  - authorization (authMiddleware / req.user checks)
+  - DB operations through model classes or direct pool queries.
+  - side effects like notifications (notificationController) and media registration (services/media.service).
+- Server initialization is feature-complete:
+  - security/cors/static caching tuned
+  - background workers kicked off immediately
+  - feed prewarming at startup to reduce cold latency.
+

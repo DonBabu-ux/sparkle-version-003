@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
@@ -104,67 +104,138 @@ function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [navigationCompleted, setNavigationCompleted] = useState(false);
+  const navigate = useNavigate();
 
+  // Helper function to manage safe navigation decision
+  const performStartupNavigation = (target: string) => {
+    if (navigationCompleted) return;
+
+    const currentPath = window.location.pathname;
+    const isPublic = ['/signup', '/forgot-password', '/reset-password', '/about', '/ai'].some(
+      p => currentPath.startsWith(p)
+    );
+
+    console.log(`[Navigation] Target: ${target}, Current: ${currentPath}, isPublic: ${isPublic}`);
+
+    // Ensure state transitions occur so component renders fully
+    setHydrated(true);
+    setShowSplash(false);
+    console.log('SPLASH HIDDEN');
+
+    if (isPublic) {
+      console.log(`[Navigation] Preserving public path: ${currentPath}`);
+      if (currentPath.startsWith('/signup')) {
+        console.log('NAVIGATING TO SIGNUP');
+      }
+      setNavigationCompleted(true);
+      return;
+    }
+
+    if (target === '/dashboard') {
+      console.log('NAVIGATING TO DASHBOARD');
+      navigate('/dashboard');
+    } else {
+      console.log('NAVIGATING TO LOGIN');
+      navigate('/login');
+    }
+    setNavigationCompleted(true);
+  };
+
+  // 1️⃣ Splash Mounted Log
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSplash(false);
-    }, 2500); // 2.5 second splash screen
-    return () => clearTimeout(timer);
+    console.log('SPLASH MOUNTED');
   }, []);
 
-  // Unified startup initialization: wait for Zustand persistence hydration,
-  // then validate token (if any) with a timeout. Guarantees splash is cleared.
+  // 2️⃣ Hard Fail-safe Watchdog Timer
   useEffect(() => {
+    console.log('[Failsafe] Starting 5s startup watchdog');
+    const watchdog = setTimeout(() => {
+      if (!navigationCompleted) {
+        console.error("Startup timeout reached");
+        performStartupNavigation('/login');
+      }
+    }, 5000);
+    return () => clearTimeout(watchdog);
+  }, [navigationCompleted]);
+
+  // 3️⃣ Unified Startup Initialization Sequence
+  useEffect(() => {
+    console.log('[Startup] Beginning unified init');
     const runInit = async () => {
-      // 1️⃣ Wait for Zustand persistence to hydrate
-      if (useUserStore.persist.hasHydrated()) {
+      // 1. Hydration Phase
+      try {
+        if (useUserStore.persist.hasHydrated()) {
+          console.log('[Startup] Persist already hydrated');
+          setHydrated(true);
+        } else {
+          console.log('[Startup] Waiting for persist hydration');
+          await Promise.race([
+            new Promise<void>((resolve) => {
+              const unsub = useUserStore.persist.onFinishHydration(() => {
+                console.log('[Startup] Persist hydration finished');
+                setHydrated(true);
+                resolve();
+              });
+            }),
+            new Promise<void>((_, reject) =>
+              setTimeout(() => reject(new Error('Zustand hydration timeout')), 2000)
+            )
+          ]);
+        }
+      } catch (hydrationError) {
+        console.warn('⚠️ Hydration validation failed (falling back):', hydrationError);
         setHydrated(true);
-      } else {
-        await new Promise<void>((resolve) => {
-          const unsub = useUserStore.persist.onFinishHydration(() => {
-            setHydrated(true);
-            resolve();
-          });
-          // Clean‑up in case the component unmounts early
-          return () => unsub();
-        });
       }
 
-      // 2️⃣ Validate existing auth token (if any) with a hard timeout
-      if (token || refreshToken) {
+      // Read current values directly from store state to ensure we have post-hydration values
+      const currentStoreState = useUserStore.getState();
+      const currentToken = currentStoreState.token;
+      const currentRefreshToken = currentStoreState.refreshToken;
+
+      // 2. Authentication Check Phase
+      console.log('AUTH CHECK STARTED');
+      if (currentToken || currentRefreshToken) {
+        console.log('TOKEN FOUND');
         try {
-          // Helper to enforce a timeout (default 5 s)
-          const runWithTimeout = async <T>(p: Promise<T>, timeoutMs: number): Promise<T> => {
+          console.log('API REQUEST STARTED');
+          async function runWithTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
             return Promise.race([
               p,
               new Promise<T>((_, reject) =>
                 setTimeout(() => reject(new Error('Auth validation timeout')), timeoutMs)
               ),
             ]);
-          };
-          await runWithTimeout(authApi.validateToken(), 5000);
-          console.info('✅ Initial token validation succeeded');
+          }
+          await runWithTimeout(authApi.validateToken(), 2000);
+          console.log('API REQUEST COMPLETED');
+          
+          performStartupNavigation('/dashboard');
         } catch (err) {
           console.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
+          console.log('TOKEN NOT FOUND');
+          performStartupNavigation('/login');
         }
+      } else {
+        console.log('TOKEN NOT FOUND');
+        performStartupNavigation('/login');
       }
-
-      // Ensure splash screen is hidden regardless of outcome
-      setShowSplash(false);
     };
 
-    runInit();
-  }, []); // run once on mount
+    runInit().catch(err => {
+      console.error('Fatal initialization exception:', err);
+      performStartupNavigation('/login');
+    });
+  }, []); // Run exactly once on component mount
 
+  // OTA check (still after hydration)
   useEffect(() => {
     if (!hydrated) return;
-    // Trigger background check for OTA updates once layout rehydrates
+    console.log('[OTA] Checking for updates');
     OtaService.checkAndDownloadUpdate().catch(err => {
       console.warn('OTA Background trigger warning:', err);
     });
   }, [hydrated]);
-
-  // (initAuth logic moved into unified startup block above)
 
   const theme = useUserStore(state => state.theme);
 
@@ -244,8 +315,7 @@ function App() {
           <OfflineIndicator />
           <GlobalThemeProvider>
             <MockCallProvider>
-              <Router>
-                <div className="app no-scrollbar">
+              <div className="app no-scrollbar">
                   <LoadingBar />
                   <GlobalEffects />
                   <MarketplaceModals />
@@ -345,7 +415,6 @@ function App() {
                   </Routes>
                   {/* <FloatingAIButton /> */}
                 </div>
-              </Router>
             </MockCallProvider>
           </GlobalThemeProvider>
         </NetworkStatusProvider>

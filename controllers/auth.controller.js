@@ -171,7 +171,7 @@ const login = async (req, res) => {
         );
         
         if (users.length === 0) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(404).json({ status: 'error', message: 'Account not found' });
         }
 
         const user = users[0];
@@ -254,7 +254,7 @@ const login = async (req, res) => {
         });
         res.status(500).json({ 
             status: 'error', 
-            message: 'Internal server error during login', 
+            message: 'Server error. Please try again later.', 
             details: process.env.NODE_ENV === 'development' ? error.message : undefined 
         });
     }

@@ -168,6 +168,7 @@ class Message {
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE (m.conversation_id = ? OR m.chat_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+                  AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, chatId, userId]);
@@ -211,6 +212,7 @@ class Message {
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE m.chat_id = ?
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+                  AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, userId]);
@@ -367,6 +369,13 @@ class Message {
     /**
      * Soft delete for user (Delete for me)
      */
+
+    /**
+    * Hide a message for a specific user (soft hide)
+    */
+    /**
+    * Delete for me (soft delete for a specific user)
+    */
     static async deleteForMe(messageId, userId) {
         const deletionId = crypto.randomUUID();
         await db.query(`
@@ -375,6 +384,7 @@ class Message {
         `, [deletionId, messageId, userId]);
         return true;
     }
+
 
     /**
      * Delete for everyone

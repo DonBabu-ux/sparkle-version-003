@@ -103,14 +103,20 @@ class MessageController {
             const { forEveryone, chatId } = req.body;
             const userId = req.user.user_id || req.user.userId;
 
+            // Verify user belongs to the chat before any delete action
+            const msg = await Message.getById(messageId);
+            if (!msg) {
+                return res.status(404).json({ status: 'error', error: 'Message not found' });
+            }
+            // Determine chat ID (personal or group)
+            const chatIdToCheck = msg.chat_id || msg.conversation_id || msg.personal_chat_id;
+            const isParticipant = await GroupMember.isParticipant(chatIdToCheck, userId);
+            if (!isParticipant) {
+                return res.status(403).json({ status: 'error', error: 'User not part of this chat' });
+            }
+            const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
+            let success = false;
             if (forEveryone) {
-                const msg = await Message.getById(messageId);
-                if (!msg) {
-                    return res.status(404).json({ status: 'error', error: 'Message not found' });
-                }
-                const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
-                
-                let success = false;
                 if (msg.sender_id === userId) {
                     if (timeDiffMins > 15) {
                         return res.status(403).json({ status: 'error', error: 'Delete window expired (max 15 mins)' });
@@ -122,13 +128,12 @@ class MessageController {
                         success = await Message.deleteForEveryone(messageId, userId, true, req.user.username || 'admin');
                     }
                 }
-
                 if (success) {
                     return res.json({ status: 'success', message: 'Deleted for everyone' });
-                } else {
-                    return res.status(403).json({ status: 'error', error: 'Permission denied or delete failed' });
                 }
+                return res.status(403).json({ status: 'error', error: 'Permission denied or delete failed' });
             } else {
+                // Delete for me (soft delete)
                 await Message.deleteForMe(messageId, userId);
                 return res.json({ status: 'success', message: 'Deleted for me' });
             }

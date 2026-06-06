@@ -166,7 +166,7 @@ const login = async (req, res) => {
         const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
         const [users] = await query(
-            'SELECT * FROM users WHERE email = ? OR username = ? LIMIT 1',
+            'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
             [loginId, loginId]
         );
         

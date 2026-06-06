@@ -54,9 +54,19 @@ class GroupMember {
         );
     }
 
-    static async isAdmin(chatId, userId) {
-        const member = await this.find(chatId, userId);
-        return member && (member.role === 'admin' || member.role === 'creator');
+    static async isParticipant(chatId, userId) {
+        // Check personal chats
+        const [personalRows] = await db.query(
+            'SELECT * FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+            [chatId, userId, userId]
+        );
+        if (personalRows.length > 0) return true;
+        // Check group chat members
+        const [groupRows] = await db.query(
+            'SELECT * FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
+            [chatId, userId]
+        );
+        return groupRows.length > 0;
     }
 
     static async getGroupPeers(userId) {

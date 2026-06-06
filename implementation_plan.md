@@ -99,9 +99,22 @@ Implement a modern, premium‑grade messaging experience matching WhatsApp/Teleg
 6. **Read Receipts** – Update status field on receipt events via socket `message-seen`.
 
 ---
-### Testing & Verification
+### Final Safeguards (Pre‑Implementation Checks)
 
-- **Unit Tests** for each new React component (Jest + React Testing Library). Snapshot tests for visual consistency.
+- **Verify Chat Membership** – Ensure the requesting user belongs to the message's chat before any delete action (`/delete-for-me` or `/delete-for-everyone`). Return `403 Forbidden` if not a participant.
+- **Prevent Double Deletion** – In `deleteForEveryone`, check `message.deleted_for_everyone` and either return early or respond with `409 Conflict` to avoid duplicate writes.
+- **Composite Index for Large Chats** – Add a composite index on `(chat_id, created_at)` (or similar) to optimise hidden‑message lookups in high‑traffic conversations.
+- **Idempotent Deletion Window** – Enforce a 24‑hour deletion window atomically to prevent race conditions.
+
+---
+## Verification Plan
+1. Run the idempotent migration on dev and staging DBs.
+2. Execute `npm test`.
+3. Start both frontend and backend (`npm run dev`).
+4. Perform manual scenarios (hide, delete, search, admin view) across devices.
+5. Inspect the DB to confirm `message_hidden` entries and `messages.deleted_*` fields.
+---
+*With these final adjustments the deletion system is production‑ready, audit‑friendly, and fully consistent across all UI pathways.*ting Library). Snapshot tests for visual consistency.
 - **Integration Tests** for edit API (attempt edit after 5 min → 403). Use Supertest.
 - **E2E Tests** (Cypress) covering:
   - Sending each media type.

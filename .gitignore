@@ -51,3 +51,17 @@ diagram-design/
 # Keystore and signing credentials (do not commit)
 android/app/sparkle-release.jks
 android/gradle.properties
+# Local environment files
+.env
+.env.*
+frontend/.env
+frontend/.env.*
+
+# Database files (SQLite, etc.)
+*.sqlite
+*.db
+database.sqlite
+data.db
+
+# Prisma generated client (avoid committing generated code)
+prisma/client/

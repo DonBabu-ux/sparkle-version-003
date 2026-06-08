@@ -108,7 +108,7 @@ export default function Connect() {
     <div className="flex bg-app min-h-screen text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
       <Navbar />
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-12">
+      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(6rem+env(safe-area-inset-top))] md:pt-12">
         
         {/* ── Header ── */}
         <header className="mb-10 animate-fade-in flex items-end justify-between">

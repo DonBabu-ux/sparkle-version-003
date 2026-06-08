@@ -199,6 +199,12 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [error429, setError429] = useState(false);
 
+  // Refs for stable callbacks
+  const postsRef = useRef<Post[]>(posts);
+  const feedContainerRef = useRef<HTMLDivElement>(null);
+  // Keep postsRef in sync
+  useEffect(() => { postsRef.current = posts; }, [posts]);
+
   // Synchronize local states with global feed store changes dynamically
   useEffect(() => {
     if (initialPosts && initialPosts.length > 0) {
@@ -210,6 +216,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   // Fetch next cursor-based page of posts
   const fetchFeed = useCallback(
     async (isInitial = false) => {
+      console.log("Feed fetch triggered:", isInitial ? "initial/pull-refresh" : "infinite-scroll");
       const now = Date.now();
       if (!isInitial && now - lastFetchTime.current < 2000) return;
       
@@ -253,7 +260,13 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
           });
         }
 
-        setHasMore(res.data.hasMore !== false && newPosts.length > 0);
+        // Determine if more pages are available. Guard against zero results to prevent endless fetching.
+        const hasMoreFlag = res.data.hasMore !== false && newPosts.length > 0;
+        setHasMore(hasMoreFlag);
+        if (newPosts.length === 0) {
+          // Explicitly stop pagination when no new posts are returned.
+          setHasMore(false);
+        }
       } catch (err: any) {
         console.error("Feed fetch error:", err);
         if (err.response?.status === 429) {
@@ -270,6 +283,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
   // Fetch new posts (delta focus refresh)
   const fetchNewPosts = useCallback(async () => {
+    console.log("Delta fetch triggered via window focus");
     if (posts.length === 0 || loadingRef.current || isOffline) return;
 
     try {
@@ -286,12 +300,22 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
       });
 
       if (filtered.length > 0) {
-        setPosts((prev) => [...filtered, ...prev]);
+        // Preserve scroll position when prepending
+        const container = feedContainerRef.current;
+        const prevScroll = container?.scrollTop ?? 0;
+        setPosts((prev) => {
+          const updated = [...filtered, ...prev];
+          return updated;
+        });
+        // Restore scroll after state update
+        setTimeout(() => {
+          if (container) container.scrollTop = prevScroll;
+        }, 0);
       }
     } catch (err) {
       console.error("Delta fetch error:", err);
     }
-  }, [posts, isOffline]);
+  }, [isOffline]);
 
   // Initial load if empty
   useEffect(() => {
@@ -358,7 +382,8 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   }
 
   return (
-    <div className="space-y-0.5 sm:space-y-3">
+    <div ref={feedContainerRef} className="space-y-0.5 sm:space-y-3">
+
       {/* 1. Shimmer/Shimmering inline styling */}
       <style>{`
         @keyframes shimmer {

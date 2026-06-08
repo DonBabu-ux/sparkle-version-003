@@ -109,89 +109,111 @@ const search = async (req, res) => {
         const searchUsers = async () => {
             if (targetType !== 'all' && targetType !== 'users') return;
             try {
-                const finalParams = [
-                    currentUserId, currentUserId, // For first IF
-                    currentUserId, // For is_followed relationship check
-                    booleanSearchTerm, // MATCH AGAINST in SELECT
-                    rawTerm, // Exact username match
-                    currentUserId, currentUserId, // For relationship boost
-                    booleanSearchTerm, // MATCH in WHERE
-                    likeTerm // LIKE in WHERE
-                ];
-                if (campus) finalParams.push(campus);
-                finalParams.push(parseInt(limit), parseInt(offset));
-
-                const [users] = await pool.query(
-                    `SELECT 
+                let selectClause = `
+                    SELECT 
                         u.user_id, u.username, u.name, u.avatar_url, 'user' as type, 
                         u.bio, u.is_verified, u.is_online, u.campus,
-                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) as is_followed_check,
                         IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) as is_followed,
                         (
                             (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) * 2) + 
                             ((u.username = ?) * 5) + 
                             (IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) * 2)
                         ) as relevance
-                    FROM users u
-                    WHERE (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) OR u.username LIKE ?)
-                      AND u.account_status = 'active'
-                    ${campus ? 'AND u.campus = ?' : ''}
-                    ORDER BY ${sortBy === 'date' ? 'u.joined_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
-                    finalParams
-                );
+                `;
+                const finalParams = [
+                    currentUserId, currentUserId, // For is_followed in SELECT
+                    booleanSearchTerm,            // For MATCH AGAINST relevance
+                    rawTerm,                      // For exact username match relevance
+                    currentUserId, currentUserId  // For is_followed boost relevance
+                ];
+
+                let query = `${selectClause} FROM users u WHERE (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) OR u.username LIKE ?) AND u.account_status = 'active'`;
+                finalParams.push(booleanSearchTerm, likeTerm);
+
+                // Exclude followed users and the current user themselves only when targetType === 'all'
+                if (targetType === 'all') {
+                    query += ' AND NOT EXISTS (SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)';
+                    finalParams.push(currentUserId);
+                    
+                    if (currentUserId) {
+                        query += ' AND u.user_id != ?';
+                        finalParams.push(currentUserId);
+                    }
+                }
+
+                if (campus) {
+                    query += ' AND u.campus = ?';
+                    finalParams.push(campus);
+                }
+
+                query += ` ORDER BY ${sortBy === 'date' ? 'u.joined_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`;
+                finalParams.push(parseInt(limit), parseInt(offset));
+
+                const [users] = await pool.query(query, finalParams);
                 results.users = users;
-            } catch (e) { results.users = []; }
+            } catch (e) { 
+                logger.error('searchUsers error:', e);
+                results.users = []; 
+            }
         };
 
         // Posts
         const searchPosts = async () => {
             if (targetType !== 'all' && targetType !== 'posts') return;
             try {
-                const params = [];
-                let filterClause = '';
-
-                if (filterUserId) { filterClause += ' AND p.user_id = ?'; params.push(filterUserId); }
-                if (filterUsername) { filterClause += ' AND u.username = ?'; params.push(filterUsername); }
-                
-                let matchClause = '';
-                if (rawTerm) {
-                    matchClause = ' AND (MATCH(p.content) AGAINST(? IN BOOLEAN MODE) OR p.content LIKE ?)';
-                    params.push(booleanSearchTerm, likeTerm);
-                }
-
-                if (campus) { filterClause += ' AND p.campus = ?'; params.push(campus); }
-                
-                // Add sorting params
-                let sortClause = 'relevance DESC';
-                if (sortBy === 'date') sortClause = 'p.created_at DESC';
-                else if (sortBy === 'engagement') sortClause = 'p.spark_count DESC, relevance DESC';
-
-                const [posts] = await pool.query(
-                    `SELECT 
+                let selectClause = `
+                    SELECT 
                         p.*, 'post' as type,
                         u.username, u.name, u.avatar_url, u.is_verified,
                         IF(? IS NULL, 0, EXISTS(SELECT 1 FROM sparks s WHERE s.post_id = p.post_id AND s.user_id = ?)) as is_sparked,
                         IF(? IS NULL, 0, EXISTS(SELECT 1 FROM post_reshares pr WHERE pr.post_id = p.post_id AND pr.user_id = ?)) as is_reshared,
-                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?)) as is_saved,
-                        (
-                            ${rawTerm ? 'MATCH(p.content) AGAINST(? IN BOOLEAN MODE)' : '1'} * 2 + 
-                            (p.spark_count * 0.3) - 
-                            (LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 720) * 0.05)
-                        ) as relevance
-                     FROM posts p JOIN users u ON p.user_id = u.user_id
-                     WHERE p.group_id IS NULL ${filterClause} ${matchClause}
-                     ORDER BY ${sortClause} LIMIT ? OFFSET ?`,
-                    [
-                        currentUserId, currentUserId,
-                        currentUserId, currentUserId,
-                        currentUserId, currentUserId,
-                        ...(rawTerm ? [booleanSearchTerm] : []),
-                        ...params, 
-                        parseInt(limit), parseInt(offset)
-                    ]
-                );
+                        IF(? IS NULL, 0, EXISTS(SELECT 1 FROM saved_posts sp WHERE sp.post_id = p.post_id AND sp.user_id = ?)) as is_saved
+                `;
+                const params = [
+                    currentUserId, currentUserId,
+                    currentUserId, currentUserId,
+                    currentUserId, currentUserId
+                ];
+
+                if (rawTerm) {
+                    selectClause += `, (MATCH(p.content) AGAINST(? IN BOOLEAN MODE) * 2 + (p.spark_count * 0.3) - (LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 720) * 0.05)) as relevance`;
+                    params.push(booleanSearchTerm);
+                } else {
+                    selectClause += `, (1 * 2 + (p.spark_count * 0.3) - (LEAST(TIMESTAMPDIFF(HOUR, p.created_at, NOW()), 720) * 0.05)) as relevance`;
+                }
+
+                let query = `${selectClause} FROM posts p JOIN users u ON p.user_id = u.user_id WHERE p.group_id IS NULL`;
+
+                if (filterUserId) {
+                    query += ' AND p.user_id = ?';
+                    params.push(filterUserId);
+                }
+                if (filterUsername) {
+                    query += ' AND u.username = ?';
+                    params.push(filterUsername);
+                }
+                if (campus) {
+                    query += ' AND p.campus = ?';
+                    params.push(campus);
+                }
+                if (rawTerm) {
+                    query += ' AND (MATCH(p.content) AGAINST(? IN BOOLEAN MODE) OR p.content LIKE ?)';
+                    params.push(booleanSearchTerm, likeTerm);
+                }
+
+                let sortClause = 'relevance DESC';
+                if (sortBy === 'date') sortClause = 'p.created_at DESC';
+                else if (sortBy === 'engagement') sortClause = 'p.spark_count DESC, relevance DESC';
+
+                query += ` ORDER BY ${sortClause} LIMIT ? OFFSET ?`;
+                params.push(parseInt(limit), parseInt(offset));
+
+                const [posts] = await pool.query(query, params);
                 results.posts = posts;
-            } catch (e) { results.posts = []; }
+            } catch (e) { 
+                logger.error('searchPosts error:', e);
+                results.posts = []; 
+            }
         };
 
         // Groups
@@ -301,21 +323,54 @@ const search = async (req, res) => {
 };
 
 const getSuggestions = async (req, res) => {
-    try {
-        const { q } = req.query;
-        if (!q || q.length < 2) return res.json({ status: 'success', data: [] });
-        const likeTerm = `${q.trim()}%`;
-        const [suggestions] = await pool.query(
-            `(SELECT 'user' as type, username as value, name as label, avatar_url as image FROM users WHERE username LIKE ? OR name LIKE ? LIMIT 5)
-             UNION ALL
-             (SELECT 'group' as type, name as value, CONCAT(name, ' (Group)') as label, icon_url as image FROM \`groups\` WHERE name LIKE ? LIMIT 3)
-             UNION ALL
-             (SELECT 'hashtag' as type, tag as value, CONCAT('#', tag) as label, null as image FROM (SELECT tag FROM post_hashtags WHERE tag LIKE ? UNION SELECT hashtag as tag FROM moment_hashtags WHERE hashtag LIKE ?) as h LIMIT 5)
-             LIMIT 15`,
-            [likeTerm, likeTerm, likeTerm, likeTerm, likeTerm]
-        );
-        res.json({ status: 'success', data: suggestions });
-    } catch (error) { res.status(500).json({ error: error.message }); }
+  try {
+    const { q, type } = req.query;
+    if (!q || q.length < 2) return res.json({ status: 'success', data: [] });
+    const likeTerm = `${q.trim()}%`;
+    const currentUserId = req.user ? (req.user.userId || req.user.user_id) : null;
+    const unions = [];
+    const params = [];
+
+    // Users suggestions (exclude followed users and self)
+    if (!type || type === 'user' || type === 'all') {
+      let userClause = `SELECT 'user' as type, username as value, name as label, avatar_url as image
+        FROM users
+        WHERE (username LIKE ? OR name LIKE ?)`;
+      params.push(likeTerm, likeTerm);
+      if (currentUserId) {
+        userClause += ` AND user_id != ? AND NOT EXISTS (SELECT 1 FROM follows WHERE follower_id = ? AND following_id = user_id)`;
+        params.push(currentUserId, currentUserId);
+      }
+      userClause += ' LIMIT 5';
+      unions.push(`(${userClause})`);
+    }
+
+    // Group suggestions
+    if (!type || type === 'group' || type === 'all') {
+      const groupClause = `SELECT 'group' as type, name as value, CONCAT(name, ' (Group)') as label, icon_url as image
+        FROM \`groups\` WHERE name LIKE ? LIMIT 3`;
+      params.push(likeTerm);
+      unions.push(`(${groupClause})`);
+    }
+
+    // Hashtag suggestions
+    if (!type || type === 'hashtag' || type === 'all') {
+      const hashtagClause = `SELECT 'hashtag' as type, tag as value, CONCAT('#', tag) as label, NULL as image
+        FROM (
+          SELECT tag FROM post_hashtags WHERE tag LIKE ?
+          UNION
+          SELECT hashtag as tag FROM moment_hashtags WHERE hashtag LIKE ?
+        ) as h LIMIT 5`;
+      params.push(likeTerm, likeTerm);
+      unions.push(`(${hashtagClause})`);
+    }
+
+    const finalQuery = unions.join(' UNION ALL ') + ' LIMIT 15';
+    const [suggestions] = await pool.query(finalQuery, params);
+    res.json({ status: 'success', data: suggestions });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 const saveSearch = async (req, res) => {

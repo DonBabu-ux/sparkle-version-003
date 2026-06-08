@@ -138,3 +138,12 @@ Implement a modern, premium‑grade messaging experience matching WhatsApp/Teleg
 ## Next Steps
 - Await your confirmation of this detailed plan.
 - Once approved, we will begin implementation following the timeline above.
+## User Review Required
+
+Please review the proposed changes, especially the backend permission checks and the new media upload endpoint. Confirm if the 5‑minute edit window aligns with product requirements.
+
+## Open Questions
+
+- Should the `media_type` enum include a `sticker` type?
+- Do we need server‑side thumbnail generation for videos?
+- Preferred maximum file size for uploads per category?

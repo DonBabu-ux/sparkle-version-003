@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
@@ -12,6 +12,7 @@ import SearchSparkleScreen from './pages/ai/SearchSparkleScreen';
 import FriendDiscoveryScreen from './pages/ai/FriendDiscoveryScreen';
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
+const LearnMorePage = lazy(() => import('./pages/LearnMorePage'));
 import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -372,6 +373,25 @@ function App() {
                     {/* ── Phase 2: Social & Community ── */}
                     <Route path="/clubs" element={isAuthenticated ? <Clubs /> : <Navigate to="/login" />} />
                     <Route path="/clubs/:id" element={isAuthenticated ? <ClubDetail /> : <Navigate to="/login" />} />
+                    {/* --- Custom Svg Components to match the exact elements in the image --- */}
+                    <Route
+                      path="/learn-more"
+                      element={
+                        isAuthenticated ? (
+                          <Suspense
+                            fallback={
+                              <div className="flex items-center justify-center h-full">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                              </div>
+                            }
+                          >
+                            <LearnMorePage />
+                          </Suspense>
+                        ) : (
+                          <Navigate to="/login" />
+                        )
+                      }
+                    />
                     <Route path="/events" element={isAuthenticated ? <Events /> : <Navigate to="/login" />} />
                     <Route path="/events/admin" element={isAuthenticated ? <EventsAdmin /> : <Navigate to="/login" />} />
                     <Route path="/connect" element={isAuthenticated ? <Connect /> : <Navigate to="/login" />} />

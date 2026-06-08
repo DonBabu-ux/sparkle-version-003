@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import MicrophoneShowcase from '../components/MicrophoneShowcase';
+import { useNavigate } from 'react-router-dom';
+import SparkleLiveHero from '../components/SparkleLiveHero';
 // --- Custom Svg Components to match the exact elements in the image ---
 
 // Wrapped Gift Box
@@ -60,7 +61,8 @@ export default function LockedLivePage() {
   const [loadingCreators, setLoadingCreators] = useState(true);
   const [earlyAccessRequested, setEarlyAccessRequested] = useState(false);
   const [showAccessModal, setShowAccessModal] = useState(false);
-  const [showLearnMore, setShowLearnMore] = useState(false);
+
+  const navigate = useNavigate();
 
   const unlockSectionRef = useRef<HTMLDivElement>(null);
 
@@ -134,107 +136,7 @@ export default function LockedLivePage() {
     delay: Math.random() * 3
   }));
 
-  if (showLearnMore) {
-    return (
-      <AnimatePresence>
-        <motion.div 
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: -50 }}
-          className="min-h-screen bg-[#07020d] text-white pb-24 relative font-sans selection:bg-[#ff008a]/20"
-        >
-          {/* Ambient lighting */}
-          <div className="absolute top-[-5%] left-[-10%] w-[400px] h-[400px] rounded-full bg-[#ff008a] opacity-10 blur-[130px] pointer-events-none" />
-          <div className="absolute bottom-[10%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#ff4db8] opacity-10 blur-[130px] pointer-events-none" />
 
-          {/* Sticky launch header */}
-          <div className="sticky top-0 z-50 bg-[#07020d]/95 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center gap-4">
-            <button 
-              onClick={() => setShowLearnMore(false)}
-              className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 transition-all active:scale-95"
-            >
-              <ArrowLeft size={16} strokeWidth={2.5} />
-            </button>
-            <span className="text-sm font-bold uppercase tracking-wider text-white/60">Milestone Info</span>
-          </div>
-
-          <div className="max-w-3xl mx-auto px-6 pt-12 space-y-16 relative z-10">
-            {/* HERO */}
-            <div className="text-center space-y-6 relative py-12">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-[#ff008a]/20 rounded-full blur-[70px] pointer-events-none" />
-              <div className="w-20 h-20 rounded-full bg-[#ff008a]/10 border border-[#ff008a]/30 flex items-center justify-center mx-auto text-[#ff4db8] relative z-10 animate-pulse">
-                <Radio size={36} />
-              </div>
-              <h1 className="text-5xl font-black tracking-tight" style={{ fontFamily: 'Outfit' }}>
-                Sparkle <span className="bg-gradient-to-r from-[#ff008a] via-[#ff4db8] to-[#ff66c4] bg-clip-text text-transparent">Live</span>
-              </h1>
-              <p className="text-2xl font-bold tracking-tight text-white/80">Go Live. Connect. Grow. Earn.</p>
-            </div>
-
-            {/* SECTION 1 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold border-b border-white/10 pb-2">What is Sparkle Live?</h3>
-              <p className="text-sm text-white/60 leading-relaxed">
-                Sparkle Live is a real-time broadcasting framework enabling you to connect directly with your campus community. 
-                Host virtual concerts, study group streams, gaming sessions, or live discussions, and interact directly with 
-                your followers via a built-in interactive feedback channel.
-              </p>
-            </div>
-
-            {/* SECTION 2 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold border-b border-white/10 pb-2">Why 1,000 Followers?</h3>
-              <p className="text-sm text-white/60 leading-relaxed">
-                To guarantee safety, platform integrity, and high-quality creator hubs, live permissions are granted automatically 
-                to channels matching our core follower thresholds. Maintaining this standard filters spam accounts, guarantees 
-                creator safety, and optimizes feed discovery algorithms.
-              </p>
-            </div>
-
-            {/* SECTION 3 */}
-            <div className="space-y-4">
-              <h3 className="text-lg font-bold border-b border-white/10 pb-2">What Can You Do on Sparkle Live?</h3>
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { title: 'Go Live', desc: 'Instant live video stream.' },
-                  { title: 'Receive Gifts', desc: 'Collect visual rewards from viewers.' },
-                  { title: 'Earn Support', desc: 'Convert sparks to real coins.' },
-                  { title: 'Host Events', desc: 'Schedule streams in calendar.' },
-                  { title: 'Tutorial Streams', desc: 'Share your academic study sessions.' },
-                  { title: 'Music Sessions', desc: 'Broadcast audio sets & DJs.' },
-                  { title: 'Gaming Streams', desc: 'Run competitive match streams.' },
-                  { title: 'Q&A Sessions', desc: 'Conduct live audio/video interviews.' },
-                  { title: 'Community Chats', desc: 'Host real-time panels.' }
-                ].map((item, idx) => (
-                  <div key={idx} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-                    <h4 className="text-xs font-bold text-[#ff4db8]">{item.title}</h4>
-                    <p className="text-[11px] text-white/45 mt-1 leading-snug">{item.desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* FINAL CTA */}
-            <div className="bg-gradient-to-r from-[#ff008a]/25 to-[#ff4db8]/10 border border-[#ff008a]/30 rounded-[28px] p-8 text-center space-y-6">
-              <h3 className="text-2xl font-black text-white" style={{ fontFamily: 'Outfit' }}>
-                Ready to Unlock Sparkle Live?
-              </h3>
-              <p className="text-xs text-white/70 max-w-sm mx-auto leading-relaxed">
-                You currently have <span className="font-bold text-[#ff4db8]">{followers} followers</span>. Keep creating quality moments and growing your network!
-              </p>
-              
-              <button 
-                onClick={() => setShowLearnMore(false)}
-                className="bg-white text-[#ff008a] hover:bg-white/95 px-6 py-3 rounded-full text-xs font-black uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 shadow-xl shadow-black/30"
-              >
-                Start Growing Your Audience
-              </button>
-            </div>
-          </div>
-        </motion.div>
-      </AnimatePresence>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#07020d] text-white overflow-hidden relative pb-24 font-sans selection:bg-[#ff008a]/20">
@@ -329,7 +231,7 @@ export default function LockedLivePage() {
             </p>
 
             <button 
-              onClick={() => setShowLearnMore(true)}
+              onClick={() => navigate('/learn-more')}
               className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 hover:bg-white/10 px-4 py-2 rounded-full text-xs font-black text-white/70 hover:text-white transition-all shadow-sm"
             >
               Why is Live locked?
@@ -609,9 +511,8 @@ export default function LockedLivePage() {
 
         {/* Sparkle Live Centerpiece */}
         <div className="mt-12 text-center">
-          <h2 className="text-2xl font-extrabold text-white/95 mb-4" style={{ fontFamily: 'Outfit' }}>Sparkle Live Universe</h2>
+          <SparkleLiveHero />
           <p className="text-sm text-white/60 mb-6" style={{ fontFamily: 'Outfit' }}>Everything you unlock at 1,000 followers.</p>
-          <MicrophoneShowcase />
         </div>
 
         {/* Bottom Banner Section exact mockup replica */}
@@ -648,7 +549,7 @@ export default function LockedLivePage() {
             </div>
 
             <button 
-              onClick={() => setShowLearnMore(true)} 
+              onClick={() => navigate('/learn-more')} 
               className="bg-[#ff008a] hover:bg-[#ff4db8] text-white px-6 py-3 rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-95 shadow-lg shadow-[#ff008a]/30"
             >
               Learn More

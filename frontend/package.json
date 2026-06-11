@@ -38,6 +38,8 @@
     "lucide-react": "^1.11.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
+    "react-hot-toast": "^2.6.0",
+    "react-qr-code": "^2.2.0",
     "react-router-dom": "^7.14.0",
     "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.2.7",

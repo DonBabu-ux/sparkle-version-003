@@ -32,6 +32,7 @@ export interface User {
   mutual_followers?: { id: string; name: string; avatar: string }[];
   suggestion_reason?: string;
   followers_count?: number;
+  invited_users_count?: number;
   following_count?: number;
   pending_requests_count?: number;
   has_story?: boolean;

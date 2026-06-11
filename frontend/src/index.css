@@ -14,6 +14,40 @@
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
   --safe-area-inset-left: env(safe-area-inset-left, 0px);
+  /* New color palette */
+  --color-primary: #FF006E;
+  --color-primary-contrast: #FFFFFF;
+  --color-accent: #00C9A7; /* vibrant teal */
+  --color-surface-bg: #FFFFFF; /* light surface */
+  --color-surface-bg-dark: #0F0A10; /* dark surface */
+  --color-text-primary: #121212; /* light mode text */
+  --color-text-primary-dark: #FAFAFA; /* dark mode text */
+}
+
+.dark {
+  --color-surface-bg: var(--color-surface-bg-dark);
+  --color-text-primary: var(--color-text-primary-dark);
+}
+
+@layer utilities {
+  .bg-surface { @apply bg-[var(--color-surface-bg)]; }
+  .text-primary { @apply text-[var(--color-text-primary)]; }
+  .text-primary-dark { @apply text-[var(--color-text-primary-dark)]; }
+  .premium-card {
+    @apply bg-surface rounded-3xl border border-[#E5E5E5] transition-all duration-500 hover:shadow-premium;
+  }
+  .premium-btn-primary {
+    @apply inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary text-[var(--color-primary-contrast)] rounded-xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-[1.03] hover:shadow-primary/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary;
+  }
+  .premium-btn-accent {
+    @apply inline-flex items-center justify-center gap-3 px-8 py-4 bg-accent text-[var(--color-text-primary-dark)] rounded-xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-accent/20 transition-all active:scale-95 hover:scale-[1.03] hover:shadow-accent/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent;
+  }
+}
+
+  --safe-area-inset-top: env(safe-area-inset-top, 0px);
+  --safe-area-inset-right: env(safe-area-inset-right, 0px);
+  --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-inset-left: env(safe-area-inset-left, 0px);
 }
 
 /* Hide mobile bottom nav when note editor is open */
@@ -142,13 +176,8 @@ body.note-modal-open nav {
     @apply bg-glass-surface backdrop-blur-2xl border border-white/40;
   }
 
-  .premium-card {
-    @apply bg-white rounded-3xl border border-pink-50 transition-all duration-500 hover:shadow-premium;
-  }
-
-  .premium-btn {
-    @apply inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-[1.03] hover:shadow-primary/40;
-  }
+  .premium-card { @apply rounded-3xl border border-[#E5E5E5] transition-all duration-500 hover:shadow-premium; background-color: var(--color-surface-bg); }
+  .premium-btn { @apply inline-flex items-center justify-center gap-3 px-8 py-4 bg-primary text-white rounded-xl font-black uppercase tracking-[0.2em] text-[11px] shadow-xl shadow-primary/20 transition-all active:scale-95 hover:scale-[1.03] hover:shadow-primary/40; }
 
   .secondary-btn {
     @apply inline-flex items-center justify-center gap-3 px-8 py-4 bg-white text-[#000000] rounded-xl font-black uppercase tracking-[0.2em] text-[11px] border border-black/10 transition-all hover:bg-black/5;

@@ -50,12 +50,12 @@ const HolographicPlatform = () => (
 
 export default function LockedLivePage() {
   const user = useUserStore(state => state.user);
-  const followers = user?.followers_count ?? 0;
-  const progress = Math.min(100, Math.round((followers / 1000) * 100));
-  
-  const milestones = [250, 500, 750, 1000];
-  const nextMilestone = milestones.find(m => m > followers) || 1000;
-  const remaining = nextMilestone - followers;
+const invites = user?.invited_users_count ?? 0;
+const progress = Math.min(100, Math.round((invites / 5) * 100)); // progress toward next milestone (5 invites base)
+
+const milestones = [5, 10, 25, 50];
+const nextMilestone = milestones.find(m => m > invites) || 50;
+const remaining = nextMilestone - invites;
   
   const [creators, setCreators] = useState<any[]>([]);
   const [loadingCreators, setLoadingCreators] = useState(true);
@@ -629,28 +629,30 @@ export default function LockedLivePage() {
   );
 }
 
-// Simple Diamond fallback Svg
-const DiamondSvg = () => (
-  <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <linearGradient id="diamondGrad2" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0%" stopColor="#ffffff" />
-        <stop offset="50%" stopColor="#ff66c4" />
-        <stop offset="100%" stopColor="#ff008a" />
-      </linearGradient>
-    </defs>
-    <path d="M14 14H30L36 22L22 36L8 22L14 14Z" fill="url(#diamondGrad2)" stroke="#ffffff" strokeWidth="1" />
-    <path d="M14 14L22 22L8 22Z" fill="#ffffff" fillOpacity="0.2" />
-    <path d="M30 14L22 22L36 22Z" fill="#ffffff" fillOpacity="0.3" />
-    <path d="M14 14H30L22 22Z" fill="#ffffff" fillOpacity="0.4" />
-  </svg>
-);
+function DiamondSvg() {
+  return (
+    <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="diamondGrad2" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="50%" stopColor="#ff66c4" />
+          <stop offset="100%" stopColor="#ff008a" />
+        </linearGradient>
+      </defs>
+      <path d="M14 14H30L36 22L22 36L8 22L14 14Z" fill="url(#diamondGrad2)" stroke="#ffffff" strokeWidth="1" />
+      <path d="M14 14L22 22L8 22Z" fill="#ffffff" fillOpacity="0.2" />
+      <path d="M30 14L22 22L36 22Z" fill="#ffffff" fillOpacity="0.3" />
+      <path d="M14 14H30L22 22Z" fill="#ffffff" fillOpacity="0.4" />
+    </svg>
+  );
+}
 
-// Simple Token fallback Svg
-const TokenSvg = () => (
-  <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="20" cy="20" r="15" fill="#150827" stroke="#ff008a" strokeWidth="2" />
-    <path d="M20 9L23 16H30L25 21L27 28L20 24L13 28L15 21L10 16H17L20 9Z" fill="none" stroke="#ffd700" strokeWidth="1.5" />
-    <circle cx="20" cy="19" r="3" fill="#ff4db8" />
-  </svg>
-);
+function TokenSvg() {
+  return (
+    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="20" cy="20" r="15" fill="#150827" stroke="#ff008a" strokeWidth="2" />
+      <path d="M20 9L23 16H30L25 21L27 28L20 24L13 28L15 21L10 16H17L20 9Z" fill="none" stroke="#ffd700" strokeWidth="1.5" />
+      <circle cx="20" cy="19" r="3" fill="#ff4db8" />
+    </svg>
+  );
+}

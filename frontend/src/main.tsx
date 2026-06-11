@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 import OtaService from './services/OtaService';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
+import { ToastProvider } from './utils/toast';
 
 (async () => {
   console.log('APP STARTED');
@@ -24,9 +25,9 @@ import { defineCustomElements } from '@ionic/pwa-elements/loader';
       <ErrorBoundary>
         <Router>
           <App />
+          <ToastProvider />
         </Router>
       </ErrorBoundary>
     </React.StrictMode>
   );
 })();
-

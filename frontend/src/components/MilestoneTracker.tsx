@@ -9,8 +9,8 @@ export const MilestoneTracker = () => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.5 }}
   >
-    <h3 className="text-xl font-bold mb-2 text-center">Milestone Tracker</h3>
-    <p className="text-gray-300 text-center">
+    <h3 className="text-xl font-bold mb-2 text-center text-white">Milestone Tracker</h3>
+    <p className="text-gray-400 text-center">
       {/* Placeholder – will display XP progress and level */}
       XP progress coming soon.
     </p>

@@ -37,3 +37,9 @@ export interface InviteLink {
   url: string;
   qrCodeUrl?: string; // optional pre‑generated QR code URL
 }
+
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  count: number;
+}

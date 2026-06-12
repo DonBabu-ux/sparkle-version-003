@@ -1,10 +1,23 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNetworkStore } from '../store/networkStore';
 
 export const OfflineIndicator: React.FC = () => {
   const { isOffline, quality } = useNetworkStore();
+  const [showWeak, setShowWeak] = useState(false);
+
+  useEffect(() => {
+    if (!isOffline && quality === 'unstable') {
+      setShowWeak(true);
+      const timer = setTimeout(() => {
+        setShowWeak(false);
+      }, 3000);
+      return () => clearTimeout(timer);
+    } else {
+      setShowWeak(false);
+    }
+  }, [isOffline, quality]);
 
   return (
     <AnimatePresence>
@@ -32,7 +45,7 @@ export const OfflineIndicator: React.FC = () => {
         </motion.div>
       )}
 
-      {!isOffline && quality === 'unstable' && (
+      {showWeak && (
         <motion.div
           initial={{ opacity: 0, y: -50 }}
           animate={{ opacity: 1, y: 0 }}

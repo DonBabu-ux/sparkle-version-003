@@ -18,7 +18,7 @@ const topInviters: Inviter[] = [
 
 export const Leaderboard: React.FC = () => (
   <section className="w-full max-w-2xl mx-auto mb-12 animate-fade-in">
-    <h2 className="text-2xl font-bold text-center mb-6">Top Inviters</h2>
+    <h2 className="text-2xl font-bold text-center mb-6 text-white">Top Inviters</h2>
     <div className="space-y-4">
       {topInviters.map((inv) => (
         <motion.div
@@ -28,12 +28,12 @@ export const Leaderboard: React.FC = () => (
           transition={{ type: 'spring', stiffness: 200 }}
         >
           <div className="flex items-center">
-            <span className="text-xl font-bold mr-3 text-pink-200">#{inv.rank}</span>
-            <span className="font-medium text-pink-100">{inv.name}</span>
+            <span className="text-xl font-bold mr-3 text-white">#{inv.rank}</span>
+            <span className="font-medium text-gray-200">{inv.name}</span>
           </div>
           <div className="flex items-center">
             {inv.badge}
-            <span className="ml-2 text-pink-300">{inv.count} referrals</span>
+            <span className="ml-2 text-gray-400">{inv.count} referrals</span>
           </div>
         </motion.div>
       ))}

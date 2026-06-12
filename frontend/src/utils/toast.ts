@@ -1,9 +1,12 @@
-import toast, { ToastOptions } from 'react-hot-toast';
+import toast, { Toaster } from 'react-hot-toast';
+
+// Export Toaster as ToastProvider for compatibility
+export const ToastProvider = Toaster;
 
 // Default toast options applied to all toasts
-const defaultOptions: ToastOptions = {
+const defaultOptions = {
   duration: 2000,
-  position: 'top-right',
+  position: 'top-right' as const,
 };
 
 /**

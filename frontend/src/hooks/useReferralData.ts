@@ -7,7 +7,7 @@ import {
   getInviteLink,
   getLeaderboard,
 } from '../services/referralService';
-import { ReferralStats, Reward, Milestone, Achievement, InviteLink, LeaderboardEntry } from '../types/referral';
+import type { ReferralStats, Reward, Milestone, Achievement, InviteLink, LeaderboardEntry } from '../types/referral';
 
 export interface UseReferralDataResult {
   data: {
@@ -80,24 +80,36 @@ export const useReferralData = (): UseReferralDataResult => {
     // Simple switch based on section name
     try {
       switch (section) {
-        case 'stats':
-          setData(d => ({ ...d, stats: await getReferralStats() }));
+        case 'stats': {
+          const stats = await getReferralStats();
+          setData(d => ({ ...d, stats }));
           break;
-        case 'rewards':
-          setData(d => ({ ...d, rewards: await getRewards() }));
+        }
+        case 'rewards': {
+          const rewards = await getRewards();
+          setData(d => ({ ...d, rewards }));
           break;
-        case 'milestones':
-          setData(d => ({ ...d, milestones: await getMilestones() }));
+        }
+        case 'milestones': {
+          const milestones = await getMilestones();
+          setData(d => ({ ...d, milestones }));
           break;
-        case 'achievements':
-          setData(d => ({ ...d, achievements: await getAchievements() }));
+        }
+        case 'achievements': {
+          const achievements = await getAchievements();
+          setData(d => ({ ...d, achievements }));
           break;
-        case 'inviteLink':
-          setData(d => ({ ...d, inviteLink: await getInviteLink() }));
+        }
+        case 'inviteLink': {
+          const inviteLink = await getInviteLink();
+          setData(d => ({ ...d, inviteLink }));
           break;
-        case 'leaderboard':
-          setData(d => ({ ...d, leaderboard: await getLeaderboard() }));
+        }
+        case 'leaderboard': {
+          const leaderboard = await getLeaderboard();
+          setData(d => ({ ...d, leaderboard }));
           break;
+        }
         default:
           console.warn('Unknown section refresh', section);
       }

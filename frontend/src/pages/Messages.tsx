@@ -878,6 +878,9 @@ export default function Messages() {
   const [searchParams] = useSearchParams();
   const targetChatId = searchParams.get('chat');
 
+  // Add currentChatIdRef to prevent stale closures in socket events
+  const currentChatIdRef = useRef<string | null>(null);
+
   // Activate real-time message socket updates
   useMessageSocket();
 
@@ -926,6 +929,11 @@ export default function Messages() {
     return 0;
   };
   const [selectedChat, setSelectedChat] = useState<ChatConversation | null>(null);
+
+  useEffect(() => {
+    currentChatIdRef.current = selectedChat?.chat_id || null;
+  }, [selectedChat?.chat_id]);
+
 const chatId = selectedChat?.chat_id ?? '';
 const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
 const setStoreMessages = useChatStore(state => state.setMessages);
@@ -940,6 +948,12 @@ const updateMessages = (updater: (msgs: any[]) => any[]) => {
   const current = useChatStore.getState().messagesByConversation[chatId] || [];
   const updated = updater(current);
   setStoreMessages(chatId, updated);
+};
+const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
+  if (!targetChatId) return;
+  const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
+  const updated = updater(current);
+  setStoreMessages(targetChatId, updated);
 };
   const [messageSearch, setMessageSearch] = useState('');
 const [loading, setLoading] = useState(true);
@@ -1371,10 +1385,13 @@ useEffect(() => {
 
     // 1. If it belongs to current active chat, update message array
     if (isCurrentChat) {
-      updateMessages(prev => {
-        if (prev.some(m => m.message_id === msg.message_id)) return prev;
-        return [...prev, msg];
-      });
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId) {
+        updateMessagesForChat(activeChatId, prev => {
+          if (prev.some(m => m.message_id === msg.message_id)) return prev;
+          return [...prev, msg];
+        });
+      }
       triggerWordEffect(msg.content);
 
       // Let backend know we received it ONLY IF NOT GROUP
@@ -1440,12 +1457,15 @@ useEffect(() => {
     const myId = user?.id || user?.user_id;
     if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
 
-    updateMessages(prev => prev.map(m => {
-      if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
-        return { ...m, status: 'delivered' };
-      }
-      return m;
-    }));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => {
+        if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
+          return { ...m, status: 'delivered' };
+        }
+        return m;
+      }));
+    }
     setConversations((prev: any[]) => prev.map(c => {
       if (c.chat_id === data.chatId && c.last_message_status !== 'read') {
         return { ...c, last_message_status: 'delivered' };
@@ -1458,13 +1478,16 @@ useEffect(() => {
     const myId = user?.id || user?.user_id;
     if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
 
-    updateMessages(prev => prev.map(m => {
-      // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
-      if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
-        return { ...m, status: 'read', read_at: data.readAt };
-      }
-      return m;
-    }));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => {
+        // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
+        if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
+          return { ...m, status: 'read', read_at: data.readAt };
+        }
+        return m;
+      }));
+    }
     setConversations((prev: any[]) => prev.map(c => {
       if (c.chat_id === data.chatId) {
         return { ...c, last_message_status: 'read', unread_count: 0 };
@@ -1526,46 +1549,67 @@ useEffect(() => {
   };
 
   const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
-    updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
+    }
   };
 
   const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
-    updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
+    }
   };
 
   const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
-    updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
+    }
   };
 
   const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
-    updateMessages(prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
+    }
   };
 
   const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
-    updateMessages(prev => prev.filter(m => m.message_id !== data.messageId));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.filter(m => m.message_id !== data.messageId));
+    }
   };
 
   const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-    updateMessages(prev => prev.map(m => {
-      if (m.message_id === data.messageId) {
-        const reactions = m.reactions || [];
-        if (reactions.some(r => r.user_id === data.userId)) {
-          return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => {
+        if (m.message_id === data.messageId) {
+          const reactions = m.reactions || [];
+          if (reactions.some(r => r.user_id === data.userId)) {
+            return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
+          }
+          return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
         }
-        return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
-      }
-      return m;
-    }));
+        return m;
+      }));
+    }
   };
 
   const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-    updateMessages(prev => prev.map(m => {
-      if (m.message_id === data.messageId) {
-        const reactions = m.reactions || [];
-        return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
-      }
-      return m;
-    }));
+    const activeChatId = currentChatIdRef.current;
+    if (activeChatId && data.chatId === activeChatId) {
+      updateMessagesForChat(activeChatId, prev => prev.map(m => {
+        if (m.message_id === data.messageId) {
+          const reactions = m.reactions || [];
+          return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
+        }
+        return m;
+      }));
+    }
   };
 
   socket.on('new-message', handleNewMessage);
@@ -1585,9 +1629,10 @@ useEffect(() => {
   socket.on('reaction-removed', handleReactionRemoved);
 
   const handleReconnect = () => {
-    const activeChat = selectedChatRef.current;
-    if (activeChat?.chat_id && !activeChat.chat_id.startsWith('temp_')) {
-      socket.emit('join-chat', activeChat.chat_id);
+    const activeChatId = currentChatIdRef.current;
+    console.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
+    if (activeChatId && !activeChatId.startsWith('temp_')) {
+      socket.emit('join-chat', activeChatId);
     }
   };
   socket.on('connect', handleReconnect);

@@ -2,16 +2,56 @@ require('dotenv').config();
 const pool = require('../../config/database');
 const logger = require('../logger');
 
+// Helper to safely extract error message
+const getErrorMessage = (err) => {
+    if (!err) return 'Unknown error';
+    
+    // Handle if error is already a string
+    if (typeof err === 'string') return err.slice(0, 200);
+    
+    // Handle if it's an object
+    if (typeof err === 'object') {
+        // Check for message property
+        if (err.message && typeof err.message === 'string') return err.message.slice(0, 200);
+        
+        // Check for code property (MySQL error codes)
+        if (err.code && typeof err.code === 'string') return err.code.slice(0, 200);
+        
+        // Check for sqlMessage (mysql2 specific)
+        if (err.sqlMessage && typeof err.sqlMessage === 'string') return err.sqlMessage.slice(0, 200);
+        
+        // If object has been stringified as character array (toString called), try JSON.stringify
+        try {
+            const str = JSON.stringify(err);
+            if (str && str.length > 2) return str.slice(0, 200);
+        } catch (e) {
+            // Fallback below
+        }
+    }
+    
+    // Last resort - try String()
+    try {
+        const str = String(err).slice(0, 200);
+        return str || 'Unknown error';
+    } catch (e) {
+        return 'Unknown error';
+    }
+};
+
+// Helper to safely suppress duplicate errors
+const isDuplicateError = (err) => {
+    const msg = getErrorMessage(err);
+    return msg.includes('Duplicate') || msg.includes('already exists') || msg.includes('UNIQUE');
+};
+
 // Test database connection
 const testConnection = async () => {
     try {
         await pool.query('SELECT 1');
         return true;
     } catch (err) {
-        logger.error('Database connection test failed:', {
-            message: err.message,
-            code: err.code
-        });
+        const errorMsg = err?.message || String(err).slice(0, 200);
+        logger.error('Database connection test failed: ' + errorMsg);
         return false;
     }
 };
@@ -988,8 +1028,9 @@ const initMarketplaceTables = async () => {
         `);
 
         // Migration: Add missing columns if they don't exist
-        const [orderCols] = await pool.query("SHOW COLUMNS FROM marketplace_orders");
-        const orderColNames = orderCols.map(c => c.Field);
+        const orderResult = await pool.query("SHOW COLUMNS FROM marketplace_orders");
+        const [orderCols] = Array.isArray(orderResult) ? [orderResult] : orderResult || [];
+        const orderColNames = (Array.isArray(orderCols) ? orderCols : []).map(c => c.Field);
         
         const missingOrderCols = [
             'currency', 'item_condition', 'agreed_price', 'campus', 'location_description',
@@ -1113,8 +1154,9 @@ const initConfessionTables = async () => {
         `);
 
         // Migration: Add missing columns if they don't exist
-        const [cols] = await pool.query("SHOW COLUMNS FROM confessions");
-        const colNames = cols.map(c => c.Field);
+        const colResult = await pool.query("SHOW COLUMNS FROM confessions");
+        const [cols] = Array.isArray(colResult) ? [colResult] : colResult || [];
+        const colNames = (Array.isArray(cols) ? cols : []).map(c => c.Field);
         
         const confessionsCols = [
             { name: 'user_id', type: 'CHAR(36) NULL' },
@@ -1187,8 +1229,9 @@ const initConfessionTables = async () => {
 
         // Migration: Add parent_id and author_alias to confession_comments
         try {
-            const [ccols] = await pool.query("SHOW COLUMNS FROM confession_comments");
-            const ccolNames = ccols.map(c => c.Field);
+            const ccolResult = await pool.query("SHOW COLUMNS FROM confession_comments");
+            const ccols = (Array.isArray(ccolResult) ? ccolResult : (Array.isArray(ccolResult?.[0]) ? ccolResult[0] : []));
+            const ccolNames = (Array.isArray(ccols) ? ccols : []).map(c => c.Field);
             
             if (!ccolNames.includes('parent_id')) {
                 await pool.query('ALTER TABLE confession_comments ADD COLUMN parent_id CHAR(36) DEFAULT NULL AFTER user_id');
@@ -1474,34 +1517,34 @@ const initDB = async () => {
     // Initialize tables with retry logic (Batch 3 Priority)
     await retryWithBackoff(async () => {
         // Priority for current feature batch
-        try { await initConfessionTables(); } catch (e) { logger.error('Confessions Init Error:', e.message); }
-        try { await repairPostsTable(); } catch (e) { logger.warn('Posts repair failed:', e.message); }
-        try { await repairStoriesTable(); } catch (e) { logger.warn('Stories repair failed:', e.message); }
-        try { await initStickerTables(); } catch (e) { logger.warn('Stickers init failed:', e.message); }
-        try { await initRepostsTable(); } catch (e) { logger.warn('Reposts init failed:', e.message); }
+        try { await initConfessionTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Confessions Init Error:', getErrorMessage(e)); }
+        try { await repairPostsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Posts repair failed:', getErrorMessage(e)); }
+        try { await repairStoriesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Stories repair failed:', getErrorMessage(e)); }
+        try { await initStickerTables(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Stickers init failed:', getErrorMessage(e)); }
+        try { await initRepostsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Reposts init failed:', getErrorMessage(e)); }
         
-        try { await repairUsersTable(); } catch (e) { logger.warn('Users repair failed:', e.message); }
-        try { await initHighlightsTables(); } catch (e) { logger.warn('Highlights init failed:', e.message); }
-        try { await initNotificationsTable(); } catch (e) { logger.warn('Notifications init failed:', e.message); }
-        try { await initUserInteractionsTables(); } catch (e) { logger.warn('Interactions init failed:', e.message); }
-        try { await initMomentsTable(); } catch (e) { logger.warn('Moments init failed:', e.message); }
-        try { await initMomentCommentsTable(); } catch (e) { logger.warn('Moment comments init failed:', e.message); }
-        try { await initGroupsTable(); } catch (e) { logger.warn('Groups init failed:', e.message); }
-        try { await initMessagesTable(); } catch (e) { logger.warn('Messages init failed:', e.message); }
-        try { await initStoriesTable(); } catch (e) { logger.warn('Stories init failed:', e.message); }
-        try { await initStoryLikesTable(); } catch (e) { logger.warn('Story likes init failed:', e.message); }
-        try { await initStorySharesTable(); } catch (e) { logger.warn('Story shares init failed:', e.message); }
-        try { await initCommentLikesTable(); } catch (e) { logger.warn('Comment likes init failed:', e.message); }
-        try { await initPersonalChatsTable(); } catch (e) { logger.warn('Personal chats init failed:', e.message); }
-        try { await initChatPrivacySettingsTable(); } catch (e) { logger.warn('Chat privacy settings table init failed:', e.message); }
-        try { await initLostFoundTable(); } catch (e) { logger.warn('LostFound init failed:', e.message); }
-        try { await initSkillMarketTable(); } catch (e) { logger.warn('SkillMarket init failed:', e.message); }
-        try { await initMarketplaceTables(); } catch (e) { logger.error('Marketplace Init Error:', e.message); }
-        try { await initSearchTables(); } catch (e) { logger.error('Search Tables Init Error:', e.message); }
-        try { await initHighlightsTables(); } catch (e) { logger.error('Highlights Tables Init Error:', e.message); }
-        try { await initUserActionsTable(); } catch (e) { logger.error('User Actions Init Error:', e.message); }
-        try { await initModerationTables(); } catch (e) { logger.error('Moderation Tables Init Error:', e.message); }
-        try { await initOtaTable(); } catch (e) { logger.error('OTA Init Error:', e.message); }
+        try { await repairUsersTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Users repair failed:', getErrorMessage(e)); }
+        try { await initHighlightsTables(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Highlights init failed:', getErrorMessage(e)); }
+        try { await initNotificationsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Notifications init failed:', getErrorMessage(e)); }
+        try { await initUserInteractionsTables(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Interactions init failed:', getErrorMessage(e)); }
+        try { await initMomentsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Moments init failed:', getErrorMessage(e)); }
+        try { await initMomentCommentsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Moment comments init failed:', getErrorMessage(e)); }
+        try { await initGroupsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Groups init failed:', getErrorMessage(e)); }
+        try { await initMessagesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Messages init failed:', getErrorMessage(e)); }
+        try { await initStoriesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Stories init failed:', getErrorMessage(e)); }
+        try { await initStoryLikesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Story likes init failed:', getErrorMessage(e)); }
+        try { await initStorySharesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Story shares init failed:', getErrorMessage(e)); }
+        try { await initCommentLikesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Comment likes init failed:', getErrorMessage(e)); }
+        try { await initPersonalChatsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Personal chats init failed:', getErrorMessage(e)); }
+        try { await initChatPrivacySettingsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Chat privacy settings table init failed:', getErrorMessage(e)); }
+        try { await initLostFoundTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('LostFound init failed:', getErrorMessage(e)); }
+        try { await initSkillMarketTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('SkillMarket init failed:', getErrorMessage(e)); }
+        try { await initMarketplaceTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Marketplace Init Error:', getErrorMessage(e)); }
+        try { await initSearchTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Search Tables Init Error:', getErrorMessage(e)); }
+        try { await initHighlightsTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Highlights Tables Init Error:', getErrorMessage(e)); }
+        try { await initUserActionsTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('User Actions Init Error:', getErrorMessage(e)); }
+        try { await initModerationTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Moderation Tables Init Error:', getErrorMessage(e)); }
+        try { await initOtaTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('OTA Init Error:', getErrorMessage(e)); }
     });
     
     logger.debug('✅ Database initialization process complete');

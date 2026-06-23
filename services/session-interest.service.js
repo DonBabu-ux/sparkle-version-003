@@ -1,6 +1,6 @@
 const redis = require('./redis.service');
 const logger = require('../utils/logger');
-const pool = require('../config/database');
+const { safeQuery } = require('../config/database');
 
 const CATEGORIES = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
 
@@ -50,11 +50,15 @@ class SessionInterestService {
             }
 
             // 3. Aggregate Signal for Home Feed Bridge (Async, fire-and-forget)
-            this.bridgeSignal(userId, event.category, weight).catch(err => logger.error('Signal Bridge Error:', err));
+            this.bridgeSignal(userId, event.category, weight).catch(err => {
+                const errorMsg = err?.message || String(err).slice(0, 200);
+                logger.error('Signal Bridge Error: ' + errorMsg);
+            });
 
             return true;
         } catch (error) {
-            logger.error('SIV Record Event Error:', error);
+            const errorMsg = error?.message || String(error).slice(0, 200);
+            logger.error('SIV Record Event Error: ' + errorMsg);
             return false;
         }
     }
@@ -64,7 +68,7 @@ class SessionInterestService {
      */
     async bridgeSignal(userId, category, weight) {
         if (!category) return;
-        await pool.query(`
+        await safeQuery(`
             INSERT INTO user_signals_bridge (user_id, category, signal_strength)
             VALUES (?, ?, ?)
             ON DUPLICATE KEY UPDATE signal_strength = signal_strength + ?

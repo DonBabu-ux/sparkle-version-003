@@ -98,17 +98,13 @@ const initializeSocket = (server) => {
     });
 
     io.on('connection', async (socket) => {
-        logger.info(`🔌 User connected: ${socket.userId} (${socket.user.username})`);
-
-        // ── Duplicate connection protection ──
-        if (userSockets.has(socket.userId)) {
-            const oldSocket = userSockets.get(socket.userId);
-            if (oldSocket && oldSocket.id !== socket.id) {
-                logger.warn(`🔌 Duplicate socket detected for user ${socket.userId}. Disconnecting old socket ${oldSocket.id}`);
-                oldSocket.disconnect(true);
-            }
+        // ── Track user active sockets (Set for multi-socket support) ──
+        if (!userSockets.has(socket.userId)) {
+            userSockets.set(socket.userId, new Set());
         }
-        userSockets.set(socket.userId, socket);
+        userSockets.get(socket.userId).add(socket);
+        const sessions = userSockets.get(socket.userId);
+        logger.info(`🔌 User connected: ${socket.userId} (${socket.user.username}) - Active sessions: ${sessions.size}`);
 
         // ── Cancel any pending offline timer for this user (reconnect within grace window) ──
         if (pendingOfflineTimers.has(socket.userId)) {
@@ -284,8 +280,8 @@ const initializeSocket = (server) => {
 
                 // 4. Handle push notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
-                    const presence = await User.getUserPresence(recipientId);
-                    if (presence && !presence.is_online) {
+                    const isOnline = userSockets.has(recipientId) && userSockets.get(recipientId).size > 0;
+                    if (!isOnline) {
                         await queuePushNotification(recipientId, {
                             type: 'message',
                             title: socket.user.name,
@@ -396,26 +392,14 @@ const initializeSocket = (server) => {
             }
         });
 
-        // Handle disconnect (including network loss)
-        socket.on('disconnect', async (reason) => {
-            logger.info(`🔌 Socket disconnect: ${socket.id} reason=${reason}`);
-            // Remove from userSockets map
-            if (userSockets.get(socket.userId) === socket) {
-                userSockets.delete(socket.userId);
+        // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
+        socket.on('sparkle-ping', async () => {
+            try {
+                // Update last_seen_at periodically to keep presence status fresh
+                await pool.query('UPDATE users SET last_seen_at = UTC_TIMESTAMP(), is_online = 1 WHERE user_id = ?', [socket.userId]);
+            } catch (e) {
+                logger.error('Error updating presence on heartbeat:', e);
             }
-            // Start offline grace timer
-            const timer = setTimeout(async () => {
-                try {
-                    await User.setOnlineStatus(socket.userId, false);
-                    broadcastOnlineStatus(socket, false);
-                } catch (e) {
-                    logger.error('Error setting offline status:', e);
-                }
-                pendingOfflineTimers.delete(socket.userId);
-            }, OFFLINE_GRACE_MS);
-            pendingOfflineTimers.set(socket.userId, timer);
-        });// Custom heartbeat ping-pong (supplements socket.io's built-in ping)
-        socket.on('sparkle-ping', () => {
             socket.emit('sparkle-pong', { ts: Date.now() });
         });
 
@@ -724,10 +708,19 @@ const initializeSocket = (server) => {
             }
         });
 
-        // Handle disconnection — with graceful offline timeout
+        // Handle disconnect (including network loss)
         socket.on('disconnect', async (reason) => {
             try {
-                logger.info(`🔌 User disconnected: ${socket.userId} (${reason})`);
+                logger.info(`🔌 Socket disconnect: ${socket.id} reason=${reason} userId=${socket.userId}`);
+
+                // Remove this specific socket from the user's active socket set
+                const sessions = userSockets.get(socket.userId);
+                if (sessions) {
+                    sessions.delete(socket);
+                    if (sessions.size === 0) {
+                        userSockets.delete(socket.userId);
+                    }
+                }
 
                 // ── Auto-expire any stale typing sessions for this socket ──
                 const typingChats = activeTypingSessions.get(socket.id);
@@ -749,13 +742,12 @@ const initializeSocket = (server) => {
                 // reconnect without the user appearing offline.
                 const timer = setTimeout(async () => {
                     try {
-                        // Verify the user has no other active socket sessions
-                        const userRoom = io.sockets.adapter.rooms.get(`user:${socket.userId}`);
-                        const stillOnline = userRoom && userRoom.size > 0;
+                        // Verify if the user has any remaining active socket sessions
+                        const stillOnline = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
 
                         if (!stillOnline) {
                             await User.setOnlineStatus(socket.userId, false);
-                            broadcastOnlineStatus(socket, false);
+                            await broadcastOnlineStatus(socket, false);
                             logger.info(`📴 User offline after grace period: ${socket.userId}`);
                         } else {
                             logger.info(`📡 User still has active sessions, staying ONLINE: ${socket.userId}`);
@@ -867,7 +859,8 @@ const queuePushNotification = async (userId, notification) => {
         );
     } catch (error) {
         // Fallback: search for existing notification mechanism
-        logger.warn('Push notification table might not exist, using standard notifications...');
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.warn('Push notification table error (using standard notifications): ' + errorMsg);
         try {
             if (notification.type === 'message') {
                 // Do not insert message notification in database (stop in-app notifications for messages)

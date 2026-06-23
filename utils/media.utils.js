@@ -78,7 +78,8 @@ async function processImage(inputPath, outputPath, options = { width: 800, quali
         
         return true;
     } catch (error) {
-        logger.error('Error processing image:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Error processing image: ' + errorMsg);
         return false;
     }
 }

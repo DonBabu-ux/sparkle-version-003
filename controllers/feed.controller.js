@@ -140,13 +140,13 @@ const getFeedPosts = async (req, res) => {
 
         if (!isForceRefresh) {
             let cachedPosts = Array.isArray(cachedPostsRaw) ? cachedPostsRaw : [];
-            
+
             if (cachedPosts.length >= pageLimit) {
                 // We have enough in the cache! Slice them, update the cache, and return immediately.
                 page = cachedPosts.slice(0, pageLimit);
                 const remainingCache = cachedPosts.slice(pageLimit);
                 await redisService.set(cacheListKey, remainingCache, 3600); // 1 hour TTL
-                
+
                 // Update seen set
                 const updatedSeen = [...seenSet, ...page.map(p => p.post_id)];
                 await redisService.set(seenKey, updatedSeen, 86400);
@@ -183,7 +183,7 @@ const getFeedPosts = async (req, res) => {
         // 2. If Cache is empty (or we need more), Hit the Database
         const cachedOffset = await redisService.get(batchKey);
         let batchOffset = Number(cachedOffset) || 0;
-        
+
         const fetchLimit = 150; // Massive pool fetch since we only do this rarely now
         let fresh = [];
         let postsFetched = 0;
@@ -197,7 +197,7 @@ const getFeedPosts = async (req, res) => {
             const shuffled = bandedSeededShuffle(posts || [], chunkSeed);
 
             const batchFresh = shuffled.filter(p => !seenSet.has(p.post_id));
-            
+
             // Apply Creator Spacing to the batch to prevent same-user clusters
             const spacedFresh = applyCreatorSpacing(batchFresh, 2); // Gap of 2 for Home Feed stability
             fresh = [...fresh, ...spacedFresh];
@@ -216,7 +216,7 @@ const getFeedPosts = async (req, res) => {
         // --- Exhaustion Cycle: Soft Reset (Smart Memory Management) ---
         if (fresh.length === 0 && postsFetched < fetchLimit) {
             console.log(`♻️ Feed Exhaustion for user ${currentUserId}. Performing selective reset.`);
-            
+
             // Instead of clearing everything, just clear the batch offset to try a new discovery slice
             await redisService.del(batchKey);
             batchOffset = 0;
@@ -224,10 +224,10 @@ const getFeedPosts = async (req, res) => {
             // Fetch a larger candidate pool to find things the user might have missed
             const posts = await Post.getFeed(affiliation, currentUserId, 150, 0, numericSeed, Array.from(seenSet), mode, null);
             const shuffled = bandedSeededShuffle(posts || [], numericSeed);
-            
+
             // Filter by what is NOT in the current session batch
             fresh = shuffled.filter(p => !seenSet.has(p.post_id));
-            
+
             // If still empty, then and only then, perform a full clear
             if (fresh.length === 0) {
                 await redisService.del(seenKey);
@@ -253,10 +253,10 @@ const getFeedPosts = async (req, res) => {
         // Sanitize
         const sanitizedPosts = finalPage.map(post => ({
             ...post,
-            media_url:  getSafeMediaUrl(post.media_url),
+            media_url: getSafeMediaUrl(post.media_url),
             avatar_url: getSafeAvatarUrl(post.avatar_url),
-            timestamp:  post.created_at,
-            _id:        post.post_id,
+            timestamp: post.created_at,
+            _id: post.post_id,
         }));
 
         await redisService.del(lockKey);
@@ -283,7 +283,7 @@ const getNewPosts = async (req, res) => {
 
         // Check if 'since' is a UUID (POST_ID) or a timestamp
         const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(since);
-        
+
         if (isUuid) {
             const [post] = await pool.query('SELECT created_at FROM posts WHERE post_id = ?', [since]);
             if (post.length > 0) {
@@ -319,53 +319,68 @@ const getStories = async (req, res) => {
         // --- BATCH 3: Stories Caching (60 sec TTL) ---
         const redisService = require('../services/redis.service');
         const cacheKey = `stories:active:${currentUserId}`;
-        
+
         const cached = await redisService.get(cacheKey);
         if (cached) return res.json(cached);
 
-        const [rows] = await pool.query(`
-            SELECT 
-                s.*,
-                u.username,
-                u.name as user_name,
-                u.avatar_url,
-                u.campus,
-                TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
-                (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
-                COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
-                -- Show is_liked to all users
-                COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
-            FROM stories s
-            JOIN users u ON s.user_id = u.user_id
-            WHERE s.created_at > NOW() - INTERVAL 24 HOUR
-            AND (
-                s.user_id = ?
-                OR s.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
-                OR s.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
-                OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
-            )
-            AND s.is_archived = 0
-            AND s.user_id NOT IN (
-                SELECT user_id FROM story_privacy_blocks WHERE blocked_user_id = ?
-            )
-            ORDER BY s.created_at DESC
-            LIMIT 200
-        `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
+        let rows = [];
+        const maxRetries = 3;
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                const [result] = await pool.query(`
+      SELECT 
+        s.*,
+        u.username,
+        u.name as user_name,
+        u.avatar_url,
+        u.campus,
+        TIMESTAMPDIFF(SECOND, NOW(), s.created_at + INTERVAL 24 HOUR) as seconds_left,
+        (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
+        COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
+        -- Show is_liked to all users
+        COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
+      FROM stories s
+      JOIN users u ON s.user_id = u.user_id
+      WHERE s.created_at > NOW() - INTERVAL 24 HOUR
+      AND (
+        s.user_id = ?
+        OR s.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
+        OR s.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
+        OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+      )
+      AND s.is_archived = 0
+      AND s.user_id NOT IN (
+        SELECT user_id FROM story_privacy_blocks WHERE blocked_user_id = ?
+      )
+      ORDER BY s.created_at DESC
+      LIMIT 200
+    `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
+                rows = result;
+                break;
+            } catch (err) {
+                if (err.code === 'ECONNRESET' && attempt < maxRetries) {
+                    console.warn(`ECONNRESET on getStories attempt ${attempt}, retrying...`);
+                    await new Promise(res => setTimeout(res, 200 * attempt));
+                } else {
+                    throw err;
+                }
+            }
+        }
 
         // group by user
         const groups = [];
         const map = {};
-        
+
         // 1. Get all story IDs to fetch stickers for them
         const storyIds = rows.map(s => s.story_id);
         let stickersMap = {};
-        
+
         if (storyIds.length > 0) {
             const [stickers] = await pool.query(
                 'SELECT * FROM story_stickers WHERE story_id IN (?)',
                 [storyIds]
             );
-            
+
             stickers.forEach(st => {
                 if (!stickersMap[st.story_id]) stickersMap[st.story_id] = [];
                 stickersMap[st.story_id].push({
@@ -397,7 +412,7 @@ const getStories = async (req, res) => {
             let participant_avatars = [];
             let total_participants = 0;
             const stickerList = typeof s.stickers === 'string' ? s.stickers : JSON.stringify(s.stickers || []);
-            
+
             if (s.parent_story_id || stickerList.includes('add_yours')) {
                 try {
                     const [responses] = await pool.query(
@@ -408,7 +423,7 @@ const getStories = async (req, res) => {
                         [s.story_id, s.story_id]
                     );
                     participant_avatars = responses.map(r => getSafeMediaUrl(r.avatar_url));
-                    
+
                     const [[countRow]] = await pool.query(
                         'SELECT COUNT(*) as count FROM stories WHERE parent_story_id = ?',
                         [s.story_id]
@@ -438,13 +453,13 @@ const getStories = async (req, res) => {
                 is_liked: parseInt(s.is_liked) === 1,
                 stickers: (typeof s.stickers === 'string' ? JSON.parse(s.stickers) : (s.stickers || [])).map(st => {
                     if (st.type === 'add_yours') {
-                        return { 
-                            ...st, 
-                            config: { 
-                                ...st.config, 
+                        return {
+                            ...st,
+                            config: {
+                                ...st.config,
                                 avatars: participant_avatars.length > 0 ? participant_avatars : (st.config?.avatars || []),
                                 responses_count: total_participants || (st.config?.responses_count || 0)
-                            } 
+                            }
                         };
                     }
                     return st;
@@ -455,7 +470,7 @@ const getStories = async (req, res) => {
         res.json(groups);
     } catch (error) {
         console.error('[Feed Controller] getStories error:', error.message, error.stack);
-        res.status(500).json({ 
+        res.status(500).json({
             error: 'Failed to fetch stories',
             debug: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
@@ -592,7 +607,7 @@ const createStory = async (req, res) => {
         const stickers = req.body.stickers || null;
         const type = req.body.type || 'media';
         const collage_data_val = finalCollageData;
-        
+
         let audio_url = req.body.audio_url || null;
         const music_info = req.body.music_info || null;
         const audio_source = req.body.audio_source || null;
@@ -612,8 +627,8 @@ const createStory = async (req, res) => {
                 music_info, type, collage_data
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)`,
             [
-                storyId, userId, media_url, media_type, finalCaption, 
-                background, audio_url, audio_source, audio_start, audio_duration, 
+                storyId, userId, media_url, media_type, finalCaption,
+                background, audio_url, audio_source, audio_start, audio_duration,
                 expiresAt, parent_story_id, stickers,
                 music_info, type, collage_data_val
             ]
@@ -633,19 +648,19 @@ const createStory = async (req, res) => {
                     await MediaService.registerMedia({
                         ownerId: userId,
                         category: 'story',
-                    cloudinaryPublicId: req.files && req.files.media ? req.files.media[0].filename : (req.file ? req.file.filename : 'url_import_' + storyId),
-                    secureUrl: media_url,
-                    thumbnailUrl: null, // can be generated by Cloudinary transforms if needed
-                    lifecycleState: 'active',
-                    expiresAt: expiresAt,
-                    isReusable: true, // Stories are reusable for Memories/Highlights
-                    referencedByFeatures: ['stories'],
-                    fileSizeBytes: fileSizeBytes,
-                    hashChecksum: hashChecksum
-                });
-                console.log('✅ Story media registered in Cloudinary architecture.');
-            }
-        } catch (mediaErr) {
+                        cloudinaryPublicId: req.files && req.files.media ? req.files.media[0].filename : (req.file ? req.file.filename : 'url_import_' + storyId),
+                        secureUrl: media_url,
+                        thumbnailUrl: null, // can be generated by Cloudinary transforms if needed
+                        lifecycleState: 'active',
+                        expiresAt: expiresAt,
+                        isReusable: true, // Stories are reusable for Memories/Highlights
+                        referencedByFeatures: ['stories'],
+                        fileSizeBytes: fileSizeBytes,
+                        hashChecksum: hashChecksum
+                    });
+                    console.log('✅ Story media registered in Cloudinary architecture.');
+                }
+            } catch (mediaErr) {
                 console.error('⚠️ Media registry failed (non-critical):', mediaErr.message);
             }
         }
@@ -777,7 +792,7 @@ const likeStory = async (req, res) => {
 const getStoryArchive = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        
+
         // Find stories older than 24 hours
         const [rows] = await pool.query(`
             SELECT * FROM stories 
@@ -1012,8 +1027,8 @@ const updateStorySettings = async (req, res) => {
         const settings = req.body;
 
         const allowedSettings = [
-            'reply_privacy', 'comment_privacy', 'allow_sharing', 
-            'allow_message_sharing', 'auto_share_fb', 'auto_share_wa', 
+            'reply_privacy', 'comment_privacy', 'allow_sharing',
+            'allow_message_sharing', 'auto_share_fb', 'auto_share_wa',
             'save_to_gallery', 'save_to_archive'
         ];
 

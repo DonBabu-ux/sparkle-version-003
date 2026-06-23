@@ -165,7 +165,7 @@ const login = async (req, res) => {
 
         const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
-        const [users] = await query(
+        const users = await query(
             'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
             [loginId, loginId]
         );
@@ -173,8 +173,12 @@ const login = async (req, res) => {
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'Account not found' });
         }
-
+        
         const user = users[0];
+        // Guard against missing user (shouldn't happen after length check)
+        if (!user) {
+            return res.status(401).json({ success: false, error: 'Invalid credentials' });
+        }
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         
         if (!passwordMatch) {

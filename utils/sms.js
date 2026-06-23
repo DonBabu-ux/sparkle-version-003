@@ -20,7 +20,8 @@ const sendSMS = async (phoneNumber, code) => {
 
         return { success: true, messageId: 'simulated-sms-id' };
     } catch (error) {
-        logger.error('Send SMS error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Send SMS error: ' + errorMsg);
         throw error;
     }
 };

@@ -38,7 +38,8 @@ class TranslationService {
 
             return text; // Fallback to original
         } catch (error) {
-            console.error('Translation Service Error:', error);
+            const errorMsg = error?.message || String(error).slice(0, 200);
+            console.error('Translation Service Error: ' + errorMsg);
             return text; // Fallback to original on error
         }
     }

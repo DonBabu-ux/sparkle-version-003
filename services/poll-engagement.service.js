@@ -65,7 +65,8 @@ class PollEngagementService {
                 return { ...poll, discovery_score: finalScore };
             });
         } catch (err) {
-            console.error('[PollService] Batch scoring error:', err);
+            const errorMsg = err?.message || String(err).slice(0, 200);
+            console.error('[PollService] Batch scoring error: ' + errorMsg);
             return polls.map(p => ({ ...p, discovery_score: 0 }));
         }
     }
@@ -105,7 +106,8 @@ class PollEngagementService {
                 this.broadcastSocialSignal(pollId, nextLevel === 3 ? 'VIRAL_TAKEOVER' : 'TRENDING_NOW');
             }
         } catch (err) {
-            console.error('[PollService] Distribution error:', err);
+            const errorMsg = err?.message || String(err).slice(0, 200);
+            console.error('[PollService] Distribution error: ' + errorMsg);
         }
     }
 

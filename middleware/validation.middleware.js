@@ -38,7 +38,8 @@ const validate = (validations, validationSource = 'body') => {
             next();
 
         } catch (error) {
-            console.error('Validation error:', error);
+            const errorMsg = error?.message || String(error).slice(0, 200);
+            console.error('Validation error: ' + errorMsg);
 
             // Handle Joi validation errors
             if (error.isJoi) {

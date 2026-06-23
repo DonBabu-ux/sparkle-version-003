@@ -1,5 +1,6 @@
 const redis = require('./redis.service');
 const pool = require('../config/database');
+const { safeQuery } = pool; // safeQuery is attached to pool export
 const logger = require('../utils/logger');
 const sessionInterestService = require('./session-interest.service');
 
@@ -70,10 +71,10 @@ class MomentsRankingService {
             await redis.set(lastRunKey, Date.now().toString());
             logger.info('Generating Moments Candidate Pools (parallel)...');
 
-            // ── All pool queries fired simultaneously ──────────────────────────
-            const [trendingResult, strangersResult, ...catResults] = await Promise.all([
+            // ── All pool queries fired simultaneously with error handling ──────
+            const results = await Promise.allSettled([
                 // Trending pool
-                pool.query(`
+                safeQuery(`
                     SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
                            m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                            m.created_at, m.completion_rate, m.quality_score,
@@ -86,7 +87,7 @@ class MomentsRankingService {
                     ORDER BY base_score DESC LIMIT 200
                 `),
                 // Strangers pool
-                pool.query(`
+                safeQuery(`
                     SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
                            m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                            m.created_at, m.completion_rate, m.quality_score,
@@ -100,7 +101,7 @@ class MomentsRankingService {
                 `),
                 // All 17 category pools in parallel
                 ...CATEGORIES.map(cat =>
-                    pool.query(`
+                    safeQuery(`
                         SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
                                m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                                m.created_at, m.completion_rate, m.quality_score,
@@ -115,16 +116,28 @@ class MomentsRankingService {
                 )
             ]);
 
+            // ── Extract results and handle failures gracefully ────────────────
+            const trendingData = results[0].status === 'fulfilled' ? results[0].value : [];
+            const strangersData = results[1].status === 'fulfilled' ? results[1].value : [];
+            const categoryData = results.slice(2).map(r => r.status === 'fulfilled' ? r.value : []);
+
             // ── Write all results to Redis simultaneously ───────────────────────
             const writes = [];
-            writes.push(redis.set('pool:trending:shard_01', JSON.stringify(trendingResult[0]), 300));
-            writes.push(redis.set('pool:strangers:shard_01', JSON.stringify(strangersResult[0]), 300));
+            if (trendingData.length > 0) {
+                writes.push(redis.set('pool:trending:shard_01', JSON.stringify(trendingData), 300));
+            }
+            if (strangersData.length > 0) {
+                writes.push(redis.set('pool:strangers:shard_01', JSON.stringify(strangersData), 300));
+            }
             CATEGORIES.forEach((cat, i) => {
-                if (catResults[i][0].length > 0) {
-                    writes.push(redis.set(`pool:category:${cat}:shard_01`, JSON.stringify(catResults[i][0]), 600));
+                if (categoryData[i] && categoryData[i].length > 0) {
+                    writes.push(redis.set(`pool:category:${cat}:shard_01`, JSON.stringify(categoryData[i]), 600));
                 }
             });
-            await Promise.all(writes);
+            
+            if (writes.length > 0) {
+                await Promise.all(writes);
+            }
 
             logger.info('Candidate Pools generated and cached.');
         } catch (error) {
@@ -135,20 +148,7 @@ class MomentsRankingService {
     }
 
     async getFollowingPool(userId) {
-        const [following] = await pool.query(`
-            SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
-                   m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                   m.created_at, m.completion_rate, m.quality_score,
-                   u.username, u.name as user_name, u.avatar_url,
-                   ((COALESCE(m.like_count, 0) * 5.0 + COALESCE(m.comment_count, 0) * 10.0 + COALESCE(m.share_count, 0) * 15.0 + 1.0)
-                   / (COALESCE(m.view_count, 0) + 10.0)) * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0) as base_score
-            FROM moments m
-            JOIN users u ON m.user_id = u.user_id
-            JOIN follows f ON f.following_id = m.user_id
-            WHERE f.follower_id = ?
-            ORDER BY m.created_at DESC LIMIT 50
-        `, [userId]);
-        return following;
+
     }
 
     /**
@@ -171,7 +171,7 @@ class MomentsRankingService {
                 const data = safeParse(cached);
                 if (Array.isArray(data) && data.length > 0) {
                     // Kick off background refresh so the NEXT open is also fast
-                    this._refreshFeedCache(userId, limit).catch(() => {});
+                    this._refreshFeedCache(userId, limit).catch(() => { });
                     return data;
                 }
             }
@@ -179,7 +179,7 @@ class MomentsRankingService {
 
         // ── Trigger pool generation (non-blocking) ───────────────────────────
         if (offset === 0) {
-            this.generateCandidatePools().catch(() => {});
+            this.generateCandidatePools().catch(() => { });
         }
 
         // ── Fetch shared context ONCE (used in both retrieve + score stages) ─
@@ -190,7 +190,7 @@ class MomentsRankingService {
 
         // RACE: Set a 2.5s timeout for the entire ranking process to ensure snappy response
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Ranking Timeout')), 2500));
-        
+
         try {
             const result = await Promise.race([
                 (async () => {
@@ -204,14 +204,14 @@ class MomentsRankingService {
 
             // ── Cache the result for 30 seconds ──────────────────────────────────
             if (!query && offset === 0 && result.length > 0) {
-                redis.set(`ranked_feed:${userId}`, JSON.stringify(result), 30).catch(() => {});
+                redis.set(`ranked_feed:${userId}`, JSON.stringify(result), 30).catch(() => { });
             }
 
             return result;
         } catch (error) {
             console.warn(`⚠️ Moments Ranking Optimization: ${error.message}. Using fast-path fallback.`);
             // FAST PATH: Direct DB fallback if ranking is too slow
-            const [fallback] = await pool.query(`
+            const [fallback] = await safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at, m.completion_rate, m.quality_score,
@@ -262,8 +262,8 @@ class MomentsRankingService {
 
         // DB fallback + paging (fast query, no joins on cold start)
         if (candidates.length < 20 || offset > 0) {
-            const [dbItems] = await pool.query(`
-                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
+            const [dbItems] = await safeQuery(`
+                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at, m.completion_rate, m.quality_score,
                        u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
@@ -299,7 +299,7 @@ class MomentsRankingService {
     _scoreCandidates(userId, candidates, query, sivProfile, followingPool) {
         const followingIds = new Set(followingPool.map(f => f.moment_id));
         const uSeed = userSeed(userId); // unique per user, consistent within session
-        const hasSIV  = Object.keys(sivProfile).length > 0;
+        const hasSIV = Object.keys(sivProfile).length > 0;
 
         return candidates.map(m => {
             let baseScore = Number(m.base_score) || 1.0;
@@ -389,7 +389,7 @@ class MomentsRankingService {
             ...nonAligned.slice(0, limit - Math.min(aligned.length, alignedCount))
         ];
 
-        // Ensure we strictly meet the limit if possible
+        // Ensure we strictly meet the limit if possible 
         if (finalBatch.length < limit && unique.length > finalBatch.length) {
             const seenIds = new Set(finalBatch.map(f => f.moment_id));
             const remaining = unique.filter(u => !seenIds.has(u.moment_id));

@@ -171,7 +171,7 @@ class Message {
                   AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
-            const [messages] = await db.query(query, [chatId, chatId, userId]);
+            const [messages] = await db.query(query, [chatId, chatId, userId, userId]);
             // Ensure all dates are returned as ISO strings for client-side UTC parsing
             const normalized = messages.map(m => {
                 const timeDiffMins = (Date.now() - new Date(m.sent_at).getTime()) / 60000;

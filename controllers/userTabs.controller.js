@@ -10,7 +10,8 @@ exports.getUserTabs = async (req, res) => {
     const tabs = await UserTab.findAll({ where: { userId } });
     res.json({ success: true, data: tabs });
   } catch (err) {
-    console.error('Error fetching user tabs', err);
+    const errorMsg = err?.message || String(err).slice(0, 200);
+    console.error('Error fetching user tabs: ' + errorMsg);
     res.status(500).json({ success: false, message: 'Failed to fetch tabs' });
   }
 };
@@ -23,7 +24,8 @@ exports.createUserTab = async (req, res) => {
     const newTab = await UserTab.create({ userId, tabId, label, chatIds });
     res.status(201).json({ success: true, data: newTab });
   } catch (err) {
-    console.error('Error creating user tab', err);
+    const errorMsg = err?.message || String(err).slice(0, 200);
+    console.error('Error creating user tab: ' + errorMsg);
     res.status(500).json({ success: false, message: 'Failed to create tab' });
   }
 };
@@ -39,7 +41,8 @@ exports.updateUserTab = async (req, res) => {
     await tab.update({ label, chatIds });
     res.json({ success: true, data: tab });
   } catch (err) {
-    console.error('Error updating user tab', err);
+    const errorMsg = err?.message || String(err).slice(0, 200);
+    console.error('Error updating user tab: ' + errorMsg);
     res.status(500).json({ success: false, message: 'Failed to update tab' });
   }
 };
@@ -53,7 +56,8 @@ exports.deleteUserTab = async (req, res) => {
     if (!deleted) return res.status(404).json({ success: false, message: 'Tab not found' });
     res.json({ success: true, message: 'Tab deleted' });
   } catch (err) {
-    console.error('Error deleting user tab', err);
+    const errorMsg = err?.message || String(err).slice(0, 200);
+    console.error('Error deleting user tab: ' + errorMsg);
     res.status(500).json({ success: false, message: 'Failed to delete tab' });
   }
 };

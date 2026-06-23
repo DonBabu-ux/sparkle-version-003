@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-const pool = require('../config/database');
+const { safeQuery } = require('../config/database');
 const logger = require('../utils/logger');
 const { JWT_SECRET } = require('../config/constants');
 
@@ -10,9 +10,9 @@ class AuthService {
      */
     async generateTokens(user, deviceId = 'unknown') {
         const accessToken = jwt.sign(
-            { 
-                userId: user.user_id, 
-                email: user.email, 
+            {
+                userId: user.user_id,
+                email: user.email,
                 username: user.username,
                 role: user.role
             },
@@ -25,10 +25,7 @@ class AuthService {
         expiresAt.setDate(expiresAt.getDate() + 30); // 30 days
 
         // Store refresh token in DB
-        await pool.query(
-            'INSERT INTO refresh_tokens (token_id, user_id, token, device_id, expires_at) VALUES (?, ?, ?, ?, ?)',
-            [crypto.randomUUID(), user.user_id, refreshToken, deviceId, expiresAt]
-        );
+        await safeQuery('INSERT INTO refresh_tokens (token_id, user_id, token, device_id, expires_at) VALUES (?, ?, ?, ?, ?)', [crypto.randomUUID(), user.user_id, refreshToken, deviceId, expiresAt]);
 
         return { accessToken, refreshToken };
     }
@@ -38,10 +35,7 @@ class AuthService {
      */
     async refreshAccessToken(oldRefreshToken) {
         // 1. Find token in DB
-        const [tokens] = await pool.query(
-            'SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > NOW()',
-            [oldRefreshToken]
-        );
+        const tokens = await safeQuery('SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > NOW()', [oldRefreshToken]);
 
         if (tokens.length === 0) {
             throw new Error('Invalid or expired refresh token');
@@ -50,10 +44,7 @@ class AuthService {
         const tokenData = tokens[0];
 
         // 2. Get user data
-        const [users] = await pool.query(
-            'SELECT * FROM users WHERE user_id = ?',
-            [tokenData.user_id]
-        );
+        const users = await safeQuery('SELECT * FROM users WHERE user_id = ?', [tokenData.user_id]);
 
         if (users.length === 0) {
             throw new Error('User not found');
@@ -65,7 +56,7 @@ class AuthService {
         const newTokens = await this.generateTokens(user, tokenData.device_id);
 
         // 4. Delete old refresh token (to prevent reuse)
-        await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [oldRefreshToken]);
+        await safeQuery('DELETE FROM refresh_tokens WHERE token = ?', [oldRefreshToken]);
 
         return newTokens;
     }
@@ -77,7 +68,7 @@ class AuthService {
         const { deviceId, ipAddress, userAgent } = details;
         const redisService = require('./redis.service');
         const cacheKey = `session:verified:${userId}:${deviceId}`;
-        
+
         // 1. Check Redis Cache first (Soft failure if Redis is down)
         try {
             const isCached = await redisService.get(cacheKey);
@@ -87,28 +78,23 @@ class AuthService {
         }
 
         // 2. Check Database
-        const [existing] = await pool.query(
-            'SELECT * FROM login_activity WHERE user_id = ? AND device_id = ?',
-            [userId, deviceId]
-        );
+        const existing = await safeQuery('SELECT * FROM login_activity WHERE user_id = ? AND device_id = ?', [userId, deviceId]);
 
         const isNewDevice = existing.length === 0;
 
-        await pool.query(
-            `INSERT INTO login_activity (activity_id, user_id, device_id, ip_address, user_agent, is_verified) 
+        await safeQuery(`INSERT INTO login_activity (activity_id, user_id, device_id, ip_address, user_agent, is_verified) 
              VALUES (?, ?, ?, ?, ?, ?) 
              ON DUPLICATE KEY UPDATE ip_address = ?, user_agent = ?, last_active = NOW()`,
-            [
-                crypto.randomUUID(), 
-                userId, 
-                deviceId, 
-                ipAddress, 
-                userAgent, 
-                !isNewDevice, // If already seen, consider verified
-                ipAddress, 
-                userAgent
-            ]
-        );
+             [
+                 crypto.randomUUID(),
+                 userId,
+                 deviceId,
+                 ipAddress,
+                 userAgent,
+                 !isNewDevice,
+                 ipAddress,
+                 userAgent
+             ]);
 
         // 3. Cache the verification status in Redis (30 days) - Soft failure
         if (!isNewDevice) {

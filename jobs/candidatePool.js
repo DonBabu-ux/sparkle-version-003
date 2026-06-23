@@ -1,12 +1,12 @@
 const cron = require('node-cron');
-const pool = require('../config/database');
+const { safeQuery } = require('../config/database');
 const redisService = require('../services/redis.service');
 const logger = require('../utils/logger');
 
 async function buildCandidatePool() {
     try {
         // 1. Fetch posts without media first
-        const [posts] = await pool.query(`
+        const posts = await safeQuery(`
             SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
                    p.group_id, p.location, p.created_at, p.category, p.comments_enabled,
                    u.username, u.name as user_name, u.avatar_url,
@@ -26,7 +26,7 @@ async function buildCandidatePool() {
         if (posts && posts.length > 0) {
             // 2. Fetch media for these posts in one go
             const postIds = posts.map(p => p.post_id);
-            const [media] = await pool.query(`
+            const media = await safeQuery(`
                 SELECT post_id, media_url as url, media_type as type 
                 FROM post_media 
                 WHERE post_id IN (?) 
@@ -49,7 +49,8 @@ async function buildCandidatePool() {
             logger.info(`🔄 Candidate Pool refreshed with ${enrichedPosts.length} posts`);
         }
     } catch (error) {
-        logger.error('Failed to build candidate pool:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Failed to build candidate pool: ' + errorMsg);
     }
 }
 

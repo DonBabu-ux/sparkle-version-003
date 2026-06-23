@@ -19,7 +19,8 @@ const getCurrentUser = async (req, res) => {
         }
         res.json(user);
     } catch (error) {
-        logger.error('Get current user error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Get current user error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to get user' });
     }
 };
@@ -52,7 +53,8 @@ const searchUsers = async (req, res) => {
 
         res.json(sanitizedUsers);
     } catch (error) {
-        logger.error('Search users error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Search users error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to search users' });
     }
 };
@@ -65,7 +67,8 @@ const searchFollowingUsers = async (req, res) => {
         const users = await User.searchFollowing(query, currentUserId);
         res.json(users);
     } catch (error) {
-        logger.error('Search following users error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Search following users error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to search following users' });
     }
 };
@@ -100,7 +103,8 @@ const updateProfile = async (req, res) => {
         if (error.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ error: 'Username or email already taken' });
         }
-        logger.error('Update profile error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Update profile error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to update profile' });
     }
 };
@@ -139,7 +143,8 @@ const updateSettings = async (req, res) => {
 
         res.json({ message: 'Settings updated successfully', updates });
     } catch (error) {
-        logger.error('Update settings error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Update settings error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to update settings' });
     }
 };
@@ -188,7 +193,8 @@ const uploadAvatar = async (req, res) => {
         });
 
     } catch (error) {
-        logger.error('Upload avatar error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Upload avatar error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to update avatar' });
     }
 };
@@ -212,7 +218,8 @@ const updatePassword = async (req, res) => {
 
         res.json({ message: 'Password updated successfully' });
     } catch (error) {
-        logger.error('Update password error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Update password error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to update password' });
     }
 };
@@ -238,7 +245,8 @@ const deleteAccount = async (req, res) => {
         res.clearCookie('sparkleToken');
         res.json({ message: 'Account deleted successfully' });
     } catch (error) {
-        logger.error('Delete account error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Delete account error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to delete account' });
     }
 };
@@ -252,7 +260,8 @@ const getActiveSessions = async (req, res) => {
         );
         res.json(sessions);
     } catch (error) {
-        logger.error('Get active sessions error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Get active sessions error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to fetch sessions' });
     }
 };
@@ -267,7 +276,8 @@ const revokeSession = async (req, res) => {
         );
         res.json({ success: true, message: 'Session revoked' });
     } catch (error) {
-        logger.error('Revoke session error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Revoke session error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to revoke session' });
     }
 };
@@ -285,7 +295,8 @@ const logoutAllDevices = async (req, res) => {
         res.clearCookie('sparkleToken');
         res.json({ success: true, message: 'Logged out from all devices' });
     } catch (error) {
-        logger.error('Logout all devices error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Logout all devices error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to logout from all devices' });
     }
 };
@@ -319,7 +330,8 @@ const exportUserData = async (req, res) => {
         res.setHeader('Content-Disposition', `attachment; filename=sparkle_data_${userId}.json`);
         res.send(JSON.stringify(dataExport, null, 2));
     } catch (error) {
-        logger.error('Export user data error:', error);
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Export user data error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to export your data' });
     }
 };

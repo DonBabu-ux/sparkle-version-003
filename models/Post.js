@@ -546,8 +546,8 @@ class Post {
             
             const categoryStats = await this.getCategoryStats(currentUserId);
             
-            const [userProfile] = await pool.query('SELECT major, interests FROM users WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
-            const staticInterests = (userProfile[0]?.interests || userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+            const [userProfile] = await pool.query('SELECT major FROM users WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
+            const staticInterests = (userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
 
             const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
             const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';

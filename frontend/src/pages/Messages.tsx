@@ -1639,21 +1639,22 @@ const fetchChatList = () => fetchInbox();
     handleNewMessage(message);
   };
 
-  socket.on('new-message', handleNewMessageWrapped);
-  socket.on('receive_message', handleNewMessage);
-  socket.on('messages-delivered', handleMessagesDelivered);
-  socket.on('messages-read', handleMessagesRead);
+  // Commented out to avoid duplication with useMessageSocket.ts which updates the chatStore directly.
+  // socket.on('new-message', handleNewMessageWrapped);
+  // socket.on('receive_message', handleNewMessage);
+  // socket.on('messages-delivered', handleMessagesDelivered);
+  // socket.on('messages-read', handleMessagesRead);
   socket.on('user-status', handleUserStatus);
   socket.on('user-typing', handleUserTyping);
   socket.on('user-note-update', handleUserNoteUpdate);
   socket.on('group:presence:update', handleGroupPresenceUpdate);
   socket.on('message-pinned', handleMessagePinned);
   socket.on('message-unpinned', handleMessageUnpinned);
-  socket.on('message-edited', handleMessageEdited);
-  socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
-  socket.on('message-deleted-me', handleMessageDeletedMe);
-  socket.on('new-reaction', handleNewReaction);
-  socket.on('reaction-removed', handleReactionRemoved);
+  // socket.on('message-edited', handleMessageEdited);
+  // socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
+  // socket.on('message-deleted-me', handleMessageDeletedMe);
+  // socket.on('new-reaction', handleNewReaction);
+  // socket.on('reaction-removed', handleReactionRemoved);
 
   // Listen for chat-updated events so the sidebar refreshes
   const handleChatUpdated = (data: { chatId: string }) => {
@@ -1716,6 +1717,38 @@ useEffect(() => {
   return () => vv.removeEventListener('resize', handleResize);
 }, [selectedChat?.chat_id]);
 
+// Trigger UI side effects when new messages are added to the store for this active conversation
+useEffect(() => {
+  if (!messages || messages.length === 0 || !selectedChat) return;
+  const lastMsg = messages[messages.length - 1];
+  if (!lastMsg) return;
+
+  const myId = user?.id || user?.user_id;
+  const isMe = lastMsg.sender_id === myId;
+
+  if (!isMe) {
+    // 1. Trigger word animations
+    if (lastMsg.content) {
+      triggerWordEffect(lastMsg.content);
+    }
+
+    // 2. Mark read/delivered if not group
+    const isGroup = selectedChat.is_group || selectedChat.chat_type === 'group';
+    if (!isGroup && !selectedChat.chat_id.startsWith('temp_')) {
+      if (document.hasFocus()) {
+        socket?.emit('mark-read', selectedChat.chat_id);
+      } else {
+        socket?.emit('mark-delivered', { messageId: lastMsg.message_id, chatId: selectedChat.chat_id });
+      }
+    }
+  }
+
+  // 3. Scroll to bottom
+  if (isNearBottomRef.current) {
+    setTimeout(() => scrollToBottom('smooth'), 50);
+  }
+}, [messages.length, selectedChat?.chat_id]);
+
 const triggerWordEffect = (content: string) => {
   if (!selectedChat) return;
   const effects = getWordEffects(selectedChat.chat_id);
@@ -1740,7 +1773,6 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
 
   if (editingMessage) {
     const msgId = editingMessage.message_id;
-    updateMessages(prev => prev.map(m => m.message_id === msgId ? { ...m, content, edited: true, edited_at: new Date().toISOString() } : m));
     socket?.emit('edit-message', {
       messageId: msgId,
       chatId: selectedChat.chat_id,
@@ -2599,16 +2631,29 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
                             <div className="relative flex flex-col">
                               {/* Reply Block */}
-                              {msg.reply_content && (
-                                <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex flex-col">
-                                  <span className="font-bold text-[13px] text-white/90 leading-tight">
-                                    {msg.reply_sender_name || 'User'}
-                                  </span>
-                                  <span className="text-[12px] text-white/70 line-clamp-2 leading-snug mt-0.5">
-                                    {msg.reply_content}
-                                  </span>
-                                </div>
-                              )}
+                              {(() => {
+                                // Try embedded reply_content first, then fall back to store lookup
+                                let replyContent = msg.reply_content;
+                                let replySenderName = msg.reply_sender_name;
+                                if (!replyContent && msg.reply_to_message_id) {
+                                  const refMsg = useChatStore.getState().findMessage(selectedChat?.chat_id || '', msg.reply_to_message_id);
+                                  if (refMsg) {
+                                    replyContent = refMsg.content;
+                                    replySenderName = replySenderName || refMsg.sender_name || refMsg.sender_username || 'User';
+                                  }
+                                }
+                                if (!replyContent) return null;
+                                return (
+                                  <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex flex-col">
+                                    <span className="font-bold text-[13px] text-white/90 leading-tight">
+                                      {replySenderName || 'User'}
+                                    </span>
+                                    <span className="text-[12px] text-white/70 line-clamp-2 leading-snug mt-0.5">
+                                      {replyContent}
+                                    </span>
+                                  </div>
+                                );
+                              })()}
 
                               <div className="relative text-[14.5px]">
                                 {msg.is_deleted_for_everyone ? (
@@ -2932,7 +2977,6 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   )}
                 <button
                   onClick={() => {
-                    updateMessages(prev => prev.filter(m => m.message_id !== messageToDelete.message_id));
                     if (socket && selectedChat) {
                       socket.emit('delete-for-me', {
                         messageId: messageToDelete.message_id,

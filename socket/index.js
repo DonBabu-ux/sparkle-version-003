@@ -283,10 +283,12 @@ socket.on('get-rooms', () => {
                 const [fullMessage] = await pool.query(`
                     SELECT m.*, 
                            u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
-                           rm.content as reply_content, rm.type as reply_type
+                           rm.content as reply_content, rm.type as reply_type,
+                           ru.name as reply_sender_name
                     FROM messages m
                     JOIN users u ON m.sender_id = u.user_id
                     LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                    LEFT JOIN users ru ON rm.sender_id = ru.user_id
                     WHERE m.message_id = ?
                 `, [messageId]);
                 // Resolve message object and chat identifiers

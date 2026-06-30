@@ -159,12 +159,14 @@ class Message {
                      FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
                     rm.content as reply_content,
                     rm.type as reply_type,
+                    ru.name as reply_sender_name,
                     ml.title as listing_title,
                     ml.price as listing_price,
                     ml.image_url as listing_image
                 FROM messages m
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                LEFT JOIN users ru ON rm.sender_id = ru.user_id
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE (m.conversation_id = ? OR m.chat_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
@@ -203,12 +205,14 @@ class Message {
                      FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
                     rm.content as reply_content,
                     rm.type as reply_type,
+                    ru.name as reply_sender_name,
                     ml.title as listing_title,
                     ml.price as listing_price,
                     ml.image_url as listing_image
                 FROM messages m
                 JOIN users u ON m.sender_id = u.user_id
                 LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                LEFT JOIN users ru ON rm.sender_id = ru.user_id
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE m.chat_id = ?
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)

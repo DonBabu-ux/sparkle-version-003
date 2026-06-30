@@ -4,7 +4,17 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const realtimeLogger = require('../utils/realtimeTrace');
+const secureLogger = require('../utils/secureLogger');
 const Message = require('../models/Message');
+// Duplicate Message import removed
+// ===== LOGGING HELPER =====
+const logSocketRooms = (socket, context = '') => {
+  console.log(`[ROOMS] ${context} - User: ${socket.userId}, Rooms:`, {
+    rooms: Array.from(socket.rooms),
+    count: socket.rooms.size
+  });
+};
 const ScreenshotAudit = require('../models/ScreenshotAudit');
 const User = require('../models/User');
 const GroupMember = require('../models/GroupMember');
@@ -113,8 +123,13 @@ const initializeSocket = (server) => {
             logger.info(`📡 Reconnect within grace window for ${socket.userId} — staying ONLINE`);
         }
 
-        // Update user online status
-        await User.setOnlineStatus(socket.userId, true);
+        // Update user online status — wrapped in try/catch so a transient
+        // DB ECONNRESET doesn't crash the entire process.
+        try {
+            await User.setOnlineStatus(socket.userId, true);
+        } catch (dbErr) {
+            logger.error(`⚠️  setOnlineStatus failed for ${socket.userId}: ${dbErr.message}`);
+        }
 
         // Periodic cleanup for disappearing messages (Runs once per connection to ensure it's active)
         if (!global._disappearingCleanupStarted) {
@@ -140,7 +155,11 @@ const initializeSocket = (server) => {
         console.log(`Joined room user:${socket.userId}`);
 
         // Join all chat rooms (personal and group) they're part of
-        await joinUserChatRooms(socket);
+        try {
+            await joinUserChatRooms(socket);
+        } catch (dbErr) {
+            logger.error(`⚠️  joinUserChatRooms failed for ${socket.userId}: ${dbErr.message}`);
+        }
 
         // Broadcast online status to followers
         broadcastOnlineStatus(socket, true);
@@ -152,12 +171,20 @@ const initializeSocket = (server) => {
 
         // Join a specific chat (e.g., when opening a chat window)
         socket.on('join-chat', async (chatId) => {
-            socket.join(`chat:${chatId}`);
+            if (!socket.rooms.has(`chat:${chatId}`)) { socket.join(`chat:${chatId}`); }
+            console.log('[ROOM CHECK]', { chatId, userId: socket.userId, timestamp: Date.now() });
             // Mark messages in this chat as delivered if they were sent to this user
             await Message.updateStatus(chatId, socket.userId, 'delivered');
             socket.to(`chat:${chatId}`).emit('messages-delivered', { chatId, userId: socket.userId });
         });
-
+// Debug: retrieve list of rooms for this socket
+socket.on('get-rooms', () => {
+  logSocketRooms(socket, 'debug:get-rooms');
+  socket.emit('rooms-data', {
+    userId: socket.userId,
+    rooms: Array.from(socket.rooms)
+  });
+});
         // Typing indicator — server-coordinated with auto-expiry
         socket.on('typing', (data) => {
             const { chatId, isTyping } = data;
@@ -210,7 +237,11 @@ const initializeSocket = (server) => {
 
         // Send Message
         socket.on('send-message', async (data, callback) => {
+        const traceId = realtimeLogger.generateTraceId();
+        realtimeLogger.trace(traceId, 'SERVER_RECEIVE', { chatId: data.chatId, senderId: socket.userId });
             try {
+                const MESSAGE_TRACE_ID = crypto.randomUUID();
+                secureLogger.messageTrace(MESSAGE_TRACE_ID, 'client_send', { chatId: data.chatId, senderId: socket.userId, recipientId: data.recipientId || data.partnerId });
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
                 logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
@@ -231,7 +262,8 @@ const initializeSocket = (server) => {
                 if (context === 'chat' && (marketplaceListingId || data.listingId)) context = 'marketplace';
 
                 // 1. Save to DB
-                const messageId = await Message.sendMessage({
+                realtimeLogger.trace(traceId, 'DB_SAVE_START', { chatId: data.chatId });
+        const messageId = await Message.sendMessage({
                     chatId,
                     recipientId,
                     senderId: socket.userId,
@@ -245,6 +277,7 @@ const initializeSocket = (server) => {
                     context
                 });
                 console.log('MESSAGE SAVED', messageId);
+        realtimeLogger.trace(traceId, 'DB_SAVE_SUCCESS', { messageId });
 
                 // Get the saved message with sender info and reply info
                 const [fullMessage] = await pool.query(`
@@ -256,13 +289,17 @@ const initializeSocket = (server) => {
                     LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
                     WHERE m.message_id = ?
                 `, [messageId]);
+                // Resolve message object and chat identifiers
+                const message = fullMessage[0] || {};
+                const finalChatId = message.chat_id || message.conversation_id || message.personal_chat_id;
+                // Ensure chat_id set for consistency
+                if (!message.chat_id) { message.chat_id = finalChatId; }
+                message.chatId = finalChatId;
+                message.id = message.message_id;
+                message.senderId = message.sender_id;
+                // Add camelCase alias for frontend convenience
 
-                const message = {
-                    ...fullMessage[0],
-                    sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
-                    read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
-                };
-                const finalChatId = message.conversation_id || message.chat_id;
+
 
                 // Acknowledge receipt to the sender with server-authoritative sentAt
                 // IMPORTANT: sentAt comes from the DB record, not from the client clock
@@ -270,13 +307,29 @@ const initializeSocket = (server) => {
                     callback({ success: true, messageId, sentAt: message.sent_at });
                 }
 
+                console.log(
+                    '[ROOM_CHECK]',
+                    finalChatId,
+                    Array.from(io.sockets.adapter.rooms.get(`chat:${finalChatId}`) || [])
+                );
+                console.log('[MESSAGE_EMIT]', message);
+
                 // 2. Emit to sender for confirmation
-                socket.emit('new-message', message);
+                realtimeLogger.trace(traceId, 'EMIT_TO_SENDER', { messageId });
+        socket.emit('new-message', message);
+logSocketRooms(socket, `new-message:${finalChatId}`);
                 socket.emit('message-sent', message);
 
                 // 3. Emit to all in the chat room
-                socket.to(`chat:${finalChatId}`).emit('new-message', message);
+                realtimeLogger.trace(traceId, 'EMIT_TO_ROOM', { chatId: finalChatId, messageId });
+        socket.to(`chat:${finalChatId}`).emit('new-message', message);
+logSocketRooms(socket, `room-emit:${finalChatId}`);
                 console.log('MESSAGE EMITTED', finalChatId);
+                // Emit to participants' user rooms for chat list update
+                io.to(`user:${socket.userId}`).emit('chat-updated', { chatId: finalChatId });
+                if (recipientId) {
+                    io.to(`user:${recipientId}`).emit('chat-updated', { chatId: finalChatId });
+                }
 
                 // 4. Handle push notifications if it's a personal chat and recipient is offline
                 if (recipientId) {
@@ -292,6 +345,7 @@ const initializeSocket = (server) => {
                 }
             } catch (error) {
                 logger.error('Send message error:', error);
+        realtimeLogger.error(traceId, 'SEND_MESSAGE_ERROR', error, { data });
                 if (typeof callback === 'function') {
                     callback({ success: false, error: 'Database or broadcast error' });
                 }
@@ -335,9 +389,16 @@ const initializeSocket = (server) => {
         socket.on('mark-read', async (chatId) => {
             try {
                 await Message.updateStatus(chatId, socket.userId, 'read');
-
-                // Broadcast to everyone in the room (including sender on other devices)
+                secureLogger.readTrace(chatId, socket.userId, 'status_updated');
+                // Broadcast to chat room
                 io.to(`chat:${chatId}`).emit('messages-read', {
+                    chatId,
+                    userId: socket.userId,
+                    readAt: new Date().toISOString()
+                });
+                secureLogger.readEmit(chatId, socket.userId, 'messages-read emitted');
+                // Also emit to the user's personal room for UI updates (e.g., chat list)
+                io.to(`user:${socket.userId}`).emit('messages-read', {
                     chatId,
                     userId: socket.userId,
                     readAt: new Date().toISOString()
@@ -363,6 +424,7 @@ const initializeSocket = (server) => {
                 );
 
                 // Notify everyone in the room
+                secureLogger.deliveredEmit(chatId, socket.userId, 'messages-delivered emitted');
                 io.to(`chat:${chatId}`).emit('messages-delivered', {
                     chatId,
                     messageId,
@@ -453,6 +515,8 @@ const initializeSocket = (server) => {
                 const success = await Message.deleteForEveryone(messageId, socket.userId, conv.type === 'group', socket.user.username);
                 if (success) {
                     io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
+secureLogger.deleteTrace(messageId, chatId, socket.userId);
+secureLogger.safeLog('DELETE_FOR_EVERYONE', { chatId, messageId, userId: socket.userId });
                     if (typeof callback === 'function') callback({ success: true });
                 } else {
                     if (typeof callback === 'function') callback({ success: false, error: 'Failed to delete message for everyone.' });
@@ -652,10 +716,22 @@ const initializeSocket = (server) => {
                     `, [messageId]);
 
                     const message = {
-                        ...fullMessage[0],
-                        sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
-                        read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null
-                    };
+                    ...fullMessage[0],
+                    sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
+                    read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null,
+                    // Unified chat identifier for frontend consumption
+                    chatId: fullMessage[0].conversation_id || fullMessage[0].chat_id || fullMessage[0].personal_chat_id,
+                };
+                // Ensure legacy field 'chat_id' reflects the same identifier
+                message.chat_id = message.chatId;
+                const finalChatId = message.chatId;
+
+                    console.log(
+                        '[ROOM_CHECK]',
+                        targetChatId,
+                        Array.from(io.sockets.adapter.rooms.get(`chat:${targetChatId}`) || [])
+                    );
+                    console.log('[MESSAGE_EMIT]', message);
 
                     socket.emit('new-message', message);
                     socket.emit('message-sent', message);
@@ -693,6 +769,19 @@ const initializeSocket = (server) => {
                     senderId: socket.userId,
                     content: systemMsg,
                     type: 'system'
+                });
+
+                console.log(
+                    '[ROOM_CHECK]',
+                    chatId,
+                    Array.from(io.sockets.adapter.rooms.get(`chat:${chatId}`) || [])
+                );
+                console.log('[MESSAGE_EMIT]', {
+                    chat_id: chatId,
+                    sender_id: socket.userId,
+                    content: systemMsg,
+                    type: 'system',
+                    sent_at: new Date().toISOString()
                 });
 
                 io.to(`chat:${chatId}`).emit('new-message', {

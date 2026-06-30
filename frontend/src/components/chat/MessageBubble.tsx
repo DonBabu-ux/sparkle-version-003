@@ -88,7 +88,11 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
             autoFocus
           />
         ) : (
-          <span>{message.content}</span>
+          {message.is_deleted_for_everyone ? (
+            <span style={{ fontStyle: 'italic', color: '#888' }}>This message was deleted</span>
+          ) : (
+            <span>{message.content}</span>
+          )}
         )}
         {message.is_edited && !isEditing && (
           <span style={designTokens.editBadge} className="absolute bottom-[-12px] right-0">

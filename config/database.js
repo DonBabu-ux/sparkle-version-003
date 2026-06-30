@@ -7,17 +7,19 @@ const pool = mysql.createPool({
     password: process.env.NODE_ENV === 'production' ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
     database: process.env.NODE_ENV === 'production' ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
-    // Optimized for shared hosting resilience
+    // Connection limits
     waitForConnections: true,
-    connectionLimit: 10, // Lowered for shared hosting
+    connectionLimit: 10,
+    maxIdle: 5,          // Keep at most 5 idle connections; rest are destroyed
     queueLimit: 0,
     connectTimeout: 30000,
     // SSL for remote DBs
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-    // Performance & Resilience
+    // Keep-alive — sends a ping every 30s so the remote DB doesn't drop idle conns
     enableKeepAlive: true,
-    keepAliveInitialDelay: 10000,
-    idleTimeout: 30000,
+    keepAliveInitialDelay: 30000,
+    // Evict idle connections after 60s (before most remote DBs' 120-300s timeout)
+    idleTimeout: 60000,
     // Timezone
     timezone: 'Z'
 });

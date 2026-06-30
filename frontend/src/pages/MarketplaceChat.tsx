@@ -75,7 +75,7 @@ const MarketplaceChat = () => {
   const location = useLocation();
   const { user, token } = useUserStore();
   
-  const socket = useSocket();
+  const socket = useSocket('/marketplace');
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [conversation, setConversation] = useState<ConversationInfo | null>(null);

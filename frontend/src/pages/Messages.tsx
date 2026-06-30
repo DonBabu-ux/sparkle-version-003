@@ -947,12 +947,14 @@ const updateMessages = (updater: (msgs: any[]) => any[]) => {
   if (!chatId) return;
   const current = useChatStore.getState().messagesByConversation[chatId] || [];
   const updated = updater(current);
+  console.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
   setStoreMessages(chatId, updated);
 };
 const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
   if (!targetChatId) return;
   const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
   const updated = updater(current);
+  console.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
   setStoreMessages(targetChatId, updated);
 };
   const [messageSearch, setMessageSearch] = useState('');
@@ -1376,10 +1378,21 @@ useEffect(() => {
   }
 }, [socket, selectedChat?.chat_id]);
 
+// Join the socket.io room for the active chat whenever it changes
+useEffect(() => {
+  if (!socket || !selectedChat) return;
+  const targetId = selectedChat.chat_id;
+  if (targetId && !targetId.startsWith('temp_')) {
+    console.log('[JOIN_CHAT_EMIT]', targetId);
+    socket.emit('join-chat', targetId);
+  }
+}, [socket, selectedChat?.chat_id]);
+
 useEffect(() => {
   if (!socket) return;
 
   const handleNewMessage = (msg: any) => {
+    console.log('[MESSAGE_RECEIVED]', msg);
     const activeChat = selectedChatRef.current;
     const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
 
@@ -1570,9 +1583,15 @@ useEffect(() => {
   };
 
   const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
+    console.log('[DELETE_RECEIVED]', data);
     const activeChatId = currentChatIdRef.current;
     if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m));
+      updateMessagesForChat(activeChatId, prev => {
+        const updated = prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m);
+        const updatedMsg = updated.find(m => m.message_id === data.messageId);
+        console.log('[DELETE_STORE_UPDATED]', updatedMsg);
+        return updated;
+      });
     }
   };
 
@@ -1598,7 +1617,8 @@ useEffect(() => {
       }));
     }
   };
-
+// Lightweight re-fetch wrapper used by chat-updated listener
+const fetchChatList = () => fetchInbox();
   const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
     const activeChatId = currentChatIdRef.current;
     if (activeChatId && data.chatId === activeChatId) {
@@ -1612,7 +1632,14 @@ useEffect(() => {
     }
   };
 
-  socket.on('new-message', handleNewMessage);
+  const handleNewMessageWrapped = (message: any) => {
+    console.log('[NEW_MESSAGE]', message.chatId);
+    console.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
+    console.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
+    handleNewMessage(message);
+  };
+
+  socket.on('new-message', handleNewMessageWrapped);
   socket.on('receive_message', handleNewMessage);
   socket.on('messages-delivered', handleMessagesDelivered);
   socket.on('messages-read', handleMessagesRead);
@@ -1628,6 +1655,14 @@ useEffect(() => {
   socket.on('new-reaction', handleNewReaction);
   socket.on('reaction-removed', handleReactionRemoved);
 
+  // Listen for chat-updated events so the sidebar refreshes
+  const handleChatUpdated = (data: { chatId: string }) => {
+    console.log('[CHAT_UPDATED_RECEIVED]', data);
+    // Re-fetch inbox to pick up new last_message / unread_count
+    fetchInbox();
+  };
+  socket.on('chat-updated', handleChatUpdated);
+
   const handleReconnect = () => {
     const activeChatId = currentChatIdRef.current;
     console.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
@@ -1638,7 +1673,7 @@ useEffect(() => {
   socket.on('connect', handleReconnect);
 
   return () => {
-    socket.off('new-message', handleNewMessage);
+    socket.off('new-message', handleNewMessageWrapped);
     socket.off('receive_message', handleNewMessage);
     socket.off('messages-delivered', handleMessagesDelivered);
     socket.off('messages-read', handleMessagesRead);
@@ -1653,6 +1688,7 @@ useEffect(() => {
     socket.off('message-deleted-me', handleMessageDeletedMe);
     socket.off('new-reaction', handleNewReaction);
     socket.off('reaction-removed', handleReactionRemoved);
+    socket.off('chat-updated', handleChatUpdated);
     socket.off('connect', handleReconnect);
   };
 }, [socket, user?.id, user?.user_id]);
@@ -1967,6 +2003,19 @@ const formatMessageText = (content?: string) => {
     if (parsed.type === 'marketplace_inquiry') return '🛒 Marketplace inquiry';
   } catch (e) { }
   return content;
+};
+
+const getDeletedMessageText = (msg: any, isMe: boolean) => {
+  const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group';
+  if (!isGroup) {
+    return isMe ? "You deleted this message" : "This message was deleted";
+  } else {
+    if (isMe) return "You deleted this message";
+    if (msg.content && msg.content.includes("deleted by admin")) {
+      return msg.content;
+    }
+    return `Message deleted by ${msg.sender_name || msg.sender_username || 'User'}`;
+  }
 };
 
 const getStatusLabel = (chat: ChatConversation) => {
@@ -2506,7 +2555,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
                     const bubble = (
                       <div key={msg.message_id || i} id={`msg-${msg.message_id}`} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
-                        <div className={clsx("max-w-[75%] md:max-w-[60%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
+                        {console.log('[MESSAGE_RENDERED]', msg.message_id)}
+                        <div className={clsx("max-w-[72%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div
                             onContextMenu={(e) => {
                               e.preventDefault();
@@ -2528,7 +2578,13 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                             style={{
                               backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#5030A5') : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E'),
                               color: '#ffffff',
-                              backdropFilter: currentChatTheme ? 'blur(10px)' : 'none'
+                              backdropFilter: currentChatTheme ? 'blur(10px)' : 'none',
+                              maxWidth: '100%',
+                              width: 'fit-content',
+                              minWidth: '80px',
+                              wordBreak: 'break-word',
+                              overflowWrap: 'anywhere',
+                              whiteSpace: 'pre-wrap'
                             }}
                           >
                             {isMe && hasTail ? (
@@ -2557,7 +2613,10 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               <div className="relative text-[14.5px]">
                                 {msg.is_deleted_for_everyone ? (
                                   <>
-                                    <span className="italic text-white/40 select-none">This message was deleted</span>
+                                    {console.log('[DELETE_RENDER]', msg.message_id)}
+                                    <span className="italic text-white/40 select-none">
+                                      {getDeletedMessageText(msg, isMe)}
+                                    </span>
                                     {/* Spacer to prevent timestamp overlap */}
                                     <span className="inline-block w-[75px] h-[1px]"></span>
                                   </>

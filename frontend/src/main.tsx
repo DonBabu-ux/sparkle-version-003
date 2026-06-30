@@ -7,9 +7,12 @@ import './index.css';
 import OtaService from './services/OtaService';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { ToastProvider } from './utils/toast';
+import realtimeLogger from './utils/realtimeTrace';
 
 (async () => {
   console.log('APP STARTED');
+  // Expose realtime logger globally for debugging
+  (window as any).__realtimeLogger = realtimeLogger;
 
   // 1. Intercept boot to check for and load active dynamic OTA bundles
   const isInjected = await OtaService.bootstrap();

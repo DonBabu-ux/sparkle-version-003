@@ -10,8 +10,16 @@ export const useMessageSocket = () => {
 
   useEffect(() => {
     if (!socket) return;
+    console.log('[TRACE] Registering message socket listeners');
+    // Clean previous listeners to avoid duplicates
+    socket.off('message-pinned');
+    socket.off('new-reaction');
+    socket.off('message-edited');
+    socket.off('message_deleted');
+    socket.off('message-deleted-everyone');
 
     const handleMessagePinned = (data: { messageId: string; pinned: boolean; permissions?: any }) => {
+      console.log('[TRACE_MESSAGE_PINNED]', data);
       console.log('📡 Message pinned event:', data);
       const existing = messageStore.messages[data.messageId];
       if (existing) {
@@ -26,11 +34,13 @@ export const useMessageSocket = () => {
     };
 
     const handleReactionUpdated = (data: { messageId: string; reactions: any }) => {
+      console.log('[TRACE_REACTION_UPDATED]', data);
       console.log('📡 Reaction updated event:', data);
       messageStore.updateMessage(data.messageId, { reactions: data.reactions });
     };
 
     const handleMessageEdited = (data: { messageId: string; content: string; is_edited: boolean; permissions?: any }) => {
+      console.log('[TRACE_MESSAGE_EDITED]', data);
       console.log('📡 Message edited event:', data);
       messageStore.updateMessage(data.messageId, {
         content: data.content,
@@ -50,6 +60,7 @@ export const useMessageSocket = () => {
     };
 
     const handleMessageDeleted = (data: { messageId: string; mode: 'forMe' | 'forAll'; deletedBy?: string }) => {
+      console.log('[TRACE_MESSAGE_DELETED]', data);
       console.log('📡 Message deleted event:', data);
       if (data.mode === 'forAll') {
         messageStore.deleteMessage(data.messageId);
@@ -60,16 +71,31 @@ export const useMessageSocket = () => {
       }
     };
 
-    socket.on('message_pinned', handleMessagePinned);
-    socket.on('reaction_updated', handleReactionUpdated);
-    socket.on('message_edited', handleMessageEdited);
+    // New handler for global delete emitted via 'message-deleted-everyone'
+    const handleMessageDeletedEveryone = (data: { messageId: string; chatId: string }) => {
+      console.log('[TRACE_MESSAGE_DELETED_EVERYONE]', data);
+      console.log('[DELETE_RECEIVED]', data);
+      console.log('📡 Message deleted for everyone event:', data);
+      // Remove from message store
+      messageStore.deleteMessage(data.messageId);
+      // Update chat store for the specific chat
+      if (chatStore.deleteMessageForEveryone) {
+        chatStore.deleteMessageForEveryone(data.chatId, data.messageId, 'This message was deleted');
+      }
+    };
+
+    socket.on('message-pinned', handleMessagePinned);
+    socket.on('new-reaction', handleReactionUpdated);
+    socket.on('message-edited', handleMessageEdited);
     socket.on('message_deleted', handleMessageDeleted);
+    socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
 
     return () => {
-      socket.off('message_pinned', handleMessagePinned);
-      socket.off('reaction_updated', handleReactionUpdated);
-      socket.off('message_edited', handleMessageEdited);
+      socket.off('message-pinned', handleMessagePinned);
+      socket.off('new-reaction', handleReactionUpdated);
+      socket.off('message-edited', handleMessageEdited);
       socket.off('message_deleted', handleMessageDeleted);
+      socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
     };
   }, [socket, messageStore, chatStore]);
 };

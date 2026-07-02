@@ -397,10 +397,11 @@ const ChatInput = memo(({
   showAttachmentMenu,
   onVoiceSend,
   theme,
-  replyToMessage,
-  setReplyToMessage
+  replyToMessage
 }: any) => {
-  const [localMessage, setLocalMessage] = useState(initialMessage || '');
+  const drafts = useChatStore(state => state.drafts);
+  const setDraft = useChatStore(state => state.setDraft);
+  const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<'emojis' | 'stickers' | 'gifs' | 'avatars'>('emojis');
   const [giphySearch, setGiphySearch] = useState('');
@@ -412,7 +413,19 @@ const ChatInput = memo(({
   const [recordTime, setRecordTime] = useState(0);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
-const handlePointerDown = (e: React.PointerEvent) => {
+  const initialXRef = useRef<number>(0);
+  const recordIntervalRef = useRef<any>(null);
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const editing = useChatStore(state => state.editing);
+
+  useEffect(() => {
+    if (editing.messageId && editing.chatId === selectedChat?.chat_id) {
+      inputRef.current?.focus();
+    }
+  }, [editing.messageId, editing.chatId, selectedChat?.chat_id]);
+
+  const handlePointerDown = (e: React.PointerEvent) => {
     e.target.setPointerCapture(e.pointerId);
     startRecording();
     initialXRef.current = e.clientX;
@@ -537,13 +550,11 @@ const handlePointerDown = (e: React.PointerEvent) => {
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver'
   ];
 
-  useEffect(() => {
-    setLocalMessage(initialMessage);
-  }, [initialMessage]);
-
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
-    setLocalMessage(val);
+    if (selectedChat) {
+      setDraft(selectedChat.chat_id, val);
+    }
     onTyping(val);
   };
 
@@ -551,24 +562,34 @@ const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     if (!localMessage.trim() && !sending) return;
     onSend(e, localMessage);
-    setLocalMessage('');
   };
 
   return (
     <ChatInputDock className="z-30 shrink-0 border-t border-white/5 transition-all duration-300" backgroundColor={themeBg}>
       <div className="w-full max-w-[1200px] mx-auto">
+        {editing.messageId && editing.chatId === selectedChat?.chat_id && (
+          <div className="flex items-center justify-between gap-2 p-2 bg-white/5 border-b border-white/5 px-4 text-xs text-white/50">
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="font-bold text-[#ff1493] shrink-0">Editing message…</span>
+              <span className="truncate">"{editing.originalContent}"</span>
+            </div>
+            <button
+              onClick={() => useChatStore.getState().finishEdit(selectedChat.chat_id)}
+              className="p-1 hover:text-white shrink-0"
+              type="button"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        )}
         {replyToMessage && (
           <ReplyPreview
             onClear={() => {
-              setReplyToMessage(null);
-              // Clear store reply target as well
-              useChatStore.getState().setReplyTarget(undefined);
+              if (selectedChat) {
+                useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
+              }
             }}
-            avatarUrl={replyToMessage.sender_id ? getAvatarUrl(replyToMessage.sender_id) : undefined}
             messageId={replyToMessage.message_id}
-            content={replyToMessage.content}
-            type={replyToMessage.type}
-            media_url={replyToMessage.media_url}
           />
         )}
         <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
@@ -608,11 +629,12 @@ const handlePointerDown = (e: React.PointerEvent) => {
 
           <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
             <input
+              ref={inputRef}
               type="text"
               value={localMessage}
               onChange={handleChange}
               onFocus={() => setShowEmojiPicker(false)}
-              placeholder="Type a message..."
+              placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
               className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
               autoComplete="off"
             />
@@ -941,8 +963,6 @@ const addMessage = useChatStore(state => state.addMessage);
 const editMessage = useChatStore(state => state.editMessage);
 const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
 const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
-const replyTarget = useChatStore(state => state.replyTarget);
-const setReplyTarget = useChatStore(state => state.setReplyTarget);
 const updateMessages = (updater: (msgs: any[]) => any[]) => {
   if (!chatId) return;
   const current = useChatStore.getState().messagesByConversation[chatId] || [];
@@ -960,14 +980,17 @@ const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => a
   const [messageSearch, setMessageSearch] = useState('');
 const [loading, setLoading] = useState(true);
 const [sending, setSending] = useState(false);
-const [newMessage, setNewMessage] = useState('');
 const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
 const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
 const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
 const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
-const [replyToMessage, setReplyToMessage] = useState<any | null>(null);
-const [editingMessage, setEditingMessage] = useState<any | null>(null);
+
+const replyTargetId = useChatStore(state => state.replyTargets[chatId]);
+const replyToMessage = useMemo(() => {
+  if (!chatId || !replyTargetId) return null;
+  return useChatStore.getState().findMessage(chatId, replyTargetId) || null;
+}, [chatId, replyTargetId]);
 const [showForwardModal, setShowForwardModal] = useState(false);
 const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
 const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
@@ -1256,10 +1279,17 @@ useEffect(() => {
 }, [targetChatId, conversations]);
 
 useEffect(() => {
+  const store = useChatStore.getState();
   if (selectedChat) {
+    store.setActiveConversationId(selectedChat.chat_id);
+    socket?.emit('mark-read', selectedChat.chat_id);
+    store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
+    store.refreshConversation(selectedChat.chat_id);
     fetchMessages(selectedChat.chat_id);
+  } else {
+    store.setActiveConversationId(null);
   }
-}, [selectedChat?.chat_id]);
+}, [selectedChat?.chat_id, socket, user]);
 
 useEffect(() => {
   if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
@@ -1766,13 +1796,16 @@ const triggerWordEffect = (content: string) => {
 
 const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string) => {
   if (e) e.preventDefault();
-  const content = contentOverride || newMessage;
+  const currentChatId = selectedChat?.chat_id || '';
+  const storeDraft = useChatStore.getState().drafts[currentChatId] || '';
+  const content = contentOverride || storeDraft;
   const isRich = !!specialType;
   if (!content.trim() && !isRich) return;
   if (!selectedChat) return;
 
-  if (editingMessage) {
-    const msgId = editingMessage.message_id;
+  const editing = useChatStore.getState().editing;
+  if (editing.messageId && editing.chatId === selectedChat.chat_id) {
+    const msgId = editing.messageId;
     socket?.emit('edit-message', {
       messageId: msgId,
       chatId: selectedChat.chat_id,
@@ -1782,8 +1815,7 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
         alert(response.error || 'Failed to edit message');
       }
     });
-    setNewMessage('');
-    setEditingMessage(null);
+    useChatStore.getState().finishEdit(selectedChat.chat_id);
     return;
   }
 
@@ -1839,12 +1871,17 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   }
 
   const currentReplyTo = replyToMessage;
-  setReplyToMessage(null);
+  if (selectedChat) {
+    useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
+  }
 
   // Transmit exclusively via WebSocket payload
   socket?.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
     setSending(false);
     if (response.success && response.messageId) {
+      if (selectedChat) {
+        useChatStore.getState().setDraft(selectedChat.chat_id, '');
+      }
       // ACK received — use server-returned sentAt (never client Date)
       updateMessages(prev => prev.map(m => m.message_id === tempId
         ? {
@@ -2635,22 +2672,65 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                 // Try embedded reply_content first, then fall back to store lookup
                                 let replyContent = msg.reply_content;
                                 let replySenderName = msg.reply_sender_name;
-                                if (!replyContent && msg.reply_to_message_id) {
+                                let replyType = msg.reply_type || 'text';
+                                let replyMediaUrl = msg.reply_media_url || msg.reply_mediaUrl;
+
+                                if (msg.reply_to_message_id) {
                                   const refMsg = useChatStore.getState().findMessage(selectedChat?.chat_id || '', msg.reply_to_message_id);
                                   if (refMsg) {
-                                    replyContent = refMsg.content;
                                     replySenderName = replySenderName || refMsg.sender_name || refMsg.sender_username || 'User';
+                                    replyType = refMsg.type || 'text';
+                                    replyMediaUrl = refMsg.media_url || refMsg.mediaUrl;
+                                    
+                                    if (refMsg.content && refMsg.content.trim() !== '') {
+                                      if (replyType === 'image' || replyType === 'photo') replyContent = `📷 ${refMsg.content}`;
+                                      else if (replyType === 'video') replyContent = `🎥 ${refMsg.content}`;
+                                      else if (replyType === 'gif') replyContent = `👾 ${refMsg.content}`;
+                                      else replyContent = refMsg.content;
+                                    } else {
+                                      switch (replyType) {
+                                        case 'image':
+                                        case 'photo':
+                                          replyContent = '📷 Photo';
+                                          break;
+                                        case 'video':
+                                          replyContent = '🎥 Video';
+                                          break;
+                                        case 'gif':
+                                          replyContent = '👾 GIF';
+                                          break;
+                                        case 'audio':
+                                        case 'voice':
+                                        case 'voice_note':
+                                          replyContent = '🎵 Voice Note';
+                                          break;
+                                        case 'file':
+                                        case 'document':
+                                          replyContent = '📄 Document';
+                                          break;
+                                        default:
+                                          replyContent = 'Attachment';
+                                          break;
+                                      }
+                                    }
                                   }
                                 }
+
                                 if (!replyContent) return null;
+
                                 return (
-                                  <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex flex-col">
-                                    <span className="font-bold text-[13px] text-white/90 leading-tight">
-                                      {replySenderName || 'User'}
-                                    </span>
-                                    <span className="text-[12px] text-white/70 line-clamp-2 leading-snug mt-0.5">
-                                      {replyContent}
-                                    </span>
+                                  <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex items-center gap-2">
+                                    {(replyType === 'image' || replyType === 'photo' || replyType === 'gif') && replyMediaUrl && (
+                                      <img src={replyMediaUrl} alt="preview" className="w-[30px] h-[30px] object-cover rounded shrink-0" />
+                                    )}
+                                    <div className="flex-1 min-w-0 flex flex-col">
+                                      <span className="font-bold text-[11px] text-white/95 leading-tight">
+                                        {replySenderName || 'User'}
+                                      </span>
+                                      <span className="text-[12px] text-white/70 line-clamp-1 leading-snug mt-0.5 truncate">
+                                        {replyContent}
+                                      </span>
+                                    </div>
                                   </div>
                                 );
                               })()}
@@ -2901,7 +2981,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
               </AnimatePresence>
 
               <ChatInput
-                initialMessage={newMessage}
+                initialMessage=""
                 onTyping={handleTyping}
                 onSend={handleSendMessageWrapper}
                 onCameraOpen={() => setShowCameraModal(true)}
@@ -2915,7 +2995,6 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 onVoiceSend={handleVoiceSend}
                 theme={currentChatTheme}
                 replyToMessage={replyToMessage}
-                setReplyToMessage={setReplyToMessage}
               />
             </>
           ) : loading ? (
@@ -3016,9 +3095,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setActiveMessageMenu(null);
         }}
         onReply={() => {
-          if (activeMessageMenu?.msg) {
-            setReplyToMessage(activeMessageMenu.msg);
-            setReplyTarget(activeMessageMenu.msg);
+          if (activeMessageMenu?.msg && selectedChat) {
+            useChatStore.getState().setReplyTarget(selectedChat.chat_id, activeMessageMenu.msg.message_id);
           }
           setActiveMessageMenu(null);
         }}
@@ -3068,9 +3146,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setActiveMessageMenu(null);
         }}
         onEdit={() => {
-          if (activeMessageMenu?.msg) {
-            setEditingMessage(activeMessageMenu.msg);
-            setNewMessage(activeMessageMenu.msg.content);
+          if (activeMessageMenu?.msg && selectedChat) {
+            useChatStore.getState().startEdit(selectedChat.chat_id, activeMessageMenu.msg.message_id, activeMessageMenu.msg.content);
           }
           setActiveMessageMenu(null);
         }}

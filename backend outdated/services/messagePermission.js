@@ -10,24 +10,29 @@
  */
 function canPinMessage(user, message, conversation) {
   if (!conversation) return false;
+  const userId = user.user_id || user.id;
+  const senderId = message.sender_id || message.senderId;
   // Private (direct) chat
   if (conversation.type === 'private') {
-    return message.senderId === user.id;
+    return senderId === userId;
   }
   // Group chat – check roles
   const allowedRoles = ['admin', 'moderator'];
-  return allowedRoles.includes(user.role) || message.senderId === user.id;
+  return allowedRoles.includes(user.role) || senderId === userId;
 }
 
 /**
  * Determine if the user can edit the message.
- * Editable only by the sender within a 5‑minute window (frontend can enforce the timer).
+ * Editable only by the sender within a 5‑minute window.
  */
 function canEditMessage(user, message) {
-  if (message.senderId !== user.id) return false;
+  const userId = user.user_id || user.id;
+  const senderId = message.sender_id || message.senderId;
+  if (senderId !== userId) return false;
   // optional: enforce time window (5 minutes)
   const FIVE_MIN = 5 * 60 * 1000;
-  const created = new Date(message.createdAt).getTime();
+  const createdTime = message.sent_at || message.created_at || message.createdAt;
+  const created = new Date(createdTime).getTime();
   const now = Date.now();
   return now - created <= FIVE_MIN;
 }
@@ -45,7 +50,9 @@ function canDeleteForMe(user, message) {
  */
 function canDeleteForEveryone(user, message, conversation) {
   if (!conversation) return false;
-  if (message.senderId === user.id) return true;
+  const userId = user.user_id || user.id;
+  const senderId = message.sender_id || message.senderId;
+  if (senderId === userId) return true;
   // In groups, admins/moderators can also delete any message.
   const allowedRoles = ['admin', 'moderator'];
   return allowedRoles.includes(user.role);

@@ -635,8 +635,15 @@ secureLogger.safeLog('DELETE_FOR_EVERYONE', { chatId, messageId, userId: socket.
                     if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
                     return;
                 }
-                if (!perms.canEditMessage(socket.user, msg)) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied: cannot edit this message.' });
+                // Compare message.sender_id with socket.userId
+                if (msg.sender_id !== socket.userId) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied' });
+                    return;
+                }
+                // Verify edit time limit: 5 minutes (300,000 ms)
+                const sentTime = new Date(msg.sent_at).getTime();
+                if (Date.now() - sentTime > 300000) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Edit expired' });
                     return;
                 }
                 const success = await Message.editMessage(messageId, socket.userId, content);
@@ -644,7 +651,7 @@ secureLogger.safeLog('DELETE_FOR_EVERYONE', { chatId, messageId, userId: socket.
                     io.to(`chat:${chatId}`).emit('message-edited', { messageId, chatId, content, editedAt: new Date().toISOString() });
                     if (typeof callback === 'function') callback({ success: true });
                 } else {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message due to server error.' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message.' });
                 }
             } catch (error) {
                 logger.error('Edit message error:', error);

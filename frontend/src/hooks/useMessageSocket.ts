@@ -51,16 +51,26 @@ export const useMessageSocket = () => {
       chatStore.markRead(data.chatId, '');
     };
 
-    const handleMessagePinned = (data: { messageId: string; chatId: string; pinned: boolean; permissions?: any }) => {
+    const handleMessagePinned = (data: { messageId: string; chatId: string; pinnedBy: string }) => {
       console.log('📡 Message pinned event:', data);
+      chatStore.updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy });
       const existing = messageStore.messages[data.messageId];
       if (existing) {
         messageStore.updateMessage(data.messageId, {
-          permissions: {
-            ...existing.permissions,
-            pinned: data.pinned,
-            ...(data.permissions || {}),
-          },
+          pinned: true,
+          pinned_by: data.pinnedBy,
+        });
+      }
+    };
+
+    const handleMessageUnpinned = (data: { messageId: string; chatId: string }) => {
+      console.log('📡 Message unpinned event:', data);
+      chatStore.updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null });
+      const existing = messageStore.messages[data.messageId];
+      if (existing) {
+        messageStore.updateMessage(data.messageId, {
+          pinned: false,
+          pinned_by: null,
         });
       }
     };
@@ -99,6 +109,7 @@ export const useMessageSocket = () => {
     socket.on('messages-delivered', handleMessagesDelivered);
     socket.on('messages-read', handleMessagesRead);
     socket.on('message-pinned', handleMessagePinned);
+    socket.on('message-unpinned', handleMessageUnpinned);
     socket.on('message-edited', handleMessageEdited);
     socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
     socket.on('message-deleted-me', handleMessageDeletedMe);
@@ -111,6 +122,7 @@ export const useMessageSocket = () => {
       socket.off('messages-delivered', handleMessagesDelivered);
       socket.off('messages-read', handleMessagesRead);
       socket.off('message-pinned', handleMessagePinned);
+      socket.off('message-unpinned', handleMessageUnpinned);
       socket.off('message-edited', handleMessageEdited);
       socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
       socket.off('message-deleted-me', handleMessageDeletedMe);

@@ -704,8 +704,9 @@ export default function Moments() {
 
       // DEDUPLICATION: Ensure unique moments
       setMoments(prev => {
-        const combined = pageNum === 0 ? allData : [...prev, ...allData];
-        const unique = [];
+        const dataArray = Array.isArray(allData) ? allData : [];
+        const combined = pageNum === 0 ? dataArray : [...prev, ...dataArray];
+        const unique: Moment[] = [];
         const seen = new Set();
         for (const m of combined) {
           if (m && m.moment_id && !seen.has(m.moment_id)) {

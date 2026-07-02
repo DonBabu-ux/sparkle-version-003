@@ -127,7 +127,7 @@ const search = async (req, res) => {
                     currentUserId, currentUserId  // For is_followed boost relevance
                 ];
 
-                let query = `${selectClause} FROM users u WHERE (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) OR u.username LIKE ?) AND u.account_status = 'active'`;
+                let query = `${selectClause} FROM users u WHERE (MATCH(u.username, u.name, u.bio) AGAINST(? IN BOOLEAN MODE) OR u.username LIKE ?) AND u.account_status = 'active' AND u.is_system_account = FALSE`;
                 finalParams.push(booleanSearchTerm, likeTerm);
 
                 // Exclude followed users and the current user themselves only when targetType === 'all'

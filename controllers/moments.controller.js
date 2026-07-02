@@ -338,10 +338,47 @@ const getMomentsStream = async (req, res) => {
             currentUserId, limitNum, { query, type, offset, refresh: forceRefresh }
         );
 
+        // ── New-user fallback: if ranked feed is empty, serve the discover feed ──
+        // This guarantees the Moments page is never blank on first open.
+        let momentsToReturn = finalMoments;
+        if (!momentsToReturn || momentsToReturn.length === 0) {
+            try {
+                const discoverService = require('../services/discover.service');
+                const fallback = await discoverService.getFeed(currentUserId, { page: pageNum, pageSize: limitNum });
+                if (fallback && fallback.items && fallback.items.length > 0) {
+                    // Normalise discover items to the same shape the frontend expects
+                    momentsToReturn = fallback.items.map(item => ({
+                        moment_id:     item.moment_id,
+                        user_id:       item.user_id,
+                        username:      item.username,
+                        user_name:     item.user_name,
+                        avatar_url:    item.avatar_url,
+                        is_verified:   item.is_verified,
+                        caption:       item.caption,
+                        media_url:     item.media_url,
+                        streaming_url: item.streaming_url,
+                        thumbnail_url: item.thumbnail_url,
+                        media_type:    item.media_type,
+                        like_count:    item.like_count || 0,
+                        comment_count: item.comment_count || 0,
+                        share_count:   item.share_count || 0,
+                        view_count:    item.view_count || 0,
+                        created_at:    item.created_at,
+                        is_liked:      false,
+                        is_saved:      false,
+                        is_following:  false,
+                        _discover_fallback: true
+                    }));
+                }
+            } catch (fbErr) {
+                logger.warn('[MomentsStream] Discover fallback failed:', fbErr.message);
+            }
+        }
+
         res.json({
-            moments: finalMoments,
+            moments: momentsToReturn,
             sivActive: true,
-            pagination: { page: pageNum, limit: limitNum, total: finalMoments.length, hasMore: finalMoments.length === limitNum }
+            pagination: { page: pageNum, limit: limitNum, total: momentsToReturn.length, hasMore: momentsToReturn.length === limitNum }
         });
 
     } catch (error) {

@@ -16,11 +16,13 @@ export default function ForgotPassword() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return setError('Please enter your email address.');
+    const cleanEmail = email.trim().toLowerCase();
+    setEmail(cleanEmail);
+    if (!cleanEmail) return setError('Please enter your email address.');
     setLoading(true);
     setError('');
     try {
-      await api.post('/auth/forgot-password', { email });
+      await api.post('/auth/forgot-password', { email: cleanEmail });
       setSent(true);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
@@ -109,8 +111,8 @@ export default function ForgotPassword() {
                   <Mail size={36} strokeWidth={1.5} />
                 </div>
                 <h3 className="fp-card__title">Check your inbox</h3>
-                <p className="fp-card__sub">
-                  We sent a code to <strong style={{ color: '#e11d48' }}>{email}</strong>
+                <p className="fp-card__sub" style={{ lineHeight: '1.5', margin: '0.5rem 0 1.5rem 0' }}>
+                  If an account exists for this email, we've sent password reset instructions.
                 </p>
 
                 <Link

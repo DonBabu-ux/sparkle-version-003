@@ -1,5 +1,5 @@
 const { createClient } = require('@supabase/supabase-js');
-const { query } = require('../utils/database/query');
+const { query, queryOne } = require('../utils/database/query');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
@@ -35,15 +35,14 @@ const syncSocialUser = async (req, res) => {
 
         const { email, full_name, avatar_url } = profile;
         const name = full_name || email.split('@')[0];
-
         // Find existing user
-        const [users] = await query('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
+        const user = await queryOne('SELECT * FROM users WHERE email = ? LIMIT 1', [email]);
 
         let userId;
         let username;
         let isNewUser = false;
 
-        if (users.length === 0) {
+        if (!user) {
             // New User Registration
             userId = crypto.randomUUID();
             username = email.split('@')[0].replace(/[^a-zA-Z0-9]/g, '') + Math.floor(Math.random() * 1000);
@@ -59,11 +58,11 @@ const syncSocialUser = async (req, res) => {
             logger.info(`New social user created: ${email}`);
         } else {
             // Existing User Login
-            userId = users[0].user_id;
-            username = users[0].username;
+            userId = user.user_id;
+            username = user.username;
 
             // Sync profile data if needed
-            if (avatar_url && users[0].avatar_url !== avatar_url) {
+            if (avatar_url && user.avatar_url !== avatar_url) {
                 await query('UPDATE users SET avatar_url = ? WHERE user_id = ?', [avatar_url, userId]);
             }
         }
@@ -88,7 +87,7 @@ const syncSocialUser = async (req, res) => {
                 name,
                 username,
                 email,
-                avatar_url: avatar_url || users[0]?.avatar_url,
+                avatar_url: avatar_url || (user ? user.avatar_url : null),
                 loggedIn: true
             }
         });
@@ -113,13 +112,13 @@ const syncVerifiedOTP = async (req, res) => {
 
         // 1. Find or Create User
         let userSearchQuery = type === 'phone' ? 'SELECT * FROM users WHERE phone_number = ? LIMIT 1' : 'SELECT * FROM users WHERE email = ? LIMIT 1';
-        const [users] = await query(userSearchQuery, [value]);
+        const user = await queryOne(userSearchQuery, [value]);
 
         let userId;
         let isNewUser = false;
         let username;
 
-        if (users.length === 0) {
+        if (!user) {
             // Creation flow (should usually happen via the main signup but handle here as fallback)
             userId = crypto.randomUUID();
             isNewUser = true;

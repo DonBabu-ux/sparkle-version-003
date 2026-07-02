@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail } from 'lucide-react';
+import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import axios from 'axios';
@@ -22,6 +22,8 @@ export default function Login() {
   const [cooldown, setCooldown] = useState(0);
 
   const { login } = useUserStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => { setMounted(true); }, []);
@@ -39,14 +41,24 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { showError('Fields incomplete'); return; }
+    const cleanEmail = email.trim().toLowerCase();
+    setEmail(cleanEmail);
+
+    if (!cleanEmail) {
+      showError('Please enter your email or username.');
+      document.getElementById('login-email')?.focus();
+      return;
+    }
+    if (!password) {
+      showError('Please enter your password.');
+      document.getElementById('login-pw')?.focus();
+      return;
+    }
 
     setLoading(true);
     setError('');
     try {
-      const cleanEmail = email.trim();
-      const cleanPassword = password.trim();
-      const res = await api.post('/auth/login', { username: cleanEmail, password: cleanPassword });
+      const res = await api.post('/auth/login', { username: cleanEmail, password });
       const data = res.data;
 
       if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {
@@ -59,17 +71,23 @@ export default function Login() {
       if (data?.status === 'success' && data?.token) {
         showSuccess('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
-        setTimeout(() => navigate('/dashboard'), 1500);
+        // Send device fingerprint for unusual login detection
+        api.post('/auth/device', { userAgent: navigator.userAgent })
+          .catch(() => {});
+        const targetRoute = data.next?.route || '/dashboard';
+        setTimeout(() => navigate(targetRoute), 1500);
         return;
       }
 
       showError(data?.message || 'Invalid username or password');
+      document.getElementById('login-pw')?.focus();
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const msg = err.response?.data?.message || err.response?.data?.error;
         showError(msg || 'Invalid credentials');
       }
       else showError((err as Error).message || 'Connection lost');
+      document.getElementById('login-pw')?.focus();
     } finally {
       setLoading(false);
     }
@@ -211,7 +229,26 @@ export default function Login() {
         {/* RIGHT: Login card */}
         <div className="login-card-wrap">
           <div className="login-card">
-            {!show2FA ? (
+            {success ? (
+              <div className="login-success-anim text-center py-10 flex flex-col items-center justify-center animate-scale-up" style={{ textAlign: 'center' }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: '#ecfdf5',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#10b981',
+                  margin: '0 auto 1.5rem auto',
+                  boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
+                }}>
+                  <ShieldCheck size={48} strokeWidth={2} className="su-spin" style={{ animation: 'su-drift 1s ease-in-out infinite' }} />
+                </div>
+                <h3 className="login-card__title text-2xl mb-2" style={{ fontFamily: "'Varela Round', sans-serif", fontWeight: 700 }}>Welcome Back!</h3>
+                <p className="login-card__sub text-base">Signing you in securely...</p>
+              </div>
+            ) : !show2FA ? (
               <>
                 <div className="login-card__head">
                   <h3 className="login-card__title">Welcome back</h3>
@@ -219,10 +256,10 @@ export default function Login() {
                   <p className="login-card__sub">Sign in to your Sparkle account</p>
                 </div>
 
-                {(error || success) && (
-                  <div className={`login-toast ${error ? 'login-toast--err' : 'login-toast--ok'}`}>
+                {error && (
+                  <div className="login-toast login-toast--err">
                     <span className="login-toast__dot" />
-                    {error || success}
+                    {error}
                   </div>
                 )}
 
@@ -248,18 +285,41 @@ export default function Login() {
                       <Lock size={14} strokeWidth={2.5} />
                       Password
                     </label>
-                    <input
-                      id="login-pw"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="login-input"
-                      placeholder="Enter your password"
-                      autoComplete="current-password"
-                    />
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        id="login-pw"
+                        name="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="login-input pr-10"
+                        placeholder="Password"
+                        required
+                        autoComplete="current-password"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
                   </div>
 
                   <div className="login-extras">
+                    <label className="login-remember" style={{ display: 'flex', alignItems: 'left', gap: '0.35rem', cursor: 'pointer', fontSize: '0.78rem', color: '#78716c', fontWeight: 600, marginRight: 'auto' }}>
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => {
+                          setRememberMe(e.target.checked);
+                          localStorage.setItem('sparkle_remember_me', e.target.checked ? 'true' : 'false');
+                        }}
+                        className="login-checkbox"
+                      /> Remember me
+                    </label>
                     <Link to="/forgot-password" className="login-forgot">Forgot password?</Link>
                   </div>
 

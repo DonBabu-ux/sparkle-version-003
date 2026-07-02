@@ -88,6 +88,29 @@ const posts = orderedPostIds.map(id => postsById[id]);
   const isInitialMount = useRef(true);
   const { seed: deviceSeed, deviceId } = useDeviceSeed();
 
+  const [isProfileCardDismissed, setIsProfileCardDismissed] = useState(() => {
+    return localStorage.getItem('profileCompletionCardDismissed') === 'true';
+  });
+
+  const dismissProfileCard = () => {
+    localStorage.setItem('profileCompletionCardDismissed', 'true');
+    setIsProfileCardDismissed(true);
+  };
+
+  const profileCompletion = useMemo(() => {
+    if (!user) return 0;
+    const fields = [
+      user.name,
+      user.username,
+      user.avatar_url,
+      user.bio,
+      user.campus,
+      user.major
+    ];
+    const completed = fields.filter(f => f && String(f).trim().length > 0).length;
+    return Math.round((completed / fields.length) * 100);
+  }, [user]);
+
   const fetchDeltaData = useCallback(async () => {
     try {
       const since = new Date(lastSyncTime.current).toISOString();
@@ -238,6 +261,55 @@ const posts = orderedPostIds.map(id => postsById[id]);
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
           <section className="flex flex-col gap-0 bg-white dark:bg-black">
+            {!isProfileCardDismissed && profileCompletion < 100 && (
+              <div className="bg-gradient-to-r from-rose-50 to-rose-100 dark:from-zinc-900/40 dark:to-zinc-800/40 border border-rose-200/50 dark:border-zinc-700/50 rounded-2xl p-5 mb-4 relative overflow-hidden shadow-sm animate-scale-up">
+                <button
+                  onClick={dismissProfileCard}
+                  className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <Plus className="rotate-45" size={18} />
+                </button>
+                <div className="flex gap-4 items-center">
+                  <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center text-white shadow-md shadow-rose-500/20">
+                     <Sparkles size={24} />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-black text-sm text-slate-850 dark:text-zinc-100 uppercase tracking-wide">Complete your profile</h4>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Add info to help other students find you on campus.</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className="text-sm font-black text-rose-500">{profileCompletion}%</span>
+                    <span className="text-[9px] font-black uppercase text-slate-400 tracking-wider">Complete</span>
+                  </div>
+                </div>
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-rose-200/40 dark:bg-zinc-700 rounded-full mt-4 overflow-hidden">
+                  <div
+                    className="h-full bg-rose-500 transition-all duration-500"
+                    style={{ width: `${profileCompletion}%` }}
+                  />
+                </div>
+                {/* Checklist items list */}
+                <div className="flex flex-wrap gap-x-4 gap-y-2 mt-4 pt-3 border-t border-rose-200/30 dark:border-zinc-700/30">
+                  {[
+                    { label: 'Name', met: !!user?.name },
+                    { label: 'Username', met: !!user?.username },
+                    { label: 'Photo', met: !!user?.avatar_url },
+                    { label: 'Bio', met: !!user?.bio },
+                    { label: 'Campus', met: !!user?.campus },
+                    { label: 'Major', met: !!user?.major }
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5 text-[10px] font-bold">
+                      <span className={`w-3.5 h-3.5 rounded-full flex items-center justify-center ${item.met ? 'bg-emerald-500 text-white' : 'bg-slate-200 dark:bg-zinc-700 text-slate-400'}`}>
+                        {item.met ? '✓' : '○'}
+                      </span>
+                      <span className={item.met ? 'text-slate-700 dark:text-zinc-300' : 'text-slate-400 dark:text-zinc-500'}>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
             <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">

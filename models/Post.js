@@ -583,6 +583,9 @@ class Post {
             const [follows] = await pool.query('SELECT following_id FROM follows WHERE follower_id = ?', [currentUserId]).catch(() => [[]]);
             const followingIds = new Set((follows || []).map(f => f.following_id));
 
+            const [interests] = await pool.query('SELECT interest_slug FROM user_interests WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
+            const selectedInterests = new Set((interests || []).map(i => i.interest_slug.toLowerCase()));
+
             const [blocks] = await pool.query('SELECT blocked_id, blocker_id FROM user_blocks WHERE blocker_id = ? OR blocked_id = ?', [currentUserId, currentUserId]).catch(() => [[]]);
             const blockedUserIds = new Set();
             (blocks || []).forEach(b => {
@@ -639,30 +642,39 @@ class Post {
                 const stats = categoryStats[post.category] || {};
                 const categoryAffinity = this.calculateCategoryAffinity(stats);
                 const trendBoost = this.calculateTrendBoost(post.category, recentCategories);
-                
-                // Base Engagement (Algorithm 7.7)
+
+                // 1. Followed creators (50%)
+                const followed_score = followingIds.has(post.user_id) ? 1.0 : 0.0;
+
+                // 2. Interest-matched (30%)
+                const postCatLower = (post.category || '').toLowerCase();
+                const interest_score = selectedInterests.has(postCatLower) ? 1.0 : 0.0;
+
+                // 3. Trending (15%)
                 const sparks = Number(post.sparks) || 0;
                 const comments = Number(post.comments) || 0;
-                const shares = Number(post.shares) || 0;
                 const views = Number(post.views) || 0;
-                const engagement = (sparks * 3 + comments * 5 + shares * 10) / (views + 10);
-                
+                const trending_score = Math.min(1.0, (sparks * 3 + comments * 5) / (views + 10));
+
+                // 4. Discover (5%)
+                const discover_score = Math.random();
+
+                // Weighted Score Formula
+                const weightedScore = (0.5 * followed_score) + (0.3 * interest_score) + (0.15 * trending_score) + (0.05 * discover_score);
+
                 // Time Decay (Algorithm 7.7) - Higher lambda = faster decay
                 const ageHours = (Date.now() - new Date(post.created_at).getTime()) / (1000 * 60 * 60);
                 const lambda = 0.1;
                 const isSeeded = post.is_seed === 1 || (post.username && post.username.startsWith('seed_user_'));
                 const timeDecay = isSeeded ? Math.max(0.8, Math.exp(-lambda * (ageHours / 240))) : Math.exp(-lambda * ageHours);
-                
-                const affinity = followingIds.has(post.user_id) ? 1.5 : 1.0;
-                const randomFactor = Math.random() * 0.05;
 
                 let dwellScore = 1.0;
                 let skipPenalty = 1.0;
                 let replayBoost = 1.0;
-                
+
                 // Final Score Formula
-                post.discovery_score = (engagement * affinity * timeDecay) + randomFactor;
-                
+                post.discovery_score = weightedScore * timeDecay;
+
                 // --- FATIGUE PENALTY (Algorithm 9.3) ---
                 const recentCount = recentCategories.filter(c => c === post.category).length;
                 const fatigue = recentCount / 20.0;

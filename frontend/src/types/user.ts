@@ -38,4 +38,5 @@ export interface User {
   has_story?: boolean;
   note?: string;
   highlights?: { id: string; img: string; title: string }[];
+  onboarding_step?: number;
 }

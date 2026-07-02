@@ -60,6 +60,7 @@ const renderConnect = async (req, res) => {
             RAND(${randomSeed}) as exploration_entropy
             FROM users u
             WHERE u.user_id != ? 
+            AND u.is_system_account = FALSE
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
             ${search ? 'AND (u.name LIKE ? OR u.username LIKE ?)' : ''}
         `;
@@ -102,6 +103,7 @@ const renderConnect = async (req, res) => {
                    ) as trending_score
             FROM users u
             WHERE u.user_id != ? 
+            AND u.is_system_account = FALSE
             AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
             ORDER BY trending_score DESC
             LIMIT 10
@@ -134,7 +136,6 @@ const renderConnect = async (req, res) => {
     }
 };
 
-// ... other controller methods (renderSearch, blocks, etc. should be preserved)
 module.exports = {
     renderConnect,
     renderSearch: async (req, res) => res.render('search', { title: 'Search Results', user: req.user, query: req.query.q || '' }),
@@ -143,6 +144,11 @@ module.exports = {
         try {
             const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
+            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+
+            if (targetId === SYSTEM_USER_ID) {
+                return res.status(403).json({ error: 'Cannot block the Sparkle official account' });
+            }
             
             if (!currentUserId || !targetId) {
                 return res.status(400).json({ error: 'Missing user ID' });
@@ -250,13 +256,24 @@ module.exports = {
             res.status(500).json({ error: error.message });
         }
     },
-    muteUser: async (req, res) => res.json({ success: true, message: 'User muted (Placeholder)' }),
+    muteUser: async (req, res) => {
+        const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+        if (req.params.id === SYSTEM_USER_ID) {
+            return res.status(403).json({ error: 'Cannot mute the Sparkle official account' });
+        }
+        return res.json({ success: true, message: 'User muted (Placeholder)' });
+    },
     unmuteUser: async (req, res) => res.json({ success: true, message: 'User unmuted (Placeholder)' }),
     reportUser: async (req, res) => {
         try {
             const reporterId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
             const { reason, description } = req.body;
+            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+
+            if (targetId === SYSTEM_USER_ID) {
+                return res.status(403).json({ error: 'Cannot report the Sparkle official account' });
+            }
 
             if (!reporterId || !targetId) {
                 return res.status(400).json({ error: 'Missing user ID' });

@@ -73,10 +73,11 @@ const notificationController = {
             const limit = parseInt(req.query.limit) || 20;
             const offset = (page - 1) * limit;
 
-            // optionally filter for unread only (used by polling)
             const unreadOnly = req.query.unreadOnly === 'true' || req.query.unreadOnly === '1';
+            const since = req.query.since; // ISO Timestamp or MySQL formatted datetime
+            const category = req.query.category;
+            const priority = req.query.priority;
 
-            // Union query: capture attempts + regular notifications
             let baseSql = `
                 SELECT * FROM (
                     SELECT 
@@ -92,7 +93,14 @@ const notificationController = {
                         u.username AS actor_username,
                         n.action_url AS action_url,
                         n.aggregation_count AS aggregation_count,
-                        n.related_id AS related_post_id
+                        n.related_id AS related_post_id,
+                        n.sender_id AS sender_id,
+                        n.icon AS icon,
+                        n.entities AS entities,
+                        n.actions AS actions,
+                        n.priority AS priority,
+                        n.category AS category,
+                        n.is_official AS is_official
                     FROM notifications n
                     LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
                     WHERE n.user_id = ?
@@ -116,7 +124,14 @@ const notificationController = {
                         u.username AS actor_username,
                         CONCAT('/messages?chat=', ca.chat_id) AS action_url,
                         1 AS aggregation_count,
-                        ca.chat_id AS related_post_id
+                        ca.chat_id AS related_post_id,
+                        ca.actor_user_id AS sender_id,
+                        'shield-alert' AS icon,
+                        '[]' AS entities,
+                        '[]' AS actions,
+                        'high' AS priority,
+                        'security' AS category,
+                        0 AS is_official
                     FROM capture_notifications cn
                     JOIN capture_attempts ca ON ca.id = cn.capture_attempt_id
                     LEFT JOIN users u ON u.user_id = ca.actor_user_id
@@ -125,39 +140,83 @@ const notificationController = {
                 WHERE 1=1`;
 
             const params = [userId, userId];
+
             if (unreadOnly) {
                 baseSql += ` AND is_read = 0`;
             }
+            if (since) {
+                baseSql += ` AND created_at > ?`;
+                params.push(since);
+            }
+            if (category) {
+                baseSql += ` AND category = ?`;
+                params.push(category);
+            }
+            if (priority) {
+                baseSql += ` AND priority = ?`;
+                params.push(priority);
+            }
+
             baseSql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
             params.push(limit, offset);
 
             const [rows] = await pool.query(baseSql, params);
 
-            const notifications = rows.map(n => ({
-                id: n.notification_id,
-                message: n.content || n.title,
-                type: n.type,
-                is_read: !!n.is_read,
-                created_at: n.created_at,
-                related_user: n.actor_id ? {
-                    id: n.actor_id,
-                    username: n.actor_username,
-                    name: n.actor_name,
-                    avatar: n.actor_avatar
-                } : null,
-                related_post_id: n.related_post_id,
+            const notifications = rows.map(n => {
+                let parsedEntities = [];
+                let parsedActions = [];
+                try {
+                    parsedEntities = typeof n.entities === 'string' ? JSON.parse(n.entities) : (n.entities || []);
+                } catch (e) {
+                    parsedEntities = [];
+                }
+                try {
+                    parsedActions = typeof n.actions === 'string' ? JSON.parse(n.actions) : (n.actions || []);
+                } catch (e) {
+                    parsedActions = [];
+                }
 
-                // Backwards compatibility keys
-                notification_id: n.notification_id,
-                content: n.content,
-                title: n.title,
-                actor_id: n.actor_id,
-                actor_name: n.actor_name,
-                actor_username: n.actor_username,
-                actor_avatar: n.actor_avatar,
-                action_url: n.action_url,
-                aggregation_count: n.aggregation_count
-            }));
+                // If actions array is empty but we have action_url, populate a default action
+                if (parsedActions.length === 0 && n.action_url) {
+                    parsedActions = [{
+                        label: 'View',
+                        route: n.action_url,
+                        style: 'primary'
+                    }];
+                }
+
+                return {
+                    id: n.notification_id,
+                    type: n.type,
+                    senderId: n.sender_id || n.actor_id || null,
+                    title: n.title,
+                    body: n.content || n.title,
+                    icon: n.icon || (n.type === 'spark' ? 'zap' : n.type === 'comment' ? 'message-square' : 'bell'),
+                    entities: parsedEntities,
+                    actions: parsedActions,
+                    priority: n.priority || 'normal',
+                    category: n.category || 'social',
+                    isOfficial: !!n.is_official,
+                    isRead: !!n.is_read,
+                    createdAt: n.created_at,
+
+                    // Backwards compatibility keys
+                    notification_id: n.notification_id,
+                    content: n.content,
+                    actor_id: n.actor_id,
+                    actor_name: n.actor_name,
+                    actor_username: n.actor_username,
+                    actor_avatar: n.actor_avatar,
+                    action_url: n.action_url,
+                    aggregation_count: n.aggregation_count,
+                    related_user: n.actor_id ? {
+                        id: n.actor_id,
+                        username: n.actor_username,
+                        name: n.actor_name,
+                        avatar: n.actor_avatar
+                    } : null
+                };
+            });
 
             res.json(notifications);
         } catch (error) {

@@ -1,5 +1,5 @@
 // controllers/auth.controller.js - PRODUCTION VERSION
-const { query } = require('../utils/database/query');
+const { query, queryOne } = require('../utils/database/query');
 const User = require('../models/User');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -24,113 +24,25 @@ const validateJWTSecret = () => {
 };
 
 const signup = async (req, res) => {
-    try {
-        validateJWTSecret();
-        const { name, username, email, password, campus, major, year, phone_number, user_type, student_id } = req.body;
-        // Validation
-        if (!name || !username || !email || !password || !user_type) {
-            return res.status(400).json({
-                error: 'Required fields missing',
-                message: 'Name, username, email, password, and user type are required'
-            });
-        }
-
-        // Student ID validation (Algorithm 2.6)
-        if (user_type === 'student' && !student_id) {
-            return res.status(400).json({
-                error: 'Student ID required',
-                message: 'Students must provide a valid student ID'
-            });
-        }
-
-
-        // Email validation
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({
-                status: 'error',
-                message: 'Invalid email format'
-            });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const userId = crypto.randomUUID();
-
-        await query(
-            'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number, user_type, student_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            [userId, name, username, email, hashedPassword, campus || null, major || null, year || null, phone_number || null, user_type, student_id || null]
-        );
-
-        // --- NEW: System Welcome Notification ---
-        // Automatically insert a pinned welcome notification for new users
-        await query(
-            'INSERT INTO notifications (notification_id, user_id, type, title, content, action_url, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [crypto.randomUUID(), userId, 'system_welcome', 'Welcome to Sparkle', 'Discover trends, follow creators, and share your first spark.', '/explore', 0]
-        );
-
-
-        // --- NEW: Generate email verification code ---
-        const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
-
-        await query(
-            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?',
-            [crypto.randomUUID(), userId, email, verificationCode, expiresAt, verificationCode, expiresAt]
-        );
-
-        // Send verification email
-        sendEmail({
-            to: email,
-            subject: 'Verify Your Email - Sparkle ✨',
-            templateName: 'verify-email',
-            templateData: {
-                name,
-                code: verificationCode,
-                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify-email?code=${verificationCode}`
-            }
-        }).catch(err => logger.error('Failed to send signup verification email:', err));
-
-        // Generate production-grade tokens
-        const deviceId = req.headers['x-device-id'] || 'signup-device';
-        const user = { user_id: userId, name, username, email, user_type };
-        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
-
-        logger.info(`New user signed up: ${username} (${email}) - ID: ${userId}`);
-
-        res.status(201).json({
-            status: 'success',
-            message: 'Account created! Please verify your email.',
-            token: accessToken,
-            refreshToken: refreshToken,
-            user: {
-                id: userId,
-                user_id: userId,
-                name,
-                username,
-                email,
-                campus,
-                email_verified: false,
-                loggedIn: true
-            }
-        });
-    } catch (error) {
-        logger.error('Signup Critical Error:', {
-            error: error.message,
-            stack: error.stack,
-            body: { ...req.body, password: '***' }
-        });
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({
-                status: 'error',
-                message: 'User with this email or username already exists'
-            });
-        }
-        res.status(500).json({
-            status: 'error',
-            message: 'Failed to create account. Please try again later.',
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined
-        });
+  try {
+    const deviceId = req.headers['x-device-id'] || 'signup-device';
+    const result = await authService.signup(req.body, deviceId);
+    // Service returns full response payload
+    res.status(201).json(result);
+  } catch (error) {
+    if (error.validationErrors) {
+      return res.status(400).json({ status: 'error', errors: error.validationErrors });
     }
+    if (error.code === 'ER_DUP_ENTRY') {
+      return res.status(409).json({ status: 'error', message: 'User with this email or username already exists' });
+    }
+    logger.error('Signup Critical Error:', {
+      error: error.message,
+      stack: error.stack,
+      body: { ...req.body, password: '***' }
+    });
+    res.status(500).json({ status: 'error', message: 'Failed to create account. Please try again later.' });
+  }
 };
 
 const login = async (req, res) => {
@@ -147,7 +59,7 @@ const login = async (req, res) => {
         /* 
         // --- TEMPORARILY DISABLED: Rate Limiting (Algorithm 1.9) ---
         const ip = req.ip || req.connection.remoteAddress;
-        const [attempts] = await query(
+        const attempts = await query(
             'SELECT COUNT(*) as count FROM login_attempts WHERE (login_id = ? OR ip_address = ?) AND is_successful = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)',
             [loginId, ip]
         );
@@ -165,20 +77,15 @@ const login = async (req, res) => {
 
         const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
-        const users = await query(
+        const user = await queryOne(
             'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
             [loginId, loginId]
         );
-        
-        if (users.length === 0) {
+
+        if (!user) {
             return res.status(404).json({ status: 'error', message: 'Account not found' });
         }
-        
-        const user = users[0];
-        // Guard against missing user (shouldn't happen after length check)
-        if (!user) {
-            return res.status(401).json({ success: false, error: 'Invalid credentials' });
-        }
+
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         
         if (!passwordMatch) {
@@ -231,7 +138,9 @@ const login = async (req, res) => {
             path: '/'
         });
 
+        const isOnboarded = user.onboarding_step >= 6;
         res.json({
+            success: true,
             status: 'success',
             token: accessToken,
             refreshToken: refreshToken,
@@ -246,7 +155,10 @@ const login = async (req, res) => {
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
                 loggedIn: true,
                 isNewDevice // Frontend can use this to show a "New device detected" message
-            }
+            },
+            next: isOnboarded 
+                ? { route: '/home', reason: 'READY' }
+                : { route: '/onboarding', reason: 'ONBOARDING_REQUIRED' }
         });
 
     } catch (error) {
@@ -271,7 +183,7 @@ const verify2FA = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'User ID and code are required' });
         }
 
-        const [users] = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
@@ -280,7 +192,7 @@ const verify2FA = async (req, res) => {
         let verified = false;
 
         // Check if the code matches an unexpired emailed recovery code
-        const [verifications] = await query(
+        const verifications = await query(
             'SELECT * FROM email_verifications WHERE user_id = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
             [userId, code]
         );
@@ -377,7 +289,7 @@ const request2FARecovery = async (req, res) => {
         const { userId } = req.body;
         if (!userId) return res.status(400).json({ status: 'error', message: 'User ID is required' });
 
-        const [users] = await query('SELECT user_id, name, email FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT user_id, name, email FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         const user = users[0];
@@ -399,7 +311,7 @@ const request2FARecovery = async (req, res) => {
                 name: user.name,
                 code: recoveryCode,
                 message: 'Use this code to bypass your 2FA security check. It will expire in 15 minutes.',
-                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/login`
+                verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/login`
             }
         }).catch(err => {
             logger.error('Failed to send 2FA recovery email:', err);
@@ -422,7 +334,7 @@ const verifyEmail = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'Email and code are required' });
         }
 
-        const [verifications] = await query(
+        const verifications = await query(
             'SELECT * FROM email_verifications WHERE email = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
             [email, code]
         );
@@ -438,7 +350,7 @@ const verifyEmail = async (req, res) => {
         await query('UPDATE users SET email_verified = 1 WHERE user_id = ?', [verification.user_id]);
 
         // Send welcome email
-        const [users] = await query('SELECT name FROM users WHERE user_id = ?', [verification.user_id]);
+        const users = await query('SELECT name FROM users WHERE user_id = ?', [verification.user_id]);
         if (users[0]) {
             sendEmail({
                 to: email,
@@ -463,13 +375,14 @@ const forgotPassword = async (req, res) => {
         const { email } = req.body;
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
-        const [users] = await query('SELECT user_id, name FROM users WHERE email = ? LIMIT 1', [email]);
-        if (users.length === 0) {
+        const user = await queryOne(
+            'SELECT user_id, name FROM users WHERE email = ? LIMIT 1',
+            [email]
+        );
+        if (!user) {
             // Security: don't reveal if user exists
-            return res.json({ status: 'success', message: 'If an account exists, you will receive reset instructions.' });
+            return res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
         }
-
-        const user = users[0];
         const token = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Clear previous resets for this user to avoid confusion/collisions
@@ -489,11 +402,11 @@ const forgotPassword = async (req, res) => {
             templateData: {
                 name: user.name,
                 code: token,
-                resetUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/reset-password?email=${encodeURIComponent(email)}&code=${token}`
+                resetUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/reset-password?email=${encodeURIComponent(email)}&code=${token}`
             }
         }).catch(e => logger.error('Reset email failed:', e));
 
-        res.json({ status: 'success', message: 'Password reset instructions sent!' });
+        res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
     } catch (error) {
         logger.error('Forgot Password Error:', error);
         res.status(500).json({ status: 'error', message: 'Request failed' });
@@ -510,7 +423,7 @@ const resetPassword = async (req, res) => {
 
         // Query by token first (the 6-digit code)
         // We order by created_at DESC to get the most recent one if there are collisions
-        const [resets] = await query(
+        const resets = await query(
             'SELECT *, NOW() as db_now FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL ORDER BY created_at DESC',
             [resetCode]
         );
@@ -563,7 +476,7 @@ const resendVerification = async (req, res) => {
         const { email, type } = req.body; // type: 'email' or 'sms'
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
-        const [users] = await query('SELECT user_id, name, email_verified, phone_number FROM users WHERE email = ? LIMIT 1', [email]);
+        const users = await query('SELECT user_id, name, email_verified, phone_number FROM users WHERE email = ? LIMIT 1', [email]);
         if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         const user = users[0];
@@ -575,7 +488,7 @@ const resendVerification = async (req, res) => {
         }
 
         // --- NEW: Rate Limiting for Resend (Algorithm 3.3) ---
-        const [resendCount] = await query(
+        const resendCount = await query(
             'SELECT COUNT(*) as count FROM verification_requests WHERE user_id = ? AND type = "email" AND requested_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
             [user.user_id]
         );
@@ -611,7 +524,7 @@ const resendVerification = async (req, res) => {
             templateData: {
                 name: user.name,
                 code,
-                verifyUrl: `${process.env.APP_URL || 'http://localhost:3000'}/auth/verify-email?code=${code}`
+                verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/verify-email?code=${code}`
             }
         });
 
@@ -660,7 +573,7 @@ const switchAccount = async (req, res) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        const [users] = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
+        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
 
         if (users.length === 0) {
             return res.status(401).json({ status: 'error', message: 'User not found' });
@@ -701,4 +614,83 @@ const refreshToken = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, refreshToken };
+const checkUsername = async (req, res) => {
+    try {
+        const { username } = req.query;
+        if (!username) {
+            return res.status(400).json({ success: false, message: 'Username parameter is required.' });
+        }
+
+        const { validateUsername } = require('../utils/validation/username');
+        const validation = validateUsername(username);
+        if (!validation.valid) {
+            return res.json({
+                success: true,
+                available: false,
+                message: validation.error.message,
+                suggestions: []
+            });
+        }
+
+        const normUsername = validation.value;
+        const existing = await query('SELECT username FROM users WHERE username = ? LIMIT 1', [normUsername]);
+
+        if (existing.length > 0) {
+            const suggestions = await authService.generateAvailableUsernames(normUsername);
+            return res.json({
+                success: true,
+                available: false,
+                suggestions
+            });
+        }
+
+        res.json({
+            success: true,
+            available: true,
+            suggestions: []
+        });
+    } catch (error) {
+        logger.error('Check Username Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to check username' });
+    }
+};
+
+const checkEmail = async (req, res) => {
+    try {
+        const { email } = req.query;
+        if (!email) {
+            return res.status(400).json({ success: false, message: 'Email parameter is required.' });
+        }
+
+        const { validateEmail } = require('../utils/validation/email');
+        const validation = validateEmail(email);
+        if (!validation.valid) {
+            return res.json({
+                success: true,
+                available: false,
+                message: validation.error.message
+            });
+        }
+
+        const normEmail = validation.value;
+        const existing = await query('SELECT email FROM users WHERE email = ? LIMIT 1', [normEmail]);
+
+        if (existing.length > 0) {
+            return res.json({
+                success: true,
+                available: false,
+                message: 'Email address is already registered.'
+            });
+        }
+
+        res.json({
+            success: true,
+            available: true
+        });
+    } catch (error) {
+        logger.error('Check Email Error:', error);
+        res.status(500).json({ success: false, message: 'Failed to check email' });
+    }
+};
+
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, refreshToken, checkUsername, checkEmail };

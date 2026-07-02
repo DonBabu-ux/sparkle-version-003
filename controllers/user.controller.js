@@ -434,6 +434,11 @@ const followUser = async (req, res) => {
     try {
         const followerId = req.user.userId || req.user.user_id;
         const followingId = req.params.id;
+        const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+
+        if (followingId === SYSTEM_USER_ID) {
+            return res.status(403).json({ error: 'Cannot follow the Sparkle official account' });
+        }
 
         // Check if already following
         const [existing] = await User.pool.query(
@@ -471,6 +476,12 @@ const unfollowUser = async (req, res) => {
     try {
         const followerId = req.user.userId || req.user.user_id;
         const followingId = req.params.id;
+        const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+
+        if (followingId === SYSTEM_USER_ID) {
+            return res.status(403).json({ error: 'Cannot unfollow the Sparkle official account' });
+        }
+
         await User.unfollow(followerId, followingId);
         res.json({ 
             success: true, 

@@ -148,7 +148,42 @@ class MomentsRankingService {
     }
 
     async getFollowingPool(userId) {
+        try {
+            // Try Redis cache first
+            const cacheKey = `pool:following:${userId}`;
+            const cached = await redis.get(cacheKey);
+            if (cached) {
+                const parsed = safeParse(cached);
+                if (Array.isArray(parsed)) return parsed;
+            }
 
+            // Query moments from users this person follows
+            const [rows] = await safeQuery(`
+                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
+                       m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.created_at, m.completion_rate, m.quality_score,
+                       u.username, u.name as user_name, u.avatar_url, 0.7 as base_score
+                FROM moments m
+                JOIN users u ON m.user_id = u.user_id
+                JOIN follows f ON f.following_id = m.user_id AND f.follower_id = ?
+                WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)
+                  AND m.status = 'active'
+                ORDER BY m.created_at DESC
+                LIMIT 50
+            `, [userId]);
+
+            const pool = Array.isArray(rows) ? rows : [];
+
+            // Cache for 60 seconds
+            if (pool.length > 0) {
+                redis.set(cacheKey, JSON.stringify(pool), 60).catch(() => {});
+            }
+
+            return pool;
+        } catch (error) {
+            logger.warn(`[MomentsRanking] getFollowingPool error for ${userId}: ${error.message}`);
+            return []; // Always return an array to prevent "not iterable" crash
+        }
     }
 
     /**

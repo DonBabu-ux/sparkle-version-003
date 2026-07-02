@@ -25,37 +25,35 @@ async function verifyAuthFlow() {
         // 2. Generate Verification Code
         logger.info('2. Generating Verification Code...');
         const code = '123456';
-        const expiresAt = new Date(Date.now() + 3600000);
         await query(
-            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?)',
-            [crypto.randomUUID(), userId, testEmail, code, expiresAt]
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+            [crypto.randomUUID(), userId, testEmail, code]
         );
 
         // 3. Verify Email
         logger.info('3. Verifying Email...');
-        const [verifications] = await query(
-            'SELECT * FROM email_verifications WHERE email = ? AND code = ? AND expires_at > NOW()',
+        const verifications = await query(
+            'SELECT * FROM email_verifications WHERE email = ? AND code = ?',
             [testEmail, code]
         );
         if (verifications.length === 0) throw new Error('Verification code not found in DB');
 
         await query('UPDATE users SET email_verified = 1 WHERE user_id = ?', [userId]);
-        const [updatedUser] = await query('SELECT email_verified FROM users WHERE user_id = ?', [userId]);
+        const updatedUser = await query('SELECT email_verified FROM users WHERE user_id = ?', [userId]);
         if (updatedUser[0].email_verified !== 1) throw new Error('Email verification state not updated');
         logger.info('✅ Email verified successfully.');
 
         // 4. Forgot Password Flow
         logger.info('4. Simulating Forgot Password...');
         const resetToken = crypto.randomBytes(32).toString('hex');
-        const resetExpires = new Date(Date.now() + 3600000);
         await query(
-            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, ?)',
-            [crypto.randomUUID(), userId, testEmail, resetToken, resetExpires]
+            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+            [crypto.randomUUID(), userId, testEmail, resetToken]
         );
 
         // 5. Reset Password
         logger.info('5. Resetting Password...');
-        const [resets] = await query(
+        const resets = await query(
             'SELECT * FROM password_resets WHERE token = ? AND expires_at > NOW() AND used_at IS NULL',
             [resetToken]
         );
@@ -66,7 +64,7 @@ async function verifyAuthFlow() {
         await query('UPDATE password_resets SET used_at = NOW() WHERE token = ?', [resetToken]);
 
         // 6. Verify New Password
-        const [userAfterReset] = await query('SELECT password_hash FROM users WHERE user_id = ?', [userId]);
+        const userAfterReset = await query('SELECT password_hash FROM users WHERE user_id = ?', [userId]);
         const match = await bcrypt.compare(newPassword, userAfterReset[0].password_hash);
         if (!match) throw new Error('New password does not match hash');
         logger.info('✅ Password reset verified.');

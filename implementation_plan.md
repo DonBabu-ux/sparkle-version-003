@@ -1,149 +1,102 @@
-# Refactor Messaging System – Detailed Implementation Plan
+# Implementation Plan – Sparkle Empty‑State & Onboarding (Prioritized Phases)
 
-## Goal Description
+**Goal**
+Ensure that every new Sparkle user never encounters an empty screen and enjoys a smooth, engaging onboarding experience. The implementation proceeds in prioritized phases, focusing first on user‑visible empty‑state elimination before backend models, migrations, and rich notifications.
 
-Implement a modern, premium‑grade messaging experience matching WhatsApp/Telegram/Instagram/Messenger. This includes:
-- New design system with tokens, dark/light mode, glass‑morphism aesthetics.
-- Front‑end component suite for each media type.
-- Virtualized chat list using **react‑window**.
-- State management with **Zustand**.
-- Backend schema updates, edit enforcement, reply linkage, media metadata.
-- New multipart upload endpoint with Cloudinary integration and MIME validation.
-- Strict server‑side permission checks using JWT `userId`.
-- 5‑minute edit window enforced with 403 error payload.
+---
+
+## User Review Required
+> **⚠️ Breaking Changes**
+> * New environment variable `SPARKLE_SYSTEM_USER_ID` must be defined in `.env`.
+> * API endpoints `/api/moments` and related controllers will be updated – existing clients may need to adjust error handling.
+> * New conversation creation logic will insert a system‑user‑only thread; ensure the system user exists.
+
+---
+
+## Open Questions
+> [!IMPORTANT]
+> * How should the discover feed be ranked (popularity vs. interest weighting)?
+> * Desired cache TTL for discover feed (30 s, 60 s)?
+> * Should the welcome conversation be created synchronously on signup or lazily on first request?
+> * Any UI design assets for the rich notification cards (icons, colors)?
+
+---
 
 ## Proposed Changes
 
----
-### Frontend
+### Phase 1 — Empty‑State Elimination (Highest Priority)
+#### Moments Feed
+- Update `controllers/moments.controller.js` (`getMomentsStream`) to:
+  1. Detect `followingCount === 0` for the requesting user.
+  2. If zero, fetch a **discover feed** (popular creators, trending moments, interest‑based moments, latest public moments).
+  3. Return the discover feed in the same response shape (no extra request needed).
+  4. Add a **Redis cache** layer (`discover:feed:<userId>`) with TTL configurable (default 45 s).
+  5. Ensure pagination works and that duplicate video IDs are filtered.
 
-#### 1. Design System
-- Add `/frontend/src/theme/designTokens.ts` defining colors, spacings, radii, typography, shadows, motion.
-- Implement dark/light theme toggling via context.
-- Export a `useTheme` hook.
+#### Messages – Welcome Conversation
+- Create a new **system user** seeded via migration (if not already present). The env var `SPARKLE_SYSTEM_USER_ID` will hold its UUID.
+- Add idempotent logic in `services/onboarding.service.js` (or new `UserBootstrapService`) that:
+  1. Checks for an existing conversation between the new user and the system user.
+  2. If none, creates a conversation row in `conversations` table.
+  3. Inserts a **rich welcome message** (structured JSON supporting title, body, buttons).
+- Enforce restrictions on the system account (no replies, reactions, calls, block, report, follow, delete) via checks in the messaging controller.
 
-#### 2. State Management (Zustand)
-- Create `/frontend/src/store/chatStore.ts` with slices for messages, users, UI state (replyTarget, editTarget, uploadProgress).
-- Replace existing Redux/Context usage.
-
-#### 3. New Message Renderer Components
-- `TextMessage.tsx`
-- `ImageMessage.tsx`
-- `VideoMessage.tsx`
-- `GifMessage.tsx`
-- `AudioMessage.tsx`
-- `DocumentMessage.tsx`
-- Each component receives a `message` prop with typed fields and handles loading skeletons, lazy loading, and edited badge.
-
-#### 4. Reply Preview
-- `ReplyPreview.tsx` – shows sender name, snippet, media icon/thumbnail, left border, clickable to scroll.
-- Integrate into message composer UI.
-
-#### 5. MessageRenderer
-- Switch based on `media_type` and render the appropriate component.
-- Include edited indicator badge.
-
-#### 6. Virtualized Chat List
-- Install `react-window`.
-- Refactor `Messages.tsx` to wrap the message list with `VariableSizeList`.
-- Provide `getItemSize` based on message content height (estimate via refs).
-
-#### 7. Edit/Delete UI Logic
-- In `MessageActionModals.tsx`, show edit button only when `message.userId === currentUser.id && withinEditWindow`.
-- On edit attempt after window, handle 403 error and show toast.
-
-#### 8. Media Upload Flow
-- New hook `useMediaUpload.ts` handling multipart FormData, progress, MIME validation, optional client‑side compression (using `browser-image-compression`).
-- Upload endpoint URL stored in env `VITE_UPLOAD_URL`.
-
-#### 9. Voice Note Integration
-- Use `RecordRTC` for press‑hold recording.
-- Preview modal with waveform (wavesurfer.js).
-
-#### 10. Styles & Animations
-- Apply glass‑morphic bubbles, subtle hover scaling, smooth scroll for reply navigation (CSS `scroll-behavior: smooth`).
-- Micro‑animations via `framer‑motion` for message entry, edit fade‑in.
+#### New Chat – No Empty Sections
+- Extend `controllers/newChat.controller.js` (or the corresponding route) to compose the response list:
+  1. Followers (if any).
+  2. Following (if any).
+  3. Suggested Users (via recommendation service).
+  4. Popular Creators (top 10 by follower count).
+  5. Verified Accounts (verified flag).
+- Continue loading sections until at least **20 users** are returned, padding with the next category if needed.
+- Front‑end `NewChat` component will render the sections in this order; ensure the API always returns a non‑empty array.
 
 ---
-### Backend (Node/Express)
 
-1. **Database Schema** – Add columns to `messages` table:
-   ```sql
-   edited_at   DATETIME NULL,
-   is_edited   BOOLEAN   DEFAULT FALSE,
-   reply_to_message_id BIGINT NULL,
-   media_type  ENUM('text','image','video','gif','audio','document') NOT NULL DEFAULT 'text',
-   status      ENUM('sent','delivered','seen') NOT NULL DEFAULT 'sent'
-   ```
-   Add foreign key on `reply_to_message_id`.
-
-2. **Edit Message Endpoint** (`PUT /api/messages/:id`)
-   - Verify JWT `userId` matches message `user_id`.
-   - Compute time diff: if `now - created_at > 5 * 60 * 1000` → respond 403 with error payload:
-     ```json
-     {"success":false,"code":"MESSAGE_EDIT_WINDOW_EXPIRED","message":"Message can no longer be edited."}
-     ```
-   - On success, update `content`, set `edited_at = NOW()`, `is_edited = true`.
-
-3. **Reply Linkage** – Ensure `send-message` can include optional `replyToMessageId`; store in DB.
-
-4. **Media Upload Endpoint** (`POST /api/upload`)
-   - Accept `multipart/form-data` with fields `category` (story|chat|post|avatar|confession).
-   - Validate MIME type against allowed list per category.
-   - Optionally compress images/videos server‑side using `sharp`/`ffmpeg` if client did not compress.
-   - Upload to Cloudinary (use `cloudinary` npm package) and return `{url, public_id, type}`.
-   - Store metadata in a new `media` table linked to messages.
-
-5. **Message Creation** – Extend `send-message` handling to accept `media_type` and `mediaUrl` from upload response.
-
-6. **Read Receipts** – Update status field on receipt events via socket `message-seen`.
+### Phase 2 — Rich Notifications
+- Refactor `models/Notification.js` to store structured fields (`title`, `body`, `icon`, `actions`, `metadata`).
+- Update `services/notification.service.js` to build payloads with bold markup and clickable entity metadata.
+- Adjust frontend notification renderer to display cards with action buttons and deep links.
 
 ---
-### Final Safeguards (Pre‑Implementation Checks)
 
-- **Verify Chat Membership** – Ensure the requesting user belongs to the message's chat before any delete action (`/delete-for-me` or `/delete-for-everyone`). Return `403 Forbidden` if not a participant.
-- **Prevent Double Deletion** – In `deleteForEveryone`, check `message.deleted_for_everyone` and either return early or respond with `409 Conflict` to avoid duplicate writes.
-- **Composite Index for Large Chats** – Add a composite index on `(chat_id, created_at)` (or similar) to optimise hidden‑message lookups in high‑traffic conversations.
-- **Idempotent Deletion Window** – Enforce a 24‑hour deletion window atomically to prevent race conditions.
+### Phase 3 — Authentication Screens Improvements
+- **Signup**: add live validation, password strength meter, UI animations, automatic transition to OTP → login → onboarding.
+- **Login**: add Remember Me, show/hide password, redirect logic based on `response.next.route`.
 
 ---
+
+### Phase 4 — Onboarding Flow Pages
+- Create `frontend/src/components/onboarding/*` with slides 1‑6 as described.
+- Add backend `/api/onboarding/complete` route that marks `onboarding_complete = true` and returns `next.route`.
+
+---
+
+### Phase 5 — Dashboard Profile Completion Card
+- Store `profile_completion` (0‑100) and reminder flags in `users` table.
+- Front‑end dashboard renders premium reminder card when completion < 100 and reminder not disabled.
+
+---
+
+### Phase 6 — Performance & Validation
+- Verify no N+1 queries in the new feed logic.
+- Add indexes on `followers`, `moments.created_at`, and `notifications.user_id`.
+- Ensure all new endpoints are paginated.
+- Write unit/integration tests for each phase.
+
+---
+
 ## Verification Plan
-1. Run the idempotent migration on dev and staging DBs.
-2. Execute `npm test`.
-3. Start both frontend and backend (`npm run dev`).
-4. Perform manual scenarios (hide, delete, search, admin view) across devices.
-5. Inspect the DB to confirm `message_hidden` entries and `messages.deleted_*` fields.
----
-*With these final adjustments the deletion system is production‑ready, audit‑friendly, and fully consistent across all UI pathways.*ting Library). Snapshot tests for visual consistency.
-- **Integration Tests** for edit API (attempt edit after 5 min → 403). Use Supertest.
-- **E2E Tests** (Cypress) covering:
-  - Sending each media type.
-  - Reply preview navigation (smooth scroll).
-  - Edit workflow within/after window.
-  - Virtualized list performance with 2000 messages.
-- **Accessibility Audit** using axe.
+### Automated Tests
+- Run existing test suite (`npm test`).
+- Add new tests for Moments fallback, welcome conversation idempotency, New Chat non‑empty response, and notification structure.
 
----
-## Timeline (approx.)
-1. Backend schema & endpoints – 2 days
-2. Design system & Zustand store – 1 day
-3. Frontend component suite – 4 days
-4. Virtualization & integration – 2 days
-5. Media upload & Cloudinary integration – 2 days
-6. Voice note flow – 2 days
-7. Testing & bug‑fixes – 3 days
-8. Polish UI, dark mode, micro‑animations – 1 day
+### Manual Verification
+- Create a fresh test account and verify:
+  * Moments feed shows content immediately.
+  * Messages page contains the system welcome chat.
+  * New Chat lists sections up to 20 users.
+  * Rich notification appears with interactive buttons.
+  * Onboarding screens appear after signup.
 
----
-## Next Steps
-- Await your confirmation of this detailed plan.
-- Once approved, we will begin implementation following the timeline above.
-## User Review Required
-
-Please review the proposed changes, especially the backend permission checks and the new media upload endpoint. Confirm if the 5‑minute edit window aligns with product requirements.
-
-## Open Questions
-
-- Should the `media_type` enum include a `sticker` type?
-- Do we need server‑side thumbnail generation for videos?
-- Preferred maximum file size for uploads per category?
+Please review the plan, answer the open questions, and approve so we can start implementing Phase 1.

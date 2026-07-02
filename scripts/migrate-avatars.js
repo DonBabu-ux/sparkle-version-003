@@ -15,7 +15,7 @@ async function migrateAvatars() {
 
     try {
         // 1. Find users with external avatar URLs
-        const [users] = await query(
+        const users = await query(
             "SELECT user_id, username, avatar_url FROM users WHERE avatar_url LIKE 'http%' AND avatar_url NOT LIKE ?",
             [`%${process.env.APP_URL || 'localhost'}%`]
         );

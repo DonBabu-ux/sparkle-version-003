@@ -614,17 +614,38 @@ const initPersonalChatsTable = async () => {
                 INDEX idx_marketplace_chat (marketplace_listing_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
-        // Migration: add privacy_settings column if missing
-try {
-  const [cols] = await pool.query("SHOW COLUMNS FROM personal_chats LIKE 'privacy_settings'");
-  if (cols.length === 0) {
-    await pool.query("ALTER TABLE personal_chats ADD COLUMN privacy_settings JSON NULL");
-    logger.info('Added privacy_settings column to personal_chats table');
-  }
-} catch (e) {
-  logger.warn('Failed to add privacy_settings column to personal_chats:', e.message);
-}
-logger.debug('✅ Personal chats table verified');
+        // Migration: add missing personal_chats columns required by the inbox query
+        const pcMigrationCols = [
+            { name: 'is_deleted_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_deleted_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_pinned_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_pinned_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_muted_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_muted_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_archived_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_archived_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'disappearing_duration', type: 'INT DEFAULT 0' },
+            { name: 'privacy_settings', type: 'JSON NULL' },
+        ];
+        try {
+            const [pcCols] = await pool.query("SHOW COLUMNS FROM personal_chats");
+            const pcColNames = pcCols.map(c => c.Field);
+            for (const col of pcMigrationCols) {
+                if (!pcColNames.includes(col.name)) {
+                    try {
+                        await pool.query(`ALTER TABLE personal_chats ADD COLUMN ${col.name} ${col.type}`);
+                        logger.info(`Added ${col.name} column to personal_chats table`);
+                    } catch (e) {
+                        if (!e.message.includes('Duplicate')) {
+                            logger.warn(`Failed to add ${col.name} to personal_chats: ${e.message}`);
+                        }
+                    }
+                }
+            }
+        } catch (e) {
+            logger.warn('Failed to migrate personal_chats columns:', e.message);
+        }
+        logger.debug('✅ Personal chats table verified');
     } catch (err) {
         logger.error('❌ Failed to init personal chats table:', err.message);
         throw err;
@@ -1028,8 +1049,7 @@ const initMarketplaceTables = async () => {
         `);
 
         // Migration: Add missing columns if they don't exist
-        const orderResult = await pool.query("SHOW COLUMNS FROM marketplace_orders");
-        const [orderCols] = Array.isArray(orderResult) ? [orderResult] : orderResult || [];
+        const [orderCols] = await pool.query("SHOW COLUMNS FROM marketplace_orders");
         const orderColNames = (Array.isArray(orderCols) ? orderCols : []).map(c => c.Field);
         
         const missingOrderCols = [

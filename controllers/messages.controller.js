@@ -23,8 +23,21 @@ class MessageController {
     async getInbox(req, res) {
         try {
             const userId = req.user.user_id || req.user.userId;
+            
+            // Auto-recreate or ensure system conversation exists
+            const systemMessageService = require('../services/systemMessage.service');
+            await systemMessageService.ensureSystemConversation(userId);
+
             const conversations = await Message.getUserConversations(userId);
-            res.json({ status: 'success', data: conversations });
+
+            // Add is_system property for Sparkle Official Conversation
+            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+            const mapped = conversations.map(c => ({
+                ...c,
+                is_system: c.partner_id === SYSTEM_USER_ID
+            }));
+
+            res.json({ status: 'success', data: mapped });
         } catch (error) {
             console.error('getInbox Error:', error);
             res.status(500).json({ status: 'error', error: 'Server error', details: error.message });

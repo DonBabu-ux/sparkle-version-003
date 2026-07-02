@@ -95,7 +95,7 @@ export default function Explore() {
       });
 
       let combined = [...normalizedPosts, ...normalizedMoments];
-      combined = combined.filter(item => item.media_url && item.media_url !== '/uploads/defaults/no-image.png');
+      combined = combined.filter(item => (item.media_url && item.media_url !== '/uploads/defaults/no-image.png') || item.content);
       
       // Shuffle the items
       combined = combined.sort(() => Math.random() - 0.5);

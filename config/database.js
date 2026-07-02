@@ -15,11 +15,11 @@ const pool = mysql.createPool({
     connectTimeout: 30000,
     // SSL for remote DBs
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-    // Keep-alive — sends a ping every 30s so the remote DB doesn't drop idle conns
+    // Keep-alive — sends a ping every 10s so the remote DB doesn't drop idle conns
     enableKeepAlive: true,
-    keepAliveInitialDelay: 30000,
-    // Evict idle connections after 60s (before most remote DBs' 120-300s timeout)
-    idleTimeout: 60000,
+    keepAliveInitialDelay: 10000,
+    // Evict idle connections after 30s (well before most remote DBs' 120-300s timeout)
+    idleTimeout: 30000,
     // Timezone
     timezone: 'Z'
 });
@@ -58,38 +58,63 @@ process.on('SIGINT', async () => {
 });
 
 const logger = require('../utils/logger');
+
+/** Returns true for errors that are transient connection resets (worth retrying). */
+const isTransientError = (err) => {
+    const code = err?.code || '';
+    const msg = err?.message || '';
+    return code === 'ECONNRESET' || code === 'PROTOCOL_CONNECTION_LOST' ||
+           msg.includes('ECONNRESET') || msg.includes('PROTOCOL_CONNECTION_LOST') ||
+           msg.includes('Connection lost');
+};
+
 /**
  * Safe wrapper for MySQL queries that logs errors and rethrows.
+ * Automatically retries once on transient ECONNRESET errors.
  * @param {string} sql - The SQL query string.
  * @param {Array} [params=[]] - Parameter values for placeholders.
  * @returns {Promise<Array>} Result rows.
  */
 async function safeQuery(sql, params = []) {
-    try {
-        const [rows] = await pool.query(sql, params);
-        return rows;
-    } catch (error) {
-        const message = error?.message || error?.sqlMessage || String(error).slice(0, 200);
-        logger.error('[DB] Query error:', message);
-        throw error;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const [rows] = await pool.query(sql, params);
+            return rows;
+        } catch (error) {
+            if (attempt === 0 && isTransientError(error)) {
+                logger.warn('[DB] ECONNRESET on safeQuery — retrying once...');
+                await new Promise(r => setTimeout(r, 300));
+                continue;
+            }
+            const message = error?.message || error?.sqlMessage || String(error).slice(0, 200);
+            logger.error('[DB] Query error:', message);
+            throw error;
+        }
     }
 }
 
 // Backward‑compatible wrapper: expose a `query` method on the exported pool that returns [rows, fields].
 const originalQuery = pool.query.bind(pool);
 pool.query = async (sql, params = []) => {
-    try {
-        // Return the full [rows, fields] tuple like mysql2/promise does
-        return await originalQuery(sql, params);
-    } catch (error) {
-        // Suppress expected migration errors (duplicate columns/keys)
-        const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
-        const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
-        
-        if (!isDuplicateErr && message.trim().length > 0) {
-            logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            // Return the full [rows, fields] tuple like mysql2/promise does
+            return await originalQuery(sql, params);
+        } catch (error) {
+            if (attempt === 0 && isTransientError(error)) {
+                logger.warn('[DB] ECONNRESET on pool.query — retrying once...');
+                await new Promise(r => setTimeout(r, 300));
+                continue;
+            }
+            // Suppress expected migration errors (duplicate columns/keys)
+            const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
+            const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
+            
+            if (!isDuplicateErr && message.trim().length > 0) {
+                logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
+            }
+            throw error;
         }
-        throw error;
     }
 };
 

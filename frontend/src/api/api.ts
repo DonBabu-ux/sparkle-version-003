@@ -157,11 +157,31 @@ export const authApi = {
   signup: (userData: SignupData) => api.post('/auth/signup', userData),
   validateToken: () => api.get('/auth/validate'),
   logout: (refreshToken?: string) => api.post('/auth/logout', { refreshToken }),
+  checkUsername: (username: string) => api.get(`/auth/check-username?username=${encodeURIComponent(username)}`),
+  checkEmail: (email: string) => api.get(`/auth/check-email?email=${encodeURIComponent(email)}`),
+};
+
+export const onboardingApi = {
+  getStatus: () => api.get('/onboarding/status'),
+  getPopularUsers: () => api.get('/onboarding/popular-users'),
+  getRecommendations: (category?: string, page = 1, limit = 10) => 
+    api.get('/onboarding/recommendations', { params: { category, page, limit } }),
+  follow: (userIds: string[]) => api.post('/onboarding/follow', { userIds }),
+  saveInterests: (interests: string[]) => api.post('/onboarding/interests', { interests }),
+  complete: () => api.post('/onboarding/complete'),
 };
 
 export const postsApi = {
   logAction: (postId: string, action_type: string, duration?: number) =>
     api.post(`/posts/${postId}/action`, { action_type, duration }),
+};
+
+export const notificationsApi = {
+  getNotifications: (params?: { since?: string; page?: number; limit?: number; category?: string; priority?: string; unreadOnly?: boolean }) =>
+    api.get('/notifications', { params }),
+  markRead: (id: string) => api.post(`/notifications/${id}/read`),
+  markAllRead: () => api.put('/notifications/read-all'),
+  getUnreadCount: () => api.get('/notifications/unread-count'),
 };
 
 export default api;

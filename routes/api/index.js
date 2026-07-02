@@ -23,6 +23,8 @@ const shareRoutes = require('./share.routes');
 const groupChatRoutes = require('./groupChat.routes');
 const notificationsRoutes = require('./notifications.routes');
 const linkPreviewRoutes = require('./link-preview.routes');
+const onboardingRoutes = require('./onboarding.routes');
+const discoverRoutes = require('./discover.routes');
 
 const pool = require('../../config/database');
 
@@ -54,6 +56,8 @@ router.use('/moments', momentsRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/share', shareRoutes);
 router.use('/notifications', notificationsRoutes);
+router.use('/onboarding', onboardingRoutes);
+router.use('/discover', discoverRoutes);
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
-  Mail, ArrowRight, ArrowLeft, Check, Users, Heart,
+  Mail, ArrowRight, ArrowLeft, Check, Users, Heart, Eye, EyeOff,
   Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase,
 } from 'lucide-react';
 import api from '../api/api';
@@ -35,11 +35,94 @@ export default function Signup() {
   const [otpCode, setOtpCode] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [mounted, setMounted] = useState(false);
+  // Availability checks
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
+  const [emailAvailable, setEmailAvailable] = useState<boolean | null>(null);
+  // Password strength
+  const [passwordStrength, setPasswordStrength] = useState('');
+  const [checkingUsername, setCheckingUsername] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [pwdCriteria, setPwdCriteria] = useState({
+    length: false,
+    upper: false,
+    number: false,
+    special: false
+  });
+  const [otpSuccess, setOtpSuccess] = useState(false);
 
   const navigate = useNavigate();
   const { login } = useUserStore();
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!form.username.trim() || form.username.length < 3) {
+      setUsernameAvailable(null);
+      setUsernameSuggestions([]);
+      return;
+    }
+    setCheckingUsername(true);
+    const handler = setTimeout(async () => {
+      try {
+        const res = await api.get(`/auth/check-username?username=${encodeURIComponent(form.username.trim())}`);
+        if (res.data) {
+          setUsernameAvailable(res.data.available);
+          setUsernameSuggestions(res.data.suggestions || []);
+        }
+      } catch (err) {
+        setUsernameAvailable(null);
+      } finally {
+        setCheckingUsername(false);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [form.username]);
+
+  useEffect(() => {
+    const emailTrim = form.email.trim();
+    if (!emailTrim || !emailTrim.includes('@')) {
+      setEmailAvailable(null);
+      return;
+    }
+    setCheckingEmail(true);
+    const handler = setTimeout(async () => {
+      try {
+        const res = await api.get(`/auth/check-email?email=${encodeURIComponent(emailTrim)}`);
+        if (res.data) {
+          setEmailAvailable(res.data.available);
+        }
+      } catch (err) {
+        setEmailAvailable(null);
+      } finally {
+        setCheckingEmail(false);
+      }
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [form.email]);
+
+  useEffect(() => {
+    const pwd = form.password;
+    const criteria = {
+      length: pwd.length >= 8,
+      upper: /[A-Z]/.test(pwd),
+      number: /[0-9]/.test(pwd),
+      special: /[^A-Za-z0-9]/.test(pwd)
+    };
+    setPwdCriteria(criteria);
+
+    let score = 0;
+    if (criteria.length) score++;
+    if (criteria.upper) score++;
+    if (criteria.number) score++;
+    if (criteria.special) score++;
+
+    if (!pwd) setPasswordStrength('');
+    else if (score <= 2) setPasswordStrength('weak');
+    else if (score === 3) setPasswordStrength('medium');
+    else setPasswordStrength('strong');
+  }, [form.password]);
 
   const update = (field: string, value: string) =>
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -51,9 +134,12 @@ export default function Signup() {
 
   const validateStep2 = () => {
     if (!form.name.trim()) return 'Name required.';
-    if (!form.username.trim() || form.username.length < 3) return 'Username too short.';
+    if (!form.username.trim() || form.username.length < 3) return 'Username must be at least 3 characters.';
+    if (usernameAvailable === false) return 'Username is already taken.';
     if (!form.email.trim() || !form.email.includes('@')) return 'Invalid email address.';
-    if (!form.password || form.password.length < 6) return 'Password too weak.';
+    if (emailAvailable === false) return 'Email address is already registered.';
+    if (form.password.length < 8) return 'Password must be at least 8 characters.';
+    if (!pwdCriteria.upper || !pwdCriteria.number || !pwdCriteria.special) return 'Password must meet all requirements.';
     return '';
   };
 
@@ -95,25 +181,17 @@ export default function Signup() {
     setVerifying(true);
     setError('');
     try {
-      await api.post('/auth/verify-email', { email: form.email, code: otpCode });
-      const signupToken = localStorage.getItem('sparkle_signup_token');
-      const signupRefreshToken = localStorage.getItem('sparkle_signup_refresh');
-      const signupUserStr = localStorage.getItem('sparkle_signup_user');
-      
-      if (signupToken && signupRefreshToken && signupUserStr) {
-        const user = JSON.parse(signupUserStr);
-        login(signupToken, signupRefreshToken, user);
-        
-        localStorage.removeItem('sparkle_signup_token');
-        localStorage.removeItem('sparkle_signup_refresh');
-        localStorage.removeItem('sparkle_signup_user');
-        
-        showSuccess('Verified! Redirecting...');
-        setTimeout(() => navigate('/dashboard'), 1500);
-      } else {
-        showSuccess('Verified! Please login.');
-        setTimeout(() => navigate('/login'), 2000);
+      const res = await api.post('/auth/verify-email', { email: form.email, code: otpCode });
+      const data = res.data;
+
+      // Assume backend returns tokens and next route
+      if (data?.token) {
+        login(data.token, data.refreshToken || '', data.user);
       }
+
+      showSuccess('Verified! Redirecting...');
+      const targetRoute = data?.next?.route || '/dashboard';
+      setTimeout(() => navigate(targetRoute), 1500);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       showError(e.response?.data?.message || 'Invalid code.');
@@ -218,17 +296,114 @@ export default function Signup() {
                       <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} className="su-input" placeholder="Jane Doe" />
                     </div>
                     <div className="su-field">
-                      <label className="su-label">Username</label>
-                      <input type="text" value={form.username} onChange={(e) => update('username', e.target.value)} className="su-input" placeholder="janedoe" />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <label className="su-label">Username</label>
+                        {checkingUsername && <span style={{ fontSize: '0.65rem', color: '#a8a29e' }}>Checking...</span>}
+                        {!checkingUsername && usernameAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
+                        {!checkingUsername && usernameAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Taken</span>}
+                      </div>
+                      <input type="text" value={form.username} onChange={(e) => update('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))} className="su-input" placeholder="janedoe" />
                     </div>
                   </div>
+                  
+                  {!checkingUsername && usernameAvailable === false && usernameSuggestions.length > 0 && (
+                    <div style={{ marginTop: '-0.4rem', marginBottom: '0.2rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
+                      <span style={{ fontSize: '0.72rem', color: '#78716c' }}>Suggestions:</span>
+                      {usernameSuggestions.map((sug) => (
+                        <button
+                          key={sug}
+                          type="button"
+                          onClick={() => { update('username', sug); setUsernameAvailable(true); }}
+                          style={{
+                            padding: '0.15rem 0.45rem',
+                            borderRadius: '6px',
+                            border: '1px solid #fecdd3',
+                            backgroundColor: '#fff',
+                            fontSize: '0.72rem',
+                            fontWeight: 600,
+                            color: '#e11d48',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {sug}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
                   <div className="su-field">
-                    <label className="su-label">Email address</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label className="su-label">Email address</label>
+                      {checkingEmail && <span style={{ fontSize: '0.65rem', color: '#a8a29e' }}>Checking...</span>}
+                      {!checkingEmail && emailAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
+                      {!checkingEmail && emailAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Registered</span>}
+                    </div>
                     <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="su-input" placeholder="you@university.edu" />
                   </div>
+
                   <div className="su-field">
                     <label className="su-label">Password</label>
-                    <input type="password" value={form.password} onChange={(e) => update('password', e.target.value)} className="su-input" placeholder="At least 6 characters" />
+                    <div style={{ position: 'relative' }}>
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        value={form.password}
+                        onChange={(e) => update('password', e.target.value)}
+                        className="su-input"
+                        placeholder="At least 8 characters"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword((v) => !v)}
+                        style={{
+                          position: 'absolute',
+                          right: '12px',
+                          top: '50%',
+                          transform: 'translateY(-50%)',
+                          background: 'none',
+                          border: 'none',
+                          cursor: 'pointer',
+                          padding: 0,
+                          color: '#a8a29e'
+                        }}
+                        aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      >
+                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                    </div>
+
+                    {form.password && (
+                      <div style={{ marginTop: '0.4rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#78716c', marginBottom: '0.2rem' }}>
+                          <span>Strength:</span>
+                          <span style={{
+                            color: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
+                            textTransform: 'capitalize'
+                          }}>{passwordStrength}</span>
+                        </div>
+                        <div style={{ height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
+                          <div style={{
+                            height: '100%',
+                            width: passwordStrength === 'strong' ? '100%' : passwordStrength === 'medium' ? '66%' : '33%',
+                            backgroundColor: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
+                            transition: 'width 0.3s ease, background-color 0.3s ease'
+                          }} />
+                        </div>
+                      </div>
+                    )}
+
+                    <div style={{ marginTop: '0.4rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
+                      {[
+                        { label: '8+ characters', met: pwdCriteria.length },
+                        { label: 'One uppercase', met: pwdCriteria.upper },
+                        { label: 'One number', met: pwdCriteria.number },
+                        { label: 'One special char', met: pwdCriteria.special }
+                      ].map((item, i) => (
+                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: item.met ? '#10b981' : '#a8a29e', fontWeight: 600 }}>
+                          <span style={{ fontSize: '0.8rem' }}>{item.met ? '✓' : '○'}</span>
+                          <span>{item.label}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="su-nav-row">
@@ -306,7 +481,26 @@ export default function Signup() {
               )}
 
               {/* Step 5: OTP */}
-              {step === 5 && (
+              {otpSuccess ? (
+                <div className="su-step su-step--center py-10 animate-scale-up" style={{ textAlign: 'center' }}>
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ecfdf5',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#10b981',
+                    margin: '0 auto 1.5rem auto',
+                    boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
+                  }}>
+                    <Check size={48} strokeWidth={3} className="su-spin" style={{ animation: 'su-drift 1s ease-in-out infinite' }} />
+                  </div>
+                  <h3 className="su-card__title text-2xl mb-2" style={{ fontFamily: "'Varela Round', sans-serif", fontWeight: 700 }}>Verified!</h3>
+                  <p className="su-card__sub text-base">Setting up your profile...</p>
+                </div>
+              ) : step === 5 ? (
                 <div className="su-step su-step--center">
                   <div className="su-otp-icon">
                     <Mail size={40} strokeWidth={1.5} />
@@ -328,7 +522,7 @@ export default function Signup() {
                   </button>
                   <button className="su-back-text" type="button">Resend code</button>
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, CheckCircle2, Sparkles, Key, Hash, Orbit, ChevronLeft } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Lock, Eye, EyeOff, CheckCircle2, Shield, Check, X, RefreshCw, ChevronLeft } from 'lucide-react';
 import api from '../api/api';
 
 export default function ResetPassword() {
@@ -10,244 +10,622 @@ export default function ResetPassword() {
   const emailParam = searchParams.get('email') || '';
   const tokenParam = searchParams.get('token') || searchParams.get('code') || '';
 
-  const [otp, setOtp] = useState(tokenParam);
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  // OTP inputs state: 6 separate fields
+  const [otpValues, setOtpValues] = useState<string[]>(() => {
+    if (tokenParam && tokenParam.length === 6) {
+      return tokenParam.split('');
+    }
+    return Array(6).fill('');
+  });
+
+  const otpRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+  const [newProtocolCode, setNewProtocolCode] = useState('');
+  const [repeatCode, setRepeatCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [timer, setTimer] = useState(45);
+  const [resending, setResending] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState(false);
 
-  // Password strength
-  const strength = (() => {
-    if (!newPassword) return 0;
-    let s = 0;
-    if (newPassword.length >= 8) s++;
-    if (/[A-Z]/.test(newPassword)) s++;
-    if (/[0-9]/.test(newPassword)) s++;
-    if (/[^A-Za-z0-9]/.test(newPassword)) s++;
-    return s;
-  })();
-  const strengthColors = ['', '#e11d48', '#f59e0b', '#10b981', '#059669'];
+  // Timer for code resend
+  useEffect(() => {
+    if (timer > 0) {
+      const interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [timer]);
+
+  // Mask email utility
+  const maskEmail = (email: string) => {
+    if (!email) return '';
+    const [local, domain] = email.split('@');
+    if (!domain) return email;
+    if (local.length <= 3) {
+      return `${local[0] || ''}${'*'.repeat(local.length - 1)}@${domain}`;
+    }
+    const visible = local.slice(0, 3);
+    const masked = '*'.repeat(local.length - 3);
+    return `${visible}${masked}@${domain}`;
+  };
+
+  // Password checklist items
+  const checklist = [
+    { id: 'length', label: 'At least 8 characters', met: newProtocolCode.length >= 8 },
+    { id: 'upper', label: 'Uppercase letter', met: /[A-Z]/.test(newProtocolCode) },
+    { id: 'lower', label: 'Lowercase letter', met: /[a-z]/.test(newProtocolCode) },
+    { id: 'number', label: 'Number', met: /[0-9]/.test(newProtocolCode) },
+    { id: 'special', label: 'Special character', met: /[^A-Za-z0-9]/.test(newProtocolCode) },
+  ];
+
+  // Strength score
+  const strengthScore = checklist.filter((item) => item.met).length;
+
+  const getStrengthInfo = (score: number) => {
+    if (!newProtocolCode) return { label: 'Empty', color: 'transparent', width: '0%' };
+    if (score <= 2) return { label: 'Weak', color: '#ef4444', width: `${score * 20}%` };
+    if (score === 3) return { label: 'Fair', color: '#f97316', width: '60%' };
+    if (score === 4) return { label: 'Strong', color: '#eab308', width: '80%' };
+    return { label: 'Excellent', color: '#10b981', width: '100%' };
+  };
+
+  const strengthInfo = getStrengthInfo(strengthScore);
+
+  // OTP handlers
+  const handleOtpChange = (index: number, val: string) => {
+    const digit = val.replace(/\D/g, '').slice(-1);
+    const nextOtp = [...otpValues];
+    nextOtp[index] = digit;
+    setOtpValues(nextOtp);
+
+    if (digit && index < 5) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace') {
+      if (!otpValues[index] && index > 0) {
+        const nextOtp = [...otpValues];
+        nextOtp[index - 1] = '';
+        setOtpValues(nextOtp);
+        otpRefs.current[index - 1]?.focus();
+        e.preventDefault();
+      } else if (otpValues[index]) {
+        const nextOtp = [...otpValues];
+        nextOtp[index] = '';
+        setOtpValues(nextOtp);
+        e.preventDefault();
+      }
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent<HTMLInputElement>) => {
+    e.preventDefault();
+    const pasteData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pasteData.length === 6) {
+      const nextOtp = pasteData.split('');
+      setOtpValues(nextOtp);
+      otpRefs.current[5]?.focus();
+    }
+  };
+
+  const handleResend = async () => {
+    if (timer > 0 || resending) return;
+    setResending(true);
+    setError('');
+    setResendSuccess(false);
+    try {
+      await api.post('/auth/forgot-password', { email: emailParam });
+      setResendSuccess(true);
+      setTimer(45);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string } } };
+      setError(e.response?.data?.message || 'Failed to resend code. Please try again.');
+    } finally {
+      setResending(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (newPassword !== confirmPassword) return setError('Passwords do not match.');
-    if (newPassword.length < 8) return setError('Password must be at least 8 characters.');
+    setResendSuccess(false);
 
-    const resetCode = otp || tokenParam;
-    if (!resetCode) return setError('Missing verification code.');
+    const otpCode = otpValues.join('');
+    if (otpCode.length < 6) return setError('Please enter the 6-digit verification code.');
+    if (newProtocolCode.length < 8) return setError('Password must be at least 8 characters.');
+    if (newProtocolCode !== repeatCode) return setError('Passwords do not match.');
 
-    const payload = { 
-      token: resetCode, 
-      email: emailParam, 
-      code: resetCode, 
-      newPassword 
+    const payload = {
+      token: otpCode,
+      email: emailParam,
+      code: otpCode,
+      newPassword: newProtocolCode,
     };
 
     setLoading(true);
     try {
-      await api.post('/auth/reset-password', payload);
+      const response = await api.post('/auth/reset-password', payload);
       setSuccess(true);
-      setTimeout(() => navigate('/login'), 3000);
+      setTimeout(() => {
+        if (response?.data?.next?.route) {
+          navigate(response.data.next.route);
+        } else {
+          navigate('/login');
+        }
+      }, 1500);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message || 'Reset failed. The code may have expired.');
+      setError(e.response?.data?.message || 'Reset failed. Verification code may be incorrect or expired.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#fdf2f4] flex items-center justify-center p-6 font-sans overflow-hidden">
-      {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/20 rounded-full blur-[140px] pointer-events-none z-0" />
-      
+    <div className="security-page-bg">
+      {/* Background visual orbs */}
+      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-rose-200/20 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-pink-200/20 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      <div className="w-full max-w-6xl bg-white/80 backdrop-blur-3xl rounded-[56px] shadow-2xl flex overflow-hidden animate-fade-in border border-white relative z-10">
-        
-        {/* LEFT: Visual Side */}
-        <div className="hidden lg:flex w-2/5 relative bg-black flex-col p-20 justify-between overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-primary/20 rounded-full blur-[100px] animate-pulse"></div>
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-primary/10 rounded-full blur-[80px]"></div>
-          
-          <div className="relative z-10 space-y-12">
-            <div className="flex items-center gap-4">
-               <div className="w-16 h-16 bg-primary text-white rounded-[24px] flex items-center justify-center shadow-2xl shadow-primary/30 group hover:rotate-12 transition-transform duration-700">
-                  <Sparkles size={32} strokeWidth={3} />
-               </div>
-               <h1 className="text-4xl font-black text-white tracking-tighter italic uppercase underline decoration-primary decoration-4 underline-offset-8">Sparkle</h1>
-            </div>
-            
-            <div className="space-y-6">
-              <h2 className="text-7xl font-black text-white leading-none tracking-tighter uppercase italic">
-                 Security <span className="text-primary">First.</span>
-              </h2>
-              <p className="text-white/40 text-xl font-bold leading-relaxed italic max-w-xs">
-                 Establish a complex frequency passcode to secure your node in the village.
-              </p>
-            </div>
-          </div>
+      {/* Back Button */}
+      <button onClick={() => navigate(-1)} className="security-back-btn relative z-10">
+        <ChevronLeft size={16} /> Back
+      </button>
 
-          <div className="relative z-10">
-            <div className="space-y-8">
-               <div className="flex items-center gap-6 group">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary transition-all">
-                     <Lock className="text-white/20 group-hover:text-white" size={24} strokeWidth={3} />
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-[10px] uppercase tracking-[0.3em] italic">Protocol</p>
-                    <p className="text-white font-bold text-base italic">Min. 8 Characters</p>
-                  </div>
-               </div>
-               <div className="flex items-center gap-6 group">
-                  <div className="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:bg-primary transition-all">
-                     <Orbit className="text-white/20 group-hover:text-white" size={24} strokeWidth={3} />
-                  </div>
-                  <div>
-                    <p className="text-white font-black text-[10px] uppercase tracking-[0.3em] italic">Complexity</p>
-                    <p className="text-white font-bold text-base italic">Alpha-Numeric-Symbol</p>
-                  </div>
-               </div>
+      <div className="security-card relative z-10">
+        {success && (
+          <div className="success-overlay">
+            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/10 animate-bounce">
+              <CheckCircle2 size={36} strokeWidth={2.5} />
             </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Updated</h2>
+            <p className="text-gray-500 text-sm text-center max-w-xs leading-relaxed">
+              Your account has been secured.<br />Redirecting...
+            </p>
           </div>
+        )}
+
+        {/* Header Block */}
+        <div className="flex flex-col items-center text-center mb-8">
+          <div className="animate-float-shield w-16 h-16 bg-pink-500/10 text-pink-500 rounded-2xl flex items-center justify-center mb-4 border border-pink-500/20 shadow-sm">
+            <Shield size={32} strokeWidth={2} />
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sparkle Security</h1>
+          <p className="text-gray-500 text-sm mt-2 max-w-sm leading-relaxed">
+            Protect your account with a strong password. This keeps your conversations, profile, and data secure.
+          </p>
         </div>
 
-        {/* RIGHT: Form Side */}
-        <div className="flex-1 flex flex-col p-12 md:p-24 relative bg-white/40 overflow-y-auto no-scrollbar">
-          {error && (
-             <div className="mb-12 bg-rose-50 border-2 border-rose-100 p-6 rounded-[28px] flex items-center gap-5 animate-fade-in">
-                <div className="w-3 h-3 rounded-full bg-rose-600 animate-ping"></div>
-                <p className="text-rose-600 text-xs font-black uppercase tracking-[0.2em] italic">{error}</p>
-             </div>
-          )}
+        {error && (
+          <div className="mb-6 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-red-600 text-xs font-semibold">
+            <X size={16} className="flex-shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
 
-          <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
-            {success ? (
-              /* ── Success State ── */
-              <div className="animate-fade-in text-center space-y-12">
-                <div className="flex flex-col items-center">
-                  <div className="w-28 h-28 bg-emerald-50 rounded-[40px] flex items-center justify-center mb-10 shadow-2xl shadow-emerald-500/10 scale-in animate-bounce">
-                     <CheckCircle2 size={48} className="text-emerald-500" strokeWidth={3} />
-                  </div>
-                  <h2 className="text-5xl font-black text-black tracking-tighter uppercase italic leading-none mb-6">
-                    Identity <span className="text-emerald-500">Secured.</span>
-                  </h2>
-                  <p className="text-lg font-bold text-black opacity-40 italic leading-relaxed">
-                    Your encryption protocols have been updated. Harmonizing with login systems...
-                  </p>
-                </div>
+        {resendSuccess && (
+          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-emerald-600 text-xs font-semibold">
+            <Check size={16} className="flex-shrink-0" />
+            <span>Verification code sent successfully.</span>
+          </div>
+        )}
 
-                <div className="relative w-full h-2 bg-emerald-50 rounded-full overflow-hidden p-0.5 shadow-inner">
-                   <div className="h-full bg-emerald-500 rounded-full animate-progress-bar"></div>
-                </div>
-              </div>
-            ) : (
-              /* ── Form State ── */
-              <div className="animate-fade-in">
-                <div className="mb-16">
-                  <h1 className="text-6xl font-black text-black tracking-tighter uppercase italic leading-none mb-6">Recalibrate <span className="text-primary italic">Secret.</span></h1>
-                  <p className="text-lg font-bold text-black opacity-30 italic">
-                    Verify the security code transmitted to <span className="text-primary font-black opacity-100">{emailParam}</span>
-                  </p>
-                </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Identity Verification OTP Blocks */}
+          <div className="space-y-3 bg-white/40 border border-pink-500/10 rounded-2xl p-5 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600">Verify Your Identity</h3>
+            <p className="text-xs text-gray-500 leading-relaxed">
+              We've sent a verification code to <span className="text-gray-900 font-semibold">{maskEmail(emailParam)}</span>. Enter the code below to continue.
+            </p>
 
-                <form onSubmit={handleSubmit} className="space-y-10">
-                   {/* OTP Field */}
-                   <div className="space-y-4">
-                      <label className="flex items-center gap-3 text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] ml-6 italic">
-                         <Hash size={18} strokeWidth={4} /> Authorization Key
-                      </label>
-                      <input 
-                         type="text" 
-                         inputMode="numeric"
-                         maxLength={6}
-                         value={otp}
-                         onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                         className="w-full h-24 bg-black/5 border-2 border-transparent focus:border-primary focus:bg-white rounded-[32px] px-10 text-center text-4xl font-black text-black tracking-[0.6em] transition-all outline-none italic shadow-inner"
-                         placeholder="••••••"
-                         required
-                      />
-                   </div>
+            <div className="flex justify-between gap-2 mt-4">
+              {otpValues.map((val, i) => (
+                <input
+                  key={i}
+                  ref={(el) => (otpRefs.current[i] = el)}
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={val}
+                  onChange={(e) => handleOtpChange(i, e.target.value)}
+                  onKeyDown={(e) => handleOtpKeyDown(i, e)}
+                  onPaste={handleOtpPaste}
+                  className="input-otp-box"
+                />
+              ))}
+            </div>
 
-                   {/* New Password */}
-                   <div className="space-y-4">
-                      <label className="flex items-center gap-3 text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] ml-6 italic">
-                         <Lock size={18} strokeWidth={4} /> New Protocol Code
-                      </label>
-                      <div className="relative">
-                         <input 
-                            type={showPassword ? 'text' : 'password'}
-                            value={newPassword}
-                            onChange={(e) => setNewPassword(e.target.value)}
-                            className="w-full h-20 bg-black/5 border-2 border-transparent focus:border-primary focus:bg-white rounded-[28px] px-8 text-lg font-black text-black placeholder:text-black/5 transition-all outline-none italic shadow-inner"
-                            placeholder="SECRET_HARMONIC"
-                            required
-                         />
-                         <button 
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-8 top-1/2 -translate-y-1/2 text-black/20 hover:text-primary transition-colors"
-                         >
-                            {showPassword ? <EyeOff size={24} strokeWidth={4} /> : <Eye size={24} strokeWidth={4} />}
-                         </button>
-                      </div>
-                      {/* Strength Meter */}
-                      {newPassword && (
-                        <div className="flex gap-2 px-8">
-                           {[1, 2, 3, 4].map(i => (
-                              <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-700 ${i <= strength ? '' : 'bg-black/5'}`} style={{ backgroundColor: i <= strength ? strengthColors[strength] : undefined }} />
-                           ))}
-                        </div>
+            <div className="flex items-center justify-between mt-4 pt-2 border-t border-black/5 text-[11px] text-gray-500">
+              <span>Didn't receive it?</span>
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={timer > 0 || resending}
+                className="text-pink-600 font-bold hover:text-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+              >
+                {resending && <RefreshCw size={10} className="animate-spin" />}
+                {timer > 0 ? `Resend Code (${timer}s)` : 'Resend Code'}
+              </button>
+            </div>
+          </div>
+
+          {/* New Password */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-700">New Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={newProtocolCode}
+                onChange={(e) => setNewProtocolCode(e.target.value)}
+                className="security-input pr-12"
+                placeholder="Enter new password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {/* Password Requirements Checklist & Strength bar */}
+            {newProtocolCode && (
+              <div className="mt-3 bg-white/40 border border-pink-500/10 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div className="text-xs font-bold text-gray-700">Password Requirements</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {checklist.map((item) => (
+                    <div key={item.id} className={`requirement-item ${item.met ? 'met' : ''}`}>
+                      {item.met ? (
+                        <Check size={14} className="text-emerald-500" />
+                      ) : (
+                        <X size={14} className="text-gray-400" />
                       )}
-                   </div>
+                      <span>{item.label}</span>
+                    </div>
+                  ))}
+                </div>
 
-                   {/* Confirm Password */}
-                   <div className="space-y-4">
-                      <label className="flex items-center gap-3 text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] ml-6 italic">
-                         <Key size={18} strokeWidth={4} /> Repeat Code
-                      </label>
-                      <input 
-                         type={showPassword ? 'text' : 'password'}
-                         value={confirmPassword}
-                         onChange={(e) => setConfirmPassword(e.target.value)}
-                         className={`w-full h-20 bg-black/5 border-2 rounded-[28px] px-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white transition-all outline-none italic shadow-inner ${confirmPassword && newPassword !== confirmPassword ? 'border-rose-500 bg-rose-50' : 'border-transparent focus:border-primary'}`}
-                         placeholder="REPEAT_SECRET"
-                         required
-                      />
-                   </div>
-
-                   <button 
-                      type="submit" 
-                      disabled={loading}
-                      className="w-full h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.3em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center italic"
-                   >
-                      {loading ? 'Transmitting...' : 'Update Protocol'}
-                   </button>
-
-                   <Link 
-                      to="/forgot-password" 
-                      className="flex items-center justify-center gap-4 text-black opacity-30 hover:opacity-100 hover:text-primary text-[10px] font-black uppercase tracking-[0.4em] transition-all italic"
-                   >
-                      <ChevronLeft size={16} strokeWidth={4} className="hover:-translate-x-2 transition-transform" /> Sync New Key
-                   </Link>
-                </form>
+                <div className="pt-2 border-t border-black/5 space-y-1.5">
+                  <div className="flex justify-between items-center text-[10px] text-gray-500">
+                    <span>Password Strength</span>
+                    <span className="font-bold" style={{ color: strengthInfo.color }}>
+                      {strengthInfo.label}
+                    </span>
+                  </div>
+                  <div className="strength-bar-container">
+                    <div
+                      className="strength-bar-fill"
+                      style={{
+                        width: strengthInfo.width,
+                        backgroundColor: strengthInfo.color,
+                      }}
+                    />
+                  </div>
+                </div>
               </div>
             )}
           </div>
-        </div>
 
+          {/* Confirm Password */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold text-gray-700">Confirm Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={repeatCode}
+                onChange={(e) => setRepeatCode(e.target.value)}
+                className="security-input pr-12"
+                placeholder="Confirm new password"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+
+            {repeatCode && (
+              <div className="flex items-center gap-1.5 px-1 mt-1 text-[11px]">
+                {newProtocolCode === repeatCode ? (
+                  <>
+                    <Check size={14} className="text-emerald-500" />
+                    <span className="text-emerald-500 font-semibold">Passwords match</span>
+                  </>
+                ) : (
+                  <>
+                    <X size={14} className="text-red-500" />
+                    <span className="text-red-500 font-semibold">Passwords do not match</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer Security Card */}
+          <div className="bg-pink-500/5 border border-pink-500/10 rounded-2xl p-4 flex gap-3 text-xs leading-relaxed text-pink-800 shadow-sm">
+            <Shield size={16} className="text-pink-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold text-pink-700 block mb-0.5">🛡 Security Tip</span>
+              Never reuse passwords from other websites. A unique password keeps your Sparkle account safer.
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <button type="submit" disabled={loading} className="security-btn">
+            {loading ? (
+              <>
+                <div className="spinner" />
+                Updating...
+              </>
+            ) : (
+              'Update Password →'
+            )}
+          </button>
+        </form>
       </div>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes progress { from { width: 0%; } to { width: 100%; } }
-        .animate-progress-bar { animation: progress 3s linear forwards; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .security-page-bg {
+          min-height: 100vh;
+          background-color: #fdf2f4;
+          background-image: radial-gradient(circle at 10% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 45%),
+                            radial-gradient(circle at 90% 80%, rgba(219, 39, 119, 0.08) 0%, transparent 45%);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 2.5rem 1.5rem;
+          color: #1f2937;
+          font-family: 'Outfit', 'Inter', sans-serif;
+          position: relative;
+        }
+
+        .security-back-btn {
+          position: absolute;
+          top: 2rem;
+          left: 2rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          color: #4b5563;
+          font-size: 0.875rem;
+          font-weight: 600;
+          transition: all 0.2s ease;
+          background: none;
+          border: none;
+          outline: none;
+          cursor: pointer;
+        }
+
+        .security-back-btn:hover {
+          color: #db2777;
+          transform: translateX(-3px);
+        }
+
+        .security-card {
+          width: 100%;
+          max-width: 480px;
+          background: rgba(255, 255, 255, 0.75);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.6);
+          border-radius: 28px;
+          padding: 2.75rem 2.25rem;
+          box-shadow: 0 25px 50px -12px rgba(219, 39, 119, 0.08), 0 0 50px rgba(219, 39, 119, 0.03);
+          position: relative;
+          overflow: hidden;
+        }
+
+        @keyframes float {
+          0% { transform: translateY(0px); }
+          50% { transform: translateY(-5px); }
+          100% { transform: translateY(0px); }
+        }
+        .animate-float-shield {
+          animation: float 4s ease-in-out infinite;
+        }
+
+        .input-otp-box {
+          width: 2.85rem;
+          height: 3.5rem;
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 12px;
+          text-align: center;
+          font-size: 1.35rem;
+          font-weight: 700;
+          color: #111827;
+          outline: none;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .input-otp-box:focus {
+          border-color: #db2777;
+          background: rgba(219, 39, 119, 0.02);
+          box-shadow: 0 0 14px rgba(219, 39, 119, 0.2);
+        }
+
+        .security-input {
+          width: 100%;
+          background: rgba(255, 255, 255, 0.8);
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 16px;
+          padding: 1rem 1.25rem;
+          font-size: 0.95rem;
+          color: #111827;
+          outline: none;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .security-input:focus {
+          border-color: #db2777;
+          background: rgba(219, 39, 119, 0.02);
+          box-shadow: 0 0 14px rgba(219, 39, 119, 0.2);
+        }
+
+        .requirement-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.8rem;
+          color: #6b7280;
+          transition: color 0.2s ease;
+        }
+
+        .requirement-item.met {
+          color: #059669;
+        }
+
+        .strength-bar-container {
+          height: 6px;
+          background: rgba(0, 0, 0, 0.05);
+          border-radius: 9999px;
+          overflow: hidden;
+        }
+
+        .strength-bar-fill {
+          height: 100%;
+          width: 0%;
+          border-radius: 9999px;
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .security-btn {
+          width: 100%;
+          background: linear-gradient(135deg, #ec4899, #db2777);
+          border: none;
+          border-radius: 16px;
+          padding: 1.1rem;
+          color: #fff;
+          font-weight: 700;
+          font-size: 0.95rem;
+          letter-spacing: 0.02em;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          box-shadow: 0 8px 16px -3px rgba(219, 39, 119, 0.2);
+        }
+
+        .security-btn:hover:not(:disabled) {
+          transform: translateY(-1px);
+          box-shadow: 0 12px 20px -3px rgba(219, 39, 119, 0.35);
+        }
+
+        .security-btn:active:not(:disabled) {
+          transform: translateY(1px);
+        }
+
+        .security-btn:disabled {
+          opacity: 0.65;
+          cursor: not-allowed;
+        }
+
+        .success-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: #fdf2f4;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          z-index: 50;
+          animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @keyframes fadeInOverlay {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+
+        .spinner {
+          border: 2px solid rgba(255, 255, 255, 0.15);
+          border-top-color: #fff;
+          border-radius: 50%;
+          width: 1.2rem;
+          height: 1.2rem;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(8px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+          animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        @media (max-width: 640px) {
+          .security-page-bg {
+            padding: 1.5rem 1rem;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+          }
+          .security-card {
+            padding: 2rem 1.5rem;
+            border-radius: 24px;
+          }
+          .security-back-btn {
+            position: relative;
+            top: auto;
+            left: auto;
+            margin-bottom: 1.5rem;
+            align-self: flex-start;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .security-page-bg {
+            padding: 1rem 0.5rem;
+          }
+          .security-card {
+            padding: 1.75rem 1.25rem;
+            border-radius: 20px;
+          }
+          .input-otp-box {
+            width: 2.3rem;
+            height: 3rem;
+            font-size: 1.15rem;
+            border-radius: 8px;
+          }
+          .security-card h1 {
+            font-size: 1.25rem;
+          }
+          .security-card p {
+            font-size: 0.8rem;
+          }
+        }
+
+        @media (max-width: 360px) {
+          .security-card {
+            padding: 1.5rem 0.75rem;
+          }
+          .input-otp-box {
+            width: 2rem;
+            height: 2.6rem;
+            font-size: 1rem;
+          }
+        }
       `}</style>
     </div>
   );

@@ -35,7 +35,11 @@ async function retryQuery(queryFn, maxRetries = 3, baseDelay = 1000) {
 }
 
 /**
- * Execute a database query using safeQuery
+ * Execute a database query using safeQuery.
+ *
+ * @param {string} sql - The SQL query string.
+ * @param {Array} [params=[]] - Optional array of parameters for prepared statements.
+ * @returns {Promise<Array<Object>>} Resolves with an array of result rows.
  */
 async function query(sql, params = []) {
     try {

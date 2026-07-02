@@ -9,7 +9,7 @@ const sendEmail = async (options) => {
 };
 
 // Common templates for centralized management
-const APP_URL = process.env.APP_URL || 'http://localhost:5173';
+const APP_URL = process.env.APP_URL || 'https://sparklewebapp.vercel.app';
 
 const templates = {
     verifyEmail: (name, code) => ({

@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const crypto = require('crypto');
+const { SPARKLE_SYSTEM_USER_ID } = require('../config/constants');
 
 class User {
     static pool = pool;
@@ -207,9 +208,9 @@ class User {
                           (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
                           ${mutualQuery} as mutual_connections
                    FROM users u 
-                   WHERE u.user_id != ?`;
+                   WHERE u.user_id != ? AND u.user_id != ?`;
         
-        const params = [currentUserId, currentUserId, currentUserId, currentUserId];
+        const params = [currentUserId, currentUserId, currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID];
 
         if (query && query.trim()) {
             sql += ` AND (u.name LIKE ? OR u.username LIKE ?)`;
@@ -265,9 +266,9 @@ class User {
                         ${relationshipQuery}
                  FROM follows f
                  JOIN users u ON f.following_id = u.user_id
-                 WHERE f.follower_id = ?
+                 WHERE f.follower_id = ? AND u.user_id != ? AND u.user_id != ?
                  LIMIT ?`,
-                [currentUserId, currentUserId, currentUserId, limit]
+                [currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, limit]
             );
             return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
         }
@@ -278,9 +279,10 @@ class User {
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
              WHERE f.follower_id = ? 
-             AND (u.name LIKE ? OR u.username LIKE ?)
-             LIMIT ?`,
-            [currentUserId, currentUserId, currentUserId, `%${query}%`, `%${query}%`, limit]
+              AND u.user_id != ? AND u.user_id != ?
+              AND (u.name LIKE ? OR u.username LIKE ?)
+              LIMIT ?`,
+            [currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, `%${query}%`, `%${query}%`, limit]
         );
         return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
     }
@@ -292,7 +294,7 @@ class User {
         const [users] = await pool.query(
             `SELECT DISTINCT u.user_id, u.username, u.name, u.avatar_url, u.campus, u.is_online, u.last_seen_at, u.note
              FROM users u
-             WHERE u.user_id != ? 
+             WHERE u.user_id != ? AND u.user_id != ?
              AND (u.is_online = 1 OR TIMESTAMPDIFF(MINUTE, u.last_seen_at, NOW()) < 2)
              AND (
                 u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)
@@ -306,7 +308,7 @@ class User {
              )
              ORDER BY u.is_online DESC, u.last_seen_at DESC
              LIMIT ?`,
-            [currentUserId, currentUserId, currentUserId, currentUserId, limit]
+            [currentUserId, SPARKLE_SYSTEM_USER_ID, currentUserId, currentUserId, currentUserId, limit]
         );
         return users;
     }
@@ -357,7 +359,7 @@ class User {
                     (RAND${sqlSeed} * 5)
                 ) as discovery_score
             FROM users u
-            WHERE u.user_id != ? 
+            WHERE u.user_id != ? AND u.user_id != ?
         `;
 
         const params = [
@@ -367,7 +369,8 @@ class User {
             currentUserId, // for mutual_connections in score
             me[0].major,   // for academic similarity
             me[0].campus,  // for campus proximity
-            currentUserId  // for u.user_id != ?
+            currentUserId, // for u.user_id != ?
+            SPARKLE_SYSTEM_USER_ID // for u.user_id != ?
         ];
 
         // Apply Tab Logic
@@ -637,8 +640,8 @@ class User {
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
-             WHERE f.following_id = ?`,
-            [currentUserId, currentUserId, userId]
+             WHERE f.following_id = ? AND u.user_id != ?`,
+            [currentUserId, currentUserId, userId, SPARKLE_SYSTEM_USER_ID]
         );
         return followers;
     }
@@ -654,8 +657,8 @@ class User {
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
-             WHERE f.follower_id = ?`,
-            [currentUserId, currentUserId, userId]
+             WHERE f.follower_id = ? AND u.user_id != ?`,
+            [currentUserId, currentUserId, userId, SPARKLE_SYSTEM_USER_ID]
         );
         return following;
     }

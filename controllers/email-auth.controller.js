@@ -155,7 +155,7 @@ const forgotPassword = async (req, res) => {
             // Don't reveal if user exists for security
             return res.json({
                 status: 'success',
-                message: 'If an account exists with this email, you will receive password reset instructions.'
+                message: "If an account exists for this email, we've sent password reset instructions."
             });
         }
 
@@ -168,7 +168,7 @@ const forgotPassword = async (req, res) => {
 
         res.json({
             status: 'success',
-            message: 'Password reset email sent successfully'
+            message: "If an account exists for this email, we've sent password reset instructions."
         });
     } catch (error) {
         logger.error('Forgot password error:', error);

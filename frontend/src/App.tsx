@@ -333,6 +333,7 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
+                    <Route path="/home" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/profile/:username" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
                     <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
@@ -409,6 +410,7 @@ function App() {
                     <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />
                     <Route path="/streams" element={isAuthenticated ? <Streams /> : <Navigate to="/login" />} />
                     <Route path="/professional-dashboard" element={isAuthenticated ? <ProfessionalDashboard /> : <Navigate to="/login" />} />
+                                         <Route path="/explore" element={<Explore />} />
 
                     {/* ── Phase 4: Utility & Features ── */}
                     <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />
@@ -421,6 +423,7 @@ function App() {
                     <Route path="/verified" element={isAuthenticated ? <Verified /> : <Navigate to="/login" />} />
                     <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
                     <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
+                    <Route path="/onboarding" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
                     <Route path="/onboarding/about" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
 
                     {/* ── Phase 5: Public & Static ── */}

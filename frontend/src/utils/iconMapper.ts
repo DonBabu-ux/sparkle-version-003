@@ -13,8 +13,9 @@ import {
   Heart,
   UserPlus,
   HelpCircle,
-  LucideIcon
+
 } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 
 const iconMap: Record<string, LucideIcon> = {
   party: PartyPopper,

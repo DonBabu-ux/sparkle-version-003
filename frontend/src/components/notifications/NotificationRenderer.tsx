@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { FixedSizeList as List } from 'react-window';
-import AutoSizer from 'react-virtualized-auto-sizer';
+import { List } from 'react-window';
+import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { isToday, isYesterday, subDays, isAfter } from 'date-fns';
 import type { SparkleNotification } from '../../types/notification';
 import { NotificationCard } from './NotificationCard';

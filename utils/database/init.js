@@ -329,6 +329,29 @@ const initNotificationsTable = async () => {
         } catch (e) {
             logger.warn('Failed to add aggregation_count column:', e.message);
         }
+
+        // Migration: Add notification platform columns if missing
+        const platformColumns = [
+            { name: 'related_user_id', sql: "ADD COLUMN related_user_id CHAR(36) NULL AFTER actor_id" },
+            { name: 'sender_id',       sql: "ADD COLUMN sender_id VARCHAR(36) NULL AFTER related_user_id" },
+            { name: 'icon',            sql: "ADD COLUMN icon VARCHAR(100) NULL AFTER sender_id" },
+            { name: 'entities',        sql: "ADD COLUMN entities JSON NOT NULL DEFAULT (JSON_ARRAY()) AFTER icon" },
+            { name: 'actions',         sql: "ADD COLUMN actions JSON NOT NULL DEFAULT (JSON_ARRAY()) AFTER entities" },
+            { name: 'priority',        sql: "ADD COLUMN priority ENUM('critical','high','normal','low') NOT NULL DEFAULT 'normal' AFTER actions" },
+            { name: 'category',        sql: "ADD COLUMN category ENUM('security','social','system','announcement','onboarding','commerce','community') NOT NULL DEFAULT 'social' AFTER priority" },
+            { name: 'is_official',     sql: "ADD COLUMN is_official BOOLEAN NOT NULL DEFAULT FALSE AFTER category" },
+        ];
+        for (const col of platformColumns) {
+            try {
+                const [cols] = await pool.query(`SHOW COLUMNS FROM notifications LIKE '${col.name}'`);
+                if (cols.length === 0) {
+                    await pool.query(`ALTER TABLE notifications ${col.sql}`);
+                    logger.info(`Added ${col.name} column to notifications table`);
+                }
+            } catch (e) {
+                logger.warn(`Failed to add ${col.name} to notifications:`, e.message);
+            }
+        }
     } catch (err) {
         logger.error('❌ Failed to init notifications table:', err.message);
         throw err;

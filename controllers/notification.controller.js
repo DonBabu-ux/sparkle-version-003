@@ -94,7 +94,7 @@ const notificationController = {
                         n.action_url AS action_url,
                         n.aggregation_count AS aggregation_count,
                         n.related_id AS related_post_id,
-                        n.sender_id AS sender_id,
+                        COALESCE(n.related_user_id, n.actor_id) AS sender_id,
                         n.icon AS icon,
                         n.entities AS entities,
                         n.actions AS actions,
@@ -188,7 +188,7 @@ const notificationController = {
                 return {
                     id: n.notification_id,
                     type: n.type,
-                    senderId: n.sender_id || n.actor_id || null,
+                    senderId: n.sender_id || null,
                     title: n.title,
                     body: n.content || n.title,
                     icon: n.icon || (n.type === 'spark' ? 'zap' : n.type === 'comment' ? 'message-square' : 'bell'),
@@ -209,6 +209,7 @@ const notificationController = {
                     actor_avatar: n.actor_avatar,
                     action_url: n.action_url,
                     aggregation_count: n.aggregation_count,
+                    created_at: n.created_at,
                     related_user: n.actor_id ? {
                         id: n.actor_id,
                         username: n.actor_username,

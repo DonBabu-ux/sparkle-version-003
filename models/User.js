@@ -640,8 +640,8 @@ class User {
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
-             WHERE f.following_id = ? AND u.user_id != ?`,
-            [currentUserId, currentUserId, userId, SPARKLE_SYSTEM_USER_ID]
+             WHERE f.following_id = ? AND u.user_id != ? AND u.user_id != ?`,
+            [currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
         );
         return followers;
     }
@@ -657,8 +657,8 @@ class User {
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
-             WHERE f.follower_id = ? AND u.user_id != ?`,
-            [currentUserId, currentUserId, userId, SPARKLE_SYSTEM_USER_ID]
+             WHERE f.follower_id = ? AND u.user_id != ? AND u.user_id != ?`,
+            [currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
         );
         return following;
     }

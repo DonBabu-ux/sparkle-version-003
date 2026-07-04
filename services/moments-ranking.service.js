@@ -167,7 +167,6 @@ class MomentsRankingService {
                 JOIN users u ON m.user_id = u.user_id
                 JOIN follows f ON f.following_id = m.user_id AND f.follower_id = ?
                 WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)
-                  AND m.status = 'active'
                 ORDER BY m.created_at DESC
                 LIMIT 50
             `, [userId]);

@@ -53,6 +53,13 @@ class UserBootstrapService {
 
             // 3. Initialise onboarding state
             result.onboardingInitialised = await this._initOnboardingState(userId);
+            // Ensure wallet exists for the user
+            try {
+                await safeQuery('INSERT IGNORE INTO wallets (wallet_id, user_id) VALUES (UUID(), ?)', [userId]);
+                logger.debug(`[Bootstrap] Wallet ensured for user ${userId}`);
+            } catch (e) {
+                logger.warn(`[Bootstrap] Wallet creation error for user ${userId}:`, e.message);
+            }
 
             // 4. Queue analytics (fire-and-forget)
             this._logBootstrapAnalytics(userId).catch(() => {});

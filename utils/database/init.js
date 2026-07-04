@@ -1539,6 +1539,117 @@ const initOtaTable = async () => {
     }
 };
 
+// ── Wallet Ledger Tables (Production Schema) ───────────────────────────────────
+const initWalletTables = async () => {
+    try {
+        // ── wallets: one per user, balances stored in integer cents ───────────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallets (
+                wallet_id        CHAR(36)     PRIMARY KEY,
+                user_id          CHAR(36)     UNIQUE NOT NULL,
+                currency         VARCHAR(3)   NOT NULL DEFAULT 'KES',
+                available_balance BIGINT      NOT NULL DEFAULT 0 COMMENT 'cents, spendable immediately',
+                pending_balance  BIGINT       NOT NULL DEFAULT 0 COMMENT 'cents, locked pending settlement',
+                lifetime_deposits BIGINT      NOT NULL DEFAULT 0 COMMENT 'total deposited cents ever',
+                lifetime_withdrawals BIGINT   NOT NULL DEFAULT 0 COMMENT 'total withdrawn cents ever',
+                lifetime_earnings BIGINT      NOT NULL DEFAULT 0 COMMENT 'total earned cents (ads/boosts/tips etc.)',
+                created_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at       TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                CONSTRAINT fk_wallet_user FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                INDEX idx_wallets_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='One wallet per user — all amounts in integer cents'
+        `);
+
+        // ── wallet_transactions: immutable ledger of every financial event ────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_transactions (
+                transaction_id  CHAR(36)     PRIMARY KEY,
+                wallet_id       CHAR(36)     NOT NULL,
+                reference       VARCHAR(255) NOT NULL COMMENT 'Paystack ref or internal ID',
+                type            ENUM(
+                                    'Deposit','Withdrawal','Revenue','Purchase',
+                                    'Refund','Subscription','Tip',
+                                    'BoostPurchase','BoostSpend',
+                                    'AdRevenue','CreatorPayment','Transfer'
+                                ) NOT NULL,
+                status          ENUM('Pending','Completed','Failed','Refunded') NOT NULL DEFAULT 'Pending',
+                amount          BIGINT       NOT NULL COMMENT 'integer cents, always positive',
+                currency        VARCHAR(3)   NOT NULL DEFAULT 'KES',
+                payment_provider VARCHAR(32) DEFAULT NULL COMMENT 'Paystack | M-Pesa | Internal',
+                metadata        JSON         DEFAULT NULL COMMENT 'provider response, bank details, etc.',
+                created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                CONSTRAINT fk_txn_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(wallet_id) ON DELETE CASCADE,
+                UNIQUE  INDEX idx_txn_reference  (reference),
+                INDEX   idx_txn_wallet_id        (wallet_id),
+                INDEX   idx_txn_status           (status),
+                INDEX   idx_txn_type             (type),
+                INDEX   idx_txn_created          (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Immutable ledger — never UPDATE or DELETE rows here'
+        `);
+
+        // ── wallet_deposits: Paystack initialisation tracking ─────────────────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_deposits (
+                deposit_id      CHAR(36)     PRIMARY KEY,
+                wallet_id       CHAR(36)     NOT NULL,
+                paystack_ref    VARCHAR(255) NOT NULL,
+                amount_cents    BIGINT       NOT NULL COMMENT 'integer cents',
+                currency        VARCHAR(3)   NOT NULL DEFAULT 'KES',
+                method          ENUM('mpesa','card','bank','ussd') NOT NULL DEFAULT 'card',
+                phone           VARCHAR(20)  DEFAULT NULL,
+                status          ENUM('Pending','Completed','Failed') NOT NULL DEFAULT 'Pending',
+                initiated_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                completed_at    TIMESTAMP    NULL DEFAULT NULL,
+                metadata        JSON         DEFAULT NULL,
+                CONSTRAINT fk_deposit_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(wallet_id) ON DELETE CASCADE,
+                UNIQUE  INDEX idx_deposit_ref    (paystack_ref),
+                INDEX   idx_deposit_wallet      (wallet_id),
+                INDEX   idx_deposit_status      (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Paystack transaction state per deposit attempt'
+        `);
+
+        // ── wallet_withdrawals: payout requests ───────────────────────────────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_withdrawals (
+                withdrawal_id       CHAR(36)     PRIMARY KEY,
+                wallet_id           CHAR(36)     NOT NULL,
+                amount_cents        BIGINT       NOT NULL COMMENT 'integer cents',
+                currency            VARCHAR(3)   NOT NULL DEFAULT 'KES',
+                method              ENUM('bank','mpesa') NOT NULL DEFAULT 'bank',
+                status              ENUM('Pending','Processing','Completed','Failed','Cancelled') NOT NULL DEFAULT 'Pending',
+                paystack_recipient  VARCHAR(255) DEFAULT NULL COMMENT 'Paystack recipient_code',
+                paystack_transfer   VARCHAR(255) DEFAULT NULL COMMENT 'Paystack transfer_code',
+                account_name        VARCHAR(255) DEFAULT NULL,
+                account_number      VARCHAR(50)  DEFAULT NULL,
+                bank_code           VARCHAR(20)  DEFAULT NULL,
+                phone               VARCHAR(20)  DEFAULT NULL COMMENT 'M-Pesa number',
+                requested_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                processed_at        TIMESTAMP    NULL DEFAULT NULL,
+                metadata            JSON         DEFAULT NULL,
+                CONSTRAINT fk_withdrawal_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(wallet_id) ON DELETE CASCADE,
+                INDEX idx_withdrawal_wallet (wallet_id),
+                INDEX idx_withdrawal_status (status)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Payout requests — deduct from pending_balance until processed'
+        `);
+
+        // ── wallet_webhook_log: idempotency guard for Paystack webhooks ───────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_webhook_log (
+                id              BIGINT       AUTO_INCREMENT PRIMARY KEY,
+                paystack_ref    VARCHAR(255) NOT NULL,
+                event_type      VARCHAR(100) NOT NULL,
+                processed_at    TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE INDEX idx_webhook_ref_event (paystack_ref, event_type)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ensures each Paystack event is processed exactly once'
+        `);
+
+        logger.debug('✅ Wallet ledger tables verified (production schema)');
+    } catch (err) {
+        logger.error('❌ Failed to init wallet tables:', err.message);
+        throw err;
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -1587,7 +1698,20 @@ const initDB = async () => {
         try { await initHighlightsTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Highlights Tables Init Error:', getErrorMessage(e)); }
         try { await initUserActionsTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('User Actions Init Error:', getErrorMessage(e)); }
         try { await initModerationTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Moderation Tables Init Error:', getErrorMessage(e)); }
-        try { await initOtaTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('OTA Init Error:', getErrorMessage(e)); }
+        try { await initOtaTable();
+        // Initialize wallet tables after core tables
+        await initWalletTables();
+        // Backfill wallets for any existing users without a wallet
+        try {
+            const users = await pool.query('SELECT user_id FROM users');
+            for (const row of users[0]) {
+                const uid = row.user_id;
+                await pool.query(`INSERT IGNORE INTO wallets (wallet_id, user_id) VALUES (UUID(), ?)`, [uid]);
+            }
+            logger.debug('✅ Wallet backfill complete');
+        } catch (e) {
+            logger.warn('⚠️ Wallet backfill error:', e.message);
+        } } catch (e) { if (!isDuplicateError(e)) logger.error('OTA Init Error:', getErrorMessage(e)); }
     });
     
     logger.debug('✅ Database initialization process complete');

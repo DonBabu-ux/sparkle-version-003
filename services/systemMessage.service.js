@@ -23,14 +23,17 @@ const { safeQuery } = require('../config/database');
 const logger = require('../utils/logger');
 
 // ── Templates ─────────────────────────────────────────────────────────────────
-const welcomeTemplate          = require('./notifications/templates/welcome');
-const loginAlertTemplate       = require('./notifications/templates/loginAlert');
-const passwordChangedTemplate  = require('./notifications/templates/passwordChanged');
-const verificationTemplate     = require('./notifications/templates/verificationSuccess');
-const featureTemplate          = require('./notifications/templates/featureAnnouncement');
-const securityAlertTemplate    = require('./notifications/templates/securityAlert');
-const maintenanceTemplate      = require('./notifications/templates/maintenanceNotice');
-const moderationTemplate       = require('./notifications/templates/moderationAction');
+const welcomeTemplate              = require('./notifications/templates/welcome');
+const loginAlertTemplate           = require('./notifications/templates/loginAlert');
+const passwordChangedTemplate      = require('./notifications/templates/passwordChanged');
+const verificationTemplate         = require('./notifications/templates/verificationSuccess');
+const featureTemplate              = require('./notifications/templates/featureAnnouncement');
+const securityAlertTemplate        = require('./notifications/templates/securityAlert');
+const maintenanceTemplate          = require('./notifications/templates/maintenanceNotice');
+const moderationTemplate           = require('./notifications/templates/moderationAction');
+const walletDepositTemplate        = require('./notifications/templates/walletDepositSuccess');
+const walletWithdrawalTemplate     = require('./notifications/templates/walletWithdrawalStatus');
+const revenueEarnedTemplate        = require('./notifications/templates/revenueEarned');
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const SYSTEM_USER_ID = process.env.SPARKLE_SYSTEM_USER_ID || 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
@@ -318,6 +321,52 @@ class SystemMessageService {
             logger.info(`[SystemMessage] Moderation action sent to ${userId}`);
         } catch (error) {
             logger.error('[SystemMessage] sendModerationAction error:', error.message);
+        }
+    }
+
+    /**
+     * Send a rich wallet notification.
+     * @param {string} userId
+     * @param {object} opts
+     * @param {string}  opts.txnType     'deposit' | 'withdrawal' | 'revenue' | 'revenue_update'
+     * @param {number}  opts.amountCents  Integer cents (e.g. 50000 = KES 500.00)
+     * @param {string}  [opts.currency]  Default 'KES'
+     * @param {string}  [opts.status]    For withdrawal: 'Pending' | 'Completed' | 'Failed'
+     * @param {string}  [opts.reference] Paystack ref or withdrawal ID
+     * @param {string}  [opts.source]    For revenue: 'AdRevenue' | 'Tip' | etc.
+     * @param {string}  [opts.period]    For revenue: 'today' | 'this week'
+     */
+    async sendWalletNotification(userId, opts = {}) {
+        try {
+            const {
+                txnType, amountCents = 0, currency = 'KES',
+                status = 'Pending', reference = '', source = 'Revenue', period = 'today',
+                // Legacy support (if amount passed instead of amountCents)
+                amount
+            } = opts;
+
+            // Support legacy callers that pass `amount` as a KES float
+            const cents = amountCents || (amount ? Math.round(parseFloat(amount) * 100) : 0);
+
+            let payload;
+            if (txnType === 'deposit') {
+                payload = walletDepositTemplate({ amountCents: cents, currency, reference });
+            } else if (txnType === 'withdrawal') {
+                payload = walletWithdrawalTemplate({ amountCents: cents, currency, status, reference });
+            } else {
+                // Revenue, tips, boosts, ads, etc.
+                payload = revenueEarnedTemplate({ amountCents: cents, currency, source, period });
+            }
+
+            await this._saveNotification(userId, payload);
+
+            const chatId = await this.ensureSystemConversation(userId);
+            if (chatId) {
+                await this._postSystemChatMessage(userId, chatId, payload.body);
+            }
+            logger.info(`[SystemMessage] Wallet notification (${txnType}) sent to ${userId}`);
+        } catch (error) {
+            logger.error('[SystemMessage] sendWalletNotification error:', error.message);
         }
     }
 }

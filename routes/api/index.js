@@ -85,5 +85,6 @@ router.use('/audio', require('./audio.routes'));
 router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));
 router.use('/ota', require('./ota.routes'));
+router.use('/wallet', require('./wallet.routes'));
 
 module.exports = router;

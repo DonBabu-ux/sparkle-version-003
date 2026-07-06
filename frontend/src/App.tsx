@@ -101,6 +101,12 @@ import BlockedUsers from './pages/BlockedUsers';
 import About from './pages/About';
 import NotFound from './pages/NotFound';
 
+// New Creator Dashboard Sub-Routes
+import Ads from './pages/Ads';
+import CreatorStudio from './pages/CreatorStudio';
+import CreatorAnalytics from './pages/CreatorAnalytics';
+import WalletHistory from './pages/WalletHistory';
+
 function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
@@ -410,7 +416,15 @@ function App() {
                     <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />
                     <Route path="/streams" element={isAuthenticated ? <Streams /> : <Navigate to="/login" />} />
                     <Route path="/professional-dashboard" element={isAuthenticated ? <ProfessionalDashboard /> : <Navigate to="/login" />} />
-                                         <Route path="/explore" element={<Explore />} />
+                    <Route path="/ads" element={isAuthenticated ? <Ads /> : <Navigate to="/login" />} />
+                    <Route path="/studio" element={isAuthenticated ? <CreatorStudio /> : <Navigate to="/login" />} />
+                    <Route path="/analytics" element={isAuthenticated ? <CreatorAnalytics /> : <Navigate to="/login" />} />
+                    <Route path="/wallet/history" element={isAuthenticated ? <WalletHistory /> : <Navigate to="/login" />} />
+                    {/* Convenience alias routes */}
+                    <Route path="/live" element={<Navigate to="/streams" replace />} />
+                    <Route path="/upload" element={<Navigate to="/moments/create" replace />} />
+                    <Route path="/shop" element={<Navigate to="/marketplace/my-shop" replace />} />
+                    <Route path="/explore" element={<Explore />} />
 
                     {/* ── Phase 4: Utility & Features ── */}
                     <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />

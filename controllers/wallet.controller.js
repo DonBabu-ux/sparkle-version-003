@@ -229,6 +229,16 @@ exports.handleWebhook = async (req, res) => {
         } catch (err) {
             logger.error(`[WalletWebhook] Error processing charge.success for ${reference}:`, err.message);
         }
+    } else if (eventType === 'charge.failed') {
+        try {
+            await pool.query(
+                "UPDATE wallet_deposits SET status = 'Failed' WHERE paystack_ref = ?",
+                [reference]
+            );
+            logger.info(`[WalletWebhook] Deposit marked as Failed for reference: ${reference}`);
+        } catch (err) {
+            logger.error(`[WalletWebhook] Error processing charge.failed for ${reference}:`, err.message);
+        }
     } else if (eventType === 'transfer.success') {
         logger.info(`[WalletWebhook] Transfer success for ref: ${reference}`);
         // Update withdrawal status

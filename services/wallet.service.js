@@ -42,6 +42,16 @@ const TXN_STATUS = {
     REFUNDED:  'Refunded',
 };
 
+function normalizeKenyanPhone(num) {
+    if (!num) return '';
+    let cleaned = num.trim().replace(/[\s-()]/g, '');
+    if (cleaned.startsWith('+254')) return cleaned;
+    if (cleaned.startsWith('254')) return '+' + cleaned;
+    if (cleaned.startsWith('07') || cleaned.startsWith('01')) return '+254' + cleaned.slice(1);
+    if ((cleaned.startsWith('7') || cleaned.startsWith('1')) && cleaned.length === 9) return '+254' + cleaned;
+    return cleaned;
+}
+
 class WalletService {
 
     // ── Wallet Provisioning ───────────────────────────────────────────────────
@@ -156,29 +166,30 @@ class WalletService {
         if (!Number.isInteger(amountCents) || amountCents <= 0) {
             throw new Error('Amount must be a positive integer (cents)');
         }
-        if (amountCents < 10000) { // minimum KES 100
-            throw new Error('Minimum deposit is KES 100');
+        if (amountCents < 100) { // minimum KES 1 (1 bob)
+            throw new Error('Minimum deposit is KES 1.00 (1 bob)');
         }
 
         const walletId = await this.getOrCreateWallet(userId);
         const reference = `SPK_DEP_${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
         const depositId = crypto.randomUUID();
+        const normalizedPhone = phone ? normalizeKenyanPhone(phone) : null;
 
         // Persist pending deposit record first
         await pool.query(
             `INSERT INTO wallet_deposits
                 (deposit_id, wallet_id, paystack_ref, amount_cents, currency, method, phone, status)
              VALUES (?, ?, ?, ?, 'KES', ?, ?, 'Pending')`,
-            [depositId, walletId, reference, amountCents, method, phone || null]
+            [depositId, walletId, reference, amountCents, method, normalizedPhone || null]
         );
 
         const metadata = { depositId, userId, method, reference };
 
         let paystackResult;
         if (method === 'mpesa') {
-            if (!phone) throw new Error('Phone number required for M-Pesa deposits');
+            if (!normalizedPhone) throw new Error('Phone number required for M-Pesa deposits');
             paystackResult = await paystackService.chargeMobileMoney(
-                amountCents, email, phone, 'mpesa', reference, metadata
+                amountCents, email, normalizedPhone, 'mpesa', reference, metadata
             );
             return {
                 depositId,
@@ -233,11 +244,15 @@ class WalletService {
         const paystackStatus = verification?.data?.status;
 
         if (paystackStatus !== 'success') {
+            const pendingStatuses = ['ongoing', 'pending', 'processing', 'queued'];
+            if (pendingStatuses.includes(paystackStatus)) {
+                return { status: 'pending', paystackStatus };
+            }
             await pool.query(
                 "UPDATE wallet_deposits SET status = 'Failed' WHERE paystack_ref = ?",
                 [reference]
             );
-            return { status: 'payment_failed' };
+            return { status: 'payment_failed', paystackStatus };
         }
 
         // Paystack amount is in kobo/cents already — trust server-side value
@@ -356,8 +371,11 @@ class WalletService {
         if (!Number.isInteger(amountCents) || amountCents <= 0) {
             throw new Error('Amount must be a positive integer (cents)');
         }
-        if (amountCents < 20000) { // minimum KES 200
-            throw new Error('Minimum withdrawal is KES 200');
+        if (amountCents < 100) { // minimum KES 1 (1 bob)
+            throw new Error('Minimum withdrawal is KES 1.00 (1 bob)');
+        }
+        if (method === 'mpesa' && details.phone) {
+            details.phone = normalizeKenyanPhone(details.phone);
         }
 
         const walletId = await this.getOrCreateWallet(userId);

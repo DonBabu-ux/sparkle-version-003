@@ -50,12 +50,15 @@ const HolographicPlatform = () => (
 
 export default function LockedLivePage() {
   const user = useUserStore(state => state.user);
-const invites = user?.invited_users_count ?? 0;
-const progress = Math.min(100, Math.round((invites / 5) * 100)); // progress toward next milestone (5 invites base)
+  const invites = user?.invited_users_count ?? 0;
+  const followers = user?.followers_count ?? 0;
 
-const milestones = [5, 10, 25, 50];
-const nextMilestone = milestones.find(m => m > invites) || 50;
-const remaining = nextMilestone - invites;
+  // Progress toward 1,000 followers live unlock
+  const progress = Math.min(100, Math.round((followers / 1000) * 100));
+
+  const milestones = [100, 250, 500, 1000];
+  const nextMilestone = milestones.find(m => m > followers) || 1000;
+  const remaining = nextMilestone - followers;
   
   const [creators, setCreators] = useState<any[]>([]);
   const [loadingCreators, setLoadingCreators] = useState(true);

@@ -489,3 +489,34 @@ em-emoji-picker {
 }
 html, body { overscroll-behavior-y: none; 
 }
+
+/* ── Story ring utilities ───────────────────────────────────────────────── */
+/**
+ * Applied as background on the ring wrapper div around the avatar.
+ * The ring wrapper must have `padding: 2.5px` and a slightly larger size than
+ * the avatar (inset: -3px) so the gradient shows as a ring border.
+ */
+.story-ring-unviewed {
+  background: conic-gradient(
+    #f97316 0%,
+    #ec4899 40%,
+    #8b5cf6 70%,
+    #f97316 100%
+  );
+}
+
+.story-ring-viewed {
+  background: conic-gradient(
+    #d4d4d4 0%,
+    #e5e5e5 50%,
+    #d4d4d4 100%
+  );
+}
+
+.dark .story-ring-viewed {
+  background: conic-gradient(
+    #52525b 0%,
+    #71717a 50%,
+    #52525b 100%
+  );
+}

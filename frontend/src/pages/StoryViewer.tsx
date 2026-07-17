@@ -313,7 +313,8 @@ export default function StoryViewer() {
         className="absolute inset-0 flex items-center justify-center bg-black z-[50]"
       >
         <div 
-          className="w-full h-full relative overflow-hidden bg-gray-900"
+          className="w-full h-full relative overflow-hidden bg-gray-900 select-none"
+          onContextMenu={(e) => e.preventDefault()}
           onMouseDown={(e) => {
             const now = Date.now();
             if (now - lastTap.current < 300) {
@@ -321,10 +322,26 @@ export default function StoryViewer() {
               lastTap.current = 0;
             } else {
               lastTap.current = now;
+              if (longPressTimer.current) clearTimeout(longPressTimer.current);
               longPressTimer.current = setTimeout(() => setIsLongPressing(true), 200);
             }
           }}
           onMouseUp={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); setIsLongPressing(false); }}
+          onMouseLeave={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); if (isLongPressing) setIsLongPressing(false); }}
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            const now = Date.now();
+            if (now - lastTap.current < 300) {
+              handleLike({ clientX: touch.clientX, clientY: touch.clientY } as any);
+              lastTap.current = 0;
+            } else {
+              lastTap.current = now;
+              if (longPressTimer.current) clearTimeout(longPressTimer.current);
+              longPressTimer.current = setTimeout(() => setIsLongPressing(true), 200);
+            }
+          }}
+          onTouchEnd={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); setIsLongPressing(false); }}
+          onTouchCancel={() => { if (longPressTimer.current) clearTimeout(longPressTimer.current); setIsLongPressing(false); }}
         >
           {/* Progress Bars */}
           <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 px-2">

@@ -51,4 +51,11 @@ export interface SparkleNotification {
     name: string;
     avatar: string;
   } | null;
+
+  // Rich card display fields
+  thumbnail_url?: string | null;
+  related_post?: {
+    id: string;
+    thumbnail_url?: string | null;
+  } | null;
 }

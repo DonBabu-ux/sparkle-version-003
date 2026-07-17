@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useRef, useEffect } from 'react';
 import { List } from 'react-window';
 import { AutoSizer } from 'react-virtualized-auto-sizer';
 import { isToday, isYesterday, subDays, isAfter } from 'date-fns';
 import type { SparkleNotification } from '../../types/notification';
-import { NotificationCard } from './NotificationCard';
+import { NotificationCard, GroupedNotificationCard } from './NotificationCard';
 import { BellOff } from 'lucide-react';
 
 interface NotificationRendererProps {
@@ -12,11 +12,76 @@ interface NotificationRendererProps {
 
 type FlatItem =
   | { type: 'header'; key: string; label: string }
-  | { type: 'card'; key: string; notification: SparkleNotification };
+  | { type: 'card'; key: string; notification: SparkleNotification }
+  | { type: 'grouped-card'; key: string; notifications: SparkleNotification[] };
 
 export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ notifications }) => {
+  const listRef = useRef<List>(null);
   
-  // Transform and group notifications into a flat list of headers and cards
+  // Track keys of expanded grouped notification cards
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
+  // Reset list layout cache whenever expanded keys change
+  useEffect(() => {
+    if (listRef.current) {
+      listRef.current.resetAfterIndex(0);
+    }
+  }, [expandedKeys]);
+
+  const toggleGroupExpanded = (key: string) => {
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // Group notifications within the same time bucket
+  const groupBucket = (list: SparkleNotification[]): FlatItem[] => {
+    const groups: Record<string, SparkleNotification[]> = {};
+    const orderedKeys: string[] = [];
+
+    list.forEach((n) => {
+      const postId = n.related_post?.id || '';
+      // Group by notification type + target post/object
+      const groupKey = `${n.type}_${postId}`;
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+        orderedKeys.push(groupKey);
+      }
+      groups[groupKey].push(n);
+    });
+
+    const result: FlatItem[] = [];
+    orderedKeys.forEach((key) => {
+      const group = groups[key];
+      const groupableTypes = ['like', 'follow', 'comment', 'mention', 'story'];
+      
+      if (group.length > 1 && groupableTypes.includes(group[0].type.toLowerCase())) {
+        result.push({
+          type: 'grouped-card',
+          key: `grouped-${key}-${group[0].id}`,
+          notifications: group,
+        });
+      } else {
+        group.forEach((n) => {
+          result.push({
+            type: 'card',
+            key: `card-${n.id}`,
+            notification: n,
+          });
+        });
+      }
+    });
+
+    return result;
+  };
+
+  // Transform and group notifications into a flat list of headers, cards, and grouped-cards
   const flatItems = useMemo(() => {
     if (notifications.length === 0) return [];
 
@@ -44,22 +109,22 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
 
     if (todayList.length > 0) {
       items.push({ type: 'header', key: 'hdr-today', label: 'Today' });
-      todayList.forEach(n => items.push({ type: 'card', key: `card-${n.id}`, notification: n }));
+      items.push(...groupBucket(todayList));
     }
 
     if (yesterdayList.length > 0) {
       items.push({ type: 'header', key: 'hdr-yesterday', label: 'Yesterday' });
-      yesterdayList.forEach(n => items.push({ type: 'card', key: `card-${n.id}`, notification: n }));
+      items.push(...groupBucket(yesterdayList));
     }
 
     if (thisWeekList.length > 0) {
       items.push({ type: 'header', key: 'hdr-this-week', label: 'This Week' });
-      thisWeekList.forEach(n => items.push({ type: 'card', key: `card-${n.id}`, notification: n }));
+      items.push(...groupBucket(thisWeekList));
     }
 
     if (olderList.length > 0) {
       items.push({ type: 'header', key: 'hdr-older', label: 'Older' });
-      olderList.forEach(n => items.push({ type: 'card', key: `card-${n.id}`, notification: n }));
+      items.push(...groupBucket(olderList));
     }
 
     return items;
@@ -108,6 +173,18 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
       );
     }
 
+    if (item.type === 'grouped-card') {
+      const isExpanded = expandedKeys.has(item.key);
+      return (
+        <div style={{ ...style, paddingBottom: '12px' }} className="px-1">
+          {/* We wrap GroupedNotificationCard with our toggle logic */}
+          <div onClick={() => toggleGroupExpanded(item.key)}>
+            <GroupedNotificationCard notifications={item.notifications} />
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div style={{ ...style, paddingBottom: '12px' }} className="px-1">
         <NotificationCard notification={item.notification} />
@@ -120,6 +197,15 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
     const item = flatItems[index];
     if (item.type === 'header') return 40;
     
+    if (item.type === 'grouped-card') {
+      const isExpanded = expandedKeys.has(item.key);
+      if (isExpanded) {
+        // Collapsed height (~96px) + each sub-actor item (~44px) + "Hide" padding/row (~40px)
+        return 96 + (item.notifications.length * 44) + 40;
+      }
+      return 96;
+    }
+
     // Add extra padding if there are CTA buttons present
     const hasActions = item.notification.actions && item.notification.actions.length > 0;
     return hasActions ? 172 : 124;
@@ -130,6 +216,7 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
       <AutoSizer>
         {({ height, width }) => (
           <List
+            ref={listRef}
             height={height}
             itemCount={flatItems.length}
             itemSize={getItemSize}
@@ -143,3 +230,4 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
     </div>
   );
 };
+

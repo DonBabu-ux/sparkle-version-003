@@ -451,6 +451,13 @@ const getStories = async (req, res) => {
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
                 is_liked: parseInt(s.is_liked) === 1,
+                // Rich media metadata for premium card display
+                thumbnail_url: getSafeMediaUrl(s.thumbnail_url),
+                width: s.width || null,
+                height: s.height || null,
+                duration: s.duration ? parseFloat(s.duration) : null,
+                file_size: s.file_size || null,
+                processing_status: s.processing_status || null,
                 stickers: (typeof s.stickers === 'string' ? JSON.parse(s.stickers) : (s.stickers || [])).map(st => {
                     if (st.type === 'add_yours') {
                         return {
@@ -513,7 +520,14 @@ const renderPost = async (req, res) => {
 
 const createStory = async (req, res) => {
     try {
-        const { caption } = req.body;
+        const { 
+            caption,
+            audio_url = null,
+            audio_source = null,
+            audio_start = null,
+            audio_duration = null,
+            music_info = null
+        } = req.body;
         let media_url = null;
 
         console.log('🎬 Story Create Attempt:', {
@@ -539,6 +553,19 @@ const createStory = async (req, res) => {
         } else if (req.body.media) {
             media_url = req.body.media;
             console.log('🔗 Story media from URL (media):', media_url);
+        }
+
+        // ALWAYS Normalize media_url immediately to prevent .toLowerCase() crash or [object Object] DB entries
+        if (media_url) {
+            if (Array.isArray(media_url)) {
+                media_url = media_url[0];
+            }
+            if (typeof media_url === 'object' && media_url !== null) {
+                media_url = media_url.url || media_url.path || media_url.secure_url || null;
+            }
+            if (typeof media_url !== 'string' || media_url === '[object Object]') {
+                media_url = null;
+            }
         }
 
         if (!media_url && req.body.type !== 'text' && !req.body.text_content) {
@@ -576,19 +603,6 @@ const createStory = async (req, res) => {
             media_type = videoExtensions.some(ext => String(media_url).toLowerCase().includes(ext)) ? 'video' : 'image';
         }
 
-        // ALWAYS Normalize media_url to a string to prevent .toLowerCase() crash or [object Object] DB entries
-        if (media_url) {
-            if (Array.isArray(media_url)) {
-                media_url = media_url[0];
-            }
-            if (typeof media_url === 'object' && media_url !== null) {
-                media_url = media_url.url || media_url.path || media_url.secure_url || String(media_url);
-            }
-            if (typeof media_url !== 'string') {
-                media_url = String(media_url);
-            }
-        }
-
         console.log('📝 Creating story with:', {
             storyId,
             userId,
@@ -608,29 +622,34 @@ const createStory = async (req, res) => {
         const type = req.body.type || 'media';
         const collage_data_val = finalCollageData;
 
-        let audio_url = req.body.audio_url || null;
-        const music_info = req.body.music_info || null;
-        const audio_source = req.body.audio_source || null;
-        const audio_start = parseFloat(req.body.audio_start) || 0.0;
-        const audio_duration = parseFloat(req.body.audio_duration) || 15.0;
-
-        // If a file was uploaded for audio
-        if (req.files && req.files.audio) {
-            audio_url = req.files.audio[0].path;
+        let thumbnail_url = null;
+        if (req.files && req.files.thumbnail) {
+            thumbnail_url = req.files.thumbnail[0].path || req.files.thumbnail[0].secure_url;
+            console.log('📸 Story thumbnail from file upload:', thumbnail_url);
+        } else if (req.body.thumbnail_url) {
+            thumbnail_url = req.body.thumbnail_url;
         }
+
+        const width = req.body.width ? parseInt(req.body.width) : null;
+        const height = req.body.height ? parseInt(req.body.height) : null;
+        const duration = req.body.duration ? parseFloat(req.body.duration) : null;
+        const file_size = req.body.file_size ? parseInt(req.body.file_size) : null;
+        const processing_status = req.body.processing_status || 'PUBLISHED';
 
         await pool.query(
             `INSERT INTO stories (
                 story_id, user_id, media_url, media_type, caption, 
                 background, audio_url, audio_source, audio_start, audio_duration,
                 like_count, share_count, expires_at, parent_story_id, stickers,
-                music_info, type, collage_data
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?)`,
+                music_info, type, collage_data,
+                thumbnail_url, width, height, duration, file_size, processing_status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 storyId, userId, media_url, media_type, finalCaption,
                 background, audio_url, audio_source, audio_start, audio_duration,
                 expiresAt, parent_story_id, stickers,
-                music_info, type, collage_data_val
+                music_info, type, collage_data_val,
+                thumbnail_url, width, height, duration, file_size, processing_status
             ]
         );
 
@@ -650,7 +669,7 @@ const createStory = async (req, res) => {
                         category: 'story',
                         cloudinaryPublicId: req.files && req.files.media ? req.files.media[0].filename : (req.file ? req.file.filename : 'url_import_' + storyId),
                         secureUrl: media_url,
-                        thumbnailUrl: null, // can be generated by Cloudinary transforms if needed
+                        thumbnailUrl: thumbnail_url,
                         lifecycleState: 'active',
                         expiresAt: expiresAt,
                         isReusable: true, // Stories are reusable for Memories/Highlights
@@ -674,6 +693,46 @@ const createStory = async (req, res) => {
             console.log('🗑️ Stories cache invalidated for user:', userId);
         } catch (cacheErr) {
             console.warn('⚠️ Cache invalidation failed (non-critical):', cacheErr.message);
+        }
+
+        // Broadcast story published via Socket.IO
+        try {
+            const io = req.app.get('io');
+            if (io) {
+                io.emit('story:published', {
+                    story_id: storyId,
+                    user_id: userId,
+                    media_url,
+                    media_type,
+                    thumbnail_url,
+                    created_at: new Date()
+                });
+                console.log('📡 Story WebSocket event emitted for user:', userId);
+            }
+        } catch (socketErr) {
+            console.warn('⚠️ WebSocket broadcast failed (non-critical):', socketErr.message);
+        }
+
+        // Create a notification for the user that their story was published successfully
+        try {
+            const { v4: uuidv4 } = require('uuid');
+            const notificationId = uuidv4();
+            await pool.query(
+                `INSERT INTO notifications (
+                    notification_id, user_id, type, title, content, 
+                    related_id, related_type, actor_id, action_url, aggregation_count
+                ) VALUES (?, ?, 'story_published', 'Story Published', 'Your story has been uploaded and is now live! 🌟', ?, 'story', ?, ?, 1)`,
+                [
+                    notificationId,
+                    userId,
+                    storyId,
+                    userId,
+                    `/stories/${userId}`
+                ]
+            );
+            console.log('✅ Success notification created for user story.');
+        } catch (notifErr) {
+            console.error('⚠️ Failed to create notification for story publish:', notifErr.message);
         }
 
         res.status(201).json({

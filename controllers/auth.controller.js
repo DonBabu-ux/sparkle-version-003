@@ -153,6 +153,7 @@ const login = async (req, res) => {
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
+                onboarding_step: user.onboarding_step ?? 0,
                 loggedIn: true,
                 isNewDevice // Frontend can use this to show a "New device detected" message
             },

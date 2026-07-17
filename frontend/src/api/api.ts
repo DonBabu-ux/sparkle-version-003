@@ -6,9 +6,10 @@ import { EnvironmentService } from '../services/EnvironmentService';
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl(),
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  // NOTE: Do NOT set a default Content-Type here.
+  // Axios will automatically set 'application/json' for plain objects
+  // and let the browser set 'multipart/form-data; boundary=...' for FormData.
+  // Locking it to 'application/json' breaks all file/media uploads.
 });
 
 // CSRF state
@@ -56,7 +57,13 @@ api.interceptors.request.use(
 
     // Add Device ID for multi-device detection
     config.headers['x-device-id'] = localStorage.getItem('sparkle_device_id') || 'unknown';
-    
+
+    // If the body is FormData, remove any Content-Type override so the browser
+    // can set the correct multipart/form-data boundary automatically.
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

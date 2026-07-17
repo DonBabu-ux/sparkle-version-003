@@ -19,7 +19,7 @@ export default function Onboarding() {
     async function fetchStatus() {
       try {
         const res = await api.get('/onboarding/status');
-        const step = res.data?.onboarding_step ?? 0;
+        const step = res.data?.data?.onboarding_step ?? res.data?.onboarding_step ?? 0;
         if (step >= 6) {
           navigate('/dashboard');
         } else if (step === 1) {

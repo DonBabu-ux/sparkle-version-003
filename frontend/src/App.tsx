@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
@@ -17,8 +17,14 @@ import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MockCallProvider } from './components/MockCallProvider';
-import { CallOverlay } from './components/CallOverlay';
 import { SocketProvider } from './context/SocketProvider';
+import { CallOverlay } from './components/CallOverlay';
+import { UploadManager } from './services/UploadManager';
+import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
+import { useSocket } from './hooks/useSocket';
+import { useFeedStore } from './store/feedStore';
+import { useNotificationStore } from './store/notificationStore';
+import api from './api/api';
 
 // Phase 1 — Core
 import Dashboard from './pages/Dashboard';
@@ -113,6 +119,9 @@ function App() {
   const [showSplash, setShowSplash] = useState(true);
   const [navigationCompleted, setNavigationCompleted] = useState(false);
   const navigate = useNavigate();
+  const uploadManagerInitRef = useRef(false);
+  const socket = useSocket();
+  const { setStories } = useFeedStore();
 
   // Helper function to manage safe navigation decision
   const performStartupNavigation = (target: string) => {
@@ -244,6 +253,41 @@ function App() {
     });
   }, [hydrated]);
 
+  // ── Upload Manager: Initialize once after hydration ──
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated || uploadManagerInitRef.current) return;
+    uploadManagerInitRef.current = true;
+    console.log('[App] Initializing UploadManager...');
+    UploadManager.init();
+  }, [hydrated, isAuthenticated]);
+
+  // ── Socket: Listen for story:published to auto-refresh stories bar ──
+  useEffect(() => {
+    if (!socket) return;
+    const handleStoryPublished = (data: any) => {
+      console.log('[App] story:published received, refreshing stories...', data);
+      
+      // Re-fetch active stories to reflect the newly published story
+      api.get('/stories/active').then((res: any) => {
+        if (Array.isArray(res.data)) {
+          setStories(res.data);
+        }
+      }).catch((err: any) => {
+        console.warn('[App] Failed to refresh stories after publish event:', err);
+      });
+
+      // If the current user published the story, reload notifications to show the top success notification
+      const currentUserId = useUserStore.getState().user?.id || useUserStore.getState().user?.user_id;
+      if (data && data.user_id === currentUserId) {
+        useNotificationStore.getState().fetchNotifications(true);
+      }
+    };
+    socket.on('story:published', handleStoryPublished);
+    return () => {
+      socket.off('story:published', handleStoryPublished);
+    };
+  }, [socket, setStories]);
+
   const theme = useUserStore(state => state.theme);
 
   useEffect(() => {
@@ -331,6 +375,7 @@ function App() {
                       updates online/offline state regardless of which page is active. */}
                   <PresenceManager />
                   <CallOverlay />
+                  <UploadNotificationCenter />
                   <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
                     <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />

@@ -249,70 +249,152 @@ export default function Notifications() {
     );
   };
 
-  const renderNotification = (notif: Notification) => (
-    <div 
-      key={notif.notification_id || notif.id}
-      onClick={() => handleNotificationClick(notif)}
-      className={`flex items-start gap-3 p-3 transition-colors cursor-pointer border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5
-        ${!notif.is_read ? 'bg-[#ebf5ff] dark:bg-white/5' : 'bg-white dark:bg-[#101217]'}`}
-    >
-      <div className="relative shrink-0 mt-1">
-        <img src={notif.actor_avatar || '/uploads/avatars/default.png'} className="w-[56px] h-[56px] rounded-full object-cover border border-black/5" alt="" />
-        <div className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full flex items-center justify-center border-2 border-white shadow-sm"
-             style={{ backgroundColor: getBadgeColor(notif.type) }}>
-          {getFacebookIcon(notif.type)}
+  const renderNotification = (notif: Notification) => {
+    const isUnread = !notif.is_read;
+    const actorUsername = notif.actor_username;
+    const actorName = notif.actor_name;
+    const displayName = actorName || actorUsername || notif.title || '';
+    
+    // Format timestamp nicely
+    let formattedTimeStr = '';
+    try {
+      formattedTimeStr = new Date(notif.created_at).toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      });
+    } catch {
+      formattedTimeStr = '';
+    }
+
+    return (
+      <div 
+        key={notif.notification_id || notif.id}
+        onClick={() => handleNotificationClick(notif)}
+        className={`flex items-start gap-4 p-5 transition-colors cursor-pointer border-b border-black/5 dark:border-white/5 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 relative
+          ${isUnread ? 'bg-[#ebf5ff] dark:bg-white/5' : 'bg-white dark:bg-[#101217]'}`}
+      >
+        {/* Left accent bar for unread item */}
+        {isUnread && (
+          <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-pink-500 to-purple-600" />
+        )}
+
+        {/* Actor Avatar or System icon wrapper */}
+        <div className="relative shrink-0 mt-0.5">
+          <img 
+            src={notif.actor_avatar || '/uploads/avatars/default.png'} 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (actorUsername) navigate(`/profile/${actorUsername}`);
+            }}
+            className="w-14 h-14 rounded-full object-cover border border-black/5 dark:border-white/10 cursor-pointer hover:ring-2 hover:ring-primary/40 transition-all" 
+            alt={displayName} 
+          />
+          <div className="absolute -bottom-1 -right-1 w-6.5 h-6.5 rounded-full flex items-center justify-center border-2 border-white dark:border-[#101217] shadow-sm text-white"
+               style={{ backgroundColor: getBadgeColor(notif.type) }}>
+            {getFacebookIcon(notif.type)}
+          </div>
+        </div>
+        
+        {/* Middle Area */}
+        <div className="flex-1 min-w-0 pr-2 flex flex-col gap-0.5">
+           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+              {/* Unread indicator dot */}
+              {isUnread && (
+                <span className="w-2.5 h-2.5 rounded-full bg-pink-500 shadow-md shadow-pink-500/50 flex-shrink-0" aria-label="Unread" />
+              )}
+
+              {/* Clickable username (700 weight, bold black, text-17px) */}
+              {actorUsername || actorName ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (actorUsername) navigate(`/profile/${actorUsername}`);
+                  }}
+                  className="font-bold text-black dark:text-white hover:underline focus:outline-none text-left text-[17px] leading-tight"
+                  style={{ fontWeight: 700 }}
+                >
+                  {displayName}
+                </button>
+              ) : (
+                <span className="font-bold text-[17px] text-black dark:text-white" style={{ fontWeight: 700 }}>
+                  {displayName}
+                </span>
+              )}
+           </div>
+
+           {/* Main action body / message (Bold, 13px, clickable, custom gray color) */}
+           <button
+             type="button"
+             onClick={() => handleNotificationClick(notif)}
+             className="text-left font-bold text-[13px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 mt-0.5 leading-normal focus:outline-none w-full"
+           >
+             {notif.content || notif.message}
+           </button>
+           
+           {/* Action Buttons (Filled CTAs) */}
+           {notif.type === 'poke' && (
+             <button 
+               onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
+               className="mt-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 duration-150 inline-flex items-center gap-1 self-start"
+             >
+               Poke Back <span aria-hidden="true">→</span>
+             </button>
+           )}
+
+           {notif.type === 'system_welcome' && (
+             <div className="flex items-center gap-2 mt-2">
+               <button 
+                 onClick={(e) => { e.stopPropagation(); navigate('/explore'); }} 
+                 className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-4 py-1.5 rounded-lg text-xs font-bold shadow-md transition-all active:scale-95 inline-flex items-center gap-1"
+               >
+                 Explore <span aria-hidden="true">→</span>
+               </button>
+               <button 
+                 onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} 
+                 className="bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700 px-4 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95"
+               >
+                 Settings
+               </button>
+             </div>
+           )}
+
+           {/* Timestamp (400 weight, xs) */}
+           <span className="text-xs text-zinc-400 dark:text-zinc-500 mt-1.5 block" style={{ fontWeight: 400 }}>
+             {formattedTimeStr}
+           </span>
+        </div>
+
+        {/* Right thumbnail preview if related to story or post */}
+        {notif.target && (notif.target.entity_type === 'post' || notif.target.entity_type === 'story') && (
+          <div className="flex-shrink-0 self-start ml-1">
+            <div 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (notif.target?.entity_type === 'post') navigate(`/post/${notif.target.entity_id}`);
+                if (notif.target?.entity_type === 'story') navigate(`/stories/${notif.target.entity_id}`);
+              }}
+              className="w-14 h-14 bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden border border-black/5 dark:border-white/10 shadow-sm cursor-pointer hover:brightness-90 transition-all flex items-center justify-center text-zinc-400"
+            >
+              {notif.target.entity_type === 'story' ? '📖' : '🖼'}
+            </div>
+          </div>
+        )}
+
+        {/* More Actions Options Trigger */}
+        <div className="shrink-0 flex items-center gap-2">
+          <button 
+            onClick={(e) => { e.stopPropagation(); setSelectedNotif(notif); }}
+            className="p-1.5 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 transition-colors text-gray-500 dark:text-zinc-400"
+          >
+            <MoreHorizontal size={18} />
+          </button>
         </div>
       </div>
-      
-      <div className="flex-1 pt-1.5 min-w-0 pr-2">
-         <div className="text-[15px] leading-tight text-gray-900 break-words">
-            {notif.actor_name ? (
-              <>
-                <span className="font-semibold">{notif.actor_name}</span>{' '}
-                <span>{notif.content || notif.message}</span>
-              </>
-            ) : (
-              <>
-                <span className="font-semibold">{notif.title}</span>{' '}
-                <span>{notif.content || notif.message}</span>
-              </>
-            )}
-         </div>
-         
-         <span className={`text-[13px] font-medium mt-1 block ${!notif.is_read ? 'text-[#1877f2]' : 'text-gray-500'}`}>
-           {new Date(notif.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-         </span>
-         
-         {notif.type === 'poke' && (
-           <button 
-             onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
-             className="mt-2 bg-gray-200 text-black px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-gray-300 transition-colors"
-           >
-             Poke Back
-           </button>
-         )}
-
-         {notif.type === 'system_welcome' && (
-           <div className="flex items-center gap-2 mt-2">
-             <button onClick={(e) => { e.stopPropagation(); navigate('/explore'); }} className="bg-blue-100 text-blue-600 px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-blue-200">Explore</button>
-             <button onClick={(e) => { e.stopPropagation(); navigate('/settings'); }} className="bg-gray-200 text-black px-4 py-1.5 rounded-md text-[14px] font-semibold hover:bg-gray-300">Settings</button>
-           </div>
-         )}
-      </div>
-
-      <div className="shrink-0 flex items-center gap-2 mt-2">
-        {!notif.is_read && (
-          <div className="w-3 h-3 bg-[#1877f2] rounded-full mr-1"></div>
-        )}
-        <button 
-          onClick={(e) => { e.stopPropagation(); setSelectedNotif(notif); }}
-          className="p-2 rounded-full hover:bg-gray-200 transition-colors text-gray-500"
-        >
-          <MoreHorizontal size={20} />
-        </button>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="flex bg-app min-h-screen text-black font-sans">

@@ -8,7 +8,7 @@ import AppScreen from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
 import { 
-  Check, Image, Video, Smile, Ghost, RefreshCw, 
+  Check, Image, Video, Smile, Ghost, 
   Plus, Sparkles, Flame, TrendingUp, Orbit, Send, 
   ChevronRight, BarChart3, Calendar 
 } from 'lucide-react';
@@ -20,6 +20,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { getAvatarUrl } from '../utils/imageUtils';
+import { useUploadStore } from '../store/uploadStore';
+import { CloudUpload, AlertTriangle, RefreshCw, X as XIcon } from 'lucide-react';
+import { useUploadNotificationStore } from '../components/notifications/UploadNotificationCenter';
+
+interface StoryItem {
+  story_id?: string;
+  media_type: string;
+  media_url?: string;
+  thumbnail_url?: string | null;
+  duration?: number | null;
+  caption?: string;
+  created_at?: string;
+}
 
 interface StoryGroup {
   user_id: string;
@@ -28,8 +41,21 @@ interface StoryGroup {
   avatar_url?: string;
   is_fully_viewed?: boolean;
   unviewed_count?: number;
-  stories: { media_type: string; media_url?: string; caption?: string }[];
+  stories: StoryItem[];
 }
+
+/** Format seconds to M:SS */
+const formatDuration = (secs: number | null | undefined): string | null => {
+  if (!secs || secs <= 0) return null;
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+};
+
+/** Pick the best preview URL with graceful fallback */
+const getStoryPreviewUrl = (story: StoryItem, fallbackAvatar?: string): string => {
+  return story.thumbnail_url || story.media_url || fallbackAvatar || '/assets/story_placeholder.png';
+};
 
 interface TrendingTag {
   tag: string;
@@ -74,6 +100,14 @@ function DashboardContent() {
   const { stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched, orderedPostIds, postsById } = useFeedStore();
   const { start: refreshDashboard } = usePullToRefresh('dashboard', () => fetchDashboardData(true, true));
 const posts = orderedPostIds.map(id => postsById[id]);
+
+  // Upload queue state
+  const uploadJobs = useUploadStore((s) => s.jobs);
+  const cancelUploadJob = useUploadStore((s) => s.cancelJob);
+  const retryUploadJob = useUploadStore((s) => s.retryJob);
+  const discardUploadJob = useUploadStore((s) => s.discardJob);
+  const activeUploads = uploadJobs.filter((j) => j.type === 'STORY' && j.status !== 'PUBLISHED' && j.status !== 'CANCELLED');
+  const [showUploadSheet, setShowUploadSheet] = useState(false);
   
   const [newPostContent, setNewPostContent] = useState('');
   const [isPublishing, setIsPublishing] = useState(false);
@@ -126,6 +160,17 @@ const posts = orderedPostIds.map(id => postsById[id]);
     }
   }, [prependPosts]);
 
+  const fetchStoriesData = useCallback(async () => {
+    try {
+      const res = await api.get('/stories/active');
+      if (Array.isArray(res.data)) {
+        setStories(res.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch stories:', err);
+    }
+  }, [setStories]);
+
   const fetchDashboardData = useCallback(async (isInitial = true, force = false) => {
     // Reduce 'fresh' window to 30s for variety but stability
     const isFresh = lastFetched && (Date.now() - lastFetched < 30000);
@@ -148,9 +193,8 @@ const posts = orderedPostIds.map(id => postsById[id]);
     try {
       const currentOffset = isInitial ? 0 : offsetRef.current;
       
-      const [dashRes, storiesRes, suggestionsRes] = await Promise.all([
+      const [dashRes, suggestionsRes] = await Promise.all([
         api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${deviceSeed}&device_id=${deviceId}${force ? '&force=true' : ''}`),
-        isInitial ? api.get('/stories/active').catch(() => ({ data: [] })) : Promise.resolve({ data: [] }),
         isInitial ? api.get(`/users/suggestions?seed=${deviceSeed}${force ? '&force=true' : ''}`).catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
       ]);
       
@@ -159,7 +203,6 @@ const posts = orderedPostIds.map(id => postsById[id]);
       if (isInitial) {
         setPosts(newPosts);
         lastSyncTime.current = Date.now();
-        if (Array.isArray(storiesRes.data)) setStories(storiesRes.data);
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
         setTrendingTags([
           { tag: 'campus_life', count: '12.4k' },
@@ -182,7 +225,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [lastFetched, posts.length, setPosts, appendPosts, setStories, setSuggestions]);
+  }, [lastFetched, posts.length, setPosts, appendPosts, setSuggestions]);
 
   useEffect(() => {
     const hidden = JSON.parse(localStorage.getItem('hiddenPostIds') || '[]');
@@ -203,6 +246,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
     const handleScrollToTop = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       fetchDashboardData(true, true);
+      fetchStoriesData();
     };
     window.addEventListener('scrollDashboardToTop', handleScrollToTop);
     
@@ -211,7 +255,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('scrollDashboardToTop', handleScrollToTop);
     };
-  }, [fetchDashboardData, fetchDeltaData]);
+  }, [fetchDashboardData, fetchDeltaData, fetchStoriesData]);
 
   const { refreshCounter } = useModalStore();
   const observerTarget = useRef<HTMLDivElement>(null);
@@ -220,12 +264,13 @@ const posts = orderedPostIds.map(id => postsById[id]);
     const storyJustPosted = sessionStorage.getItem('sparkle_story_posted');
     if (isInitialMount.current || refreshCounter > 0 || storyJustPosted) {
       fetchDashboardData(true, true);
+      fetchStoriesData();
       isInitialMount.current = false;
       if (storyJustPosted) {
         sessionStorage.removeItem('sparkle_story_posted');
       }
     }
-  }, [refreshCounter, fetchDashboardData]);
+  }, [refreshCounter, fetchDashboardData, fetchStoriesData]);
 
   // Feed managed by VirtualizedFeed component
   
@@ -313,49 +358,308 @@ const posts = orderedPostIds.map(id => postsById[id]);
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
             <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
-                {/* Add Story Card */}
-                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[112px] h-[200px] bg-white dark:bg-black rounded-lg shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10">
-                  <div className="h-[150px] w-full overflow-hidden">
+                {/* Add Story Card — 118×210 */}
+                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-black rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10">
+                  <div className="h-[158px] w-full overflow-hidden">
                     <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
                   </div>
-                  <div className="h-[50px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
+                  <div className="h-[52px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
                     <div className="absolute top-[-20px] w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10"><Plus size={24} strokeWidth={4} /></div>
                     <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">Add Story</span>
                   </div>
                 </div>
 
-                {/* Story Cards */}
+                {/* Uploading "You" Card — 118×210 */}
+                {activeUploads.length > 0 && (
+                  <div
+                    onClick={() => setShowUploadSheet(true)}
+                    className="flex-shrink-0 w-[118px] h-[210px] rounded-xl shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98] border-2 border-purple-500/40"
+                  >
+                    {/* Background: blurred thumbnail or gradient */}
+                    {activeUploads[0]?.localUri ? (
+                      <img
+                        src={activeUploads[0].thumbnailUri || activeUploads[0].localUri}
+                        className="w-full h-full object-cover blur-[4px] scale-110"
+                        alt=""
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-900 via-purple-700 to-pink-600" />
+                    )}
+                    <div className="absolute inset-0 bg-black/40" />
+
+                    {/* Purple animated ring avatar */}
+                    <div className="absolute top-3 left-3 w-10 h-10 rounded-full relative z-10">
+                      <div className="absolute inset-[-4px] rounded-full border-[3px] border-purple-500 shadow-[0_0_16px_rgba(168,85,247,0.6)] animate-pulse" />
+                      <div className="w-full h-full rounded-full border-2 border-black/10 dark:border-white/10 overflow-hidden relative">
+                        <img
+                          src={getAvatarUrl(user?.avatar_url, user?.username)}
+                          className="w-full h-full object-cover"
+                          alt=""
+                        />
+                      </div>
+                      {/* Upload count badge */}
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-purple-500 text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg"
+                      >
+                        {activeUploads.length}
+                      </motion.div>
+                    </div>
+
+                    {/* Progress bar at bottom */}
+                    <div className="absolute inset-x-0 bottom-0">
+                      <div className="p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
+                        <div className="flex items-center gap-1.5 mb-1.5">
+                          <CloudUpload size={10} className="text-purple-400 animate-pulse" />
+                          <p className="text-[10px] font-black text-white uppercase tracking-widest">You</p>
+                        </div>
+                        <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                          <motion.div
+                            className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+                            animate={{ width: `${Math.round(activeUploads.reduce((s, j) => s + j.progress, 0) / activeUploads.length)}%` }}
+                            transition={{ duration: 0.3 }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Story Cards — 118×210 premium */}
                 {stories.map((group: StoryGroup) => {
                   const unviewed = group.unviewed_count || (group.is_fully_viewed ? 0 : group.stories.length);
+                  const firstStory = group.stories[0];
+                  const previewUrl = getStoryPreviewUrl(firstStory, group.avatar_url);
+                  const isVideo = firstStory?.media_type === 'video';
+                  const duration = formatDuration(firstStory?.duration);
+                  const storyAge = firstStory?.created_at
+                    ? (() => {
+                        const diff = Date.now() - new Date(firstStory.created_at).getTime();
+                        const mins = Math.floor(diff / 60000);
+                        if (mins < 60) return `${mins}m ago`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `${hrs}h ago`;
+                        return `${Math.floor(hrs / 24)}d ago`;
+                      })()
+                    : null;
+
                   return (
-                    <div 
+                    <div
                       key={group.user_id}
                       onClick={() => navigate(`/stories/${group.user_id}`)}
-                      className="flex-shrink-0 w-[112px] h-[200px] rounded-lg shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
+                      className="flex-shrink-0 w-[118px] h-[210px] rounded-xl shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
                     >
-                      <img src={getAvatarUrl(group.stories[0].media_url || group.avatar_url, group.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
+                      {/* Background preview — thumbnail → media_url → placeholder */}
+                      <img
+                        src={previewUrl}
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          if (el.src !== (firstStory?.media_url || '')) {
+                            el.src = firstStory?.media_url || '/assets/story_placeholder.png';
+                          } else {
+                            el.src = '/assets/story_placeholder.png';
+                          }
+                        }}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                        alt={`${group.username}'s story`}
+                      />
                       <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
-                      
-                      <div className="absolute top-3 left-3 w-10 h-10 rounded-full relative z-10">
-                         <div className={`absolute inset-[-4px] rounded-full border-[3px] transition-colors duration-500 ${unviewed > 0 ? 'border-primary shadow-[0_0_12px_rgba(232,53,131,0.5)]' : 'border-black/20 dark:border-white/20'}`} />
-                         <div className="w-full h-full rounded-full border-2 border-black/10 dark:border-white/10 overflow-hidden relative">
-                            <img src={getAvatarUrl(group.avatar_url, group.username)} className="w-full h-full object-cover" alt="" />
-                         </div>
-                         {unviewed > 0 && (
-                           <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg">
+
+                      {/* Video indicator — centered play + bottom-right duration */}
+                      {isVideo && (
+                        <>
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                              <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4 ml-0.5"><polygon points="5,3 19,12 5,21" /></svg>
+                            </div>
+                          </div>
+                          {duration && (
+                            <span className="absolute bottom-10 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm z-10">
+                              {duration}
+                            </span>
+                          )}
+                        </>
+                      )}
+
+                      {/* Avatar — top-left, clickable to profile */}
+                      <div
+                        className="absolute top-3 left-3 z-20"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/profile/${group.username}`);
+                        }}
+                      >
+                        <div className="w-10 h-10 rounded-full relative cursor-pointer">
+                          {/* Gradient ring */}
+                          <div
+                            className={`absolute inset-[-3px] rounded-full p-[2.5px] shadow-md ${
+                              unviewed > 0 ? 'story-ring-unviewed' : 'story-ring-viewed'
+                            }`}
+                          >
+                            <div className="w-full h-full rounded-full bg-transparent" />
+                          </div>
+                          {/* White border separator */}
+                          <div className="absolute inset-[-1px] rounded-full border-2 border-white shadow-sm" />
+                          {/* Avatar image */}
+                          <img
+                            src={getAvatarUrl(group.avatar_url, group.username)}
+                            className="w-full h-full rounded-full object-cover relative z-10"
+                            alt={group.username}
+                          />
+                          {/* Unread count badge */}
+                          {unviewed > 0 && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg z-20"
+                            >
                               {unviewed}
-                           </motion.div>
-                         )}
+                            </motion.div>
+                          )}
+                        </div>
                       </div>
-                      
-                      <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 via-black/40 to-transparent">
-                        <p className="text-[10px] font-black text-white uppercase tracking-widest truncate">{group.username || group.user_name}</p>
+
+                      {/* Bottom overlay — username + timestamp */}
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-8 pb-2.5 px-2.5 z-10">
+                        <p className="text-[11px] font-bold text-white truncate leading-tight">
+                          {group.username || group.user_name}
+                        </p>
+                        {storyAge && (
+                          <p className="text-[9px] text-white/60 font-normal truncate leading-tight mt-0.5">
+                            {storyAge}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
                 })}
               </div>
             </div>
+
+            {/* Upload Details Bottom Sheet */}
+            <AnimatePresence>
+              {showUploadSheet && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+                  onClick={() => setShowUploadSheet(false)}
+                >
+                  <motion.div
+                    initial={{ y: '100%' }}
+                    animate={{ y: 0 }}
+                    exit={{ y: '100%' }}
+                    transition={{ type: 'spring', damping: 28, stiffness: 300 }}
+                    className="absolute bottom-0 left-0 right-0 bg-[#0a0a0c] rounded-t-3xl border-t border-white/10 max-h-[60vh] overflow-hidden"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {/* Handle */}
+                    <div className="flex justify-center pt-3 pb-2">
+                      <div className="w-10 h-1 bg-white/20 rounded-full" />
+                    </div>
+
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 pb-3">
+                      <h3 className="text-[13px] font-black uppercase tracking-widest text-white">
+                        <CloudUpload size={14} className="inline mr-2 text-purple-400" />
+                        Uploading {activeUploads.length} {activeUploads.length === 1 ? 'Story' : 'Stories'}
+                      </h3>
+                      <button
+                        onClick={() => setShowUploadSheet(false)}
+                        className="p-1.5 rounded-full bg-white/5 text-white/60 hover:text-white"
+                      >
+                        <XIcon size={14} />
+                      </button>
+                    </div>
+
+                    {/* Job List */}
+                    <div className="px-5 pb-6 space-y-3 overflow-y-auto max-h-[45vh]">
+                      {uploadJobs
+                        .filter((j) => j.type === 'STORY' && j.status !== 'PUBLISHED' && j.status !== 'CANCELLED')
+                        .map((job) => (
+                          <div
+                            key={job.uploadId}
+                            className="bg-white/5 rounded-xl p-3 border border-white/5 flex items-center gap-3"
+                          >
+                            {/* Mini Thumbnail */}
+                            <div className="w-10 h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 border border-white/10">
+                              {job.thumbnailUri || job.localUri ? (
+                                <img
+                                  src={job.thumbnailUri || job.localUri}
+                                  alt=""
+                                  className="w-full h-full object-cover blur-[2px] scale-105"
+                                />
+                              ) : (
+                                <div className="w-full h-full bg-gradient-to-br from-purple-900 to-pink-700" />
+                              )}
+                            </div>
+
+                            {/* Progress Info */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[11px] font-black text-white uppercase tracking-tight truncate">
+                                {job.status === 'FAILED'
+                                  ? job.error || 'Upload failed'
+                                  : job.status === 'GENERATING_THUMBNAIL'
+                                  ? 'Generating thumbnail...'
+                                  : job.status === 'COMPRESSING'
+                                  ? 'Compressing...'
+                                  : job.status === 'UPLOADING'
+                                  ? `Uploading ${job.progress}%`
+                                  : job.status === 'VERIFYING'
+                                  ? 'Finalizing...'
+                                  : 'Queued'}
+                              </p>
+                              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
+                                <div
+                                  className={`h-full transition-all duration-300 rounded-full ${
+                                    job.status === 'FAILED'
+                                      ? 'bg-rose-500'
+                                      : 'bg-gradient-to-r from-purple-500 to-pink-500'
+                                  }`}
+                                  style={{ width: `${job.progress}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Action Buttons */}
+                            <div className="flex-shrink-0 flex items-center gap-1">
+                              {job.status === 'FAILED' && (
+                                <button
+                                  onClick={() => {
+                                    retryUploadJob(job.uploadId);
+                                    useUploadNotificationStore.getState().resetJob(job.uploadId);
+                                  }}
+                                  className="p-1.5 rounded-md bg-white/5 text-emerald-400 hover:bg-white/10 active:scale-90 transition-all"
+                                  title="Retry"
+                                >
+                                  <RefreshCw size={12} />
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  if (job.status === 'FAILED') {
+                                    discardUploadJob(job.uploadId);
+                                    useUploadNotificationStore.getState().dismissJob(job.uploadId);
+                                  } else {
+                                    cancelUploadJob(job.uploadId);
+                                    useUploadNotificationStore.getState().dismissJob(job.uploadId);
+                                  }
+                                }}
+                                className="p-1.5 rounded-md bg-white/5 text-rose-400 hover:bg-white/10 active:scale-90 transition-all"
+                                title={job.status === 'FAILED' ? 'Discard' : 'Cancel'}
+                              >
+                                <XIcon size={12} />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* FEED */}
             <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in mt-[-8px]">

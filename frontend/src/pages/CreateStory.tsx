@@ -26,6 +26,8 @@ import { useCamera } from '../components/camera/CameraProvider';
 import CameraPreview from '../components/camera/CameraPreview';
 import CameraControls from '../components/camera/CameraControls';
 import CameraPermissionsManager from '../components/camera/CameraPermissionsManager';
+import { useUploadStore, type UploadJob, type StoryMetadata } from '../store/uploadStore';
+import { UploadManager } from '../services/UploadManager';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
 type Mode = 'post' | 'story' | 'reel' | 'live';
@@ -461,34 +463,74 @@ export default function CreateStory() {
       console.log('🚀 Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
       setUploading(true);
       try {
+          // ── STORY MODE: Background queue (instant close) ──
+          if (mode === 'story') {
+              const uploadId = `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+              // Build serializable metadata
+              const metadata: StoryMetadata = {
+                stickers: JSON.stringify(stickers),
+                parentStoryId: parentId || undefined,
+                musicInfo: selectedMusic ? JSON.stringify(selectedMusic) : undefined,
+              };
+              if (phase === 'text_story') {
+                metadata.textContent = textStoryContent;
+                metadata.textConfig = JSON.stringify({
+                  palette: PALETTES[activePalette],
+                  font: FONTS[activeFont],
+                  align: textAlign,
+                  color: selectedTextColor || PALETTES[activePalette].text,
+                  highlight: textHighlight,
+                });
+              }
+
+              // Create a local preview URL for the optimistic ring
+              const localUri = file ? URL.createObjectURL(file) : '';
+
+              const job: UploadJob = {
+                uploadId,
+                type: 'STORY',
+                priority: 'NORMAL',
+                localUri,
+                thumbnailUri: null,
+                status: 'QUEUED',
+                progress: 0,
+                retryCount: 0,
+                error: null,
+                metadata,
+              };
+
+              // Queue the job (file goes into IndexedDB, job goes into persisted store)
+              if (file) {
+                await useUploadStore.getState().addJob(job, file);
+              } else {
+                // Text-only story: no file, but still queue the job
+                await useUploadStore.getState().addJob(job, new File([], 'text-story-placeholder'));
+              }
+
+              // Wake the upload manager to pick up the new job
+              UploadManager.wake();
+
+              console.log(`✨ Story queued for background upload: ${uploadId}`);
+              sessionStorage.setItem('sparkle_story_posted', '1');
+              navigate('/dashboard');
+              return; // Exit early — upload happens in background
+          }
+
+          // ── POST / REEL / LIVE: Traditional upload (unchanged) ──
           const formData = new FormData();
           if (file) {
               console.log('📎 Appending media to FormData:', file.name);
               formData.append('media', file);
-              
-              // STRICT ATTACHMENT CHECK (Requirement 12.5)
-              const attached = formData.get('media');
-              console.log('🔍 Post-Attachment Check:', attached instanceof File ? '✅ File Attached' : '❌ Attachment Failed!', attached);
           }
-          
           if (phase === 'text_story') {
               formData.append('text_content', textStoryContent);
               formData.append('text_config', JSON.stringify({ palette: PALETTES[activePalette], font: FONTS[activeFont], align: textAlign, color: selectedTextColor || PALETTES[activePalette].text, highlight: textHighlight }));
           }
 
-          // SMART ROUTING based on mode
-          if (mode === 'story') {
-              formData.append('type', phase === 'text_story' ? 'text' : 'story');
-              formData.append('stickers', JSON.stringify(stickers));
-              formData.append('parent_story_id', parentId || '');
-              if (selectedMusic) formData.append('music_info', JSON.stringify(selectedMusic));
-              await api.post('/stories', formData);
-              sessionStorage.setItem('sparkle_story_posted', '1');
-              navigate('/dashboard');
-          } else if (mode === 'post') {
+          if (mode === 'post') {
               formData.append('content', editorText || textStoryContent || '');
               formData.append('post_type', 'public');
-              // Ensure we are using the 'media' field name consistent with postUpload
               await api.post('/posts', formData);
               navigate('/dashboard');
           } else if (mode === 'reel') {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { WifiOff, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNetworkStore } from '../store/networkStore';
@@ -6,15 +6,20 @@ import { useNetworkStore } from '../store/networkStore';
 export const OfflineIndicator: React.FC = () => {
   const { isOffline, quality } = useNetworkStore();
   const [showWeak, setShowWeak] = useState(false);
+  // Track the previous quality so we only show the banner on a *new* transition
+  // to 'unstable', not every time the network API fires with the same value.
+  const prevQualityRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!isOffline && quality === 'unstable') {
+    if (!isOffline && quality === 'unstable' && prevQualityRef.current !== 'unstable') {
+      // Newly entered unstable state — show banner and auto-dismiss after 3 s
       setShowWeak(true);
-      const timer = setTimeout(() => {
-        setShowWeak(false);
-      }, 3000);
+      const timer = setTimeout(() => setShowWeak(false), 3000);
+      prevQualityRef.current = 'unstable';
       return () => clearTimeout(timer);
-    } else {
+    } else if (quality !== 'unstable') {
+      // Left unstable state — reset so the banner can show again next time
+      prevQualityRef.current = quality;
       setShowWeak(false);
     }
   }, [isOffline, quality]);
@@ -58,7 +63,7 @@ export const OfflineIndicator: React.FC = () => {
               <AlertCircle size={16} />
             </div>
             <div>
-              <p className="text-[13px] font-black text-white uppercase tracking-wider leading-none">Weak Connection</p>
+              <p className="text-[13px] font-black text-white uppercase tracking-wider leading-none">Weak Connection Detected</p>
               <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest mt-1">Lower Quality Media Enabled</p>
             </div>
           </div>

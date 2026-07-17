@@ -81,6 +81,7 @@ router.use('/analytics', require('./analytics.routes'));
 router.use('/highlights', highlightsRoutes);
 router.use('/stickers', require('./stickers.routes'));
 router.use('/giphy', require('./giphy.routes'));
+router.use('/music', require('./music.routes'));
 router.use('/audio', require('./audio.routes'));
 router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));

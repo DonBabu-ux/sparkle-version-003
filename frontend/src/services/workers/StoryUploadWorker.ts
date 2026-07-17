@@ -89,6 +89,16 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
       if (job.metadata.musicInfo) {
         formData.append('music_info', job.metadata.musicInfo);
       }
+      // v2 Layer Engine fields
+      if (job.metadata.storyLayers) {
+        formData.append('story_layers', job.metadata.storyLayers);
+      }
+      if (job.metadata.storyDuration !== undefined) {
+        formData.append('story_duration', String(job.metadata.storyDuration));
+      }
+      if (job.metadata.storyTheme) {
+        formData.append('story_theme', job.metadata.storyTheme);
+      }
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {

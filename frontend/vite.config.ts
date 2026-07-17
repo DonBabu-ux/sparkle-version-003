@@ -81,6 +81,12 @@ export default defineConfig({
     allowedHosts: ['faith-clanless-lena.ngrok-free.dev', '.ngrok-free.dev', 'localhost', '127.0.0.1'],
     cors: true,
     proxy: {
+      // ── Music: always hit local backend so new route is available ──
+      '/api/music': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
+        secure: false,
+      },
       '/api': {
         target: 'https://sparkle-version-003-1-f4v3.onrender.com',
         changeOrigin: true,

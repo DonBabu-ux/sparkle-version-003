@@ -6,6 +6,33 @@ const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const MediaService = require('../services/media.service');
 
+// Helper to trim video server-side via Cloudinary video transformations
+const trimCloudinaryVideo = (url, start, duration) => {
+    if (!url || typeof url !== 'string') return url;
+    if (!url.includes('res.cloudinary.com')) return url;
+    if (!url.includes('/video/upload/')) return url;
+    
+    const startVal = parseFloat(start);
+    const durationVal = parseFloat(duration);
+    
+    if (isNaN(startVal) && isNaN(durationVal)) return url;
+    
+    const transformations = [];
+    if (!isNaN(startVal) && startVal > 0) {
+        transformations.push(`so_${startVal}`);
+    }
+    if (!isNaN(durationVal) && durationVal > 0) {
+        transformations.push(`du_${durationVal}`);
+    }
+    
+    if (transformations.length === 0) return url;
+    
+    const transformStr = transformations.join(',');
+    
+    // Inject right after /video/upload/
+    return url.replace('/video/upload/', `/video/upload/${transformStr}/`);
+};
+
 // Helper to sanitize avatars - prioritizes internal uploads
 const getSafeAvatarUrl = (url) => {
     if (!url) return null;
@@ -434,6 +461,25 @@ const getStories = async (req, res) => {
                 }
             }
 
+            const layers = typeof s.story_layers === 'string' ? JSON.parse(s.story_layers) : (s.story_layers || []);
+            const musicLayer = layers.find(l => l.type === 'music');
+            
+            // Map legacy fields for backwards compatibility
+            const legacyStickers = layers.filter(l => l.type !== 'music').map(l => ({
+                id: l.id,
+                type: l.type,
+                config: l.data || {},
+                x: l.x,
+                y: l.y,
+                scale: l.scale,
+                rotation: l.rotation
+            }));
+            
+            const legacyAudioUrl = musicLayer ? musicLayer.data.url : s.audio_url;
+            const legacyMusicInfo = musicLayer ? musicLayer.data : (s.music_info ? (typeof s.music_info === 'string' ? JSON.parse(s.music_info) : s.music_info) : null);
+            const legacyAudioStart = musicLayer ? musicLayer.data.start : s.audio_start;
+            const legacyAudioDuration = musicLayer ? musicLayer.data.duration : s.audio_duration;
+
             map[s.user_id].stories.push({
                 story_id: s.story_id,
                 parent_story_id: s.parent_story_id,
@@ -443,11 +489,11 @@ const getStories = async (req, res) => {
                 collage_data: typeof s.collage_data === 'string' ? JSON.parse(s.collage_data) : s.collage_data,
                 caption: s.caption,
                 background: s.background,
-                audio_url: getSafeMediaUrl(s.audio_url),
-                music_info: typeof s.music_info === 'string' ? JSON.parse(s.music_info) : s.music_info,
-                audio_source: s.audio_source,
-                audio_start: s.audio_start,
-                audio_duration: s.audio_duration,
+                audio_url: getSafeMediaUrl(legacyAudioUrl),
+                music_info: legacyMusicInfo,
+                audio_source: s.audio_source || (musicLayer ? 'pixabay' : null),
+                audio_start: legacyAudioStart,
+                audio_duration: legacyAudioDuration,
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
                 is_liked: parseInt(s.is_liked) === 1,
@@ -458,7 +504,11 @@ const getStories = async (req, res) => {
                 duration: s.duration ? parseFloat(s.duration) : null,
                 file_size: s.file_size || null,
                 processing_status: s.processing_status || null,
-                stickers: (typeof s.stickers === 'string' ? JSON.parse(s.stickers) : (s.stickers || [])).map(st => {
+                story_layers: layers,
+                story_duration: s.story_duration || 10,
+                story_theme: s.story_theme,
+                story_effects: typeof s.story_effects === 'string' ? JSON.parse(s.story_effects) : s.story_effects,
+                stickers: legacyStickers.map(st => {
                     if (st.type === 'add_yours') {
                         return {
                             ...st,
@@ -636,25 +686,150 @@ const createStory = async (req, res) => {
         const file_size = req.body.file_size ? parseInt(req.body.file_size) : null;
         const processing_status = req.body.processing_status || 'PUBLISHED';
 
+        // Parse music_info to populate audio_url / audio_duration if not provided directly
+        let resolvedAudioUrl = audio_url;
+        let resolvedAudioSource = audio_source;
+        let resolvedAudioDuration = audio_duration;
+
+        if (!resolvedAudioUrl && music_info) {
+            try {
+                const parsed = typeof music_info === 'string' ? JSON.parse(music_info) : music_info;
+                if (parsed && parsed.audioUrl) {
+                    resolvedAudioUrl = parsed.audioUrl;
+                    resolvedAudioSource = resolvedAudioSource || 'pixabay';
+                    resolvedAudioDuration = resolvedAudioDuration || parsed.duration || null;
+                }
+            } catch (e) {
+                // music_info is not valid JSON — ignore
+            }
+        }
+
+        // Normalise music_info to a stored string
+        const musicInfoVal = music_info
+            ? (typeof music_info === 'string' ? music_info : JSON.stringify(music_info))
+            : null;
+
+        // --- Premium Stories v2 Architecture: Layer Engine ---
+        let story_layers = req.body.story_layers;
+        if (typeof story_layers === 'string') {
+            try {
+                story_layers = JSON.parse(story_layers);
+            } catch (e) {
+                story_layers = null;
+            }
+        }
+
+        // Backward compatibility: If no layers provided, compile them from stickers & music
+        if (!story_layers) {
+            story_layers = [];
+            if (stickers) {
+                try {
+                    const parsedStickers = typeof stickers === 'string' ? JSON.parse(stickers) : stickers;
+                    if (Array.isArray(parsedStickers)) {
+                        parsedStickers.forEach((st, idx) => {
+                            story_layers.push({
+                                id: st.id || st.sticker_id || `st-${idx}-${Date.now()}`,
+                                type: st.type || 'emoji',
+                                x: st.x || 50,
+                                y: st.y || 50,
+                                scale: st.scale || 1,
+                                rotation: st.rotation || 0,
+                                opacity: 1,
+                                zIndex: idx + 1,
+                                locked: false,
+                                hidden: false,
+                                data: st.config || {}
+                            });
+                        });
+                    }
+                } catch (e) {}
+            }
+
+            if (resolvedAudioUrl) {
+                story_layers.push({
+                    id: `music-${Date.now()}`,
+                    type: 'music',
+                    x: 50,
+                    y: 75,
+                    scale: 1,
+                    rotation: 0,
+                    opacity: 1,
+                    zIndex: 20,
+                    locked: false,
+                    hidden: false,
+                    data: {
+                        trackId: musicInfoVal ? (JSON.parse(musicInfoVal).trackId || JSON.parse(musicInfoVal).id || 'legacy') : 'legacy',
+                        title: musicInfoVal ? (JSON.parse(musicInfoVal).title || 'Summer Vibes') : 'Summer Vibes',
+                        artist: musicInfoVal ? (JSON.parse(musicInfoVal).artist || 'Unknown Artist') : 'Unknown Artist',
+                        url: resolvedAudioUrl,
+                        start: audio_start || 0,
+                        duration: resolvedAudioDuration || 15,
+                        style: musicInfoVal ? (JSON.parse(musicInfoVal).style || 1) : 1,
+                        thumbnailUrl: musicInfoVal ? (JSON.parse(musicInfoVal).thumbnailUrl || null) : null
+                    }
+                });
+            }
+        }
+
+        const storyLayersVal = story_layers ? JSON.stringify(story_layers) : null;
+
+        // Story duration (from enum or fallback)
+        let storyDurationVal = 10;
+        if (req.body.story_duration) {
+            storyDurationVal = parseInt(req.body.story_duration) || 10;
+        } else if (duration) {
+            const durVal = parseFloat(duration);
+            if (durVal <= 5) storyDurationVal = 5;
+            else if (durVal <= 10) storyDurationVal = 10;
+            else if (durVal <= 15) storyDurationVal = 15;
+            else storyDurationVal = 30;
+        }
+
+        const storyThemeVal = req.body.story_theme || null;
+        const storyEffectsVal = req.body.story_effects 
+            ? (typeof req.body.story_effects === 'string' ? req.body.story_effects : JSON.stringify(req.body.story_effects))
+            : null;
+
+        // Video Trimming via Cloudinary Transformations
+        let trimStart = req.body.video_start || audio_start || null;
+        let trimDuration = req.body.video_duration || resolvedAudioDuration || null;
+
+        // Try to pull visual trim boundaries from a music layer if it is defined
+        if (Array.isArray(story_layers)) {
+            const musicLayer = story_layers.find(l => l.type === 'music');
+            if (musicLayer && musicLayer.data) {
+                if (!trimStart && musicLayer.data.start !== undefined) trimStart = musicLayer.data.start;
+                if (!trimDuration && musicLayer.data.duration !== undefined) trimDuration = musicLayer.data.duration;
+            }
+        }
+
+        let finalMediaUrl = media_url;
+        if (media_type === 'video' && finalMediaUrl && finalMediaUrl.includes('res.cloudinary.com')) {
+            finalMediaUrl = trimCloudinaryVideo(finalMediaUrl, trimStart, trimDuration);
+            console.log('✂️ Cloudinary video trimmed URL:', finalMediaUrl);
+        }
+
         await pool.query(
             `INSERT INTO stories (
                 story_id, user_id, media_url, media_type, caption, 
                 background, audio_url, audio_source, audio_start, audio_duration,
                 like_count, share_count, expires_at, parent_story_id, stickers,
                 music_info, type, collage_data,
-                thumbnail_url, width, height, duration, file_size, processing_status
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                thumbnail_url, width, height, duration, file_size, processing_status,
+                story_layers, story_duration, story_version, story_theme, story_effects
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
-                storyId, userId, media_url, media_type, finalCaption,
-                background, audio_url, audio_source, audio_start, audio_duration,
+                storyId, userId, finalMediaUrl, media_type, finalCaption,
+                background, resolvedAudioUrl, resolvedAudioSource, audio_start, resolvedAudioDuration,
                 expiresAt, parent_story_id, stickers,
-                music_info, type, collage_data_val,
-                thumbnail_url, width, height, duration, file_size, processing_status
+                musicInfoVal, type, collage_data_val,
+                thumbnail_url, width, height, duration, file_size, processing_status,
+                storyLayersVal, storyDurationVal, 1, storyThemeVal, storyEffectsVal
             ]
         );
 
         // Register media in the centralized Cloudinary architecture
-        if (media_url && media_url !== 'text') {
+        if (finalMediaUrl && finalMediaUrl !== 'text') {
             try {
                 // Generate a lightweight hash heuristic to detect duplicate uploads
                 const fileSizeBytes = req.files?.media ? req.files.media[0].size : (req.file ? req.file.size : 0);

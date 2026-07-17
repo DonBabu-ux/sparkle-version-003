@@ -10,7 +10,8 @@ import {
   AtSign, Share as ShareIcon, Phone, MessageSquare,
   Globe, Archive, Star, Wand2, Settings, MessageCircleOff,
   UserMinus, Ban, EyeOff, ExternalLink, Check, Sparkles,
-  ChevronLeft, Bell, Lock, Shield, UserPlus, Image, ArrowRight
+  ChevronLeft, Bell, Lock, Shield, UserPlus, ArrowRight,
+  Music3
 } from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import { useStoryStore } from '../store/storyStore';
@@ -18,6 +19,8 @@ import { useUserStore } from '../store/userStore';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
 import Spinner from '../components/ui/Spinner';
+import StoryAudioManager from '../services/StoryAudioManager';
+import AudioReactiveVisualizer from '../components/stories/AudioReactiveVisualizer';
 
 // REAL LOGOS SVGS
 const FB_LOGO = (
@@ -78,8 +81,13 @@ export default function StoryViewer() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [audio] = useState(new Audio());
+  const [playbackState, setPlaybackState] = useState<'Idle' | 'LoadingMedia' | 'LoadingAudio' | 'Ready' | 'Playing' | 'Paused' | 'Completed' | 'Disposed'>('Idle');
+  const [mediaLoaded, setMediaLoaded] = useState(false);
   const [replyText, setReplyText] = useState('');
+
+  const requestRef = useRef<number | null>(null);
+  const previousTimeRef = useRef<number | null>(null);
+  const elapsedMsRef = useRef<number>(0);
   
   // States
   const [isPaused, setIsPaused] = useState(false);
@@ -166,67 +174,153 @@ export default function StoryViewer() {
     }
   }, [showShareModal, showMentionModal]);
 
+  // --- Playback State Machine and Audio Handling ---
   useEffect(() => {
     if (!userStories || !userStories.stories[currentIndex]) return;
     const current = userStories.stories[currentIndex];
+
+    // Reset media loading status
+    setMediaLoaded(current.media_type === 'text');
+    setPlaybackState(current.media_type === 'text' ? 'Ready' : 'LoadingMedia');
+
+    // Auto-play music if attached using global manager
     if (current.audio_url) {
-        audio.src = current.audio_url;
-        audio.currentTime = (current.audio_start || 0) + (progress / 100 * (current.audio_duration || 15));
-        const anyModalOpen = showOptionsSheet || showViewersSheet || showShareModal || showMentionModal || showViewerOptions || showStorySettings || showCommentModal;
-        if (!isPaused && !isInputFocused && !isLongPressing && !anyModalOpen) {
-          audio.play().catch(() => {});
-        } else { audio.pause(); }
+      setPlaybackState('LoadingAudio');
+      StoryAudioManager.getInstance().play(current.audio_url, current.audio_start || 0, current.audio_duration || 15)
+        .then(() => {
+          setPlaybackState(prev => prev === 'LoadingAudio' ? 'Ready' : prev);
+        })
+        .catch(() => {
+          // If playback fails, proceed anyway
+          setPlaybackState(prev => prev === 'LoadingAudio' ? 'Ready' : prev);
+        });
+    } else {
+      StoryAudioManager.getInstance().stop();
     }
-  }, [currentIndex, isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showMentionModal, showViewerOptions, showStorySettings, showCommentModal]);
+  }, [currentIndex, userStories]);
 
+  // Sync state machine on play/pause modal changes
   useEffect(() => {
-    if (progress >= 100) {
-      if (userStories && currentIndex < userStories.stories.length - 1) {
-        setCurrentIndex(currentIndex + 1);
-        setProgress(0);
-      } else if (userStories) {
-        navigate('/dashboard');
-      }
-    }
-  }, [progress, currentIndex, userStories, navigate]);
-
-  // ── Keep pausedRef always in sync — checked every timer tick ────────────
-  // This ref is ALWAYS current, no stale closure possible
-  useEffect(() => {
-    pausedRef.current =
+    const isPausedGlobal = 
       isPaused || isInputFocused || isLongPressing ||
       showOptionsSheet || showViewersSheet || showShareModal ||
       showMentionModal || !!showViewerOptions || showStorySettings || showCommentModal;
-  });
 
-  // ── Single always-running timer — checks pausedRef on every tick ──────────
-  // Restarts only when the actual story changes, not when modals open/close
+    if (isPausedGlobal) {
+      if (playbackState === 'Playing') {
+        setPlaybackState('Paused');
+        StoryAudioManager.getInstance().pause();
+      }
+    } else {
+      if ((playbackState === 'Paused' || playbackState === 'Ready') && mediaLoaded) {
+        setPlaybackState('Playing');
+        if (userStories?.stories[currentIndex]?.audio_url) {
+          const current = userStories.stories[currentIndex];
+          const currentAudioProgressSec = elapsedMsRef.current / 1000;
+          const startOffset = (current.audio_start || 0) + currentAudioProgressSec;
+          StoryAudioManager.getInstance().play(current.audio_url, startOffset, current.audio_duration || 15);
+        }
+      }
+    }
+  }, [isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showMentionModal, showViewerOptions, showStorySettings, showCommentModal, playbackState, mediaLoaded, currentIndex, userStories]);
+
+  // Precise Story Timer via requestAnimationFrame
+  const currentStorySafe = userStories?.stories[currentIndex];
+  const storyDurationSec = currentStorySafe?.story_duration || currentStorySafe?.duration || 10;
+  const storyDurationMs = storyDurationSec * 1000;
+
   useEffect(() => {
+    elapsedMsRef.current = 0;
     setProgress(0);
-    if (timerRef.current) clearInterval(timerRef.current);
-    timerRef.current = setInterval(() => {
-      if (pausedRef.current) return; // paused — skip this tick, stay running
-      setProgress(prev => {
-        if (prev >= 100) return 100;
-        return prev + 1;
-      });
-    }, 40);
-    return () => {
-      if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-    };
+    previousTimeRef.current = null;
   }, [currentIndex, userStories]);
 
-  // ── Advance to next story when progress completes ─────────────────────────
+  const animateTimer = (time: number) => {
+    if (previousTimeRef.current !== null) {
+      const isPausedGlobal = 
+        isPaused || isInputFocused || isLongPressing ||
+        showOptionsSheet || showViewersSheet || showShareModal ||
+        showMentionModal || !!showViewerOptions || showStorySettings || showCommentModal ||
+        playbackState === 'LoadingMedia' || playbackState === 'LoadingAudio';
+
+      if (!isPausedGlobal) {
+        const delta = time - previousTimeRef.current;
+        elapsedMsRef.current += delta;
+        
+        const nextProgress = Math.min(100, (elapsedMsRef.current / storyDurationMs) * 100);
+        setProgress(nextProgress);
+
+        if (nextProgress >= 100) {
+          setPlaybackState('Completed');
+          return;
+        }
+      }
+    }
+    previousTimeRef.current = time;
+    requestRef.current = requestAnimationFrame(animateTimer);
+  };
+
   useEffect(() => {
-    if (progress >= 100) {
+    if (playbackState === 'Playing') {
+      previousTimeRef.current = null;
+      requestRef.current = requestAnimationFrame(animateTimer);
+    }
+    return () => {
+      if (requestRef.current) {
+        cancelAnimationFrame(requestRef.current);
+      }
+    };
+  }, [playbackState, currentIndex, storyDurationMs]);
+
+  // Handle completed state
+  useEffect(() => {
+    if (playbackState === 'Completed') {
       if (userStories && currentIndex < userStories.stories.length - 1) {
         setCurrentIndex(currentIndex + 1);
         setProgress(0);
       } else if (userStories) {
+        StoryAudioManager.getInstance().stop();
         navigate('/dashboard');
       }
     }
-  }, [progress, currentIndex, userStories, navigate]);
+  }, [playbackState, currentIndex, userStories, navigate]);
+
+  // Pipeline Preloading (Current, Next, Next + 1)
+  useEffect(() => {
+    if (!userStories || !userStories.stories) return;
+
+    // Preload Next Story (currentIndex + 1)
+    const nextStory = userStories.stories[currentIndex + 1];
+    if (nextStory) {
+      if (nextStory.media_type === 'image') {
+        const img = new Image();
+        img.src = getMediaUrl(nextStory.media_url);
+      } else if (nextStory.media_type === 'video') {
+        const vid = document.createElement('video');
+        vid.src = getMediaUrl(nextStory.media_url);
+        vid.preload = 'auto';
+      }
+      if (nextStory.audio_url) {
+        StoryAudioManager.getInstance().preload(nextStory.audio_url);
+      }
+    }
+
+    // Preload Next + 1 Story (currentIndex + 2)
+    const nextPlusOne = userStories.stories[currentIndex + 2];
+    if (nextPlusOne) {
+      if (nextPlusOne.media_type === 'image') {
+        const img = new Image();
+        img.src = getMediaUrl(nextPlusOne.media_url);
+      } else if (nextPlusOne.media_type === 'video') {
+        const vid = document.createElement('video');
+        vid.src = getMediaUrl(nextPlusOne.media_url);
+        vid.preload = 'auto';
+      }
+      if (nextPlusOne.audio_url) {
+        StoryAudioManager.getInstance().preload(nextPlusOne.audio_url);
+      }
+    }
+  }, [currentIndex, userStories]);
 
   if (loading || !userStories) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
@@ -359,7 +453,12 @@ export default function StoryViewer() {
                  <img src={getAvatarUrl(userStories.avatar_url, userStories.user_name)} className="w-full h-full rounded-full border-2 border-black object-cover" alt="" />
                </div>
                <div className="flex flex-col">
-                  <h4 className="text-white font-bold text-[13px]">{userStories.user_name} <span className="text-white/40 text-[11px]">• {new Date(currentStory.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span></h4>
+                  <h4 className="text-white font-bold text-[13px]">{userStories.user_name} <span className="text-white/40 text-[11px]">• {(() => {
+                     const diff = Math.floor((Date.now() - new Date(currentStory.created_at).getTime()) / 1000);
+                     if (diff < 60) return 'just now';
+                     if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+                     return `${Math.floor(diff / 3600)}h`;
+                   })()}</span></h4>
                </div>
             </div>
             <button onClick={() => navigate('/dashboard')} className="text-white bg-black/20 p-2 rounded-full backdrop-blur-md border border-white/10"><X size={24} /></button>
@@ -389,31 +488,78 @@ export default function StoryViewer() {
                  </motion.p>
                </div>
              ) : currentStory.media_type === 'video' ? (
-               <video src={getMediaUrl(currentStory.media_url)} autoPlay={!isPaused} muted playsInline className="h-full w-full object-cover" />
-             ) : (
-               <img src={getMediaUrl(currentStory.media_url)} className="h-full w-full object-cover" alt="" />
-             )}
-             <StickerRenderer stickers={currentStory.stickers || []} />
-          </div>
+                <video 
+                  src={getMediaUrl(currentStory.media_url)} 
+                  autoPlay={playbackState === 'Playing'} 
+                  muted 
+                  playsInline 
+                  className="h-full w-full object-cover" 
+                  onLoadedData={() => setMediaLoaded(true)}
+                  onPlay={() => setPlaybackState('Playing')}
+                />
+              ) : (
+                <img 
+                  src={getMediaUrl(currentStory.media_url)} 
+                  className="h-full w-full object-cover" 
+                  alt="" 
+                  onLoad={() => setMediaLoaded(true)}
+                />
+              )}
+              <StickerRenderer stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
+           </div>
 
-          {/* Rotating Comments on Left */}
-          <div className="absolute left-6 bottom-32 z-50 flex flex-col gap-2 max-w-[180px]">
-             <AnimatePresence mode="wait">
-               {storyComments.length > 0 && storyComments[activeCommentIndex] && (
-                 <motion.div 
-                   key={activeCommentIndex}
-                   initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
-                   className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex items-start gap-2 shadow-2xl"
-                 >
-                   <img src={getAvatarUrl(storyComments[activeCommentIndex].avatar_url, storyComments[activeCommentIndex].username)} className="w-6 h-6 flex-shrink-0 rounded-full border border-white/20 object-cover" alt="" />
-                   <p className="text-white text-[11px] leading-tight font-medium">
-                     <span className="font-bold mr-1">{storyComments[activeCommentIndex].username}</span>
-                     {storyComments[activeCommentIndex].text}
-                   </p>
-                 </motion.div>
-               )}
-             </AnimatePresence>
-          </div>
+           {/* Rotating Comments on Left */}
+           <div className="absolute left-6 bottom-32 z-50 flex flex-col gap-2 max-w-[180px]">
+              <AnimatePresence mode="wait">
+                {storyComments.length > 0 && storyComments[activeCommentIndex] && (
+                  <motion.div 
+                    key={activeCommentIndex}
+                    initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }}
+                    className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl p-3 flex items-start gap-2 shadow-2xl"
+                  >
+                    <img src={getAvatarUrl(storyComments[activeCommentIndex].avatar_url, storyComments[activeCommentIndex].username)} className="w-6 h-6 flex-shrink-0 rounded-full border border-white/20 object-cover" alt="" />
+                    <p className="text-white text-[11px] leading-tight font-medium">
+                      <span className="font-bold mr-1">{storyComments[activeCommentIndex].username}</span>
+                      {storyComments[activeCommentIndex].text}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+           </div>
+
+           {/* Music Pill — shown when story has audio attached */}
+           {currentStory.audio_url && (() => {
+             const musicMeta = (() => {
+               try { return typeof currentStory.music_info === 'string' ? JSON.parse(currentStory.music_info) : currentStory.music_info; } catch { return null; }
+             })();
+             const trackTitle = musicMeta?.title || 'Now Playing';
+             const trackArtist = musicMeta?.artist || '';
+             return (
+               <motion.div
+                 initial={{ opacity: 0, y: 10 }}
+                 animate={{ opacity: 1, y: 0 }}
+                 className="absolute right-5 bottom-32 z-50 flex flex-col gap-2 items-end select-none"
+               >
+                 <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 shadow-2xl max-w-[160px]">
+                   <div className="w-7 h-7 rounded-full bg-rose-500/80 flex items-center justify-center shrink-0 overflow-hidden">
+                     {musicMeta?.thumbnailUrl ? (
+                       <img src={musicMeta.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                     ) : (
+                       <Music3 size={12} className="text-white" />
+                     )}
+                   </div>
+                   <div className="overflow-hidden">
+                     <p className="text-white text-[10px] font-black italic uppercase tracking-tight truncate">{trackTitle}</p>
+                     {trackArtist && <p className="text-white/50 text-[8px] font-bold truncate">{trackArtist}</p>}
+                   </div>
+                 </div>
+                 {/* Premium Audio-reactive visualizer bars */}
+                 <div className="w-[120px] bg-black/20 backdrop-blur-md rounded-xl p-1 shadow-lg border border-white/5">
+                   <AudioReactiveVisualizer isPlaying={playbackState === 'Playing'} />
+                 </div>
+               </motion.div>
+             );
+           })()}
 
           {/* Navigation Tap Zones (Invisible but powerful) */}
           <div className="absolute inset-y-0 left-0 w-[30%] z-20" onClick={() => { if (currentIndex > 0) { setCurrentIndex(currentIndex - 1); setProgress(0); } }} />

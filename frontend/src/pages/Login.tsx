@@ -71,9 +71,6 @@ export default function Login() {
       if (data?.status === 'success' && data?.token) {
         showSuccess('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
-        // Send device fingerprint for unusual login detection
-        api.post('/auth/device', { userAgent: navigator.userAgent })
-          .catch(() => {});
         const targetRoute = data.next?.route || '/dashboard';
         setTimeout(() => navigate(targetRoute), 1500);
         return;

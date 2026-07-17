@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   X, Zap, Settings, ChevronLeft, Send, Sparkles, 
@@ -11,7 +11,7 @@ import {
   CheckCircle2, Radio, Play, Clapperboard, Timer as TimerIcon, 
   ZapOff, Ghost, Grid3X3, Maximize, Layers2, Scan,
   Square, RectangleHorizontal, Minus, PlusCircle, Pause, Volume2, VolumeX,
-  Languages, Navigation, Map
+  Languages, Navigation, Map, Loader2, Music3, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
@@ -129,6 +129,15 @@ export default function CreateStory() {
   const [isPlayingMusic, setIsPlayingMusic] = useState(true);
   const [isPreviewingMusic, setIsPreviewingMusic] = useState(false);
   const [activeTool, setActiveTool] = useState<string | null>(null);
+
+  // Music Search States
+  const [musicSearchQuery, setMusicSearchQuery] = useState('');
+  const [musicResults, setMusicResults] = useState<any[]>([]);
+  const [musicLoading, setMusicLoading] = useState(false);
+  const [musicError, setMusicError] = useState<string | null>(null);
+  const [musicAudioProgress, setMusicAudioProgress] = useState(0);
+  const musicAudioRef = useRef<HTMLAudioElement | null>(null);
+  const musicSearchTimerRef = useRef<any>(null);
   const [showEditMenu, setShowEditMenu] = useState(false);
   const [editorText, setEditorText] = useState('');
   
@@ -425,21 +434,113 @@ export default function CreateStory() {
     setPhase('camera');
   };
 
+  const fetchMusicTracks = useCallback(async (query: string) => {
+    setMusicLoading(true);
+    setMusicError(null);
+    try {
+      const params = new URLSearchParams({ per_page: '20' });
+      if (query.trim()) params.set('q', query.trim());
+      // Match the same token resolution as api.ts interceptor
+      const token = useUserStore.getState().token || localStorage.getItem('accessToken') || '';
+      const res = await fetch(`/api/music/search?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMusicResults(data.tracks || []);
+      } else {
+        setMusicError(data.message || 'Could not load music.');
+      }
+    } catch (err) {
+      setMusicError('Network error. Please check your connection.');
+    } finally {
+      setMusicLoading(false);
+    }
+  }, []);
+
   const openMusicPicker = (fromPhase: Phase) => {
     setReturnPhase(fromPhase);
     setPhase('music_picker');
     setIsPreviewingMusic(false);
+    // Load trending tracks on open if results are empty
+    if (musicResults.length === 0) {
+      fetchMusicTracks('');
+    }
   };
 
+  // Debounced search
+  useEffect(() => {
+    if (phase !== 'music_picker') return;
+    clearTimeout(musicSearchTimerRef.current);
+    musicSearchTimerRef.current = setTimeout(() => {
+      fetchMusicTracks(musicSearchQuery);
+    }, 450);
+    return () => clearTimeout(musicSearchTimerRef.current);
+  }, [musicSearchQuery, phase, fetchMusicTracks]);
+
   const handleMusicClick = (music: any) => {
+    // Stop any currently playing preview
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
     setSelectedMusic(music);
     setIsPreviewingMusic(true);
     setIsPlayingMusic(true);
+    setMusicAudioProgress(0);
+    // Start audio preview
+    if (music.audioUrl) {
+      const audio = new Audio(music.audioUrl);
+      audio.crossOrigin = 'anonymous';
+      musicAudioRef.current = audio;
+      audio.ontimeupdate = () => {
+        if (audio.duration) {
+          setMusicAudioProgress(Math.round((audio.currentTime / audio.duration) * 100));
+        }
+      };
+      audio.onended = () => setIsPlayingMusic(false);
+      audio.play().catch(() => {});
+    }
+  };
+
+  const toggleMusicPlayback = () => {
+    const audio = musicAudioRef.current;
+    if (!audio) return;
+    if (isPlayingMusic) {
+      audio.pause();
+    } else {
+      audio.play().catch(() => {});
+    }
+    setIsPlayingMusic(!isPlayingMusic);
   };
 
   const handleMusicConfirm = () => {
+    // Keep audio playing in picker — stop it when phase changes away
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
     setPhase(returnPhase);
     setIsPreviewingMusic(false);
+  };
+
+  const handleMusicRemove = () => {
+    if (musicAudioRef.current) {
+      musicAudioRef.current.pause();
+      musicAudioRef.current = null;
+    }
+    setSelectedMusic(null);
+    setIsPlayingMusic(false);
+    setMusicAudioProgress(0);
+  };
+
+  // Format seconds → m:ss
+  const formatDuration = (seconds: number) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   const handleAddTextSticker = (content: string, type: 'text' | 'mention' = 'text') => {
@@ -467,11 +568,82 @@ export default function CreateStory() {
           if (mode === 'story') {
               const uploadId = `story-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+              // --- Compile Generic StoryLayer Array ---
+              const compiledLayers: any[] = [];
+
+              // 1. Convert stickers → layers
+              stickers.forEach((st: any, idx: number) => {
+                compiledLayers.push({
+                  id: st.id || `st-${idx}-${Date.now()}`,
+                  type: st.type || 'emoji',
+                  x: st.x ?? 50,
+                  y: st.y ?? 50,
+                  scale: st.scale ?? 1,
+                  rotation: st.rotation ?? 0,
+                  opacity: 1,
+                  zIndex: idx + 1,
+                  locked: false,
+                  hidden: false,
+                  data: st.config || st.data || {}
+                });
+              });
+
+              // 2. Convert selected music → music layer
+              if (selectedMusic) {
+                compiledLayers.push({
+                  id: `music-${Date.now()}`,
+                  type: 'music',
+                  x: 50,
+                  y: 75,
+                  scale: 1,
+                  rotation: 0,
+                  opacity: 1,
+                  zIndex: 20,
+                  locked: false,
+                  hidden: false,
+                  data: {
+                    trackId: selectedMusic.id || selectedMusic.trackId || 'unknown',
+                    title: selectedMusic.title || 'Unknown Track',
+                    artist: selectedMusic.artist || selectedMusic.artistName || 'Unknown Artist',
+                    url: selectedMusic.audioUrl || selectedMusic.url || '',
+                    start: selectedMusic.start || 0,
+                    duration: selectedMusic.duration || 15,
+                    style: selectedMusic.style || 1,
+                    thumbnailUrl: selectedMusic.thumbnailUrl || selectedMusic.artwork || null,
+                  }
+                });
+              }
+
+              // 3. Add text layer for text stories
+              if (phase === 'text_story' && textStoryContent) {
+                compiledLayers.push({
+                  id: `text-${Date.now()}`,
+                  type: 'text',
+                  x: 50,
+                  y: 50,
+                  scale: 1,
+                  rotation: 0,
+                  opacity: 1,
+                  zIndex: 10,
+                  locked: true,
+                  hidden: false,
+                  data: {
+                    text: textStoryContent,
+                    font: FONTS[activeFont],
+                    color: selectedTextColor || PALETTES[activePalette].text,
+                    highlight: textHighlight,
+                    align: textAlign,
+                  }
+                });
+              }
+
               // Build serializable metadata
               const metadata: StoryMetadata = {
                 stickers: JSON.stringify(stickers),
                 parentStoryId: parentId || undefined,
                 musicInfo: selectedMusic ? JSON.stringify(selectedMusic) : undefined,
+                storyLayers: JSON.stringify(compiledLayers),
+                storyDuration: file?.type.startsWith('video/') ? undefined : 10,
               };
               if (phase === 'text_story') {
                 metadata.textContent = textStoryContent;
@@ -511,7 +683,7 @@ export default function CreateStory() {
               // Wake the upload manager to pick up the new job
               UploadManager.wake();
 
-              console.log(`✨ Story queued for background upload: ${uploadId}`);
+              console.log(`✨ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
               sessionStorage.setItem('sparkle_story_posted', '1');
               navigate('/dashboard');
               return; // Exit early — upload happens in background
@@ -551,16 +723,22 @@ export default function CreateStory() {
   // --- GENIUS COMPONENTS ---
   const MusicIndicator = () => (
     <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute top-16 left-1/2 -translate-x-1/2 z-[400] flex items-center justify-center pointer-events-none">
-        <div className="bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full py-2.5 px-5 flex items-center gap-4 pointer-events-auto active:scale-95 transition-all shadow-2xl" onClick={() => openMusicPicker(phase)}>
-            <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center text-[16px] shadow-lg">
-                {isPlayingMusic ? <motion.div animate={{ rotate: 360 }} transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}>{selectedMusic.cover}</motion.div> : selectedMusic.cover}
+        <div className="bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full py-2.5 px-4 flex items-center gap-3 pointer-events-auto active:scale-95 transition-all shadow-2xl" onClick={() => openMusicPicker(phase)}>
+            <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center shadow-lg overflow-hidden shrink-0">
+                {selectedMusic?.thumbnailUrl ? (
+                  <img src={selectedMusic.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}>
+                    <Music3 size={14} className="text-white" />
+                  </motion.div>
+                )}
             </div>
-            <div className="flex flex-col max-w-[120px]">
-                <span className="text-[11px] font-black italic uppercase tracking-tight text-white truncate">{selectedMusic.title}</span>
-                <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest truncate">{selectedMusic.artist}</span>
+            <div className="flex flex-col max-w-[110px]">
+                <span className="text-[11px] font-black italic uppercase tracking-tight text-white truncate">{selectedMusic?.title}</span>
+                <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest truncate">{selectedMusic?.artist}</span>
             </div>
-            <button onClick={(e) => { e.stopPropagation(); setIsPlayingMusic(!isPlayingMusic); }} className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white active:bg-white/10">
-                {isPlayingMusic ? <Volume2 size={14} /> : <VolumeX size={14} className="text-white/40" />}
+            <button onClick={(e) => { e.stopPropagation(); handleMusicRemove(); }} className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white active:bg-white/20">
+                <X size={12} strokeWidth={3} />
             </button>
         </div>
     </motion.div>
@@ -722,45 +900,186 @@ export default function CreateStory() {
           {/* 4. MUSIC PICKER PHASE */}
           {phase === 'music_picker' && (
               <motion.div key="music" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-[#0A0A0A] text-white z-[600] flex flex-col">
-                  <div className="p-8 pt-14 flex items-center justify-between">
-                      <button onClick={() => setPhase(returnPhase)} className="text-white/30 p-2"><ChevronLeft size={32} strokeWidth={3} /></button>
-                      <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em]">Music</h2>
+                  {/* Header */}
+                  <div className="p-8 pt-14 flex items-center justify-between shrink-0">
+                      <button
+                        onClick={() => {
+                          if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; }
+                          setPhase(returnPhase);
+                        }}
+                        className="text-white/30 p-2"
+                      >
+                        <ChevronLeft size={32} strokeWidth={3} />
+                      </button>
+                      <div className="flex flex-col items-center">
+                        <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em]">Add Music</h2>
+                        <span className="text-[9px] text-white/20 font-bold uppercase tracking-widest">Powered by Pixabay</span>
+                      </div>
                       {selectedMusic && isPreviewingMusic ? (
-                          <button onClick={handleMusicConfirm} className="px-6 py-2 bg-white text-black rounded-full font-black italic uppercase text-[12px] shadow-2xl active:scale-90 transition-all">Done</button>
-                      ) : <div className="w-12" />}
+                          <button onClick={handleMusicConfirm} className="px-6 py-2 bg-white text-black rounded-full font-black italic uppercase text-[12px] shadow-2xl active:scale-90 transition-all">Use Track</button>
+                      ) : <div className="w-20" />}
                   </div>
+
                   {!isPreviewingMusic ? (
                     <>
-                      <div className="px-8 pb-4"><div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} /><input placeholder="Search tracks..." className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-6 text-[14px] font-bold outline-none focus:border-rose-500 transition-all" /></div></div>
-                      <div className="flex-1 p-8 space-y-4 overflow-y-auto no-scrollbar pb-20">
-                          {MOCK_MUSIC.map(m => (
-                              <button key={m.id} onClick={() => handleMusicClick(m)} className="w-full flex items-center gap-4 p-5 bg-white/5 rounded-[32px] border border-white/5 hover:bg-white/10 transition-all group">
-                                  <div className="w-16 h-16 bg-rose-500 rounded-[24px] flex items-center justify-center text-[32px] shadow-xl group-hover:scale-105 transition-transform">{m.cover}</div>
-                                  <div className="flex-1 text-left"><h4 className="text-[16px] font-black italic uppercase tracking-tight">{m.title}</h4><p className="text-[12px] font-bold text-white/40 italic">{m.artist}</p></div>
-                                  <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center"><Play size={16} className="text-white/40" /></div>
-                              </button>
+                      {/* Search Bar */}
+                      <div className="px-6 pb-4 shrink-0">
+                        <div className="relative">
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                          <input
+                            placeholder="Search tracks, artists, moods..."
+                            value={musicSearchQuery}
+                            onChange={(e) => setMusicSearchQuery(e.target.value)}
+                            className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-6 text-[14px] font-bold outline-none focus:border-rose-500 transition-all placeholder-white/20"
+                          />
+                          {musicLoading && (
+                            <Loader2 size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400 animate-spin" />
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Quick mood chips */}
+                      <div className="px-6 pb-4 shrink-0">
+                        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+                          {['Trending', 'Chill', 'Hip Hop', 'Love', 'Party', 'Sad', 'Epic', 'Jazz'].map(mood => (
+                            <button
+                              key={mood}
+                              onClick={() => setMusicSearchQuery(mood === 'Trending' ? '' : mood)}
+                              className={`shrink-0 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wide transition-all border ${
+                                (mood === 'Trending' && musicSearchQuery === '') || musicSearchQuery.toLowerCase() === mood.toLowerCase()
+                                  ? 'bg-rose-500 border-rose-500 text-white'
+                                  : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                              }`}
+                            >
+                              {mood}
+                            </button>
                           ))}
+                        </div>
+                      </div>
+
+                      {/* Track List */}
+                      <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-24">
+                        {musicError ? (
+                          <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
+                            <AlertCircle size={32} className="text-white/20" />
+                            <p className="text-[13px] text-white/40 font-bold">{musicError}</p>
+                            <button onClick={() => fetchMusicTracks(musicSearchQuery)} className="px-6 py-2 bg-white/10 rounded-full text-[11px] font-black uppercase">Retry</button>
+                          </div>
+                        ) : musicLoading && musicResults.length === 0 ? (
+                          <div className="flex flex-col gap-4 mt-2">
+                            {[...Array(6)].map((_, i) => (
+                              <div key={i} className="flex items-center gap-4 p-4 bg-white/5 rounded-[24px] animate-pulse">
+                                <div className="w-14 h-14 bg-white/10 rounded-[18px] shrink-0" />
+                                <div className="flex-1 space-y-2">
+                                  <div className="h-3 bg-white/10 rounded-full w-2/3" />
+                                  <div className="h-2 bg-white/5 rounded-full w-1/3" />
+                                </div>
+                                <div className="w-8 h-8 bg-white/5 rounded-full" />
+                              </div>
+                            ))}
+                          </div>
+                        ) : musicResults.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
+                            <Music3 size={36} className="text-white/10" />
+                            <p className="text-[13px] text-white/30 font-bold">No tracks found</p>
+                            <p className="text-[11px] text-white/20">Try a different search term</p>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col gap-3 mt-2">
+                            {musicResults.map((track, idx) => (
+                              <motion.button
+                                key={track.id}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: idx * 0.04 }}
+                                onClick={() => handleMusicClick(track)}
+                                className="w-full flex items-center gap-4 p-4 bg-white/5 rounded-[24px] border border-white/5 hover:bg-white/10 active:scale-[0.98] transition-all group text-left"
+                              >
+                                {/* Album Art */}
+                                <div className="w-14 h-14 rounded-[18px] shrink-0 overflow-hidden bg-gradient-to-br from-rose-600 to-pink-900 flex items-center justify-center shadow-lg">
+                                  {track.thumbnailUrl ? (
+                                    <img src={track.thumbnailUrl} alt={track.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Music3 size={22} className="text-white/60" />
+                                  )}
+                                </div>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-[14px] font-black italic uppercase tracking-tight truncate text-white">{track.title}</h4>
+                                  <p className="text-[11px] font-bold text-white/40 truncate">{track.artist}</p>
+                                </div>
+                                {/* Duration + Play */}
+                                <div className="flex flex-col items-center gap-1 shrink-0">
+                                  <div className="w-9 h-9 rounded-full bg-white/5 group-hover:bg-rose-500 flex items-center justify-center transition-all">
+                                    <Play size={14} className="text-white/50 group-hover:text-white transition-colors ml-0.5" fill="currentColor" />
+                                  </div>
+                                  {track.duration > 0 && (
+                                    <span className="text-[9px] text-white/20 font-bold tabular-nums">{formatDuration(track.duration)}</span>
+                                  )}
+                                </div>
+                              </motion.button>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     </>
                   ) : (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex flex-col items-center justify-center p-10">
-                        <div className="w-64 h-64 bg-rose-500 rounded-[64px] flex items-center justify-center text-[120px] shadow-2xl shadow-rose-500/20 mb-10 relative">
-                            {isPlayingMusic && <div className="absolute inset-0 rounded-[64px] border-[10px] border-white/10 animate-ping opacity-20" />}
-                            {selectedMusic?.cover}
+                    /* Preview Screen */
+                    <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="flex-1 flex flex-col items-center justify-center p-10">
+                        {/* Album art */}
+                        <div className="w-56 h-56 rounded-[48px] overflow-hidden bg-gradient-to-br from-rose-600 to-pink-900 flex items-center justify-center shadow-2xl shadow-rose-500/30 mb-8 relative">
+                          {isPlayingMusic && (
+                            <div className="absolute inset-0 rounded-[48px] border-[8px] border-rose-400/20 animate-ping" />
+                          )}
+                          {selectedMusic?.thumbnailUrl ? (
+                            <img src={selectedMusic.thumbnailUrl} alt={selectedMusic.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <motion.div animate={isPlayingMusic ? { rotate: 360 } : {}} transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}>
+                              <Music3 size={72} className="text-white/60" />
+                            </motion.div>
+                          )}
                         </div>
-                        <h3 className="text-[28px] font-black italic uppercase tracking-tighter mb-2 text-center">{selectedMusic?.title}</h3>
-                        <p className="text-[14px] font-black text-rose-500 uppercase italic tracking-widest mb-12">{selectedMusic?.artist}</p>
-                        <div className="w-full max-w-xs flex flex-col gap-4">
-                            <div className="h-2 w-full bg-white/10 rounded-full relative overflow-hidden">
-                                {isPlayingMusic && <motion.div animate={{ x: ['-100%', '0%'] }} transition={{ duration: 15, repeat: Infinity, ease: 'linear' }} className="absolute inset-0 bg-rose-500" />}
-                            </div>
-                            <div className="flex justify-between items-center text-[10px] font-black uppercase text-white/40 tracking-widest"><span>0:15</span><div className="flex gap-1">{[...Array(20)].map((_, i) => (<div key={i} className={`w-1 rounded-full ${i > 5 && i < 15 ? 'h-6 bg-rose-500' : 'h-3 bg-white/20'}`} />))}</div><span>0:30</span></div>
+
+                        <h3 className="text-[24px] font-black italic uppercase tracking-tighter mb-1 text-center max-w-xs truncate">{selectedMusic?.title}</h3>
+                        <p className="text-[13px] font-black text-rose-400 uppercase italic tracking-widest mb-10">{selectedMusic?.artist}</p>
+
+                        {/* Progress bar */}
+                        <div className="w-full max-w-[260px] mb-3">
+                          <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                            <motion.div
+                              className="h-full bg-rose-500 rounded-full"
+                              style={{ width: `${musicAudioProgress}%` }}
+                              transition={{ duration: 0.3 }}
+                            />
+                          </div>
                         </div>
-                        <div className="flex gap-4 mt-12">
-                            <button onClick={() => setIsPlayingMusic(!isPlayingMusic)} className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-xl active:scale-90 transition-all">
-                                {isPlayingMusic ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" />}
-                            </button>
-                            <button onClick={() => setIsPreviewingMusic(false)} className="h-16 px-8 bg-white/5 border border-white/10 rounded-full flex items-center gap-3 text-[11px] font-black uppercase italic tracking-widest active:bg-white/10 transition-all"><ArrowRightLeft size={16} /> Change Track</button>
+
+                        {/* Waveform visualiser (decorative) */}
+                        <div className="flex gap-0.5 items-end h-8 mb-10">
+                          {[...Array(28)].map((_, i) => (
+                            <motion.div
+                              key={i}
+                              className="w-1 rounded-full bg-rose-500"
+                              animate={isPlayingMusic ? { height: [6, 4 + Math.random() * 20, 6] } : { height: 4 }}
+                              transition={isPlayingMusic ? { duration: 0.6 + Math.random() * 0.5, repeat: Infinity, delay: i * 0.04, ease: 'easeInOut' } : {}}
+                            />
+                          ))}
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex gap-4">
+                          <button
+                            onClick={toggleMusicPlayback}
+                            className="w-16 h-16 rounded-full bg-white text-black flex items-center justify-center shadow-xl active:scale-90 transition-all"
+                          >
+                            {isPlayingMusic ? <Pause size={26} fill="currentColor" /> : <Play size={26} fill="currentColor" />}
+                          </button>
+                          <button
+                            onClick={() => { setIsPreviewingMusic(false); if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; } }}
+                            className="h-16 px-7 bg-white/5 border border-white/10 rounded-full flex items-center gap-3 text-[11px] font-black uppercase italic tracking-widest active:bg-white/10 transition-all"
+                          >
+                            <ArrowRightLeft size={15} /> Change
+                          </button>
                         </div>
                     </motion.div>
                   )}
@@ -903,8 +1222,4 @@ export default function CreateStory() {
   );
 }
 
-const MOCK_MUSIC = [
-  { id: 1, title: 'On Fire', artist: 'Andy Bumuntu', duration: '3:17', cover: '🔥' },
-  { id: 2, title: 'LA PLI SI TOL', artist: 'Mikado', duration: '2:03', cover: '🏠' },
-  { id: 3, title: 'The Nights', artist: 'Avicii', duration: '2:56', cover: '🌌' },
-];
+// Pixabay music search now powers the music picker — MOCK_MUSIC removed.

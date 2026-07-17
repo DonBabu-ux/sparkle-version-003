@@ -22,6 +22,9 @@ export interface StoryMetadata {
   stickers?: string;
   parentStoryId?: string;
   musicInfo?: string;
+  storyLayers?: string; // Serialized JSON of StoryLayer[]
+  storyDuration?: number; // Duration in seconds
+  storyTheme?: string;
 }
 
 export interface UploadJob {

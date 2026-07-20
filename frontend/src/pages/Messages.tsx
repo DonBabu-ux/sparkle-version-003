@@ -950,6 +950,9 @@ export default function Messages() {
   // Add currentChatIdRef to prevent stale closures in socket events
   const currentChatIdRef = useRef<string | null>(null);
 
+  // Track last targetChatId we already tried to fetch for (prevents infinite re-fetch loops)
+  const lastFetchedTargetRef = useRef<string | null>(null);
+
   // Activate real-time message socket updates
   useMessageSocket();
 
@@ -1316,11 +1319,17 @@ const handleDeviceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
 const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
 
 useEffect(() => {
-  if (targetChatId && conversations.length > 0) {
+  if (targetChatId) {
     const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
-    if (chat) setSelectedChat(chat);
-    else setSelectedChat(null);
-  } else if (!targetChatId) {
+    if (chat) {
+      setSelectedChat(chat);
+    } else if (conversations.length > 0 && lastFetchedTargetRef.current !== targetChatId) {
+      lastFetchedTargetRef.current = targetChatId;
+      fetchInbox();
+    } else if (conversations.length > 0) {
+      setSelectedChat(null);
+    }
+  } else {
     setSelectedChat(null);
   }
 }, [targetChatId, conversations]);

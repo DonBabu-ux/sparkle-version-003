@@ -5,6 +5,7 @@ import { useChatStore } from '../store/chatStore';
 import { useUserStore } from '../store/userStore';
 import { useThemeStore } from '../store/themeStore';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
+import api from '../api/api';
 
 export const useMessageSocket = () => {
   const socket = useSocket();
@@ -28,6 +29,7 @@ export const useMessageSocket = () => {
     socket.off('message-deleted-me');
     socket.off('new-reaction');
     socket.off('reaction-removed');
+    socket.off('new_group_created');
 
     const handleNewMessage = (msg: any) => {
       const chatId = msg.conversation_id || msg.chat_id || chatStore.activeConversationId;
@@ -127,6 +129,17 @@ export const useMessageSocket = () => {
       chatStore.removeReaction(data.chatId, data.messageId, data.userId, data.emoji);
     };
 
+    const handleNewGroupCreated = async (data: { chatId: string }) => {
+      console.log('📡 New group created event received:', data);
+      try {
+        const res = await api.get('/messages/inbox');
+        const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+        chatStore.setConversations(list);
+      } catch (err) {
+        console.error('Failed to update conversations on group creation event:', err);
+      }
+    };
+
     socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
     socket.on('messages-delivered', handleMessagesDelivered);
@@ -138,6 +151,7 @@ export const useMessageSocket = () => {
     socket.on('message-deleted-me', handleMessageDeletedMe);
     socket.on('new-reaction', handleNewReaction);
     socket.on('reaction-removed', handleReactionRemoved);
+    socket.on('new_group_created', handleNewGroupCreated);
 
     return () => {
       socket.off('new-message', handleNewMessage);
@@ -151,6 +165,7 @@ export const useMessageSocket = () => {
       socket.off('message-deleted-me', handleMessageDeletedMe);
       socket.off('new-reaction', handleNewReaction);
       socket.off('reaction-removed', handleReactionRemoved);
+      socket.off('new_group_created', handleNewGroupCreated);
     };
   }, [socket, messageStore, chatStore]);
 };

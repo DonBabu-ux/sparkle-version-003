@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { 
   X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, 
   Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, 
   MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft,
-  Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw
+  Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw,
+  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
@@ -71,8 +73,65 @@ const generateEncryptionKeys = (chatId: string) => {
 };
 
 export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
+  const navigate = useNavigate();
   const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification'>('main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
+
+  // ── Create Group state ──
+  const [groupName, setGroupName] = useState(`${chat.partner_name.split(' ')[0]} & You`);
+  const [groupFriends, setGroupFriends] = useState<any[]>([]);
+  const [groupSelected, setGroupSelected] = useState<any[]>([{ id: chat.partner_id, user_id: chat.partner_id, full_name: chat.partner_name, avatar_url: chat.partner_avatar }]);
+  const [groupSearch, setGroupSearch] = useState('');
+  const [groupLoading, setGroupLoading] = useState(false);
+  const [groupCreating, setGroupCreating] = useState(false);
+
+  // ── Share Contact state ──
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [followingList, setFollowingList] = useState<any[]>([]);
+  const [shareSearchQuery, setShareSearchQuery] = useState('');
+  const [followingLoading, setFollowingLoading] = useState(false);
+  const [sharingStates, setSharingStates] = useState<Record<string, 'idle' | 'sending' | 'sent'>>({});
+
+  useEffect(() => {
+    if (view !== 'share_contact') return;
+    const fetchFollowing = async () => {
+      setFollowingLoading(true);
+      try {
+        const res = await api.get(`/users/following?q=${shareSearchQuery}`);
+        const users = Array.isArray(res.data) ? res.data : (res.data?.data || []);
+        setFollowingList(users);
+      } catch (err) {
+        console.error('Failed to fetch following:', err);
+      } finally {
+        setFollowingLoading(false);
+      }
+    };
+    fetchFollowing();
+  }, [view, shareSearchQuery]);
+
+  const handleShareContactToUser = async (partner: any) => {
+    const partnerId = partner.id || partner.user_id;
+    if (!partnerId) return;
+    setSharingStates(prev => ({ ...prev, [partnerId]: 'sending' }));
+    try {
+      const chatRes = await api.post('/messages/start', { partnerId });
+      const activeChatId = chatRes.data?.data?.conversationId || chatRes.data?.chatId || chatRes.data?.chat_id;
+      
+      await api.post('/messages/send', {
+        chatId: activeChatId,
+        partnerId,
+        content: chat.partner_name,
+        type: 'contact',
+        mediaUrl: chat.partner_username || chat.partner_id
+      });
+      setSharingStates(prev => ({ ...prev, [partnerId]: 'sent' }));
+    } catch (err) {
+      console.error('Failed to share contact to chat:', err);
+      setSharingStates(prev => ({ ...prev, [partnerId]: 'idle' }));
+      alert('Failed to send contact in chat.');
+    }
+  };
+
   const [wordInput, setWordInput] = useState('');
   const [wordEmoji, setWordEmoji] = useState('✨');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -880,37 +939,6 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 <p className="text-sm font-medium">{searchQuery ? `No results for "${searchQuery}"` : 'Search for messages, media, or links'}</p>
               </div>
             </motion.div>
-          ) : view === 'share_contact' || view === 'create_group' ? (
-            <motion.div key="contacts" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-                <h2 className="text-xl font-bold text-white">{view === 'share_contact' ? 'Share Contact' : 'New Group'}</h2>
-              </div>
-              <div className="p-4">
-                <div className="bg-white/5 rounded-xl flex items-center px-4 h-11 mb-6 border border-white/10">
-                  <Search size={18} className="text-white/30" />
-                  <input type="text" placeholder="Search contacts..." className="bg-transparent w-full ml-3 text-white placeholder:text-white/30 outline-none text-[15px]" />
-                </div>
-                <div className="space-y-4">
-                  <p className="text-xs font-bold text-white/30 uppercase tracking-widest px-2">Recent</p>
-                  {MEMOJIS.slice(0, 5).map((img, i) => (
-                    <div key={i} className="flex items-center gap-4 p-2 hover:bg-white/5 rounded-xl cursor-pointer group transition-all">
-                      <img src={img} className="w-11 h-11 rounded-full object-cover border border-white/10" alt="" />
-                      <div className="flex-1 border-b border-white/5 pb-2 group-last:border-none">
-                        <p className="text-[15px] font-bold text-white">Contact {i + 1}</p>
-                        <p className="text-[11px] text-white/40">Active now</p>
-                      </div>
-                      <div className="w-5 h-5 rounded-full border-2 border-white/20" />
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="mt-auto p-4 border-t border-white/5">
-                <button className="w-full py-4 bg-[#ff1493] text-white font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all">
-                  {view === 'share_contact' ? 'Share' : 'Create Group'}
-                </button>
-              </div>
-            </motion.div>
           ) : view === 'notifications_sounds' ? (
             <motion.div key="notifications_sounds" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
@@ -1156,6 +1184,272 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
               </div>
             </motion.div>
+          ) : view === 'create_group' ? (
+            <motion.div key="create_group" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              {/* Header */}
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white flex-1">Create Group Chat</h2>
+                <button
+                  onClick={async () => {
+                    if (!groupName.trim() || groupSelected.length === 0 || groupCreating) return;
+                    setGroupCreating(true);
+                    try {
+                      const res = await api.post('/groupChat', {
+                        name: groupName.trim(),
+                        member_ids: groupSelected.map((u: any) => u.id || u.user_id),
+                      });
+                      const newChatId = res.data?.data?.chatId;
+                      onClose();
+                      if (newChatId) navigate(`/messages?chat=${newChatId}`);
+                    } catch (err) {
+                      console.error('Failed to create group', err);
+                    } finally {
+                      setGroupCreating(false);
+                    }
+                  }}
+                  disabled={!groupName.trim() || groupSelected.length === 0 || groupCreating}
+                  className="px-4 py-2 bg-[#ff1493] disabled:opacity-40 text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95"
+                >
+                  {groupCreating ? 'Creating…' : 'Create'}
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-24 p-4 space-y-5">
+
+                {/* Group name input */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Group Name</p>
+                  <input
+                    value={groupName}
+                    onChange={e => setGroupName(e.target.value)}
+                    placeholder="Enter group name…"
+                    className="w-full bg-transparent text-white text-base font-bold outline-none placeholder:text-white/30 border-b border-white/10 pb-2"
+                  />
+                </div>
+
+                {/* Selected members chips */}
+                {groupSelected.length > 0 && (
+                  <div className="flex flex-wrap gap-2 px-1">
+                    {groupSelected.map((u: any) => (
+                      <div key={u.id || u.user_id} className="flex items-center gap-2 bg-[#ff1493]/15 border border-[#ff1493]/30 rounded-full pl-1 pr-3 py-1">
+                        <img src={getAvatarUrl(u.avatar_url || u.partner_avatar)} className="w-6 h-6 rounded-full object-cover" />
+                        <span className="text-xs font-bold text-white">{u.full_name || u.partner_name || u.name}</span>
+                        {(u.id || u.user_id) !== chat.partner_id && (
+                          <button onClick={() => setGroupSelected(prev => prev.filter(x => (x.id || x.user_id) !== (u.id || u.user_id)))} className="text-white/40 hover:text-white/80 ml-0.5"><X size={12} /></button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Friend search */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+                  <p className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Add People</p>
+                  <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2">
+                    <Search size={14} className="text-white/40" />
+                    <input
+                      value={groupSearch}
+                      onChange={async e => {
+                        setGroupSearch(e.target.value);
+                        if (e.target.value.length > 1) {
+                          try {
+                            const res = await api.get(`/users/search?q=${e.target.value}`);
+                            setGroupFriends(res.data?.data || []);
+                          } catch {}
+                        } else if (!e.target.value) {
+                          try {
+                            setGroupLoading(true);
+                            const res = await api.get('/users/active-friends');
+                            setGroupFriends(res.data?.friends || []);
+                          } catch {} finally { setGroupLoading(false); }
+                        }
+                      }}
+                      onFocus={async () => {
+                        if (groupFriends.length === 0) {
+                          try {
+                            setGroupLoading(true);
+                            const res = await api.get('/users/active-friends');
+                            setGroupFriends(res.data?.friends || []);
+                          } catch {} finally { setGroupLoading(false); }
+                        }
+                      }}
+                      placeholder="Search friends…"
+                      className="flex-1 bg-transparent text-white text-sm outline-none placeholder:text-white/30"
+                    />
+                  </div>
+                  <div className="space-y-1 max-h-64 overflow-y-auto no-scrollbar">
+                    {groupLoading && <p className="text-xs text-white/40 text-center py-4">Loading…</p>}
+                    {groupFriends.filter(f => (f.id || f.user_id) !== chat.partner_id).map((f: any) => {
+                      const fId = f.id || f.user_id;
+                      const isSelected = groupSelected.some((x: any) => (x.id || x.user_id) === fId);
+                      return (
+                        <button
+                          key={fId}
+                          onClick={() => setGroupSelected(prev => isSelected ? prev.filter(x => (x.id || x.user_id) !== fId) : [...prev, f])}
+                          className="w-full flex items-center gap-3 p-3 rounded-2xl hover:bg-white/5 transition-all"
+                        >
+                          <img src={getAvatarUrl(f.avatar_url)} className="w-10 h-10 rounded-full object-cover" />
+                          <div className="flex-1 text-left">
+                            <p className="text-sm font-bold text-white">{f.full_name || f.name}</p>
+                            <p className="text-xs text-white/40">@{f.username}</p>
+                          </div>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${isSelected ? 'bg-[#ff1493] border-[#ff1493]' : 'border-white/20'}`}>
+                            {isSelected && <Check size={12} className="text-white" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {!groupLoading && groupFriends.length === 0 && (
+                      <p className="text-xs text-white/40 text-center py-4">Tap the search bar to load friends</p>
+                    )}
+                  </div>
+                </div>
+
+              </div>
+            </motion.div>
+
+          ) : view === 'share_contact' ? (
+            <motion.div key="share_contact" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              {/* Header */}
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Share Contact</h2>
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-24 p-6 space-y-6">
+
+                {/* Contact card */}
+                <div className="relative bg-gradient-to-br from-[#ff1493]/20 via-white/5 to-purple-500/10 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-2xl overflow-hidden">
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-5" />
+                  <img
+                    src={getAvatarUrl(chat.partner_avatar)}
+                    className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-xl"
+                  />
+                  <div className="text-center">
+                    <p className="text-xl font-black text-white">{chat.partner_name}</p>
+                    {chat.partner_username && <p className="text-sm text-white/50 mt-0.5">@{chat.partner_username}</p>}
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
+                    <Link2 size={13} className="text-[#ff1493]" />
+                    <span className="text-xs font-mono text-white/60">
+                      sparkle.app/@{chat.partner_username || chat.partner_id}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Share QR */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493] self-start">Profile QR Code</h4>
+                  <div className="bg-white rounded-2xl p-4 shadow-lg">
+                    <QRCode
+                      value={`https://sparkle.app/@${chat.partner_username || chat.partner_id}`}
+                      size={190}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                      style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-white/40 text-center">Scan to visit {chat.partner_name.split(' ')[0]}'s profile</p>
+                </div>
+
+                {/* Send in Chat section */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Send in Chat</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    Share {chat.partner_name.split(' ')[0]}'s contact card directly with your following.
+                  </p>
+
+                  <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2 border border-white/10">
+                    <Search size={14} className="text-white/40" />
+                    <input
+                      value={shareSearchQuery}
+                      onChange={e => setShareSearchQuery(e.target.value)}
+                      placeholder="Search following..."
+                      className="flex-1 bg-transparent text-white text-xs outline-none placeholder:text-white/30"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5 max-h-60 overflow-y-auto no-scrollbar">
+                    {followingLoading && <p className="text-xs text-white/40 text-center py-4">Loading following...</p>}
+                    {!followingLoading && followingList.map((f: any) => {
+                      const fId = f.id || f.user_id;
+                      const sharingState = sharingStates[fId] || 'idle';
+                      return (
+                        <div
+                          key={fId}
+                          className="flex items-center justify-between p-3 rounded-2xl hover:bg-white/5 transition-all"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img src={getAvatarUrl(f.avatar_url)} className="w-9 h-9 rounded-full object-cover" />
+                            <div className="text-left">
+                              <p className="text-sm font-bold text-white leading-tight">{f.full_name || f.name}</p>
+                              <p className="text-xs text-white/40">@{f.username}</p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => handleShareContactToUser(f)}
+                            disabled={sharingState !== 'idle'}
+                            className={clsx(
+                              "px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 border",
+                              sharingState === 'sent' 
+                                ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" 
+                                : sharingState === 'sending'
+                                  ? "bg-white/5 border-white/10 text-white/40 cursor-default font-bold"
+                                  : "bg-[#ff1493] border-[#ff1493] text-white hover:opacity-90 font-bold"
+                            )}
+                          >
+                            {sharingState === 'sent' ? 'Sent!' : sharingState === 'sending' ? 'Sending…' : 'Send'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                    {!followingLoading && followingList.length === 0 && (
+                      <p className="text-xs text-white/45 text-center py-4">No following found</p>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action buttons */}
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    onClick={async () => {
+                      const url = `https://sparkle.app/@${chat.partner_username || chat.partner_id}`;
+                      await navigator.clipboard.writeText(url).catch(() => {});
+                      setLinkCopied(true);
+                      setTimeout(() => setLinkCopied(false), 2500);
+                    }}
+                    className="flex items-center justify-center gap-2 py-4 bg-white/5 border border-white/10 hover:border-[#ff1493]/40 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                  >
+                    {linkCopied ? <CheckCircle2 size={15} className="text-emerald-400" /> : <Copy size={15} />}
+                    {linkCopied ? 'Copied!' : 'Copy Link'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      const url = `https://sparkle.app/@${chat.partner_username || chat.partner_id}`;
+                      if (navigator.share) {
+                        navigator.share({ title: chat.partner_name, text: `Check out ${chat.partner_name} on Sparkle!`, url });
+                      } else {
+                        navigator.clipboard.writeText(url);
+                      }
+                    }}
+                    className="flex items-center justify-center gap-2 py-4 bg-[#ff1493]/10 border border-[#ff1493]/30 hover:bg-[#ff1493]/20 rounded-2xl text-xs font-bold text-[#ff1493] transition-all active:scale-95"
+                  >
+                    <Share2 size={15} /> Share
+                  </button>
+                </div>
+
+                {/* Visit profile CTA */}
+                <button
+                  onClick={() => { onClose(); navigate(`/profile/${chat.partner_id}`); }}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-sm font-bold text-white border border-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <User size={16} /> View Full Profile
+                </button>
+
+              </div>
+            </motion.div>
+
           ) : null}
         </AnimatePresence>
       </div>

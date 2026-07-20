@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+``  import { useState, useEffect } from 'react';
 import api from '../../api/api';
 
 import type { User } from '../../types/user';
@@ -72,11 +72,11 @@ export default function NewChatModal({ isOpen, onClose, defaultTab = 'new' }: Ne
   const handleCreateGroup = async () => {
      if (!groupName || selectedUsers.length === 0) return;
      try {
-       const res = await api.post('/messages/groups', { 
+       const res = await api.post('/groupChat', { 
          name: groupName, 
-         members: selectedUsers.map(u => u.id || u.user_id) 
+         member_ids: selectedUsers.map(u => u.id || u.user_id) 
        });
-       onChatSelected(res.data.groupId || res.data.chat_id);
+       onChatSelected(res.data?.data?.chatId);
        onClose();
      } catch (err) {
        console.error('Failed to create group', err);

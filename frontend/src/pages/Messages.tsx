@@ -6,6 +6,7 @@ import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
+import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams } from 'react-router-dom';
@@ -124,6 +125,7 @@ interface ChatMessage {
   type?: 'text' | 'image' | 'video' | 'voice_note' | 'document' | 'location' | 'contact' | string;
   media_url?: string;
   mediaUrl?: string;
+  metadata?: string;
 }
 
 const VoiceNotePlayer = ({ url }: { url: string }) => {
@@ -216,6 +218,51 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
       </button>
     </div>
   );
+};
+
+const AttachmentCard = ({ metadata }: { metadata: string }) => {
+  const navigate = useNavigate();
+  let parsed: any = null;
+  try {
+    parsed = JSON.parse(metadata);
+  } catch (e) {
+    console.error("Failed to parse metadata", e);
+    return null;
+  }
+  const att = parsed?.attachment;
+  if (!att) return null;
+
+  if (att.type === 'story') {
+    return (
+      <div 
+        onClick={() => navigate(`/stories/${att.owner}`)}
+        className="rounded-[20px] overflow-hidden border border-white/10 cursor-pointer max-w-[240px] bg-white/5 backdrop-blur-md relative group select-none shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] mt-1"
+      >
+        {att.thumbnail ? (
+          <div className="relative aspect-[3/4] w-full overflow-hidden bg-black/20">
+            <img src={att.thumbnail} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Story preview" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3 flex items-center gap-2">
+              <div className="w-2.5 h-2.5 rounded-full bg-purple-500 animate-pulse shadow-[0_0_8px_#a855f7]" />
+              <span className="text-white text-[11px] font-black uppercase tracking-wider">Story Reply</span>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center shrink-0">
+              <Sparkles size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[13px] font-bold text-white leading-tight">Story Reply</span>
+              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">Click to view</p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return null;
 };
 
 // --- Components ---
@@ -1467,7 +1514,9 @@ useEffect(() => {
       if (chatIndex >= 0) {
         const newConvs = [...prev];
         const chat = { ...newConvs[chatIndex] };
-        chat.last_message_content = msg.type === 'text' ? msg.content : `Sent a ${msg.type}`;
+        chat.last_message = msg.content;
+        chat.last_message_type = msg.type;
+        chat.last_message_content = msg.type === 'text' ? msg.content : msg.type === 'attachment' ? '🎬 Story reply' : `Sent a ${msg.type}`;
         // Use server timestamp only — never fall back to client Date
         chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
         // Inherit status from the server message payload; never assume 'sent'
@@ -1486,7 +1535,9 @@ useEffect(() => {
           partner_name: msg.sender_name || msg.sender_username || 'New Contact',
           partner_avatar: msg.sender_avatar,
           unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
-          last_message_content: msg.type === 'text' ? msg.content : `Sent a ${msg.type}`,
+          last_message: msg.content,
+          last_message_type: msg.type,
+          last_message_content: msg.type === 'text' ? msg.content : msg.type === 'attachment' ? '🎬 Story reply' : `Sent a ${msg.type}`,
           last_message_time: msg.sent_at || msg.created_at,
           last_message_status: msg.status || 'sent',
           partner_online: true
@@ -1846,6 +1897,9 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   updateMessages(prev => [...prev, optimisticMsg]);
   if (!contentOverride && !isRich) setNewMessage('');
 
+  // ── Sparkle Audio: instant 'send' feedback ──
+  AudioSessionManager.playSound('send');
+
   // Auto scroll if was at bottom
   if (isNearBottom) {
     setTimeout(() => scrollToBottom('smooth'), 50);
@@ -1900,6 +1954,8 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
         if (chatIndex >= 0) {
           const newConvs = [...prev];
           const chat = { ...newConvs[chatIndex] };
+          chat.last_message = content || (specialType ? `Shared ${specialType}` : '');
+          chat.last_message_type = specialType || 'text';
           chat.last_message_content = content || (specialType ? `Shared ${specialType}` : '');
           chat.last_message_status = 'sent';
           chat.last_message_time = response.sentAt || chat.last_message_time;
@@ -2402,7 +2458,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                         ) : chat.unread_count === 1 ? (
                           <div className="flex items-center gap-1.5 truncate">
                             <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
-                              {chat.last_message ? formatMessageText(chat.last_message) : 'Sent a photo'}
+                              {chat.last_message_type === 'attachment' ? '🎬 Story reply' : chat.last_message ? formatMessageText(chat.last_message) : 'Sent a photo'}
                             </p>
                             <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {getTimeAgo(chat.last_message_time || chat.last_message_at)}</span>
                           </div>
@@ -2753,6 +2809,19 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                         {/* Spacer to prevent timestamp overlap */}
                                         <span className="inline-block w-[75px] h-[1px]"></span>
                                       </>
+                                    )}
+
+                                    {msg.type === 'attachment' && msg.metadata && (
+                                      <div className="my-1">
+                                        <AttachmentCard metadata={msg.metadata} />
+                                        {msg.content && msg.content.trim() !== '' && (
+                                          <div className="mt-2 text-white break-words whitespace-pre-wrap">
+                                            {msg.content}
+                                          </div>
+                                        )}
+                                        {/* Spacer to prevent timestamp overlap */}
+                                        <span className="inline-block w-[75px] h-[1px]"></span>
+                                      </div>
                                     )}
 
                                     {msg.type === 'image' && (

@@ -242,10 +242,13 @@ socket.on('get-rooms', () => {
             try {
                 const MESSAGE_TRACE_ID = crypto.randomUUID();
                 secureLogger.messageTrace(MESSAGE_TRACE_ID, 'client_send', { chatId: data.chatId, senderId: socket.userId, recipientId: data.recipientId || data.partnerId });
-                const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited' } = data;
+                const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment } = data;
                 logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
+
+                // Serialize generic attachment (story, post, event, marketplace, etc.)
+                const metadata = attachment ? JSON.stringify({ attachment }) : null;
 
                 // --- Moderation & Group Access Enforcement ---
                 if (chatId) {
@@ -274,7 +277,8 @@ socket.on('get-rooms', () => {
                     replyToId,
                     marketplaceListingId: marketplaceListingId || data.listingId,
                     viewPolicy,
-                    context
+                    context,
+                    metadata,
                 });
                 console.log('MESSAGE SAVED', messageId);
         realtimeLogger.trace(traceId, 'DB_SAVE_SUCCESS', { messageId });

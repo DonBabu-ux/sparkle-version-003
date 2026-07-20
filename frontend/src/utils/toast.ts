@@ -1,4 +1,5 @@
 import toast, { Toaster } from 'react-hot-toast';
+import AudioSessionManager from '../audio/managers/AudioSessionManager';
 
 // Export Toaster as ToastProvider for compatibility
 export const ToastProvider = Toaster;
@@ -14,6 +15,7 @@ const defaultOptions = {
  * @param message - Message to display.
  */
 export const showSuccess = (message: string) => {
+  AudioSessionManager.playSound('success');
   toast.success(message, { ...defaultOptions });
 };
 
@@ -22,6 +24,7 @@ export const showSuccess = (message: string) => {
  * @param message - Message to display.
  */
 export const showError = (message: string) => {
+  AudioSessionManager.playSound('error');
   toast.error(message, { ...defaultOptions });
 };
 

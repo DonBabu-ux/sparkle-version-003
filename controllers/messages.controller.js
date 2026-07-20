@@ -70,21 +70,25 @@ class MessageController {
      */
     async sendMessage(req, res) {
         try {
-            const { content, media_url, type, partnerId, conversationId, chatId, replyToId } = req.body;
+            const { content, media_url, type, partnerId, conversationId, chatId, replyToId, attachment } = req.body;
             const userId = req.user.user_id || req.user.userId;
 
-            if (!content && !media_url) {
-                return res.status(400).json({ status: 'error', error: 'Content or media is required' });
+            if (!content && !media_url && !attachment) {
+                return res.status(400).json({ status: 'error', error: 'Content, media, or attachment is required' });
             }
+
+            // Serialize generic attachment (story, post, event, profile, marketplace, etc.)
+            const metadata = attachment ? JSON.stringify({ attachment }) : null;
 
             const messageId = await Message.sendMessage({
                 recipientId: partnerId || null,
                 chatId: chatId || conversationId || null,
                 senderId: userId,
-                content,
+                content: content || '',
                 type: type || 'text',
                 mediaUrl: media_url || null,
-                replyToId
+                replyToId,
+                metadata,
             });
 
             res.json({ status: 'success', data: { messageId } });
@@ -93,6 +97,7 @@ class MessageController {
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }
+
 
     /**
      * Start a new conversation or get existing one

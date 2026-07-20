@@ -128,6 +128,7 @@ interface ThemeState {
   customThemes: SparkleTheme[];
   quickReactions: Record<string, string>; // Maps chatId -> emoji
   chatWordEffects: Record<string, WordEffect[]>; // Maps chatId -> array of effects
+  chatNotificationSounds: Record<string, string>; // Maps chatId -> soundKey
   
   getThemeForChat: (chatId: string) => SparkleTheme;
   setThemeForChat: (chatId: string, theme: SparkleTheme) => void;
@@ -139,6 +140,10 @@ interface ThemeState {
   getWordEffects: (chatId: string) => WordEffect[];
   addWordEffect: (chatId: string, word: string, emoji: string) => void;
   removeWordEffect: (chatId: string, effectId: string) => void;
+  
+  getNotificationSound: (chatId: string) => string;
+  setNotificationSound: (chatId: string, soundKey: string) => void;
+
   clearAllThemes: () => void;
 }
 
@@ -149,6 +154,7 @@ export const useThemeStore = create<ThemeState>()(
       customThemes: [],
       quickReactions: {},
       chatWordEffects: {},
+      chatNotificationSounds: {},
       
       getThemeForChat: (chatId: string) => {
         if (!chatId) return PRESET_THEMES[0];
@@ -215,12 +221,28 @@ export const useThemeStore = create<ThemeState>()(
           };
         });
       },
+
+      getNotificationSound: (chatId: string) => {
+        if (!chatId) return 'default';
+        return get().chatNotificationSounds[chatId] || 'default';
+      },
+
+      setNotificationSound: (chatId: string, soundKey: string) => {
+        if (!chatId) return;
+        set(state => ({
+          chatNotificationSounds: {
+            ...state.chatNotificationSounds,
+            [chatId]: soundKey
+          }
+        }));
+      },
+
       clearAllThemes: () => {
-        set({ chatThemes: {} });
+        set({ chatThemes: {}, chatNotificationSounds: {} });
       }
     }),
     {
-      name: 'sparkle-chat-themes-v2',
+      name: 'sparkle-chat-themes-v3', // Changed version suffix to prevent format mismatch with existing v2 store
     }
   )
 );

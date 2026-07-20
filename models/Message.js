@@ -40,7 +40,7 @@ class Message {
     /**
      * Send message (Direct or Group)
      */
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat' }) {
+    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat', metadata = null }) {
         const messageId = crypto.randomUUID();
         let personalChatId = null;
         let groupChatId = null;
@@ -77,8 +77,8 @@ class Message {
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, personal_chat_id, 
                     sender_id, recipient_id, content, type, media_url, 
-                    story_id, reply_to_message_id, status, is_read, sent_at, context
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?)
+                    story_id, reply_to_message_id, status, is_read, sent_at, context, metadata
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?, ?)
             `, [
                 messageId, 
                 groupChatId, 
@@ -92,7 +92,8 @@ class Message {
                 storyId,
                 replyToId, 
                 sentAt, 
-                context
+                context,
+                metadata
             ]);
 
             // Update last_message_time and clear archives/deletions

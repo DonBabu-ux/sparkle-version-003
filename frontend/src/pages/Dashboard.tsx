@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import AppScreen from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
+import { storyCache } from '../utils/storyCache';
 import { 
   Check, Image, Video, Smile, Ghost, 
   Plus, Sparkles, Flame, TrendingUp, Orbit, Send, 
@@ -165,6 +166,8 @@ const posts = orderedPostIds.map(id => postsById[id]);
       const res = await api.get('/stories/active');
       if (Array.isArray(res.data)) {
         setStories(res.data);
+        // Populate story cache for instant modal opens
+        storyCache.populate(res.data);
       }
     } catch (err) {
       console.error('Failed to fetch stories:', err);
@@ -359,15 +362,51 @@ const posts = orderedPostIds.map(id => postsById[id]);
             <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
                 {/* Add Story Card — 118×210 */}
-                <div onClick={() => navigate('/afterglow/create')} className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-black rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10">
-                  <div className="h-[158px] w-full overflow-hidden">
-                    <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
-                  </div>
-                  <div className="h-[52px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
-                    <div className="absolute top-[-20px] w-10 h-10 bg-primary rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10"><Plus size={24} strokeWidth={4} /></div>
-                    <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">Add Story</span>
-                  </div>
-                </div>
+                {(() => {
+                  // Derive own story group from already-fetched stories
+                  const myStoryGroup = stories.find(
+                    (g: StoryGroup) => String(g.user_id) === String(user?.user_id)
+                  );
+                  const myFirstStory = myStoryGroup?.stories[0];
+                  // Thumbnail fallback: thumbnail_url → media_url (images only) → avatar
+                  const myThumbnail =
+                    myFirstStory?.thumbnail_url ||
+                    (myFirstStory?.media_type !== 'video' ? myFirstStory?.media_url : null) ||
+                    user?.avatar_url ||
+                    '/assets/story_placeholder.png';
+
+                  return (
+                    <div
+                      onClick={() =>
+                        myStoryGroup
+                          ? navigate(`/stories/${user?.user_id}`, { state: { userStoryGroup: myStoryGroup } })
+                          : navigate('/afterglow/create')
+                      }
+                      className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-black rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10"
+                    >
+                      <div className="h-[158px] w-full overflow-hidden relative">
+                        <img
+                          src={myThumbnail ? String(myThumbnail) : getAvatarUrl(user?.avatar_url, user?.username)}
+                          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                          onError={(e) => { e.currentTarget.src = getAvatarUrl(user?.avatar_url, user?.username); }}
+                          alt=""
+                        />
+                        {/* Story ring overlay if own story exists */}
+                        {myStoryGroup && (
+                          <div className="absolute inset-0 border-[3px] border-purple-500 rounded-t-xl pointer-events-none shadow-[0_0_12px_rgba(168,85,247,0.5)]" />
+                        )}
+                      </div>
+                      <div className="h-[52px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
+                        <div className={`absolute top-[-20px] w-10 h-10 ${myStoryGroup ? 'bg-purple-500' : 'bg-primary'} rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10`}>
+                          <Plus size={24} strokeWidth={4} />
+                        </div>
+                        <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">
+                          {myStoryGroup ? 'Your Story' : 'Add Story'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Uploading "You" Card — 118×210 */}
                 {activeUploads.length > 0 && (
@@ -447,7 +486,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                   return (
                     <div
                       key={group.user_id}
-                      onClick={() => navigate(`/stories/${group.user_id}`)}
+                      onClick={() => navigate(`/stories/${group.user_id}`, { state: { userStoryGroup: group } })}
                       className="flex-shrink-0 w-[118px] h-[210px] rounded-xl shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
                     >
                       {/* Background preview — thumbnail → media_url → placeholder */}

@@ -18,6 +18,7 @@ import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MockCallProvider } from './components/MockCallProvider';
 import { SocketProvider } from './context/SocketProvider';
+import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
 import { UploadManager } from './services/UploadManager';
 import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
@@ -102,6 +103,7 @@ import Onboarding from './pages/Onboarding';
 import Ecosystem from './pages/Ecosystem';
 
 import BlockedUsers from './pages/BlockedUsers';
+import AudioDiagnostics from './audio/diagnostics/AudioDiagnostics';
 
 // Phase 5 — Public & Static
 import About from './pages/About';
@@ -288,6 +290,18 @@ function App() {
     };
   }, [socket, setStories]);
 
+  // ── Socket: Route incoming notifications to the audio engine ──
+  useEffect(() => {
+    if (!socket) return;
+    const onNotification = (data: any) => {
+      handleNotificationSound(data);
+    };
+    socket.on('new-notification', onNotification);
+    return () => {
+      socket.off('new-notification', onNotification);
+    };
+  }, [socket]);
+
   const theme = useUserStore(state => state.theme);
 
   useEffect(() => {
@@ -361,6 +375,7 @@ function App() {
 
   return (
     <OTAUpdateProvider>
+      <SoundProvider>
       <CameraProvider>
         <NetworkStatusProvider>
           <OfflineIndicator />
@@ -392,6 +407,7 @@ function App() {
                     <Route path="/messages/settings" element={isAuthenticated ? <MessagesSettings /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
                     <Route path="/settings/blocked" element={isAuthenticated ? <BlockedUsers /> : <Navigate to="/login" />} />
+                    <Route path="/settings/audio-diagnostics" element={isAuthenticated ? <AudioDiagnostics /> : <Navigate to="/login" />} />
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
@@ -501,6 +517,7 @@ function App() {
           </GlobalThemeProvider>
         </NetworkStatusProvider>
       </CameraProvider>
+      </SoundProvider>
     </OTAUpdateProvider>
 
   );

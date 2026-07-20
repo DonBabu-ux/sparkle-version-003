@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { 
@@ -19,7 +20,7 @@ import { useUserStore } from '../store/userStore';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
 import Spinner from '../components/ui/Spinner';
-import StoryAudioManager from '../services/StoryAudioManager';
+import StoryAudioManager from '../audio/managers/StoryAudioManager';
 import AudioReactiveVisualizer from '../components/stories/AudioReactiveVisualizer';
 
 // REAL LOGOS SVGS
@@ -75,15 +76,23 @@ interface UserStoryGroup {
 export default function StoryViewer() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useUserStore();
+
+  // Pre-populate from Router state or in-memory cache for instant open
+  const preloaded: UserStoryGroup | null =
+    location.state?.userStoryGroup ?? storyCache.get(userId || '') ?? null;
   
-  const [userStories, setUserStories] = useState<UserStoryGroup | null>(null);
+  const [userStories, setUserStories] = useState<UserStoryGroup | null>(preloaded);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!preloaded); // no spinner if preloaded
   const [playbackState, setPlaybackState] = useState<'Idle' | 'LoadingMedia' | 'LoadingAudio' | 'Ready' | 'Playing' | 'Paused' | 'Completed' | 'Disposed'>('Idle');
   const [mediaLoaded, setMediaLoaded] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [videoError, setVideoError] = useState(false);
+  const [replySent, setReplySent] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   const requestRef = useRef<number | null>(null);
   const previousTimeRef = useRef<number | null>(null);
@@ -123,13 +132,21 @@ export default function StoryViewer() {
     const fetchStories = async () => {
       try {
         const response = await api.get('/stories/active');
-        const userGroup = response.data.find((g: UserStoryGroup) => String(g.user_id) === String(userId));
+        const groups: UserStoryGroup[] = response.data;
+        // Populate cache with fresh data for all users
+        storyCache.populate(groups);
+        const userGroup = groups.find((g: UserStoryGroup) => String(g.user_id) === String(userId));
         if (userGroup) {
           setUserStories(userGroup);
-          // Fixed 500 error: Added silence to view post
           api.post(`/stories/${userGroup.stories[0].story_id}/view`).catch(() => {});
-        } else { navigate('/dashboard'); }
-      } catch (err) { navigate('/dashboard'); } finally { setLoading(false); }
+        } else if (!preloaded) {
+          navigate('/dashboard');
+        }
+      } catch (err) {
+        if (!preloaded) navigate('/dashboard');
+      } finally {
+        setLoading(false);
+      }
     };
     fetchStories();
   }, [userId, navigate]);
@@ -174,12 +191,38 @@ export default function StoryViewer() {
     }
   }, [showShareModal, showMentionModal]);
 
+  // --- Imperative Video Play/Pause Control ---
+  useEffect(() => {
+    const vid = videoRef.current;
+    if (!vid || userStories?.stories[currentIndex]?.media_type !== 'video') return;
+    if (playbackState === 'Playing') {
+      vid.play().catch(() => setVideoError(true));
+    } else if (playbackState === 'Paused' || playbackState === 'Idle') {
+      vid.pause();
+    }
+  }, [playbackState, currentIndex, userStories]);
+
+  // --- Video Cleanup on Story Change (memory management) ---
+  useEffect(() => {
+    return () => {
+      const vid = videoRef.current;
+      if (vid) {
+        vid.pause();
+        vid.removeAttribute('src');
+        vid.load();
+      }
+      setVideoError(false);
+      setMediaLoaded(false);
+    };
+  }, [currentIndex]);
+
   // --- Playback State Machine and Audio Handling ---
   useEffect(() => {
     if (!userStories || !userStories.stories[currentIndex]) return;
     const current = userStories.stories[currentIndex];
 
     // Reset media loading status
+    setVideoError(false);
     setMediaLoaded(current.media_type === 'text');
     setPlaybackState(current.media_type === 'text' ? 'Ready' : 'LoadingMedia');
 
@@ -322,12 +365,14 @@ export default function StoryViewer() {
     }
   }, [currentIndex, userStories]);
 
-  if (loading || !userStories) return (
+  if (loading && !userStories) return (
     <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
        <Spinner size="large" color="text-primary" />
        <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Harmonizing Frequency...</p>
     </div>
   );
+
+  if (!userStories) return null;
 
   const currentStory = userStories.stories[currentIndex];
   const isOwner = String(currentUser?.user_id) === String(userStories.user_id);
@@ -383,10 +428,18 @@ export default function StoryViewer() {
       await api.post('/messages/send', {
         partnerId: userStories.user_id,
         content: text,
-        media_url: currentStory.media_url,
-        type: 'story_reply'
+        type: 'attachment',
+        attachment: {
+          type: 'story',
+          id: currentStory.story_id,
+          thumbnail: currentStory.thumbnail_url || currentStory.media_url,
+          owner: userStories.user_id,
+        },
       });
       setReplyText('');
+      // Show sent confirmation
+      setReplySent(true);
+      setTimeout(() => setReplySent(false), 2000);
     } catch (err) {
       console.error(err);
     }
@@ -488,15 +541,55 @@ export default function StoryViewer() {
                  </motion.p>
                </div>
              ) : currentStory.media_type === 'video' ? (
-                <video 
-                  src={getMediaUrl(currentStory.media_url)} 
-                  autoPlay={playbackState === 'Playing'} 
-                  muted 
-                  playsInline 
-                  className="h-full w-full object-cover" 
-                  onLoadedData={() => setMediaLoaded(true)}
-                  onPlay={() => setPlaybackState('Playing')}
-                />
+                 <>
+                   <video
+                     key={currentStory.story_id}
+                     ref={videoRef}
+                     src={getMediaUrl(currentStory.media_url)}
+                     muted
+                     playsInline
+                     preload="auto"
+                     className="h-full w-full object-cover"
+                     onCanPlay={() => setMediaLoaded(true)}
+                     onPlay={() => setPlaybackState('Playing')}
+                     onPlaying={() => setPlaybackState('Playing')}
+                     onPause={() => {}}
+                     onEnded={() => setPlaybackState('Completed')}
+                     onError={() => setVideoError(true)}
+                     onWaiting={() => setPlaybackState(p => p === 'Playing' ? 'LoadingMedia' : p)}
+                     onTimeUpdate={() => {
+                       const vid = videoRef.current;
+                       if (vid && vid.duration) {
+                         setProgress((vid.currentTime / vid.duration) * 100);
+                       }
+                     }}
+                   />
+                   {/* Video loading skeleton */}
+                   {playbackState === 'LoadingMedia' && !videoError && (
+                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20">
+                       <Spinner size="large" color="text-white" />
+                     </div>
+                   )}
+                   {/* Video error overlay */}
+                   {videoError && (
+                     <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 gap-4">
+                       <p className="text-white/60 font-bold text-[13px] uppercase tracking-widest">Unable to play this story</p>
+                       <button
+                         onClick={() => {
+                           setVideoError(false);
+                           setMediaLoaded(false);
+                           setPlaybackState('LoadingMedia');
+                           if (videoRef.current) {
+                             videoRef.current.load();
+                           }
+                         }}
+                         className="px-6 h-10 bg-white/10 border border-white/20 text-white rounded-full text-[12px] font-bold hover:bg-white/20 transition-all"
+                       >
+                         Tap to Retry
+                       </button>
+                     </div>
+                   )}
+                 </>
               ) : (
                 <img 
                   src={getMediaUrl(currentStory.media_url)} 
@@ -621,6 +714,16 @@ export default function StoryViewer() {
                       <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
                       <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); handleSendStoryMessage(replyText); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
                     </div>
+                    {replySent && (
+                       <motion.div
+                         initial={{ opacity: 0, scale: 0.8 }}
+                         animate={{ opacity: 1, scale: 1 }}
+                         exit={{ opacity: 0 }}
+                         className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white/10 backdrop-blur-md border border-white/20 rounded-full px-4 py-1.5 text-white text-[12px] font-bold"
+                       >
+                         ✓ Sent
+                       </motion.div>
+                     )}
                     <div className="flex items-center gap-5">
                       <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
                       <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowShareModal(true); }} className="text-white"><Share2 size={24} /></button>

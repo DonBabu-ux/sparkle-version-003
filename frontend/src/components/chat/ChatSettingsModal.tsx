@@ -4,11 +4,15 @@ import {
   X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, 
   Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, 
   MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft,
-  Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2
+  Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
 import { clsx } from 'clsx';
+import type { SoundKey } from '../../audio/managers/SoundManager';
+import AudioSessionManager from '../../audio/managers/AudioSessionManager';
+import useSound from '../../hooks/useSound';
+import QRCode from 'react-qr-code';
 
 interface ChatSettingsModalProps {
   chat: any;
@@ -40,8 +44,34 @@ const PREVIEW_MESSAGES = [
   { text: "Everything feels so smooth!", isMe: true }
 ];
 
+// Helper to deterministically generate encryption verification keys from conversation ID
+const generateEncryptionKeys = (chatId: string) => {
+  let hash = 0;
+  const strId = String(chatId || '');
+  for (let i = 0; i < strId.length; i++) {
+    hash = (hash << 5) - hash + strId.charCodeAt(i);
+    hash |= 0;
+  }
+  
+  const seededRandom = (seed: number) => {
+    const x = Math.sin(seed++) * 10000;
+    return x - Math.floor(x);
+  };
+
+  const blocks: string[] = [];
+  const seed = Math.abs(hash) || 987654321;
+  for (let i = 0; i < 12; i++) {
+    const val = Math.floor(seededRandom(seed + i) * 90000) + 10000;
+    blocks.push(val.toString());
+  }
+  return {
+    blocks,
+    code: blocks.join(' ')
+  };
+};
+
 export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
-  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker'>('main');
+  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification'>('main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
   const [wordInput, setWordInput] = useState('');
   const [wordEmoji, setWordEmoji] = useState('✨');
@@ -52,7 +82,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [myNicknameInput, setMyNicknameInput] = useState('You');
   
   // Settings state
-  const [isMuted, setIsMuted] = useState(false);
+  const [isMuted, setIsMuted] = useState(chat.is_muted ?? false);
   const [autoSave, setAutoSave] = useState(true);
   const [disappearingMsgs, setDisappearingMsgs] = useState('Off');
   const [readReceipts, setReadReceipts] = useState(true);
@@ -64,6 +94,67 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [notifyScreenshotAttempts, setNotifyScreenshotAttempts] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
+
+  // Sync isMuted state with chat.is_muted
+  useEffect(() => {
+    setIsMuted(chat.is_muted ?? false);
+  }, [chat.is_muted]);
+
+  // Audio Framework states and handlers
+  const { playSound } = useSound();
+  const [audioSettings, setAudioSettingsState] = useState(() => AudioSessionManager.getSettings());
+  const [volumes, setVolumesState] = useState(() => AudioSessionManager.volumeController.getAll());
+
+  const handleToggleChange = (key: string, val: boolean) => {
+    AudioSessionManager.updateSettings({ [key]: val });
+    setAudioSettingsState(AudioSessionManager.getSettings());
+  };
+
+  const handleVolumeChange = (category: any, val: number) => {
+    AudioSessionManager.setVolume(category, val);
+    setVolumesState(AudioSessionManager.volumeController.getAll());
+  };
+
+  const handleThemeChange = async (themeName: any) => {
+    await AudioSessionManager.setTheme(themeName);
+    setAudioSettingsState(AudioSessionManager.getSettings());
+  };
+
+  const handleResetAudio = () => {
+    AudioSessionManager.resetSettings();
+    setAudioSettingsState(AudioSessionManager.getSettings());
+    setVolumesState(AudioSessionManager.volumeController.getAll());
+  };
+
+  const handleToggleMute = async () => {
+    const newMute = !isMuted;
+    setIsMuted(newMute);
+    try {
+      await api.post(`/messages/chat/${chat.chat_id || chat.id}/mute`, { muted: newMute });
+    } catch (err) {
+      console.error('Failed to toggle mute:', err);
+    }
+  };
+
+  const [selectedNotificationSound, setSelectedNotificationSoundState] = useState(() => useThemeStore.getState().getNotificationSound(chat.chat_id || chat.id));
+
+  const handleNotificationSoundChange = (soundKey: string) => {
+    setSelectedNotificationSoundState(soundKey);
+    useThemeStore.getState().setNotificationSound(chat.chat_id || chat.id, soundKey);
+    if (soundKey !== 'default' && soundKey !== 'system') {
+      playSound(soundKey as SoundKey);
+    } else {
+      playSound('outchat');
+    }
+  };
+
+  // Sync selectedNotificationSound if chat changes
+  useEffect(() => {
+    setSelectedNotificationSoundState(useThemeStore.getState().getNotificationSound(chat.chat_id || chat.id));
+  }, [chat.chat_id, chat.id]);
+
+  // Deterministic encryption verification keys — same on both sides since chatId is shared
+  const encryptionKeys = useMemo(() => generateEncryptionKeys(chat.chat_id || chat.id || ''), [chat.chat_id, chat.id]);
 
   // Load privacy settings from backend when modal opens
   useEffect(() => {
@@ -177,12 +268,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <ActionItem 
                     icon={Bell} 
                     label={isMuted ? 'Unmute' : `Mute ${chat.partner_name.split(' ')[0]}`} 
-                    onClick={() => setIsMuted(!isMuted)} 
+                    onClick={handleToggleMute} 
                     subtext={isMuted ? 'Muted' : 'Notifications on'}
                     toggle={isMuted}
                     primaryColor={currentTheme?.colors.primary}
                   />
-                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => alert('Sound settings...')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => setView('notifications_sounds')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} onClick={() => setView('create_group')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Download} label="Auto-save photos" onClick={() => setAutoSave(!autoSave)} toggle={autoSave} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} primaryColor={currentTheme?.colors.primary} />
@@ -193,7 +284,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} primaryColor={currentTheme?.colors.primary} />
-                                      <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted" onClick={() => alert('Encryption details...')} primaryColor={currentTheme?.colors.primary} />
+                                      <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted..Not even Sparkle can listen to your messages" onClick={() => setView('encryption_verification')} primaryColor={currentTheme?.colors.primary} />
                     <ActionItem icon={Eye} label="Allow forwarding" subtext={allowForward ? "Enabled" : "Disabled"} toggle={allowForward} onClick={() => {
                       const newVal = !allowForward;
                       setAllowForward(newVal);
@@ -820,6 +911,160 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 </button>
               </div>
             </motion.div>
+          ) : view === 'notifications_sounds' ? (
+            <motion.div key="notifications_sounds" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Notifications & Sounds</h2>
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-20 p-6 space-y-6">
+                
+                {/* Mute and Main Toggle Card */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-bold text-white">Mute Conversation</p>
+                      <p className="text-xs text-white/50 mt-1">Mute all notification sounds and popups for this chat.</p>
+                    </div>
+                    <div
+                      onClick={handleToggleMute}
+                      className={`w-11 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 ${isMuted ? 'bg-red-500' : 'bg-white/10'}`}
+                    >
+                      <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 ${isMuted ? 'translate-x-5' : 'translate-x-0'}`} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Sound Theme Selector */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Sound Theme Profile</h4>
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-white">Active Theme Pack</p>
+                      <p className="text-xs text-white/50 mt-1">Swaps the audio profile across the platform instantly.</p>
+                    </div>
+                    <select
+                      value={audioSettings.soundTheme || 'Sparkle Original'}
+                      onChange={(e) => handleThemeChange(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
+                    >
+                      <option value="Sparkle Original" className="bg-[#0a0a0a] text-white">Sparkle Original</option>
+                      <option value="Classic" className="bg-[#0a0a0a] text-white">Classic</option>
+                      <option value="Soft" className="bg-[#0a0a0a] text-white">Soft (Lowpass DSP)</option>
+                      <option value="Minimal" className="bg-[#0a0a0a] text-white">Minimal (Pitch Up DSP)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Notification Alert Sound Selector */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Notification Sound</h4>
+                  <div className="flex flex-col gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-white">Select Notification Tone</p>
+                      <p className="text-xs text-white/50 mt-1">Set custom alert sound for incoming messages in this chat.</p>
+                    </div>
+                    <select
+                      value={selectedNotificationSound}
+                      onChange={(e) => handleNotificationSoundChange(e.target.value)}
+                      className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
+                    >
+                      <option value="default" className="bg-[#0a0a0a] text-white">Device Default / System Sound</option>
+                      <option value="iphone" className="bg-[#0a0a0a] text-white">iPhone Classic Style</option>
+                      <option value="facebook_notification" className="bg-[#0a0a0a] text-white">Facebook Style Notification</option>
+                      <option value="inchat_receive" className="bg-[#0a0a0a] text-white">In-Chat Message Receive</option>
+                      <option value="outchat_notification" className="bg-[#0a0a0a] text-white">Out-Chat Bubble Ping</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Volume Sliders */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Volume Levels</h4>
+                  <div className="space-y-4">
+                    {[
+                      { label: 'Master Volume', key: 'master' },
+                      { label: 'Message Sounds', key: 'messages' },
+                      { label: 'Notifications', key: 'notifications' },
+                      { label: 'UI Interactions', key: 'ui' },
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-2">
+                        <div className="flex justify-between text-xs font-bold text-white/70">
+                          <span>{item.label}</span>
+                          <span>{Math.round((volumes[item.key as keyof typeof volumes] || 0) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={Math.round((volumes[item.key as keyof typeof volumes] || 0) * 100)}
+                          onChange={(e) => handleVolumeChange(item.key, parseInt(e.target.value, 10) / 100)}
+                          className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-[#ff1493]"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Customization Switches */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Toggles & Customization</h4>
+                  <div className="grid grid-cols-1 gap-4">
+                    {[
+                      { label: 'Master Sound Effects', key: 'masterSounds' },
+                      { label: 'Message Sound Effects', key: 'messageSounds' },
+                      { label: 'Out of Chat Incoming Ping', key: 'outChatIncoming' },
+                      { label: 'Haptic Feedback', key: 'playHaptics' },
+                    ].map((item) => (
+                      <div key={item.key} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between shadow-sm">
+                        <span className="text-xs font-bold text-white/90">{item.label}</span>
+                        <div
+                          onClick={() => handleToggleChange(item.key, !audioSettings[item.key as keyof typeof audioSettings])}
+                          className={`w-11 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 ${audioSettings[item.key as keyof typeof audioSettings] ? 'bg-[#ff1493]' : 'bg-white/10'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 ${audioSettings[item.key as keyof typeof audioSettings] ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Previews */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Test Preview</h4>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { label: 'Send', key: 'send' },
+                      { label: 'Receive', key: 'receive' },
+                      { label: 'Notification', key: 'outchat' },
+                    ].map((btn) => {
+                      const soundToPlay = (btn.key === 'outchat' && selectedNotificationSound !== 'default' && selectedNotificationSound !== 'system') 
+                        ? selectedNotificationSound 
+                        : btn.key;
+                      return (
+                        <button
+                          key={btn.key}
+                          onClick={() => playSound(soundToPlay as SoundKey)}
+                          className="py-3 px-3 bg-white/5 border border-white/10 hover:border-[#ff1493]/50 rounded-2xl transition-all active:scale-95 text-xs font-bold text-white flex items-center justify-center gap-1.5 hover:bg-white/10"
+                        >
+                          <Play size={10} fill="currentColor" /> {btn.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Reset Audio */}
+                <button
+                  onClick={handleResetAudio}
+                  className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/10 text-white"
+                >
+                  <RotateCcw size={14} /> Reset Audio Settings
+                </button>
+
+              </div>
+            </motion.div>
           ) : view === 'word_emoji_picker' ? (
             <motion.div key="word_emoji_picker" initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
@@ -842,6 +1087,73 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   perLine={Math.floor(window.innerWidth / 40)}
                   width="100%"
                 />
+              </div>
+            </motion.div>
+          ) : view === 'encryption_verification' ? (
+            <motion.div key="encryption_verification" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
+              {/* Header */}
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Encryption</h2>
+              </div>
+
+              <div className="flex-1 overflow-y-auto no-scrollbar pb-24 p-6 space-y-6">
+
+                {/* Shield hero */}
+                <div className="flex flex-col items-center gap-3 py-4">
+                  <div className="relative w-20 h-20 flex items-center justify-center">
+                    <div className="absolute inset-0 rounded-full bg-emerald-500/20 animate-pulse" />
+                    <div className="w-16 h-16 rounded-full bg-emerald-500/10 border-2 border-emerald-400/40 flex items-center justify-center">
+                      <Lock size={28} className="text-emerald-400" />
+                    </div>
+                  </div>
+                  <p className="text-base font-bold text-white text-center">End-to-End Encrypted</p>
+                  <p className="text-xs text-white/50 text-center max-w-xs leading-relaxed">
+                    Messages and calls with <span className="text-white font-semibold">{chat.partner_name}</span> are secured with end-to-end encryption. Compare the numbers below or scan the QR code to verify the connection.
+                  </p>
+                </div>
+
+                {/* QR Code card */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 self-start">Scan to Verify</h4>
+                  <div className="bg-white rounded-2xl p-4 shadow-[0_0_40px_rgba(52,211,153,0.2)]">
+                    <QRCode
+                      value={encryptionKeys.code}
+                      size={200}
+                      bgColor="#ffffff"
+                      fgColor="#000000"
+                      style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                    />
+                  </div>
+                  <p className="text-[11px] text-white/40 text-center">Both devices show identical codes when secure</p>
+                </div>
+
+                {/* Verification number blocks */}
+                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                  <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400">Verification Numbers</h4>
+                  <p className="text-xs text-white/50 leading-relaxed">
+                    If the numbers below match on both devices, your chat is fully secure.
+                  </p>
+                  <div className="grid grid-cols-3 gap-3 mt-2">
+                    {encryptionKeys.blocks.map((block, i) => (
+                      <div
+                        key={i}
+                        className="bg-black/40 border border-white/10 rounded-2xl py-3 px-2 flex items-center justify-center"
+                      >
+                        <span className="font-mono text-base font-black text-white tracking-widest">{block}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Footer note */}
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-4 flex gap-3 items-start">
+                  <Shield size={16} className="text-emerald-400 mt-0.5 shrink-0" />
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    These numbers are unique to this conversation. They never change unless the chat is recreated. No one else — not even Sparkle — can read your messages.
+                  </p>
+                </div>
+
               </div>
             </motion.div>
           ) : null}

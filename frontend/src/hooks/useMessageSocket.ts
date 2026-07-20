@@ -3,6 +3,8 @@ import { useSocket } from './useSocket';
 import { useMessageStore } from '../store/messageStore';
 import { useChatStore } from '../store/chatStore';
 import { useUserStore } from '../store/userStore';
+import { useThemeStore } from '../store/themeStore';
+import AudioSessionManager from '../audio/managers/AudioSessionManager';
 
 export const useMessageSocket = () => {
   const socket = useSocket();
@@ -31,6 +33,27 @@ export const useMessageSocket = () => {
       const chatId = msg.conversation_id || msg.chat_id || chatStore.activeConversationId;
       if (chatId) {
         chatStore.addMessage(chatId, msg);
+      }
+
+      // ── Sparkle Audio: play receive / outchat sound ──
+      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+      if (msg.sender_id !== myId) {
+        const conv = chatStore.conversations.find(c => c.chat_id === chatId);
+        if (!conv?.is_muted) {
+          const activeChatId = chatStore.activeConversationId;
+          const customSound = useThemeStore.getState().getNotificationSound(chatId);
+          if (customSound && customSound !== 'default' && customSound !== 'system') {
+            AudioSessionManager.playSound(customSound as any);
+          } else {
+            if (activeChatId && chatId === activeChatId) {
+              // User is viewing this conversation → in-chat receive ping
+              AudioSessionManager.playSound('receive');
+            } else {
+              // User is elsewhere → out-of-chat notification bubble
+              AudioSessionManager.playSound('outchat');
+            }
+          }
+        }
       }
     };
 

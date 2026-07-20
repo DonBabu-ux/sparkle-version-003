@@ -27,8 +27,13 @@ import {
   ShieldCheck,
   Globe,
   Sun,
-  Moon
+  Moon,
+  Volume2,
+  Play,
+  RotateCcw
 } from 'lucide-react';
+import useSound from '../hooks/useSound';
+import AudioSessionManager from '../audio/managers/AudioSessionManager';
 
 export default function Settings() {
   const { user, setUser, theme, setTheme } = useUserStore();
@@ -60,10 +65,36 @@ export default function Settings() {
     theme: user?.theme || 'soft_pink',
   });
 
+  const { playSound } = useSound();
+  const [audioSettings, setAudioSettingsState] = useState(() => AudioSessionManager.getSettings());
+  const [volumes, setVolumesState] = useState(() => AudioSessionManager.volumeController.getAll());
+
+  const handleToggleChange = (key: string, val: boolean) => {
+    AudioSessionManager.updateSettings({ [key]: val });
+    setAudioSettingsState(AudioSessionManager.getSettings());
+  };
+
+  const handleVolumeChange = (category: any, val: number) => {
+    AudioSessionManager.setVolume(category, val);
+    setVolumesState(AudioSessionManager.volumeController.getAll());
+  };
+
+  const handleThemeChange = async (themeName: any) => {
+    await AudioSessionManager.setTheme(themeName);
+    setAudioSettingsState(AudioSessionManager.getSettings());
+  };
+
+  const handleResetAudio = () => {
+    AudioSessionManager.resetSettings();
+    setAudioSettingsState(AudioSessionManager.getSettings());
+    setVolumesState(AudioSessionManager.volumeController.getAll());
+  };
+
   const tabs = [
     { id: 'profile',       icon: UserIcon,      label: 'Profile'       },
     { id: 'security',      icon: Shield,        label: 'Security'      },
     { id: 'privacy',       icon: EyeOff,        label: 'Privacy'       },
+    { id: 'audio',         icon: Smartphone,    label: 'Sounds & Audio'},
     { id: 'messaging',     icon: MessageSquare, label: 'Messaging'     },
     { id: 'appearance',    icon: Palette,       label: 'Appearance'    },
     { id: 'logout',        icon: LogOut,        label: 'Sign Out'      }
@@ -457,6 +488,141 @@ export default function Settings() {
                        Delete Permanently
                      </button>
                    </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'audio' && (
+              <div className="space-y-12 animate-fade-in relative z-10">
+                <header className="flex items-center gap-4 mb-8">
+                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
+                    <Volume2 size={28} />
+                  </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Sounds & Audio</h3>
+                    <p className="text-xs font-bold text-gray-400 dark:text-white/40 uppercase tracking-widest">Customize your premium audio experience</p>
+                  </div>
+                </header>
+
+                {/* Theme Selector */}
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 space-y-4">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Sound Theme</h4>
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-bold text-gray-900 dark:text-white">Active Theme Pack</p>
+                      <p className="text-xs text-gray-400">Swaps the audio profile across the entire platform instantly.</p>
+                    </div>
+                    <select
+                      value={audioSettings.soundTheme || 'Sparkle Original'}
+                      onChange={(e) => handleThemeChange(e.target.value)}
+                      className="px-4 py-2.5 rounded-xl border border-black/10 dark:border-white/10 bg-white dark:bg-zinc-900 text-sm font-bold shadow-sm outline-none focus:border-primary"
+                    >
+                      <option value="Sparkle Original">Sparkle Original</option>
+                      <option value="Classic">Classic</option>
+                      <option value="Soft">Soft (Lowpass DSP)</option>
+                      <option value="Minimal">Minimal (Pitch Up DSP)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Volume Sliders */}
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 space-y-6">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Volume Levels</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {[
+                      { label: 'Master Volume', key: 'master' },
+                      { label: 'Message Sounds', key: 'messages' },
+                      { label: 'Notifications', key: 'notifications' },
+                      { label: 'Media Playback', key: 'media' },
+                      { label: 'Incoming Calls', key: 'calls' },
+                      { label: 'UI Interactions', key: 'ui' },
+                      { label: 'Stories Audio', key: 'stories' },
+                    ].map((item) => (
+                      <div key={item.key} className="space-y-2">
+                        <div className="flex justify-between text-xs font-bold text-gray-700 dark:text-gray-300">
+                          <span>{item.label}</span>
+                          <span>{Math.round((volumes[item.key as keyof typeof volumes] || 0) * 100)}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={Math.round((volumes[item.key as keyof typeof volumes] || 0) * 100)}
+                          onChange={(e) => handleVolumeChange(item.key, parseInt(e.target.value, 10) / 100)}
+                          className="w-full h-1.5 bg-slate-200 dark:bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-primary"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Toggles */}
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 space-y-6">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Audio Customization</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {[
+                      { label: 'Master Sound Effects', key: 'masterSounds' },
+                      { label: 'Message Sound Effects', key: 'messageSounds' },
+                      { label: 'Out of Chat Incoming Ping', key: 'outChatIncoming' },
+                      { label: 'Notification Sounds', key: 'notificationSounds' },
+                      { label: 'Comments Sound', key: 'comments' },
+                      { label: 'Likes Sound', key: 'likes' },
+                      { label: 'Followers Sound', key: 'followers' },
+                      { label: 'Stories Audio Effects', key: 'stories' },
+                      { label: 'Marketplace Sounds', key: 'marketplace' },
+                      { label: 'Call Sounds & Ringtones', key: 'calls' },
+                      { label: 'Haptic Feedback', key: 'playHaptics' },
+                    ].map((item) => (
+                      <div key={item.key} className="p-4 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 rounded-2xl flex items-center justify-between shadow-sm">
+                        <span className="text-xs font-bold text-gray-900 dark:text-white">{item.label}</span>
+                        <div
+                          onClick={() => handleToggleChange(item.key, !audioSettings[item.key as keyof typeof audioSettings])}
+                          className={`w-11 h-6 flex items-center p-1 rounded-full cursor-pointer transition-all duration-300 ${audioSettings[item.key as keyof typeof audioSettings] ? 'bg-primary' : 'bg-slate-200 dark:bg-zinc-800'}`}
+                        >
+                          <div className={`w-4 h-4 bg-white rounded-full transition-transform duration-300 ${audioSettings[item.key as keyof typeof audioSettings] ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Previews */}
+                <div className="bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl p-6 space-y-4">
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-400">Test Preview</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3">
+                    {[
+                      { label: 'Send', key: 'send' },
+                      { label: 'Receive', key: 'receive' },
+                      { label: 'Like', key: 'like' },
+                      { label: 'Comment', key: 'comment' },
+                      { label: 'Follow', key: 'follow' },
+                      { label: 'Notification', key: 'outchat' },
+                    ].map((btn) => (
+                      <button
+                        key={btn.key}
+                        onClick={() => playSound(btn.key as SoundKey)}
+                        className="py-2.5 px-3 bg-white dark:bg-zinc-900 border border-black/5 dark:border-white/5 hover:border-primary/30 rounded-xl transition-all active:scale-95 text-xs font-bold text-gray-900 dark:text-white flex items-center justify-center gap-1.5"
+                      >
+                        <Play size={10} fill="currentColor" /> {btn.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-black/5 dark:border-white/5">
+                  <button
+                    onClick={handleResetAudio}
+                    className="flex-1 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border border-black/5 dark:border-white/5"
+                  >
+                    <RotateCcw size={14} /> Reset Audio Settings
+                  </button>
+                  <button
+                    onClick={() => navigate('/settings/audio-diagnostics')}
+                    className="flex-1 py-3 bg-primary text-white rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2"
+                  >
+                    <Activity size={14} /> View Audio Diagnostics
+                  </button>
                 </div>
               </div>
             )}

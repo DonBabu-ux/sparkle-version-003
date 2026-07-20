@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import StoryAudioManager from '../../services/StoryAudioManager';
+import StoryAudioManager from '../../audio/managers/StoryAudioManager';
 
 interface AudioReactiveVisualizerProps {
   isPlaying: boolean;

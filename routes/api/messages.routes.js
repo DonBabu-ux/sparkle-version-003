@@ -18,6 +18,7 @@ router.get('/mutual-groups/:partnerId', messageController.getMutualGroups);
 
 // Search
 router.get('/search', messageController.searchMessages);
+router.get('/chat/:chatId/search', messageController.searchMessages);
 
 // Messaging/Chat Actions
 router.post('/send', messageController.sendMessage);
@@ -28,17 +29,19 @@ router.post('/chat/:chatId/archive', messageController.archiveConversation);
 router.post('/chat/:chatId/mute', messageController.muteConversation);
 router.delete('/chat/:chatId', messageController.deleteConversation);
 
-// Per-message actions (using root controller which has full DB + pool integration)
+// Per-message actions
 router.delete('/:messageId', messageController.deleteMessage);
 router.patch('/:messageId', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
 router.post('/:messageId/pin', messageController.pinMessage);
 router.post('/:messageId/unpin', messageController.unpinMessage);
+router.delete('/:messageId/pin', messageController.unpinMessage);
 router.post('/:messageId/forward', messageController.forwardMessage);
 router.post('/chat/:chatId/messages/:messageId/copy', messageController.copyMessage);
 router.post('/chat/:chatId/messages/:messageId/forward', messageController.forwardMessage);
 router.post('/:chatId/messages/:messageId/copy', messageController.copyMessage);
 router.post('/:chatId/messages/:messageId/forward', messageController.forwardMessage);
+router.get('/:messageId/info', messageController.getMessageInfo);
 
 // Message permissions (used by frontend action modal)
 router.get('/:messageId/permissions', permissionController.getMessagePermissions);
@@ -46,6 +49,16 @@ router.get('/:chatId/privacy', permissionController.getPrivacySettings);
 router.patch('/:chatId/privacy', permissionController.updatePrivacySettings);
 router.post('/:chatId/capture-attempt', permissionController.recordCaptureAttempt);
 
+// Chat Shared Content Explorer & Info Endpoints
+router.get('/chat/:chatId/pinned', messageController.getChatPinnedMessages);
+router.get('/chat/:chatId/media', messageController.getChatMedia);
+router.get('/chat/:chatId/files', messageController.getChatFiles);
+router.get('/chat/:chatId/links', messageController.getChatLinks);
+router.get('/chat/:chatId/voice', messageController.getChatVoice);
+router.get('/chat/:chatId/music', messageController.getChatMusic);
+router.get('/chat/:chatId/stories', messageController.getChatStories);
+router.get('/chat/:chatId/posts', messageController.getChatPosts);
+router.get('/chat/:chatId/stats', messageController.getChatStats);
 
 // Conversation messages (Keep these at the end to avoid route conflicts)
 router.get('/chat/:chatId', messageController.getConversationMessages);

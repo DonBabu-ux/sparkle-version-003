@@ -2,6 +2,7 @@ const GroupChat = require('../models/GroupChat');
 const GroupMember = require('../models/GroupMember');
 const User = require('../models/User');
 const Message = require('../models/Message');
+const GroupChannel = require('../models/GroupChannel');
 const { getIO } = require('../socket');
 
 class GroupChatController {
@@ -47,6 +48,17 @@ class GroupChatController {
 
             // Add Creator
             await GroupMember.add({ chatId, userId: creatorId, role: 'creator', status: 'active' });
+
+            // Auto-create default 'general' channel
+            await GroupChannel.create({
+                chatId,
+                name: 'general',
+                type: 'TEXT',
+                icon: '📢',
+                position: 0,
+                createdBy: creatorId,
+                isDefault: true
+            });
 
             // Add Members
             if (actualMemberIds && Array.isArray(actualMemberIds)) {

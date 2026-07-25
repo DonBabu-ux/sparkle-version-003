@@ -7,6 +7,10 @@ const logger = require('../utils/logger');
 const realtimeLogger = require('../utils/realtimeTrace');
 const secureLogger = require('../utils/secureLogger');
 const Message = require('../models/Message');
+const Room = require('../models/Room');
+const RoomMember = require('../models/RoomMember');
+const RoomChannel = require('../models/RoomChannel');
+const ChannelMessage = require('../models/ChannelMessage');
 // Duplicate Message import removed
 // ===== LOGGING HELPER =====
 const logSocketRooms = (socket, context = '') => {
@@ -157,8 +161,9 @@ const initializeSocket = (server) => {
         // Join all chat rooms (personal and group) they're part of
         try {
             await joinUserChatRooms(socket);
+            await joinUserRoomChannels(socket);
         } catch (dbErr) {
-            logger.error(`⚠️  joinUserChatRooms failed for ${socket.userId}: ${dbErr.message}`);
+            logger.error(`⚠️  joinUserChatRooms / joinUserRoomChannels failed for ${socket.userId}: ${dbErr.message}`);
         }
 
         // Broadcast online status to followers
@@ -232,6 +237,96 @@ socket.on('get-rooms', () => {
                 }
             } catch (e) {
                 logger.error('Screenshot attempt handling error:', e);
+            }
+        });
+
+        // --- ROOM & CHANNEL EVENTS ---
+        socket.on('join-room', (roomId) => {
+            if (!socket.rooms.has(`room:${roomId}`)) {
+                socket.join(`room:${roomId}`);
+                console.log(`[ROOM EVENT] User ${socket.userId} joined room:${roomId}`);
+            }
+        });
+
+        socket.on('leave-room', (roomId) => {
+            socket.leave(`room:${roomId}`);
+            console.log(`[ROOM EVENT] User ${socket.userId} left room:${roomId}`);
+        });
+
+        socket.on('join-room-channel', (channelId) => {
+            if (!socket.rooms.has(`room_channel:${channelId}`)) {
+                socket.join(`room_channel:${channelId}`);
+                console.log(`[ROOM EVENT] User ${socket.userId} joined room_channel:${channelId}`);
+            }
+        });
+
+        socket.on('leave-room-channel', (channelId) => {
+            socket.leave(`room_channel:${channelId}`);
+            console.log(`[ROOM EVENT] User ${socket.userId} left room_channel:${channelId}`);
+        });
+
+        socket.on('send-room-channel-message', async (data, callback) => {
+            try {
+                const { channelId, content, type = 'text', mediaUrl, mediaType, replyToId } = data;
+                if (!channelId) {
+                    return socket.emit('room-message-error', { error: 'Channel ID is required' });
+                }
+
+                // Verify room membership first
+                const channel = await RoomChannel.findById(channelId);
+                if (!channel) {
+                    return socket.emit('room-message-error', { error: 'Channel not found' });
+                }
+
+                const [memberRows] = await pool.query(
+                    'SELECT role, status FROM room_members WHERE room_id = ? AND user_id = ? LIMIT 1',
+                    [channel.room_id, socket.userId]
+                );
+                const membership = memberRows[0];
+                if (!membership || ['left', 'removed', 'banned'].includes(membership.status)) {
+                    return socket.emit('room-message-error', { error: 'Not a member of this room' });
+                }
+
+                // Check read-only constraint
+                if (channel.is_read_only) {
+                    const room = await Room.findById(channel.room_id);
+                    const isAuthorized = ['owner', 'admin', 'dept_admin'].includes(membership.role) || (room && room.creator_id === socket.userId);
+                    if (!isAuthorized) {
+                        return socket.emit('room-message-error', { error: 'This channel is read-only' });
+                    }
+                }
+
+                const messageId = await ChannelMessage.create({
+                    channelId,
+                    senderId: socket.userId,
+                    type,
+                    content,
+                    mediaUrl,
+                    mediaType,
+                    replyToId
+                });
+
+                const [msgRows] = await pool.query(
+                    `SELECT cm.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar 
+                     FROM channel_messages cm
+                     JOIN users u ON cm.sender_id = u.user_id
+                     WHERE cm.message_id = ?`,
+                    [messageId]
+                );
+                const message = msgRows[0] || {};
+
+                if (typeof callback === 'function') {
+                    callback({ success: true, messageId, sentAt: message.sent_at });
+                }
+
+                // Broadcast to all in the channel room
+                io.to(`room_channel:${channelId}`).emit('room_channel_message', message);
+            } catch (error) {
+                logger.error('Send room channel message error:', error);
+                if (typeof callback === 'function') {
+                    callback({ success: false, error: 'Database or broadcast error' });
+                }
+                socket.emit('room-message-error', { error: 'Failed to send message' });
             }
         });
 
@@ -886,6 +981,22 @@ const joinUserChatRooms = async (socket) => {
         });
     } catch (error) {
         logger.error('Join chat rooms error:', error);
+    }
+};
+
+// Helper: Join user's room channels (Sparkle Rooms architecture)
+const joinUserRoomChannels = async (socket) => {
+    try {
+        const rooms = await Room.getUserRooms(socket.userId);
+        for (const r of rooms) {
+            socket.join(`room:${r.room_id}`);
+            const channels = await RoomChannel.listByRoom(r.room_id);
+            for (const ch of channels) {
+                socket.join(`room_channel:${ch.channel_id}`);
+            }
+        }
+    } catch (error) {
+        logger.error('Join room channels error:', error);
     }
 };
 

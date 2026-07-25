@@ -86,6 +86,11 @@ class GroupMember {
             [role, chatId, userId]
         );
     }
+
+    static async isAdmin(chatId, userId) {
+        const member = await this.find(chatId, userId);
+        return !!(member && (member.role === 'admin' || member.role === 'creator'));
+    }
 }
 
 module.exports = GroupMember;

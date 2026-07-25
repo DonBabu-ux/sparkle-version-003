@@ -25,6 +25,7 @@ const notificationsRoutes = require('./notifications.routes');
 const linkPreviewRoutes = require('./link-preview.routes');
 const onboardingRoutes = require('./onboarding.routes');
 const discoverRoutes = require('./discover.routes');
+const roomsRoutes = require('./rooms.routes');
 
 const pool = require('../../config/database');
 
@@ -58,6 +59,7 @@ router.use('/share', shareRoutes);
 router.use('/notifications', notificationsRoutes);
 router.use('/onboarding', onboardingRoutes);
 router.use('/discover', discoverRoutes);
+router.use('/rooms', roomsRoutes);
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');

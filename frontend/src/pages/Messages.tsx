@@ -13,6 +13,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
+import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
@@ -1046,6 +1047,25 @@ const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
 const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
 const [forwardSearchQuery, setForwardSearchQuery] = useState('');
 const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
+const [infoModalMessageId, setInfoModalMessageId] = useState<string | null>(null);
+
+useEffect(() => {
+  const handleJumpToMessage = (e: any) => {
+    const targetMsgId = e.detail?.messageId;
+    if (targetMsgId) {
+      setTimeout(() => {
+        const el = document.getElementById(`msg-${targetMsgId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+          setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2500);
+        }
+      }, 300);
+    }
+  };
+  window.addEventListener('sparkle:jump-to-message', handleJumpToMessage);
+  return () => window.removeEventListener('sparkle:jump-to-message', handleJumpToMessage);
+}, []);
 const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
 const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
@@ -3239,7 +3259,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         }}
         onDetails={() => {
           if (activeMessageMenu?.msg) {
-            alert(`Sent at: ${new Date(activeMessageMenu.msg.sent_at).toLocaleString()}\nStatus: ${activeMessageMenu.msg.status || 'sent'}\nForwarded: ${activeMessageMenu.msg.forwarded ? 'Yes' : 'No'}`);
+            setInfoModalMessageId(activeMessageMenu.msg.message_id);
           }
           setActiveMessageMenu(null);
         }}
@@ -3248,6 +3268,12 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setActiveMessageMenu(null);
         }}
         permissions={activeMessagePermissions}
+      />
+
+      <MessageInfoModal
+        messageId={infoModalMessageId}
+        isOpen={!!infoModalMessageId}
+        onClose={() => setInfoModalMessageId(null)}
       />
 
       <FullEmojiPickerModal

@@ -20,4 +20,11 @@ router.post('/:chatId/leave', authMiddleware, groupChatController.leaveGroupChat
 router.delete('/:chatId/members/:userId', authMiddleware, groupChatController.removeMember);   // ADMIN — remove member
 router.patch('/:chatId/members/:userId/role', authMiddleware, groupChatController.updateMemberRole); // ADMIN — promote/demote member
 
+// Channels
+const groupChannelsController = require('../../controllers/groupChannels.controller');
+router.get('/:chatId/channels', authMiddleware, groupChannelsController.listChannels);
+router.post('/:chatId/channels', authMiddleware, groupChannelsController.createChannel);
+router.patch('/:chatId/channels/:id', authMiddleware, groupChannelsController.updateChannel);
+router.delete('/:chatId/channels/:id', authMiddleware, groupChannelsController.deleteChannel);
+
 module.exports = router;

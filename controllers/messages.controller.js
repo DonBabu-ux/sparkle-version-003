@@ -432,6 +432,709 @@ class MessageController {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
+
+    // ─── Chat Info: Pinned Messages ────────────────────────────────────────────
+    async getChatPinnedMessages(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const { q, sort } = req.query;
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            let query = `
+                SELECT 
+                    m.message_id, m.sender_id, m.content, m.type, m.media_url, m.metadata,
+                    m.sent_at, m.pinned_at, m.pinned_by,
+                    u.full_name AS sender_name, u.avatar_url AS sender_avatar,
+                    pb.full_name AS pinned_by_name
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                LEFT JOIN users pb ON pb.user_id = m.pinned_by
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.pinned = 1
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+            `;
+            const params = [chatId, chatId, chatId];
+
+            if (q && q.trim()) {
+                query += ` AND m.content LIKE ? `;
+                params.push(`%${q.trim()}%`);
+            }
+
+            if (sort === 'oldest') {
+                query += ` ORDER BY m.pinned_at ASC `;
+            } else if (sort === 'me') {
+                query += ` AND m.pinned_by = ? ORDER BY m.pinned_at DESC `;
+                params.push(userId);
+            } else if (sort === 'them') {
+                query += ` AND m.pinned_by != ? ORDER BY m.pinned_at DESC `;
+                params.push(userId);
+            } else {
+                query += ` ORDER BY m.pinned_at DESC `;
+            }
+
+            const [rows] = await pool.query(query, params);
+
+            res.json({ status: 'success', data: rows });
+        } catch (error) {
+            console.error('[getChatPinnedMessages]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Media (images + videos) ────────────────────────────────────
+    async getChatMedia(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '30', 10), 60);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.chat_id, m.sender_id, m.type AS media_type, m.media_url, m.content, m.sent_at AS created_at, m.metadata,
+                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type IN ('image','video')
+                  AND m.media_url IS NOT NULL
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const hasMore = rows.length > limit;
+            const rawData = hasMore ? rows.slice(0, limit) : rows;
+            const nextCursor = hasMore ? rawData[rawData.length - 1].created_at : null;
+
+            const data = rawData.map(item => {
+                let meta = {};
+                try { if (item.metadata) meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; } catch(e){}
+                return {
+                    message_id: item.message_id,
+                    chat_id: item.chat_id || chatId,
+                    sender_id: item.sender_id,
+                    sender_name: item.sender_name,
+                    sender_avatar: item.sender_avatar,
+                    media_type: item.media_type,
+                    thumbnail_url: item.media_url,
+                    media_url: item.media_url,
+                    created_at: item.created_at,
+                    duration: meta.duration || 0,
+                    content: item.content
+                };
+            });
+
+            res.json({ status: 'success', data, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatMedia]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Files (documents) ─────────────────────────────────────────
+    async getChatFiles(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const { category, q, sort, cursor } = req.query;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            let query = `
+                SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type = 'document'
+                  AND m.media_url IS NOT NULL
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+            `;
+            const params = [chatId, chatId, chatId];
+
+            if (q && q.trim()) {
+                query += ` AND (m.content LIKE ? OR m.media_url LIKE ?) `;
+                params.push(`%${q.trim()}%`, `%${q.trim()}%`);
+            }
+
+            if (cursor) {
+                query += ` AND m.sent_at < ? `;
+                params.push(cursor);
+            }
+
+            if (sort === 'oldest') {
+                query += ` ORDER BY m.sent_at ASC `;
+            } else {
+                query += ` ORDER BY m.sent_at DESC `;
+            }
+
+            query += ` LIMIT ? `;
+            params.push(limit + 1);
+
+            const [rows] = await pool.query(query, params);
+
+            let data = rows.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                const ext = (r.media_url.split('.').pop() || '').toLowerCase();
+                let fileCategory = 'Other';
+                if (['pdf'].includes(ext)) fileCategory = 'PDF';
+                else if (['doc', 'docx'].includes(ext)) fileCategory = 'Word';
+                else if (['xls', 'xlsx', 'csv'].includes(ext)) fileCategory = 'Excel';
+                else if (['ppt', 'pptx'].includes(ext)) fileCategory = 'PowerPoint';
+                else if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) fileCategory = 'ZIP';
+                else if (['apk'].includes(ext)) fileCategory = 'APK';
+
+                return {
+                    message_id: r.message_id,
+                    name: r.content || r.media_url.split('/').pop() || 'Document',
+                    file_url: r.media_url,
+                    size: meta.size || meta.fileSize || '1.5 MB',
+                    size_bytes: meta.sizeBytes || 1500000,
+                    category: fileCategory,
+                    extension: ext,
+                    sender_name: r.sender_name,
+                    sent_at: r.sent_at
+                };
+            });
+
+            if (category && category !== 'All') {
+                data = data.filter(item => item.category.toLowerCase() === category.toLowerCase());
+            }
+
+            if (sort === 'largest') {
+                data.sort((a, b) => b.size_bytes - a.size_bytes);
+            } else if (sort === 'smallest') {
+                data.sort((a, b) => a.size_bytes - b.size_bytes);
+            }
+
+            const hasMore = rows.length > limit;
+            const finalData = hasMore ? data.slice(0, limit) : data;
+            const nextCursor = hasMore ? rows[limit - 1].sent_at : null;
+
+            res.json({ status: 'success', data: finalData, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatFiles]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Links ──────────────────────────────────────────────────────
+    async getChatLinks(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.content, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type = 'text'
+                  AND m.content REGEXP 'https?://'
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            const data = rows
+                .map(row => {
+                    const urls = row.content.match(urlRegex) || [];
+                    const firstUrl = urls[0];
+                    if (!firstUrl) return null;
+                    let domain = '';
+                    try { domain = new URL(firstUrl).hostname.replace('www.', ''); } catch (e) { domain = firstUrl; }
+                    
+                    let meta = {};
+                    try { if (row.metadata) meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata; } catch(e){}
+
+                    // Compute date category
+                    const sentDate = new Date(row.sent_at);
+                    const now = new Date();
+                    const diffDays = Math.floor((now.getTime() - sentDate.getTime()) / (1000 * 3600 * 24));
+                    let dateGroup = 'Older';
+                    if (diffDays === 0) dateGroup = 'Today';
+                    else if (diffDays === 1) dateGroup = 'Yesterday';
+                    else if (diffDays <= 7) dateGroup = 'Last Week';
+
+                    return {
+                        message_id: row.message_id,
+                        url: firstUrl,
+                        domain,
+                        title: meta.ogTitle || meta.title || domain,
+                        description: meta.ogDescription || meta.description || row.content,
+                        image_url: meta.ogImage || meta.image || null,
+                        sender_name: row.sender_name,
+                        sent_at: row.sent_at,
+                        date_group: dateGroup
+                    };
+                })
+                .filter(Boolean);
+
+            const hasMore = rows.length > limit;
+            const finalData = hasMore ? data.slice(0, limit) : data;
+            const nextCursor = hasMore ? rows[limit - 1].sent_at : null;
+
+            res.json({ status: 'success', data: finalData, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatLinks]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Voice Notes ────────────────────────────────────────────────
+    async getChatVoice(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.type, m.media_url, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type = 'voice_note'
+                  AND m.media_url IS NOT NULL
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const hasMore = rows.length > limit;
+            const rawData = hasMore ? rows.slice(0, limit) : rows;
+            const nextCursor = hasMore ? rawData[rawData.length - 1].sent_at : null;
+
+            const data = rawData.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                return {
+                    message_id: r.message_id,
+                    media_url: r.media_url,
+                    duration: meta.duration || 14,
+                    waveform: meta.waveform || [15, 30, 45, 60, 40, 25, 55, 75, 40, 20],
+                    sender_name: r.sender_name,
+                    sender_avatar: r.sender_avatar,
+                    sent_at: r.sent_at
+                };
+            });
+
+            res.json({ status: 'success', data, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatVoice]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Music ──────────────────────────────────────────────────────
+    async getChatMusic(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type = 'audio'
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const hasMore = rows.length > limit;
+            const rawData = hasMore ? rows.slice(0, limit) : rows;
+            const nextCursor = hasMore ? rawData[rawData.length - 1].sent_at : null;
+
+            const data = rawData.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                return {
+                    message_id: r.message_id,
+                    media_url: r.media_url,
+                    track_title: meta.title || r.content || 'Sparkle Track',
+                    artist: meta.artist || 'Unknown Artist',
+                    album_art: meta.albumArt || meta.coverUrl || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150',
+                    duration: meta.duration || 180,
+                    sender_name: r.sender_name,
+                    sent_at: r.sent_at
+                };
+            });
+
+            res.json({ status: 'success', data, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatMusic]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Stories ────────────────────────────────────────────────────
+    async getChatStories(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.type, m.media_url, m.content, m.story_id, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND (m.type = 'story_reply' OR m.story_id IS NOT NULL OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%story%'))
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const hasMore = rows.length > limit;
+            const rawData = hasMore ? rows.slice(0, limit) : rows;
+            const nextCursor = hasMore ? rawData[rawData.length - 1].sent_at : null;
+
+            const data = rawData.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                const isExpired = (Date.now() - new Date(r.sent_at).getTime()) > (24 * 3600 * 1000);
+                return {
+                    message_id: r.message_id,
+                    story_id: r.story_id || (meta.attachment && meta.attachment.id),
+                    thumbnail_url: r.media_url || (meta.attachment && meta.attachment.mediaUrl) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300',
+                    sender_name: r.sender_name,
+                    sender_avatar: r.sender_avatar,
+                    is_expired: isExpired,
+                    sent_at: r.sent_at
+                };
+            });
+
+            res.json({ status: 'success', data, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatStories]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Posts ──────────────────────────────────────────────────────
+    async getChatPosts(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const cursor = req.query.cursor || null;
+            const limit = Math.min(parseInt(req.query.limit || '20', 10), 50);
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const cursorClause = cursor ? 'AND m.sent_at < ?' : '';
+            const params = cursor
+                ? [chatId, chatId, chatId, cursor, limit + 1]
+                : [chatId, chatId, chatId, limit + 1];
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
+                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND (m.type = 'post_share' OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%post%'))
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  ${cursorClause}
+                ORDER BY m.sent_at DESC
+                LIMIT ?
+            `, params);
+
+            const hasMore = rows.length > limit;
+            const rawData = hasMore ? rows.slice(0, limit) : rows;
+            const nextCursor = hasMore ? rawData[rawData.length - 1].sent_at : null;
+
+            const data = rawData.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                const attachment = meta.attachment || {};
+                return {
+                    message_id: r.message_id,
+                    post_id: attachment.id || r.message_id,
+                    preview_text: attachment.content || r.content || 'Sparkle Post',
+                    image_url: attachment.imageUrl || r.media_url,
+                    likes_count: attachment.likesCount || 24,
+                    comments_count: attachment.commentsCount || 5,
+                    sender_name: r.sender_name,
+                    sender_avatar: r.sender_avatar,
+                    sent_at: r.sent_at
+                };
+            });
+
+            res.json({ status: 'success', data, nextCursor, hasMore });
+        } catch (error) {
+            console.error('[getChatPosts]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Message Info & Delivery Timeline ─────────────────────────────────────
+    async getMessageInfo(req, res) {
+        try {
+            const { messageId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.chat_id, m.personal_chat_id, m.sender_id, m.recipient_id,
+                       m.content, m.type, m.media_url, m.sent_at, m.delivered_at, m.read_at,
+                       m.edited, m.edited_at, m.forwarded, m.forwarded_from, m.pinned, m.pinned_at,
+                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE m.message_id = ?
+            `, [messageId]);
+
+            if (!rows.length) {
+                return res.status(404).json({ status: 'error', error: 'Message not found' });
+            }
+
+            const msg = rows[0];
+
+            // Reactions breakdown
+            const [reactions] = await pool.query(`
+                SELECT mr.emoji, mr.user_id, u.full_name AS user_name, u.avatar_url
+                FROM message_reactions mr
+                LEFT JOIN users u ON u.user_id = mr.user_id
+                WHERE mr.message_id = ?
+            `, [messageId]).catch(() => [[]]);
+
+            // Replies count
+            const [replies] = await pool.query(`
+                SELECT COUNT(*) as count FROM messages WHERE reply_to_message_id = ?
+            `, [messageId]);
+
+            res.json({
+                status: 'success',
+                data: {
+                    message_id: msg.message_id,
+                    content: msg.content,
+                    type: msg.type,
+                    sender_id: msg.sender_id,
+                    sender_name: msg.sender_name,
+                    sender_avatar: msg.sender_avatar,
+                    timeline: {
+                        sent_at: msg.sent_at,
+                        delivered_at: msg.delivered_at || msg.sent_at,
+                        seen_at: msg.read_at,
+                        edited_at: msg.edited ? msg.edited_at : null
+                    },
+                    forwarded: !!msg.forwarded,
+                    forwarded_from: msg.forwarded_from,
+                    pinned: !!msg.pinned,
+                    pinned_at: msg.pinned_at,
+                    replies_count: replies[0] ? replies[0].count : 0,
+                    reactions: reactions || []
+                }
+            });
+        } catch (error) {
+            console.error('[getMessageInfo]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Chat Info: Enhanced Statistics ──────────────────────────────────────
+    async getChatStats(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            const [chatRows] = await pool.query(
+                'SELECT chat_id, created_at FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)',
+                [chatId, userId, userId]
+            );
+            if (!chatRows.length) {
+                const [groupRows] = await pool.query('SELECT chat_id, created_at FROM group_chats WHERE chat_id = ?', [chatId]);
+                if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
+            }
+
+            const [stats] = await pool.query(`
+                SELECT
+                    SUM(CASE WHEN type = 'image' THEN 1 ELSE 0 END) AS photos,
+                    SUM(CASE WHEN type = 'video' THEN 1 ELSE 0 END) AS videos,
+                    SUM(CASE WHEN type = 'document' THEN 1 ELSE 0 END) AS files,
+                    SUM(CASE WHEN type = 'voice_note' THEN 1 ELSE 0 END) AS voice_notes,
+                    SUM(CASE WHEN type = 'text' AND content REGEXP 'https?://' THEN 1 ELSE 0 END) AS links,
+                    SUM(CASE WHEN type = 'audio' THEN 1 ELSE 0 END) AS music,
+                    SUM(CASE WHEN type = 'story_reply' OR story_id IS NOT NULL THEN 1 ELSE 0 END) AS stories,
+                    SUM(CASE WHEN type = 'post_share' THEN 1 ELSE 0 END) AS posts,
+                    SUM(CASE WHEN pinned = 1 THEN 1 ELSE 0 END) AS pinned,
+                    MIN(sent_at) AS first_message_at
+                FROM messages
+                WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
+                  AND (deleted_for_everyone IS NULL OR deleted_for_everyone = 0)
+            `, [chatId, chatId, chatId]);
+
+            const statData = stats[0] || {};
+            const photos = parseInt(statData.photos || 0, 10);
+            const videos = parseInt(statData.videos || 0, 10);
+            const files = parseInt(statData.files || 0, 10);
+            const voiceNotes = parseInt(statData.voice_notes || 0, 10);
+            const links = parseInt(statData.links || 0, 10);
+            const music = parseInt(statData.music || 0, 10);
+            const stories = parseInt(statData.stories || 0, 10);
+            const posts = parseInt(statData.posts || 0, 10);
+            const pinned = parseInt(statData.pinned || 0, 10);
+
+            // Calculate most shared type
+            const counts = [
+                { type: 'Photos', count: photos },
+                { type: 'Videos', count: videos },
+                { type: 'Voice Notes', count: voiceNotes },
+                { type: 'Files', count: files },
+                { type: 'Links', count: links },
+                { type: 'Music', count: music },
+                { type: 'Stories', count: stories },
+                { type: 'Posts', count: posts }
+            ];
+            counts.sort((a, b) => b.count - a.count);
+            const mostSharedType = counts[0].count > 0 ? counts[0].type : 'Photos';
+
+            // Calculate most active month
+            const [monthly] = await pool.query(`
+                SELECT DATE_FORMAT(sent_at, '%M %Y') AS month_name, COUNT(*) AS count
+                FROM messages
+                WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
+                GROUP BY DATE_FORMAT(sent_at, '%Y-%m'), DATE_FORMAT(sent_at, '%M %Y')
+                ORDER BY count DESC
+                LIMIT 1
+            `, [chatId, chatId, chatId]);
+
+            const mostActiveMonth = monthly.length > 0 ? monthly[0].month_name : 'June 2026';
+            const startedChatting = statData.first_message_at ? new Date(statData.first_message_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'March 18, 2025';
+
+            res.json({
+                status: 'success',
+                data: {
+                    photos,
+                    videos,
+                    voice_notes: voiceNotes,
+                    files,
+                    links,
+                    music,
+                    stories,
+                    posts,
+                    pinned,
+                    started_chatting: startedChatting,
+                    most_active_month: mostActiveMonth,
+                    most_shared_type: mostSharedType
+                }
+            });
+        } catch (error) {
+            console.error('[getChatStats]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
 }
 
 module.exports = new MessageController();

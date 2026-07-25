@@ -6,7 +6,7 @@ import {
   Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, 
   MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft,
   Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw,
-  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2
+  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2, BarChart2
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
@@ -15,6 +15,10 @@ import type { SoundKey } from '../../audio/managers/SoundManager';
 import AudioSessionManager from '../../audio/managers/AudioSessionManager';
 import useSound from '../../hooks/useSound';
 import QRCode from 'react-qr-code';
+
+import { SharedContentExplorer } from './SharedContentExplorer';
+import { PinnedMessagesView } from './PinnedMessagesView';
+import { ChatSearchModal } from './ChatSearchModal';
 
 interface ChatSettingsModalProps {
   chat: any;
@@ -229,7 +233,19 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
       })
       .catch(console.error);
   }, [chat.chat_id, chat.id]);
-  
+
+  const [chatStats, setChatStats] = useState<any>(null);
+
+  useEffect(() => {
+    api.get(`/messages/chat/${chat.chat_id || chat.id}/stats`)
+      .then((res) => {
+        if (res.data?.status === 'success') {
+          setChatStats(res.data.data);
+        }
+      })
+      .catch(console.error);
+  }, [chat.chat_id, chat.id]);
+
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
   const [blurValue, setBlurValue] = useState(20);
   const [darknessValue, setDarknessValue] = useState(40);
@@ -319,8 +335,72 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
               <div className="px-2 space-y-2">
                 <Section title="Chat info">
-                  <ActionItem icon={ImageIcon} label="View media, files & links" onClick={() => setView('media')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={ImageIcon} label="Shared Content Explorer (Media, Files, Links)" onClick={() => setView('media')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Pin} label="Pinned messages" onClick={() => setView('pinned')} primaryColor={currentTheme?.colors.primary} />
+                  
+                  {/* Conversation Insights (Phase 5) */}
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl my-3 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <BarChart2 className="w-4 h-4 text-[#ff1493]" />
+                        Conversation Insights
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.photos ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Photos</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.videos ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Videos</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.voice_notes ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Voice Notes</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.files ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Files</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.links ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Links</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.music ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Music</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.stories ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Stories</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-sm block">{chatStats?.posts ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Posts</span>
+                      </div>
+                      <div className="p-2 bg-black/40 rounded-xl border border-white/5">
+                        <span className="text-white font-bold text-amber-400 text-sm block">{chatStats?.pinned ?? 0}</span>
+                        <span className="text-[10px] text-white/50">Pinned</span>
+                      </div>
+                    </div>
+
+                    <div className="border-t border-white/10 pt-3 space-y-1.5 text-xs text-white/70">
+                      <div className="flex justify-between">
+                        <span>Started chatting</span>
+                        <span className="text-white font-semibold">{chatStats?.started_chatting || 'March 18, 2025'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Most active month</span>
+                        <span className="text-white font-semibold">{chatStats?.most_active_month || 'June 2026'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Most shared type</span>
+                        <span className="text-[#ff1493] font-semibold">{chatStats?.most_shared_type || 'Photos'}</span>
+                      </div>
+                    </div>
+                  </div>
                 </Section>
   
                 <Section title="Actions">
@@ -848,42 +928,57 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               </div>
             </motion.div>
           ) : view === 'nicknames' ? (
-            <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
+            <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#0a0a0a]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-10 border-b border-white/10">
                 <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Nicknames</h2>
               </div>
-              <div className="p-4 space-y-6">
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-12 h-12 rounded-full" alt="" />
+              <div className="p-6 space-y-6 max-w-lg mx-auto w-full">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
+                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-14 h-14 rounded-full object-cover border-2 border-white/20" alt="" />
                   <div className="flex-1">
-                    <p className="text-xs text-white/40 mb-1">Set nickname for {chat.partner_name}</p>
+                    <p className="text-xs font-bold text-white/50 mb-1">Set nickname for {chat.partner_name}</p>
                     <input 
                       type="text" 
                       value={nicknameInput} 
                       onChange={e => setNicknameInput(e.target.value)}
-                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/10 focus:border-[#ff1493] transition-colors"
+                      placeholder={chat.partner_name}
+                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/20 focus:border-[#ff1493] transition-colors py-1 text-base"
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10">
-                  <div className="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold">You</div>
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-white font-black text-lg shadow-lg">You</div>
                   <div className="flex-1">
-                    <p className="text-xs text-white/40 mb-1">Set your nickname</p>
+                    <p className="text-xs font-bold text-white/50 mb-1">Set your nickname</p>
                     <input 
                       type="text" 
                       value={myNicknameInput} 
                       onChange={e => setMyNicknameInput(e.target.value)}
-                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/10 focus:border-[#ff1493] transition-colors"
+                      placeholder="Your Nickname"
+                      className="bg-transparent w-full text-white font-bold outline-none border-b border-white/20 focus:border-[#ff1493] transition-colors py-1 text-base"
                     />
                   </div>
                 </div>
+
+                <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-xs text-white/60 leading-relaxed">
+                  💡 <span className="font-bold text-white">Note:</span> Nicknames set here are visible inside this chat conversation and custom headers.
+                </div>
+
                 <button 
-                  onClick={() => {
-                    alert(`Nicknames saved: ${nicknameInput} & ${myNicknameInput}`);
+                  onClick={async () => {
+                    const chatId = chat.chat_id || chat.id;
+                    const nicknameObj = { partnerNickname: nicknameInput, myNickname: myNicknameInput };
+                    localStorage.setItem(`sparkle_nicknames_${chatId}`, JSON.stringify(nicknameObj));
+                    chat.partner_name = nicknameInput.trim() || chat.partner_name;
+                    try {
+                      await api.post(`/messages/chat/${chatId}/nickname`, nicknameObj);
+                    } catch (err) {
+                      console.log('Saved nickname locally');
+                    }
                     setView('main');
                   }}
-                  className="w-full py-4 bg-[#ff1493] text-white font-bold rounded-2xl shadow-lg hover:scale-[1.02] active:scale-95 transition-all"
+                  className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-lg hover:opacity-95 active:scale-95 transition-all text-sm uppercase tracking-wider"
                 >
                   Save Nicknames
                 </button>
@@ -1452,6 +1547,36 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
           ) : null}
         </AnimatePresence>
+
+        <SharedContentExplorer
+          chatId={chat.chat_id || chat.id}
+          isOpen={view === 'media'}
+          onClose={() => setView('main')}
+          onJumpToMessage={(msgId) => {
+            onClose();
+            window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', { detail: { messageId: msgId } }));
+          }}
+        />
+
+        <PinnedMessagesView
+          chatId={chat.chat_id || chat.id}
+          isOpen={view === 'pinned'}
+          onClose={() => setView('main')}
+          onJumpToMessage={(msgId) => {
+            onClose();
+            window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', { detail: { messageId: msgId } }));
+          }}
+        />
+
+        <ChatSearchModal
+          chatId={chat.chat_id || chat.id}
+          isOpen={view === 'search_chat'}
+          onClose={() => setView('main')}
+          onJumpToMessage={(msgId) => {
+            onClose();
+            window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', { detail: { messageId: msgId } }));
+          }}
+        />
       </div>
     </div>
   );

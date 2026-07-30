@@ -13,7 +13,10 @@ router.use(authMiddleware);
 // Inbox & Conversations
 router.get('/inbox', messageController.getInbox);
 router.get('/conversations', messageController.getInbox);
-router.post('/start', messageController.startConversation);
+router.get('/welcome-cards', messageController.getWelcomeCards);
+router.post('/open', messageController.openConversation);
+router.post('/start', messageController.openConversation);
+router.post('/chat', messageController.openConversation);
 router.get('/mutual-groups/:partnerId', messageController.getMutualGroups);
 
 // Search
@@ -59,6 +62,8 @@ router.get('/chat/:chatId/music', messageController.getChatMusic);
 router.get('/chat/:chatId/stories', messageController.getChatStories);
 router.get('/chat/:chatId/posts', messageController.getChatPosts);
 router.get('/chat/:chatId/stats', messageController.getChatStats);
+router.post('/chat/:chatId/nickname', messageController.setChatNickname);
+router.get('/chat/:chatId/nickname-history', messageController.getChatNicknameHistory);
 
 // Conversation messages (Keep these at the end to avoid route conflicts)
 router.get('/chat/:chatId', messageController.getConversationMessages);

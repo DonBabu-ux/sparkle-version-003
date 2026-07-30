@@ -42,31 +42,32 @@ const SYSTEM_USER_ID = process.env.SPARKLE_SYSTEM_USER_ID || 'd75fe3b5-7a45-4581
 
 class SystemMessageService {
 
-    // ── Core: ensure system user exists ───────────────────────────────────────
+    // ── Core: ensure system users exist ───────────────────────────────────────
     async _ensureSystemUser() {
         try {
-            const rows = await safeQuery(
-                'SELECT user_id FROM users WHERE user_id = ? LIMIT 1',
-                [SYSTEM_USER_ID]
-            );
-            if (rows.length > 0) return;
-
-            await safeQuery(
-                `INSERT INTO users
-                   (user_id, name, username, email, password_hash, user_type, account_status, is_verified, onboarding_step, is_system_account)
-                 VALUES (?, 'Sparkle', 'sparkle', 'official@sparkle.app', 'NO_LOGIN', 'system', 'active', 1, 6, TRUE)`,
-                [SYSTEM_USER_ID]
-            );
-            logger.info('[SystemMessage] System user seeded.');
+            const { OFFICIAL_ECOSYSTEM_ACCOUNTS } = require('../helpers/systemAccount.helper');
+            for (const accKey of Object.keys(OFFICIAL_ECOSYSTEM_ACCOUNTS)) {
+                const acc = OFFICIAL_ECOSYSTEM_ACCOUNTS[accKey];
+                const rows = await safeQuery('SELECT user_id FROM users WHERE user_id = ? OR username = ? LIMIT 1', [acc.id, acc.username]);
+                if (rows.length === 0) {
+                    await safeQuery(
+                        `INSERT INTO users
+                           (user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio)
+                         VALUES (?, ?, ?, ?, 'NO_LOGIN', 'system', 'system', 'active', 1, 6, ?)`,
+                        [acc.id, acc.name, acc.username, `${acc.username}@sparkle.app`, acc.bio]
+                    );
+                }
+            }
+            logger.info('[SystemMessage] Official ecosystem users verified.');
         } catch (e) {
             if (e.code !== 'ER_DUP_ENTRY') {
-                logger.warn('[SystemMessage] Could not ensure system user:', e.message);
+                logger.warn('[SystemMessage] Could not ensure system users:', e.message);
             }
         }
     }
 
     // ── Core: ensure system conversation exists for user ─────────────────────
-    async ensureSystemConversation(userId) {
+    async ensureSystemConversation(userId, systemId = SYSTEM_USER_ID) {
         try {
             const existing = await safeQuery(
                 `SELECT chat_id FROM personal_chats
@@ -74,7 +75,7 @@ class SystemMessageService {
                      OR (participant1_id = ? AND participant2_id = ?))
                    AND marketplace_listing_id IS NULL
                  LIMIT 1`,
-                [SYSTEM_USER_ID, userId, userId, SYSTEM_USER_ID]
+                [systemId, userId, userId, systemId]
             );
 
             if (existing.length > 0) return existing[0].chat_id;
@@ -84,9 +85,9 @@ class SystemMessageService {
             const chatId = crypto.randomUUID();
             await safeQuery(
                 `INSERT INTO personal_chats
-                   (chat_id, participant1_id, participant2_id, marketplace_listing_id, last_message_time)
-                 VALUES (?, ?, ?, NULL, NOW())`,
-                [chatId, SYSTEM_USER_ID, userId]
+                   (chat_id, participant1_id, participant2_id, marketplace_listing_id, conversation_type, last_message_time)
+                 VALUES (?, ?, ?, NULL, 'system', NOW())`,
+                [chatId, systemId, userId]
             );
             logger.info(`[SystemMessage] Created system conversation ${chatId} for user ${userId}`);
             return chatId;
@@ -132,19 +133,33 @@ class SystemMessageService {
     }
 
     // ── Core: post a message in the system chat ───────────────────────────────
-    async _postSystemChatMessage(userId, chatId, content) {
+    async _postSystemChatMessage(userId, chatId, content, opts = {}) {
         try {
+            const {
+                category = 'announcement',
+                type = 'system',
+                senderId = SYSTEM_USER_ID,
+                payload = null,
+                publishAt = null,
+                expiresAt = null
+            } = opts;
+
             const msgId = crypto.randomUUID();
             await safeQuery(
                 `INSERT INTO messages
-                   (message_id, conversation_id, sender_id, content, type, is_read, sent_at, context)
-                 VALUES (?, ?, ?, ?, 'text', 0, NOW(), 'system')`,
-                [msgId, chatId, SYSTEM_USER_ID, content]
+                   (message_id, conversation_id, sender_id, content, type, context, message_category, payload, publish_at, expires_at, is_read, sent_at)
+                 VALUES (?, ?, ?, ?, ?, 'system', ?, ?, ?, ?, 0, NOW())`,
+                [
+                    msgId, chatId, senderId, content, 
+                    type, category, 
+                    payload ? JSON.stringify(payload) : null, 
+                    publishAt, expiresAt
+                ]
             );
 
-            // Update conversation last_message_time
+            // Update conversation last_message_time & conversation_type
             await safeQuery(
-                'UPDATE personal_chats SET last_message_time = NOW() WHERE chat_id = ?',
+                'UPDATE personal_chats SET last_message_time = NOW(), conversation_type = "system" WHERE chat_id = ?',
                 [chatId]
             );
 
@@ -153,6 +168,54 @@ class SystemMessageService {
             logger.error('[SystemMessage] _postSystemChatMessage error:', error.message);
             return null;
         }
+    }
+
+    /**
+     * Get JSON-driven Welcome Cards for onboarding / dashboard
+     */
+    getWelcomeCards() {
+        return [
+            {
+                id: 'card-1',
+                title: 'Create Your First Spark',
+                description: 'Share a story, upload a moment, or post an update to introduce yourself to your campus.',
+                icon: 'Sparkles',
+                route: '/moments',
+                buttonText: 'Create Spark',
+                buttonStyle: 'primary',
+                priority: 1
+            },
+            {
+                id: 'card-2',
+                title: 'Discover Campus Creators',
+                description: 'Connect with students in your major, join popular campus hubs, and build your social graph.',
+                icon: 'Users',
+                route: '/connect',
+                buttonText: 'Explore People',
+                buttonStyle: 'secondary',
+                priority: 2
+            },
+            {
+                id: 'card-3',
+                title: 'Check Campus Marketplace',
+                description: 'Buy & sell textbooks, gadgets, and dorm gear safely with fellow verified students.',
+                icon: 'ShoppingBag',
+                route: '/marketplace',
+                buttonText: 'Open Marketplace',
+                buttonStyle: 'secondary',
+                priority: 3
+            },
+            {
+                id: 'card-4',
+                title: 'Privacy & Security Check',
+                description: 'Review your account visibility, two-factor settings, and active login sessions.',
+                icon: 'ShieldCheck',
+                route: '/settings?tab=privacy',
+                buttonText: 'Privacy Settings',
+                buttonStyle: 'ghost',
+                priority: 4
+            }
+        ];
     }
 
     // ─────────────────────────────────────────────────────────────────────────

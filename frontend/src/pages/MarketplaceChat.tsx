@@ -10,19 +10,6 @@ import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 import { useSocket } from '../hooks/useSocket';
 
-const isLocalhost = 
-  window.location.hostname === 'localhost' || 
-  window.location.hostname === '127.0.0.1' ||
-  window.location.hostname.startsWith('192.168.') ||
-  window.location.hostname.startsWith('10.') ||
-  window.location.hostname.startsWith('172.');
-
-const isNative = window.location.protocol === 'capacitor:';
-
-const LIVE_SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
-const LOCAL_SOCKET_URL = 'http://localhost:3000';
-
-const SOCKET_URL = isNative ? LIVE_SOCKET_URL : (isLocalhost ? LOCAL_SOCKET_URL : LIVE_SOCKET_URL);
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
 

@@ -17,6 +17,61 @@ class MessageController {
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
+
+    /**
+     * Get backend-driven JSON Welcome Cards for official onboarding
+     */
+    async getWelcomeCards(req, res) {
+        try {
+            const systemMessageService = require('../services/systemMessage.service');
+            const cards = systemMessageService.getWelcomeCards();
+            res.json({ status: 'success', data: cards });
+        } catch (error) {
+            console.error('getWelcomeCards Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
+     * Open or create a conversation (Supports DMs, Official accounts, and Self "Saved Messages")
+     */
+    async openConversation(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId || req.user.id;
+            const { partnerId, recipientId, recipient_id, username, listingId } = req.body;
+            
+            let targetPartnerId = partnerId || recipientId || recipient_id;
+            
+            if (!targetPartnerId && username) {
+                const cleanUser = username.replace(/^@/, '');
+                const [users] = await pool.query('SELECT user_id, id FROM users WHERE username = ? OR handle = ?', [cleanUser, cleanUser]);
+                if (users && users.length > 0) {
+                    targetPartnerId = users[0].user_id || users[0].id;
+                }
+            }
+
+            if (!targetPartnerId) {
+                return res.status(400).json({ status: 'error', error: 'Partner ID or username is required' });
+            }
+
+            const isSelf = targetPartnerId === userId;
+            const conversationId = await Message.getOrCreateConversation(userId, targetPartnerId, listingId || null);
+
+            res.json({
+                status: 'success',
+                data: {
+                    conversationId,
+                    chatId: conversationId,
+                    partnerId: targetPartnerId,
+                    isSelf,
+                    chat_type: isSelf ? 'self' : 'direct'
+                }
+            });
+        } catch (error) {
+            console.error('openConversation Error:', error);
+            res.status(500).json({ status: 'error', error: error.message || 'Failed to open conversation' });
+        }
+    }
     /**
      * Get user's conversation list (Direct + Group)
      */
@@ -29,13 +84,15 @@ class MessageController {
             await systemMessageService.ensureSystemConversation(userId);
 
             const conversations = await Message.getUserConversations(userId);
-
-            // Add is_system property for Sparkle Official Conversation
-            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
-            const mapped = conversations.map(c => ({
-                ...c,
-                is_system: c.partner_id === SYSTEM_USER_ID
-            }));
+            const { formatSystemUser, isSystemAccountId } = require('../helpers/systemAccount.helper');
+            const mapped = conversations.map(c => {
+                const isSys = isSystemAccountId(c.partner_id) || Boolean(c.is_system_account);
+                return {
+                    ...formatSystemUser(c),
+                    is_system: isSys,
+                    is_system_account: isSys
+                };
+            });
 
             res.json({ status: 'success', data: mapped });
         } catch (error) {
@@ -453,8 +510,8 @@ class MessageController {
                 SELECT 
                     m.message_id, m.sender_id, m.content, m.type, m.media_url, m.metadata,
                     m.sent_at, m.pinned_at, m.pinned_by,
-                    u.full_name AS sender_name, u.avatar_url AS sender_avatar,
-                    pb.full_name AS pinned_by_name
+                    u.name AS sender_name, u.avatar_url AS sender_avatar,
+                    pb.name AS pinned_by_name
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 LEFT JOIN users pb ON pb.user_id = m.pinned_by
@@ -514,7 +571,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.chat_id, m.sender_id, m.type AS media_type, m.media_url, m.content, m.sent_at AS created_at, m.metadata,
-                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                       u.name AS sender_name, u.avatar_url AS sender_avatar
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -574,7 +631,7 @@ class MessageController {
 
             let query = `
                 SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name
+                       u.name AS sender_name
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -675,7 +732,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.content, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name
+                       u.name AS sender_name
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -757,7 +814,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.type, m.media_url, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                       u.name AS sender_name, u.avatar_url AS sender_avatar
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -818,7 +875,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name
+                       u.name AS sender_name
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -879,7 +936,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.type, m.media_url, m.content, m.story_id, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                       u.name AS sender_name, u.avatar_url AS sender_avatar
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -940,7 +997,7 @@ class MessageController {
 
             const [rows] = await pool.query(`
                 SELECT m.message_id, m.type, m.media_url, m.content, m.sent_at, m.sender_id, m.metadata,
-                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                       u.name AS sender_name, u.avatar_url AS sender_avatar
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
@@ -989,7 +1046,7 @@ class MessageController {
                 SELECT m.message_id, m.chat_id, m.personal_chat_id, m.sender_id, m.recipient_id,
                        m.content, m.type, m.media_url, m.sent_at, m.delivered_at, m.read_at,
                        m.edited, m.edited_at, m.forwarded, m.forwarded_from, m.pinned, m.pinned_at,
-                       u.full_name AS sender_name, u.avatar_url AS sender_avatar
+                       u.name AS sender_name, u.avatar_url AS sender_avatar
                 FROM messages m
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE m.message_id = ?
@@ -1003,7 +1060,7 @@ class MessageController {
 
             // Reactions breakdown
             const [reactions] = await pool.query(`
-                SELECT mr.emoji, mr.user_id, u.full_name AS user_name, u.avatar_url
+                SELECT mr.emoji, mr.user_id, u.name AS user_name, u.avatar_url
                 FROM message_reactions mr
                 LEFT JOIN users u ON u.user_id = mr.user_id
                 WHERE mr.message_id = ?
@@ -1132,6 +1189,97 @@ class MessageController {
             });
         } catch (error) {
             console.error('[getChatStats]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Set Nickname & Emit System Message ─────────────────────────────────────
+    async setChatNickname(req, res) {
+        try {
+            const { chatId } = req.params;
+            const { targetUserId, targetName, nickname } = req.body;
+            const userId = req.user.user_id || req.user.userId;
+            const senderName = req.user.name || req.user.full_name || req.user.username || 'User';
+
+            if (!nickname || !nickname.trim()) {
+                return res.status(400).json({ status: 'error', error: 'Nickname is required' });
+            }
+
+            const cleanNickname = nickname.trim();
+            const isSelf = targetUserId ? (String(targetUserId) === String(userId)) : false;
+
+            const messageContent = isSelf
+                ? `You set your nickname to ${cleanNickname}`
+                : `You set ${targetName || 'partner'}'s nickname to ${cleanNickname}`;
+
+            const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            await pool.query(`
+                INSERT INTO messages (message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at)
+                VALUES (?, ?, ?, ?, ?, 'system', ?, NOW())
+            `, [
+                messageId, chatId, chatId, userId, messageContent,
+                JSON.stringify({ system_type: 'nickname_change', target_user_id: targetUserId, target_name: targetName, nickname: cleanNickname, set_by_name: senderName })
+            ]);
+
+            const historyEntry = {
+                id: 'nick_' + Date.now(),
+                chat_id: chatId,
+                set_by_id: userId,
+                set_by_name: senderName,
+                target_user_id: targetUserId,
+                target_name: targetName,
+                nickname: cleanNickname,
+                created_at: new Date().toISOString()
+            };
+
+            res.json({
+                status: 'success',
+                message: 'Nickname updated',
+                data: {
+                    nickname: cleanNickname,
+                    system_message_id: messageId,
+                    history_entry: historyEntry
+                }
+            });
+        } catch (error) {
+            console.error('[setChatNickname]', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    // ─── Get Chat Nickname History ─────────────────────────────────────────────
+    async getChatNicknameHistory(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            const [rows] = await pool.query(`
+                SELECT m.message_id, m.content, m.sent_at, m.sender_id, m.metadata,
+                       u.name AS sender_name
+                FROM messages m
+                LEFT JOIN users u ON u.user_id = m.sender_id
+                WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
+                  AND m.type = 'system'
+                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                ORDER BY m.sent_at DESC
+            `, [chatId, chatId, chatId]);
+
+            const history = rows.map(r => {
+                let meta = {};
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                return {
+                    id: r.message_id,
+                    content: r.content,
+                    set_by_name: r.sender_name || meta.set_by_name || 'User',
+                    target_name: meta.target_name || 'Partner',
+                    nickname: meta.nickname || '',
+                    sent_at: r.sent_at
+                };
+            }).filter(item => item.nickname || (item.content && item.content.includes('nickname')));
+
+            res.json({ status: 'success', data: history });
+        } catch (error) {
+            console.error('[getChatNicknameHistory]', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }

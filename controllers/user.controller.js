@@ -76,6 +76,10 @@ const searchFollowingUsers = async (req, res) => {
 const updateProfile = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
+        const { isSystemAccountId } = require('../helpers/systemAccount.helper');
+        if (isSystemAccountId(userId)) {
+            return res.status(403).json({ error: 'Sparkle Official Account profile cannot be edited.' });
+        }
 
         // check if username is being changed and if it is taken
         if (req.body.username) {

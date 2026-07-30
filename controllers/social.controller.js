@@ -144,9 +144,9 @@ module.exports = {
         try {
             const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
-            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+            const { isSystemAccountId } = require('../helpers/systemAccount.helper');
 
-            if (targetId === SYSTEM_USER_ID) {
+            if (isSystemAccountId(targetId)) {
                 return res.status(403).json({ error: 'Cannot block the Sparkle official account' });
             }
             
@@ -257,9 +257,9 @@ module.exports = {
         }
     },
     muteUser: async (req, res) => {
-        const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
-        if (req.params.id === SYSTEM_USER_ID) {
-            return res.status(403).json({ error: 'Cannot mute the Sparkle official account' });
+        const { isSystemAccount } = require('../helpers/systemAccount.helper');
+        if (isSystemAccount(req.params.id)) {
+            return res.status(403).json({ error: 'Cannot mute official Sparkle accounts' });
         }
         return res.json({ success: true, message: 'User muted (Placeholder)' });
     },
@@ -269,10 +269,10 @@ module.exports = {
             const reporterId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
             const { reason, description } = req.body;
-            const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
+            const { isSystemAccount } = require('../helpers/systemAccount.helper');
 
-            if (targetId === SYSTEM_USER_ID) {
-                return res.status(403).json({ error: 'Cannot report the Sparkle official account' });
+            if (isSystemAccount(targetId)) {
+                return res.status(403).json({ error: 'Cannot report official Sparkle accounts' });
             }
 
             if (!reporterId || !targetId) {

@@ -6,7 +6,7 @@ import {
   Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, 
   MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft,
   Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw,
-  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2, BarChart2
+  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2, BarChart2, History
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
@@ -143,6 +143,27 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   
   const [nicknameInput, setNicknameInput] = useState(chat.partner_name);
   const [myNicknameInput, setMyNicknameInput] = useState('You');
+  const [showNicknameHistory, setShowNicknameHistory] = useState(false);
+  const [nicknameHistoryList, setNicknameHistoryList] = useState<any[]>([]);
+
+  const fetchNicknameHistory = useCallback(async () => {
+    const chatId = chat.chat_id || chat.id;
+    try {
+      const res = await api.get(`/messages/chat/${chatId}/nickname-history`);
+      if (res.data?.status === 'success') {
+        setNicknameHistoryList(res.data.data || []);
+      }
+    } catch (err) {
+      const local = JSON.parse(localStorage.getItem(`sparkle_nicknames_history_${chatId}`) || '[]');
+      setNicknameHistoryList(local);
+    }
+  }, [chat.chat_id, chat.id]);
+
+  useEffect(() => {
+    if (view === 'nicknames' || showNicknameHistory) {
+      fetchNicknameHistory();
+    }
+  }, [view, showNicknameHistory, fetchNicknameHistory]);
   
   // Settings state
   const [isMuted, setIsMuted] = useState(chat.is_muted ?? false);
@@ -290,6 +311,147 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
     setQuickReaction(chat.chat_id || chat.id, emoji);
     setView('main');
   };
+
+  if (chat?.account_type === 'system' || chat?.is_system_account || chat?.is_system) {
+    return (
+      <div className="fixed inset-0 bg-[#000000] z-[200] flex justify-center animate-fade-in">
+        <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative select-none">
+          <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
+            <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors">
+              <ChevronLeft size={24} />
+            </button>
+            <span className="text-white font-bold text-lg">Official Account</span>
+            <div className="w-8" />
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 no-scrollbar">
+            {/* Branded Identity Header */}
+            <div className="flex flex-col items-center text-center">
+              <div className="relative mb-4">
+                <img
+                  src="/assets/system/sparkle-logo.svg"
+                  className="w-24 h-24 rounded-full object-cover border-4 border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.4)]"
+                  alt="Sparkle Official"
+                />
+                <div className="absolute -bottom-1 -right-1 bg-rose-500 text-white p-1.5 rounded-full shadow-lg">
+                  <Check size={14} strokeWidth={3} />
+                </div>
+              </div>
+              <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                Sparkle Official
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-black bg-rose-500/20 border border-rose-500/40 text-rose-400">
+                  ✔️ Verified
+                </span>
+              </h2>
+              <p className="text-xs font-semibold text-rose-400 mt-1">@sparkleofficial • Official Sparkle Account</p>
+              <p className="text-xs text-slate-400 mt-2 max-w-sm">
+                Helping you discover Sparkle. Trusted platform communication channel between Sparkle and every user.
+              </p>
+            </div>
+
+            {/* Version Pill */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold">
+                  <Sparkles size={20} />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">Sparkle Version</h4>
+                  <p className="text-xs text-white/40 font-medium">Sparkle Ecosystem</p>
+                </div>
+              </div>
+              <span className="px-3 py-1 rounded-full text-xs font-black bg-white/10 text-white border border-white/15">
+                2.1.0
+              </span>
+            </div>
+
+            {/* Official Links */}
+            <div className="space-y-2">
+              <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest px-2">Official Links</h3>
+              <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+                <button
+                  onClick={() => { onClose(); navigate('/help'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">Help Centre</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+
+                <button
+                  onClick={() => { onClose(); navigate('/help'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Shield size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">Community Guidelines</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+
+                <button
+                  onClick={() => { onClose(); navigate('/settings/privacy'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Lock size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">Privacy Policy</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+
+                <button
+                  onClick={() => { onClose(); navigate('/help'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">Terms of Service</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+
+                <button
+                  onClick={() => { onClose(); navigate('/explore'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Sparkles size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">Release Notes</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+
+                <button
+                  onClick={() => { onClose(); navigate('/about'); }}
+                  className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <User size={18} className="text-[#ff1493]" />
+                    <span className="text-sm font-semibold text-white">About Sparkle</span>
+                  </div>
+                  <ChevronLeft size={18} className="text-white/30 rotate-180" />
+                </button>
+              </div>
+            </div>
+
+            {/* Account Protection Notice */}
+            <div className="p-4 rounded-2xl bg-[#ff1493]/10 border border-[#ff1493]/30 text-center space-y-1">
+              <p className="text-xs font-bold text-white flex items-center justify-center gap-1.5">
+                <Shield size={14} className="text-[#ff1493]" />
+                Protected System Account
+              </p>
+              <p className="text-[11px] text-white/50">
+                Official Sparkle accounts are verified system communication channels. They do not accept incoming messages and cannot be blocked or reported.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-[#000000] z-[200] flex justify-center animate-fade-in">
@@ -929,10 +1091,21 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
             </motion.div>
           ) : view === 'nicknames' ? (
             <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#0a0a0a]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-10 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
-                <h2 className="text-xl font-bold text-white">Nicknames</h2>
+              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-10 border-b border-white/10">
+                <div className="flex items-center gap-4">
+                  <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                  <h2 className="text-xl font-bold text-white">Nicknames</h2>
+                </div>
+                <button 
+                  onClick={() => setShowNicknameHistory(true)}
+                  className="p-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-full transition-all flex items-center gap-1.5 text-xs font-bold border border-white/10"
+                  title="View Nickname History"
+                >
+                  <History size={18} className="text-[#ff1493]" />
+                  <span className="hidden sm:inline">History</span>
+                </button>
               </div>
+
               <div className="p-6 space-y-6 max-w-lg mx-auto w-full">
                 <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
                   <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-14 h-14 rounded-full object-cover border-2 border-white/20" alt="" />
@@ -962,20 +1135,46 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 </div>
 
                 <div className="p-4 bg-white/5 rounded-2xl border border-white/5 text-xs text-white/60 leading-relaxed">
-                  💡 <span className="font-bold text-white">Note:</span> Nicknames set here are visible inside this chat conversation and custom headers.
+                  💡 <span className="font-bold text-white">Note:</span> Setting a nickname generates an in-chat update message visible to both participants.
                 </div>
 
                 <button 
                   onClick={async () => {
                     const chatId = chat.chat_id || chat.id;
-                    const nicknameObj = { partnerNickname: nicknameInput, myNickname: myNicknameInput };
-                    localStorage.setItem(`sparkle_nicknames_${chatId}`, JSON.stringify(nicknameObj));
-                    chat.partner_name = nicknameInput.trim() || chat.partner_name;
+                    const cleanPartnerNick = nicknameInput.trim();
+                    const cleanMyNick = myNicknameInput.trim();
+
+                    // Create local history entry
+                    const historyRecord = {
+                      id: 'nick_' + Date.now(),
+                      content: cleanPartnerNick ? `You set ${chat.partner_name}'s nickname to ${cleanPartnerNick}` : `You updated nicknames`,
+                      set_by_name: 'You',
+                      target_name: chat.partner_name,
+                      nickname: cleanPartnerNick || cleanMyNick,
+                      sent_at: new Date().toISOString()
+                    };
+
+                    const existingHistory = JSON.parse(localStorage.getItem(`sparkle_nicknames_history_${chatId}`) || '[]');
+                    localStorage.setItem(`sparkle_nicknames_history_${chatId}`, JSON.stringify([historyRecord, ...existingHistory]));
+
+                    if (cleanPartnerNick) {
+                      chat.partner_name = cleanPartnerNick;
+                    }
+
                     try {
-                      await api.post(`/messages/chat/${chatId}/nickname`, nicknameObj);
+                      await api.post(`/messages/chat/${chatId}/nickname`, {
+                        targetUserId: chat.partner_id,
+                        targetName: chat.partner_name,
+                        nickname: cleanPartnerNick || cleanMyNick
+                      });
                     } catch (err) {
                       console.log('Saved nickname locally');
                     }
+
+                    window.dispatchEvent(new CustomEvent('sparkle:nickname-updated', { 
+                      detail: { chatId, nickname: cleanPartnerNick } 
+                    }));
+
                     setView('main');
                   }}
                   className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-2xl shadow-lg hover:opacity-95 active:scale-95 transition-all text-sm uppercase tracking-wider"
@@ -1577,6 +1776,75 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
             window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', { detail: { messageId: msgId } }));
           }}
         />
+
+        {/* Nickname History Records Modal */}
+        <AnimatePresence>
+          {showNicknameHistory && (
+            <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+              <motion.div 
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.95, opacity: 0 }}
+                className="bg-[#0a0a0a] border border-white/10 rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden text-white"
+              >
+                {/* Header */}
+                <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2 bg-[#ff1493]/20 text-[#ff1493] rounded-xl border border-[#ff1493]/30">
+                      <History className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">Nickname History</h3>
+                      <p className="text-[11px] text-white/50">Log of all nickname updates in this chat</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => setShowNicknameHistory(false)}
+                    className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                {/* History list */}
+                <div className="p-5 overflow-y-auto space-y-3 flex-1 no-scrollbar">
+                  {nicknameHistoryList.length === 0 ? (
+                    <div className="text-center py-12 text-xs text-white/40 space-y-2">
+                      <History className="w-8 h-8 mx-auto opacity-30 text-[#ff1493]" />
+                      <p className="font-bold text-white/70">No nickname changes recorded yet</p>
+                      <p className="text-white/40">When anyone sets or changes a nickname, a record with date & timestamp will appear here.</p>
+                    </div>
+                  ) : (
+                    nicknameHistoryList.map((entry, idx) => (
+                      <div 
+                        key={entry.id || idx}
+                        className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 hover:bg-white/10 transition-colors"
+                      >
+                        <div className="flex items-center justify-between text-xs font-bold text-[#ff1493]">
+                          <span>{entry.set_by_name || 'User'} updated a nickname</span>
+                          <span className="text-[10px] text-white/40 font-mono">
+                            {new Date(entry.sent_at || entry.created_at || Date.now()).toLocaleDateString()}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium text-white/90 leading-relaxed">
+                          {entry.content || `${entry.set_by_name} set nickname to "${entry.nickname}"`}
+                        </p>
+                        <div className="flex items-center justify-between text-[10px] text-white/40 pt-1 border-t border-white/5">
+                          <span>Timestamp: {new Date(entry.sent_at || entry.created_at || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                          {entry.nickname && (
+                            <span className="px-2 py-0.5 rounded-md bg-[#ff1493]/20 text-[#ff1493] font-bold border border-[#ff1493]/30">
+                              "{entry.nickname}"
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </div>
   );

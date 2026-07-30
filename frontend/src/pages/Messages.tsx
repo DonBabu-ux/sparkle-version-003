@@ -9,7 +9,7 @@ import api from '../api/api';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
@@ -17,6 +17,13 @@ import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
+import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
+import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
+import { OfficialMessageCard } from '../components/chat/OfficialMessageCard';
+import { OfficialWelcomeCards } from '../components/chat/OfficialWelcomeCards';
+import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
+import { IdentityManager } from '../utils/identityManager';
+import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -34,6 +41,7 @@ import {
   ArrowUp,
   GripVertical,
   Archive,
+  Bookmark,
   ImageIcon,
   FileText,
   MapPin,
@@ -559,6 +567,14 @@ const ChatInput = memo(({
   const themePrimary = theme?.colors?.primary || '#ff1493';
   const themeBg = theme?.colors?.backgroundDark || '#000000';
 
+  if (selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_id === 'd75fe3b5-7a45-4581-ab13-91934d8b54de') {
+    return (
+      <ChatInputDock className="z-30 shrink-0 border-t border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
+        <OfficialComposerFooter />
+      </ChatInputDock>
+    );
+  }
+
   const fetchGiphy = async (type: 'gifs' | 'stickers', query?: string) => {
     setLoadingGiphy(true);
     try {
@@ -946,7 +962,8 @@ export default function Messages() {
   const { startCall } = useCall();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const targetChatId = searchParams.get('chat');
+  const { targetId: routeTargetId } = useParams();
+  const targetChatId = searchParams.get('chat') || routeTargetId;
 
   // Add currentChatIdRef to prevent stale closures in socket events
   const currentChatIdRef = useRef<string | null>(null);
@@ -1159,6 +1176,7 @@ const [tabDropdown, setTabDropdown] = useState<{ tabId: string; x: number; y: nu
 const [showReorderModal, setShowReorderModal] = useState(false);
 const [tempTabOrder, setTempTabOrder] = useState<string[]>([]);
 const [tempHiddenTabs, setTempHiddenTabs] = useState<string[]>([]);
+const [showDevConsole, setShowDevConsole] = useState(false);
 
 // Hide bottom nav when viewing someone's note or using camera
 useEffect(() => {
@@ -2460,21 +2478,39 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
                   )}
                 >
-                  <div className="relative shrink-0">
-                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-[54px] h-[54px] rounded-full object-cover border border-white/5 shadow-md" alt="" />
-                    <div className="absolute -bottom-0.5 -right-0.5">
-                      {!(chat.is_group || chat.chat_type === 'group') && (chat.partner_online || chat.is_online === 1 || chat.is_online === true) ? (
-                        <div className="w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full"></div>
-                      ) : null}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0 pr-2">
-                    <div className="flex justify-between items-center mb-0.5">
-                      <h4 className={clsx(
-                        "text-[15px] tracking-tight truncate leading-tight",
-                        chat.unread_count > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
-                      )}>{chat.partner_name}</h4>
-                    </div>
+                  {(() => {
+                    const itemIdentity = IdentityManager.resolveIdentity(chat);
+                    const isSelfChat = chat.chat_type === 'self' || chat.partner_id === (user?.id || user?.user_id);
+                    const displayName = isSelfChat ? 'Saved Messages' : itemIdentity.displayName;
+
+                    return (
+                      <>
+                        <div className="relative shrink-0">
+                          {isSelfChat ? (
+                            <div className="w-[54px] h-[54px] rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
+                              <Bookmark size={24} />
+                            </div>
+                          ) : (
+                            <img src={itemIdentity.avatar} className="w-[54px] h-[54px] rounded-full object-cover border border-white/10 shadow-md" alt="" />
+                          )}
+                          <div className="absolute -bottom-0.5 -right-0.5">
+                            {itemIdentity.presence.showPresence && itemIdentity.presence.isOnline && (
+                              <div className="w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full" />
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0 pr-2">
+                          <div className="flex justify-between items-center mb-0.5">
+                            <h4 className={clsx(
+                              "text-[15px] tracking-tight truncate leading-tight flex items-center gap-1.5",
+                              chat.unread_count > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
+                            )}>
+                              {displayName}
+                              {!isSelfChat && (
+                                <VerifiedBadge accountType={itemIdentity.accountType} isVerified={itemIdentity.badge.show} color={itemIdentity.badge.color} size="xs" />
+                              )}
+                            </h4>
+                          </div>
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex-1 min-w-0">
                         {chat.unread_count > 1 ? (
@@ -2509,13 +2545,11 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                         })()}
                       </div>
 
-                      {chat.unread_count > 0 && (
-                        <div className="relative flex items-center justify-center shrink-0 ml-4">
-                          <div className="w-2 h-2 bg-[#a855f7] rounded-full shadow-[0_0_10px_rgba(168,85,247,0.8)] animate-pulse"></div>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </>
+                  );
+                })()}
                 </div>
               ))
             )}
@@ -2539,72 +2573,120 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   backdropFilter: 'blur(25px)',
                 }}
               >
-                <div className="flex items-center gap-2.5 min-w-0 flex-1 relative z-10">
-                  <button
-                    onClick={() => {
-                      setSelectedChat(null);
-                      navigate('/messages');
-                    }}
-                    className="text-white hover:opacity-70 transition-opacity p-1.5 -ml-1 shrink-0"
-                  >
-                    <ArrowLeft size={20} strokeWidth={2.5} />
-                  </button>
-                  <div className="relative group cursor-pointer shrink-0" onClick={() => navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`)}>
-                    <img src={getAvatarUrl(selectedChat.partner_avatar, selectedChat.partner_name)} className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm" alt="" />
-                  </div>
-                  <div className="ml-2 flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 className="text-[14.5px] font-semibold tracking-tight leading-none text-white truncate whitespace-nowrap overflow-hidden text-ellipsis">{selectedChat.partner_name}</h3>
-                    {/* Presence line: dims slightly during active scrolling, restores on stop. */}
-                    <div
-                      className="mt-1 overflow-hidden transition-opacity duration-300 min-w-0 w-full whitespace-nowrap truncate"
-                      style={{ opacity: isScrollingMessages ? 0.45 : 1 }}
-                    >
-                      <AnimatePresence mode="wait">
-                        {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
-                          <motion.p
-                            key="group-online"
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -3 }}
-                            transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="text-[11px] font-medium lowercase text-emerald-500 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
-                          >
-                            {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
-                          </motion.p>
-                        ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
-                          <motion.p
-                            key="online"
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -3 }}
-                            transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="text-[11px] font-semibold lowercase text-emerald-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
-                          >
-                            online
-                          </motion.p>
-                        ) : showLastSeen ? (
-                          <motion.p
-                            key="lastseen"
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -3 }}
-                            transition={{ duration: 0.18, ease: 'easeOut' }}
-                            className="text-[11px] font-medium lowercase text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
-                          >
-                            last seen {formatLastSeen(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}
-                          </motion.p>
-                        ) : null}
-                      </AnimatePresence>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-0.5 relative z-10 shrink-0">
-                  <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', selectedChat.partner_name, selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
-                  <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', selectedChat.partner_name, selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
-                  <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
-                    <Info size={19} strokeWidth={2.2} />
-                  </button>
-                    </div>
+                {(() => {
+                  const headerIdentity = IdentityManager.resolveIdentity(selectedChat);
+                  const isSelfHeader = selectedChat.chat_type === 'self' || selectedChat.partner_id === (user?.id || user?.user_id);
+                  const isSystemChat = headerIdentity.isSystem;
+                  const headerDisplayName = isSelfHeader ? 'Saved Messages' : headerIdentity.displayName;
+
+                  return (
+                    <>
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 relative z-10">
+                        <button
+                          onClick={() => {
+                            setSelectedChat(null);
+                            navigate('/messages');
+                          }}
+                          className="text-white hover:opacity-70 transition-opacity p-1.5 -ml-1 shrink-0"
+                        >
+                          <ArrowLeft size={20} strokeWidth={2.5} />
+                        </button>
+                        <div
+                          className="relative group cursor-pointer shrink-0"
+                          onClick={() => {
+                            if (isSystemChat) {
+                              setShowChatSettings(true);
+                            } else if (!isSelfHeader) {
+                              navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`);
+                            }
+                          }}
+                        >
+                          {isSelfHeader ? (
+                            <div className="w-[38px] h-[38px] rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-sm border border-white/10">
+                              <Bookmark size={18} />
+                            </div>
+                          ) : (
+                            <img
+                              src={headerIdentity.avatar}
+                              className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm"
+                              alt=""
+                            />
+                          )}
+                        </div>
+                        <div className="ml-2 flex-1 min-w-0 flex flex-col justify-center">
+                          <h3 className="text-[14.5px] font-extrabold tracking-tight leading-none text-white flex items-center gap-1.5 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                            {headerDisplayName}
+                            {!isSelfHeader && (
+                              <VerifiedBadge accountType={headerIdentity.accountType} isVerified={headerIdentity.badge.show} color={headerIdentity.badge.color} size="xs" />
+                            )}
+                          </h3>
+                          {isSelfHeader ? (
+                            <p className="text-[11px] font-medium text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
+                              Personal Notes & Media
+                            </p>
+                          ) : headerIdentity.subtitle ? (
+                            <p className="text-[11px] font-semibold text-rose-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
+                              {headerIdentity.subtitle}
+                            </p>
+                          ) : (
+                            <div
+                              className="mt-1 overflow-hidden transition-opacity duration-300 min-w-0 w-full whitespace-nowrap truncate"
+                              style={{ opacity: isScrollingMessages ? 0.45 : 1 }}
+                            >
+                              <AnimatePresence mode="wait">
+                                {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
+                                  <motion.p
+                                    key="group-online"
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -3 }}
+                                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                                    className="text-[11px] font-medium lowercase text-emerald-500 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                  >
+                                    {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
+                                  </motion.p>
+                                ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
+                                  <motion.p
+                                    key="online"
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -3 }}
+                                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                                    className="text-[11px] font-semibold lowercase text-emerald-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                  >
+                                    online
+                                  </motion.p>
+                                ) : showLastSeen ? (
+                                  <motion.p
+                                    key="lastseen"
+                                    initial={{ opacity: 0, y: 4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -3 }}
+                                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                                    className="text-[11px] font-medium lowercase text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                  >
+                                    last seen {formatLastSeenChat(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}
+                                  </motion.p>
+                                ) : null}
+                              </AnimatePresence>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-0.5 relative z-10 shrink-0">
+                        {!isSystemChat && (
+                          <>
+                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', selectedChat.partner_name, selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', selectedChat.partner_name, selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
+                          </>
+                        )}
+                        <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
+                          <Info size={19} strokeWidth={2.2} />
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
               </header>
 
               {privacyAlert && (
@@ -2681,6 +2763,12 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
               </AnimatePresence>
 
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
+                {(selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_username === 'sparkleofficial' || selectedChat?.username === 'sparkleofficial' || selectedChat?.partner_name === 'Sparkle Official') && (
+                  <>
+                    <OfficialAccountBanner displayName={selectedChat.partner_name || selectedChat.display_name || selectedChat.name || 'Sparkle Official'} badge={selectedChat.official_badge || '✔️ Verified'} />
+                    <OfficialWelcomeCards />
+                  </>
+                )}
                 <div className="flex flex-col">
                   {filteredMessages.flatMap((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
@@ -3059,7 +3147,15 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
               {/* Typing indicator — sits directly above the input bar */}
               <AnimatePresence>
-                {partnerIsTyping && (
+                {!(
+                  selectedChat?.account_type === 'system' ||
+                  selectedChat?.conversation_type === 'system' ||
+                  selectedChat?.is_system_account ||
+                  selectedChat?.is_system ||
+                  selectedChat?.partner_username === 'sparkleofficial' ||
+                  selectedChat?.username === 'sparkleofficial' ||
+                  selectedChat?.partner_name === 'Sparkle Official'
+                ) && partnerIsTyping && (
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 36, opacity: 1 }}
@@ -3078,22 +3174,34 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 )}
               </AnimatePresence>
 
-              <ChatInput
-                initialMessage=""
-                onTyping={handleTyping}
-                onSend={handleSendMessageWrapper}
-                onCameraOpen={() => setShowCameraModal(true)}
-                isMenuCollapsed={isMenuCollapsed}
-                setIsMenuCollapsed={setIsMenuCollapsed}
-                selectedChat={selectedChat}
-                sending={sending}
-                getQuickReaction={getQuickReaction}
-                setShowAttachmentMenu={setShowAttachmentSheet}
-                showAttachmentMenu={showAttachmentSheet}
-                onVoiceSend={handleVoiceSend}
-                theme={currentChatTheme}
-                replyToMessage={replyToMessage}
-              />
+              {(
+                selectedChat?.account_type === 'system' ||
+                selectedChat?.conversation_type === 'system' ||
+                selectedChat?.is_system_account ||
+                selectedChat?.is_system ||
+                selectedChat?.partner_username === 'sparkleofficial' ||
+                selectedChat?.username === 'sparkleofficial' ||
+                selectedChat?.partner_name === 'Sparkle Official'
+              ) ? (
+                <OfficialComposerFooter onUnlockConsole={() => setShowDevConsole(true)} />
+              ) : (
+                <ChatInput
+                  initialMessage=""
+                  onTyping={handleTyping}
+                  onSend={handleSendMessageWrapper}
+                  onCameraOpen={() => setShowCameraModal(true)}
+                  isMenuCollapsed={isMenuCollapsed}
+                  setIsMenuCollapsed={setIsMenuCollapsed}
+                  selectedChat={selectedChat}
+                  sending={sending}
+                  getQuickReaction={getQuickReaction}
+                  setShowAttachmentMenu={setShowAttachmentSheet}
+                  showAttachmentMenu={showAttachmentSheet}
+                  onVoiceSend={handleVoiceSend}
+                  theme={currentChatTheme}
+                  replyToMessage={replyToMessage}
+                />
+              )}
             </>
           ) : loading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
@@ -4613,6 +4721,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           </div>
         )}
       </AnimatePresence>
+
+      <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }

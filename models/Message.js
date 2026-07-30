@@ -45,10 +45,22 @@ class Message {
         let personalChatId = null;
         let groupChatId = null;
 
-        if (recipientId) {
+        if (chatId) {
+            const [personalRows] = await db.query(
+                'SELECT chat_id, participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
+                [chatId]
+            );
+            if (personalRows.length > 0) {
+                personalChatId = chatId;
+                const p = personalRows[0];
+                if (!recipientId) {
+                    recipientId = (p.participant1_id === senderId) ? p.participant2_id : p.participant1_id;
+                }
+            } else {
+                groupChatId = chatId;
+            }
+        } else if (recipientId) {
             personalChatId = await this.getOrCreateConversation(senderId, recipientId, marketplaceListingId);
-        } else if (chatId) {
-            groupChatId = chatId;
         } else {
             throw new Error('Recipient or Chat ID required');
         }
@@ -60,8 +72,13 @@ class Message {
         // Auto-infer marketplace context
         if (context === 'chat' && marketplaceListingId) context = 'marketplace';
 
-        // Block Check Enforcement (Point 5)
+        // Block & System Check Enforcement
         if (recipientId) {
+            const { isSystemAccountId } = require('../helpers/systemAccount.helper');
+            if (isSystemAccountId(recipientId) && !isSystemAccountId(senderId)) {
+                throw new Error('Official Sparkle Account does not accept incoming messages.');
+            }
+
             const [blocked] = await db.query(
                 'SELECT 1 FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
                 [senderId, recipientId, recipientId, senderId]
@@ -330,11 +347,16 @@ class Message {
             ORDER BY is_pinned DESC, last_message_at DESC
         `, [userId, userId, userId, userId, userId, userId, userId, userId]);
 
-        return rows.map(conv => ({
-            ...conv,
-            last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
-            last_seen_at: (conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null
-        }));
+        const { formatSystemUser } = require('../helpers/systemAccount.helper');
+        return rows.map(conv => {
+            const formatted = formatSystemUser(conv);
+            return {
+                ...conv,
+                ...formatted,
+                last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
+                last_seen_at: (conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null
+            };
+        });
     }
 
     /**
@@ -517,6 +539,19 @@ class Message {
      * Soft delete a conversation (clears history for a user)
      */
     static async deleteConversation(userId, chatId) {
+        const { isSystemAccount } = require('../helpers/systemAccount.helper');
+        const [chat] = await db.query(
+            `SELECT pc.*, u1.account_type as u1_type, u2.account_type as u2_type 
+             FROM personal_chats pc 
+             LEFT JOIN users u1 ON pc.participant1_id = u1.user_id
+             LEFT JOIN users u2 ON pc.participant2_id = u2.user_id
+             WHERE pc.chat_id = ?`,
+            [chatId]
+        );
+        if (chat.length > 0 && (chat[0].conversation_type === 'system' || chat[0].u1_type === 'system' || chat[0].u2_type === 'system' || isSystemAccount(chat[0].participant1_id) || isSystemAccount(chat[0].participant2_id))) {
+            throw new Error('Official Sparkle conversations cannot be deleted.');
+        }
+
         // Clear all messages for this user by inserting into message_deletions
         const [messages] = await db.query('SELECT message_id FROM messages WHERE (conversation_id = ? OR chat_id = ?)', [chatId, chatId]);
         if (messages.length > 0) {

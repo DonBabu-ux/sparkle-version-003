@@ -4,6 +4,8 @@ import api from '../api/api';
 import { useState } from 'react';
 import type { User } from '../types/user';
 import UserActionModal from './modals/UserActionModal';
+import { IdentityManager } from '../utils/identityManager';
+import { VerifiedBadge } from './common/VerifiedBadge';
 
 interface UserCardProps {
   u: User;
@@ -12,6 +14,7 @@ interface UserCardProps {
 
 export default function UserCard({ u }: UserCardProps) {
   const navigate = useNavigate();
+  const identity = IdentityManager.resolveIdentity(u);
   const [isFollowed, setIsFollowed] = useState(u.is_followed);
   const [requestStatus, setRequestStatus] = useState(u.request_status);
   const [loading, setLoading] = useState(false);
@@ -66,12 +69,12 @@ export default function UserCard({ u }: UserCardProps) {
       <div className="relative mb-3">
         <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-[#101217]">
           <img 
-            alt={u.username} 
+            alt={identity.displayName} 
             className="w-full h-full object-cover transition-all duration-500" 
-            src={u.avatar_url || u.avatar || '/avatar.png'} 
+            src={identity.avatar} 
           />
         </div>
-        {!!u.is_online && (
+        {identity.presence.showPresence && identity.presence.isOnline && (
           <span className="absolute bottom-1 right-1 block w-4 h-4 bg-emerald-500 border-[3px] border-white dark:border-black rounded-full shadow-sm"></span>
         )}
       </div>
@@ -80,15 +83,13 @@ export default function UserCard({ u }: UserCardProps) {
       <div className="flex flex-col items-center w-full mb-3">
         <div className="flex items-center gap-1.5 justify-center w-full mb-1">
           <span className="font-black text-[15px] text-black dark:text-white tracking-tight truncate max-w-[80%] uppercase italic">
-            {u.username}
+            {identity.displayName}
           </span>
-          {!!u.is_verified && (
-             <Sparkles size={14} className="text-primary fill-primary shrink-0 drop-shadow-sm" />
-          )}
+          <VerifiedBadge accountType={identity.accountType} isVerified={identity.badge.show} color={identity.badge.color} size="xs" />
         </div>
         
         <p className="text-[11px] font-bold text-black/40 dark:text-white/30 truncate w-full uppercase tracking-widest">
-          {u.name || u.username}
+          {identity.subtitle || identity.username || u.name}
         </p>
 
         <div className="mt-2 flex flex-wrap justify-center gap-1.5">

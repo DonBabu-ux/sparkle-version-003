@@ -232,5 +232,6 @@ const optionalAuthMiddleware = async (req, res, next) => {
 module.exports = {
     authMiddleware,
     ejsAuthMiddleware,
-    optionalAuthMiddleware
+    optionalAuthMiddleware,
+    optionalAuth: optionalAuthMiddleware
 };

@@ -12,6 +12,8 @@ import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
 import { useUserStore } from '../store/userStore';
+import { IdentityManager } from '../utils/identityManager';
+import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
 
 type TabType = 'all' | 'users' | 'posts' | 'groups' | 'marketplace' | 'clubs';

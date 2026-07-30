@@ -404,6 +404,7 @@ function App() {
                     <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
                     <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
+                    <Route path="/messages/:targetId" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
                     <Route path="/messages/settings" element={isAuthenticated ? <MessagesSettings /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
                     <Route path="/settings/blocked" element={isAuthenticated ? <BlockedUsers /> : <Navigate to="/login" />} />

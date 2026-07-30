@@ -3,17 +3,9 @@ import { io, Socket } from 'socket.io-client';
 import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
 
-// Determine the proper SOCKET_URL based on environment
-const isLocalhost =
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '127.0.0.1' ||
-  window.location.hostname.startsWith('192.168.') ||
-  window.location.hostname.startsWith('10.') ||
-  window.location.hostname.startsWith('172.');
-const isNative = window.location.protocol === 'capacitor:';
-const LIVE_SOCKET_URL = 'https://sparkle-version-003-1-f4v3.onrender.com';
-const LOCAL_SOCKET_URL = 'http://localhost:3000';
-const SOCKET_URL = isNative ? LIVE_SOCKET_URL : (isLocalhost ? LOCAL_SOCKET_URL : LIVE_SOCKET_URL);
+// Socket URL resolved from env vars at build time.
+// Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://sparkle-version-003-1-f4v3.onrender.com';
 
 let _socket: Socket | null = null;
 let _currentUserId: string | null = null;

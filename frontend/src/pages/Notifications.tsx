@@ -6,6 +6,8 @@ import Navbar from '../components/Navbar';
 import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon, AtSign } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import { IdentityManager } from '../utils/identityManager';
+import { VerifiedBadge } from '../components/common/VerifiedBadge';
 
 interface Notification {
   notification_id: string;
@@ -252,8 +254,14 @@ export default function Notifications() {
   const renderNotification = (notif: Notification) => {
     const isUnread = !notif.is_read;
     const actorUsername = notif.actor_username;
-    const actorName = notif.actor_name;
-    const displayName = actorName || actorUsername || notif.title || '';
+    const actorIdentity = IdentityManager.resolveIdentity({
+      user_id: notif.actor_id,
+      username: notif.actor_username,
+      displayName: notif.actor_name || notif.title,
+      avatar_url: notif.actor_avatar,
+      is_system_account: notif.actor_username === 'sparkleofficial' || notif.type === 'system'
+    });
+    const displayName = actorIdentity.displayName;
     
     // Format timestamp nicely
     let formattedTimeStr = '';
@@ -283,7 +291,7 @@ export default function Notifications() {
         {/* Actor Avatar or System icon wrapper */}
         <div className="relative shrink-0 mt-0.5">
           <img 
-            src={notif.actor_avatar || '/uploads/avatars/default.png'} 
+            src={actorIdentity.avatar} 
             onClick={(e) => {
               e.stopPropagation();
               if (actorUsername) navigate(`/profile/${actorUsername}`);
@@ -306,21 +314,23 @@ export default function Notifications() {
               )}
 
               {/* Clickable username (700 weight, bold black, text-17px) */}
-              {actorUsername || actorName ? (
+              {actorUsername || notif.actor_name ? (
                 <button
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (actorUsername) navigate(`/profile/${actorUsername}`);
                   }}
-                  className="font-bold text-black dark:text-white hover:underline focus:outline-none text-left text-[17px] leading-tight"
+                  className="font-bold text-black dark:text-white hover:underline focus:outline-none text-left text-[17px] leading-tight flex items-center gap-1"
                   style={{ fontWeight: 700 }}
                 >
                   {displayName}
+                  <VerifiedBadge accountType={actorIdentity.accountType} isVerified={actorIdentity.badge.show} color={actorIdentity.badge.color} size="xs" />
                 </button>
               ) : (
-                <span className="font-bold text-[17px] text-black dark:text-white" style={{ fontWeight: 700 }}>
+                <span className="font-bold text-[17px] text-black dark:text-white flex items-center gap-1" style={{ fontWeight: 700 }}>
                   {displayName}
+                  <VerifiedBadge accountType={actorIdentity.accountType} isVerified={actorIdentity.badge.show} color={actorIdentity.badge.color} size="xs" />
                 </span>
               )}
            </div>

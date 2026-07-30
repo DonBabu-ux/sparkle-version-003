@@ -67,10 +67,18 @@ class User {
      */
     static mapGeneralizedFields(user) {
         if (!user) return;
+        const { formatSystemUser } = require('../helpers/systemAccount.helper');
+        const formatted = formatSystemUser(user);
+        Object.assign(user, formatted);
         user.affiliation = user.affiliation || user.campus;
         user.interests = user.interests || user.major;
         user.experience_level = user.experience_level || user.year_of_study;
-        user.avatar_url = this.getSafeAvatarUrl(user.avatar_url || user.profile_picture || user.avatar);
+        if (!user.is_system_account) {
+            if (user.display_name === 'Sparkle Official') {
+                user.display_name = user.name || user.username;
+            }
+            user.avatar_url = this.getSafeAvatarUrl(user.avatar_url || user.profile_picture || user.avatar);
+        }
         return user;
     }
 

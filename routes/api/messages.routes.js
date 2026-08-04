@@ -14,6 +14,13 @@ router.use(authMiddleware);
 router.get('/inbox', messageController.getInbox);
 router.get('/conversations', messageController.getInbox);
 router.get('/welcome-cards', messageController.getWelcomeCards);
+router.get('/official-chat', messageController.getOfficialChatStatus);
+router.post('/official-chat/status', messageController.updateOfficialOnboardingStatus);
+router.post('/official-chat/complete-onboarding', (req, res, next) => {
+    req.body.targetStatus = 'COMPLETED';
+    messageController.updateOfficialOnboardingStatus(req, res, next);
+});
+router.post('/official-chat/replay', messageController.replayOfficialOnboarding);
 router.post('/open', messageController.openConversation);
 router.post('/start', messageController.openConversation);
 router.post('/chat', messageController.openConversation);

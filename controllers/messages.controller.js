@@ -33,6 +33,136 @@ class MessageController {
     }
 
     /**
+     * Get official chat onboarding status
+     */
+    async getOfficialChatStatus(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId || req.user.id;
+            const [users] = await pool.query(
+                'SELECT official_onboarding_status, official_onboarding_completed_at FROM users WHERE user_id = ? OR id = ?',
+                [userId, userId]
+            );
+            const user = users[0] || {};
+            const status = user.official_onboarding_status || 'NOT_STARTED';
+            const showOnboarding = status !== 'COMPLETED';
+
+            res.json({
+                status: 'success',
+                data: {
+                    showOnboarding,
+                    status,
+                    completedAt: user.official_onboarding_completed_at || null
+                }
+            });
+        } catch (error) {
+            console.error('getOfficialChatStatus Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
+     * Advance official chat onboarding state machine (NOT_STARTED -> VIEWED -> COMPLETED)
+     */
+    async updateOfficialOnboardingStatus(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId || req.user.id;
+            const { targetStatus } = req.body; // 'VIEWED' or 'COMPLETED'
+            const newStatus = (targetStatus === 'COMPLETED') ? 'COMPLETED' : 'VIEWED';
+
+            const completedAt = newStatus === 'COMPLETED' ? new Date() : null;
+
+            if (newStatus === 'COMPLETED') {
+                await pool.query(
+                    "UPDATE users SET official_onboarding_status = 'COMPLETED', official_onboarding_completed_at = CURRENT_TIMESTAMP WHERE user_id = ? OR id = ?",
+                    [userId, userId]
+                );
+
+                // Archive onboarding messages cleanly instead of hard delete
+                await pool.query(
+                    "UPDATE messages SET is_hidden = 1, hidden_reason = 'onboarding_completed', archive_after_completion = 1 WHERE (sender_id = ? OR recipient_id = ?) AND (message_type = 'onboarding' OR is_system_message = 1)",
+                    [userId, userId]
+                );
+            } else {
+                // Update to VIEWED only if currently NOT_STARTED
+                await pool.query(
+                    "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE (user_id = ? OR id = ?) AND official_onboarding_status = 'NOT_STARTED'",
+                    [userId, userId]
+                );
+            }
+
+            // Real-time Socket sync across all devices
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('official_onboarding_status_changed', {
+                        status: newStatus,
+                        showOnboarding: newStatus !== 'COMPLETED',
+                        completedAt
+                    });
+                }
+            } catch (err) {
+                console.warn('Socket broadcast error in updateOfficialOnboardingStatus:', err.message);
+            }
+
+            res.json({
+                status: 'success',
+                data: {
+                    status: newStatus,
+                    showOnboarding: newStatus !== 'COMPLETED',
+                    completedAt
+                }
+            });
+        } catch (error) {
+            console.error('updateOfficialOnboardingStatus Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
+     * Replay official chat onboarding (Reset status to VIEWED for tour replaying)
+     */
+    async replayOfficialOnboarding(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId || req.user.id;
+            await pool.query(
+                "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE user_id = ? OR id = ?",
+                [userId, userId]
+            );
+
+            await pool.query(
+                "UPDATE messages SET is_hidden = 0, hidden_reason = NULL WHERE (sender_id = ? OR recipient_id = ?) AND archive_after_completion = 1",
+                [userId, userId]
+            );
+
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('official_onboarding_status_changed', {
+                        status: 'VIEWED',
+                        showOnboarding: true,
+                        completedAt: null
+                    });
+                }
+            } catch (err) {
+                console.warn('Socket broadcast error in replayOfficialOnboarding:', err.message);
+            }
+
+            res.json({
+                status: 'success',
+                data: {
+                    status: 'VIEWED',
+                    showOnboarding: true
+                }
+            });
+        } catch (error) {
+            console.error('replayOfficialOnboarding Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
      * Open or create a conversation (Supports DMs, Official accounts, and Self "Saved Messages")
      */
     async openConversation(req, res) {

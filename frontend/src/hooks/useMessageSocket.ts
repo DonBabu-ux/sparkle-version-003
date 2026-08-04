@@ -257,6 +257,11 @@ export const useMessageSocket = () => {
       console.warn('[MessageSocket] Interaction failed on server:', data.error);
     };
 
+    const handleOnboardingStatusChanged = (data: { status: string; showOnboarding: boolean; completedAt?: string }) => {
+      console.log('⚡ [Socket] Official onboarding status updated:', data);
+      window.dispatchEvent(new CustomEvent('sparkle_onboarding_status_changed', { detail: data }));
+    };
+
     const handleMessagePinnedUpdated = (data: { messageId: string; chatId: string; pinned: boolean }) => {
       chatStore.updateMessage(data.chatId, data.messageId, { pinned: data.pinned });
       if (messageStore.messages[data.messageId]) {
@@ -312,6 +317,7 @@ export const useMessageSocket = () => {
     socket.on('operation-confirmed', handleOperationConfirmed);
     socket.on('operation-failed', handleOperationFailed);
     socket.on('sync-response', handleSyncResponse);
+    socket.on('official_onboarding_status_changed', handleOnboardingStatusChanged);
 
     return () => {
       socket.off('connect', handleConnect);

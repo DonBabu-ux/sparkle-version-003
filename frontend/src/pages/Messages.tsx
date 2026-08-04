@@ -21,10 +21,12 @@ import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner'
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
 import { OfficialMessageCard } from '../components/chat/OfficialMessageCard';
 import { OfficialWelcomeCards } from '../components/chat/OfficialWelcomeCards';
+import { OfficialInteractiveOnboarding } from '../components/chat/OfficialInteractiveOnboarding';
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
 import { SparkleStorage } from '../services/SparkleStorageService';
 import { SparkleHorizontalActionBar } from '../components/chat/SparkleHorizontalActionBar';
 import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
+import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
 import { SparkleUndoToast } from '../components/chat/SparkleUndoToast';
@@ -63,6 +65,7 @@ import {
   Type,
   Palette,
   Pin,
+  Star,
   Mail,
   Eraser,
   Ban,
@@ -87,7 +90,6 @@ import {
   Flame,
   Heart,
   Zap,
-  Star,
   Coffee,
   Ghost,
   Sun,
@@ -1017,7 +1019,30 @@ export default function Messages() {
     commitAction: () => void;
   } | null>(null);
   const [showOrbitMenu, setShowOrbitMenu] = useState(false);
+  const [showOrbitConstellation, setShowOrbitConstellation] = useState(false);
   const [peekChat, setPeekChat] = useState<any | null>(null);
+  const [showOfficialOnboarding, setShowOfficialOnboarding] = useState(true);
+
+  useEffect(() => {
+    api.get('/messages/official-chat').then(res => {
+      if (res.data?.data) {
+        setShowOfficialOnboarding(res.data.data.showOnboarding);
+        if (res.data.data.status === 'NOT_STARTED') {
+          api.post('/messages/official-chat/status', { targetStatus: 'VIEWED' }).catch(() => {});
+        }
+      }
+    }).catch(console.warn);
+
+    const handleOnboardingEvent = (e: any) => {
+      if (e.detail) {
+        setShowOfficialOnboarding(e.detail.showOnboarding);
+      }
+    };
+    window.addEventListener('sparkle_onboarding_status_changed', handleOnboardingEvent);
+    return () => {
+      window.removeEventListener('sparkle_onboarding_status_changed', handleOnboardingEvent);
+    };
+  }, []);
 
   const toggleChatSelection = (chatId: string) => {
     setSelectedChatIds(prev =>
@@ -2558,10 +2583,10 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 </button>
                 <button
                   onClick={() => setShowOrbitMenu(true)}
-                  className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 rounded-full transition-all"
-                  title="Sparkle Orbit Menu"
+                  className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                  title="Sparkle Options"
                 >
-                  <MoreVertical size={20} strokeWidth={2} />
+                  <Orbit size={22} strokeWidth={2.2} />
                 </button>
               </div>
             </div>
@@ -2646,7 +2671,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
             onArchive={handleBatchArchive}
             onDelete={handleBatchDelete}
             onFavorite={handleBatchFavorite}
-            onMore={() => setShowOrbitMenu(true)}
+            onMore={() => setShowOrbitConstellation(true)}
             onClearSelection={() => setSelectedChatIds([])}
           />
 
@@ -2724,9 +2749,15 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               {!isSelfChat && (
                                 <VerifiedBadge accountType={itemIdentity.accountType} isVerified={itemIdentity.badge.show} color={itemIdentity.badge.color} size="xs" />
                               )}
-                              {chat.is_pinned && <Pin size={13} className="text-[#ff1493] fill-[#ff1493] shrink-0 ml-1" />}
-                              {chat.is_favorite && <Sparkles size={13} className="text-amber-400 fill-amber-400 shrink-0 animate-pulse ml-0.5" />}
-                              {chat.is_muted && <BellOff size={12} className="text-purple-400 shrink-0 ml-0.5" />}
+                              {!!chat.is_pinned && (
+                                <Pin size={16} className="text-[#FF008A] fill-[#FF008A] shrink-0 ml-1 drop-shadow-sm" />
+                              )}
+                              {!!chat.is_favorite && (
+                                <Star size={16} className="text-amber-400 fill-amber-400 shrink-0 ml-1 drop-shadow-sm animate-pulse" />
+                              )}
+                              {!!chat.is_muted && (
+                                <BellOff size={13} className="text-purple-400 shrink-0 ml-1" />
+                              )}
                             </h4>
                           </div>
                     <div className="flex items-center justify-between gap-2">
@@ -2984,7 +3015,9 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 {(selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_username === 'sparkleofficial' || selectedChat?.username === 'sparkleofficial' || selectedChat?.partner_name === 'Sparkle Official') && (
                   <>
                     <OfficialAccountBanner displayName={selectedChat.partner_name || selectedChat.display_name || selectedChat.name || 'Sparkle Official'} badge={selectedChat.official_badge || '✔️ Verified'} />
-                    <OfficialWelcomeCards />
+                    {showOfficialOnboarding && (
+                      <OfficialInteractiveOnboarding onComplete={() => setShowOfficialOnboarding(false)} />
+                    )}
                   </>
                 )}
                 <div className="flex flex-col">
@@ -4941,18 +4974,36 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
       </AnimatePresence>
 
       {/* ── SPARKLE ENTERPRISE UX MODALS & OVERLAYS ── */}
-      <SparkleOrbitMenu
+      <SparkleActionSheet
         isOpen={showOrbitMenu}
         onClose={() => setShowOrbitMenu(false)}
+        onViewProfile={() => {
+          const target = peekChat?.partner_username || user?.username || user?.user_id;
+          if (target) navigate(`/profile/${target}`);
+        }}
+        onMarkUnread={() => alert('Marked as Unread')}
+        onFavorite={handleBatchFavorite}
+        onPin={handleBatchPin}
+        onMute={() => alert('Muted Notifications')}
+        onClearChat={() => alert('Chat Cleared')}
+        onExportChat={() => alert('Exporting Chat...')}
+        onBlockUser={() => alert('User Blocked')}
+        onReportUser={() => alert('User Reported')}
+        isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
+        isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
+        isMuted={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_muted}
+      />
+
+      <SparkleOrbitMenu
+        isOpen={showOrbitConstellation}
+        onClose={() => setShowOrbitConstellation(false)}
         actions={[
           { id: 'profile', label: 'View Profile', icon: <User size={18} />, onClick: () => navigate(`/profile/${user?.username || user?.user_id}`) },
-          { id: 'unread', label: 'Mark Unread', icon: <Mail size={18} />, onClick: () => alert('Marked Unread') },
-          { id: 'fav', label: 'Favorite', icon: <Sparkles size={18} />, onClick: handleBatchFavorite },
+          { id: 'fav', label: 'Favorite Chat', icon: <Star size={18} className="text-amber-400 fill-amber-400" />, onClick: handleBatchFavorite },
+          { id: 'pin', label: 'Pin Chat', icon: <Pin size={18} className="text-[#FF008A] fill-[#FF008A]" />, onClick: handleBatchPin },
           { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: () => alert('Chat Cleared') },
           { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: () => alert('User Blocked') },
           { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: () => alert('Chat Exported') },
-          { id: 'search', label: 'Search', icon: <Search size={18} />, onClick: () => alert('Search Activated') },
-          { id: 'theme', label: 'Wallpaper', icon: <Palette size={18} />, onClick: () => setShowThemeModal(true) },
         ]}
       />
 
@@ -4960,6 +5011,10 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         chat={peekChat}
         isOpen={!!peekChat}
         onClose={() => setPeekChat(null)}
+        onViewProfile={() => {
+          const target = peekChat?.partner_username || peekChat?.username || peekChat?.partner_id;
+          if (target) navigate(`/profile/${target}`);
+        }}
       />
 
       <SparkleUndoToast

@@ -5,7 +5,7 @@ import { useUserStore } from '../store/userStore';
 
 // Socket URL resolved from env vars at build time.
 // Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'https://sparkle-version-003-1-f4v3.onrender.com';
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
 
 let _socket: Socket | null = null;
 let _currentUserId: string | null = null;

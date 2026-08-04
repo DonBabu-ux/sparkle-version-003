@@ -27,10 +27,16 @@ async function forwardMessage(req, res) {
             return res.status(404).json({ error: 'Message not found' });
         }
 
-        // Authorization: only sender can forward, unless admin override is set
-        const isSender = original.sender_id === req.user.id;
-        if (!isSender && !adminOverride) {
-            return res.status(403).json({ error: 'Not authorized to forward this message' });
+        // Authorization: check if forwarding is disabled by message owner privacy settings
+        const db = require('../config/database');
+        const sourceChatId = original.chat_id || original.conversation_id || original.personal_chat_id;
+        const [privacyRows] = await db.query(
+            'SELECT allow_forward FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+            [sourceChatId, original.sender_id || original.senderId]
+        );
+
+        if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_forward) {
+            return res.status(403).json({ error: 'Forwarding is disabled by message owner privacy settings' });
         }
 
         const forwardPromises = targetChatIds.map(async (chatId) => {

@@ -31,6 +31,13 @@ export interface ChatMessage {
   pinned_at?: string;
   pinned_by?: string;
 
+  // Enterprise Timestamp-Derived States & Sequence Fields
+  delivered_at?: string | null;
+  failed_at?: string | null;
+  server_sequence?: number;
+  version?: number;
+  payload_hash?: string;
+
   // Normalized helper fields
   id?: string;
   chatId?: string;
@@ -142,7 +149,11 @@ export const useChatStore = create<ChatState>()(
             media_url: mediaUrl,
             createdAt,
             created_at: createdAt,
-            sent_at: createdAt,
+            sent_at: raw.sent_at || createdAt,
+            delivered_at: raw.delivered_at || null,
+            read_at: raw.read_at || null,
+            failed_at: raw.failed_at || null,
+            server_sequence: raw.server_sequence ? Number(raw.server_sequence) : undefined,
             status: raw.status || 'sent',
           } as ChatMessage;
         },

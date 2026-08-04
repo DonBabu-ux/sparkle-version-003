@@ -2,7 +2,7 @@ import defaultAvatar from '../assets/avatar.png';
 
 // API URL resolved from env vars at build time.
 // Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
-const API_URL = import.meta.env.VITE_API_URL || 'https://sparkle-version-003-1-f4v3.onrender.com/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 

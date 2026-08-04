@@ -157,6 +157,53 @@ class MessageController {
 
 
     /**
+     * Enterprise Cursor-based Delta Synchronization
+     */
+    async cursorSync(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId;
+            const lastCursor = Number(req.query.cursor || req.body.cursor || 0);
+            const messages = await Message.getCursorDelta(userId, lastCursor);
+            res.json({ status: 'success', data: { messages } });
+        } catch (error) {
+            console.error('cursorSync Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
+     * HTTP fallback for Session Delivery ACK
+     */
+    async ackDelivery(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId;
+            const { messageId, sessionId } = req.body;
+            if (!messageId) return res.status(400).json({ status: 'error', error: 'messageId required' });
+            await Message.markSessionDelivered(messageId, sessionId || 'http-session', userId);
+            res.json({ status: 'success' });
+        } catch (error) {
+            console.error('ackDelivery Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
+     * HTTP fallback for Tri-Condition Read ACK
+     */
+    async ackRead(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId;
+            const { chatId, messageIds } = req.body;
+            if (!chatId) return res.status(400).json({ status: 'error', error: 'chatId required' });
+            await Message.markReadTriCondition(chatId, messageIds, userId);
+            res.json({ status: 'success' });
+        } catch (error) {
+            console.error('ackRead Error:', error);
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    /**
      * Start a new conversation or get existing one
      */
     async startConversation(req, res) {
@@ -168,6 +215,7 @@ class MessageController {
         } catch (error) {
             res.status(500).json({ status: 'error', error: 'Server error' });
         }
+
     }
 
     /**
@@ -224,12 +272,49 @@ class MessageController {
             const { emoji, remove } = req.body;
             const userId = req.user.user_id || req.user.userId;
 
+            if (!messageId) return res.status(400).json({ status: 'error', error: 'messageId required' });
+
+            let result;
             if (remove) {
-                await Message.removeReaction(messageId, userId, emoji);
+                result = await Message.removeReaction(messageId, userId);
             } else {
-                await Message.addReaction(messageId, userId, emoji);
+                if (!emoji) return res.status(400).json({ status: 'error', error: 'emoji required' });
+                result = await Message.addReaction(messageId, userId, emoji);
             }
-            res.json({ status: 'success' });
+            res.json({ status: 'success', data: result });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async removeReaction(req, res) {
+        try {
+            const { messageId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const result = await Message.removeReaction(messageId, userId);
+            res.json({ status: 'success', data: result });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async starMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const result = await Message.starMessage(messageId, userId, true);
+            res.json({ status: 'success', data: result });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async unstarMessage(req, res) {
+        try {
+            const { messageId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const result = await Message.starMessage(messageId, userId, false);
+            res.json({ status: 'success', data: result });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
         }
@@ -249,7 +334,32 @@ class MessageController {
             if (!updated) {
                 return res.status(403).json({ status: 'error', error: 'Cannot edit message (not yours or past 15 min)' });
             }
-            res.json({ status: 'success' });
+            res.json({ status: 'success', data: updated });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async deleteMessageForEveryone(req, res) {
+        try {
+            const { messageId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            const deleted = await Message.deleteMessageForEveryone(messageId, userId);
+            if (!deleted) {
+                return res.status(403).json({ status: 'error', error: 'Cannot delete message for everyone (not yours)' });
+            }
+            res.json({ status: 'success', data: deleted });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async syncEvents(req, res) {
+        try {
+            const { chatId, sinceSeq } = req.query;
+            const events = await Message.getEventsSinceSeq(chatId, sinceSeq);
+            res.json({ status: 'success', data: events });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
         }

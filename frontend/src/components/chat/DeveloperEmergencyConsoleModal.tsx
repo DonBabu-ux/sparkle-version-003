@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
+import { SparkleInspectorService } from '../../services/SparkleInspectorService';
 import {
   ShieldAlert,
   MessageSquare,
@@ -212,8 +213,10 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
 
                   <button
                     type="button"
-                    onClick={() => {
-                      alert(`Sparkle Ecosystem Diagnostics:\n• API Status: Online (100%)\n• WebSocket: Connected\n• Cache: Active\n• Version: 2.1.0`);
+                    onClick={async () => {
+                      const { report, repairSummary } = await SparkleInspectorService.runSelfHealing();
+                      const lines = report.checks.map(c => `${c.category.padEnd(22, '.')} ${c.status}`);
+                      alert(`Sparkle Enterprise Health Report\nStatus: ${report.overallStatus}\n\n${lines.join('\n')}\n\n${repairSummary}`);
                     }}
                     className="p-4 rounded-2xl bg-slate-900/80 hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/50 flex items-center justify-between text-left transition-all group"
                   >
@@ -222,8 +225,8 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <Activity size={18} />
                       </div>
                       <div>
-                        <h4 className="text-xs font-bold text-white group-hover:text-indigo-300">Diagnostics</h4>
-                        <p className="text-[10px] text-slate-400">System health state</p>
+                        <h4 className="text-xs font-bold text-white group-hover:text-indigo-300">Self-Healing Diagnostics</h4>
+                        <p className="text-[10px] text-slate-400">Run auto-repair & test suite</p>
                       </div>
                     </div>
                     <ChevronRight size={16} className="text-slate-600 group-hover:text-indigo-400" />

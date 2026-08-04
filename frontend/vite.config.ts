@@ -88,7 +88,7 @@ export default defineConfig({
         secure: false,
       },
       '/api': {
-        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
         secure: false,
         proxyTimeout: 10000,
@@ -105,7 +105,7 @@ export default defineConfig({
         },
       },
       '/socket.io': {
-        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
+        target: 'http://localhost:3000',
         ws: true,
         configure: (proxy) => {
           proxy.on('error', (err) => {
@@ -114,11 +114,11 @@ export default defineConfig({
         },
       },
       '/uploads': {
-        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
       '/images': {
-        target: 'https://sparkle-version-003-1-f4v3.onrender.com',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },

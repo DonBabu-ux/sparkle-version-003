@@ -22,11 +22,18 @@ import { OfficialComposerFooter } from '../components/chat/OfficialComposerFoote
 import { OfficialMessageCard } from '../components/chat/OfficialMessageCard';
 import { OfficialWelcomeCards } from '../components/chat/OfficialWelcomeCards';
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
+import { SparkleStorage } from '../services/SparkleStorageService';
+import { SparkleHorizontalActionBar } from '../components/chat/SparkleHorizontalActionBar';
+import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
+import { SparklePeekCard } from '../components/chat/SparklePeekCard';
+import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
+import { SparkleUndoToast } from '../components/chat/SparkleUndoToast';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 import {
   Search,
   Plus,
@@ -56,6 +63,9 @@ import {
   Type,
   Palette,
   Pin,
+  Mail,
+  Eraser,
+  Ban,
   BellOff,
   Volume2,
   Users,
@@ -998,6 +1008,101 @@ export default function Messages() {
     }
   };
 
+  // --- Sparkle Enterprise UX States ---
+  const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+  const [undoToast, setUndoToast] = useState<{
+    id: string;
+    message: string;
+    undoAction: () => void;
+    commitAction: () => void;
+  } | null>(null);
+  const [showOrbitMenu, setShowOrbitMenu] = useState(false);
+  const [peekChat, setPeekChat] = useState<any | null>(null);
+
+  const toggleChatSelection = (chatId: string) => {
+    setSelectedChatIds(prev =>
+      prev.includes(chatId) ? prev.filter(id => id !== chatId) : [...prev, chatId]
+    );
+  };
+
+  const handleBatchArchive = () => {
+    const idsToArchive = [...selectedChatIds];
+    if (idsToArchive.length === 0) return;
+
+    // Snapshot current state for Undo
+    const previousConversations = [...conversations];
+    
+    // Optimistic state update
+    setConversations(prev => prev.map(c =>
+      idsToArchive.includes(c.chat_id) ? { ...c, is_archived: true } : c
+    ));
+    setSelectedChatIds([]);
+
+    setUndoToast({
+      id: 'archive_' + Date.now(),
+      message: `${idsToArchive.length} chat(s) archived`,
+      undoAction: () => {
+        setConversations(previousConversations);
+      },
+      commitAction: () => {
+        idsToArchive.forEach(id => {
+          api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+        });
+      },
+    });
+  };
+
+  const handleBatchDelete = () => {
+    const idsToDelete = [...selectedChatIds];
+    if (idsToDelete.length === 0) return;
+
+    const previousConversations = [...conversations];
+
+    setConversations(prev => prev.filter(c => !idsToDelete.includes(c.chat_id)));
+    setSelectedChatIds([]);
+
+    setUndoToast({
+      id: 'delete_' + Date.now(),
+      message: `${idsToDelete.length} chat(s) deleted`,
+      undoAction: () => {
+        setConversations(previousConversations);
+      },
+      commitAction: () => {
+        idsToDelete.forEach(id => {
+          api.delete(`/messages/chat/${id}`).catch(console.error);
+        });
+      },
+    });
+  };
+
+  const handleBatchPin = () => {
+    if (selectedChatIds.length !== 1) return;
+    const chatId = selectedChatIds[0];
+    const chat = conversations.find(c => c.chat_id === chatId);
+    const newPinState = !chat?.is_pinned;
+
+    setConversations(prev => prev.map(c =>
+      c.chat_id === chatId ? { ...c, is_pinned: newPinState } : c
+    ));
+    setSelectedChatIds([]);
+
+    api.patch(`/messages/chat/${chatId}/pin`, { isPinned: newPinState }).catch(console.error);
+  };
+
+  const handleBatchFavorite = () => {
+    if (selectedChatIds.length !== 1) return;
+    const chatId = selectedChatIds[0];
+    const chat = conversations.find(c => c.chat_id === chatId);
+    const newFavState = !chat?.is_favorite;
+
+    setConversations(prev => prev.map(c =>
+      c.chat_id === chatId ? { ...c, is_favorite: newFavState } : c
+    ));
+    setSelectedChatIds([]);
+
+    api.patch(`/messages/chat/${chatId}/favorite`, { isFavorite: newFavState }).catch(console.error);
+  };
+
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
   const setConversations = useChatStore(state => state.setConversations);
@@ -1224,8 +1329,21 @@ useEffect(() => {
 useEffect(() => {
   if (!socket || !selectedChat) return;
 
-  const handlePrivacyUpdated = (data: { chatId: string; allowForward: boolean; allowCopy: boolean }) => {
+  const handlePrivacyUpdated = (data: any) => {
     if (data.chatId === selectedChat.chat_id) {
+      // If role is receiver or omitted, update active privacy restrictions placed on us
+      if (!data.role || data.role === 'receiver') {
+        const enforced = {
+          screenshotProtection: !!data.screenshotProtection,
+          screenRecordingProtection: !!data.screenRecordingProtection,
+          copyProtection: !!data.copyProtection,
+          forwardProtection: !!data.forwardProtection,
+          captureNotifications: !!data.captureNotifications,
+        };
+        setActivePrivacy(enforced);
+        toggleAndroidSecure(enforced.screenshotProtection);
+      }
+
       // Refresh active message permissions if the menu is open
       if (activeMessageMenu?.msg?.message_id) {
         api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
@@ -1387,15 +1505,38 @@ useEffect(() => {
 
 useEffect(() => {
   if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
-    api.get(`/messages/${selectedChat.chat_id}/privacy`)
+    const chatId = selectedChat.chat_id;
+    const cacheKey = `sparkle_privacy_cache_${chatId}`;
+    // 1. Immediately hydrate from private sandbox / preferences cache to eliminate screen exposure lag
+    SparkleStorage.getPrivacyCache(chatId).then(cached => {
+      if (cached) {
+        setActivePrivacy(cached);
+        toggleAndroidSecure(!!cached?.screenshotProtection);
+      } else {
+        try {
+          const raw = localStorage.getItem(cacheKey);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            setActivePrivacy(parsed);
+            toggleAndroidSecure(!!parsed?.screenshotProtection);
+          }
+        } catch (e) {}
+      }
+    }).catch(() => {});
+
+    // 2. Fetch authoritative privacy settings from server
+    api.get(`/messages/${chatId}/privacy`)
       .then(res => {
-        setActivePrivacy(res.data);
-        toggleAndroidSecure(!!res.data?.screenshotProtection);
+        const enforced = res.data?.enforcedSettings || res.data;
+        setActivePrivacy(enforced);
+        toggleAndroidSecure(!!enforced?.screenshotProtection);
+        SparkleStorage.setPrivacyCache(chatId, enforced).catch(() => {});
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(enforced));
+        } catch (e) {}
       })
       .catch(err => {
         console.error('Failed to load chat privacy settings:', err);
-        setActivePrivacy(null);
-        toggleAndroidSecure(false);
       });
   } else {
     setActivePrivacy(null);
@@ -1404,6 +1545,30 @@ useEffect(() => {
 
   return () => {
     toggleAndroidSecure(false);
+  };
+}, [selectedChat?.chat_id]);
+
+// Register native Android screenshot detection listener
+useEffect(() => {
+  let sub: any = null;
+  try {
+    const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
+    if (PrivacyProtection && typeof PrivacyProtection.addListener === 'function') {
+      sub = PrivacyProtection.addListener('onScreenshotAttempt', (eventData: any) => {
+        if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+          api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
+            attemptType: 'SCREENSHOT_ATTEMPT',
+            detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
+            deviceInfo: { userAgent: navigator.userAgent },
+          }).catch(console.error);
+        }
+      });
+    }
+  } catch (err) {}
+  return () => {
+    if (sub && typeof sub.remove === 'function') {
+      sub.remove();
+    }
   };
 }, [selectedChat?.chat_id]);
 
@@ -2057,19 +2222,39 @@ const handleDeleteMessage = async (msgId: string) => {
 };
 
 const handleReactToMessage = async (msgId: string, emoji: string) => {
-  updateMessages(prev => prev.map(m => {
-    if (m.message_id === msgId) {
-      return { ...m, reactions: [...(m.reactions || []), { emoji, user_id: user?.id || user?.user_id }] };
-    }
-    return m;
-  }));
+  if (!selectedChat) return;
+  const chatId = selectedChat.chat_id;
+  const currentUserId = user?.id || user?.user_id;
+  if (!currentUserId) return;
 
-  if (socket && selectedChat) {
-    socket.emit('add-reaction', {
-      messageId: msgId,
-      emoji: emoji,
-      chatId: selectedChat.chat_id
+  // Find message in current list
+  const targetMsg = messages.find(m => (m.message_id === msgId || (m as any).id === msgId));
+  const currentReactions = targetMsg?.reactions || [];
+  const myExistingReaction = currentReactions.find((r: any) => r.user_id === currentUserId);
+
+  if (myExistingReaction && myExistingReaction.emoji === emoji) {
+    // Toggle off / remove reaction
+    useChatStore.getState().removeReaction(chatId, msgId, currentUserId, emoji);
+    const item = PersistentOfflineQueue.enqueueInteraction({
+      type: 'remove-reaction',
+      chatId,
+      messageId: msgId
     });
+    if (socket && socket.connected) {
+      socket.emit('remove-reaction', { ...item, operationId: item.operationId });
+    }
+  } else {
+    // Add / Replace reaction
+    useChatStore.getState().addReaction(chatId, msgId, currentUserId, emoji);
+    const item = PersistentOfflineQueue.enqueueInteraction({
+      type: 'add-reaction',
+      chatId,
+      messageId: msgId,
+      emoji
+    });
+    if (socket && socket.connected) {
+      socket.emit('add-reaction', { ...item, operationId: item.operationId });
+    }
   }
 };
 const handleTyping = (val: string) => {
@@ -2371,6 +2556,13 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 >
                   <SquarePen size={22} strokeWidth={2.2} />
                 </button>
+                <button
+                  onClick={() => setShowOrbitMenu(true)}
+                  className="w-10 h-10 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/5 rounded-full transition-all"
+                  title="Sparkle Orbit Menu"
+                >
+                  <MoreVertical size={20} strokeWidth={2} />
+                </button>
               </div>
             </div>
 
@@ -2445,6 +2637,19 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
             </div>
           </header>
 
+          <SparkleHorizontalActionBar
+            selectedCount={selectedChatIds.length}
+            isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
+            isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
+            onPin={handleBatchPin}
+            onMute={() => alert("Chat Muted")}
+            onArchive={handleBatchArchive}
+            onDelete={handleBatchDelete}
+            onFavorite={handleBatchFavorite}
+            onMore={() => setShowOrbitMenu(true)}
+            onClearSelection={() => setSelectedChatIds([])}
+          />
+
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
@@ -2463,19 +2668,29 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
               Array.isArray(filteredConversations) && filteredConversations.map((chat, idx) => (
                 <div
                   key={chat.chat_id}
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    toggleChatSelection(chat.chat_id);
+                    setPeekChat(chat);
+                  }}
                   onClick={() => {
-                    setSelectedChat(chat);
-                    navigate(`/messages?chat=${chat.chat_id}`);
-                    // Optimistically clear the unread count in the chat list
-                    if (chat.unread_count > 0) {
-                      setConversations((prev: any[]) => prev.map(c =>
-                        c.chat_id === chat.chat_id ? { ...c, unread_count: 0 } : c
-                      ));
+                    if (selectedChatIds.length > 0) {
+                      toggleChatSelection(chat.chat_id);
+                    } else {
+                      setSelectedChat(chat);
+                      navigate(`/messages?chat=${chat.chat_id}`);
+                      if (chat.unread_count > 0) {
+                        setConversations((prev: any[]) => prev.map(c =>
+                          c.chat_id === chat.chat_id ? { ...c, unread_count: 0 } : c
+                        ));
+                      }
                     }
                   }}
                   className={clsx(
-                    "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3",
-                    selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
+                    "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3 relative select-none",
+                    selectedChatIds.includes(chat.chat_id)
+                      ? 'bg-[#ff1493]/20 border border-[#ff1493]/40'
+                      : selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
                   )}
                 >
                   {(() => {
@@ -2509,6 +2724,9 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               {!isSelfChat && (
                                 <VerifiedBadge accountType={itemIdentity.accountType} isVerified={itemIdentity.badge.show} color={itemIdentity.badge.color} size="xs" />
                               )}
+                              {chat.is_pinned && <Pin size={13} className="text-[#ff1493] fill-[#ff1493] shrink-0 ml-1" />}
+                              {chat.is_favorite && <Sparkles size={13} className="text-amber-400 fill-amber-400 shrink-0 animate-pulse ml-0.5" />}
+                              {chat.is_muted && <BellOff size={12} className="text-purple-400 shrink-0 ml-0.5" />}
                             </h4>
                           </div>
                     <div className="flex items-center justify-between gap-2">
@@ -2518,26 +2736,26 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                             <p className="text-[13px] font-black text-[#ff1493] lowercase">
                               {chat.unread_count > 4 ? '4+ new messages' : `${chat.unread_count} new messages`}
                             </p>
-                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {getTimeAgo(chat.last_message_time || chat.last_message_at)}</span>
+                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {formatChatTimestamp(chat.last_message_time || chat.last_message_at)}</span>
                           </div>
                         ) : chat.unread_count === 1 ? (
                           <div className="flex items-center gap-1.5 truncate">
                             <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
-                              {chat.last_message_type === 'attachment' ? '🎬 Story reply' : chat.last_message ? formatMessageText(chat.last_message) : 'Sent a photo'}
+                              {chat.last_message_type === 'attachment' ? '🎬 Story reply' : chat.last_message || 'Sent a message'}
                             </p>
-                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {getTimeAgo(chat.last_message_time || chat.last_message_at)}</span>
+                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {formatChatTimestamp(chat.last_message_time || chat.last_message_at)}</span>
                           </div>
                         ) : (() => {
                           const isTypingHere = typingUsers.some(t => t.chatId === chat.chat_id);
-                          const statusLabel = getStatusLabel(chat);
-                          const tsLabel = getTimeAgo(chat.last_message_time || chat.last_message_at);
+                          const previewText = chat.last_message || 'No messages yet';
+                          const tsLabel = formatChatTimestamp(chat.last_message_time || chat.last_message_at);
                           return (
                             <div className="flex items-center gap-1.5 truncate">
                               {isTypingHere ? (
                                 <p className="text-[12px] font-bold text-[#ff1493] italic animate-pulse">Typing…</p>
                               ) : (
-                                <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate lowercase">
-                                  {statusLabel}{statusLabel && tsLabel ? ' · ' : ''}{tsLabel}
+                                <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate">
+                                  {previewText}{tsLabel ? ` · ${tsLabel}` : ''}
                                 </p>
                               )}
                             </div>
@@ -4721,6 +4939,33 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── SPARKLE ENTERPRISE UX MODALS & OVERLAYS ── */}
+      <SparkleOrbitMenu
+        isOpen={showOrbitMenu}
+        onClose={() => setShowOrbitMenu(false)}
+        actions={[
+          { id: 'profile', label: 'View Profile', icon: <User size={18} />, onClick: () => navigate(`/profile/${user?.username || user?.user_id}`) },
+          { id: 'unread', label: 'Mark Unread', icon: <Mail size={18} />, onClick: () => alert('Marked Unread') },
+          { id: 'fav', label: 'Favorite', icon: <Sparkles size={18} />, onClick: handleBatchFavorite },
+          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: () => alert('Chat Cleared') },
+          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: () => alert('User Blocked') },
+          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: () => alert('Chat Exported') },
+          { id: 'search', label: 'Search', icon: <Search size={18} />, onClick: () => alert('Search Activated') },
+          { id: 'theme', label: 'Wallpaper', icon: <Palette size={18} />, onClick: () => setShowThemeModal(true) },
+        ]}
+      />
+
+      <SparklePeekCard
+        chat={peekChat}
+        isOpen={!!peekChat}
+        onClose={() => setPeekChat(null)}
+      />
+
+      <SparkleUndoToast
+        toast={undoToast}
+        onDismiss={() => setUndoToast(null)}
+      />
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

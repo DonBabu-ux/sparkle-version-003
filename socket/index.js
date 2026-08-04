@@ -23,27 +23,18 @@ const ScreenshotAudit = require('../models/ScreenshotAudit');
 const User = require('../models/User');
 const GroupMember = require('../models/GroupMember');
 
+const SessionService = require('../services/session.service');
+const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+
 let io;
 
 /**
  * Grace period (ms) before a disconnected user is marked offline.
- * This prevents false offline transitions during brief network fluctuations.
  */
 const OFFLINE_GRACE_MS = 30_000;
 
-/**
- * Tracks pending offline timers keyed by userId.
- * If the same user reconnects within OFFLINE_GRACE_MS, the timer is cancelled
- * and they remain online with no status change.
- */
 const pendingOfflineTimers = new Map();
-// Map to track a single active socket per user
 const userSockets = new Map();
-
-/**
- * Tracks active typing sessions per socket: Map<socketId, Set<chatId>>
- * Used to auto-expire typing indicators when a socket disconnects mid-type.
- */
 const activeTypingSessions = new Map();
 
 const initializeSocket = (server) => {
@@ -63,13 +54,17 @@ const initializeSocket = (server) => {
             ],
             credentials: true
         },
-        transports: ['websocket', 'polling'], // Explicitly allow both, but client will prefer websocket now
+        transports: ['websocket', 'polling'],
         pingTimeout: 60000,
         pingInterval: 25000
     });
 
+    // Start background delivery queue worker
+    DeliveryQueueWorker.startWorker(io);
+
     // Initialize marketplace messaging namespace
     require('./marketplaceChat')(io);
+
 
     // Authentication middleware
     io.use(async (socket, next) => {
@@ -174,14 +169,36 @@ const initializeSocket = (server) => {
 
         // --- CHAT EVENTS ---
 
+        // ── Register Session in DB ──
+        const sessionId = socket.handshake.auth.sessionId || socket.handshake.auth.session_id || crypto.randomUUID();
+        socket.sessionId = sessionId;
+        try {
+            await SessionService.registerSession({
+                userId: socket.userId,
+                sessionId,
+                socketId: socket.id,
+                platform: socket.handshake.auth.platform || 'web',
+                pushToken: socket.handshake.auth.pushToken || null
+            });
+        } catch (sErr) {
+            logger.error(`⚠️ Session registration error for ${socket.userId}:`, sErr.message);
+        }
+
+        // Handle disconnect: deactivate session
+        socket.on('disconnect', async () => {
+            try {
+                await SessionService.deactivateSocket(socket.id);
+            } catch (dErr) {
+                logger.error(`⚠️ Deactivate socket error:`, dErr.message);
+            }
+        });
+
         // Join a specific chat (e.g., when opening a chat window)
         socket.on('join-chat', async (chatId) => {
             if (!socket.rooms.has(`chat:${chatId}`)) { socket.join(`chat:${chatId}`); }
             console.log('[ROOM CHECK]', { chatId, userId: socket.userId, timestamp: Date.now() });
-            // Mark messages in this chat as delivered if they were sent to this user
-            await Message.updateStatus(chatId, socket.userId, 'delivered');
-            socket.to(`chat:${chatId}`).emit('messages-delivered', { chatId, userId: socket.userId });
         });
+
 // Debug: retrieve list of rooms for this socket
 socket.on('get-rooms', () => {
   logSocketRooms(socket, 'debug:get-rooms');
@@ -213,7 +230,176 @@ socket.on('get-rooms', () => {
                 isTyping: !!isTyping
             });
         });
-        // Register screenshot attempt event
+
+        // ── Real-Time Message Interaction Events (Reactions, Edits, Deletes, Pins, Stars, Sync) ──
+        socket.on('add-reaction', async (data) => {
+            try {
+                const { messageId, emoji } = data || {};
+                if (!messageId || !emoji) return;
+                const result = await Message.addReaction(messageId, socket.userId, emoji);
+                // Sender ACK
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'add-reaction',
+                    messageId,
+                    emoji
+                });
+                // Broadcast to room
+                io.to(`chat:${result.chatId}`).emit('new-reaction', {
+                    chatId: result.chatId,
+                    messageId,
+                    userId: socket.userId,
+                    emoji,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo
+                });
+            } catch (err) {
+                logger.error('Socket add-reaction error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('remove-reaction', async (data) => {
+            try {
+                const { messageId } = data || {};
+                if (!messageId) return;
+                const result = await Message.removeReaction(messageId, socket.userId);
+                // Sender ACK
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'remove-reaction',
+                    messageId
+                });
+                // Broadcast to room
+                io.to(`chat:${result.chatId}`).emit('reaction-removed', {
+                    chatId: result.chatId,
+                    messageId,
+                    userId: socket.userId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo
+                });
+            } catch (err) {
+                logger.error('Socket remove-reaction error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('edit-message', async (data) => {
+            try {
+                const { messageId, content } = data || {};
+                if (!messageId || !content) return;
+                const result = await Message.editMessage(messageId, socket.userId, content);
+                if (!result) return socket.emit('operation-failed', { operationId: data.operationId, error: 'Cannot edit message' });
+                // Sender ACK
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'edit-message',
+                    messageId,
+                    content
+                });
+                // Broadcast to room
+                io.to(`chat:${result.chatId}`).emit('message-edited', {
+                    chatId: result.chatId,
+                    messageId,
+                    content,
+                    is_edited: 1,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo
+                });
+            } catch (err) {
+                logger.error('Socket edit-message error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('delete-message', async (data) => {
+            try {
+                const { messageId } = data || {};
+                if (!messageId) return;
+                const result = await Message.deleteMessageForEveryone(messageId, socket.userId);
+                if (!result) return socket.emit('operation-failed', { operationId: data.operationId, error: 'Cannot delete message' });
+                // Sender ACK
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'delete-message',
+                    messageId
+                });
+                // Broadcast to room
+                io.to(`chat:${result.chatId}`).emit('message-deleted-everyone', {
+                    chatId: result.chatId,
+                    messageId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo
+                });
+            } catch (err) {
+                logger.error('Socket delete-message error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('pin-message', async (data) => {
+            try {
+                const { messageId, pinned } = data || {};
+                if (!messageId) return;
+                const result = await Message.pinMessage(messageId, socket.userId, pinned !== false);
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'pin-message',
+                    messageId,
+                    pinned: pinned !== false
+                });
+                io.to(`chat:${result.chatId}`).emit('message-pinned-updated', {
+                    chatId: result.chatId,
+                    messageId,
+                    pinned: pinned !== false,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo
+                });
+            } catch (err) {
+                logger.error('Socket pin-message error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('star-message', async (data) => {
+            try {
+                const { messageId, starred } = data || {};
+                if (!messageId) return;
+                const result = await Message.starMessage(messageId, socket.userId, starred !== false);
+                socket.emit('operation-confirmed', {
+                    operationId: data.operationId || result.eventId,
+                    event_id: result.eventId,
+                    sequence_no: result.sequenceNo,
+                    type: 'star-message',
+                    messageId,
+                    starred: starred !== false
+                });
+            } catch (err) {
+                logger.error('Socket star-message error:', err);
+                socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
+            }
+        });
+
+        socket.on('sync-request', async (data) => {
+            try {
+                const { chatId, sinceSeq = 0 } = data || {};
+                if (!chatId) return;
+                const events = await Message.getEventsSinceSeq(chatId, sinceSeq);
+                socket.emit('sync-response', { chatId, events, sinceSeq });
+            } catch (err) {
+                logger.error('Socket sync-request error:', err);
+            }
+        });
         socket.on('screenshotAttempt', async (data) => {
             try {
                 const { chatId = null, method = 'screenshot' } = data || {};
@@ -486,56 +672,86 @@ logSocketRooms(socket, `room-emit:${finalChatId}`);
             }
         });
 
-        // Mark messages as read
+        // Enterprise Delivery ACK handler (Session-aware)
+        socket.on('message-delivered-ack', async (data, callback) => {
+            try {
+                const { messageId, sessionId } = data || {};
+                if (!messageId) return;
+                const targetSessionId = sessionId || socket.sessionId;
+                await Message.markSessionDelivered(messageId, targetSessionId, socket.userId);
+                
+                const msg = await Message.getById(messageId);
+                if (msg) {
+                    const chatId = msg.chat_id || msg.conversation_id;
+                    io.to(`chat:${chatId}`).emit('message-delivered-update', {
+                        messageId,
+                        chatId,
+                        recipientUserId: socket.userId,
+                        deliveredAt: new Date().toISOString()
+                    });
+                }
+                if (typeof callback === 'function') callback({ success: true });
+            } catch (err) {
+                logger.error('message-delivered-ack error:', err);
+            }
+        });
+
+        // Enterprise Tri-Condition Read Receipt ACK handler
+        socket.on('message-read-ack', async (data, callback) => {
+            try {
+                const { chatId, messageIds } = data || {};
+                if (!chatId) return;
+                await Message.markReadTriCondition(chatId, messageIds, socket.userId);
+
+                io.to(`chat:${chatId}`).emit('message-read-update', {
+                    chatId,
+                    messageIds,
+                    readerUserId: socket.userId,
+                    readAt: new Date().toISOString()
+                });
+                if (typeof callback === 'function') callback({ success: true });
+            } catch (err) {
+                logger.error('message-read-ack error:', err);
+            }
+        });
+
+        // Enterprise Cursor Delta Synchronization
+        socket.on('cursor-sync-request', async (data, callback) => {
+            try {
+                const { lastCursor = 0 } = data || {};
+                const messages = await Message.getCursorDelta(socket.userId, lastCursor);
+                if (typeof callback === 'function') {
+                    callback({ success: true, messages });
+                } else {
+                    socket.emit('cursor-sync-response', { messages });
+                }
+            } catch (err) {
+                logger.error('cursor-sync-request error:', err);
+                if (typeof callback === 'function') callback({ success: false, error: 'Sync failed' });
+            }
+        });
+
+        // Legacy mark-read & mark-delivered compatibility wrappers
         socket.on('mark-read', async (chatId) => {
             try {
-                await Message.updateStatus(chatId, socket.userId, 'read');
-                secureLogger.readTrace(chatId, socket.userId, 'status_updated');
-                // Broadcast to chat room
-                io.to(`chat:${chatId}`).emit('messages-read', {
-                    chatId,
-                    userId: socket.userId,
-                    readAt: new Date().toISOString()
-                });
-                secureLogger.readEmit(chatId, socket.userId, 'messages-read emitted');
-                // Also emit to the user's personal room for UI updates (e.g., chat list)
-                io.to(`user:${socket.userId}`).emit('messages-read', {
-                    chatId,
-                    userId: socket.userId,
-                    readAt: new Date().toISOString()
-                });
+                await Message.markReadTriCondition(chatId, null, socket.userId);
+                io.to(`chat:${chatId}`).emit('messages-read', { chatId, userId: socket.userId, readAt: new Date().toISOString() });
             } catch (error) {
                 logger.error('Mark read error:', error);
             }
         });
 
-        // Mark messages as delivered (client emits when they receive a message)
         socket.on('mark-delivered', async (data) => {
             try {
-                const { messageId, chatId } = data;
-                if (!chatId) return;
-
-                // Only mark delivered for messages NOT sent by this user
-                await pool.query(
-                    `UPDATE messages SET status = 'delivered'
-                     WHERE (conversation_id = ? OR chat_id = ?)
-                       AND sender_id != ?
-                       AND status = 'sent'`,
-                    [chatId, chatId, socket.userId]
-                );
-
-                // Notify everyone in the room
-                secureLogger.deliveredEmit(chatId, socket.userId, 'messages-delivered emitted');
-                io.to(`chat:${chatId}`).emit('messages-delivered', {
-                    chatId,
-                    messageId,
-                    userId: socket.userId,
-                    deliveredAt: new Date().toISOString()
-                });
+                const { messageId } = data || {};
+                if (messageId) {
+                    await Message.markSessionDelivered(messageId, socket.sessionId, socket.userId);
+                }
             } catch (error) {
                 logger.error('Mark delivered error:', error);
             }
         });
+
 
         // Graceful background signal — keep online but note backgrounded
         socket.on('presence:background', () => {

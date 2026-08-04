@@ -34,8 +34,14 @@ router.delete('/chat/:chatId', messageController.deleteConversation);
 
 // Per-message actions
 router.delete('/:messageId', messageController.deleteMessage);
+router.delete('/:messageId/delete-for-me', messageController.deleteMessage);
+router.delete('/:messageId/delete-for-all', messageController.deleteMessageForEveryone);
 router.patch('/:messageId', messageController.editMessage);
+router.put('/:messageId/edit', messageController.editMessage);
 router.post('/:messageId/react', messageController.reactToMessage);
+router.delete('/:messageId/react', messageController.removeReaction);
+router.post('/:messageId/star', messageController.starMessage);
+router.delete('/:messageId/star', messageController.unstarMessage);
 router.post('/:messageId/pin', messageController.pinMessage);
 router.post('/:messageId/unpin', messageController.unpinMessage);
 router.delete('/:messageId/pin', messageController.unpinMessage);
@@ -45,6 +51,7 @@ router.post('/chat/:chatId/messages/:messageId/forward', messageController.forwa
 router.post('/:chatId/messages/:messageId/copy', messageController.copyMessage);
 router.post('/:chatId/messages/:messageId/forward', messageController.forwardMessage);
 router.get('/:messageId/info', messageController.getMessageInfo);
+router.get('/sync/events', messageController.syncEvents);
 
 // Message permissions (used by frontend action modal)
 router.get('/:messageId/permissions', permissionController.getMessagePermissions);

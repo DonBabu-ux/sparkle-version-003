@@ -3,6 +3,28 @@ const crypto = require('crypto');
 
 class Message {
     /**
+     * Get single message by ID
+     */
+    static async getById(messageId) {
+        const [rows] = await db.query(`
+            SELECT m.*, 
+                   IFNULL(m.conversation_id, m.chat_id) as conversationId,
+                   m.sender_id as senderId,
+                   m.chat_id as chatId
+            FROM messages m 
+            WHERE m.message_id = ?
+        `, [messageId]);
+        if (!rows || rows.length === 0) return null;
+        const msg = rows[0];
+        return {
+            ...msg,
+            conversationId: msg.conversationId || msg.chatId,
+            senderId: msg.senderId || msg.sender_id,
+            conversationType: msg.conversation_id ? 'personal' : 'group',
+        };
+    }
+
+    /**
      * Start or get conversation
      */
     static async getOrCreateConversation(currentUserId, partnerId, listingId = null) {
@@ -40,8 +62,15 @@ class Message {
     /**
      * Send message (Direct or Group)
      */
-    static async sendMessage({ recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat', metadata = null }) {
-        const messageId = crypto.randomUUID();
+    static async sendMessage({ messageId: clientMsgId = null, recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat', metadata = null }) {
+        const messageId = clientMsgId || crypto.randomUUID();
+        
+        // Idempotency check: If messageId already exists, return it directly
+        const [existing] = await db.query('SELECT message_id FROM messages WHERE message_id = ?', [messageId]);
+        if (existing && existing.length > 0) {
+            return messageId;
+        }
+
         let personalChatId = null;
         let groupChatId = null;
 
@@ -65,12 +94,7 @@ class Message {
             throw new Error('Recipient or Chat ID required');
         }
 
-        let viewsAllowed = 1;
-        if (viewPolicy === 'twice') viewsAllowed = 2;
-        if (viewPolicy === 'unlimited') viewsAllowed = 99999;
-
-        // Auto-infer marketplace context
-        if (context === 'chat' && marketplaceListingId) context = 'marketplace';
+        const activeChatId = personalChatId || groupChatId;
 
         // Block & System Check Enforcement
         if (recipientId) {
@@ -88,14 +112,27 @@ class Message {
             }
         }
 
+        // Calculate payload hash for integrity
+        const payloadStr = `${senderId}:${content || ''}:${mediaUrl || ''}:${type}`;
+        const payloadHash = crypto.createHash('sha256').update(payloadStr).digest('hex');
+
+        // Atomic server_sequence increment
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [activeChatId]);
+        const [seqRow] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [activeChatId]);
+        const serverSequence = seqRow[0]?.last_sequence || 1;
+
         const sentAt = new Date();
         try {
             await db.query(`
                 INSERT INTO messages (
                     message_id, chat_id, conversation_id, personal_chat_id, 
                     sender_id, recipient_id, content, type, media_url, 
-                    story_id, reply_to_message_id, status, is_read, sent_at, context, metadata
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?, ?)
+                    story_id, reply_to_message_id, status, is_read, sent_at, context, metadata,
+                    server_sequence, payload_hash, version
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?, ?, ?, ?, 1)
             `, [
                 messageId, 
                 groupChatId, 
@@ -110,7 +147,9 @@ class Message {
                 replyToId, 
                 sentAt, 
                 context,
-                metadata
+                metadata,
+                serverSequence,
+                payloadHash
             ]);
 
             // Update last_message_time and clear archives/deletions
@@ -130,6 +169,20 @@ class Message {
                     SET last_message_at = ?
                     WHERE chat_id = ?
                 `, [sentAt, groupChatId]);
+            }
+
+            // Enqueue delivery tasks into delivery_queue for recipient sessions
+            if (recipientId) {
+                const SessionService = require('../services/session.service');
+                const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+                const sessions = await SessionService.getActiveSessions(recipientId);
+                for (const session of sessions) {
+                    await DeliveryQueueWorker.enqueue({
+                        messageId,
+                        recipientId,
+                        sessionId: session.session_id
+                    });
+                }
             }
 
             return messageId;
@@ -576,6 +629,60 @@ class Message {
     }
 
     /**
+     * Enterprise Cursor Delta Sync: fetch messages for user where server_sequence > lastCursor
+     */
+    static async getCursorDelta(userId, lastCursor = 0) {
+        const [messages] = await db.query(`
+            SELECT m.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+            FROM messages m
+            JOIN users u ON m.sender_id = u.user_id
+            WHERE (m.recipient_id = ? OR m.sender_id = ? OR m.chat_id IN (
+                SELECT chat_id FROM group_chat_members WHERE user_id = ? AND status = 'active'
+            ))
+            AND m.server_sequence > ?
+            ORDER BY m.server_sequence ASC
+            LIMIT 200
+        `, [userId, userId, userId, Number(lastCursor) || 0]);
+
+        return messages;
+    }
+
+    /**
+     * Session-aware Delivery ACK: Mark message delivered when recipient session ACKs receipt
+     */
+    static async markSessionDelivered(messageId, sessionId, recipientUserId) {
+        await db.query(`
+            UPDATE messages 
+            SET delivered_at = COALESCE(delivered_at, NOW()), status = IF(read_at IS NOT NULL, 'read', 'delivered')
+            WHERE message_id = ? AND (recipient_id = ? OR recipient_id IS NULL)
+        `, [messageId, recipientUserId]);
+
+        const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+        await DeliveryQueueWorker.acknowledgeDelivery(messageId, sessionId);
+    }
+
+    /**
+     * Tri-Condition Read Receipt: Mark message read when recipient views message
+     */
+    static async markReadTriCondition(chatId, messageIds, recipientUserId) {
+        if (!Array.isArray(messageIds) || messageIds.length === 0) {
+            await db.query(`
+                UPDATE messages
+                SET read_at = COALESCE(read_at, NOW()), delivered_at = COALESCE(delivered_at, NOW()), status = 'read', is_read = 1
+                WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND read_at IS NULL
+            `, [chatId, chatId, recipientUserId]);
+            return;
+        }
+
+        const placeholders = messageIds.map(() => '?').join(',');
+        await db.query(`
+            UPDATE messages
+            SET read_at = COALESCE(read_at, NOW()), delivered_at = COALESCE(delivered_at, NOW()), status = 'read', is_read = 1
+            WHERE message_id IN (${placeholders}) AND sender_id != ?
+        `, [...messageIds, recipientUserId]);
+    }
+
+    /**
      * Process Message View (for View Once / Twice)
      */
     static async processMessageView(messageId) {
@@ -598,6 +705,240 @@ class Message {
             }
         }
         return { action: 'ignored' };
+    }
+
+    /**
+     * Reaction Management (Server-Authoritative, Unique per user per message)
+     */
+    static async addReaction(messageId, userId, emoji) {
+        const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!msg.length) throw new Error('Message not found');
+        const chatId = msg[0].conversation_id || msg[0].chat_id;
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        const reactionId = crypto.randomUUID();
+        await db.query(`
+            INSERT INTO message_reactions (reaction_id, message_id, user_id, emoji)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE emoji = VALUES(emoji), updated_at = NOW()
+        `, [reactionId, messageId, userId, emoji]);
+
+        const eventId = crypto.randomUUID();
+        const payload = JSON.stringify({ messageId, userId, emoji, chatId });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, 'reaction_added', ?, ?)
+        `, [eventId, chatId, messageId, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId, userId, emoji };
+    }
+
+    static async removeReaction(messageId, userId) {
+        const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!msg.length) throw new Error('Message not found');
+        const chatId = msg[0].conversation_id || msg[0].chat_id;
+
+        await db.query('DELETE FROM message_reactions WHERE message_id = ? AND user_id = ?', [messageId, userId]);
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        const eventId = crypto.randomUUID();
+        const payload = JSON.stringify({ messageId, userId, chatId });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, 'reaction_removed', ?, ?)
+        `, [eventId, chatId, messageId, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId, userId };
+    }
+
+    /**
+     * Star Message
+     */
+    static async starMessage(messageId, userId, starred = true) {
+        const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!msg.length) throw new Error('Message not found');
+        const chatId = msg[0].conversation_id || msg[0].chat_id;
+
+        const eventId = crypto.randomUUID();
+        let eventType = 'message_starred';
+
+        if (starred) {
+            const starId = crypto.randomUUID();
+            await db.query(`
+                INSERT IGNORE INTO message_stars (star_id, message_id, user_id) VALUES (?, ?, ?)
+            `, [starId, messageId, userId]);
+        } else {
+            eventType = 'message_unstarred';
+            await db.query(`DELETE FROM message_stars WHERE message_id = ? AND user_id = ?`, [messageId, userId]);
+        }
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        const payload = JSON.stringify({ messageId, userId, starred, chatId });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [eventId, chatId, messageId, eventType, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId, userId, starred };
+    }
+
+    /**
+     * Bookmark Message
+     */
+    static async bookmarkMessage(messageId, userId, bookmarked = true) {
+        const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!msg.length) throw new Error('Message not found');
+        const chatId = msg[0].conversation_id || msg[0].chat_id;
+
+        if (bookmarked) {
+            const bookmarkId = crypto.randomUUID();
+            await db.query(`INSERT IGNORE INTO message_bookmarks (bookmark_id, message_id, user_id) VALUES (?, ?, ?)`, [bookmarkId, messageId, userId]);
+        } else {
+            await db.query(`DELETE FROM message_bookmarks WHERE message_id = ? AND user_id = ?`, [messageId, userId]);
+        }
+
+        return { messageId, userId, bookmarked, chatId };
+    }
+
+    /**
+     * Pin / Unpin Message
+     */
+    static async pinMessage(messageId, userId, pinned = true) {
+        const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!msg.length) throw new Error('Message not found');
+        const chatId = msg[0].conversation_id || msg[0].chat_id;
+
+        const eventId = crypto.randomUUID();
+        let eventType = 'message_pinned';
+
+        if (pinned) {
+            const pinId = crypto.randomUUID();
+            await db.query(`
+                INSERT INTO message_pins (pin_id, chat_id, message_id, pinned_by)
+                VALUES (?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE pinned_by = VALUES(pinned_by), pinned_at = NOW()
+            `, [pinId, chatId, messageId, userId]);
+        } else {
+            eventType = 'message_unpinned';
+            await db.query(`DELETE FROM message_pins WHERE message_id = ?`, [messageId]);
+        }
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        const payload = JSON.stringify({ messageId, userId, pinned, chatId });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [eventId, chatId, messageId, eventType, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId, userId, pinned };
+    }
+
+    /**
+     * Edit Message Text
+     */
+    static async editMessage(messageId, userId, newContent) {
+        const [rows] = await db.query('SELECT sender_id, sent_at, conversation_id, chat_id, is_deleted_for_everyone FROM messages WHERE message_id = ?', [messageId]);
+        if (!rows.length) return null;
+        const msg = rows[0];
+        const chatId = msg.conversation_id || msg.chat_id;
+
+        if (msg.sender_id !== userId || msg.is_deleted_for_everyone) return null;
+
+        const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
+        if (timeDiffMins > 15) return null; // 15 min limit
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        await db.query(`
+            UPDATE messages 
+            SET content = ?, is_edited = 1, edited_at = NOW(), server_sequence = ?
+            WHERE message_id = ?
+        `, [newContent, sequenceNo, messageId]);
+
+        const eventId = crypto.randomUUID();
+        const payload = JSON.stringify({ messageId, userId, content: newContent, chatId, edited_at: new Date().toISOString() });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, 'message_edited', ?, ?)
+        `, [eventId, chatId, messageId, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId, content: newContent };
+    }
+
+    /**
+     * Delete Message For Everyone
+     */
+    static async deleteMessageForEveryone(messageId, userId) {
+        const [rows] = await db.query('SELECT sender_id, sent_at, conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
+        if (!rows.length) return null;
+        const msg = rows[0];
+        const chatId = msg.conversation_id || msg.chat_id;
+
+        if (msg.sender_id !== userId) return null;
+
+        await db.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        const sequenceNo = currSeq[0]?.last_sequence || 1;
+
+        await db.query(`
+            UPDATE messages 
+            SET is_deleted_for_everyone = 1, deleted_at = NOW(), content = '[This message was deleted]', media_url = NULL, server_sequence = ?
+            WHERE message_id = ?
+        `, [sequenceNo, messageId]);
+
+        const eventId = crypto.randomUUID();
+        const payload = JSON.stringify({ messageId, userId, chatId, deleted_at: new Date().toISOString() });
+        await db.query(`
+            INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
+            VALUES (?, ?, ?, 'message_deleted', ?, ?)
+        `, [eventId, chatId, messageId, payload, sequenceNo]);
+
+        return { eventId, sequenceNo, chatId, messageId };
+    }
+
+    /**
+     * Delta Sync Events by sequence number
+     */
+    static async getEventsSinceSeq(chatId, sinceSeq = 0) {
+        const [events] = await db.query(`
+            SELECT * FROM interaction_events
+            WHERE chat_id = ? AND sequence_no > ?
+            ORDER BY sequence_no ASC
+            LIMIT 500
+        `, [chatId, Number(sinceSeq) || 0]);
+        return events;
     }
 }
 

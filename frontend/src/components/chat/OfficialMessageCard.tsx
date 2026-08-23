@@ -122,7 +122,7 @@ export const OfficialMessageCard: React.FC<OfficialMessageCardProps> = ({
   const singleButtonText = payload?.buttonText;
 
   return (
-    <div className={`my-2.5 max-w-lg w-full rounded-2xl p-4 border backdrop-blur-md shadow-2xl transition-all duration-300 ${config.borderClass}`}>
+    <div className={`my-3 max-w-xl md:max-w-2xl w-full rounded-3xl p-5 border-2 backdrop-blur-xl shadow-2xl transition-all duration-300 ${config.borderClass}`}>
       {/* Header Badge */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div className="flex items-center gap-2">

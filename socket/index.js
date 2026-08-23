@@ -523,7 +523,7 @@ socket.on('get-rooms', () => {
             try {
                 const MESSAGE_TRACE_ID = crypto.randomUUID();
                 secureLogger.messageTrace(MESSAGE_TRACE_ID, 'client_send', { chatId: data.chatId, senderId: socket.userId, recipientId: data.recipientId || data.partnerId });
-                const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment } = data;
+                const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment, messageId: clientMessageId } = data;
                 logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
@@ -533,21 +533,27 @@ socket.on('get-rooms', () => {
 
                 // --- Moderation & Group Access Enforcement ---
                 if (chatId) {
-                    const [groups] = await pool.query('SELECT only_admins_send FROM group_chats WHERE chat_id = ?', [chatId]);
-                    if (groups.length > 0) {
-                        const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
-                        if (groups[0].only_admins_send === 1 && !isAdmin) {
-                            return socket.emit('message-error', { error: 'Only admins can send messages' });
+                    try {
+                        const [groups] = await pool.query('SELECT only_admins_send FROM group_chats WHERE chat_id = ?', [chatId]);
+                        if (groups.length > 0) {
+                            const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
+                            if (groups[0].only_admins_send === 1 && !isAdmin) {
+                                return socket.emit('message-error', { error: 'Only admins can send messages' });
+                            }
                         }
+                    } catch (moderationErr) {
+                        logger.warn(`[Socket] GroupMember moderation check failed for chatId=${chatId}, allowing message: ${moderationErr.message}`);
+                        // Allow the message through rather than blocking on moderation errors
                     }
                 }
 
                 // Auto-infer marketplace context
                 if (context === 'chat' && (marketplaceListingId || data.listingId)) context = 'marketplace';
 
-                // 1. Save to DB
-                realtimeLogger.trace(traceId, 'DB_SAVE_START', { chatId: data.chatId });
+                // 1. Save to DB (pass client UUID for idempotency)
+                realtimeLogger.trace(traceId, 'DB_SAVE_START', { chatId: data.chatId, clientMessageId });
         const messageId = await Message.sendMessage({
+                    messageId: clientMessageId || undefined,
                     chatId,
                     recipientId,
                     senderId: socket.userId,
@@ -584,7 +590,19 @@ socket.on('get-rooms', () => {
                 message.chatId = finalChatId;
                 message.id = message.message_id;
                 message.senderId = message.sender_id;
-                // Add camelCase alias for frontend convenience
+                // Compute server-authoritative per-message permissions based on sender privacy settings
+                const PermissionEngine = require('../services/PermissionEngine');
+                const [privacyRows] = await pool.query(
+                    'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                    [finalChatId, message.sender_id]
+                );
+                const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+
+                message.permissions = PermissionEngine.computePermissions({
+                    message,
+                    senderPrivacy,
+                    viewerUserId: socket.userId
+                });
 
 
 
@@ -601,15 +619,13 @@ socket.on('get-rooms', () => {
                 );
                 console.log('[MESSAGE_EMIT]', message);
 
-                // 2. Emit to sender for confirmation
+                // 2. Confirm to sender (no 'new-message' echo — sender already updated optimistically)
                 realtimeLogger.trace(traceId, 'EMIT_TO_SENDER', { messageId });
-        socket.emit('new-message', message);
-logSocketRooms(socket, `new-message:${finalChatId}`);
                 socket.emit('message-sent', message);
 
-                // 3. Emit to all in the chat room
+                // 3. Emit to all OTHER participants in the chat room
                 realtimeLogger.trace(traceId, 'EMIT_TO_ROOM', { chatId: finalChatId, messageId });
-        socket.to(`chat:${finalChatId}`).emit('new-message', message);
+                socket.to(`chat:${finalChatId}`).emit('new-message', message);
 logSocketRooms(socket, `room-emit:${finalChatId}`);
                 console.log('MESSAGE EMITTED', finalChatId);
                 // Emit to participants' user rooms for chat list update
@@ -814,49 +830,88 @@ logSocketRooms(socket, `room-emit:${finalChatId}`);
             }
         });
 
-        // Delete message for everyone
+        // Delete message for everyone (strictly server-authoritative)
         socket.on('delete-for-everyone', async (data, callback) => {
-            const { messageId, chatId } = data;
+            const { messageId, chatId, operationId } = data;
             try {
                 const msg = await Message.getById(messageId);
                 if (!msg) {
                     if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
                     return;
                 }
+
+                // Idempotency check: If message is already deleted for everyone, ACK immediately
+                if (msg.is_deleted_for_everyone === 1) {
+                    if (operationId) {
+                        socket.emit('operation-confirmed', { operationId, type: 'delete-for-everyone' });
+                    }
+                    if (typeof callback === 'function') callback({ success: true, operationId, messageId, alreadyDeleted: true });
+                    return;
+                }
+
                 // Determine conversation type for permission check
-                const conv = { type: (chatId && (await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId])).length > 0 ? 'group' : 'private') };
+                const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                const conv = { type: groupExists.length > 0 ? 'group' : 'private' };
                 if (!perms.canDeleteForEveryone(socket.user, msg, conv)) {
+                    socket.emit('delete-rejected', { messageId, chatId, originalContent: msg.content, reason: 'Permission denied', operationId });
                     if (typeof callback === 'function') callback({ success: false, error: 'Permission denied: cannot delete this message for everyone.' });
                     return;
                 }
-                const success = await Message.deleteForEveryone(messageId, socket.userId, conv.type === 'group', socket.user.username);
+
+                const success = await Message.deleteForEveryone(messageId, socket.userId, operationId, conv.type === 'group', socket.user.username);
                 if (success) {
-                    io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId });
-secureLogger.deleteTrace(messageId, chatId, socket.userId);
-secureLogger.safeLog('DELETE_FOR_EVERYONE', { chatId, messageId, userId: socket.userId });
-                    if (typeof callback === 'function') callback({ success: true });
+                    io.to(`chat:${chatId}`).emit('message-deleted-everyone', { messageId, chatId, operationId, deletedAt: new Date().toISOString() });
+                    if (operationId) {
+                        socket.emit('operation-confirmed', { operationId, type: 'delete-for-everyone' });
+                    }
+                    secureLogger.deleteTrace(messageId, chatId, socket.userId);
+                    secureLogger.safeLog('DELETE_FOR_EVERYONE', { chatId, messageId, userId: socket.userId });
+                    if (typeof callback === 'function') callback({ success: true, operationId, messageId });
                 } else {
+                    socket.emit('delete-rejected', { messageId, chatId, originalContent: msg.content, reason: 'Server database error', operationId });
                     if (typeof callback === 'function') callback({ success: false, error: 'Failed to delete message for everyone.' });
                 }
             } catch (error) {
                 logger.error('Delete for everyone error:', error);
-                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+                if (typeof callback === 'function') callback({ success: false, error: error.message || 'Server error' });
             }
         });
 
         // Delete message for me
         socket.on('delete-for-me', async (data, callback) => {
-            const { messageId, chatId } = data;
+            const { messageId, chatId, operationId } = data;
             try {
-                const success = await Message.deleteForMe(messageId, socket.userId);
+                const success = await Message.deleteForMe(messageId, socket.userId, operationId);
                 if (success) {
-                    socket.emit('message-deleted-me', { messageId, chatId });
-                    if (typeof callback === 'function') callback({ success: true });
+                    if (operationId) {
+                        socket.emit('operation-confirmed', { operationId, type: 'delete-for-me' });
+                    }
+                    socket.emit('message-deleted-me', { messageId, chatId, operationId });
+                    if (typeof callback === 'function') callback({ success: true, operationId });
                 } else {
                     if (typeof callback === 'function') callback({ success: false, error: 'Failed to delete message locally' });
                 }
             } catch (error) {
                 logger.error('Delete for me error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
+            }
+        });
+
+        // Delete messages for me (bulk)
+        socket.on('delete-for-me-bulk', async (data, callback) => {
+            const { messageIds, chatId, operationId } = data;
+            try {
+                if (!Array.isArray(messageIds) || messageIds.length === 0) {
+                    if (typeof callback === 'function') callback({ success: true });
+                    return;
+                }
+                const success = await Message.deleteForMeBulk(messageIds, socket.userId, operationId);
+                if (operationId) {
+                    socket.emit('operation-confirmed', { operationId, type: 'delete-for-me-bulk' });
+                }
+                if (typeof callback === 'function') callback({ success: true, operationId });
+            } catch (error) {
+                logger.error('Delete for me bulk error:', error);
                 if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
             }
         });

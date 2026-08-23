@@ -39,8 +39,8 @@ class MessageController {
         try {
             const userId = req.user.user_id || req.user.userId || req.user.id;
             const [users] = await pool.query(
-                'SELECT official_onboarding_status, official_onboarding_completed_at FROM users WHERE user_id = ? OR id = ?',
-                [userId, userId]
+                'SELECT official_onboarding_status, official_onboarding_completed_at FROM users WHERE user_id = ?',
+                [userId]
             );
             const user = users[0] || {};
             const status = user.official_onboarding_status || 'NOT_STARTED';
@@ -73,20 +73,20 @@ class MessageController {
 
             if (newStatus === 'COMPLETED') {
                 await pool.query(
-                    "UPDATE users SET official_onboarding_status = 'COMPLETED', official_onboarding_completed_at = CURRENT_TIMESTAMP WHERE user_id = ? OR id = ?",
-                    [userId, userId]
+                    "UPDATE users SET official_onboarding_status = 'COMPLETED', official_onboarding_completed_at = CURRENT_TIMESTAMP WHERE user_id = ?",
+                    [userId]
                 );
 
                 // Archive onboarding messages cleanly instead of hard delete
                 await pool.query(
-                    "UPDATE messages SET is_hidden = 1, hidden_reason = 'onboarding_completed', archive_after_completion = 1 WHERE (sender_id = ? OR recipient_id = ?) AND (message_type = 'onboarding' OR is_system_message = 1)",
+                    "UPDATE messages SET is_hidden = 1, hidden_reason = 'onboarding_completed', archive_after_completion = 1 WHERE (sender_id = ? OR recipient_id = ?) AND (message_type = 'onboarding' OR message_type = 'system' OR type = 'system')",
                     [userId, userId]
                 );
             } else {
                 // Update to VIEWED only if currently NOT_STARTED
                 await pool.query(
-                    "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE (user_id = ? OR id = ?) AND official_onboarding_status = 'NOT_STARTED'",
-                    [userId, userId]
+                    "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE user_id = ? AND official_onboarding_status = 'NOT_STARTED'",
+                    [userId]
                 );
             }
 
@@ -126,8 +126,8 @@ class MessageController {
         try {
             const userId = req.user.user_id || req.user.userId || req.user.id;
             await pool.query(
-                "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE user_id = ? OR id = ?",
-                [userId, userId]
+                "UPDATE users SET official_onboarding_status = 'VIEWED' WHERE user_id = ?",
+                [userId]
             );
 
             await pool.query(

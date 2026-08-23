@@ -272,6 +272,17 @@ class AuthService {
                     [crypto.randomUUID(), userId, normEmail, verificationCode, verificationCode]
                 );
 
+                // Record versioned legal consent acceptances
+                const termsVer = data.terms_version || '1.0';
+                const privacyVer = data.privacy_version || '1.0';
+                await conn.execute(
+                    'INSERT INTO user_legal_consents (id, user_id, document_id, version) VALUES (?, ?, ?, ?), (?, ?, ?, ?)',
+                    [
+                        crypto.randomUUID(), userId, 'terms', termsVer,
+                        crypto.randomUUID(), userId, 'privacy', privacyVer
+                    ]
+                ).catch(err => logger.error('Failed to record legal consent:', err));
+
                 const { sendEmail } = require('../config/email');
                 sendEmail({
                     to: normEmail,

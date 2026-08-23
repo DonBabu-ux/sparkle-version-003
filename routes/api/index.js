@@ -89,5 +89,6 @@ router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));
 router.use('/ota', require('./ota.routes'));
 router.use('/wallet', require('./wallet.routes'));
+router.use('/media', require('./media.routes'));
 
 module.exports = router;

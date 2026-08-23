@@ -332,6 +332,14 @@ export default function Login() {
                 <Link to="/signup" className="login-btn login-btn--alt">
                   Create new account
                 </Link>
+
+                <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.72rem', color: '#64748b', display: 'flex', itemsCenter: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                  <Link to="/legal/terms" style={{ color: '#94a3b8', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
+                  <span>•</span>
+                  <Link to="/legal/privacy" style={{ color: '#94a3b8', textDecoration: 'none' }}>Privacy Policy</Link>
+                  <span>•</span>
+                  <Link to="/legal/community-guidelines" style={{ color: '#94a3b8', textDecoration: 'none' }}>Community Guidelines</Link>
+                </div>
               </>
             ) : (
               <div className="login-2fa">

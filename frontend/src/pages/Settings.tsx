@@ -30,8 +30,12 @@ import {
   Moon,
   Volume2,
   Play,
-  RotateCcw
+  RotateCcw,
+  FileText,
+  ExternalLink,
+  Download
 } from 'lucide-react';
+import { getPublicLegalDocuments } from '../config/legalDocuments';
 import useSound from '../hooks/useSound';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 
@@ -97,6 +101,7 @@ export default function Settings() {
     { id: 'audio',         icon: Smartphone,    label: 'Sounds & Audio'},
     { id: 'messaging',     icon: MessageSquare, label: 'Messaging'     },
     { id: 'appearance',    icon: Palette,       label: 'Appearance'    },
+    { id: 'legal',         icon: FileText,      label: 'Legal & Policies'},
     { id: 'logout',        icon: LogOut,        label: 'Sign Out'      }
   ];
 
@@ -627,29 +632,54 @@ export default function Settings() {
               </div>
             )}
             
-            {activeTab === 'notifications' && (
-              <div className="space-y-12 animate-fade-in relative z-10">
+            {activeTab === 'legal' && (
+              <div className="space-y-8 animate-fade-in relative z-10">
                 <header className="flex items-center gap-4 mb-8">
-                  <div className="w-14 h-14 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-sm">
-                     <Bell size={28} />
+                  <div className="w-14 h-14 bg-pink-500 rounded-2xl flex items-center justify-center text-white shadow-sm">
+                    <FileText size={28} />
                   </div>
-                    <div>
-                       <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Alerts</h3>
-                       <p className="text-xs font-bold text-gray-400 dark:text-white/40 uppercase tracking-widest">Manage your stream</p>
-                    </div>
+                  <div>
+                    <h3 className="text-2xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Legal & Policies</h3>
+                    <p className="text-xs font-bold text-gray-400 dark:text-white/40 uppercase tracking-widest">Official Sparkle platform terms and guidelines</p>
+                  </div>
                 </header>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {['Likes & Shares', 'Followers', 'Mentions', 'Nearby', 'System Updates', 'Trending'].map((item) => (
-                    <div key={item} className="p-5 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white dark:hover:bg-white/10 hover:border-primary/10 transition-all duration-300">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 bg-white dark:bg-[#101217] rounded-xl flex items-center justify-center text-gray-400 dark:text-white/20 group-hover:text-primary transition-all shadow-sm border border-gray-100 dark:border-white/5">
-                          <Bell size={18} />
+
+                <div className="grid grid-cols-1 gap-4">
+                  {getPublicLegalDocuments().map((doc) => (
+                    <div
+                      key={doc.id}
+                      className="p-6 bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 rounded-3xl flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-primary/20 transition-all duration-300"
+                    >
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-base font-bold text-gray-900 dark:text-white">{doc.title}</h4>
+                          {doc.jurisdiction && (
+                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-500/10 text-pink-500 border border-pink-500/20">
+                              {doc.jurisdiction}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-purple-500/10 text-purple-400 border border-purple-500/20">
+                            v{doc.version}
+                          </span>
                         </div>
-                        <h4 className="text-sm font-bold text-gray-900 dark:text-white">{item}</h4>
+                        <p className="text-xs text-gray-500 dark:text-slate-400">{doc.description}</p>
+                        <p className="text-[11px] text-gray-400 dark:text-slate-500 font-medium">Effective Date: {doc.effectiveDate}</p>
                       </div>
-                      <div className="w-12 h-6 flex items-center p-1 rounded-full cursor-pointer bg-primary shadow-md shadow-primary/10">
-                        <div className="w-4 h-4 bg-white rounded-full translate-x-6"></div>
+
+                      <div className="flex items-center gap-3 shrink-0">
+                        <button
+                          onClick={() => navigate(`/legal/${doc.id}`)}
+                          className="px-4 py-2 bg-primary hover:bg-primary/90 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                        >
+                          <ExternalLink size={14} /> View Document
+                        </button>
+                        <a
+                          href={doc.file}
+                          download
+                          className="px-4 py-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white rounded-xl text-xs font-bold hover:bg-gray-100 dark:hover:bg-zinc-800 transition-all flex items-center gap-1.5"
+                        >
+                          <Download size={14} /> Download PDF
+                        </a>
                       </div>
                     </div>
                   ))}

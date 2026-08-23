@@ -13,6 +13,8 @@ interface PinnedMessagesViewProps {
   onJumpToMessage: (messageId: string) => void;
   onUnpinMessage?: (messageId: string) => void;
   onForwardMessage?: (messageId: string) => void;
+  canCopy?: boolean;
+  canForward?: boolean;
 }
 
 // Helper for date classification
@@ -56,7 +58,9 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
   onClose,
   onJumpToMessage,
   onUnpinMessage,
-  onForwardMessage
+  onForwardMessage,
+  canCopy = true,
+  canForward = true,
 }) => {
   const [pinnedList, setPinnedList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -222,14 +226,16 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
 
                   {/* Quick Actions Menu */}
                   <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={(e) => handleCopy(item.content, item.message_id, e)}
-                      className="p-2 hover:bg-white/10 rounded-xl text-white/60 hover:text-white"
-                      title="Copy Text"
-                    >
-                      {copiedId === item.message_id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    {onForwardMessage && (
+                    {canCopy !== false && (
+                      <button
+                        onClick={(e) => handleCopy(item.content, item.message_id, e)}
+                        className="p-2 hover:bg-white/10 rounded-xl text-white/60 hover:text-white"
+                        title="Copy Text"
+                      >
+                        {copiedId === item.message_id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                      </button>
+                    )}
+                    {canForward !== false && onForwardMessage && (
                       <button
                         onClick={(e) => { e.stopPropagation(); onForwardMessage(item.message_id); }}
                         className="p-2 hover:bg-white/10 rounded-xl text-white/60 hover:text-white"

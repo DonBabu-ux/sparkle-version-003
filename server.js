@@ -31,6 +31,7 @@ require('./workers/inactivityNotifier'); // Start marketplace inactivity worker
 require('./jobs/candidatePool'); // Start feed candidate pool builder
 const { initMediaJobs } = require('./jobs/media-cleanup.job'); // Media lifecycle engine
 initMediaJobs();
+require('./workers/MediaCleanupWorker').start(); // Start 10-minute ephemeral media retention worker
 
 const app = express();
 app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)

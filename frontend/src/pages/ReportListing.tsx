@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShieldAlert, CheckCircle2, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
 import api from '../api/api';
 import { useMarketplaceStore } from '../store/marketplaceStore';
@@ -91,7 +91,12 @@ export default function ReportListing() {
                 </div>
                 <div className="flex-1">
                   <h2 className="font-black text-red-600">Sparkle Safety Center</h2>
-                  <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">Protecting Your Community</p>
+                  <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">
+                    Protecting Your Community •{' '}
+                    <Link to="/legal/community-guidelines" target="_blank" className="underline hover:text-red-600">
+                      Community Guidelines
+                    </Link>
+                  </p>
                 </div>
               </div>
 

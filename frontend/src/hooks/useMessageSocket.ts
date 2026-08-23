@@ -226,6 +226,13 @@ export const useMessageSocket = () => {
       messageStore.deleteMessage(data.messageId);
     };
 
+    const handleDeleteRejected = (data: { messageId: string; chatId: string; originalContent?: string; reason?: string }) => {
+      console.warn(`[DeleteRejected] Deletion rejected by server for msg ${data.messageId}: ${data.reason}`);
+      if (data.originalContent && data.chatId) {
+        chatStore.editMessage(data.chatId, data.messageId, data.originalContent);
+      }
+    };
+
     const handleNewReaction = (data: { messageId: string; chatId: string; userId: string; emoji: string }) => {
       chatStore.addReaction(data.chatId, data.messageId, data.userId, data.emoji);
     };
@@ -260,6 +267,22 @@ export const useMessageSocket = () => {
     const handleOnboardingStatusChanged = (data: { status: string; showOnboarding: boolean; completedAt?: string }) => {
       console.log('⚡ [Socket] Official onboarding status updated:', data);
       window.dispatchEvent(new CustomEvent('sparkle_onboarding_status_changed', { detail: data }));
+    };
+
+    const handleConversationPrivacyUpdated = (data: any) => {
+      console.log('🔒 [Socket] conversation_privacy_updated received:', data);
+      const chatId = data.chatId || data.chat_id;
+      const senderId = data.senderId || data.sender_id || data.setterId;
+      const privacyVersion = data.privacyVersion || data.privacy_version;
+
+      const canCopy = data.permissions?.canCopy ?? (data.privacySettings ? (data.privacySettings.allow_copy !== 0 && !data.privacySettings.copyProtection) : true);
+      const canForward = data.permissions?.canForward ?? (data.privacySettings ? (data.privacySettings.allow_forward !== 0 && !data.privacySettings.forwardProtection) : true);
+
+      if (chatId && senderId) {
+        chatStore.updateSenderMessagePermissions(chatId, senderId, { canCopy, canForward }, privacyVersion);
+      }
+
+      window.dispatchEvent(new CustomEvent('sparkle_privacy_updated', { detail: data }));
     };
 
     const handleMessagePinnedUpdated = (data: { messageId: string; chatId: string; pinned: boolean }) => {
@@ -311,6 +334,7 @@ export const useMessageSocket = () => {
     socket.on('message-edited', handleMessageEdited);
     socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
     socket.on('message-deleted-me', handleMessageDeletedMe);
+    socket.on('delete-rejected', handleDeleteRejected);
     socket.on('new-reaction', handleNewReaction);
     socket.on('reaction-removed', handleReactionRemoved);
     socket.on('new_group_created', handleNewGroupCreated);
@@ -318,6 +342,7 @@ export const useMessageSocket = () => {
     socket.on('operation-failed', handleOperationFailed);
     socket.on('sync-response', handleSyncResponse);
     socket.on('official_onboarding_status_changed', handleOnboardingStatusChanged);
+    socket.on('conversation_privacy_updated', handleConversationPrivacyUpdated);
 
     return () => {
       socket.off('connect', handleConnect);
@@ -339,6 +364,8 @@ export const useMessageSocket = () => {
       socket.off('operation-confirmed', handleOperationConfirmed);
       socket.off('operation-failed', handleOperationFailed);
       socket.off('sync-response', handleSyncResponse);
+      socket.off('official_onboarding_status_changed', handleOnboardingStatusChanged);
+      socket.off('conversation_privacy_updated', handleConversationPrivacyUpdated);
     };
   }, [socket, messageStore, chatStore]);
 };

@@ -107,6 +107,7 @@ import AudioDiagnostics from './audio/diagnostics/AudioDiagnostics';
 
 // Phase 5 — Public & Static
 import About from './pages/About';
+import LegalViewer from './pages/LegalViewer';
 import NotFound from './pages/NotFound';
 
 // New Creator Dashboard Sub-Routes
@@ -130,7 +131,7 @@ function App() {
     if (navigationCompleted) return;
 
     const currentPath = window.location.pathname;
-    const isPublic = ['/signup', '/forgot-password', '/reset-password', '/about', '/ai'].some(
+    const isPublic = ['/signup', '/forgot-password', '/reset-password', '/about', '/ai', '/legal'].some(
       p => currentPath.startsWith(p)
     );
 
@@ -504,6 +505,8 @@ function App() {
 
                     {/* ── Phase 5: Public & Static ── */}
                     <Route path="/about" element={<About />} />
+                    <Route path="/legal" element={<LegalViewer />} />
+                    <Route path="/legal/:documentId" element={<LegalViewer />} />
                     <Route path="/ai" element={<SparkleAIScreen />} />
                     {/* <Route path="/ai/study" element={<StudyAssistantScreen />} /> */}
                     {/* <Route path="/ai/caption" element={<CaptionGeneratorScreen />} /> */}

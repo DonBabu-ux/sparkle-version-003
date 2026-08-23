@@ -40,7 +40,7 @@ export const ForwardMessage: React.FC<ForwardMessageProps> = ({ isOpen, onClose,
     clearSelection();
     toast.success('Message forwarded');
     try {
-      const res = await fetch(`/api/forward/${forwardMessageId}`, {
+      const res = await window.fetch(`/api/forward/${forwardMessageId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ targetChatIds: ids }),

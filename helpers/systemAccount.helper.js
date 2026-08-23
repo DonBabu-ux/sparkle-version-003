@@ -76,6 +76,17 @@ const OFFICIAL_ECOSYSTEM_ACCOUNTS = {
         icon: 'GraduationCap',
         badge: 'Campus Desk',
         accentColor: '#d97706'
+    },
+    'sparkle_pay': {
+        id: 'd75fe3b5-7a45-4581-ab13-91934d8b54e4',
+        name: 'SparklePay',
+        username: 'sparklepay',
+        user_handle: '@sparklepay',
+        bio: 'Verified Financial Channel • Wallet top-ups, subscriptions, payment receipts, and refunds.',
+        category: 'finance',
+        icon: 'CreditCard',
+        badge: 'Verified Financial Channel',
+        accentColor: '#10b981'
     }
 };
 
@@ -88,6 +99,7 @@ const OFFICIAL_USERNAMES = new Set([
     'sparklesupport',
     'sparklemarket',
     'sparklecampus',
+    'sparklepay',
     'sparkle',
     'sparkleofficialaccount'
 ]);

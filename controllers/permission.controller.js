@@ -2,6 +2,7 @@
 // controllers/permission.controller.js
 
 const Message = require('../models/Message');
+const PermissionEngine = require('../services/PermissionEngine');
 const { canPinMessage, canEditMessage, canDeleteForMe, canDeleteForEveryone, canReactMessage, canForwardMessage } = require('../services/messagePermission');
 const db = require('../config/database');
 
@@ -255,33 +256,46 @@ async function updatePrivacySettings(req, res) {
     forwardProtection: !allowForward,
     captureNotifications: !!notifyScreenshot,
     privacyVersion,
+    allow_copy: allowCopy,
+    allow_forward: allowForward,
+    block_screenshot: blockScreenshots,
+    blur_screen_recording: blurScreenRecording
   };
+
+  const computedPermissions = PermissionEngine.computePermissions({
+    message: { sender_id: user.id },
+    senderPrivacy: privacySettings,
+    viewerUserId: user.id
+  });
 
   // Find the partner so we can broadcast restrictions TO THEM
   const { partnerId } = await checkParticipant(chatId, user.id);
 
   try {
     const io = getIO();
-    // Notify the SETTER (for their toggle panel confirmation)
-    io.to(`user:${user.id}`).emit('conversation_privacy_updated', {
+    // Broadcast conversation_privacy_updated to ALL room members & user sockets
+    io.to(`conversation:${chatId}`).to(`chat:${chatId}`).to(`user:${user.id}`).emit('conversation_privacy_updated', {
       chatId,
-      role: 'setter',
-      ...privacySettings,
+      senderId: user.id,
+      privacyVersion,
+      privacySettings,
+      permissions: computedPermissions,
     });
-    // Notify the PARTNER (so they receive the restrictions in real-time)
+
     if (partnerId) {
       io.to(`user:${partnerId}`).emit('conversation_privacy_updated', {
         chatId,
-        role: 'receiver',
-        setterId: user.id,
-        ...privacySettings,
+        senderId: user.id,
+        privacyVersion,
+        privacySettings,
+        permissions: computedPermissions,
       });
     }
   } catch (err) {
     console.error('Socket error during privacy broadcast:', err.message);
   }
 
-  return res.json({ success: true, privacySettings });
+  return res.json({ success: true, privacySettings, permissions: computedPermissions });
 }
 
 // POST capture attempt logging & alerts

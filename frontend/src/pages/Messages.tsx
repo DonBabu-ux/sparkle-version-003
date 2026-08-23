@@ -20,6 +20,7 @@ import type { SparkleTheme } from '../store/themeStore';
 import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
 import { OfficialMessageCard } from '../components/chat/OfficialMessageCard';
+import { SparklePayCard } from '../components/chat/SparklePayCard';
 import { OfficialWelcomeCards } from '../components/chat/OfficialWelcomeCards';
 import { OfficialInteractiveOnboarding } from '../components/chat/OfficialInteractiveOnboarding';
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
@@ -668,44 +669,16 @@ const ChatInput = memo(({
             messageId={replyToMessage.message_id}
           />
         )}
+
         <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
           {!isMenuCollapsed ? (
             <div className="flex items-center shrink-0">
-              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="hover:opacity-80 p-2 ml-0" style={{ color: themePrimary }}>
-                <Plus size={22} strokeWidth={2.5} />
-              </button>
-              <button type="button" onClick={onCameraOpen} className="hover:opacity-80 p-2" style={{ color: themePrimary }}>
-                <Camera size={22} strokeWidth={2.5} />
-              </button>
-              <label className="hover:opacity-80 cursor-pointer p-2" style={{ color: themePrimary }}>
-                <ImageIcon size={22} strokeWidth={2.5} />
-                <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const content = JSON.stringify({ type: 'camera_capture', payload: { image: ev.target?.result as string, viewMode: 'off' } });
-                      onSend(undefined, content);
-                    };
-                    reader.readAsDataURL(file);
-                  }
-                }} />
-              </label>
+              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="p-2 text-white/40 hover:text-white transition-all rounded-full hover:bg-white/5 active:scale-95"><Paperclip size={20} /></button>
             </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setIsMenuCollapsed(false)}
-              className="hover:opacity-80 p-2 animate-scale-in shrink-0 ml-1"
-              style={{ color: themePrimary }}
-            >
-              <ChevronRight size={24} strokeWidth={3} />
-            </button>
-          )}
+          ) : null}
 
-          <div className="flex-1 relative rounded-full flex items-center h-[42px] px-5 mx-2 overflow-hidden border border-white/5 transition-all focus-within:border-white/15" style={{ backgroundColor: 'rgba(255,255,255,0.08)' }}>
+          <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-2">
             <input
-              ref={inputRef}
               type="text"
               value={localMessage}
               onChange={handleChange}
@@ -999,6 +972,8 @@ export default function Messages() {
     actorUserId: string;
     timestamp: string;
   } | null>(null);
+  const [showScreenshotShield, setShowScreenshotShield] = useState(false);
+  const [isWindowBlurred, setIsWindowBlurred] = useState(false);
 
   const toggleAndroidSecure = async (enabled: boolean) => {
     try {
@@ -1160,6 +1135,7 @@ const setStoreMessages = useChatStore(state => state.setMessages);
 const addMessage = useChatStore(state => state.addMessage);
 const editMessage = useChatStore(state => state.editMessage);
 const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
+const deleteMessagesBulkLocal = useChatStore(state => state.deleteMessagesBulkLocal);
 const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
 const updateMessages = (updater: (msgs: any[]) => any[]) => {
   if (!chatId) return;
@@ -1183,6 +1159,38 @@ const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'lo
 const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
 const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
+const [isSelectionMode, setIsSelectionMode] = useState(false);
+const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+const [pendingDeletingIds, setPendingDeletingIds] = useState<Set<string>>(new Set());
+
+const handleBulkDeleteForMe = () => {
+  if (selectedMessageIds.size === 0 || !selectedChat) return;
+  const idsArray = Array.from(selectedMessageIds);
+  const targetChatId = selectedChat.chat_id;
+  const operationId = crypto.randomUUID();
+
+  // 1. Instantly update local UI (<100ms)
+  deleteMessagesBulkLocal(targetChatId, idsArray);
+  idsArray.forEach(id => useMessageStore.getState().deleteMessage(id));
+
+  // 2. Transmit background socket / offline queue
+  const payload = { operationId, messageIds: idsArray, chatId: targetChatId };
+  if (socket?.connected) {
+    socket.emit('delete-for-me-bulk', payload);
+  } else {
+    PersistentOfflineQueue.enqueueInteraction({
+      type: 'delete-message',
+      chatId: targetChatId,
+      messageId: idsArray[0]
+    });
+  }
+
+  // 3. Clear selection mode & restore normal composer
+  setIsSelectionMode(false);
+  setSelectedMessageIds(new Set());
+  setShowDeleteConfirm(false);
+  setMessageToDelete(null);
+};
 
 const replyTargetId = useChatStore(state => state.replyTargets[chatId]);
 const replyToMessage = useMemo(() => {
@@ -1349,6 +1357,120 @@ useEffect(() => {
     setActiveMessagePermissions(undefined);
   }
 }, [activeMessageMenu]);
+
+const effectiveMessagePermissions = useMemo(() => {
+  const isCopyDisabledByPrivacy = !!activePrivacy && (activePrivacy.copyProtection || (activePrivacy as any).allowCopy === false);
+  const isForwardDisabledByPrivacy = !!activePrivacy && (activePrivacy.forwardProtection || (activePrivacy as any).allowForward === false);
+
+  const basePermissions = activeMessagePermissions || {
+    canCopy: !isCopyDisabledByPrivacy,
+    canForward: !isForwardDisabledByPrivacy,
+    canEdit: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
+    canDeleteForMe: true,
+    canDeleteForEveryone: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
+    canReply: true,
+    canReact: true,
+    canPin: true,
+  };
+
+  return {
+    ...basePermissions,
+    canCopy: isCopyDisabledByPrivacy ? false : (basePermissions.canCopy ?? true),
+    canForward: isForwardDisabledByPrivacy ? false : (basePermissions.canForward ?? true),
+  };
+}, [activeMessagePermissions, activePrivacy, activeMessageMenu?.msg?.sender_id, user]);
+
+// Web Screenshot, Screen Recording & Clipboard Privacy Enforcement
+useEffect(() => {
+  if (!selectedChat?.chat_id || selectedChat.chat_id.startsWith('temp_')) {
+    setIsWindowBlurred(false);
+    setShowScreenshotShield(false);
+    return;
+  }
+
+  const isScreenshotProtected = !!(
+    activePrivacy?.screenshotProtection ||
+    (activePrivacy as any)?.blockScreenshots
+  );
+  const isRecordingProtected = !!(
+    activePrivacy?.screenRecordingProtection ||
+    (activePrivacy as any)?.blurScreenRecording
+  );
+  const isCopyProtected = !!(
+    activePrivacy?.copyProtection ||
+    (activePrivacy as any)?.allowCopy === false
+  );
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!isScreenshotProtected && !isRecordingProtected) return;
+
+    const isPrtScn = e.key === 'PrintScreen' || e.code === 'PrintScreen';
+    const isWinShiftS = e.key === 'S' && e.shiftKey && (e.metaKey || e.ctrlKey);
+    const isMacScreenshot = (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5'));
+    const isPrint = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P');
+
+    if (isPrtScn || isWinShiftS || isMacScreenshot || isPrint) {
+      if (isPrint) e.preventDefault();
+      setShowScreenshotShield(true);
+      if (activePrivacy?.captureNotifications !== false && selectedChat?.chat_id) {
+        api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
+          attemptType: 'SCREENSHOT_ATTEMPT',
+          detectionMethod: 'WEB_KEYBOARD_LISTENER',
+          deviceInfo: { userAgent: navigator.userAgent },
+        }).catch(() => {});
+      }
+      setTimeout(() => setShowScreenshotShield(false), 2500);
+    }
+  };
+
+  const handleKeyUp = (e: KeyboardEvent) => {
+    if (!isScreenshotProtected && !isRecordingProtected) return;
+    if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+      setShowScreenshotShield(true);
+      setTimeout(() => setShowScreenshotShield(false), 2500);
+    }
+  };
+
+  const handleWindowBlur = () => {
+    if (isScreenshotProtected || isRecordingProtected) {
+      setIsWindowBlurred(true);
+    }
+  };
+
+  const handleWindowFocus = () => {
+    setIsWindowBlurred(false);
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden && (isScreenshotProtected || isRecordingProtected)) {
+      setIsWindowBlurred(true);
+    } else if (!document.hidden) {
+      setIsWindowBlurred(false);
+    }
+  };
+
+  const handleCopyEvent = (e: ClipboardEvent) => {
+    if (isCopyProtected) {
+      e.preventDefault();
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown, true);
+  window.addEventListener('keyup', handleKeyUp, true);
+  window.addEventListener('blur', handleWindowBlur);
+  window.addEventListener('focus', handleWindowFocus);
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  document.addEventListener('copy', handleCopyEvent);
+
+  return () => {
+    window.removeEventListener('keydown', handleKeyDown, true);
+    window.removeEventListener('keyup', handleKeyUp, true);
+    window.removeEventListener('blur', handleWindowBlur);
+    window.removeEventListener('focus', handleWindowFocus);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.removeEventListener('copy', handleCopyEvent);
+  };
+}, [selectedChat?.chat_id, activePrivacy]);
 
 // Listen to real-time privacy settings update
 useEffect(() => {
@@ -2082,6 +2204,190 @@ const triggerWordEffect = (content: string) => {
   }
 };
 
+/**
+ * Canonical Media Selection Handler
+ * Normalizes input from Direct Camera, Direct File picker, or Attachment Sheet.
+ * Ensures media goes through Media Composer & Upload Queue, NEVER text pipeline.
+ */
+const handleMediaSelection = async (payload: {
+  source: 'camera' | 'file' | 'picker' | 'attachment';
+  files?: FileList | File[] | null;
+  file?: File | Blob | null;
+  uri?: string;
+  dataUrl?: string;
+  type?: 'image' | 'video' | 'audio' | 'document';
+  fileName?: string;
+}) => {
+  console.log(`[MEDIA_SHORTCUT] source=${payload.source}`);
+  if (!selectedChat) return;
+
+  const normalizedItems: any[] = [];
+
+  // 1. Multiple raw files (from File input / picker)
+  if (payload.files && payload.files.length > 0) {
+    for (let i = 0; i < payload.files.length; i++) {
+      const f = payload.files[i];
+      const mime = f.type || '';
+      let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document';
+      if (mime.startsWith('image/')) mediaType = 'image';
+      else if (mime.startsWith('video/')) mediaType = 'video';
+      else if (mime.startsWith('audio/')) mediaType = 'audio';
+
+      const url = URL.createObjectURL(f);
+      console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name}`);
+      normalizedItems.push({
+        id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        type: mediaType,
+        url: url,
+        file: f,
+        name: f.name || payload.fileName || `Attachment_${i + 1}`
+      });
+    }
+  } 
+  // 2. Single raw file / Blob (from Document input / File picker)
+  else if (payload.file) {
+    const f = payload.file as File;
+    const mime = f.type || '';
+    let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || 'document';
+    if (mime.startsWith('image/')) mediaType = 'image';
+    else if (mime.startsWith('video/')) mediaType = 'video';
+    else if (mime.startsWith('audio/')) mediaType = 'audio';
+
+    const url = URL.createObjectURL(f);
+    console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name || payload.fileName}`);
+    normalizedItems.push({
+      id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      type: mediaType,
+      url: url,
+      file: f,
+      name: f.name || payload.fileName || `Attachment_${Date.now()}`
+    });
+  } 
+  // 3. DataUrl / URI (from Camera capture or Base64 picker)
+  else if (payload.dataUrl || payload.uri) {
+    const rawUri = payload.dataUrl || payload.uri || '';
+    if (!rawUri) return;
+
+    const isVideo = rawUri.startsWith('data:video') || rawUri.includes('video/mp4') || rawUri.endsWith('.mp4') || rawUri.endsWith('.webm');
+    const isAudio = rawUri.startsWith('data:audio') || rawUri.endsWith('.mp3') || rawUri.endsWith('.wav');
+    const isDoc = rawUri.endsWith('.pdf') || rawUri.endsWith('.docx') || rawUri.endsWith('.zip');
+    let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || (isVideo ? 'video' : isAudio ? 'audio' : isDoc ? 'document' : 'image');
+
+    let fileBlob: Blob | undefined;
+    try {
+      if (rawUri.startsWith('data:')) {
+        const res = await fetch(rawUri);
+        fileBlob = await res.blob();
+      }
+    } catch (err) {
+      console.warn('[Camera] Failed to convert URI to blob:', err);
+    }
+
+    const name = payload.fileName || `Camera_${mediaType === 'video' ? 'Video' : mediaType === 'audio' ? 'Audio' : 'Photo'}_${Date.now()}`;
+    console.log(`[MEDIA_NORMALIZED] type=${mediaType} name=${name}`);
+    normalizedItems.push({
+      id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+      type: mediaType,
+      url: rawUri,
+      file: fileBlob,
+      name: name
+    });
+  }
+
+  // Reject invalid / empty payload early
+  if (normalizedItems.length === 0) {
+    console.warn('[MEDIA_PIPELINE_WARN] Empty or invalid media payload rejected.');
+    return;
+  }
+
+  // Route documents/audio directly to Upload Queue with optimistic cards, or images/videos into Media Composer
+  const firstItem = normalizedItems[0];
+  if (firstItem.type === 'document' || firstItem.type === 'audio') {
+    setShowAttachmentSheet(false);
+    for (const item of normalizedItems) {
+      const queueId = `upload_${Date.now()}_${item.id}`;
+      const tempMessageId = crypto.randomUUID();
+      console.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
+
+      // Optimistic document / audio message bubble
+      const optimisticMsg: any = {
+        message_id: tempMessageId,
+        id: tempMessageId,
+        sender_id: user?.id || user?.user_id || '',
+        content: item.name || 'Attachment',
+        status: 'sending',
+        sent_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        is_read: false,
+        type: item.type,
+        media_url: item.url,
+        mediaUrl: item.url
+      };
+      console.log(`[MEDIA_MESSAGE_CREATE] messageId=${tempMessageId} type=${item.type}`);
+      updateMessages(prev => [...prev, optimisticMsg]);
+      AudioSessionManager.playSound('send');
+      if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
+
+      setUploadQueue(prev => [...prev, { id: queueId, name: item.name, progress: 0, status: 'uploading' }]);
+
+      (async () => {
+        try {
+          const filePayload = item.file || item.url;
+          const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
+            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
+          });
+
+          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
+          setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
+
+          const finalMediaUrl = uploadedUrl || item.url;
+          if (selectedChat) {
+            const payload = {
+              messageId: tempMessageId,
+              chatId: selectedChat.chat_id,
+              partnerId: selectedChat.partner_id,
+              content: item.name || 'Attachment',
+              type: item.type,
+              mediaUrl: finalMediaUrl
+            };
+
+            if (socket?.connected) {
+              socket.emit('send-message', payload, (response: any) => {
+                if (response?.success) {
+                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                    ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
+                    : m
+                  ));
+                } else {
+                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                    ? { ...m, status: 'failed' }
+                    : m
+                  ));
+                }
+              });
+            } else {
+              PersistentOfflineQueue.enqueue(payload);
+            }
+          }
+        } catch (err) {
+          console.error('[MediaUpload] Upload failed:', err);
+          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+          updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+            ? { ...m, status: 'failed' }
+            : m
+          ));
+        }
+      })();
+    }
+  } else {
+    // Route images / videos into existing Media Composer for preview & captioning
+    setShowAttachmentSheet(false);
+    setSelectedMediaItems(normalizedItems);
+    setMediaCaption('');
+    setShowMediaComposer(true);
+  }
+};
+
 const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string) => {
   if (e) e.preventDefault();
   const currentChatId = selectedChat?.chat_id || '';
@@ -2090,6 +2396,14 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   const isRich = !!specialType;
   if (!content.trim() && !isRich) return;
   if (!selectedChat) return;
+
+  // Safeguard assertion: Never allow raw media payloads or JSON stringified files into text pipeline
+  const messageType = specialType || 'text';
+  const isMediaPayload = content.includes('"type":"camera_capture"') || content.includes('"type":"file"') || content.startsWith('data:image') || content.startsWith('data:video');
+  if (messageType === 'text' && isMediaPayload) {
+    console.error('[MEDIA_PIPELINE_ERROR] Media attempted to enter text pipeline! Intercepting.', { content });
+    return;
+  }
 
   const editing = useChatStore.getState().editing;
   if (editing.messageId && editing.chatId === selectedChat.chat_id) {
@@ -2108,11 +2422,15 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   }
 
   if (!isRich) triggerWordEffect(content);
-  setSending(true);
 
-  const tempId = `temp_${Date.now()}`;
+  const sendStartTime = performance.now();
+  // ── Generate a stable UUID BEFORE anything else.
+  // This same ID goes into the optimistic bubble AND the socket payload,
+  // so every retry is idempotent on the server.
+  const messageId = crypto.randomUUID();
   const optimisticMsg: any = {
-    message_id: tempId,
+    message_id: messageId,
+    id: messageId,
     sender_id: user?.id || user?.user_id || '',
     content: content || (specialType ? `Shared ${specialType}` : ''),
     status: 'sending',
@@ -2131,8 +2449,14 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
     optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
   }
 
+  // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
   updateMessages(prev => [...prev, optimisticMsg]);
   if (!contentOverride && !isRich) setNewMessage('');
+  // Release the sending lock immediately — the message is already visible.
+  // Network status is indicated by the bubble's status field, not the input lock.
+  setSending(false);
+
+  const localRenderMs = Math.round(performance.now() - sendStartTime);
 
   // ── Sparkle Audio: instant 'send' feedback ──
   AudioSessionManager.playSound('send');
@@ -2150,6 +2474,7 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   }
 
   const payload: any = {
+    messageId,               // ← client UUID travels to server for idempotency
     chatId: selectedChat.chat_id,
     partnerId: selectedChat.partner_id,
     content: content || (specialType ? `Shared ${specialType}` : ''),
@@ -2166,50 +2491,119 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
     useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
   }
 
-  // Transmit exclusively via WebSocket payload
-  socket?.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
-    setSending(false);
-    if (response.success && response.messageId) {
-      if (selectedChat) {
-        useChatStore.getState().setDraft(selectedChat.chat_id, '');
+  // ── Step 2: Transmit via WebSocket in the background ──
+  // The message is already visible to the user (status: 'sending').
+  // The ACK merely upgrades the status to 'sent' and reconciles the UUID.
+  const emitStartTime = performance.now();
+  if (socket?.connected) {
+    socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
+      const serverAckMs = Math.round(performance.now() - emitStartTime);
+      const totalMs = Math.round(performance.now() - sendStartTime);
+      console.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
+      if (response.success && response.messageId) {
+        if (selectedChat) {
+          useChatStore.getState().setDraft(selectedChat.chat_id, '');
+        }
+        // ACK received — reconcile: the server echoed back the same UUID we sent,
+        // so we just update status + server-authoritative sentAt in-place.
+        updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
+          ? {
+            ...m,
+            message_id: response.messageId!,
+            id: response.messageId!,
+            status: 'sent',
+            sent_at: response.sentAt || m.sent_at,
+            reply_to_message_id: currentReplyTo?.message_id || null,
+            reply_content: currentReplyTo?.content || null,
+            reply_type: currentReplyTo?.type || null
+          }
+          : m
+        ));
+        setConversations((prev: any[]) => {
+          const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
+          if (chatIndex >= 0) {
+            const newConvs = [...prev];
+            const chat = { ...newConvs[chatIndex] };
+            chat.last_message = content || (specialType ? `Shared ${specialType}` : '');
+            chat.last_message_type = specialType || 'text';
+            chat.last_message_content = content || (specialType ? `Shared ${specialType}` : '');
+            chat.last_message_status = 'sent';
+            chat.last_message_time = response.sentAt || chat.last_message_time;
+            newConvs.splice(chatIndex, 1);
+            newConvs.unshift(chat);
+            return newConvs;
+          }
+          return prev;
+        });
+      } else {
+        // Network or server error — mark as 'failed' so UI can show retry option.
+        // We do NOT delete the message; it stays visible with a retry affordance.
+        console.error('[Sparkle] Failed to send message via socket:', response?.error);
+        updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
+          ? { ...m, status: 'failed' }
+          : m
+        ));
       }
-      // ACK received — use server-returned sentAt (never client Date)
-      updateMessages(prev => prev.map(m => m.message_id === tempId
-        ? {
-          ...m,
-          message_id: response.messageId!,
-          status: 'sent',
-          sent_at: response.sentAt || m.sent_at,
-          reply_to_message_id: currentReplyTo?.message_id || null,
-          reply_content: currentReplyTo?.content || null,
-          reply_type: currentReplyTo?.type || null
-        }
-        : m
-      ));
-      setConversations((prev: any[]) => {
-        const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
-        if (chatIndex >= 0) {
-          const newConvs = [...prev];
-          const chat = { ...newConvs[chatIndex] };
-          chat.last_message = content || (specialType ? `Shared ${specialType}` : '');
-          chat.last_message_type = specialType || 'text';
-          chat.last_message_content = content || (specialType ? `Shared ${specialType}` : '');
-          chat.last_message_status = 'sent';
-          chat.last_message_time = response.sentAt || chat.last_message_time;
-          newConvs.splice(chatIndex, 1);
-          newConvs.unshift(chat);
-          return newConvs;
-        }
-        return prev;
-      });
-    } else {
-      console.error('Failed to send via socket', response.error);
-      updateMessages(prev => prev.filter(m => m.message_id !== tempId));
-    }
-  });
+    });
+  } else {
+    // Socket is not connected — persist to offline queue using the same UUID.
+    // useMessageSocket will flush this on reconnect with the same messageId,
+    // so the server can deduplicate any prior attempt.
+    PersistentOfflineQueue.enqueue({
+      messageId,
+      chatId: selectedChat.chat_id,
+      recipientId: selectedChat.partner_id,
+      senderId: user?.id || user?.user_id || '',
+      content: content || (specialType ? `Shared ${specialType}` : ''),
+      type: specialType || 'text',
+      mediaUrl: mediaUrl,
+    }).then(() => {
+      console.log('[Sparkle] Message queued for offline delivery:', messageId);
+    });
+    // Message stays as 'sending' — will be upgraded to 'sent' on reconnect flush
+  }
 };
 
 const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
+
+/**
+ * Retry a failed message using its existing UUID — fully idempotent.
+ * The server will return the existing message if it already has the UUID,
+ * so this is safe to call multiple times.
+ */
+const handleRetryMessage = (failedMsg: any) => {
+  if (!socket || !selectedChat) return;
+  const msgId = failedMsg.message_id || failedMsg.id;
+
+  // Mark back to 'sending'
+  updateMessages(prev => prev.map(m =>
+    (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'sending' } : m
+  ));
+
+  const payload: any = {
+    messageId: msgId,  // same UUID — server deduplicates
+    chatId: selectedChat.chat_id,
+    partnerId: selectedChat.partner_id,
+    content: failedMsg.content,
+    type: failedMsg.type || 'text',
+    mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
+  };
+  if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
+
+  socket.emit('send-message', payload, (response: any) => {
+    if (response?.success && response.messageId) {
+      updateMessages(prev => prev.map(m =>
+        (m.message_id === msgId || m.id === msgId)
+          ? { ...m, message_id: response.messageId, id: response.messageId, status: 'sent', sent_at: response.sentAt || m.sent_at }
+          : m
+      ));
+    } else {
+      updateMessages(prev => prev.map(m =>
+        (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'failed' } : m
+      ));
+    }
+  });
+};
 
 const handleVoiceSend = async (file: File) => {
   if (!selectedChat) return;
@@ -2808,7 +3202,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         {/* MAIN CHAT AREA */}
         <main className={clsx(
           "flex-1 flex flex-col transition-all duration-300 relative z-10 bg-transparent overflow-hidden",
-          !selectedChat ? 'hidden lg:flex' : 'flex'
+          !selectedChat ? 'hidden lg:flex' : 'flex',
+          (activePrivacy?.copyProtection || activePrivacy?.screenshotProtection || (activePrivacy as any)?.blockScreenshots) && 'select-none'
         )}>
           {selectedChat && <ChatBackground theme={currentChatTheme} />}
 
@@ -2938,6 +3333,34 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 })()}
               </header>
 
+              {/* Selection Mode Top Bar */}
+              <AnimatePresence>
+                {isSelectionMode && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 48, opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    className="relative z-[45] flex items-center justify-between px-4 border-b border-white/5 shrink-0 overflow-hidden"
+                    style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#0a0a12' }}
+                  >
+                    <button
+                      onClick={() => {
+                        setIsSelectionMode(false);
+                        setSelectedMessageIds(new Set());
+                      }}
+                      className="flex items-center gap-2 text-white/80 hover:text-white transition-colors p-1.5 -ml-1 active:scale-95"
+                    >
+                      <X size={20} strokeWidth={2.5} />
+                      <span className="text-[13px] font-semibold">Cancel</span>
+                    </button>
+                    <span className="text-[13px] font-bold text-white/60">
+                      {selectedMessageIds.size > 0 ? `${selectedMessageIds.size} selected` : 'Select messages'}
+                    </span>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {privacyAlert && (
                 <div className="absolute top-[56px] left-0 right-0 z-[100] px-4 py-2.5 bg-rose-500/90 text-white backdrop-blur-md shadow-lg border-b border-rose-500/20 text-xs font-bold flex items-center justify-between transition-all duration-300">
                   <div className="flex items-center gap-2">
@@ -3012,10 +3435,32 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
               </AnimatePresence>
 
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
-                {(selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_username === 'sparkleofficial' || selectedChat?.username === 'sparkleofficial' || selectedChat?.partner_name === 'Sparkle Official') && (
+                {(() => {
+                  const partnerName = (selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name || '').toLowerCase();
+                  const partnerUsername = (selectedChat?.partner_username || selectedChat?.username || '').toLowerCase();
+                  const isSparklePay = partnerName.includes('pay') || partnerUsername.includes('pay');
+                  const isOfficialChat = !!(
+                    selectedChat?.account_type === 'system' ||
+                    selectedChat?.conversation_type === 'system' ||
+                    selectedChat?.is_system_account ||
+                    selectedChat?.is_system ||
+                    partnerUsername.includes('sparkle') ||
+                    partnerName.includes('sparkle') ||
+                    isSparklePay
+                  );
+                  (window as any).__sparkleIsOfficialChat = isOfficialChat;
+                  (window as any).__sparkleIsSparklePay = isSparklePay;
+                  return null;
+                })()}
+
+                {!!(window as any).__sparkleIsOfficialChat && (
                   <>
-                    <OfficialAccountBanner displayName={selectedChat.partner_name || selectedChat.display_name || selectedChat.name || 'Sparkle Official'} badge={selectedChat.official_badge || '✔️ Verified'} />
-                    {showOfficialOnboarding && (
+                    <OfficialAccountBanner
+                      displayName={selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name || ((window as any).__sparkleIsSparklePay ? 'SparklePay' : 'Sparkle Official')}
+                      badge={(window as any).__sparkleIsSparklePay ? 'Verified Financial Channel' : (selectedChat?.official_badge || '✔️ Verified')}
+                      accountType={(window as any).__sparkleIsSparklePay ? 'sparkle_pay' : 'official'}
+                    />
+                    {showOfficialOnboarding && !(window as any).__sparkleIsSparklePay && (
                       <OfficialInteractiveOnboarding onComplete={() => setShowOfficialOnboarding(false)} />
                     )}
                   </>
@@ -3046,22 +3491,69 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                       </div>
                     ) : null;
 
+                    const msgId = msg.message_id || msg.id;
+                    const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
+
                     const bubble = (
-                      <div key={msg.message_id || i} id={`msg-${msg.message_id}`} className={clsx("flex animate-fade-in", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
+                      <div key={msgId || i} id={`msg-${msg.message_id}`} className={clsx("flex animate-fade-in items-center gap-2", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
                         {console.log('[MESSAGE_RENDERED]', msg.message_id)}
-                        <div className={clsx("max-w-[72%] flex flex-col", isMe ? 'items-end' : 'items-start')}>
+
+                        {/* Selection mode: circular checkbox */}
+                        {isSelectionMode && (
+                          <button
+                            onClick={() => {
+                              setSelectedMessageIds(prev => {
+                                const next = new Set(prev);
+                                if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+                                return next;
+                              });
+                            }}
+                            className="shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
+                          >
+                            <div className={clsx(
+                              'w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center transition-all duration-150',
+                              isSelected
+                                ? 'bg-[#ff1493] border-[#ff1493] scale-110'
+                                : 'border-white/30 bg-transparent hover:border-white/50'
+                            )}>
+                              {isSelected && (
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              )}
+                            </div>
+                          </button>
+                        )}
+
+                        <div className={clsx((window as any).__sparkleIsOfficialChat && !isMe ? "max-w-[95%]" : "max-w-[72%]", "flex flex-col", isMe ? 'items-end' : 'items-start')}>
                           <div
                             onContextMenu={(e) => {
                               e.preventDefault();
+                              if (isSelectionMode) {
+                                setSelectedMessageIds(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+                                  return next;
+                                });
+                                return;
+                              }
                               setActiveMessageMenu({ msg, type: 'longPress' });
                             }}
                             onClick={() => {
+                              if (isSelectionMode) {
+                                setSelectedMessageIds(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
+                                  return next;
+                                });
+                                return;
+                              }
                               if (isMe) {
                                 setActiveMessageMenu({ msg, type: 'click' });
                               }
                             }}
                             className={clsx(
-                              "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap",
+                              (window as any).__sparkleIsOfficialChat && !isMe
+                                ? "px-4 py-3 text-[16px] leading-[1.65] transition-all duration-300 relative z-10 min-w-[120px] break-words whitespace-pre-wrap"
+                                : "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap",
                               isMe ? 'rounded-[14px]' : 'rounded-[14px]',
                               isMe && hasTail ? 'rounded-tr-none' : isMe ? 'rounded-tr-[14px]' : '',
                               isMe && isLast ? 'rounded-br-[14px]' : isMe ? 'rounded-br-md' : '',
@@ -3069,7 +3561,9 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               !isMe && isLast ? 'rounded-bl-[14px]' : !isMe ? 'rounded-bl-md' : ''
                             )}
                             style={{
-                              backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#5030A5') : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E'),
+                              backgroundColor: isMe ? (currentChatTheme?.colors?.chatBubbleSent || '#5030A5') : ((window as any).__sparkleIsOfficialChat ? '#1A1035' : (currentChatTheme?.colors?.chatBubbleReceived || '#2C2C2E')),
+                              border: (window as any).__sparkleIsOfficialChat && !isMe ? '1px solid rgba(244,63,94,0.25)' : 'none',
+                              borderRadius: (window as any).__sparkleIsOfficialChat && !isMe ? '20px' : undefined,
                               color: '#ffffff',
                               backdropFilter: currentChatTheme ? 'blur(10px)' : 'none',
                               maxWidth: '100%',
@@ -3160,7 +3654,11 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               })()}
 
                               <div className="relative text-[14.5px]">
-                                {msg.is_deleted_for_everyone ? (
+                                {pendingDeletingIds.has(msgId) ? (
+                                  <span className="text-[12px] font-semibold text-rose-300 italic animate-pulse flex items-center gap-1.5 py-0.5 select-none">
+                                    Deleting…
+                                  </span>
+                                ) : msg.is_deleted_for_everyone ? (
                                   <>
                                     {console.log('[DELETE_RENDER]', msg.message_id)}
                                     <span className="italic text-white/40 select-none">
@@ -3171,13 +3669,47 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                   </>
                                 ) : (
                                   <>
-                                    {(!msg.type || msg.type === 'text') && (
-                                      <>
-                                        <span className="whitespace-pre-wrap break-words text-white" style={{ color: '#ffffff !important' }}>{msg.content}</span>
-                                        {/* Spacer to prevent timestamp overlap */}
-                                        <span className="inline-block w-[75px] h-[1px]"></span>
-                                      </>
-                                    )}
+                                    {/* Unify message text resolution across all standard/system/official types */}
+                                    {(() => {
+                                      const textContent = (
+                                        msg.content ||
+                                        msg.text ||
+                                        msg.message ||
+                                        msg.body ||
+                                        (typeof msg.payload === 'object' ? (msg.payload?.body || msg.payload?.content || msg.payload?.text || msg.payload?.message) : (typeof msg.payload === 'string' ? msg.payload : ''))
+                                      ) || '';
+
+                                      const isSparklePay = msg.type === 'sparkle_pay' || msg.type === 'wallet' || msg.category === 'wallet' || msg.sender_username === 'sparklepay' || msg.payload?.referenceId || msg.payload?.amount;
+
+                                      if (isSparklePay) {
+                                        return (
+                                          <SparklePayCard
+                                            title={msg.payload?.title || msg.title || 'SparklePay Notification'}
+                                            subtitle={msg.payload?.subtitle || (msg.payload?.amount ? undefined : textContent)}
+                                            amount={msg.payload?.amount || 'KES 0.00'}
+                                            referenceId={msg.payload?.referenceId || msg.payload?.reference_id || msg.message_id || 'SPK-REF'}
+                                            balance={msg.payload?.balance || msg.payload?.availableBalance}
+                                            status={msg.payload?.status || 'Successful'}
+                                            sentAt={msg.sent_at || msg.created_at}
+                                          />
+                                        );
+                                      }
+
+                                      const isTextLike = !msg.type || msg.type === 'text' || msg.type === 'official' || msg.type === 'system' || msg.type === 'onboarding' || msg.type === 'announcement' || msg.type === 'notification' || msg.type === 'card';
+
+                                      if (isTextLike) {
+                                        return (
+                                          <>
+                                            <span className="whitespace-pre-wrap break-words text-white leading-relaxed font-normal" style={{ color: '#ffffff !important' }}>
+                                              {textContent}
+                                            </span>
+                                            <span className="inline-block w-[75px] h-[1px]"></span>
+                                          </>
+                                        );
+                                      }
+
+                                      return null;
+                                    })()}
 
                                     {msg.type === 'attachment' && msg.metadata && (
                                       <div className="my-1">
@@ -3309,6 +3841,14 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                 <div className="flex items-center -ml-0.5">
                                   {(selectedChat?.is_group || selectedChat?.chat_type === 'group') ? (
                                     <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
+                                  ) : msg.status === 'failed' ? (
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); handleRetryMessage(msg); }}
+                                      title="Tap to retry"
+                                      className="flex items-center gap-0.5 ml-1"
+                                    >
+                                      <AlertTriangle size={12} className="text-red-400 drop-shadow-md" strokeWidth={2.5} />
+                                    </button>
                                   ) : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
                                     <div className="flex -space-x-[7px] drop-shadow-md">
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
@@ -3425,7 +3965,44 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 )}
               </AnimatePresence>
 
-              {(
+              {isSelectionMode ? (
+                /* Selection Mode Bottom Action Card */
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 20, opacity: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                  className="shrink-0 border-t border-white/5 px-4 py-3 flex items-center justify-between gap-3 z-30"
+                  style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#0a0a12' }}
+                >
+                  <button
+                    onClick={() => {
+                      setIsSelectionMode(false);
+                      setSelectedMessageIds(new Set());
+                    }}
+                    className="px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all active:scale-95"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (selectedMessageIds.size > 0) {
+                        handleBulkDeleteForMe();
+                      }
+                    }}
+                    disabled={selectedMessageIds.size === 0}
+                    className={clsx(
+                      'flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
+                      selectedMessageIds.size > 0
+                        ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
+                        : 'bg-white/5 text-white/25 border border-white/5 cursor-not-allowed'
+                    )}
+                  >
+                    <Trash2 size={16} strokeWidth={2.2} />
+                    Delete for you{selectedMessageIds.size > 0 ? ` (${selectedMessageIds.size})` : ''}
+                  </button>
+                </motion.div>
+              ) : (
                 selectedChat?.account_type === 'system' ||
                 selectedChat?.conversation_type === 'system' ||
                 selectedChat?.is_system_account ||
@@ -3474,6 +4051,41 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
               </button>
             </div>
           )}
+          {/* Screenshot Protection Shield Overlay */}
+          <AnimatePresence>
+            {showScreenshotShield && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center select-none"
+              >
+                <div className="w-20 h-20 rounded-full bg-[#ff1493]/20 border border-[#ff1493]/40 flex items-center justify-center mb-4 text-[#ff1493] animate-pulse">
+                  <Shield size={40} />
+                </div>
+                <h3 className="text-xl font-bold text-white mb-2">Screenshot Attempt Blocked</h3>
+                <p className="text-sm text-white/60 max-w-sm">
+                  Screenshots and screen capture are disabled in this chat by Sparkle Privacy Guard.
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Window Blur / Screen Recording Protection Overlay */}
+          <AnimatePresence>
+            {isWindowBlurred && (activePrivacy?.screenshotProtection || activePrivacy?.screenRecordingProtection || (activePrivacy as any)?.blockScreenshots) && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-[990] bg-black/90 backdrop-blur-3xl flex flex-col items-center justify-center p-6 text-center select-none pointer-events-auto"
+              >
+                <Shield size={48} className="text-[#ff1493] mb-3 animate-bounce" />
+                <h4 className="text-lg font-bold text-white">Protected View Active</h4>
+                <p className="text-xs text-white/50 mt-1">Focus window to restore conversation visibility</p>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
       </KeyboardAwareChatLayout>
 
@@ -3496,13 +4108,35 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   (Date.now() - new Date(messageToDelete.created_at || messageToDelete.sent_at || Date.now()).getTime()) <= 15 * 60 * 1000 && (
                     <button
                       onClick={() => {
-                        if (socket && selectedChat) {
-                          socket.emit('delete-for-everyone', {
-                            messageId: messageToDelete.message_id,
-                            chatId: selectedChat.chat_id,
-                            isGroup: selectedChat.type === 'group'
+                        if (!messageToDelete || !selectedChat) return;
+                        const targetId = messageToDelete.message_id || messageToDelete.id;
+                        const targetChatId = selectedChat.chat_id;
+                        const operationId = crypto.randomUUID();
+
+                        // 1. Mark target message as pending deletion
+                        setPendingDeletingIds(prev => new Set(prev).add(targetId));
+
+                        // 2. Transmit background socket request with server-authoritative ACK
+                        const payload = { operationId, messageId: targetId, chatId: targetChatId, isGroup: selectedChat.type === 'group' };
+                        if (socket?.connected) {
+                          socket.emit('delete-for-everyone', payload, (res: any) => {
+                            setPendingDeletingIds(prev => {
+                              const next = new Set(prev);
+                              next.delete(targetId);
+                              return next;
+                            });
+                            if (res?.success) {
+                              deleteMessageForEveryone(targetChatId, targetId, 'This message was deleted');
+                              useMessageStore.getState().deleteMessage(targetId);
+                            } else {
+                              setPrivacyAlert({ message: res?.error || 'Could not delete message for everyone.' });
+                            }
                           });
+                        } else {
+                          PersistentOfflineQueue.enqueueInteraction({ type: 'delete-message', chatId: targetChatId, messageId: targetId });
                         }
+
+                        // 3. Close modal immediately
                         setShowDeleteConfirm(false);
                         setMessageToDelete(null);
                       }}
@@ -3513,13 +4147,14 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   )}
                 <button
                   onClick={() => {
-                    if (socket && selectedChat) {
-                      socket.emit('delete-for-me', {
-                        messageId: messageToDelete.message_id,
-                        chatId: selectedChat.chat_id,
-                        isGroup: selectedChat.type === 'group'
-                      });
-                    }
+                    if (!messageToDelete || !selectedChat) return;
+                    const targetId = messageToDelete.message_id || messageToDelete.id;
+
+                    // Enter multi-select mode with this message pre-selected
+                    setIsSelectionMode(true);
+                    setSelectedMessageIds(new Set([targetId]));
+
+                    // Close this modal immediately
                     setShowDeleteConfirm(false);
                     setMessageToDelete(null);
                   }}
@@ -3546,8 +4181,14 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         isOpen={activeMessageMenu?.type === 'longPress'}
         onClose={() => setActiveMessageMenu(null)}
         onCopy={() => {
+          if (effectiveMessagePermissions?.canCopy === false) {
+            toast.error('Copying is disabled by privacy settings for this chat');
+            setActiveMessageMenu(null);
+            return;
+          }
           if (activeMessageMenu?.msg?.content) {
             navigator.clipboard.writeText(activeMessageMenu.msg.content);
+            toast.success('Copied to clipboard');
           }
           setActiveMessageMenu(null);
         }}
@@ -3575,6 +4216,11 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setShowFullEmojiPicker(true);
         }}
         onForward={() => {
+          if (effectiveMessagePermissions?.canForward === false) {
+            toast.error('Forwarding is disabled by privacy settings for this chat');
+            setActiveMessageMenu(null);
+            return;
+          }
           if (activeMessageMenu?.msg) {
             setForwardingMessage(activeMessageMenu.msg);
             setSelectedForwardChatIds([]);
@@ -3584,7 +4230,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         }}
         isMe={activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id)}
         themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
-        permissions={activeMessagePermissions}
+        permissions={effectiveMessagePermissions}
       />
 
       <MessageMoreModal
@@ -3609,6 +4255,11 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           setActiveMessageMenu(null);
         }}
         onForward={() => {
+          if (effectiveMessagePermissions?.canForward === false) {
+            toast.error('Forwarding is disabled by privacy settings for this chat');
+            setActiveMessageMenu(null);
+            return;
+          }
           if (activeMessageMenu?.msg) {
             setForwardingMessage(activeMessageMenu.msg);
             setSelectedForwardChatIds([]);
@@ -3626,7 +4277,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           alert('Thank you for reporting. Our moderation team will review this message shortly.');
           setActiveMessageMenu(null);
         }}
-        permissions={activeMessagePermissions}
+        permissions={effectiveMessagePermissions}
       />
 
       <MessageInfoModal
@@ -3854,14 +4505,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           partnerAvatar={selectedChat?.partner_avatar || user?.avatar_url}
           onSend={(mediaUrl, viewMode) => {
             setShowCameraModal(false);
-            if (!mediaUrl) return;
-            if (selectedChat) {
-              const content = JSON.stringify({ type: 'camera_capture', payload: { image: mediaUrl, viewMode } });
-              handleSendMessage(undefined, content);
-            } else {
-              // Mock uploading to story/note
-              // setNotePlaceholder('Photo added!');
-            }
+            if (!mediaUrl || !selectedChat) return;
+            handleMediaSelection({ source: 'camera', uri: mediaUrl });
           }}
         />
       )}
@@ -4169,89 +4814,95 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
               <div className="flex-1 overflow-y-auto px-6 pb-24 no-scrollbar flex flex-col gap-6">
                 {/* Refactored Compact Quick Actions Grid */}
-                <div className="grid grid-cols-5 gap-2 px-1">
-                  <button
-                    type="button"
-                    onClick={() => setAttachmentSheetHeight('full')}
-                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-pink-500/10 text-pink-400 flex items-center justify-center"><ImageIcon size={18} strokeWidth={2} /></div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Gallery</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowAttachmentSheet(false);
-                      setShowCameraModal(true);
-                    }}
-                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center"><Camera size={18} strokeWidth={2} /></div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Camera</span>
-                  </button>
-
-                  <label className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all cursor-pointer">
-                    <input
-                      type="file"
-                      accept=".pdf,.docx,.zip,.txt,.xlsx"
-                      className="hidden"
-                      onChange={async (e) => {
-                        const file = e.target.files?.[0];
-                        if (!file) return;
+                <div className="flex flex-col gap-3 py-2">
+                  <span className="text-[11px] font-bold text-white/50 text-center tracking-widest uppercase mb-1">Attach</span>
+                  
+                  {/* Top Row: Camera | Photos | Document */}
+                  <div className="grid grid-cols-3 gap-3 px-2">
+                    <button
+                      type="button"
+                      onClick={() => {
                         setShowAttachmentSheet(false);
-                        const queueId = `upload_${Date.now()}`;
-                        setUploadQueue(prev => [...prev, { id: queueId, name: file.name, progress: 0, status: 'uploading' }]);
-                        try {
-                          const url = await uploadFileWithProgress(file, (p) => {
-                            setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: p } : item));
-                          });
-                          setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: 100, status: 'completed' } : item));
-                          setTimeout(() => setUploadQueue(prev => prev.filter(item => item.id !== queueId)), 3000);
-                          if (url) {
-                            handleSendMessage(undefined, file.name, 'document', url);
-                          }
-                        } catch (err) {
-                          console.error(err);
-                          setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
-                        }
+                        setShowCameraModal(true);
                       }}
-                    />
-                    <div className="w-9 h-9 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center"><FileText size={18} strokeWidth={2} /></div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Document</span>
-                  </label>
+                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center shadow-md"><Camera size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Camera</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const LOCATIONS = ['Eiffel Tower, Paris', 'Space Needle, Seattle', 'Central Park, NY', 'Shibuya Crossing, Tokyo'];
-                      const randomLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-                      handleSendMessage(undefined, randomLoc, 'location');
-                      setShowAttachmentSheet(false);
-                    }}
-                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-yellow-500/10 text-yellow-400 flex items-center justify-center"><MapPin size={18} strokeWidth={2} /></div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Location</span>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => setAttachmentSheetHeight('full')}
+                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-pink-500/20 text-pink-400 flex items-center justify-center shadow-md"><ImageIcon size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Photos</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const CONTACTS = [
-                        { name: 'Sarah Jenkins', phone: '+1 (555) 302-8821' },
-                        { name: 'Dr. Alan Grant', phone: '+1 (555) 909-1234' },
-                        { name: 'Marcus Aurelius', phone: '+1 (555) 100-2000' }
-                      ];
-                      const randomContact = CONTACTS[Math.floor(Math.random() * CONTACTS.length)];
-                      handleSendMessage(undefined, randomContact.name, 'contact', randomContact.phone);
-                      setShowAttachmentSheet(false);
-                    }}
-                    className="flex flex-col items-center gap-1.5 py-2.5 bg-transparent hover:bg-white/5 active:scale-95 rounded-2xl transition-all"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center"><User size={18} strokeWidth={2} /></div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/75 truncate w-full text-center px-1">Contact</span>
-                  </button>
+                    <label className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10 cursor-pointer">
+                      <input
+                        type="file"
+                        accept=".pdf,.docx,.zip,.txt,.xlsx"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            handleMediaSelection({ source: 'attachment', file, type: 'document' });
+                          }
+                        }}
+                      />
+                      <div className="w-10 h-10 rounded-xl bg-green-500/20 text-green-400 flex items-center justify-center shadow-md"><FileText size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Document</span>
+                    </label>
+                  </div>
+
+                  {/* Bottom Row: Voice | Location | Contact */}
+                  <div className="grid grid-cols-3 gap-3 px-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        handleSendMessage(undefined, 'Voice note recording', 'audio');
+                        setShowAttachmentSheet(false);
+                      }}
+                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shadow-md"><Mic size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Voice</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const LOCATIONS = ['Eiffel Tower, Paris', 'Space Needle, Seattle', 'Central Park, NY', 'Shibuya Crossing, Tokyo'];
+                        const randomLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
+                        handleSendMessage(undefined, randomLoc, 'location');
+                        setShowAttachmentSheet(false);
+                      }}
+                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-yellow-500/20 text-yellow-400 flex items-center justify-center shadow-md"><MapPin size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Location</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const CONTACTS = [
+                          { name: 'Sarah Jenkins', phone: '+1 (555) 302-8821' },
+                          { name: 'Dr. Alan Grant', phone: '+1 (555) 909-1234' },
+                          { name: 'Marcus Aurelius', phone: '+1 (555) 100-2000' }
+                        ];
+                        const randomContact = CONTACTS[Math.floor(Math.random() * CONTACTS.length)];
+                        handleSendMessage(undefined, randomContact.name, 'contact', randomContact.phone);
+                        setShowAttachmentSheet(false);
+                      }}
+                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shadow-md"><User size={20} strokeWidth={2.5} /></div>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Contact</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Integrated Media Section */}
@@ -4484,28 +5135,80 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     setSelectedMediaItems([]);
                     setMediaCaption('');
 
-                    // Trigger concurrent background uploads
+                    // Trigger concurrent background media uploads & optimistic messaging
                     for (const item of items) {
                       const queueId = `upload_${Date.now()}_${item.id}`;
-                      setUploadQueue(prev => [...prev, { id: queueId, name: item.name || 'Attachment Image', progress: 0, status: 'uploading' }]);
+                      const mediaType = item.type || 'image';
 
-                      // Async upload wrapper
+                      // 1. Display optimistic media bubble in chat IMMEDIATELY
+                      const tempMessageId = crypto.randomUUID();
+                      const optimisticMsg: any = {
+                        message_id: tempMessageId,
+                        id: tempMessageId,
+                        sender_id: user?.id || user?.user_id || '',
+                        content: caption || '',
+                        status: 'sending',
+                        sent_at: new Date().toISOString(),
+                        created_at: new Date().toISOString(),
+                        is_read: false,
+                        type: mediaType,
+                        media_url: item.url,
+                        mediaUrl: item.url
+                      };
+                      updateMessages(prev => [...prev, optimisticMsg]);
+                      AudioSessionManager.playSound('send');
+                      if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
+
+                      // 2. Add item to upload progress queue widget
+                      setUploadQueue(prev => [...prev, { id: queueId, name: item.name || `Attachment ${mediaType}`, progress: 0, status: 'uploading' }]);
+
+                      // 3. Perform background file upload & socket transmission
                       (async () => {
                         try {
                           const filePayload = item.file || item.url;
-                          const url = await uploadFileWithProgress(filePayload, (p) => {
+                          const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
                             setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
                           });
 
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
                           setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
 
-                          if (url) {
-                            handleSendMessage(undefined, caption, 'image', url);
+                          const finalMediaUrl = uploadedUrl || item.url;
+                          if (selectedChat) {
+                            const payload = {
+                              messageId: tempMessageId,
+                              chatId: selectedChat.chat_id,
+                              partnerId: selectedChat.partner_id,
+                              content: caption || '',
+                              type: mediaType,
+                              mediaUrl: finalMediaUrl
+                            };
+
+                            if (socket?.connected) {
+                              socket.emit('send-message', payload, (response: any) => {
+                                if (response?.success) {
+                                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                                    ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
+                                    : m
+                                  ));
+                                } else {
+                                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                                    ? { ...m, status: 'failed' }
+                                    : m
+                                  ));
+                                }
+                              });
+                            } else {
+                              PersistentOfflineQueue.enqueue(payload);
+                            }
                           }
                         } catch (err) {
-                          console.error(err);
+                          console.error('[MediaUpload] Upload failed:', err);
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+                          updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                            ? { ...m, status: 'failed' }
+                            : m
+                          ));
                         }
                       })();
                     }

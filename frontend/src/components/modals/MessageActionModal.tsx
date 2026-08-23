@@ -97,7 +97,9 @@ export const MessageActionModal: React.FC<MessageActionModalProps> = ({
             <p className="text-xs text-white/50 font-bold tracking-wider uppercase mb-2">Actions</p>
 
             <ActionButton icon={<Reply size={16} />} label="Reply" onClick={() => { onReply(); onClose(); }} />
-            <ActionButton icon={<Copy size={16} />} label="Copy Text" onClick={() => { onCopy(); onClose(); }} />
+            {(!permissions || permissions.canCopy !== false) && (
+              <ActionButton icon={<Copy size={16} />} label="Copy Text" onClick={() => { onCopy(); onClose(); }} />
+            )}
 
             {(!permissions || permissions.canPin !== false) && (
               <ActionButton

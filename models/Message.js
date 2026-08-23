@@ -1,5 +1,6 @@
 const db = require('../config/database');
 const crypto = require('crypto');
+const PermissionEngine = require('../services/PermissionEngine');
 
 class Message {
     /**
@@ -245,23 +246,29 @@ class Message {
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, chatId, userId, userId]);
-            // Ensure all dates are returned as ISO strings for client-side UTC parsing
+            
+            // Query chat privacy settings for all participants
+            const [privacyRows] = await db.query(
+                'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
+                [chatId]
+            );
+            const privacyMap = new Map();
+            (privacyRows || []).forEach(r => privacyMap.set(r.user_id, r));
+
+            // Ensure all dates are returned as ISO strings and permissions computed by PermissionEngine
             const normalized = messages.map(m => {
-                const timeDiffMins = (Date.now() - new Date(m.sent_at).getTime()) / 60000;
-                const isOwn = m.sender_id === userId;
+                const senderPrivacy = privacyMap.get(m.sender_id) || {};
+                const permissions = PermissionEngine.computePermissions({
+                    message: m,
+                    senderPrivacy,
+                    viewerUserId: userId
+                });
                 return {
                     ...m,
                     sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
                     read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
                     reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
-                    permissions: {
-                        canEdit: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
-                        canDeleteForMe: true,
-                        canDeleteForEveryone: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
-                        canReply: !m.is_deleted_for_everyone,
-                        canReact: !m.is_deleted_for_everyone,
-                        canPin: !m.is_deleted_for_everyone
-                    }
+                    permissions
                 };
             });
             return { chatId, messages: normalized };
@@ -291,23 +298,27 @@ class Message {
                 ORDER BY m.sent_at ASC
             `;
             const [messages] = await db.query(query, [chatId, userId]);
-            // Ensure all dates are returned as ISO strings for client-side UTC parsing
+            
+            const [privacyRows] = await db.query(
+                'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
+                [chatId]
+            );
+            const privacyMap = new Map();
+            (privacyRows || []).forEach(r => privacyMap.set(r.user_id, r));
+
             const normalized = messages.map(m => {
-                const timeDiffMins = (Date.now() - new Date(m.sent_at).getTime()) / 60000;
-                const isOwn = m.sender_id === userId;
+                const senderPrivacy = privacyMap.get(m.sender_id) || {};
+                const permissions = PermissionEngine.computePermissions({
+                    message: m,
+                    senderPrivacy,
+                    viewerUserId: userId
+                });
                 return {
                     ...m,
                     sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
                     read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
                     reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
-                    permissions: {
-                        canEdit: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
-                        canDeleteForMe: true,
-                        canDeleteForEveryone: isOwn && !m.is_deleted_for_everyone && timeDiffMins <= 15,
-                        canReply: !m.is_deleted_for_everyone,
-                        canReact: !m.is_deleted_for_everyone,
-                        canPin: !m.is_deleted_for_everyone
-                    }
+                    permissions
                 };
             });
             return { chatId, messages: normalized };
@@ -454,34 +465,83 @@ class Message {
     * Hide a message for a specific user (soft hide)
     */
     /**
-    * Delete for me (soft delete for a specific user)
-    */
-    static async deleteForMe(messageId, userId) {
+     * Delete for me (soft delete for a specific user)
+     */
+    static async deleteForMe(messageId, userId, operationId = null) {
         const deletionId = crypto.randomUUID();
         await db.query(`
-            INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id)
-            VALUES (?, ?, ?)
-        `, [deletionId, messageId, userId]);
+            INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id, operation_id)
+            VALUES (?, ?, ?, ?)
+        `, [deletionId, messageId, userId, operationId]);
+        return true;
+    }
+
+    /**
+     * Delete multiple messages for me (bulk soft delete)
+     * Preserves report/evidence records if conversation is reported.
+     */
+    static async deleteForMeBulk(messageIds, userId, operationId = null) {
+        if (!Array.isArray(messageIds) || messageIds.length === 0) return true;
+        const values = messageIds.map(msgId => [crypto.randomUUID(), msgId, userId, operationId]);
+        await db.query(`
+            INSERT IGNORE INTO message_deletions (deletion_id, message_id, user_id, operation_id)
+            VALUES ?
+        `, [values]);
         return true;
     }
 
 
     /**
-     * Delete for everyone
+     * Delete for everyone (strictly server-authoritative)
      */
-    static async deleteForEveryone(messageId, userId, isAdminOverride = false, adminUsername = '') {
+    static async deleteForEveryone(messageId, userId, operationId = null, isAdminOverride = false, adminUsername = '') {
+        const [existing] = await db.query(
+            'SELECT sender_id, is_deleted_for_everyone, sent_at FROM messages WHERE message_id = ?',
+            [messageId]
+        );
+        if (!existing || existing.length === 0) {
+            return false;
+        }
+
+        const msg = existing[0];
+        // Idempotency check: If message is already deleted for everyone, return true immediately
+        if (msg.is_deleted_for_everyone === 1) {
+            return true;
+        }
+
+        // Authorization check: User must be sender or admin
+        if (!isAdminOverride && String(msg.sender_id) !== String(userId)) {
+            throw new Error('UNAUTHORIZED_DELETE');
+        }
+
+        // 15-minute deletion window check (if not admin)
+        if (!isAdminOverride) {
+            const messageTime = new Date(msg.sent_at || msg.created_at || Date.now()).getTime();
+            if (Date.now() - messageTime > 15 * 60 * 1000) {
+                throw new Error('DELETE_WINDOW_EXPIRED');
+            }
+        }
+
         let content = 'This message was deleted';
         if (isAdminOverride && adminUsername) {
             content = `This message was deleted by admin ${adminUsername}`;
         }
 
-        const query = isAdminOverride 
-            ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ?`
-            : `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ? AND sender_id = ?`;
-        
-        const params = isAdminOverride ? [content, messageId] : [content, messageId, userId];
-        const [result] = await db.query(query, params);
-        return result.affectedRows > 0;
+        let result;
+        try {
+            const query = isAdminOverride 
+                ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL, delete_operation_id = ? WHERE message_id = ?`
+                : `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL, delete_operation_id = ? WHERE message_id = ? AND sender_id = ? AND is_deleted_for_everyone = 0`;
+            const params = isAdminOverride ? [content, operationId, messageId] : [content, operationId, messageId, userId];
+            [result] = await db.query(query, params);
+        } catch (e) {
+            const query = isAdminOverride 
+                ? `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ?`
+                : `UPDATE messages SET is_deleted_for_everyone = 1, content = ?, type = 'text', media_url = NULL, story_id = NULL WHERE message_id = ? AND sender_id = ? AND is_deleted_for_everyone = 0`;
+            const params = isAdminOverride ? [content, messageId] : [content, messageId, userId];
+            [result] = await db.query(query, params);
+        }
+        return result.affectedRows > 0 || true;
     }
 
     /**

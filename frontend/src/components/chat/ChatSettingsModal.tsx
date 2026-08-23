@@ -1761,6 +1761,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
           chatId={chat.chat_id || chat.id}
           isOpen={view === 'pinned'}
           onClose={() => setView('main')}
+          canCopy={allowCopy}
+          canForward={allowForward}
           onJumpToMessage={(msgId) => {
             onClose();
             window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', { detail: { messageId: msgId } }));

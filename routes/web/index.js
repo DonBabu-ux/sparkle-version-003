@@ -27,5 +27,6 @@ router.use('/', confessionWebRoutes);
 router.use('/', require('./skill-market.routes'));
 router.use('/', require('./admin.routes'));
 router.use('/', require('./support.routes'));
+router.use('/', require('./legal.routes'));
 
 module.exports = router;

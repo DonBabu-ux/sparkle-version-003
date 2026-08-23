@@ -85,12 +85,22 @@ class PersistentOfflineQueueService {
     return this.load();
   }
 
-  async enqueue(payload: Omit<OutgoingMessage, 'messageId' | 'payloadHash' | 'queuedAt' | 'attempts' | 'nextRetryAt'>): Promise<OutgoingMessage> {
+  async enqueue(payload: Omit<OutgoingMessage, 'payloadHash' | 'queuedAt' | 'attempts' | 'nextRetryAt'> & { messageId?: string }): Promise<OutgoingMessage> {
     const queue = this.load();
+
+    // If caller already generated a UUID (the common case), use it.
+    // Otherwise generate one here — but the caller SHOULD always provide it
+    // so the optimistic bubble and the queue entry share the same UUID.
+    const messageId = payload.messageId || uuidv4();
+
     const payloadStr = `${payload.senderId}:${payload.content ?? ''}:${payload.mediaUrl ?? ''}:${payload.type}`;
     const payloadHash = await sha256(payloadStr);
-    const messageId = uuidv4();
     const now = new Date().toISOString();
+
+    // Prevent double-enqueue: if this UUID is already in the queue, skip.
+    if (queue.some((m) => m.messageId === messageId)) {
+      return queue.find((m) => m.messageId === messageId)!;
+    }
 
     const item: OutgoingMessage = {
       ...payload,

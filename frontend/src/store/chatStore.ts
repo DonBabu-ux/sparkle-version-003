@@ -102,6 +102,7 @@ interface ChatState {
   updateMessage: (chatId: string, msgId: string, updates: Partial<ChatMessage>) => void;
   editMessage: (chatId: string, msgId: string, newContent: string) => void;
   deleteMessageLocal: (chatId: string, msgId: string) => void;
+  deleteMessagesBulkLocal: (chatId: string, msgIds: string[]) => void;
   deleteMessageForEveryone: (chatId: string, msgId: string, content: string) => void;
   setReplyTarget: (chatId: string, msgId?: string) => void;
   setOnlineUsers: (userIds: string[]) => void;
@@ -116,6 +117,7 @@ interface ChatState {
   setDraft: (chatId: string, text: string) => void;
   startEdit: (chatId: string, messageId: string, content: string) => void;
   finishEdit: (chatId: string) => void;
+  updateSenderMessagePermissions: (chatId: string, senderId: string, permissions: any, privacyVersion?: number) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -187,8 +189,28 @@ export const useChatStore = create<ChatState>()(
           const getPreviewText = (msg?: ChatMessage | null) => {
             if (!msg) return '';
             if (msg.is_deleted_for_everyone) return 'This message was deleted';
-            if (!msg.type || msg.type === 'text') return msg.content || '';
-            return `Sent a ${msg.type}`;
+            const type = msg.type || 'text';
+
+            if (type === 'image' || type === 'photo') {
+              return msg.content ? `📷 Photo · ${msg.content}` : '📷 Photo';
+            }
+            if (type === 'video') {
+              return msg.content ? `🎥 Video · ${msg.content}` : '🎥 Video';
+            }
+            if (type === 'audio' || type === 'voice') {
+              const dur = (msg as any).duration || (msg as any).mediaDuration || '0:18';
+              return `🎤 Voice message · ${dur}`;
+            }
+            if (type === 'document' || type === 'file' || type === 'pdf') {
+              const filename = (msg as any).fileName || (msg as any).mediaName || msg.content || 'Document.pdf';
+              return `📄 ${filename}`;
+            }
+            if (type === 'multi_image' || type === 'photos') {
+              const count = (msg as any).mediaCount || 3;
+              return `🖼 ${count} Photos`;
+            }
+
+            return msg.content || `Sent a ${type}`;
           };
 
           const previewText = getPreviewText(latest);
@@ -314,7 +336,16 @@ export const useChatStore = create<ChatState>()(
         },
 
         setMessages: (chatId, msgs) => {
-          const normalized = msgs.map((m) => get().normalizeMessage(m));
+          let deletedSet = new Set<string>();
+          try {
+            const raw = localStorage.getItem('sparkle_deleted_msg_ids');
+            if (raw) deletedSet = new Set(JSON.parse(raw));
+          } catch (e) {}
+
+          const normalized = msgs
+            .map((m) => get().normalizeMessage(m))
+            .filter((m) => !deletedSet.has(m.message_id) && !deletedSet.has(m.id));
+
           set((state) => ({
             messagesByConversation: {
               ...state.messagesByConversation,
@@ -324,38 +355,35 @@ export const useChatStore = create<ChatState>()(
           get().refreshConversation(chatId);
         },
 
-        addMessage: (chatId, msg) => {
-          const normalized = get().normalizeMessage(msg);
+        updateSenderMessagePermissions: (chatId, senderId, newPermissions, privacyVersion) => {
           set((state) => {
-            const currentMsgs = state.messagesByConversation[chatId] || [];
+            const currentMsgs = state.messagesByConversation[chatId];
+            if (!currentMsgs || currentMsgs.length === 0) return state;
 
-            // Find optimistic message (status 'sending' or temporary id) with same content & sender
-            const optimisticIndex = currentMsgs.findIndex(
-              (m) =>
-                (m.status === 'sending' || (m.id && m.id.startsWith('temp'))) &&
-                m.content === normalized.content &&
-                m.sender_id === normalized.sender_id
-            );
-
-            let updatedMsgs;
-            if (optimisticIndex !== -1) {
-              // Replace optimistic message
-              updatedMsgs = [...currentMsgs];
-              updatedMsgs[optimisticIndex] = normalized;
-            } else if (currentMsgs.some((m) => m.message_id === normalized.message_id || m.id === normalized.id)) {
-              // Already present, no change
-              return {};
-            } else {
-              updatedMsgs = [...currentMsgs, normalized];
-            }
-
-            const isActive = state.activeConversationId === chatId;
-            const isFromMe = normalized.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
-
-            const updatedConversations = state.conversations.map((c) => {
-              if (c.chat_id !== chatId) return c;
-                const unread_count = isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1);
-              return { ...c, unread_count };
+            const updatedMsgs = currentMsgs.map((msg) => {
+              if (String(msg.sender_id || (msg as any).senderId) === String(senderId)) {
+                return {
+                  ...msg,
+                  permissions: {
+                    ...(msg as any).permissions,
+                    ...newPermissions,
+                    ui: {
+                      ...((msg as any).permissions?.ui || {}),
+                      ...(newPermissions?.ui || {}),
+                      showCopy: newPermissions?.canCopy ?? newPermissions?.ui?.showCopy ?? true,
+                      showForward: newPermissions?.canForward ?? newPermissions?.ui?.showForward ?? true,
+                    },
+                    security: {
+                      ...((msg as any).permissions?.security || {}),
+                      ...(newPermissions?.security || {}),
+                      canCopy: newPermissions?.canCopy ?? true,
+                      canForward: newPermissions?.canForward ?? true,
+                    },
+                  },
+                  privacyVersion: privacyVersion || (msg as any).privacyVersion,
+                };
+              }
+              return msg;
             });
 
             return {
@@ -363,13 +391,82 @@ export const useChatStore = create<ChatState>()(
                 ...state.messagesByConversation,
                 [chatId]: updatedMsgs,
               },
+            };
+          });
+          get().refreshConversation(chatId);
+        },
+
+        addMessage: (chatId, msg) => {
+          const normalized = get().normalizeMessage(msg);
+          const incomingId = normalized.message_id || normalized.id || (normalized as any).uuid;
+
+          set((state) => {
+            const currentMsgs = state.messagesByConversation[chatId] || [];
+
+            // ── Deduplication Strategy (order matters) ──
+            // 1. Exact UUID match — already in store, update in-place (handles socket echo)
+            const exactIndex = currentMsgs.findIndex(
+              (m) => m.message_id === incomingId || m.id === incomingId || (m as any).uuid === incomingId
+            );
+            if (exactIndex !== -1) {
+              // Message exists — merge in any new fields (e.g. permissions, status upgrade)
+              // but never downgrade a status (sent > sending, read > delivered, etc.)
+              const existing = currentMsgs[exactIndex];
+              const STATUS_RANK: Record<string, number> = { sending: 0, pending: 0, sent: 1, delivered: 2, read: 3, failed: -1 };
+              const incomingRank = STATUS_RANK[normalized.status || ''] ?? 0;
+              const existingRank = STATUS_RANK[existing.status || ''] ?? 0;
+              const bestStatus = incomingRank >= existingRank ? normalized.status : existing.status;
+              const merged = { ...existing, ...normalized, status: bestStatus };
+              const updatedMsgs = [...currentMsgs];
+              updatedMsgs[exactIndex] = merged;
+              return {
+                messagesByConversation: { ...state.messagesByConversation, [chatId]: updatedMsgs },
+              };
+            }
+
+            // 2. Optimistic bubble match — client UUID in store matches incoming message_id
+            //    This handles: client sent UUID → server ACK → socket echo arrives
+            const optimisticIndex = currentMsgs.findIndex(
+              (m) =>
+                (m.status === 'sending' || (m.id && String(m.id).startsWith('temp'))) &&
+                m.content === normalized.content &&
+                String(m.sender_id) === String(normalized.sender_id)
+            );
+            if (optimisticIndex !== -1) {
+              const updatedMsgs = [...currentMsgs];
+              updatedMsgs[optimisticIndex] = { ...updatedMsgs[optimisticIndex], ...normalized, status: normalized.status || 'sent' };
+              const isActive = state.activeConversationId === chatId;
+              const isFromMe = normalized.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
+              const updatedConversations = state.conversations.map((c) => {
+                if (c.chat_id !== chatId) return c;
+                return { ...c, unread_count: isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1) };
+              });
+              return {
+                messagesByConversation: { ...state.messagesByConversation, [chatId]: updatedMsgs },
+                conversations: updatedConversations,
+              };
+            }
+
+            // 3. Genuinely new message — append
+            const isActive = state.activeConversationId === chatId;
+            const isFromMe = normalized.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
+            const updatedConversations = state.conversations.map((c) => {
+              if (c.chat_id !== chatId) return c;
+              const unread_count = isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1);
+              return { ...c, unread_count };
+            });
+            return {
+              messagesByConversation: {
+                ...state.messagesByConversation,
+                [chatId]: [...currentMsgs, normalized],
+              },
               conversations: updatedConversations,
-              // Clear draft after successful send from self
               drafts: isFromMe ? { ...state.drafts, [chatId]: '' } : state.drafts,
             };
           });
           get().refreshConversation(chatId);
         },
+
 
         updateMessage: (chatId, msgId, updates) => {
           set((state) => {
@@ -404,12 +501,50 @@ export const useChatStore = create<ChatState>()(
         },
 
         deleteMessageLocal: (chatId, msgId) => {
+          try {
+            const raw = localStorage.getItem('sparkle_deleted_msg_ids');
+            const setIds: string[] = raw ? JSON.parse(raw) : [];
+            if (!setIds.includes(msgId)) {
+              setIds.push(msgId);
+              localStorage.setItem('sparkle_deleted_msg_ids', JSON.stringify(setIds));
+            }
+          } catch (e) {}
+
           set((state) => {
             const currentMsgs = state.messagesByConversation[chatId] || [];
             return {
               messagesByConversation: {
                 ...state.messagesByConversation,
                 [chatId]: currentMsgs.filter((m) => m.message_id !== msgId && m.id !== msgId),
+              },
+            };
+          });
+          get().refreshConversation(chatId);
+        },
+
+        deleteMessagesBulkLocal: (chatId, msgIds) => {
+          try {
+            const raw = localStorage.getItem('sparkle_deleted_msg_ids');
+            const setIds: string[] = raw ? JSON.parse(raw) : [];
+            let changed = false;
+            msgIds.forEach((id) => {
+              if (!setIds.includes(id)) {
+                setIds.push(id);
+                changed = true;
+              }
+            });
+            if (changed) {
+              localStorage.setItem('sparkle_deleted_msg_ids', JSON.stringify(setIds));
+            }
+          } catch (e) {}
+
+          const idSet = new Set(msgIds);
+          set((state) => {
+            const currentMsgs = state.messagesByConversation[chatId] || [];
+            return {
+              messagesByConversation: {
+                ...state.messagesByConversation,
+                [chatId]: currentMsgs.filter((m) => !idSet.has(m.message_id) && !idSet.has(m.id)),
               },
             };
           });

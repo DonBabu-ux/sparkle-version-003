@@ -160,6 +160,8 @@ export default function Signup() {
         campus: form.affiliation_type !== 'None' ? form.campus : undefined,
         major: form.major || undefined, year: form.year || undefined,
         user_type: 'student',
+        terms_version: '1.0',
+        privacy_version: '1.0',
       });
       if (res.data?.token) {
         localStorage.setItem('sparkle_signup_token', res.data.token);
@@ -472,6 +474,17 @@ export default function Signup() {
                       <span className="su-review__value">{form.campus || 'Sparkle Global'}</span>
                     </div>
                   </div>
+
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '0.75rem 0 1rem 0', lineHeight: 1.5 }}>
+                    By creating an account, you agree to Sparkle's{' '}
+                    <Link to="/legal/terms" target="_blank" style={{ color: '#ec4899', textDecoration: 'underline', fontWeight: 600 }}>
+                      Terms &amp; Conditions
+                    </Link>{' '}
+                    and acknowledge the{' '}
+                    <Link to="/legal/privacy" target="_blank" style={{ color: '#ec4899', textDecoration: 'underline', fontWeight: 600 }}>
+                      Privacy Policy
+                    </Link>.
+                  </p>
 
                   <button onClick={handleSubmit} disabled={loading} className="su-btn su-btn--main su-btn--lg" type="button">
                     {loading ? <span className="su-spin" /> : 'Create my account'}

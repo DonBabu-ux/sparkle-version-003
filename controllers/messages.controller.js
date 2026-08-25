@@ -529,6 +529,17 @@ class MessageController {
         }
     }
 
+    async markUnread(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            await Message.updateStatus(chatId, userId, 'unread');
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
     async deleteConversation(req, res) {
         try {
             const { chatId } = req.params;

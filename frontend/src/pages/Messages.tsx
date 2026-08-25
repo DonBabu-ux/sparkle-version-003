@@ -26,6 +26,7 @@ import { OfficialInteractiveOnboarding } from '../components/chat/OfficialIntera
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
 import { SparkleStorage } from '../services/SparkleStorageService';
 import { SparkleHorizontalActionBar } from '../components/chat/SparkleHorizontalActionBar';
+import { SparkleSelectionMenu } from '../components/chat/SparkleSelectionMenu';
 import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
 import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
@@ -37,6 +38,10 @@ import debounce from 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
+
+// Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
+const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
+
 import {
   Search,
   Plus,
@@ -977,9 +982,10 @@ export default function Messages() {
 
   const toggleAndroidSecure = async (enabled: boolean) => {
     try {
-      const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
-      await (enabled ? PrivacyProtection.enablePrivacyProtection() : PrivacyProtection.disablePrivacyProtection());
-      console.log(`[PrivacyProtection] Dynamic FLAG_SECURE ${enabled ? 'ENABLED' : 'DISABLED'}`);
+      if (PrivacyProtection && typeof PrivacyProtection.enablePrivacyProtection === 'function') {
+        await (enabled ? PrivacyProtection.enablePrivacyProtection() : PrivacyProtection.disablePrivacyProtection());
+        console.log(`[PrivacyProtection] Dynamic FLAG_SECURE ${enabled ? 'ENABLED' : 'DISABLED'}`);
+      }
     } catch (err) {
       console.warn('[PrivacyProtection] Android/Capacitor dynamic bridge is offline or unavailable');
     }
@@ -987,6 +993,8 @@ export default function Messages() {
 
   // --- Sparkle Enterprise UX States ---
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
+  const [showSelectionMenu, setShowSelectionMenu] = useState(false);
+  const [deleteConfirmCount, setDeleteConfirmCount] = useState<number | null>(null);
   const [undoToast, setUndoToast] = useState<{
     id: string;
     message: string;
@@ -1046,14 +1054,22 @@ export default function Messages() {
       },
       commitAction: () => {
         idsToArchive.forEach(id => {
-          api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+          api.post(`/messages/chat/${id}/archive`, { isArchived: true }).catch(() => {
+            api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+          });
         });
       },
     });
   };
 
-  const handleBatchDelete = () => {
+  const triggerDeleteConfirmation = () => {
+    if (selectedChatIds.length === 0) return;
+    setDeleteConfirmCount(selectedChatIds.length);
+  };
+
+  const confirmBatchDelete = () => {
     const idsToDelete = [...selectedChatIds];
+    setDeleteConfirmCount(null);
     if (idsToDelete.length === 0) return;
 
     const previousConversations = [...conversations];
@@ -1076,31 +1092,121 @@ export default function Messages() {
   };
 
   const handleBatchPin = () => {
-    if (selectedChatIds.length !== 1) return;
-    const chatId = selectedChatIds[0];
-    const chat = conversations.find(c => c.chat_id === chatId);
-    const newPinState = !chat?.is_pinned;
+    const idsToPin = [...selectedChatIds];
+    if (idsToPin.length === 0) return;
+
+    const allPinned = idsToPin.every(id => conversations.find(c => c.chat_id === id)?.is_pinned);
+    const targetState = !allPinned;
 
     setConversations(prev => prev.map(c =>
-      c.chat_id === chatId ? { ...c, is_pinned: newPinState } : c
+      idsToPin.includes(c.chat_id) ? { ...c, is_pinned: targetState } : c
     ));
     setSelectedChatIds([]);
 
-    api.patch(`/messages/chat/${chatId}/pin`, { isPinned: newPinState }).catch(console.error);
+    idsToPin.forEach(id => {
+      api.patch(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(() => {
+        api.post(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(console.error);
+      });
+    });
+  };
+
+  const handleBatchMute = () => {
+    const idsToMute = [...selectedChatIds];
+    if (idsToMute.length === 0) return;
+
+    const allMuted = idsToMute.every(id => conversations.find(c => c.chat_id === id)?.is_muted);
+    const targetState = !allMuted;
+
+    setConversations(prev => prev.map(c =>
+      idsToMute.includes(c.chat_id) ? { ...c, is_muted: targetState } : c
+    ));
+    setSelectedChatIds([]);
+
+    idsToMute.forEach(id => {
+      api.post(`/messages/chat/${id}/mute`, { muted: targetState }).catch(() => {
+        api.patch(`/messages/chat/${id}/mute`, { muted: targetState }).catch(console.error);
+      });
+    });
   };
 
   const handleBatchFavorite = () => {
-    if (selectedChatIds.length !== 1) return;
-    const chatId = selectedChatIds[0];
-    const chat = conversations.find(c => c.chat_id === chatId);
-    const newFavState = !chat?.is_favorite;
+    const idsToFav = [...selectedChatIds];
+    if (idsToFav.length === 0) return;
+
+    const allFav = idsToFav.every(id => conversations.find(c => c.chat_id === id)?.is_favorite);
+    const targetState = !allFav;
 
     setConversations(prev => prev.map(c =>
-      c.chat_id === chatId ? { ...c, is_favorite: newFavState } : c
+      idsToFav.includes(c.chat_id) ? { ...c, is_favorite: targetState } : c
     ));
     setSelectedChatIds([]);
 
-    api.patch(`/messages/chat/${chatId}/favorite`, { isFavorite: newFavState }).catch(console.error);
+    idsToFav.forEach(id => {
+      api.patch(`/messages/chat/${id}/favorite`, { isFavorite: targetState }).catch(console.error);
+    });
+  };
+
+  const handleBatchPriority = () => {
+    const idsToPriority = [...selectedChatIds];
+    if (idsToPriority.length === 0) return;
+
+    const allPriority = idsToPriority.every(id => conversations.find(c => c.chat_id === id)?.is_priority);
+    const targetState = !allPriority;
+
+    setConversations(prev => prev.map(c =>
+      idsToPriority.includes(c.chat_id) ? { ...c, is_priority: targetState } : c
+    ));
+    setSelectedChatIds([]);
+
+    idsToPriority.forEach(id => {
+      api.patch(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(() => {
+        api.post(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(console.error);
+      });
+    });
+  };
+
+
+  const handleBatchMarkUnread = () => {
+    const idsToMark = [...selectedChatIds];
+    if (idsToMark.length === 0) return;
+
+    const allUnread = idsToMark.every(id => (conversations.find(c => c.chat_id === id)?.unread_count || 0) > 0);
+    const targetUnread = !allUnread;
+
+    setConversations(prev => prev.map(c =>
+      idsToMark.includes(c.chat_id) ? { ...c, unread_count: targetUnread ? 1 : 0 } : c
+    ));
+    setSelectedChatIds([]);
+
+    idsToMark.forEach(id => {
+      if (targetUnread) {
+        api.post(`/messages/unread/${id}`).catch(console.error);
+      } else {
+        api.post(`/messages/read/${id}`).catch(console.error);
+      }
+    });
+  };
+
+  const handleClearChat = () => {
+    const idsToClear = [...selectedChatIds];
+    if (idsToClear.length === 0) return;
+
+    setSelectedChatIds([]);
+    idsToClear.forEach(id => {
+      useChatStore.getState().setMessages(id, []);
+      api.post(`/messages/chat/${id}/clear`).catch(() => {
+        api.delete(`/messages/chat/${id}/messages`).catch(console.error);
+      });
+    });
+  };
+
+  const handleBlockUser = () => {
+    if (selectedChatIds.length === 0) return;
+    const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
+    if (targetChat && targetChat.partner_id) {
+      api.post(`/privacy/block`, { target_user_id: targetChat.partner_id }).catch(console.error);
+      setSelectedChatIds([]);
+    }
   };
 
   // --- State ---
@@ -1698,26 +1804,39 @@ useEffect(() => {
 // Register native Android screenshot detection listener
 useEffect(() => {
   let sub: any = null;
-  try {
-    const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
-    if (PrivacyProtection && typeof PrivacyProtection.addListener === 'function') {
-      sub = PrivacyProtection.addListener('onScreenshotAttempt', (eventData: any) => {
-        if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
-          api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
-            attemptType: 'SCREENSHOT_ATTEMPT',
-            detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
-            deviceInfo: { userAgent: navigator.userAgent },
-          }).catch(console.error);
+  let cancelled = false;
+
+  (async () => {
+    try {
+      if (PrivacyProtection && typeof PrivacyProtection.addListener === 'function') {
+        const handle = await PrivacyProtection.addListener('onScreenshotAttempt', (eventData: any) => {
+          if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+            api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
+              attemptType: 'SCREENSHOT_ATTEMPT',
+              detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
+              deviceInfo: { userAgent: navigator.userAgent },
+            }).catch(console.error);
+          }
+        });
+        if (!cancelled) {
+          sub = handle;
+        } else if (handle && typeof handle.remove === 'function') {
+          handle.remove();
         }
-      });
+      }
+    } catch (_err) {
+      // PrivacyProtection plugin is not implemented on web — silently ignore
     }
-  } catch (err) {}
+  })();
+
   return () => {
+    cancelled = true;
     if (sub && typeof sub.remove === 'function') {
-      sub.remove();
+      try { sub.remove(); } catch (_e) {}
     }
   };
 }, [selectedChat?.chat_id]);
+
 
 // --- Handlers ---
 const fetchInbox = async () => {
@@ -2810,18 +2929,52 @@ const getStatusLabel = (chat: ChatConversation) => {
 /** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
 const getTimeAgo = (time?: string) => formatChatTimestamp(time);
 
-// --- Filtered conversations ---
+// --- Filtered & Sorted conversations ---
 const filteredConversations = useMemo(() => {
-  if (activeFilter === 'unread') return conversations.filter(c => (c.unread_count || 0) > 0);
-  if (activeFilter === 'groups') return conversations.filter(c => !!(c.is_group || c.chat_type === 'group'));
-  if (activeFilter === 'archived') return conversations.filter(c => !!(c as any).is_archived);
-  const list = customLists.find(l => l.id === activeFilter);
-  if (list) {
-    // Filter out muted if desired, or just filter by list members
-    return conversations.filter(c => list.chatIds.includes(c.chat_id));
+  let list = conversations;
+  if (activeFilter === 'unread') {
+    list = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived);
+  } else if (activeFilter === 'groups') {
+    list = conversations.filter(c => !!(c.is_group || c.chat_type === 'group') && !c.is_archived);
+  } else if (activeFilter === 'archived') {
+    list = conversations.filter(c => !!c.is_archived);
+  } else {
+    const custom = customLists.find(l => l.id === activeFilter);
+    if (custom) {
+      list = conversations.filter(c => custom.chatIds.includes(c.chat_id) && !c.is_archived);
+    } else {
+      // Main 'all' tab: hide archived chats
+      list = conversations.filter(c => !c.is_archived);
+    }
   }
-  return conversations;
-}, [conversations, activeFilter, customLists]);
+
+  // Filter by message search query if typed
+  if (messageSearch.trim()) {
+    const q = messageSearch.toLowerCase();
+    list = list.filter(c => {
+      const identity = IdentityManager.resolveIdentity(c);
+      const name = (identity.displayName || c.partner_name || '').toLowerCase();
+      const msg = (c.last_message || '').toLowerCase();
+      return name.includes(q) || msg.includes(q);
+    });
+  }
+
+  // Tiered sorting: Pinned -> Priority/Favorites -> Normal (by newest timestamp)
+  return [...list].sort((a, b) => {
+    const aPinned = a.is_pinned ? 1 : 0;
+    const bPinned = b.is_pinned ? 1 : 0;
+    if (aPinned !== bPinned) return bPinned - aPinned;
+
+    const aPriority = (a.is_priority || a.is_favorite) ? 1 : 0;
+    const bPriority = (b.is_priority || b.is_favorite) ? 1 : 0;
+    if (aPriority !== bPriority) return bPriority - aPriority;
+
+    const aTime = new Date(a.last_message_at || a.last_message_time || 0).getTime();
+    const bTime = new Date(b.last_message_at || b.last_message_time || 0).getTime();
+    return bTime - aTime;
+  });
+}, [conversations, activeFilter, customLists, messageSearch]);
+
 
 const visibleTabs = useMemo(() => {
   const presetLabels: Record<string, string> = {
@@ -2957,122 +3110,124 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           selectedChat ? 'hidden lg:flex' : 'flex flex-1 lg:flex-initial'
         )}>
           <StatusBarBackground backgroundColor="#13131a" />
-          <header className="px-5 pt-4 pb-2 overflow-visible bg-[#13131a]">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username || user?.user_id}`)}>
-                  <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/[0.12] shadow-lg" alt="" />
+          {selectedChatIds.length > 0 ? (
+            <SparkleHorizontalActionBar
+              selectedCount={selectedChatIds.length}
+              isPinned={selectedChatIds.length > 0 && selectedChatIds.every(id => conversations.find(c => c.chat_id === id)?.is_pinned)}
+              isMuted={selectedChatIds.length > 0 && selectedChatIds.every(id => conversations.find(c => c.chat_id === id)?.is_muted)}
+              isFavorite={selectedChatIds.length > 0 && selectedChatIds.every(id => conversations.find(c => c.chat_id === id)?.is_favorite)}
+              onClearSelection={() => setSelectedChatIds([])}
+              onPin={handleBatchPin}
+              onMute={handleBatchMute}
+              onArchive={handleBatchArchive}
+              onDelete={triggerDeleteConfirmation}
+              onMore={() => setShowSelectionMenu(true)}
+            />
+          ) : (
+            <header className="px-5 pt-4 pb-2 overflow-visible bg-[#13131a]">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username || user?.user_id}`)}>
+                    <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/[0.12] shadow-lg" alt="" />
+                  </div>
+                  <h1 className="text-[26px] font-bold text-white/90 tracking-tight">Chats</h1>
                 </div>
-                <h1 className="text-[26px] font-bold text-white/90 tracking-tight">Chats</h1>
-              </div>
-              <div className="flex items-center gap-1">
-                <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all">
-                  <Camera size={22} strokeWidth={2.2} />
-                </button>
-                <button
-                  onClick={() => setShowNewChatModal(true)}
-                  className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
-                >
-                  <SquarePen size={22} strokeWidth={2.2} />
-                </button>
-                <button
-                  onClick={() => setShowOrbitMenu(true)}
-                  className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
-                  title="Sparkle Options"
-                >
-                  <Orbit size={22} strokeWidth={2.2} />
-                </button>
-              </div>
-            </div>
-
-            <div className="relative mb-4 group">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#ff1493]/80" size={16} />
-              <input
-                type="text"
-                placeholder="Search messages..."
-                value={messageSearch}
-                onChange={e => setMessageSearch(e.target.value)}
-                className="w-full h-[46px] rounded-2xl pl-11 pr-4 text-[14.5px] font-medium text-white/90 placeholder:text-white/40 transition-all outline-none focus:shadow-[0_0_0_2px_rgba(255,20,147,0.18)]"
-                style={{
-                  background: 'rgba(255,255,255,0.07)',
-                  border: '1px solid rgba(255,255,255,0.13)',
-                  boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04)'
-                }}
-              />
-            </div>
-
-            {/* Filter Tabs */}
-            <div className="flex items-center mb-3 gap-2">
-              <div className="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
-                {visibleTabs.map(tab => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveFilter(tab.id)}
-                    onContextMenu={(e) => handleContextMenu(e, tab.id)}
-                    onTouchStart={(e) => startTouchTimer(e, tab.id)}
-                    onTouchEnd={clearTouchTimer}
-                    onTouchMove={clearTouchTimer}
-                    className={clsx(
-                      'shrink-0 px-2.5 py-1 text-[11px] font-bold transition-all duration-200 select-none touch-none',
-                      activeFilter === tab.id
-                        ? 'bg-[#ff1493] text-white shadow-[0_0_12px_rgba(255,20,147,0.28)] rounded-md'
-                        : 'bg-white/[0.16] text-white hover:bg-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.08] rounded-md'
-                    )}
-                  >
-                    <span className="flex items-center gap-1.5 pointer-events-none">
-                      {tab.label}
-                      {tab.isMuted && <BellOff size={10} className="opacity-65" />}
-                      {(() => {
-                        const count = getTabBadgeCount(tab.id);
-                        if (count <= 0) return null;
-                        const displayCount = count > 99 ? '99+' : count;
-                        return (
-                          <span className={clsx(
-                            "inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[14px]",
-                            activeFilter === tab.id
-                              ? "bg-white text-[#ff1493]"
-                              : "bg-white/20 text-white"
-                          )}>
-                            {displayCount}
-                          </span>
-                        );
-                      })()}
-                    </span>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all">
+                    <Camera size={22} strokeWidth={2.2} />
                   </button>
-                ))}
+                  <button
+                    onClick={() => setShowNewChatModal(true)}
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                  >
+                    <SquarePen size={22} strokeWidth={2.2} />
+                  </button>
+                  <button
+                    onClick={() => setShowOrbitMenu(true)}
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                    title="Sparkle Options"
+                  >
+                    <Orbit size={22} strokeWidth={2.2} />
+                  </button>
+                </div>
               </div>
-              {/* Plus button to add a new list/filter */}
-              <button
-                onClick={() => {
-                  setEditingListId(null);
-                  setNewListName('');
-                  setListSelectedChats([]);
-                  setShowNewListFlow('name');
-                }}
-                className="w-[26px] h-[26px] shrink-0 flex items-center justify-center bg-white/[0.08] border border-white/[0.06] hover:bg-white/[0.15] text-white rounded-md transition-all active:scale-95 shadow-sm"
-              >
-                <Plus size={13} strokeWidth={3} />
-              </button>
-            </div>
-          </header>
 
-          <SparkleHorizontalActionBar
-            selectedCount={selectedChatIds.length}
-            isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
-            isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
-            onPin={handleBatchPin}
-            onMute={() => alert("Chat Muted")}
-            onArchive={handleBatchArchive}
-            onDelete={handleBatchDelete}
-            onFavorite={handleBatchFavorite}
-            onMore={() => setShowOrbitConstellation(true)}
-            onClearSelection={() => setSelectedChatIds([])}
-          />
+              <div className="relative mb-4 group">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#ff1493]/80" size={16} />
+                <input
+                  type="text"
+                  placeholder="Search messages..."
+                  value={messageSearch}
+                  onChange={e => setMessageSearch(e.target.value)}
+                  className="w-full h-[46px] rounded-2xl pl-11 pr-4 text-[14.5px] font-medium text-white/90 placeholder:text-white/40 transition-all outline-none focus:shadow-[0_0_0_2px_rgba(255,20,147,0.18)]"
+                  style={{
+                    background: 'rgba(255,255,255,0.07)',
+                    border: '1px solid rgba(255,255,255,0.13)',
+                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04)'
+                  }}
+                />
+              </div>
+
+              {/* Filter Tabs */}
+              <div className="flex items-center mb-3 gap-2">
+                <div className="flex items-center gap-1.5 flex-1 overflow-x-auto no-scrollbar">
+                  {visibleTabs.map(tab => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveFilter(tab.id)}
+                      onContextMenu={(e) => handleContextMenu(e, tab.id)}
+                      onTouchStart={(e) => startTouchTimer(e, tab.id)}
+                      onTouchEnd={clearTouchTimer}
+                      onTouchMove={clearTouchTimer}
+                      className={clsx(
+                        'shrink-0 px-2.5 py-1 text-[11px] font-bold transition-all duration-200 select-none touch-none',
+                        activeFilter === tab.id
+                          ? 'bg-[#ff1493] text-white shadow-[0_0_12px_rgba(255,20,147,0.28)] rounded-md'
+                          : 'bg-white/[0.16] text-white hover:bg-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.08] rounded-md'
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5 pointer-events-none">
+                        {tab.label}
+                        {tab.isMuted && <BellOff size={10} className="opacity-65" />}
+                        {(() => {
+                          const count = getTabBadgeCount(tab.id);
+                          if (count <= 0) return null;
+                          const displayCount = count > 99 ? '99+' : count;
+                          return (
+                            <span className={clsx(
+                              "inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[14px]",
+                              activeFilter === tab.id
+                                ? "bg-white text-[#ff1493]"
+                                : "bg-white/20 text-white"
+                            )}>
+                              {displayCount}
+                            </span>
+                          );
+                        })()}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {/* Plus button to add a new list/filter */}
+                <button
+                  onClick={() => {
+                    setEditingListId(null);
+                    setNewListName('');
+                    setListSelectedChats([]);
+                    setShowNewListFlow('name');
+                  }}
+                  className="w-[26px] h-[26px] shrink-0 flex items-center justify-center bg-white/[0.08] border border-white/[0.06] hover:bg-white/[0.15] text-white rounded-md transition-all active:scale-95 shadow-sm"
+                >
+                  <Plus size={13} strokeWidth={3} />
+                </button>
+              </div>
+            </header>
+          )}
 
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto px-6 pb-24 space-y-3 no-scrollbar scroll-smooth bg-[#13131a]"
+            className="flex-1 overflow-y-auto pb-24 no-scrollbar scroll-smooth bg-[#13131a]"
           >
             {Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
@@ -3084,116 +3239,55 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 />
               </div>
             ) : (
-              Array.isArray(filteredConversations) && filteredConversations.map((chat, idx) => (
-                <div
+              Array.isArray(filteredConversations) && filteredConversations.map((chat) => (
+                <SparkleSwipeableChatItem
                   key={chat.chat_id}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    toggleChatSelection(chat.chat_id);
-                    setPeekChat(chat);
-                  }}
-                  onClick={() => {
-                    if (selectedChatIds.length > 0) {
-                      toggleChatSelection(chat.chat_id);
-                    } else {
-                      setSelectedChat(chat);
-                      navigate(`/messages?chat=${chat.chat_id}`);
-                      if (chat.unread_count > 0) {
-                        setConversations((prev: any[]) => prev.map(c =>
-                          c.chat_id === chat.chat_id ? { ...c, unread_count: 0 } : c
-                        ));
-                      }
+                  chat={chat}
+                  isSelected={selectedChatIds.includes(chat.chat_id)}
+                  isSelectionMode={selectedChatIds.length > 0}
+                  user={user}
+                  onSelect={() => toggleChatSelection(chat.chat_id)}
+                  onOpen={() => {
+                    setSelectedChat(chat);
+                    navigate(`/messages?chat=${chat.chat_id}`);
+                    if (chat.unread_count > 0) {
+                      setConversations((prev: any[]) => prev.map(c =>
+                        c.chat_id === chat.chat_id ? { ...c, unread_count: 0 } : c
+                      ));
                     }
                   }}
-                  className={clsx(
-                    "px-4 py-1.5 rounded-2xl transition-all duration-300 cursor-pointer group flex items-center gap-3 relative select-none",
-                    selectedChatIds.includes(chat.chat_id)
-                      ? 'bg-[#ff1493]/20 border border-[#ff1493]/40'
-                      : selectedChat?.chat_id === chat.chat_id ? 'bg-white/10' : 'hover:bg-white/5'
-                  )}
-                >
-                  {(() => {
-                    const itemIdentity = IdentityManager.resolveIdentity(chat);
-                    const isSelfChat = chat.chat_type === 'self' || chat.partner_id === (user?.id || user?.user_id);
-                    const displayName = isSelfChat ? 'Saved Messages' : itemIdentity.displayName;
-
-                    return (
-                      <>
-                        <div className="relative shrink-0">
-                          {isSelfChat ? (
-                            <div className="w-[54px] h-[54px] rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md">
-                              <Bookmark size={24} />
-                            </div>
-                          ) : (
-                            <img src={itemIdentity.avatar} className="w-[54px] h-[54px] rounded-full object-cover border border-white/10 shadow-md" alt="" />
-                          )}
-                          <div className="absolute -bottom-0.5 -right-0.5">
-                            {itemIdentity.presence.showPresence && itemIdentity.presence.isOnline && (
-                              <div className="w-4 h-4 bg-emerald-500 border-[3px] border-[#121212] rounded-full" />
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex-1 min-w-0 pr-2">
-                          <div className="flex justify-between items-center mb-0.5">
-                            <h4 className={clsx(
-                              "text-[15px] tracking-tight truncate leading-tight flex items-center gap-1.5",
-                              chat.unread_count > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
-                            )}>
-                              {displayName}
-                              {!isSelfChat && (
-                                <VerifiedBadge accountType={itemIdentity.accountType} isVerified={itemIdentity.badge.show} color={itemIdentity.badge.color} size="xs" />
-                              )}
-                              {!!chat.is_pinned && (
-                                <Pin size={16} className="text-[#FF008A] fill-[#FF008A] shrink-0 ml-1 drop-shadow-sm" />
-                              )}
-                              {!!chat.is_favorite && (
-                                <Star size={16} className="text-amber-400 fill-amber-400 shrink-0 ml-1 drop-shadow-sm animate-pulse" />
-                              )}
-                              {!!chat.is_muted && (
-                                <BellOff size={13} className="text-purple-400 shrink-0 ml-1" />
-                              )}
-                            </h4>
-                          </div>
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        {chat.unread_count > 1 ? (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <p className="text-[13px] font-black text-[#ff1493] lowercase">
-                              {chat.unread_count > 4 ? '4+ new messages' : `${chat.unread_count} new messages`}
-                            </p>
-                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {formatChatTimestamp(chat.last_message_time || chat.last_message_at)}</span>
-                          </div>
-                        ) : chat.unread_count === 1 ? (
-                          <div className="flex items-center gap-1.5 truncate">
-                            <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
-                              {chat.last_message_type === 'attachment' ? '🎬 Story reply' : chat.last_message || 'Sent a message'}
-                            </p>
-                            <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {formatChatTimestamp(chat.last_message_time || chat.last_message_at)}</span>
-                          </div>
-                        ) : (() => {
-                          const isTypingHere = typingUsers.some(t => t.chatId === chat.chat_id);
-                          const previewText = chat.last_message || 'No messages yet';
-                          const tsLabel = formatChatTimestamp(chat.last_message_time || chat.last_message_at);
-                          return (
-                            <div className="flex items-center gap-1.5 truncate">
-                              {isTypingHere ? (
-                                <p className="text-[12px] font-bold text-[#ff1493] italic animate-pulse">Typing…</p>
-                              ) : (
-                                <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate">
-                                  {previewText}{tsLabel ? ` · ${tsLabel}` : ''}
-                                </p>
-                              )}
-                            </div>
-                          );
-                        })()}
-                      </div>
-
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-                </div>
+                  onLongPress={() => toggleChatSelection(chat.chat_id)}
+                  onArchive={() => {
+                    const previous = [...conversations];
+                    setConversations(prev => prev.map(c => c.chat_id === chat.chat_id ? { ...c, is_archived: true } : c));
+                    setUndoToast({
+                      id: 'archive_' + Date.now(),
+                      message: 'Chat archived',
+                      undoAction: () => setConversations(previous),
+                      commitAction: () => {
+                        api.post(`/messages/chat/${chat.chat_id}/archive`, { isArchived: true }).catch(() => {
+                          api.patch(`/messages/chat/${chat.chat_id}/archive`, { isArchived: true }).catch(console.error);
+                        });
+                      }
+                    });
+                  }}
+                  onDelete={() => {
+                    const targetId = chat.chat_id;
+                    const previous = [...conversations];
+                    setConversations(prev => prev.filter(c => c.chat_id !== targetId));
+                    setUndoToast({
+                      id: 'delete_' + Date.now(),
+                      message: 'Conversation deleted',
+                      undoAction: () => setConversations(previous),
+                      commitAction: () => {
+                        api.delete(`/messages/chat/${targetId}`).catch(console.error);
+                      }
+                    });
+                  }}
+                  getStatusLabel={(c) => c.last_message || 'No messages yet'}
+                  formatMessageText={(txt) => txt}
+                  typingUsers={typingUsers ? Object.entries(typingUsers).flatMap(([cId, uList]) => uList.map(u => ({ chatId: cId, name: u.username }))) : []}
+                />
               ))
             )}
           </div>
@@ -5720,10 +5814,93 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         }}
       />
 
-      <SparkleUndoToast
-        toast={undoToast}
-        onDismiss={() => setUndoToast(null)}
+      <SparkleSelectionMenu
+        isOpen={showSelectionMenu}
+        onClose={() => setShowSelectionMenu(false)}
+        selectedCount={selectedChatIds.length}
+        isAllSelected={filteredConversations.length > 0 && selectedChatIds.length === filteredConversations.length}
+        isPriority={selectedChatIds.length > 0 && selectedChatIds.every(id => conversations.find(c => c.chat_id === id)?.is_priority)}
+        isFavorite={selectedChatIds.length > 0 && selectedChatIds.every(id => conversations.find(c => c.chat_id === id)?.is_favorite)}
+        isUnread={selectedChatIds.length > 0 && selectedChatIds.every(id => (conversations.find(c => c.chat_id === id)?.unread_count || 0) > 0)}
+        onSelectAll={() => setSelectedChatIds(filteredConversations.map(c => c.chat_id))}
+        onDeselectAll={() => setSelectedChatIds([])}
+        onTogglePriority={handleBatchPriority}
+        onSparklePeek={() => {
+          if (selectedChatIds.length === 1) {
+            const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
+            if (targetChat) setPeekChat(targetChat);
+          }
+        }}
+        onSmartRecall={() => {
+          const recallChat = conversations.find(c => (c.unread_count > 0 || c.is_priority || c.is_pinned) && !c.is_archived) || conversations[0];
+          if (recallChat) {
+            setSelectedChat(recallChat);
+            navigate(`/messages?chat=${recallChat.chat_id}`);
+          }
+        }}
+
+        onViewProfile={() => {
+          if (selectedChatIds.length === 1) {
+            const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
+            const target = targetChat?.partner_username || targetChat?.partner_id;
+            if (target) navigate(`/profile/${target}`);
+          }
+        }}
+        onMarkUnread={handleBatchMarkUnread}
+        onFavorite={handleBatchFavorite}
+        onArchive={handleBatchArchive}
+        onClearChat={handleClearChat}
+        onBlock={handleBlockUser}
+        onSearch={() => {
+          if (selectedChatIds.length === 1) {
+            const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
+            if (targetChat) setSelectedChat(targetChat);
+          }
+        }}
       />
+
+
+      {/* Delete Confirmation Modal */}
+      <AnimatePresence>
+        {deleteConfirmCount !== null && (
+          <div
+            className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            onClick={() => setDeleteConfirmCount(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="w-full max-w-sm bg-[#181628] border border-white/15 rounded-3xl p-6 shadow-2xl text-center relative overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-12 rounded-2xl bg-rose-500/20 text-rose-400 flex items-center justify-center mx-auto mb-4 border border-rose-500/30">
+                <Trash2 size={24} />
+              </div>
+              <h3 className="text-lg font-extrabold text-white mb-2">
+                {deleteConfirmCount === 1 ? "Delete Conversation?" : `Delete ${deleteConfirmCount} Conversations?`}
+              </h3>
+              <p className="text-xs font-medium text-white/60 mb-6 leading-relaxed">
+                This will delete {deleteConfirmCount === 1 ? "this conversation" : "these conversations"} from your chat list.
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setDeleteConfirmCount(null)}
+                  className="flex-1 py-3 rounded-2xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmBatchDelete}
+                  className="flex-1 py-3 rounded-2xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-extrabold transition-all shadow-lg shadow-rose-600/30"
+                >
+                  Delete
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

@@ -117,8 +117,16 @@ export class IdentityManager {
     const isSupport = user.account_type === 'support' || cleanUsername.includes('sparkle_support') || cleanUsername === 'sparklesupport';
 
     const accountType = isSystemAccount ? 'system' : (user.account_type || user.accountType || 'user').toLowerCase();
-    const validDisplayName = (!isSystemAccount && user.display_name === 'Sparkle Official') ? null : user.display_name;
-    const displayName = user.displayName || validDisplayName || user.partner_name || user.name || user.username || 'Sparkle User';
+    const rawDisplayName = user.displayName || user.partner_name || user.name || user.username || 'Sparkle User';
+    // Clean unwanted UI/seed generated trailing "00" suffix from display names (e.g. "Naty Babu00" -> "Naty Babu")
+    // Preserve legitimate handles if username is literally "User00"
+    let displayName = rawDisplayName;
+    if (typeof rawDisplayName === 'string') {
+      if (rawDisplayName !== user.username || !/^user00$/i.test(user.username)) {
+        displayName = rawDisplayName.replace(/\s*00$/, '').trim();
+      }
+    }
+
 
     // 1. Avatar Pipeline Resolution
     // System/Official -> Sparkle Logo -> avatar_url -> profile_photo -> partner_avatar -> generated avatar -> placeholder

@@ -34,9 +34,13 @@ router.get('/chat/:chatId/search', messageController.searchMessages);
 router.post('/send', messageController.sendMessage);
 router.post('/', messageController.sendMessage); // DashboardAPI Alias
 router.post('/read/:chatId', messageController.markRead);
+router.post('/unread/:chatId', messageController.markUnread);
+router.post('/chat/:chatId/unread', messageController.markUnread);
 router.post('/mute/:chatId', messageController.muteConversation);
-router.post('/chat/:chatId/archive', messageController.archiveConversation);
 router.post('/chat/:chatId/mute', messageController.muteConversation);
+router.patch('/chat/:chatId/mute', messageController.muteConversation);
+router.post('/chat/:chatId/archive', messageController.archiveConversation);
+router.patch('/chat/:chatId/archive', messageController.archiveConversation);
 router.delete('/chat/:chatId', messageController.deleteConversation);
 
 // Per-message actions

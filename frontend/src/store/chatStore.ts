@@ -62,6 +62,8 @@ export interface ChatConversation {
   is_archived?: boolean;
   is_muted?: boolean;
   is_pinned?: boolean | number;
+  is_priority?: boolean;
+  is_favorite?: boolean;
   chat_type?: string;
   member_count?: number;
   role?: string;
@@ -243,10 +245,22 @@ export const useChatStore = create<ChatState>()(
               });
             } else {
               const isFromMe = latest.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
+              // Helper to clean trailing "00" from display names, preserving legitimate usernames like "User00"
+              const sanitizePartnerName = (name: string, username?: string): string => {
+                if (typeof name !== 'string') return name;
+                // If name matches the username exactly and username is a legitimate "User00", keep it
+                if (username && name === username && /^user00$/i.test(username)) {
+                  return name;
+                }
+                // Remove trailing space(s) followed by "00"
+                return name.replace(/\s*00$/, '').trim();
+              };
+
               const newConv: ChatConversation = {
                 chat_id: chatId,
                 partner_id: isFromMe ? ((latest as any).recipient_id || '') : latest.sender_id,
-                partner_name: latest.sender_name || latest.sender_username || 'New Contact',
+                // Apply sanitization to partner_name to strip unwanted UI suffixes
+                partner_name: sanitizePartnerName(latest.sender_name || latest.sender_username || 'New Contact', latest.sender_username),
                 partner_avatar: latest.sender_avatar || '',
                 partner_username: latest.sender_username || '',
                 unread_count: isActive ? 0 : (isFromMe ? 0 : 1),

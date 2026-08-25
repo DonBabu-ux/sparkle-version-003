@@ -98,6 +98,19 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
             </p>
           </div>
 
+          {/* Sparkle Peek Message Preview Section */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 my-2 text-left">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-purple-400 uppercase tracking-wider flex items-center gap-1">
+                <span>👁</span> Sparkle Peek Preview
+              </span>
+              <span className="text-[10px] text-white/40 font-medium">Unread state preserved</span>
+            </div>
+            <p className="text-sm font-medium text-white/90 line-clamp-3 leading-relaxed">
+              {chat.last_message || (chat.last_message_type === 'attachment' ? '🎬 Story reply / Media attachment' : 'No recent message text available.')}
+            </p>
+          </div>
+
           {/* Action Button */}
           {onViewProfile && (
             <button
@@ -116,3 +129,4 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
     </AnimatePresence>
   );
 };
+

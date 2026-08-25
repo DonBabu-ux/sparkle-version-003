@@ -211,16 +211,19 @@ class PersistentOfflineQueueService {
 
 export interface OutgoingInteraction {
   operationId: string;
-  type: 'add-reaction' | 'remove-reaction' | 'edit-message' | 'delete-message' | 'pin-message' | 'star-message';
+  type: 'add-reaction' | 'remove-reaction' | 'edit-message' | 'delete-message' | 'pin-message' | 'star-message' | 'delete-conversation' | 'archive-conversation' | 'pin-conversation' | 'mute-conversation';
   chatId: string;
-  messageId: string;
+  messageId?: string;
   emoji?: string;
   content?: string;
   pinned?: boolean;
   starred?: boolean;
+  archived?: boolean;
+  muted?: boolean;
   queuedAt: string;
   attempts: number;
 }
+
 
 export const PersistentOfflineQueue = new PersistentOfflineQueueService();
 export default PersistentOfflineQueue;

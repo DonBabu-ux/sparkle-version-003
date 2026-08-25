@@ -7,15 +7,16 @@ export interface ValidationWarning {
 }
 
 const REQUIRED_ASSETS = [
-  'send.mp3',
-  'receive.mp3',
-  'notification.mp3',
-  'like.mp3',
-  'comment.mp3',
-  'follow.mp3',
-  'story.mp3',
-  'ringtone.mp3',
+  'send message .mp3',
+  'inchat message receive.mp3',
+  'outchat notification.mp3',
+  'sparkle like notification.mp3',
+  'comment pop.mp3',
+  'new follower .mp3',
+  'sparkle Facebook notification.mp3',
+  'iphone.mp3',
 ];
+
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1 MB limit
 const EXPECTED_SAMPLE_RATE = 44100; // 44.1 kHz

@@ -450,6 +450,16 @@ class Message {
                       AND sender_id != ? 
                       AND status = 'sent'
                 `, [chatId, chatId, chatId, userId]);
+            } else if (status === 'unread') {
+                await db.query(`
+                    UPDATE messages 
+                    SET status = 'delivered', 
+                        is_read = 0,
+                        read_at = NULL
+                    WHERE (conversation_id = ? OR personal_chat_id = ? OR chat_id = ?) 
+                      AND sender_id != ? 
+                    ORDER BY sent_at DESC LIMIT 1
+                `, [chatId, chatId, chatId, userId]);
             }
         } catch (error) {
             console.error('[ERROR] Message.updateStatus DB Error:', error);
@@ -641,7 +651,7 @@ class Message {
         const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
         if (chat.length === 0) return false;
 
-        const isP1 = chat[0].participant1_id === userId;
+        const isP1 = String(chat[0].participant1_id) === String(userId);
         const column = isP1 ? 'is_archived_p1' : 'is_archived_p2';
 
         await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [archived ? 1 : 0, chatId]);
@@ -663,6 +673,16 @@ class Message {
         );
         if (chat.length > 0 && (chat[0].conversation_type === 'system' || chat[0].u1_type === 'system' || chat[0].u2_type === 'system' || isSystemAccount(chat[0].participant1_id) || isSystemAccount(chat[0].participant2_id))) {
             throw new Error('Official Sparkle conversations cannot be deleted.');
+        }
+
+        if (chat.length > 0) {
+            const isP1 = String(chat[0].participant1_id) === String(userId);
+            const isP2 = String(chat[0].participant2_id) === String(userId);
+            if (isP1) {
+                await db.query('UPDATE personal_chats SET is_deleted_p1 = 1 WHERE chat_id = ?', [chatId]);
+            } else if (isP2) {
+                await db.query('UPDATE personal_chats SET is_deleted_p2 = 1 WHERE chat_id = ?', [chatId]);
+            }
         }
 
         // Clear all messages for this user by inserting into message_deletions

@@ -73,7 +73,12 @@ exports.getHistory = async (req, res) => {
         const userId = req.user.user_id;
         const { page = 1, limit = 20, type, status } = req.query;
         const data = await walletService.getTransactions(userId, { page, limit, type, status });
-        res.json({ success: true, ...data });
+        res.json({
+            success: true,
+            totalPages: data.pagination?.totalPages || 1,
+            pages: data.pagination?.totalPages || 1,
+            ...data
+        });
     } catch (err) {
         logger.error('[WalletController] getHistory:', err.message);
         res.status(500).json({ success: false, message: 'Failed to fetch transaction history' });
@@ -179,6 +184,32 @@ exports.resolveAccount = async (req, res) => {
     } catch (err) {
         logger.error('[WalletController] resolveAccount:', err.message);
         res.status(400).json({ success: false, message: err.message || 'Account resolution failed' });
+    }
+};
+
+// ── GET /api/wallet/auto-withdrawal ─────────────────────────────────────────
+
+exports.getAutoWithdrawalConfig = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const config = await walletService.getAutoWithdrawalConfig(userId);
+        res.json({ success: true, config });
+    } catch (err) {
+        logger.error('[WalletController] getAutoWithdrawalConfig:', err.message);
+        res.status(500).json({ success: false, message: 'Failed to fetch auto-withdrawal settings' });
+    }
+};
+
+// ── POST /api/wallet/auto-withdrawal ────────────────────────────────────────
+
+exports.updateAutoWithdrawalConfig = async (req, res) => {
+    try {
+        const userId = req.user.user_id;
+        const config = await walletService.updateAutoWithdrawalConfig(userId, req.body);
+        res.json({ success: true, message: 'Auto-withdrawal configuration updated successfully', config });
+    } catch (err) {
+        logger.error('[WalletController] updateAutoWithdrawalConfig:', err.message);
+        res.status(400).json({ success: false, message: err.message || 'Failed to update auto-withdrawal settings' });
     }
 };
 

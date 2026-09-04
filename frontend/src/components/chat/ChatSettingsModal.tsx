@@ -8,6 +8,7 @@ import {
   Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw,
   Copy, Phone, Globe, UserPlus, CheckCircle2, Link2, BarChart2, History
 } from 'lucide-react';
+import { sanitizePartnerName } from '../../utils/nameSanitizer';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
 import { clsx } from 'clsx';
@@ -82,9 +83,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
 
   // ── Create Group state ──
-  const [groupName, setGroupName] = useState(`${chat.partner_name.split(' ')[0]} & You`);
+  const displayPartnerName = sanitizePartnerName(chat.partner_name, chat.partner_username);
+  const [groupName, setGroupName] = useState(`${displayPartnerName.split(' ')[0]} \u0026 You`);
   const [groupFriends, setGroupFriends] = useState<any[]>([]);
-  const [groupSelected, setGroupSelected] = useState<any[]>([{ id: chat.partner_id, user_id: chat.partner_id, full_name: chat.partner_name, avatar_url: chat.partner_avatar }]);
+  const [groupSelected, setGroupSelected] = useState<any[]>([{ id: chat.partner_id, user_id: chat.partner_id, full_name: displayPartnerName, avatar_url: chat.partner_avatar }]);
   const [groupSearch, setGroupSearch] = useState('');
   const [groupLoading, setGroupLoading] = useState(false);
   const [groupCreating, setGroupCreating] = useState(false);
@@ -124,7 +126,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
       await api.post('/messages/send', {
         chatId: activeChatId,
         partnerId,
-        content: chat.partner_name,
+        content: displayPartnerName,
         type: 'contact',
         mediaUrl: chat.partner_username || chat.partner_id
       });
@@ -141,7 +143,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   
-  const [nicknameInput, setNicknameInput] = useState(chat.partner_name);
+  const [nicknameInput, setNicknameInput] = useState(displayPartnerName);
   const [myNicknameInput, setMyNicknameInput] = useState('You');
   const [showNicknameHistory, setShowNicknameHistory] = useState(false);
   const [nicknameHistoryList, setNicknameHistoryList] = useState<any[]>([]);
@@ -470,10 +472,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
               <div className="flex flex-col items-center mt-2 px-6">
                 <div className="relative mb-4">
-                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-lg" alt="" />
+                  <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-lg" alt="" />
                   {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-black">9m</span></div>}
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-6">{chat.partner_name}</h2>
+                <h2 className="text-2xl font-bold text-white mb-6">{displayPartnerName}</h2>
 
                 <div className="flex gap-6 mb-8 w-full justify-center">
                   <div className="flex flex-col items-center gap-2 cursor-pointer group" onClick={onNavigateProfile}>
@@ -568,14 +570,14 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 <Section title="Actions">
                   <ActionItem 
                     icon={Bell} 
-                    label={isMuted ? 'Unmute' : `Mute ${chat.partner_name.split(' ')[0]}`} 
+                    label={isMuted ? 'Unmute' : `Mute ${displayPartnerName.split(' ')[0]}`} 
                     onClick={handleToggleMute} 
                     subtext={isMuted ? 'Muted' : 'Notifications on'}
                     toggle={isMuted}
                     primaryColor={currentTheme?.colors.primary}
                   />
                   <ActionItem icon={Volume2} label="Notifications & sounds" subtext="Standard" onClick={() => setView('notifications_sounds')} primaryColor={currentTheme?.colors.primary} />
-                  <ActionItem icon={Users} label={`Create group chat with ${chat.partner_name.split(' ')[0]}`} onClick={() => setView('create_group')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={Users} label={`Create group chat with ${displayPartnerName.split(' ')[0]}`} onClick={() => setView('create_group')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Download} label="Auto-save photos" onClick={() => setAutoSave(!autoSave)} toggle={autoSave} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} primaryColor={currentTheme?.colors.primary} />
                 </Section>
@@ -646,7 +648,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     label="Block" 
                     primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
-                      if (window.confirm(`Are you sure you want to block ${chat.partner_name}?`)) {
+                      if (window.confirm(`Are you sure you want to block ${displayPartnerName}?`)) {
                         try {
                           await api.post(`/users/block/${chat.partner_id}`);
                           alert('User blocked');
@@ -902,9 +904,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
               <header className="h-[60px] bg-black/40 backdrop-blur-xl border-b border-white/10 px-4 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
                   <button onClick={() => setView('customize')} className="text-white p-2"><ChevronLeft size={24} /></button>
-                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-[36px] h-[36px] rounded-full object-cover" />
+                  <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-[36px] h-[36px] rounded-full object-cover" />
                   <div>
-                    <h3 className="text-sm font-bold text-white leading-tight">{chat.partner_name}</h3>
+                    <h3 className="text-sm font-bold text-white leading-tight">{displayPartnerName}</h3>
                     <p className="text-[10px] text-emerald-400 font-bold">Previewing Theme</p>
                   </div>
                 </div>
@@ -1108,14 +1110,14 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
               <div className="p-6 space-y-6 max-w-lg mx-auto w-full">
                 <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
-                  <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-14 h-14 rounded-full object-cover border-2 border-white/20" alt="" />
+                  <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-14 h-14 rounded-full object-cover border-2 border-white/20" alt="" />
                   <div className="flex-1">
-                    <p className="text-xs font-bold text-white/50 mb-1">Set nickname for {chat.partner_name}</p>
+                    <p className="text-xs font-bold text-white/50 mb-1">Set nickname for {displayPartnerName}</p>
                     <input 
                       type="text" 
                       value={nicknameInput} 
                       onChange={e => setNicknameInput(e.target.value)}
-                      placeholder={chat.partner_name}
+                      placeholder={displayPartnerName}
                       className="bg-transparent w-full text-white font-bold outline-none border-b border-white/20 focus:border-[#ff1493] transition-colors py-1 text-base"
                     />
                   </div>
@@ -1147,9 +1149,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     // Create local history entry
                     const historyRecord = {
                       id: 'nick_' + Date.now(),
-                      content: cleanPartnerNick ? `You set ${chat.partner_name}'s nickname to ${cleanPartnerNick}` : `You updated nicknames`,
+                      content: cleanPartnerNick ? `You set ${displayPartnerName}'s nickname to ${cleanPartnerNick}` : `You updated nicknames`,
                       set_by_name: 'You',
-                      target_name: chat.partner_name,
+                      target_name: displayPartnerName,
                       nickname: cleanPartnerNick || cleanMyNick,
                       sent_at: new Date().toISOString()
                     };
@@ -1158,7 +1160,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     localStorage.setItem(`sparkle_nicknames_history_${chatId}`, JSON.stringify([historyRecord, ...existingHistory]));
 
                     if (cleanPartnerNick) {
-                      chat.partner_name = cleanPartnerNick;
+                      // Update displayed name after nickname change\n                      const updatedName = cleanPartnerNick || displayPartnerName;\n                      // Note: actual chat object may be updated elsewhere\n                      // This line preserves UI consistency\n                      // No direct assignment to chat.partner_name needed\n                      // (if needed, update state elsewhere)
                     }
 
                     try {
@@ -1431,7 +1433,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   </div>
                   <p className="text-base font-bold text-white text-center">End-to-End Encrypted</p>
                   <p className="text-xs text-white/50 text-center max-w-xs leading-relaxed">
-                    Messages and calls with <span className="text-white font-semibold">{chat.partner_name}</span> are secured with end-to-end encryption. Compare the numbers below or scan the QR code to verify the connection.
+                    Messages and calls with <span className="text-white font-semibold">{displayPartnerName}</span> are secured with end-to-end encryption. Compare the numbers below or scan the QR code to verify the connection.
                   </p>
                 </div>
 
@@ -1528,7 +1530,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     {groupSelected.map((u: any) => (
                       <div key={u.id || u.user_id} className="flex items-center gap-2 bg-[#ff1493]/15 border border-[#ff1493]/30 rounded-full pl-1 pr-3 py-1">
                         <img src={getAvatarUrl(u.avatar_url || u.partner_avatar)} className="w-6 h-6 rounded-full object-cover" />
-                        <span className="text-xs font-bold text-white">{u.full_name || u.partner_name || u.name}</span>
+                        <span className="text-xs font-bold text-white">{sanitizePartnerName(u.full_name || u.partner_name || u.name, u.username || u.partner_username)}</span>
                         {(u.id || u.user_id) !== chat.partner_id && (
                           <button onClick={() => setGroupSelected(prev => prev.filter(x => (x.id || x.user_id) !== (u.id || u.user_id)))} className="text-white/40 hover:text-white/80 ml-0.5"><X size={12} /></button>
                         )}
@@ -1621,7 +1623,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     className="w-24 h-24 rounded-full object-cover border-4 border-white/20 shadow-xl"
                   />
                   <div className="text-center">
-                    <p className="text-xl font-black text-white">{chat.partner_name}</p>
+                    <p className="text-xl font-black text-white">{displayPartnerName}</p>
                     {chat.partner_username && <p className="text-sm text-white/50 mt-0.5">@{chat.partner_username}</p>}
                   </div>
                   <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
@@ -1644,14 +1646,14 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
                     />
                   </div>
-                  <p className="text-[11px] text-white/40 text-center">Scan to visit {chat.partner_name.split(' ')[0]}'s profile</p>
+                  <p className="text-[11px] text-white/40 text-center">Scan to visit {displayPartnerName.split(' ')[0]}'s profile</p>
                 </div>
 
                 {/* Send in Chat section */}
                 <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Send in Chat</h4>
                   <p className="text-xs text-white/50 leading-relaxed">
-                    Share {chat.partner_name.split(' ')[0]}'s contact card directly with your following.
+                    Share {displayPartnerName.split(' ')[0]}'s contact card directly with your following.
                   </p>
 
                   <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2 border border-white/10">
@@ -1722,7 +1724,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     onClick={() => {
                       const url = `https://sparkle.app/@${chat.partner_username || chat.partner_id}`;
                       if (navigator.share) {
-                        navigator.share({ title: chat.partner_name, text: `Check out ${chat.partner_name} on Sparkle!`, url });
+                        navigator.share({ title: displayPartnerName, text: `Check out ${displayPartnerName} on Sparkle!`, url });
                       } else {
                         navigator.clipboard.writeText(url);
                       }

@@ -101,9 +101,10 @@ export class IdentityManager {
       };
     }
 
-    const cleanUsername = (user.username || user.partner_username || user.handle || '').toLowerCase().replace(/^@/, '');
+    const rawUsername = (user.username || user.partner_username || user.handle || '').toLowerCase().replace(/^@/, '');
+    const cleanUsername = rawUsername.replace(/\s*00$/, '').trim();
     const userId = String(user.user_id || user.id || user.partner_id || user.participant_id || '');
-    
+
     const isSystemAccount = (
       (userId && (userId === 'd75fe3b5-7a45-4581-ab13-91934d8b54de' || userId.startsWith('d75fe3b5-7a45-4581-ab13-91934d8b54e'))) ||
       ['sparkleofficial', 'sparklesafety', 'sparkleai', 'sparklesupport', 'sparklemarket', 'sparklecampus', 'sparkle'].includes(cleanUsername) ||
@@ -117,14 +118,11 @@ export class IdentityManager {
     const isSupport = user.account_type === 'support' || cleanUsername.includes('sparkle_support') || cleanUsername === 'sparklesupport';
 
     const accountType = isSystemAccount ? 'system' : (user.account_type || user.accountType || 'user').toLowerCase();
-    const rawDisplayName = user.displayName || user.partner_name || user.name || user.username || 'Sparkle User';
-    // Clean unwanted UI/seed generated trailing "00" suffix from display names (e.g. "Naty Babu00" -> "Naty Babu")
-    // Preserve legitimate handles if username is literally "User00"
+    const rawDisplayName = user.displayName || user.partner_name || user.name || user.username || user.partner_username || 'Sparkle User';
+    // Clean unwanted UI/seed generated trailing "00" suffix from display names (e.g. "Naty Babu00" -> "Naty Babu", "username00" -> "username")
     let displayName = rawDisplayName;
     if (typeof rawDisplayName === 'string') {
-      if (rawDisplayName !== user.username || !/^user00$/i.test(user.username)) {
-        displayName = rawDisplayName.replace(/\s*00$/, '').trim();
-      }
+      displayName = rawDisplayName.replace(/\s*00$/, '').trim();
     }
 
 

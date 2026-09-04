@@ -14,6 +14,8 @@ router.post('/verify',           authMiddleware, walletController.verifyDeposit)
 router.post('/withdraw',         authMiddleware, walletController.requestWithdrawal);
 router.get('/banks',             authMiddleware, walletController.fetchBanks);
 router.post('/resolve-account',  authMiddleware, walletController.resolveAccount);
+router.get('/auto-withdrawal',   authMiddleware, walletController.getAutoWithdrawalConfig);
+router.post('/auto-withdrawal',  authMiddleware, walletController.updateAutoWithdrawalConfig);
 
 // ── Paystack Webhook (Public — HMAC-verified internally) ─────────────────────
 // NOTE: This route must receive the raw body. If your server applies express.json()

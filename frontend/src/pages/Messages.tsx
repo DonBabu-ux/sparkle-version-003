@@ -27,17 +27,23 @@ import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmer
 import { SparkleStorage } from '../services/SparkleStorageService';
 import { SparkleHorizontalActionBar } from '../components/chat/SparkleHorizontalActionBar';
 import { SparkleSelectionMenu } from '../components/chat/SparkleSelectionMenu';
+import { sanitizePartnerName } from '../utils/nameSanitizer';
 import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
 import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
 import { SparkleUndoToast } from '../components/chat/SparkleUndoToast';
+import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
+import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
+import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
+import { voiceRecordingService, type RecordingState } from '../services/VoiceRecordingService';
+import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
@@ -157,17 +163,27 @@ interface ChatMessage {
 
 const VoiceNotePlayer = ({ url }: { url: string }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const waveformRef = useRef<HTMLDivElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        AudioSessionManager.unregisterVoicePlayback(audioRef.current);
+      }
+    };
+  }, []);
 
   const togglePlay = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play();
+      AudioSessionManager.registerVoicePlayback(audioRef.current);
+      audioRef.current.play().catch(console.error);
     }
   };
 
@@ -192,8 +208,18 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
     setPlaybackRate(nextRate);
   };
 
+  const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!waveformRef.current || !audioRef.current || duration <= 0) return;
+    const rect = waveformRef.current.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const fraction = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetTime = fraction * duration;
+    audioRef.current.currentTime = targetTime;
+    setCurrentTime(targetTime);
+  };
+
   const formatTime = (time: number) => {
-    if (isNaN(time)) return '0:00';
+    if (isNaN(time) || time < 0) return '0:00';
     const mins = Math.floor(time / 60);
     const secs = Math.floor(time % 60);
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -204,16 +230,24 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
       <audio
         ref={audioRef}
         src={url}
-        onPlay={() => setIsPlaying(true)}
+        onPlay={() => {
+          setIsPlaying(true);
+          if (audioRef.current) AudioSessionManager.registerVoicePlayback(audioRef.current);
+        }}
         onPause={() => setIsPlaying(false)}
+        onEnded={() => setIsPlaying(false)}
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
       />
-      <button type="button" onClick={togglePlay} className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all shrink-0">
+      <button
+        type="button"
+        onClick={togglePlay}
+        className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 active:scale-95 transition-all shrink-0 shadow-md"
+      >
         {isPlaying ? <Pause size={18} strokeWidth={2.5} fill="white" /> : <Play size={18} strokeWidth={2.5} fill="white" className="ml-0.5" />}
       </button>
-      <div className="flex-1 flex flex-col gap-1 min-w-0">
-        <div className="flex items-end gap-[3px] h-[20px] px-1 overflow-hidden">
+      <div className="flex-1 flex flex-col gap-1 min-w-0 cursor-pointer" onClick={handleWaveformClick}>
+        <div ref={waveformRef} className="flex items-end gap-[3px] h-[22px] px-1 overflow-hidden">
           {[...Array(24)].map((_, i) => {
             const progress = duration > 0 ? currentTime / duration : 0;
             const barIndex = i / 24;
@@ -233,7 +267,7 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
         </div>
         <div className="flex justify-between items-center text-[10px] text-white/50 font-bold uppercase tracking-wider">
           <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
+          <span>{formatTime(duration || 0)}</span>
         </div>
       </div>
       <button
@@ -431,7 +465,7 @@ const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
 const EMOJIS = {
   smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
   gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄'],
-  hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
+hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
   nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🐚', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪', '🌈', '☀️', '🌤', '⛅️', '🌥', '☁️', '🌦', '🌧', '🌨', '🌩', '🌨', '❄️', '☃️', '⛄️', '🌬', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫'],
   activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🛹', '🛼', '🛷', '⛸', '🎿', '⛷', '🏂', '🏋️', '🤺', '🤼', '🤸', '⛹️', '🤺', '🏇', '🧘', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎸', '🎻', '🎲', '🧩', '🎳', '🎮', '🎰', '🎯'],
   places: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚏', '🛣', '🛤', '⛽️', '🚨', '🚥', '🚦', '🛑', '🚧', '⚓️', '⛵️', '🛶', '🚤', '🛳', '⛴', '🚢', '✈️', '🛩', '🛫', '🛬', '🚀', '🛸', '🛰', '🚠', '🚟', '🚁', '🏟', '🏗', '🏘', '🏚', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏬', '🏭', '🏰', '🏯', '💒', '🗼', '🗽', '⛪️', '🕌', '🕍', '⛩', '🕋', '⛲️', '⛺️', '🌁', '🌃', '🏙', '🌄', '🌅', '🌆', '🌇', '🌉', '♨️', '🎠', '🎡', '🎢', '💈', '🎪'],
@@ -440,22 +474,82 @@ const EMOJIS = {
   flags: ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇦🇫', '🇦🇽', '🇦🇱', '🇩🇿', '🇦🇸', '🇦🇩', '🇦🇴', '🇦🇮', '🇦🇶', '🇦🇬', '🇦🇷', '🇦🇲', '🇦🇼', '🇦🇺', '🇦🇹', '🇦🇿', '🇧🇸', '🇧🇭', '🇧🇩', '🇧🇧', '🇧🇾', '🇧🇪', '🇧🇿', '🇧🇯', '🇧🇲', '🇧🇹', '🇧🇴', '🇧🇦', '🇧🇼', '🇧🇷', '🇮🇴', '🇻🇬', '🇧🇳', '🇧🇬', '🇧🇫', '🇧🇮', '🇰🇭', '🇨🇲', '🇨🇦', '🇮🇨', '🇨🇻', '🇧🇶', '🇰🇾', '🇨🇫', '🇹🇩', '🇨🇱', '🇨🇳', '🇨🇽', '🇨🇨', '🇨🇴', '🇰🇲', '🇨🇬', '🇨🇩', '🇨🇰', '🇨🇷', '🇨🇮', '🇭🇷', '🇨🇺', '🇨🇼', '🇨🇾', '🇨🇿', '🇩🇰', '🇩🇯', '🇩🇲', '🇩🇴', '🇪🇨', '🇪🇬', '🇸🇻', '🇬🇶', '🇪🇷', '🇪🇪', '🇸🇿', '🇪🇹', '🇪🇺', '🇫🇰', '🇫🇴', '🇫🇯', '🇫🇮', '🇫🇷', '🇬🇫', '🇵🇫', '🇹🇫', '🇬🇦', '🇬🇲', '🇬🇪', '🇩🇪', '🇬🇭', '🇬🇮', '🇬🇷', '🇬🇱', '🇬🇩', '🇬🇵', '🇬🇺', '🇬🇹', '🇬🇬', '🇬🇳', '🇬🇼', '🇬🇾', '🇭🇹', '🇭🇳', '🇭🇰', '🇭🇺', '🇮🇸', '🇮🇳', '🇮🇩', '🇮🇷', '🇮🇶', '🇮🇪', '🇮🇲', '🇮🇱', '🇮🇹', '🇯🇲', '🇯🇵', '🇯🇪', '🇯🇴', '🇰🇿', '🇰🇪', '🇰🇮', '🇽🇰', '🇰🇼', '🇰🇬', '🇱🇦', '🇱🇻', '🇱🇧', '🇱🇸', '🇱🇷', '🇱🇾', '🇱🇮', '🇱🇹', '🇱🇺', '🇲🇴', '🇲🇬', '🇲🇼', '🇲🇾', '🇲🇻', '🇲🇱', '🇲🇹', '🇲🇭', '🇲🇶', '🇲🇷', '🇲🇺', '🇾🇹', '🇲🇽', '🇫🇲', '🇲🇩', '🇲🇨', '🇲🇳', '🇲🇪', '🇲🇸', '🇲🇦', '🇲🇿', '🇲🇲', '🇳🇦', '🇳🇷', '🇳🇵', '🇳🇱', '🇳🇨', '🇳🇿', '🇳🇮', '🇳🇪', '🇳🇬', '🇳🇺', '🇳🇫', '🇰🇵', '🇲🇰', '🇲🇵', '🇳🇴', '🇴🇲', '🇵🇰', '🇵🇼', '🇵🇸', '🇵🇦', '🇵🇬', '🇵🇾', '🇵🇪', '🇵🇭', '🇵🇳', '🇵🇱', '🇵🇹', '🇵🇷', '🇶🇦', '🇷🇪', '🇷🇴', '🇷🇺', '🇷🇼', '🇼🇸', '🇸🇲', '🇸🇹', '🇸🇦', '🇸🇳', '🇷🇸', '🇸🇨', '🇸🇱', '🇸🇬', '🇸🇽', '🇸🇰', '🇸🇮', '🇬🇸', '🇸🇧', '🇸🇴', '🇿🇦', '🇰🇷', '🇸🇸', '🇪🇸', '🇱🇰', '🇧🇱', '🇸🇭', '🇰🇳', '🇱🇨', '🇲🇫', '🇵🇲', '🇻🇨', '🇸🇩', '🇸🇷', '🇸🇪', '🇨🇭', '🇸🇾', '🇹🇼', '🇹🇯', '🇹🇿', '🇹🇭', '🇹🇱', '🇹🇬', '🇹🇰', '🇹🇴', '🇹🇹', '🇹🇳', '🇹🇷', '🇹🇲', '🇹🇨', '🇹🇻', '🇻🇮', '🇺🇬', '🇺🇦', '🇦🇪', '🇬🇧', '🏴󠁧󠁢󠁥󠁮󠁧󠁿', '🏴󠁧󠁢󠁳󠁣󠁴󠁿', '🏴󠁧󠁢󠁷󠁬󠁳󠁿', '🇺🇸', '🇺🇾', '🇺🇿', '🇻🇺', '🇻🇦', '🇻🇪', '🇻🇳', '🇼🇫', '🇪🇭', '🇾🇪', '🇿🇲', '🇿🇼']
 };
 
-const TabItem = ({ active, onClick, icon: Icon, label }: any) => (
-  <button
-    type="button"
-    onClick={onClick}
-    className={clsx(
-      "flex flex-col items-center gap-1 py-3 px-4 transition-all relative",
-      active ? "text-[#ff1493]" : "text-white/40 hover:text-white/60"
-    )}
-  >
-    <Icon size={20} strokeWidth={active ? 3 : 2} />
-    <span className="text-[10px] font-bold uppercase tracking-tight">{label}</span>
-    {active && (
-      <motion.div layoutId="pickerTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#ff1493] rounded-full" />
-    )}
-  </button>
-);
+const LiveRecordingBar = memo(({
+  sessionId,
+  onDiscard,
+  onSend
+}: {
+  sessionId: string;
+  onDiscard: () => void;
+  onSend: () => void;
+}) => {
+  const [state, setState] = useState<RecordingState>({
+    isRecording: true,
+    isPaused: false,
+    duration: 0,
+    audioLevels: new Array(16).fill(0.1),
+    sessionId
+  });
+
+  useEffect(() => {
+    const handleStateChange = (newState: RecordingState) => {
+      if (newState.sessionId === sessionId || voiceRecordingService.getCurrentSessionId() === sessionId) {
+        setState(newState);
+      }
+    };
+
+    voiceRecordingService.subscribe(handleStateChange);
+    return () => {
+      voiceRecordingService.unsubscribe();
+    };
+  }, [sessionId]);
+
+  const minutes = Math.floor(state.duration / 60);
+  const seconds = String(state.duration % 60).padStart(2, '0');
+
+  return (
+    <div className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2">
+      <div className="flex items-center w-full bg-[#121212]/95 border border-white/20 rounded-full px-4 py-2 justify-between backdrop-blur-xl shadow-2xl">
+        <button
+          type="button"
+          onClick={onDiscard}
+          className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center"
+          title="Discard voice note"
+        >
+          <Trash2 size={20} />
+        </button>
+
+        <div className="flex-1 flex items-center justify-center gap-3 px-4 overflow-hidden">
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
+            <span className="text-xs font-black text-red-400 tracking-wider">
+              {minutes}:{seconds}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-[3px] h-5 overflow-hidden flex-1 justify-center max-w-[220px]">
+            {state.audioLevels.map((lvl, idx) => (
+              <div
+                key={idx}
+                className="w-1 bg-[#ff1493] rounded-full transition-all duration-75"
+                style={{ height: `${Math.max(4, Math.round(lvl * 20))}px` }}
+              />
+            ))}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onSend}
+          className="p-2.5 rounded-full bg-[#ff1493] text-white hover:opacity-90 active:scale-95 transition-all shadow-lg shrink-0 flex items-center justify-center"
+          title="Send Voice Note"
+        >
+          <Send size={18} strokeWidth={2.5} />
+        </button>
+      </div>
+    </div>
+  );
+});
 
 const ChatInput = memo(({
   initialMessage,
@@ -482,13 +576,7 @@ const ChatInput = memo(({
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
 
-  const [isRecording, setIsRecording] = useState(false);
-  const [slideOffset, setSlideOffset] = useState(0);
-  const [recordTime, setRecordTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
-  const initialXRef = useRef<number>(0);
-  const recordIntervalRef = useRef<any>(null);
+  const [recordingSessionId, setRecordingSessionId] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const editing = useChatStore(state => state.editing);
@@ -499,86 +587,48 @@ const ChatInput = memo(({
     }
   }, [editing.messageId, editing.chatId, selectedChat?.chat_id]);
 
-  const handlePointerDown = (e: React.PointerEvent) => {
-    e.target.setPointerCapture(e.pointerId);
-    startRecording();
-    initialXRef.current = e.clientX;
-    setSlideOffset(0);
-  };
+  const startMicRecording = useCallback(() => {
+    if (recordingSessionId) return;
 
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (isRecording) {
-      const deltaX = e.clientX - initialXRef.current;
-      if (deltaX < 0) {
-        setSlideOffset(deltaX);
-        if (deltaX < -120) {
-          stopRecording(false);
-          setSlideOffset(0);
-        }
+    const sessionId = crypto.randomUUID();
+    setRecordingSessionId(sessionId);
+
+    voiceRecordingService.start(sessionId).catch((err: any) => {
+      console.error('[ChatInput] Microphone access failed:', err);
+      if (voiceRecordingService.getCurrentSessionId() === sessionId) {
+        setRecordingSessionId(null);
+        alert('Microphone access is required to record voice notes.');
       }
+    });
+  }, [recordingSessionId]);
+
+  const handleDiscardRecording = useCallback(() => {
+    const currentId = recordingSessionId;
+    setRecordingSessionId(null);
+
+    if (currentId) {
+      voiceRecordingService.cancel(currentId);
     }
-  };
+  }, [recordingSessionId]);
 
-  const handlePointerUp = (e: React.PointerEvent) => {
-    if (isRecording) {
-      e.target.releasePointerCapture(e.pointerId);
-      setSlideOffset(0);
-      stopRecording(true);
-    }
-  };
+  const handleFinishAndSendRecording = useCallback(async () => {
+    const currentId = recordingSessionId;
+    if (!currentId) return;
 
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      audioChunksRef.current = [];
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
+    setRecordingSessionId(null);
 
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          audioChunksRef.current.push(e.data);
-        }
-      };
+    const result = await voiceRecordingService.stop(currentId);
+    if (!result || !result.file) return;
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
-        stream.getTracks().forEach(track => track.stop());
-
-        if (audioChunksRef.current.length > 0) {
-          const file = new File([audioBlob], 'voice_note.mp3', { type: 'audio/mp3' });
-          if (onVoiceSend) {
-            onVoiceSend(file);
-          }
-        }
-      };
-
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordTime(0);
-      recordIntervalRef.current = setInterval(() => {
-        setRecordTime(t => t + 1);
-      }, 1000);
-    } catch (err) {
-      console.error('Microphone access failed', err);
-      alert('Microphone access is required to record voice notes.');
-    }
-  };
-
-  const stopRecording = (shouldSend = true) => {
-    if (!mediaRecorderRef.current || mediaRecorderRef.current.state === 'inactive') return;
-
-    if (recordIntervalRef.current) {
-      clearInterval(recordIntervalRef.current);
-      recordIntervalRef.current = null;
+    if (result.duration < 0.8) {
+      console.log('[ChatInput] Voice note too short (<0.8s), discarded');
+      return;
     }
 
-    if (!shouldSend) {
-      audioChunksRef.current = [];
+    if (onVoiceSend) {
+      onVoiceSend(result.file, result.duration, 'recorded_voice_note');
     }
-
-    mediaRecorderRef.current.stop();
-    setIsRecording(false);
-  };
+  }, [recordingSessionId, onVoiceSend]);
 
   const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
 
@@ -674,112 +724,80 @@ const ChatInput = memo(({
             messageId={replyToMessage.message_id}
           />
         )}
+        {recordingSessionId ? (
+          <LiveRecordingBar
+            sessionId={recordingSessionId}
+            onDiscard={handleDiscardRecording}
+            onSend={handleFinishAndSendRecording}
+          />
+        ) : (
+          <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
+            {!isMenuCollapsed ? (
+              <div className="flex items-center shrink-0">
+                <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="p-2 text-white/40 hover:text-white transition-all rounded-full hover:bg-white/5 active:scale-95"><Paperclip size={20} /></button>
+              </div>
+            ) : null}
 
-        <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
-          {!isMenuCollapsed ? (
-            <div className="flex items-center shrink-0">
-              <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="p-2 text-white/40 hover:text-white transition-all rounded-full hover:bg-white/5 active:scale-95"><Paperclip size={20} /></button>
+            <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-2">
+              <input
+                ref={inputRef}
+                type="text"
+                value={localMessage}
+                onChange={handleChange}
+                onFocus={() => setShowEmojiPicker(false)}
+                placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
+                className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                className={clsx(
+                  "transition-all ml-2 shrink-0",
+                  showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
+                )}
+              >
+                <Smile size={20} strokeWidth={2.2} />
+              </button>
             </div>
-          ) : null}
 
-          <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-2">
-            <input
-              type="text"
-              value={localMessage}
-              onChange={handleChange}
-              onFocus={() => setShowEmojiPicker(false)}
-              placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
-              className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
-              autoComplete="off"
-            />
-            <button
-              type="button"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              className={clsx(
-                "transition-all ml-2 shrink-0",
-                showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
+            <div className="flex items-center shrink-0 mr-1 gap-1">
+              {!localMessage.trim() && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const reaction = getQuickReaction(selectedChat.chat_id);
+                    onSend(undefined, reaction);
+                  }}
+                  className="text-2xl hover:scale-110 active:scale-90 transition-all p-1"
+                >
+                  {getQuickReaction(selectedChat.chat_id)}
+                </button>
               )}
-            >
-              <Smile size={20} strokeWidth={2.2} />
-            </button>
-          </div>
 
-          <div className="flex items-center shrink-0 mr-1 gap-1">
-            {!localMessage.trim() && (
-              <button
-                type="button"
-                onClick={() => {
-                  const reaction = getQuickReaction(selectedChat.chat_id);
-                  onSend(undefined, reaction);
-                }}
-                className="text-2xl hover:scale-110 active:scale-90 transition-all p-1"
-              >
-                {getQuickReaction(selectedChat.chat_id)}
-              </button>
-            )}
-
-            {localMessage.trim() ? (
-              <button
-                type="submit"
-                disabled={sending}
-                className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
-                style={{ backgroundColor: themePrimary, color: '#ffffff' }}
-              >
-                <Send size={18} strokeWidth={2.5} />
-              </button>
-            ) : (
-              <button
-                type="button"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-                onPointerUp={handlePointerUp}
-                onPointerCancel={handlePointerUp}
-                style={{ transform: `translateX(${slideOffset}px)`, backgroundColor: themePrimary }}
-                className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center text-white touch-none"
-              >
-                <Mic size={18} strokeWidth={2.5} />
-              </button>
-            )}
-          </div>
-
-          <AnimatePresence>
-            {isRecording && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-y-2 left-2 right-16 flex items-center justify-between px-5 bg-[#121212]/95 backdrop-blur-xl rounded-full border border-white/20 pointer-events-none"
-              >
-                <div className="flex items-center gap-2 shrink-0">
-                  <div className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-ping" />
-                  <span className="text-[12px] font-black text-[#ff1493] tracking-wider">
-                    {Math.floor(recordTime / 60)}:{String(recordTime % 60).padStart(2, '0')}
-                  </span>
-                </div>
-
-
-                <div className="flex items-center gap-[3px] flex-1 justify-center px-4 overflow-hidden">
-                  <div className="flex items-center gap-[3px] animate-pulse">
-                    {[...Array(15)].map((_, i) => (
-                      <motion.div
-                        key={i}
-                        animate={{ height: [4, 16, 4] }}
-                        transition={{ repeat: Infinity, duration: 0.5 + (i * 0.05), ease: 'easeInOut' }}
-                        className="w-[2px] rounded-full bg-[#ff1493]"
-                      />
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center shrink-0">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/50 animate-pulse flex items-center gap-2">
-                    <ChevronLeft size={14} strokeWidth={3} /> Slide to cancel
-                  </span>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </form>
+              {localMessage.trim() ? (
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
+                  style={{ backgroundColor: themePrimary, color: '#ffffff' }}
+                >
+                  <Send size={18} strokeWidth={2.5} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={startMicRecording}
+                  style={{ backgroundColor: themePrimary }}
+                  className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center text-white"
+                  title="Record Voice Note"
+                >
+                  <Mic size={18} strokeWidth={2.5} />
+                </button>
+              )}
+            </div>
+          </form>
+        )}
 
         <AnimatePresence>
           {showEmojiPicker && (
@@ -1005,6 +1023,7 @@ export default function Messages() {
   const [showOrbitConstellation, setShowOrbitConstellation] = useState(false);
   const [peekChat, setPeekChat] = useState<any | null>(null);
   const [showOfficialOnboarding, setShowOfficialOnboarding] = useState(true);
+  const [showLocationPickerModal, setShowLocationPickerModal] = useState(false);
 
   useEffect(() => {
     api.get('/messages/official-chat').then(res => {
@@ -1213,19 +1232,20 @@ export default function Messages() {
   const conversations = useChatStore(state => state.conversations);
   const setConversations = useChatStore(state => state.setConversations);
   const getTabBadgeCount = (tabId: string) => {
-    if (tabId === 'all') return conversations.length;
+    const safeConvs = Array.isArray(conversations) ? conversations : [];
+    if (tabId === 'all') return safeConvs.length;
     if (tabId === 'unread') {
-      return conversations.reduce((acc, cv) => acc + (cv.unread_count || 0), 0);
+      return safeConvs.reduce((acc, cv) => acc + (cv.unread_count || 0), 0);
     }
     if (tabId === 'groups') {
-      return conversations.filter(cv => !!(cv.is_group || cv.chat_type === 'group')).length;
+      return safeConvs.filter(cv => !!(cv.is_group || cv.chat_type === 'group')).length;
     }
     if (tabId === 'archived') {
-      return conversations.filter(cv => !!(cv as any).is_archived).length;
+      return safeConvs.filter(cv => !!(cv as any).is_archived).length;
     }
     const list = customLists.find(l => l.id === tabId);
     if (list) {
-      return conversations.filter(cv => list.chatIds.includes(cv.chat_id)).length;
+      return safeConvs.filter(cv => list.chatIds.includes(cv.chat_id)).length;
     }
     return 0;
   };
@@ -1298,6 +1318,9 @@ const handleBulkDeleteForMe = () => {
   setMessageToDelete(null);
 };
 
+const [audioPreviewFile, setAudioPreviewFile] = useState<File | null>(null);
+const [showAudioPreviewModal, setShowAudioPreviewModal] = useState<boolean>(false);
+
 const replyTargetId = useChatStore(state => state.replyTargets[chatId]);
 const replyToMessage = useMemo(() => {
   if (!chatId || !replyTargetId) return null;
@@ -1338,6 +1361,7 @@ const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
 const [mediaPermission, setMediaPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
 const [showChatSettings, setShowChatSettings] = useState(false);
 const [showNewChatModal, setShowNewChatModal] = useState(false);
+const [peopleHubMode, setPeopleHubMode] = useState<'new_chat' | 'share_contact'>('new_chat');
 const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
 const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
 const [showCameraModal, setShowCameraModal] = useState(false);
@@ -1875,7 +1899,7 @@ const handleOpenDirectChat = (contact: any) => {
     setSelectedChat({
       chat_id: 'temp_' + Date.now(),
       partner_id: partnerId,
-      partner_name: contact.name || contact.username,
+      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
       partner_avatar: contact.avatar_url,
       unread_count: 0,
       last_message_time: null,
@@ -1989,12 +2013,44 @@ useEffect(() => {
     setConversations((prev: any[]) => {
       const chatId = msg.conversation_id || msg.chat_id;
       const chatIndex = prev.findIndex(c => c.chat_id === chatId || c.partner_id === msg.sender_id);
+      
+      const getFormattedPreview = (m: any) => {
+        const t = m.type || 'text';
+        const cnt = m.content || '';
+        if (t === 'location') {
+          if (cnt && typeof cnt === 'string' && cnt.startsWith('{')) {
+            try {
+              const p = JSON.parse(cnt);
+              if (p.name || p.address) return `📍 ${p.name || p.address}`;
+            } catch (e) {}
+          }
+          return '📍 Location';
+        }
+        if (t === 'live_location') return '📍 Live Location';
+        if (t === 'attachment') return '🎬 Story reply';
+        if (t === 'image') return '📷 Photo';
+        if (t === 'video') return '🎥 Video';
+        if (t === 'audio') return '🎤 Voice note';
+        if (t === 'document') return '📄 Document';
+        if (t === 'contact') return '👤 Contact Card';
+        if (cnt && typeof cnt === 'string' && cnt.startsWith('{"type":')) {
+          try {
+            const p = JSON.parse(cnt);
+            if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
+            if (p.type === 'live_location') return '📍 Live Location';
+          } catch (e) {}
+        }
+        return cnt || (t !== 'text' ? `Shared ${t}` : '');
+      };
+
+      const displayPreview = getFormattedPreview(msg);
+
       if (chatIndex >= 0) {
         const newConvs = [...prev];
         const chat = { ...newConvs[chatIndex] };
-        chat.last_message = msg.content;
+        chat.last_message = displayPreview;
         chat.last_message_type = msg.type;
-        chat.last_message_content = msg.type === 'text' ? msg.content : msg.type === 'attachment' ? '🎬 Story reply' : `Sent a ${msg.type}`;
+        chat.last_message_content = displayPreview;
         // Use server timestamp only — never fall back to client Date
         chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
         // Inherit status from the server message payload; never assume 'sent'
@@ -2010,12 +2066,12 @@ useEffect(() => {
         const newChat: any = {
           chat_id: chatId,
           partner_id: msg.sender_id,
-          partner_name: msg.sender_name || msg.sender_username || 'New Contact',
+          partner_name: sanitizePartnerName(msg.sender_name || msg.sender_username || 'New Contact', msg.sender_username),
           partner_avatar: msg.sender_avatar,
           unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
-          last_message: msg.content,
+          last_message: displayPreview,
           last_message_type: msg.type,
-          last_message_content: msg.type === 'text' ? msg.content : msg.type === 'attachment' ? '🎬 Story reply' : `Sent a ${msg.type}`,
+          last_message_content: displayPreview,
           last_message_time: msg.sent_at || msg.created_at,
           last_message_status: msg.status || 'sent',
           partner_online: true
@@ -2507,7 +2563,7 @@ const handleMediaSelection = async (payload: {
   }
 };
 
-const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string) => {
+const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string, metadataPayload?: string) => {
   if (e) e.preventDefault();
   const currentChatId = selectedChat?.chat_id || '';
   const storeDraft = useChatStore.getState().drafts[currentChatId] || '';
@@ -2558,7 +2614,8 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
     is_read: false,
     type: specialType || 'text',
     media_url: mediaUrl,
-    mediaUrl: mediaUrl
+    mediaUrl: mediaUrl,
+    metadata: metadataPayload
   };
 
   if (replyToMessage) {
@@ -2571,6 +2628,9 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
   // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
   updateMessages(prev => [...prev, optimisticMsg]);
   if (!contentOverride && !isRich) setNewMessage('');
+  if (selectedChat) {
+    useChatStore.getState().setDraft(selectedChat.chat_id, '');
+  }
   // Release the sending lock immediately — the message is already visible.
   // Network status is indicated by the bubble's status field, not the input lock.
   setSending(false);
@@ -2598,7 +2658,8 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
     partnerId: selectedChat.partner_id,
     content: content || (specialType ? `Shared ${specialType}` : ''),
     type: specialType || 'text',
-    mediaUrl: mediaUrl
+    mediaUrl: mediaUrl,
+    metadata: metadataPayload
   };
 
   if (replyToMessage) {
@@ -2642,10 +2703,14 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
           const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
           if (chatIndex >= 0) {
             const newConvs = [...prev];
-            const chat = { ...newConvs[chatIndex] };
-            chat.last_message = content || (specialType ? `Shared ${specialType}` : '');
+            const preview = specialType === 'location'
+              ? '📍 Location'
+              : specialType === 'live_location'
+              ? '📍 Live Location'
+              : (content || (specialType ? `Shared ${specialType}` : ''));
+            chat.last_message = preview;
             chat.last_message_type = specialType || 'text';
-            chat.last_message_content = content || (specialType ? `Shared ${specialType}` : '');
+            chat.last_message_content = preview;
             chat.last_message_status = 'sent';
             chat.last_message_time = response.sentAt || chat.last_message_time;
             newConvs.splice(chatIndex, 1);
@@ -2724,10 +2789,55 @@ const handleRetryMessage = (failedMsg: any) => {
   });
 };
 
-const handleVoiceSend = async (file: File) => {
+const handleVoiceSend = async (file: File, durationSeconds?: number, source: 'recorded_voice_note' | 'device_audio_attachment' = 'recorded_voice_note') => {
   if (!selectedChat) return;
-  const queueId = `upload_${Date.now()}`;
-  setUploadQueue(prev => [...prev, { id: queueId, name: 'Voice Note Recording', progress: 0, status: 'uploading' }]);
+
+  const clientMessageId = crypto.randomUUID();
+  const blobUrl = URL.createObjectURL(file);
+  const queueId = `upload_${clientMessageId}`;
+
+  const messageType = source === 'device_audio_attachment' ? 'audio' : 'voice_note';
+  const metadataPayload = JSON.stringify({
+    duration: durationSeconds || 0,
+    source,
+    fileName: file.name,
+    fileSize: file.size,
+    mimeType: file.type
+  });
+
+  const optimisticMsg: any = {
+    message_id: clientMessageId,
+    id: clientMessageId,
+    sender_id: user?.id || user?.user_id || '',
+    content: source === 'device_audio_attachment' ? file.name : '🎤 Voice note',
+    status: 'sending',
+    sent_at: new Date().toISOString(),
+    created_at: new Date().toISOString(),
+    is_read: false,
+    type: messageType,
+    media_url: blobUrl,
+    mediaUrl: blobUrl,
+    metadata: metadataPayload
+  };
+
+  if (replyToMessage) {
+    optimisticMsg.reply_to_message_id = replyToMessage.message_id;
+    optimisticMsg.reply_content = replyToMessage.content;
+    optimisticMsg.reply_type = replyToMessage.type || 'text';
+    optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
+  }
+
+  // 1. Instantly render voice/audio message bubble optimistically
+  updateMessages(prev => [...prev, optimisticMsg]);
+  AudioSessionManager.playSound('send');
+
+  // Clear reply state if set
+  if (selectedChat) {
+    useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
+  }
+
+  // 2. Queue background upload
+  setUploadQueue(prev => [...prev, { id: queueId, name: file.name || 'Voice Note', progress: 0, status: 'uploading' }]);
 
   try {
     const mediaUrl = await uploadFileWithProgress(file, (progress) => {
@@ -2740,11 +2850,55 @@ const handleVoiceSend = async (file: File) => {
     }, 3000);
 
     if (mediaUrl) {
-      await handleSendMessage(undefined, undefined, 'voice_note', mediaUrl);
+      // 3. Update local message bubble with uploaded URL
+      updateMessages(prev => prev.map(m =>
+        (m.message_id === clientMessageId || m.id === clientMessageId)
+          ? { ...m, media_url: mediaUrl, mediaUrl: mediaUrl }
+          : m
+      ));
+
+      // 4. Emit message payload with clientMessageId over socket / offline queue
+      const payload: any = {
+        messageId: clientMessageId,
+        chatId: selectedChat.chat_id,
+        partnerId: selectedChat.partner_id,
+        content: optimisticMsg.content,
+        type: messageType,
+        mediaUrl,
+        metadata: metadataPayload
+      };
+      if (replyToMessage) payload.replyToId = replyToMessage.message_id;
+
+      if (socket && socket.connected) {
+        socket.emit('send-message', payload, (response: any) => {
+          if (response?.success) {
+            updateMessages(prev => prev.map(m =>
+              (m.message_id === clientMessageId || m.id === clientMessageId)
+                ? { ...m, status: 'sent', sent_at: response.sentAt || m.sent_at }
+                : m
+            ));
+          } else {
+            updateMessages(prev => prev.map(m =>
+              (m.message_id === clientMessageId || m.id === clientMessageId)
+                ? { ...m, status: 'failed' }
+                : m
+            ));
+          }
+        });
+      } else {
+        PersistentOfflineQueue.enqueue(payload);
+      }
+    } else {
+      updateMessages(prev => prev.map(m =>
+        (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
+      ));
     }
   } catch (err) {
-    console.error('Failed to upload voice note', err);
+    console.error('Failed to upload voice/audio note:', err);
     setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
+    updateMessages(prev => prev.map(m =>
+      (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
+    ));
   }
 };
 
@@ -2854,7 +3008,7 @@ const startNewChat = (contact: any) => {
     setSelectedChat({
       chat_id: 'temp_' + Date.now(),
       partner_id: contact.user_id,
-      partner_name: contact.name || contact.username,
+      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
       partner_avatar: contact.avatar_url,
       unread_count: 0,
       last_message_time: new Date().toISOString()
@@ -2931,20 +3085,21 @@ const getTimeAgo = (time?: string) => formatChatTimestamp(time);
 
 // --- Filtered & Sorted conversations ---
 const filteredConversations = useMemo(() => {
-  let list = conversations;
+  const convsList = Array.isArray(conversations) ? conversations : [];
+  let list = convsList;
   if (activeFilter === 'unread') {
-    list = conversations.filter(c => (c.unread_count || 0) > 0 && !c.is_archived);
+    list = convsList.filter(c => (c.unread_count || 0) > 0 && !c.is_archived);
   } else if (activeFilter === 'groups') {
-    list = conversations.filter(c => !!(c.is_group || c.chat_type === 'group') && !c.is_archived);
+    list = convsList.filter(c => !!(c.is_group || c.chat_type === 'group') && !c.is_archived);
   } else if (activeFilter === 'archived') {
-    list = conversations.filter(c => !!c.is_archived);
+    list = convsList.filter(c => !!c.is_archived);
   } else {
     const custom = customLists.find(l => l.id === activeFilter);
     if (custom) {
-      list = conversations.filter(c => custom.chatIds.includes(c.chat_id) && !c.is_archived);
+      list = convsList.filter(c => custom.chatIds.includes(c.chat_id) && !c.is_archived);
     } else {
       // Main 'all' tab: hide archived chats
-      list = conversations.filter(c => !c.is_archived);
+      list = convsList.filter(c => !c.is_archived);
     }
   }
 
@@ -3137,7 +3292,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     <Camera size={22} strokeWidth={2.2} />
                   </button>
                   <button
-                    onClick={() => setShowNewChatModal(true)}
+                    onClick={() => { setPeopleHubMode('new_chat'); setShowNewChatModal(true); }}
                     className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
                   >
                     <SquarePen size={22} strokeWidth={2.2} />
@@ -3284,8 +3439,30 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                       }
                     });
                   }}
-                  getStatusLabel={(c) => c.last_message || 'No messages yet'}
-                  formatMessageText={(txt) => txt}
+                  getStatusLabel={(c) => {
+                    const msgType = c.last_message_type;
+                    const msgTxt = c.last_message || '';
+                    if (msgType === 'location') return '📍 Location';
+                    if (msgType === 'live_location') return '📍 Live Location';
+                    if (typeof msgTxt === 'string' && msgTxt.startsWith('{"type":')) {
+                      try {
+                        const p = JSON.parse(msgTxt);
+                        if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
+                        if (p.type === 'live_location') return '📍 Live Location';
+                      } catch (e) {}
+                    }
+                    return msgTxt || 'No messages yet';
+                  }}
+                  formatMessageText={(txt) => {
+                    if (typeof txt === 'string' && txt.startsWith('{"type":')) {
+                      try {
+                        const p = JSON.parse(txt);
+                        if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
+                        if (p.type === 'live_location') return '📍 Live Location';
+                      } catch (e) {}
+                    }
+                    return txt;
+                  }}
                   typingUsers={typingUsers ? Object.entries(typingUsers).flatMap(([cId, uList]) => uList.map(u => ({ chatId: cId, name: u.username }))) : []}
                 />
               ))
@@ -3414,8 +3591,8 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
                         {!isSystemChat && (
                           <>
-                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', selectedChat.partner_name, selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
-                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', selectedChat.partner_name, selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
+                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                           </>
                         )}
                         <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
@@ -3500,7 +3677,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                           <Pin size={14} strokeWidth={2.5} className="text-[#ff1493] shrink-0" />
                           <div className="flex flex-col min-w-0">
                             <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest truncate">
-                              {msg.sender_id === (user?.id || user?.user_id) ? 'You' : selectedChat.partner_name}
+                              {msg.sender_id === (user?.id || user?.user_id) ? 'You' : sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username)}
                             </span>
                             <span className="text-[12px] font-medium text-white/90 truncate mt-0.5">
                               {msg.type === 'text' || !msg.type ? msg.content : `[${msg.type.toUpperCase()}]`}
@@ -3530,7 +3707,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
               <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
                 {(() => {
-                  const partnerName = (selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name || '').toLowerCase();
+                  const partnerName = (sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || '').toLowerCase();
                   const partnerUsername = (selectedChat?.partner_username || selectedChat?.username || '').toLowerCase();
                   const isSparklePay = partnerName.includes('pay') || partnerUsername.includes('pay');
                   const isOfficialChat = !!(
@@ -3550,7 +3727,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 {!!(window as any).__sparkleIsOfficialChat && (
                   <>
                     <OfficialAccountBanner
-                      displayName={selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name || ((window as any).__sparkleIsSparklePay ? 'SparklePay' : 'Sparkle Official')}
+                      displayName={sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || ((window as any).__sparkleIsSparklePay ? 'SparklePay' : 'Sparkle Official')}
                       badge={(window as any).__sparkleIsSparklePay ? 'Verified Financial Channel' : (selectedChat?.official_badge || '✔️ Verified')}
                       accountType={(window as any).__sparkleIsSparklePay ? 'sparkle_pay' : 'official'}
                     />
@@ -3772,7 +3949,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                         msg.body ||
                                         (typeof msg.payload === 'object' ? (msg.payload?.body || msg.payload?.content || msg.payload?.text || msg.payload?.message) : (typeof msg.payload === 'string' ? msg.payload : ''))
                                       ) || '';
-
+                                      const isLocationMsg = msg.type === 'location' || msg.type === 'live_location' || (typeof textContent === 'string' && (textContent.includes('"type":"location"') || textContent.includes('"type":"live_location"')));
                                       const isSparklePay = msg.type === 'sparkle_pay' || msg.type === 'wallet' || msg.category === 'wallet' || msg.sender_username === 'sparklepay' || msg.payload?.referenceId || msg.payload?.amount;
 
                                       if (isSparklePay) {
@@ -3789,7 +3966,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                         );
                                       }
 
-                                      const isTextLike = !msg.type || msg.type === 'text' || msg.type === 'official' || msg.type === 'system' || msg.type === 'onboarding' || msg.type === 'announcement' || msg.type === 'notification' || msg.type === 'card';
+                                      const isTextLike = (!msg.type || msg.type === 'text' || msg.type === 'official' || msg.type === 'system' || msg.type === 'onboarding' || msg.type === 'announcement' || msg.type === 'notification' || msg.type === 'card') && !isLocationMsg;
 
                                       if (isTextLike) {
                                         return (
@@ -3816,6 +3993,14 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                         {/* Spacer to prevent timestamp overlap */}
                                         <span className="inline-block w-[75px] h-[1px]"></span>
                                       </div>
+                                    )}
+
+                                    {(msg.type === 'location' || msg.type === 'live_location' || (typeof msg.content === 'string' && (msg.content.includes('"type":"location"') || msg.content.includes('"type":"live_location"')))) && (
+                                      <LocationMessageBubble
+                                        message={msg}
+                                        isCurrentUser={msg.sender_id === (user?.user_id || user?.id)}
+                                        onOpenFullMap={() => setShowLocationPickerModal(true)}
+                                      />
                                     )}
 
                                     {msg.type === 'image' && (
@@ -3899,30 +4084,66 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                       </div>
                                     )}
 
-                                    {msg.type === 'contact' && (
-                                      <div className="bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
-                                        <div className="flex items-center gap-3">
-                                          <div className="w-10 h-10 rounded-full bg-[#ff1493] flex items-center justify-center text-white text-[15px] font-black shrink-0 shadow-lg shadow-pink-500/20">
-                                            {msg.content ? msg.content.charAt(0).toUpperCase() : 'C'}
+                                    {msg.type === 'contact' && (() => {
+                                      let contactMeta: any = null;
+                                      try {
+                                        if (msg.metadata) contactMeta = typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata;
+                                      } catch (e) {}
+
+                                      const contactName = contactMeta?.name || msg.content || 'Contact Card';
+                                      const contactPhoneOrHandle = contactMeta?.phone || msg.media_url || msg.mediaUrl || (contactMeta?.username ? `@${contactMeta.username}` : '+1 (555) 019-2834');
+                                      const contactUserId = contactMeta?.userId || contactMeta?.user_id;
+                                      const contactUsername = contactMeta?.username;
+                                      const contactAvatar = contactMeta?.avatar_url;
+
+                                      return (
+                                        <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
+                                          <div 
+                                            className="flex items-center gap-3 cursor-pointer group"
+                                            onClick={() => {
+                                              if (contactUsername) {
+                                                navigate(`/profile/${contactUsername}`);
+                                              } else if (contactUserId) {
+                                                startNewChat({ user_id: contactUserId, name: contactName, username: contactUsername, avatar_url: contactAvatar });
+                                              }
+                                            }}
+                                          >
+                                            <div className="relative shrink-0">
+                                              {contactAvatar ? (
+                                                <img src={getAvatarUrl(contactAvatar, contactUsername)} className="w-10 h-10 rounded-full object-cover border border-white/10 shadow-sm" alt="" />
+                                              ) : (
+                                                <div className="w-10 h-10 rounded-full bg-[#ff1493] flex items-center justify-center text-white text-[15px] font-black shrink-0 shadow-lg shadow-pink-500/20">
+                                                  {contactName.charAt(0).toUpperCase()}
+                                                </div>
+                                              )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                              <h4 className="font-bold text-[13px] text-white truncate leading-tight group-hover:text-[#ff1493] transition-colors">
+                                                {contactName}
+                                              </h4>
+                                              <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5 truncate">
+                                                {contactPhoneOrHandle}
+                                              </p>
+                                            </div>
                                           </div>
-                                          <div className="flex-1 min-w-0">
-                                            <h4 className="font-bold text-[13px] text-white truncate leading-tight">
-                                              {msg.content || 'Contact Card'}
-                                            </h4>
-                                            <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
-                                              {msg.media_url || msg.mediaUrl || '+1 (555) 019-2834'}
-                                            </p>
-                                          </div>
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              startNewChat({
+                                                user_id: contactUserId || ('contact_' + Date.now()),
+                                                username: contactUsername || contactName,
+                                                name: contactName,
+                                                avatar_url: contactAvatar
+                                              });
+                                            }}
+                                            className="w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5 flex items-center justify-center gap-1.5 shadow-sm"
+                                          >
+                                            <User size={14} />
+                                            <span>Message Contact</span>
+                                          </button>
                                         </div>
-                                        <button
-                                          type="button"
-                                          onClick={() => startNewChat({ user_id: 'mock_partner', username: msg.content, name: msg.content, avatar_url: '' })}
-                                          className="w-full py-2 bg-white/10 hover:bg-white/15 active:scale-98 transition-all text-center rounded-xl text-[11px] font-black uppercase tracking-widest text-white border border-white/5"
-                                        >
-                                          Message Contact
-                                        </button>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
                                   </>
                                 )}
                               </div>
@@ -4054,7 +4275,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                       <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
                       <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
                     </div>
-                    <span className="text-[11px] font-semibold text-white/50">{selectedChat.partner_name} is typing…</span>
+                    <span className="text-[11px] font-semibold text-white/50">{sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username)} is typing…</span>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -4460,7 +4681,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     )}
                   </div>
                   <div className="ml-4 flex-1 overflow-hidden flex flex-col justify-center">
-                    <h3 className="text-[16px] text-[#e9edef] truncate">{chat.partner_name}</h3>
+                    <h3 className="text-[16px] text-[#e9edef] truncate">{sanitizePartnerName(chat.partner_name, chat.partner_username)}</h3>
                     <p className="text-[14px] text-[#8696a0] truncate">{chat.is_group || chat.chat_type === 'group' ? 'Group' : 'User'}</p>
                   </div>
                 </div>
@@ -4550,52 +4771,39 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         )}
       </AnimatePresence>
 
-      <AnimatePresence>
-        {showNewChatModal && (
-          <motion.div
-            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-[#000000]/80 backdrop-blur-sm z-[100] flex justify-center pt-20 px-4"
-            onClick={() => setShowNewChatModal(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-[#121212] rounded-[32px] w-full max-w-md h-[70vh] flex flex-col shadow-2xl overflow-hidden"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="p-6 border-b border-white/5 flex justify-between items-center bg-[#000000]/40">
-                <h2 className="text-xl font-black text-white uppercase italic tracking-tighter">New Message</h2>
-                <button onClick={() => setShowNewChatModal(false)} className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all text-white"><X size={20} strokeWidth={3} /></button>
-              </div>
-              <div className="p-4 border-b border-white/5">
-                <div className="relative bg-white/5 rounded-2xl flex items-center px-4 h-12 focus-within:bg-white/10 transition-all">
-                  <Search size={18} className="text-white/30" strokeWidth={3} />
-                  <input type="text" placeholder="Search users..." className="bg-transparent w-full h-full outline-none ml-3 font-bold text-sm text-[#f5f5f5] placeholder:text-white/20 italic" />
-                </div>
-              </div>
-              <div className="flex-1 overflow-y-auto p-2 no-scrollbar">
-                {Array.isArray(suggestedContacts) && suggestedContacts.map((contact, idx) => {
-                  const contactId = contact.user_id || contact.id || idx;
-                  return (
-                    <div key={`modal-${contactId}`} onClick={() => startNewChat(contact)} className="flex items-center gap-4 p-4 hover:bg-white/5 rounded-2xl cursor-pointer transition-all active:scale-[0.98]">
-                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-12 h-12 rounded-xl object-cover border border-white/5 shadow-sm" />
-                      <div>
-                        <h4 className="font-bold text-white text-sm leading-none">{contact.name || contact.username}</h4>
-                        <p className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-1">@{contact.username}</p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <SparklePeopleHubModal
+        isOpen={showNewChatModal}
+        onClose={() => setShowNewChatModal(false)}
+        title={peopleHubMode === 'share_contact' ? 'Share Contact' : undefined}
+        actionLabel={peopleHubMode === 'share_contact' ? 'Share Contact' : undefined}
+        onSelectUser={(contact) => {
+          setShowNewChatModal(false);
+          if (peopleHubMode === 'share_contact') {
+            const contactName = contact.name || contact.username || 'Sparkle User';
+            const contactPhoneOrHandle = contact.phone_number || (contact.username ? `@${contact.username}` : '+1 (555) 019-2834');
+            const contactMetadata = JSON.stringify({
+              userId: contact.user_id || contact.id,
+              name: contactName,
+              username: contact.username,
+              avatar_url: contact.avatar_url,
+              phone: contact.phone_number
+            });
+            handleSendMessage(undefined, contactName, 'contact', contactPhoneOrHandle, contactMetadata);
+          } else {
+            startNewChat(contact);
+          }
+        }}
+        onNavigateProfile={(username) => {
+          setShowNewChatModal(false);
+          navigate(`/profile/${username}`);
+        }}
+      />
 
       {showCameraModal && (
         <CameraModal
           isOpen={showCameraModal}
           onClose={() => setShowCameraModal(false)}
-          partnerName={selectedChat?.partner_name || 'My Story'}
+          partnerName={sanitizePartnerName(selectedChat?.partner_name, selectedChat?.partner_username) || 'My Story'}
           partnerAvatar={selectedChat?.partner_avatar || user?.avatar_url}
           onSend={(mediaUrl, viewMode) => {
             setShowCameraModal(false);
@@ -4953,24 +5161,32 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
                   {/* Bottom Row: Voice | Location | Contact */}
                   <div className="grid grid-cols-3 gap-3 px-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        handleSendMessage(undefined, 'Voice note recording', 'audio');
-                        setShowAttachmentSheet(false);
-                      }}
-                      className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
-                    >
+                    <label className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10 cursor-pointer">
+                      <input
+                        type="file"
+                        accept="audio/*,.mp3,.m4a,.aac,.wav,.ogg,.opus,.webm"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (file.size > 25 * 1024 * 1024) {
+                              alert('Audio file is too large (maximum size is 25MB).');
+                              return;
+                            }
+                            setShowAttachmentSheet(false);
+                            setAudioPreviewFile(file);
+                            setShowAudioPreviewModal(true);
+                          }
+                        }}
+                      />
                       <div className="w-10 h-10 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shadow-md"><Mic size={20} strokeWidth={2.5} /></div>
-                      <span className="text-[11px] font-bold tracking-wide text-white/90">Voice</span>
-                    </button>
+                      <span className="text-[11px] font-bold tracking-wide text-white/90">Voice/Audio</span>
+                    </label>
 
                     <button
                       type="button"
                       onClick={() => {
-                        const LOCATIONS = ['Eiffel Tower, Paris', 'Space Needle, Seattle', 'Central Park, NY', 'Shibuya Crossing, Tokyo'];
-                        const randomLoc = LOCATIONS[Math.floor(Math.random() * LOCATIONS.length)];
-                        handleSendMessage(undefined, randomLoc, 'location');
+                        setShowLocationPickerModal(true);
                         setShowAttachmentSheet(false);
                       }}
                       className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
@@ -4982,14 +5198,9 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     <button
                       type="button"
                       onClick={() => {
-                        const CONTACTS = [
-                          { name: 'Sarah Jenkins', phone: '+1 (555) 302-8821' },
-                          { name: 'Dr. Alan Grant', phone: '+1 (555) 909-1234' },
-                          { name: 'Marcus Aurelius', phone: '+1 (555) 100-2000' }
-                        ];
-                        const randomContact = CONTACTS[Math.floor(Math.random() * CONTACTS.length)];
-                        handleSendMessage(undefined, randomContact.name, 'contact', randomContact.phone);
                         setShowAttachmentSheet(false);
+                        setPeopleHubMode('share_contact');
+                        setShowNewChatModal(true);
                       }}
                       className="flex flex-col items-center gap-2 py-3 bg-white/5 hover:bg-white/10 active:scale-95 rounded-2xl transition-all border border-white/10"
                     >
@@ -5470,7 +5681,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 return (
                   <button key={chat.chat_id} onClick={() => setListSelectedChats(prev => sel ? prev.filter(x => x !== chat.chat_id) : [...prev, chat.chat_id])} className="w-full flex items-center gap-3.5 px-5 py-3.5 hover:bg-white/[0.04] active:bg-white/[0.07] transition-all">
                     <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-12 h-12 rounded-full object-cover border border-white/[0.10]" alt="" />
-                    <span className="flex-1 text-left text-[14.5px] font-[500] text-white/85 truncate">{chat.partner_name}</span>
+                    <span className="flex-1 text-left text-[14.5px] font-[500] text-white/85 truncate">{sanitizePartnerName(chat.partner_name, chat.partner_username)}</span>
                     <div className={clsx('w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all', sel ? 'bg-[#ff1493] border-[#ff1493]' : 'border-white/25')}>
                       {sel && <Check size={13} strokeWidth={3} className="text-white" />}
                     </div>
@@ -5901,6 +6112,42 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           </div>
         )}
       </AnimatePresence>
+
+      {selectedChat && (
+        <LocationPickerModal
+          isOpen={showLocationPickerModal}
+          chatId={selectedChat.chat_id}
+          onClose={() => setShowLocationPickerModal(false)}
+          onSendCurrentLocation={(payload: LocationPayload) => {
+            const contentJson = JSON.stringify({
+              type: 'location',
+              latitude: payload.latitude,
+              longitude: payload.longitude,
+              accuracy: payload.accuracy,
+              address: payload.address || payload.name,
+              name: payload.name || payload.address
+            });
+            handleSendMessage(undefined, contentJson, 'location');
+          }}
+          onSendLiveLocation={(sessionData) => {
+            console.log('Live location started:', sessionData);
+          }}
+        />
+      )}
+
+      <AudioPreviewModal
+        file={audioPreviewFile}
+        isOpen={showAudioPreviewModal}
+        onClose={() => {
+          setShowAudioPreviewModal(false);
+          setAudioPreviewFile(null);
+        }}
+        onSend={(file: File) => {
+          setShowAudioPreviewModal(false);
+          setAudioPreviewFile(null);
+          handleVoiceSend(file, undefined, 'device_audio_attachment');
+        }}
+      />
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

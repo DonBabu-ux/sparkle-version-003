@@ -58,7 +58,8 @@ export default function WalletHistory() {
       const res = await api.get('/wallet/history', { params });
       if (res.data.success) {
         setTransactions(res.data.transactions || []);
-        setTotalPages(res.data.pages || 1);
+        const pagesCount = res.data.pagination?.totalPages || res.data.totalPages || res.data.pages || 1;
+        setTotalPages(pagesCount);
       }
     } catch (e) {
       console.error('Failed to load transaction history:', e);

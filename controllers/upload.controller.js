@@ -9,13 +9,18 @@ const uploadMedia = async (req, res) => {
             return res.status(400).json({ error: 'No file uploaded' });
         }
 
+        const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25 MB
+        if (req.file.mimetype && req.file.mimetype.startsWith('audio/') && req.file.size > MAX_AUDIO_SIZE) {
+            return res.status(400).json({ error: 'Audio file size exceeds maximum limit of 25MB' });
+        }
+
         const userId = req.user?.userId || req.user?.user_id || 'anonymous';
         const fileSizeBytes = req.file.size || 0;
         const originalName = req.file.originalname || 'unknown';
         const hashChecksum = crypto.createHash('md5').update(`${userId}-${fileSizeBytes}-${originalName}`).digest('hex');
         
         let category = 'temporary';
-        if (req.originalUrl.includes('message')) category = 'message';
+        if (req.originalUrl.includes('message') || (req.file.mimetype && req.file.mimetype.startsWith('audio/'))) category = 'message';
         else if (req.file.fieldname === 'avatar') category = 'profile';
 
         try {

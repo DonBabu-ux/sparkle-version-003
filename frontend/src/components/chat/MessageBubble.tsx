@@ -144,7 +144,18 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
             {message.content && <span className="text-sm mt-1">{message.content}</span>}
           </div>
         ) : (
-          <span>{message.content}</span>
+          <span>
+            {typeof message.content === 'string' && message.content.startsWith('{"type":')
+              ? (() => {
+                  try {
+                    const p = JSON.parse(message.content);
+                    if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
+                    if (p.type === 'live_location') return '📍 Live Location';
+                  } catch (e) {}
+                  return message.content;
+                })()
+              : message.content}
+          </span>
         )}
         {message.is_edited && !isEditing && (
           <span style={designTokens.editBadge} className="absolute bottom-[-12px] right-0">

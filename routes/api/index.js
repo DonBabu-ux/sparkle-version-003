@@ -60,6 +60,7 @@ router.use('/notifications', notificationsRoutes);
 router.use('/onboarding', onboardingRoutes);
 router.use('/discover', discoverRoutes);
 router.use('/rooms', roomsRoutes);
+router.use('/location', require('./location.routes'));
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');

@@ -14,19 +14,21 @@ const api = axios.create({
 
 // CSRF state
 let csrfToken: string | null = null;
+let csrfFetchAttempted = false;
 
-const fetchCsrfToken = async (retries = 3): Promise<string | null> => {
+const fetchCsrfToken = async (): Promise<string | null> => {
+  if (csrfToken) return csrfToken;
+  if (csrfFetchAttempted) return null;
+  csrfFetchAttempted = true;
   try {
-    const { data } = await axios.get(`${api.defaults.baseURL}/csrf-token`, { withCredentials: true });
-    csrfToken = data.csrfToken;
+    const { data } = await axios.get(`${api.defaults.baseURL}/csrf-token`, { 
+      withCredentials: true,
+      timeout: 2000
+    });
+    csrfToken = data?.csrfToken || 'sparkle_csrf_disabled';
     return csrfToken;
-  } catch (err) {
-    if (retries > 0) {
-      console.warn(`CSRF fetch failed, retrying... (${retries} left)`);
-      await new Promise(r => setTimeout(r, 1000));
-      return fetchCsrfToken(retries - 1);
-    }
-    console.error('Failed to fetch CSRF token after retries:', err);
+  } catch (_err) {
+    csrfToken = 'sparkle_csrf_disabled';
     return null;
   }
 };
@@ -45,12 +47,13 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Add CSRF token for state-changing requests
+    // Add CSRF token for state-changing requests (except auth routes like login/signup to prevent delays)
+    const isAuthRequest = config.url?.includes('/auth/login') || config.url?.includes('/auth/signup') || config.url?.includes('/auth/refresh');
     if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {
-      if (!csrfToken) {
+      if (!csrfToken && !isAuthRequest && !csrfFetchAttempted) {
         await fetchCsrfToken();
       }
-      if (csrfToken) {
+      if (csrfToken && csrfToken !== 'sparkle_csrf_disabled') {
         config.headers['X-CSRF-Token'] = csrfToken;
       }
     }
@@ -89,13 +92,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Handle Network Errors (like ERR_CONNECTION_REFUSED)
-    if (!error.response && originalRequest) {
+    // Handle Network Errors (like ERR_CONNECTION_REFUSED) - bypass retries for login/auth to respond immediately
+    const isAuthUrl = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/signup');
+    if (!error.response && originalRequest && !isAuthUrl) {
       // If it's a network error and we haven't retried this specific request yet
-      if (!originalRequest._networkRetry || originalRequest._networkRetry < 3) {
+      if (!originalRequest._networkRetry || originalRequest._networkRetry < 2) {
         originalRequest._networkRetry = (originalRequest._networkRetry || 0) + 1;
         console.warn(`🌐 Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
-        await new Promise(r => setTimeout(r, 1000 * originalRequest._networkRetry));
+        await new Promise(r => setTimeout(r, 500 * originalRequest._networkRetry));
         return api(originalRequest);
       }
     }

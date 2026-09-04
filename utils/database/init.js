@@ -1643,6 +1643,31 @@ const initWalletTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Ensures each Paystack event is processed exactly once'
         `);
 
+        // ── wallet_auto_withdrawal_configs: automated payout settings per creator ────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_auto_withdrawal_configs (
+                config_id          CHAR(36)     PRIMARY KEY,
+                wallet_id          CHAR(36)     NOT NULL UNIQUE,
+                user_id            CHAR(36)     NOT NULL,
+                is_enabled         TINYINT(1)   NOT NULL DEFAULT 0,
+                mode               ENUM('scheduled', 'threshold', 'hybrid') NOT NULL DEFAULT 'threshold',
+                threshold_cents    BIGINT       NOT NULL DEFAULT 500000 COMMENT 'cents (e.g. KES 5,000)',
+                schedule_frequency ENUM('daily', 'weekly', 'monthly') NOT NULL DEFAULT 'weekly',
+                method             ENUM('mpesa', 'bank') NOT NULL DEFAULT 'mpesa',
+                account_name       VARCHAR(255) DEFAULT NULL,
+                account_number     VARCHAR(50)  DEFAULT NULL,
+                bank_code          VARCHAR(20)  DEFAULT NULL,
+                phone              VARCHAR(20)  DEFAULT NULL,
+                last_executed_at   TIMESTAMP    NULL DEFAULT NULL,
+                next_scheduled_at  TIMESTAMP    NULL DEFAULT NULL,
+                created_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                CONSTRAINT fk_auto_withdrawal_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(wallet_id) ON DELETE CASCADE,
+                INDEX idx_auto_withdrawal_wallet (wallet_id),
+                INDEX idx_auto_withdrawal_enabled (is_enabled)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Automated withdrawal configuration per creator wallet'
+        `);
+
         logger.debug('✅ Wallet ledger tables verified (production schema)');
     } catch (err) {
         logger.error('❌ Failed to init wallet tables:', err.message);

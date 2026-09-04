@@ -672,6 +672,71 @@ class User {
     }
 
     /**
+     * Get mutual connections (people you follow who follow you back) for People Hub
+     */
+    static async getMutualFollowersList(currentUserId) {
+        const [rows] = await pool.query(
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio, u.is_online, u.last_seen_at,
+                    GREATEST(f1.created_at, f2.created_at) as mutual_since,
+                    pc.chat_id, pc.last_message_time
+             FROM follows f1
+             JOIN follows f2 ON f1.following_id = f2.follower_id AND f1.follower_id = f2.following_id
+             JOIN users u ON f1.following_id = u.user_id
+             LEFT JOIN personal_chats pc ON (
+                (pc.participant1_id = ? AND pc.participant2_id = u.user_id) OR
+                (pc.participant2_id = ? AND pc.participant1_id = u.user_id)
+             )
+             WHERE f1.follower_id = ? AND u.user_id != ? AND u.account_status = 'active'
+             ORDER BY mutual_since DESC`,
+            [currentUserId, currentUserId, currentUserId, currentUserId]
+        );
+        return rows;
+    }
+
+    /**
+     * Match phone contacts / names against registered Sparkle users for People Hub
+     */
+    static async matchContactsList(currentUserId, searchQueries = []) {
+        let queryParams = [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID];
+
+        let whereSql = '';
+        if (Array.isArray(searchQueries) && searchQueries.length > 0) {
+            const cleanQueries = searchQueries.filter(q => typeof q === 'string' && q.trim().length > 0).slice(0, 10);
+            if (cleanQueries.length > 0) {
+                const conds = cleanQueries.map(() => `(u.name LIKE ? OR u.username LIKE ?)`).join(' OR ');
+                whereSql = `AND (${conds})`;
+                cleanQueries.forEach(q => {
+                    const term = `%${q.trim()}%`;
+                    queryParams.push(term, term);
+                });
+            }
+        }
+
+        const [rows] = await pool.query(
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio, u.is_online, u.last_seen_at,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_following,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me,
+                    pc.chat_id
+             FROM users u
+             LEFT JOIN personal_chats pc ON (
+                (pc.participant1_id = ? AND pc.participant2_id = u.user_id) OR
+                (pc.participant2_id = ? AND pc.participant1_id = u.user_id)
+             )
+             WHERE u.user_id != ? AND u.user_id != ? AND u.account_status = 'active' ${whereSql}
+             ORDER BY u.name ASC
+             LIMIT 60`,
+            queryParams
+        );
+
+        return rows.map(r => ({
+            ...r,
+            is_following: !!r.is_following,
+            follows_me: !!r.follows_me,
+            is_mutual: !!(r.is_following && r.follows_me)
+        }));
+    }
+
+    /**
      * Get mutual connections between two users
      */
     static async getMutualConnections(userAId, userBId) {

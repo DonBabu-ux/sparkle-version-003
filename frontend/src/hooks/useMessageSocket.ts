@@ -10,12 +10,15 @@ import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 
 export const useMessageSocket = () => {
   const socket = useSocket();
-  const messageStore = useMessageStore();
-  const chatStore = useChatStore();
 
   useEffect(() => {
     if (!socket) return;
     console.log('[TRACE] Registering enterprise message socket listeners');
+
+    // Always access stores via .getState() inside the effect so we never
+    // close over a stale reference AND never need them in the dep array.
+    const getChatStore  = () => useChatStore.getState();
+    const getMsgStore   = () => useMessageStore.getState();
 
     // Clean previous listeners to avoid duplicates
     socket.off('connect');
@@ -41,7 +44,7 @@ export const useMessageSocket = () => {
 
       // Find highest server_sequence stored across all conversations
       let maxCursor = 0;
-      Object.values(chatStore.messagesByConversation).forEach((msgs) => {
+      Object.values(getChatStore().messagesByConversation).forEach((msgs) => {
         msgs.forEach((m) => {
           if (m.server_sequence && m.server_sequence > maxCursor) {
             maxCursor = m.server_sequence;
@@ -55,7 +58,7 @@ export const useMessageSocket = () => {
           res.messages.forEach((msg: any) => {
             const chatId = msg.conversation_id || msg.chat_id;
             if (chatId) {
-              chatStore.addMessage(chatId, msg);
+              getChatStore().addMessage(chatId, msg);
             }
           });
         }
@@ -83,7 +86,7 @@ export const useMessageSocket = () => {
     const handleConnect = () => {
       console.log('⚡ Socket connected, triggering delta sync & privacy reconciliation');
       triggerCursorSync();
-      const activeChatId = chatStore.activeConversationId;
+      const activeChatId = getChatStore().activeConversationId;
       if (activeChatId && !activeChatId.startsWith('temp_')) {
         api.get(`/messages/${activeChatId}/privacy`)
           .then(res => {
@@ -100,6 +103,7 @@ export const useMessageSocket = () => {
     };
 
     const handleNewMessage = (msg: any) => {
+      const chatStore = getChatStore();
       const chatId = msg.conversation_id || msg.chat_id || chatStore.activeConversationId;
       const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
 
@@ -139,8 +143,7 @@ export const useMessageSocket = () => {
 
     // Enterprise session-aware delivery update handler
     const handleMessageDeliveredUpdate = (data: { messageId: string; chatId: string; deliveredAt: string; recipientUserId: string }) => {
-      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      chatStore.updateMessage(data.chatId, data.messageId, {
+      getChatStore().updateMessage(data.chatId, data.messageId, {
         delivered_at: data.deliveredAt,
         status: 'delivered',
       });
@@ -151,6 +154,7 @@ export const useMessageSocket = () => {
       const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
       if (data.readerUserId === myId) return;
 
+      const chatStore = getChatStore();
       const msgs = chatStore.messagesByConversation[data.chatId] || [];
       msgs.forEach((m) => {
         if (m.sender_id === myId) {
@@ -170,6 +174,7 @@ export const useMessageSocket = () => {
       const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
       if (data.userId === myId) return;
 
+      const chatStore = getChatStore();
       const msgs = chatStore.messagesByConversation[data.chatId] || [];
       msgs.forEach((m) => {
         const isFromMe = m.sender_id === myId;
@@ -183,14 +188,14 @@ export const useMessageSocket = () => {
     };
 
     const handleMessagesRead = (data: { chatId: string; readAt?: string; userId?: string }) => {
-      chatStore.markRead(data.chatId, '');
+      getChatStore().markRead(data.chatId, '');
     };
 
     const handleMessagePinned = (data: { messageId: string; chatId: string; pinnedBy: string }) => {
-      chatStore.updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy });
-      const existing = messageStore.messages[data.messageId];
+      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy });
+      const existing = getMsgStore().messages[data.messageId];
       if (existing) {
-        messageStore.updateMessage(data.messageId, {
+        getMsgStore().updateMessage(data.messageId, {
           pinned: true,
           pinned_by: data.pinnedBy,
         });
@@ -198,10 +203,10 @@ export const useMessageSocket = () => {
     };
 
     const handleMessageUnpinned = (data: { messageId: string; chatId: string }) => {
-      chatStore.updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null });
-      const existing = messageStore.messages[data.messageId];
+      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null });
+      const existing = getMsgStore().messages[data.messageId];
       if (existing) {
-        messageStore.updateMessage(data.messageId, {
+        getMsgStore().updateMessage(data.messageId, {
           pinned: false,
           pinned_by: null,
         });
@@ -209,43 +214,43 @@ export const useMessageSocket = () => {
     };
 
     const handleMessageEdited = (data: { messageId: string; chatId: string; content: string; editedAt: string }) => {
-      chatStore.editMessage(data.chatId, data.messageId, data.content);
-      messageStore.updateMessage(data.messageId, {
+      getChatStore().editMessage(data.chatId, data.messageId, data.content);
+      getMsgStore().updateMessage(data.messageId, {
         content: data.content,
         is_edited: true,
       });
     };
 
     const handleMessageDeletedEveryone = (data: { messageId: string; chatId: string }) => {
-      chatStore.deleteMessageForEveryone(data.chatId, data.messageId, 'This message was deleted');
-      messageStore.deleteMessage(data.messageId);
+      getChatStore().deleteMessageForEveryone(data.chatId, data.messageId, 'This message was deleted');
+      getMsgStore().deleteMessage(data.messageId);
     };
 
     const handleMessageDeletedMe = (data: { messageId: string; chatId: string }) => {
-      chatStore.deleteMessageLocal(data.chatId, data.messageId);
-      messageStore.deleteMessage(data.messageId);
+      getChatStore().deleteMessageLocal(data.chatId, data.messageId);
+      getMsgStore().deleteMessage(data.messageId);
     };
 
     const handleDeleteRejected = (data: { messageId: string; chatId: string; originalContent?: string; reason?: string }) => {
       console.warn(`[DeleteRejected] Deletion rejected by server for msg ${data.messageId}: ${data.reason}`);
       if (data.originalContent && data.chatId) {
-        chatStore.editMessage(data.chatId, data.messageId, data.originalContent);
+        getChatStore().editMessage(data.chatId, data.messageId, data.originalContent);
       }
     };
 
     const handleNewReaction = (data: { messageId: string; chatId: string; userId: string; emoji: string }) => {
-      chatStore.addReaction(data.chatId, data.messageId, data.userId, data.emoji);
+      getChatStore().addReaction(data.chatId, data.messageId, data.userId, data.emoji);
     };
 
     const handleReactionRemoved = (data: { messageId: string; chatId: string; userId: string; emoji: string }) => {
-      chatStore.removeReaction(data.chatId, data.messageId, data.userId, data.emoji);
+      getChatStore().removeReaction(data.chatId, data.messageId, data.userId, data.emoji);
     };
 
     const handleNewGroupCreated = async (data: { chatId: string }) => {
       try {
         const res = await api.get('/messages/inbox');
         const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        chatStore.setConversations(list);
+        getChatStore().setConversations(list);
       } catch (err) {
         console.error('Failed to update conversations on group creation event:', err);
       }
@@ -279,21 +284,22 @@ export const useMessageSocket = () => {
       const canForward = data.permissions?.canForward ?? (data.privacySettings ? (data.privacySettings.allow_forward !== 0 && !data.privacySettings.forwardProtection) : true);
 
       if (chatId && senderId) {
-        chatStore.updateSenderMessagePermissions(chatId, senderId, { canCopy, canForward }, privacyVersion);
+        getChatStore().updateSenderMessagePermissions(chatId, senderId, { canCopy, canForward }, privacyVersion);
       }
 
       window.dispatchEvent(new CustomEvent('sparkle_privacy_updated', { detail: data }));
     };
 
     const handleMessagePinnedUpdated = (data: { messageId: string; chatId: string; pinned: boolean }) => {
-      chatStore.updateMessage(data.chatId, data.messageId, { pinned: data.pinned });
-      if (messageStore.messages[data.messageId]) {
-        messageStore.updateMessage(data.messageId, { pinned: data.pinned });
+      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: data.pinned });
+      if (getMsgStore().messages[data.messageId]) {
+        getMsgStore().updateMessage(data.messageId, { pinned: data.pinned });
       }
     };
 
     const handleSyncResponse = (data: { chatId: string; events?: any[] }) => {
       if (Array.isArray(data.events)) {
+        const chatStore = getChatStore();
         data.events.forEach(evt => {
           let payload = evt.payload;
           if (typeof payload === 'string') {
@@ -344,6 +350,21 @@ export const useMessageSocket = () => {
     socket.on('official_onboarding_status_changed', handleOnboardingStatusChanged);
     socket.on('conversation_privacy_updated', handleConversationPrivacyUpdated);
 
+    // Live Location Listeners
+    const handleLiveLocationStarted = (data: any) => {
+      window.dispatchEvent(new CustomEvent('sparkle_live_location_started', { detail: data }));
+    };
+    const handleLiveLocationUpdate = (data: any) => {
+      window.dispatchEvent(new CustomEvent('sparkle_live_location_update', { detail: data }));
+    };
+    const handleLiveLocationStopped = (data: any) => {
+      window.dispatchEvent(new CustomEvent('sparkle_live_location_stopped', { detail: data }));
+    };
+
+    socket.on('live_location_started', handleLiveLocationStarted);
+    socket.on('live_location_update', handleLiveLocationUpdate);
+    socket.on('live_location_stopped', handleLiveLocationStopped);
+
     return () => {
       socket.off('connect', handleConnect);
       socket.off('new-message', handleNewMessage);
@@ -366,6 +387,10 @@ export const useMessageSocket = () => {
       socket.off('sync-response', handleSyncResponse);
       socket.off('official_onboarding_status_changed', handleOnboardingStatusChanged);
       socket.off('conversation_privacy_updated', handleConversationPrivacyUpdated);
+      socket.off('live_location_started', handleLiveLocationStarted);
+      socket.off('live_location_update', handleLiveLocationUpdate);
+      socket.off('live_location_stopped', handleLiveLocationStopped);
     };
-  }, [socket, messageStore, chatStore]);
+  }, [socket]); // ✅ Only re-run when the socket instance itself changes
 };
+

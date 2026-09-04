@@ -600,6 +600,167 @@ class WalletService {
 
         return { transactionId, amountCents, type, reference: ref };
     }
+
+    // ── Automated Withdrawals ──────────────────────────────────────────────────
+
+    /**
+     * Get automated withdrawal configuration for a user.
+     */
+    async getAutoWithdrawalConfig(userId) {
+        const walletId = await this.getOrCreateWallet(userId);
+        const [rows] = await pool.query(
+            'SELECT * FROM wallet_auto_withdrawal_configs WHERE wallet_id = ? LIMIT 1',
+            [walletId]
+        );
+        return rows[0] || null;
+    }
+
+    /**
+     * Update/Configure automated withdrawal settings.
+     * Requires explicit user consent confirmation.
+     */
+    async updateAutoWithdrawalConfig(userId, data = {}) {
+        const walletId = await this.getOrCreateWallet(userId);
+        const {
+            isEnabled = false,
+            mode = 'threshold',
+            thresholdCents = 500000,
+            scheduleFrequency = 'weekly',
+            method = 'mpesa',
+            accountName = null,
+            accountNumber = null,
+            bankCode = null,
+            phone = null,
+            consentConfirmed = false
+        } = data;
+
+        if (isEnabled && !consentConfirmed) {
+            throw new Error('Explicit confirmation of terms and automatic payout agreement is required');
+        }
+
+        const validModes = ['scheduled', 'threshold', 'hybrid'];
+        if (!validModes.includes(mode)) {
+            throw new Error(`Invalid mode. Choose: ${validModes.join(', ')}`);
+        }
+
+        const validFrequencies = ['daily', 'weekly', 'monthly'];
+        if (!validFrequencies.includes(scheduleFrequency)) {
+            throw new Error(`Invalid frequency. Choose: ${validFrequencies.join(', ')}`);
+        }
+
+        const normalizedPhone = phone ? normalizeKenyanPhone(phone) : null;
+        if (isEnabled && method === 'mpesa' && !normalizedPhone) {
+            throw new Error('Valid M-Pesa phone number is required for automated payouts');
+        }
+
+        let nextScheduled = new Date();
+        if (scheduleFrequency === 'daily') nextScheduled.setDate(nextScheduled.getDate() + 1);
+        else if (scheduleFrequency === 'weekly') nextScheduled.setDate(nextScheduled.getDate() + 7);
+        else if (scheduleFrequency === 'monthly') nextScheduled.setMonth(nextScheduled.getMonth() + 1);
+
+        const configId = crypto.randomUUID();
+
+        await pool.query(
+            `INSERT INTO wallet_auto_withdrawal_configs
+                (config_id, wallet_id, user_id, is_enabled, mode, threshold_cents, schedule_frequency, method, account_name, account_number, bank_code, phone, next_scheduled_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE
+                is_enabled = VALUES(is_enabled),
+                mode = VALUES(mode),
+                threshold_cents = VALUES(threshold_cents),
+                schedule_frequency = VALUES(schedule_frequency),
+                method = VALUES(method),
+                account_name = VALUES(account_name),
+                account_number = VALUES(account_number),
+                bank_code = VALUES(bank_code),
+                phone = VALUES(phone),
+                next_scheduled_at = VALUES(next_scheduled_at),
+                updated_at = NOW()`,
+            [
+                configId, walletId, userId, isEnabled ? 1 : 0, mode,
+                parseInt(thresholdCents, 10), scheduleFrequency, method,
+                accountName, accountNumber, bankCode, normalizedPhone,
+                nextScheduled
+            ]
+        );
+
+        return this.getAutoWithdrawalConfig(userId);
+    }
+
+    /**
+     * Background Engine: Evaluate and execute automated withdrawals for eligible wallets.
+     * Idempotent & atomic balance check.
+     */
+    async processAutomatedWithdrawals() {
+        try {
+            const [configs] = await pool.query(
+                `SELECT c.*, w.available_balance, w.pending_balance
+                 FROM wallet_auto_withdrawal_configs c
+                 JOIN wallets w ON c.wallet_id = w.wallet_id
+                 WHERE c.is_enabled = 1`
+            );
+
+            for (const cfg of configs) {
+                try {
+                    const availableCents = cfg.available_balance;
+                    const thresholdCents = cfg.threshold_cents;
+                    const now = new Date();
+
+                    let isEligible = false;
+                    if (cfg.mode === 'threshold') {
+                        isEligible = availableCents >= thresholdCents && availableCents >= 100;
+                    } else if (cfg.mode === 'scheduled') {
+                        isEligible = cfg.next_scheduled_at && now >= new Date(cfg.next_scheduled_at) && availableCents >= 100;
+                    } else if (cfg.mode === 'hybrid') {
+                        isEligible = availableCents >= thresholdCents && cfg.next_scheduled_at && now >= new Date(cfg.next_scheduled_at);
+                    }
+
+                    if (!isEligible) continue;
+
+                    // Idempotency check: Ensure no active Pending/Processing withdrawal exists for this wallet
+                    const [pending] = await pool.query(
+                        `SELECT withdrawal_id FROM wallet_withdrawals 
+                         WHERE wallet_id = ? AND status IN ('Pending', 'Processing') LIMIT 1`,
+                        [cfg.wallet_id]
+                    );
+                    if (pending.length > 0) {
+                        logger.info(`[AutoWithdrawalEngine] Skipping wallet ${cfg.wallet_id}: active withdrawal already pending`);
+                        continue;
+                    }
+
+                    // Execute requestWithdrawal using available balance
+                    const amountToWithdraw = availableCents;
+                    logger.info(`[AutoWithdrawalEngine] Triggering automated withdrawal of ${amountToWithdraw} cents for user ${cfg.user_id}`);
+
+                    await this.requestWithdrawal(cfg.user_id, amountToWithdraw, cfg.method, {
+                        accountName: cfg.account_name,
+                        accountNumber: cfg.account_number,
+                        bankCode: cfg.bank_code,
+                        phone: cfg.phone,
+                        isAutomated: true
+                    });
+
+                    // Update next schedule
+                    let nextSched = new Date();
+                    if (cfg.schedule_frequency === 'daily') nextSched.setDate(nextSched.getDate() + 1);
+                    else if (cfg.schedule_frequency === 'weekly') nextSched.setDate(nextSched.getDate() + 7);
+                    else if (cfg.schedule_frequency === 'monthly') nextSched.setMonth(nextSched.getMonth() + 1);
+
+                    await pool.query(
+                        `UPDATE wallet_auto_withdrawal_configs 
+                         SET last_executed_at = NOW(), next_scheduled_at = ? 
+                         WHERE wallet_id = ?`,
+                        [nextSched, cfg.wallet_id]
+                    );
+
+                } catch (singleErr) {
+                    logger.error(`[AutoWithdrawalEngine] Failed processing config ${cfg.config_id}:`, singleErr.message);
+                }
+            }
+        } catch (err) {
+            logger.error('[AutoWithdrawalEngine] processAutomatedWithdrawals failed:', err.message);
+        }
+    }
 }
 
 // Export singleton

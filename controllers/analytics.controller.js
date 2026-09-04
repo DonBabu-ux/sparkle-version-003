@@ -208,7 +208,7 @@ exports.getCreatorStats = async (req, res) => {
             return { hour, percentage: basePct };
         });
 
-        // 7. Revenue Trends (Real database wallet ledger + simulated if empty)
+        // 7. Revenue Trends (Real database wallet ledger + simulated fallback if empty)
         let walletTxns = [];
         try {
             const [wallets] = await pool.query('SELECT wallet_id FROM wallets WHERE user_id = ?', [userId]);
@@ -216,7 +216,7 @@ exports.getCreatorStats = async (req, res) => {
                 const [txns] = await pool.query(
                     `SELECT type, amount, status, created_at 
                      FROM wallet_transactions 
-                     WHERE wallet_id = ? AND status = 'completed' AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`,
+                     WHERE wallet_id = ? AND status = 'Completed' AND created_at >= DATE_SUB(NOW(), INTERVAL ? DAY)`,
                     [wallets[0].wallet_id, intervalDays]
                 );
                 walletTxns = txns;
@@ -225,10 +225,11 @@ exports.getCreatorStats = async (req, res) => {
             logger.warn('⚠️ Web wallet transactions check skipped for analytics:', e.message);
         }
 
-        // Aggregate actual revenue from transactions
+        // Aggregate actual revenue from transactions (amounts in cents -> KES)
+        const REVENUE_TYPES = ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Subscription', 'BoostPurchase'];
         const realRevenue = walletTxns
-            .filter(t => t.type === 'deposit' || t.type === 'credit')
-            .reduce((sum, t) => sum + parseFloat(t.amount), 0);
+            .filter(t => REVENUE_TYPES.includes(t.type))
+            .reduce((sum, t) => sum + (parseFloat(t.amount) / 100), 0);
 
         // Dynamic revenue base to keep charts active
         const simulatedRevenueBase = getDeterministicValue(userId + 'revbase', 500, 2500);

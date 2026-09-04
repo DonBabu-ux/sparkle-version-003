@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
+import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface WalletSummary {
@@ -573,6 +574,7 @@ export default function ProfessionalDashboard() {
   // UI state
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
+  const [showAutoWithdraw, setShowAutoWithdraw] = useState(false);
   const [showSubscription, setShowSubscription] = useState(false);
 
   // Fetch wallet
@@ -625,12 +627,39 @@ export default function ProfessionalDashboard() {
   const videoPercent = Math.round(((distribution.video || 0) / totalPosts) * 100);
   const imagePercent = Math.round(((distribution.image || 0) / totalPosts) * 100);
 
-  // Revenue KPI cards (mock growth percentages — replace with real API later)
+  // Authoritative dynamic balance/revenue calculations from account ledger
+  const REVENUE_TYPES = useMemo(() => ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Subscription', 'BoostPurchase'], []);
+
+  const todayCents = useMemo(() => {
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    return transactions
+      .filter(t => t.status === 'Completed' && REVENUE_TYPES.includes(t.type) && new Date(t.created_at).getTime() >= startOfDay)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  }, [transactions, REVENUE_TYPES]);
+
+  const weekCents = useMemo(() => {
+    const now = new Date();
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).getTime();
+    return transactions
+      .filter(t => t.status === 'Completed' && REVENUE_TYPES.includes(t.type) && new Date(t.created_at).getTime() >= startOfWeek)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  }, [transactions, REVENUE_TYPES]);
+
+  const monthCents = useMemo(() => {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+    return transactions
+      .filter(t => t.status === 'Completed' && REVENUE_TYPES.includes(t.type) && new Date(t.created_at).getTime() >= startOfMonth)
+      .reduce((sum, t) => sum + (t.amount || 0), 0);
+  }, [transactions, REVENUE_TYPES]);
+
+  // Revenue KPI cards derived directly from account ledger
   const revenueCards = [
-    { label: 'Today',    cents: Math.round((wallet?.lifetime_earnings || 0) * 0.003), growth: '+8.2%',  color: '#FF1F6D' },
-    { label: 'This Week',cents: Math.round((wallet?.lifetime_earnings || 0) * 0.02),  growth: '+12.5%', color: '#ec4899' },
-    { label: 'This Month',cents: Math.round((wallet?.lifetime_earnings || 0) * 0.08), growth: '+24.1%', color: '#db2777' },
-    { label: 'Lifetime', cents: wallet?.lifetime_earnings || 0,                        growth: '',       color: '#a855f7' },
+    { label: 'Today',    cents: todayCents, growth: '', color: '#FF1F6D' },
+    { label: 'This Week',cents: weekCents,  growth: '', color: '#ec4899' },
+    { label: 'This Month',cents: monthCents, growth: '', color: '#db2777' },
+    { label: 'Lifetime', cents: wallet?.lifetime_earnings || wallet?.available_balance || 0, growth: '', color: '#a855f7' },
   ];
 
   // Growth metrics
@@ -738,9 +767,10 @@ export default function ProfessionalDashboard() {
             {/* Action Buttons */}
             <div className="flex gap-2 flex-wrap">
               {[
-                { label: 'Add Funds', icon: <Plus size={14} />, primary: true, onClick: () => setShowDeposit(true) },
-                { label: 'Withdraw',  icon: <ArrowUpCircle size={14} />, onClick: () => setShowWithdraw(true) },
-                { label: 'History',   icon: <History size={14} />,        onClick: () => navigate('/wallet/history') },
+                { label: 'Add Funds',    icon: <Plus size={14} />, primary: true, onClick: () => setShowDeposit(true) },
+                { label: 'Withdraw',     icon: <ArrowUpCircle size={14} />, onClick: () => setShowWithdraw(true) },
+                { label: 'Auto-Payouts', icon: <Zap size={14} className="text-amber-500" fill="currentColor" />, onClick: () => setShowAutoWithdraw(true) },
+                { label: 'History',      icon: <History size={14} />,        onClick: () => navigate('/wallet/history') },
               ].map((btn, i) => (
                 <button key={i} onClick={btn.onClick}
                   className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all hover:scale-105 active:scale-95 ${
@@ -1129,6 +1159,13 @@ export default function ProfessionalDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Auto Withdrawal Settings Modal */}
+      <AutoWithdrawalModal
+        isOpen={showAutoWithdraw}
+        onClose={() => setShowAutoWithdraw(false)}
+        onSaved={fetchWallet}
+      />
     </div>
   );
 }

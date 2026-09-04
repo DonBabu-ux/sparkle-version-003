@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useUserStore } from './userStore';
+import { sanitizePartnerName } from '../utils/nameSanitizer';
 
 export interface ChatMessage {
   message_id: string;
@@ -207,16 +208,24 @@ export const useChatStore = create<ChatState>()(
               const filename = (msg as any).fileName || (msg as any).mediaName || msg.content || 'Document.pdf';
               return `📄 ${filename}`;
             }
-            if (type === 'multi_image' || type === 'photos') {
-              const count = (msg as any).mediaCount || 3;
-              return `🖼 ${count} Photos`;
+            if (type === 'location') {
+              if (msg.content && msg.content.startsWith('{')) {
+                try {
+                  const p = JSON.parse(msg.content);
+                  if (p.name || p.address) return `📍 ${p.name || p.address}`;
+                } catch (e) {}
+              }
+              return '📍 Location';
+            }
+            if (type === 'live_location') {
+              return '📍 Live Location';
             }
 
             return msg.content || `Sent a ${type}`;
           };
 
           const previewText = getPreviewText(latest);
-          const lastMsgText = latest.content || previewText;
+          const lastMsgText = (latest.type && latest.type !== 'text') ? previewText : (latest.content || previewText);
           const latestTime = latest.createdAt || latest.created_at || latest.sent_at || new Date().toISOString();
 
           set((state) => {
@@ -244,25 +253,13 @@ export const useChatStore = create<ChatState>()(
                 };
               });
             } else {
-              const isFromMe = latest.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
-              // Helper to clean trailing "00" from display names, preserving legitimate usernames like "User00"
-              const sanitizePartnerName = (name: string, username?: string): string => {
-                if (typeof name !== 'string') return name;
-                // If name matches the username exactly and username is a legitimate "User00", keep it
-                if (username && name === username && /^user00$/i.test(username)) {
-                  return name;
-                }
-                // Remove trailing space(s) followed by "00"
-                return name.replace(/\s*00$/, '').trim();
-              };
-
               const newConv: ChatConversation = {
                 chat_id: chatId,
                 partner_id: isFromMe ? ((latest as any).recipient_id || '') : latest.sender_id,
                 // Apply sanitization to partner_name to strip unwanted UI suffixes
                 partner_name: sanitizePartnerName(latest.sender_name || latest.sender_username || 'New Contact', latest.sender_username),
                 partner_avatar: latest.sender_avatar || '',
-                partner_username: latest.sender_username || '',
+                partner_username: latest.sender_username ? latest.sender_username.replace(/\s*00$/, '').trim() : '',
                 unread_count: isActive ? 0 : (isFromMe ? 0 : 1),
                 last_message: lastMsgText,
                 last_message_content: previewText,
@@ -321,12 +318,18 @@ export const useChatStore = create<ChatState>()(
         },
 
         setConversations: (convs) =>
-          set((state) => ({
-            conversations:
-              typeof convs === 'function'
-                ? convs(state.conversations)
-                : convs,
-          })),
+            set((state) => {
+              const current = Array.isArray(state.conversations) ? state.conversations : [];
+              const nextConvs = typeof convs === 'function' ? convs(current) : convs;
+              const safeConvs = Array.isArray(nextConvs) ? nextConvs : [];
+              return {
+                conversations: safeConvs.map((c) => ({
+                  ...c,
+                  partner_name: sanitizePartnerName(c.partner_name || c.partner_username, c.partner_username),
+                  partner_username: c.partner_username ? c.partner_username.replace(/\s*00$/, '').trim() : c.partner_username,
+                })),
+              };
+            }),
 
         updateConversation: (chatId, updates) =>
           set((state) => ({

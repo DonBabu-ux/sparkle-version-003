@@ -1,5 +1,6 @@
 import React from 'react';
 import { getAvatarUrl } from '../../utils/imageUtils';
+import { sanitizePartnerName } from '../../utils/nameSanitizer';
 import { ChevronLeft, Phone, Video, User } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -24,7 +25,7 @@ export const ChatInfoHeader: React.FC<ChatInfoHeaderProps> = ({ chat, onClose, o
         alt="Avatar"
         className={clsx('w-24 h-24 rounded-full border-2', online ? 'border-[#ff1493]' : 'border-gray-500')}
       />
-      <h2 className="text-xl font-bold text-white">{chat.partner_name}</h2>
+      <h2 className="text-xl font-bold text-white">{sanitizePartnerName(chat.partner_name, chat.partner_username)}</h2>
       {chat.partner_username && (
         <p className="text-sm text-white/60">@{chat.partner_username}</p>
       )}

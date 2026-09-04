@@ -1336,7 +1336,7 @@ const queuePushNotification = async (userId, notification) => {
     try {
         const notificationId = crypto.randomUUID();
         await pool.query(
-            `INSERT INTO push_notifications (notification_id, user_id, type, title, body, data, created_at)
+            `INSERT INTO push_notifications (id, user_id, type, title, body, data, sent_at)
              VALUES (?, ?, ?, ?, ?, ?, NOW())`,
             [notificationId, userId, notification.type, notification.title,
                 notification.body, JSON.stringify(notification.data)]

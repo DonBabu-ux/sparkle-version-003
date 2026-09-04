@@ -112,15 +112,14 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
 /** Hook for pages to perform pull‑to‑refresh */
 export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise<void>) => {
   const context = useContext(PullToRefreshContext);
-  if (!context) {
-    console.warn('PullToRefreshContext not found');
-    return { start: async () => {}, refreshing: false };
-  }
-  const { triggerRefresh, isRefreshing } = context;
   const latestIdRef = useRef<number>(0);
 
   const start = async () => {
-    const requestId = triggerRefresh(pageKey);
+    if (!context) {
+      console.warn('PullToRefreshContext not found');
+      return;
+    }
+    const requestId = context.triggerRefresh(pageKey);
     latestIdRef.current = requestId;
     try {
       await refreshCallback();
@@ -131,6 +130,7 @@ export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise
   };
 
   useEffect(() => {
+    if (!context) return;
     const handleTrigger = () => {
       start();
     };
@@ -138,10 +138,10 @@ export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise
     return () => {
       window.removeEventListener('pull-to-refresh-trigger', handleTrigger);
     };
-  }, [refreshCallback]);
+  }, [context, refreshCallback]);
 
   // Expose the current refreshing flag
-  const refreshing = isRefreshing(pageKey);
+  const refreshing = context ? context.isRefreshing(pageKey) : false;
 
   return { start, refreshing };
 };

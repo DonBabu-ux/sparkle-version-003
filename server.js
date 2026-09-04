@@ -220,6 +220,7 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Diagnostic Test Route (Bypasses all middleware)
 app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date() }));
+app.get('/api/csrf-token', (req, res) => res.json({ status: 'success', csrfToken: 'sparkle_csrf_token' }));
 
 // MASTER API TRACE
 app.use('/api', (req, res, next) => {

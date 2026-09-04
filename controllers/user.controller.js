@@ -792,6 +792,29 @@ const getActiveFriends = async (req, res) => {
     }
 };
 
+const getMutualFollowers = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const mutualList = await User.getMutualFollowersList(userId);
+        res.json({ success: true, mutual: mutualList });
+    } catch (error) {
+        logger.error('Get mutual followers error:', error);
+        res.status(500).json({ success: false, error: 'Failed to get mutual connections' });
+    }
+};
+
+const matchContacts = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { queries } = req.body;
+        const matches = await User.matchContactsList(userId, Array.isArray(queries) ? queries : []);
+        res.json({ success: true, matches });
+    } catch (error) {
+        logger.error('Match contacts error:', error);
+        res.status(500).json({ success: false, error: 'Failed to match contacts' });
+    }
+};
+
 module.exports = {
     getCurrentUser,
     searchUsers,
@@ -819,5 +842,7 @@ module.exports = {
     logoutAllDevices,
     generateSecurityToken,
     updateNote,
-    getMyFollowers
+    getMyFollowers,
+    getMutualFollowers,
+    matchContacts
 };

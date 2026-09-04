@@ -232,6 +232,26 @@ export class AudioSessionManager {
     }
   }
 
+  private activeVoiceElement: HTMLAudioElement | null = null;
+
+  public registerVoicePlayback(audioEl: HTMLAudioElement): void {
+    if (this.activeVoiceElement && this.activeVoiceElement !== audioEl) {
+      try {
+        this.activeVoiceElement.pause();
+      } catch (e) {}
+    }
+    this.activeVoiceElement = audioEl;
+    if (this.isStoryActive && this.storyAudioManager) {
+      this.storyAudioManager.pause();
+    }
+  }
+
+  public unregisterVoicePlayback(audioEl: HTMLAudioElement): void {
+    if (this.activeVoiceElement === audioEl) {
+      this.activeVoiceElement = null;
+    }
+  }
+
   public isSessionActive(): boolean {
     return this.isCallActive || this.isStoryActive;
   }

@@ -11,6 +11,7 @@ const logger = require('../utils/logger');
 const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
+const emailService = require('../services/email.service');
 
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
@@ -77,9 +78,13 @@ const login = async (req, res) => {
 
         const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
+        const { normalizeUsername } = require('../utils/validation/username');
+        const normLoginId = normalizeUsername(loginId);
+        const cleanEmail = String(loginId).trim().toLowerCase();
+
         const user = await queryOne(
-            'SELECT * FROM users WHERE LOWER(email) = LOWER(?) OR LOWER(username) = LOWER(?) LIMIT 1',
-            [loginId, loginId]
+            'SELECT * FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
+            [cleanEmail, normLoginId, loginId]
         );
 
         if (!user) {
@@ -93,18 +98,78 @@ const login = async (req, res) => {
         }
 
 
-        /* 
-        // --- TEMPORARILY DISABLED: Check for 2FA (Algorithm 42) ---
-        if (user.two_factor_enabled) {
+        // --- Check for 2FA (Email, SMS, or Authenticator) ---
+        // Only require 2FA if an active factor is genuinely configured.
+        // For TOTP authenticator, a secret MUST exist. If no factor is enabled, bypass 2FA directly.
+        const hasTOTP = !!(user.two_factor_enabled && user.two_factor_secret);
+        const has2FA = !!(user.email_2fa_enabled || user.sms_2fa_enabled || hasTOTP);
+        if (has2FA) {
+            let channel = 'email';
+            // Wire 2FA destination to alternate security help email if configured, falling back to account email
+            let destination = user.security_recovery_email || user.email;
+
+            if (user.email_2fa_enabled) {
+                channel = 'email';
+                destination = user.security_recovery_email || user.email;
+            } else if (user.sms_2fa_enabled && user.phone_number) {
+                channel = 'sms';
+                destination = user.phone_number;
+            } else if (hasTOTP) {
+                channel = 'authenticator';
+            }
+
+            if (channel === 'email' || channel === 'sms') {
+                const otpCode = crypto.randomInt(100000, 999999).toString();
+                const codeHash = await bcrypt.hash(otpCode, 10);
+
+                await query(
+                    'DELETE FROM otp_verifications WHERE user_id = ? AND channel = ? AND verified_at IS NULL',
+                    [user.user_id, channel]
+                );
+
+                await query(
+                    'INSERT INTO otp_verifications (verification_id, user_id, channel, destination, code_hash, expires_at) VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE))',
+                    [crypto.randomUUID(), user.user_id, channel, destination, codeHash]
+                );
+
+                logger.info(`[LOGIN 2FA] OTP for user ${user.username} (${channel} to ${destination}): ${otpCode}`);
+
+                if (channel === 'email') {
+                    emailService.send({
+                        to: destination,
+                        subject: 'Your Sparkle Login Verification Code',
+                        templateName: '2fa-otp',
+                        templateData: {
+                            name: user.name || user.username,
+                            code: otpCode,
+                            purpose: 'Use the code below to log in to your Sparkle account.'
+                        }
+                    }).catch(e => logger.error('Failed to send login 2FA email:', e));
+                } else if (channel === 'sms' && user.phone_number) {
+                    sendSMS(user.phone_number, otpCode).catch(e => logger.error('Failed to send login 2FA SMS:', e));
+                }
+            }
+
+            const mask = (str) => {
+                if (!str) return '***';
+                if (str.includes('@')) {
+                    const [l, d] = str.split('@');
+                    return `${l[0]}***@${d}`;
+                }
+                return `***${str.slice(-4)}`;
+            };
+
             return res.json({
                 status: 'requires_2fa',
                 userId: user.user_id,
-                email: user.email, 
-                message: `Please enter your 2FA code sent to ${user.email}`,
+                channel: channel,
+                destination: mask(destination),
+                message: channel === 'authenticator'
+                    ? 'Enter the 6-digit code from your authenticator app, or use a recovery backup code.'
+                    : `Enter the 6-digit code sent to ${mask(destination)}, or use a recovery backup code.`,
                 rememberMe: !!rememberMe
             });
         }
-        */
 
         const deviceId = req.headers['x-device-id'] || 'unknown';
         // Generate production-grade tokens via service
@@ -191,19 +256,45 @@ const verify2FA = async (req, res) => {
 
         const user = users[0];
         let verified = false;
+        const cleanCode = code.toString().trim();
+        const upperCode = cleanCode.toUpperCase();
 
-        // Check if the code matches an unexpired emailed recovery code
-        const verifications = await query(
-            'SELECT * FROM email_verifications WHERE user_id = ? AND code = ? AND expires_at > NOW() AND verified_at IS NULL LIMIT 1',
-            [userId, code]
+        // 1. Check otp_verifications table (Email and SMS 2FA)
+        const otpRecords = await query(
+            `SELECT verification_id, code_hash, attempts, TIMESTAMPDIFF(SECOND, NOW(), expires_at) AS seconds_left
+             FROM otp_verifications
+             WHERE user_id = ? AND verified_at IS NULL
+             ORDER BY created_at DESC LIMIT 5`,
+            [userId]
         );
 
-        if (verifications.length > 0) {
-            verified = true;
-            await query('UPDATE email_verifications SET verified_at = NOW() WHERE verification_id = ?', [verifications[0].verification_id]);
+        if (Array.isArray(otpRecords)) {
+            for (const rec of otpRecords) {
+                if (rec.seconds_left > 0) {
+                    const match = await bcrypt.compare(cleanCode, rec.code_hash);
+                    if (match) {
+                        verified = true;
+                        await query('UPDATE otp_verifications SET verified_at = NOW() WHERE verification_id = ?', [rec.verification_id]);
+                        break;
+                    }
+                }
+            }
         }
 
-        // If not an emailed code, check permanent backup codes
+        // 2. Check legacy email_verifications table (for temporary login recovery codes)
+        if (!verified) {
+            const verifications = await query(
+                'SELECT * FROM email_verifications WHERE user_id = ? AND code = ? AND TIMESTAMPDIFF(SECOND, NOW(), expires_at) > 0 AND verified_at IS NULL LIMIT 1',
+                [userId, cleanCode]
+            );
+
+            if (verifications && verifications.length > 0) {
+                verified = true;
+                await query('UPDATE email_verifications SET verified_at = NOW() WHERE verification_id = ?', [verifications[0].verification_id]);
+            }
+        }
+
+        // 3. Check permanent recovery backup codes (single-use, stored as bcrypt hashes or plaintext)
         if (!verified && user.two_factor_backup_codes) {
             let backupCodes = [];
             try {
@@ -212,26 +303,44 @@ const verify2FA = async (req, res) => {
                     : user.two_factor_backup_codes;
             } catch (e) { backupCodes = []; }
 
-            const codeIndex = backupCodes.indexOf(code);
-            if (codeIndex !== -1) {
-                verified = true;
-                // Remove used backup code
-                backupCodes.splice(codeIndex, 1);
-                await query('UPDATE users SET two_factor_backup_codes = ? WHERE user_id = ?', [JSON.stringify(backupCodes), userId]);
+            if (Array.isArray(backupCodes)) {
+                for (let i = 0; i < backupCodes.length; i++) {
+                    const stored = backupCodes[i];
+                    let isMatch = false;
+
+                    if (typeof stored === 'string') {
+                        if (stored.startsWith('$2')) {
+                            // Bcrypt hash from security centre
+                            isMatch = await bcrypt.compare(upperCode, stored);
+                        } else {
+                            // Plaintext comparison
+                            isMatch = stored.toUpperCase() === upperCode;
+                        }
+                    }
+
+                    if (isMatch) {
+                        verified = true;
+                        // Single-use: burn used backup code immediately
+                        backupCodes.splice(i, 1);
+                        await query('UPDATE users SET two_factor_backup_codes = ? WHERE user_id = ?', [JSON.stringify(backupCodes), userId]);
+                        logger.info(`[RECOVERY CODE VERIFIED] User ${user.user_id} authenticated via recovery code. Remaining: ${backupCodes.length}`);
+                        break;
+                    }
+                }
             }
         }
 
-        // If not verified by backup code, try TOTP (if enabled)
+        // 4. Fallback: Authenticator TOTP app
         if (!verified && user.two_factor_enabled && user.two_factor_secret) {
             verified = speakeasy.totp.verify({
                 secret: user.two_factor_secret,
                 encoding: 'base32',
-                token: code
+                token: cleanCode
             });
         }
 
         if (!verified) {
-            return res.status(401).json({ status: 'error', message: 'Invalid or expired 2FA code' });
+            return res.status(401).json({ status: 'error', message: 'Invalid or expired verification code or recovery code.' });
         }
 
         // Token correct, issue token
@@ -290,10 +399,11 @@ const request2FARecovery = async (req, res) => {
         const { userId } = req.body;
         if (!userId) return res.status(400).json({ status: 'error', message: 'User ID is required' });
 
-        const users = await query('SELECT user_id, name, email FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT user_id, name, email, security_recovery_email FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         const user = users[0];
+        const recoveryDestination = user.security_recovery_email || user.email;
         const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Insert into email_verifications instead of backup codes for temporary, strictly-expiring codes
@@ -301,11 +411,11 @@ const request2FARecovery = async (req, res) => {
         // Increased expiry to 15 minutes to handle slow delivery or clock drift
         await query(
             'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE)) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL',
-            [crypto.randomUUID(), userId, user.email, recoveryCode]
+            [crypto.randomUUID(), userId, recoveryDestination, recoveryCode]
         );
 
         await sendEmail({
-            to: user.email,
+            to: recoveryDestination,
             subject: 'Your 2FA Recovery Code - Sparkle ✨',
             templateName: 'verify-email', // Reuse verification template
             templateData: {
@@ -320,7 +430,7 @@ const request2FARecovery = async (req, res) => {
             // The user will see a success message but no email, which is better for security
         });
 
-        res.json({ status: 'success', message: 'Recovery code sent to your email!' });
+        res.json({ status: 'success', message: 'Recovery code sent to your verified recovery email!' });
     } catch (error) {
         logger.error('2FA Recovery Error:', error);
         res.status(500).json({ status: 'error', message: 'Failed to send recovery code' });
@@ -538,7 +648,7 @@ const resendVerification = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const { refreshToken } = req.body;
+        const { refreshToken, fcmToken, pushEndpoint } = req.body;
         const userId = req.user?.userId || req.user?.user_id;
 
         if (refreshToken) {
@@ -546,6 +656,14 @@ const logout = async (req, res) => {
         } else if (userId) {
             // Fallback: clear all tokens for this user on this device (optional)
             await query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
+        }
+
+        // Clean up device notification tokens so notification keys are strictly wired to one active account
+        if (fcmToken) {
+            await query('DELETE FROM fcm_tokens WHERE token = ?', [fcmToken]);
+        }
+        if (pushEndpoint) {
+            await query('DELETE FROM push_subscriptions WHERE endpoint = ?', [pushEndpoint]);
         }
 
         res.clearCookie('sparkleToken', {
@@ -619,7 +737,7 @@ const checkUsername = async (req, res) => {
     try {
         const { username } = req.query;
         if (!username) {
-            return res.status(400).json({ success: false, message: 'Username parameter is required.' });
+            return res.status(400).json({ success: false, code: 'USERNAME_REQUIRED', message: 'Username parameter is required.' });
         }
 
         const { validateUsername } = require('../utils/validation/username');
@@ -628,19 +746,33 @@ const checkUsername = async (req, res) => {
             return res.json({
                 success: true,
                 available: false,
+                code: validation.error.code,
                 message: validation.error.message,
                 suggestions: []
             });
         }
 
         const normUsername = validation.value;
-        const existing = await query('SELECT username FROM users WHERE username = ? LIMIT 1', [normUsername]);
+        // Use indexed lookup on username_normalized
+        const existing = await query('SELECT user_id, username, username_normalized FROM users WHERE username_normalized = ? LIMIT 1', [normUsername]);
 
         if (existing.length > 0) {
+            const currentUserId = req.query.current_user_id || (req.user && (req.user.userId || req.user.user_id));
+            if (currentUserId && String(existing[0].user_id) === String(currentUserId)) {
+                return res.json({
+                    success: true,
+                    available: true,
+                    isCurrent: true,
+                    message: 'This is your current username.',
+                    suggestions: []
+                });
+            }
             const suggestions = await authService.generateAvailableUsernames(normUsername);
             return res.json({
                 success: true,
                 available: false,
+                code: 'USERNAME_TAKEN',
+                message: 'Username is already taken.',
                 suggestions
             });
         }
@@ -648,6 +780,7 @@ const checkUsername = async (req, res) => {
         res.json({
             success: true,
             available: true,
+            code: 'USERNAME_AVAILABLE',
             suggestions: []
         });
     } catch (error) {

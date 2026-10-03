@@ -33,6 +33,8 @@ router.post('/marketplace/listings/:id/relist',  authMiddleware, mutationRateLim
 
 // ── Seller Actions ────────────────────────────────────────────────────────────
 router.post('/marketplace/seller/favorite',      authMiddleware, ...marketplaceController.toggleSellerFavorite);
+router.post('/marketplace/sellers/:sellerId/alert', authMiddleware, marketplaceController.toggleSellerAlert);
+router.get('/marketplace/sellers/:sellerId/alert',  authMiddleware, marketplaceController.getSellerAlertStatus);
 router.get('/marketplace/sellers/:id',           optionalAuthMiddleware, marketplaceController.getSellerProfile);
 
 // ── Orders ────────────────────────────────────────────────────────────────────

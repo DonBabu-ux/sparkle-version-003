@@ -27,14 +27,17 @@ const notificationController = {
                 return res.status(400).json({ error: 'Invalid subscription object' });
             }
 
-            // Check if exists
+            // Exclusively wire push endpoint to THIS account - remove from any previous account on this device
+            await pool.query('DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id != ?', [subscription.endpoint, userId]);
+
+            // Check if exists for this user
             const [existing] = await pool.query('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [userId, subscription.endpoint]);
             if (existing.length === 0) {
                 await pool.query('INSERT INTO push_subscriptions (user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?)', [
                     userId,
                     subscription.endpoint,
-                    subscription.keys.p256dh,
-                    subscription.keys.auth
+                    subscription.keys?.p256dh,
+                    subscription.keys?.auth
                 ]);
             }
             res.status(201).json({ message: 'Subscribed' });
@@ -53,8 +56,11 @@ const notificationController = {
                 return res.status(400).json({ error: 'Token is required' });
             }
 
+            // Exclusively wire device token to THIS account - remove from any other account on this device
+            await pool.query('DELETE FROM fcm_tokens WHERE token = ? AND user_id != ?', [token, userId]);
+
             await pool.query(
-                'INSERT INTO fcm_tokens (token_id, user_id, token, device_type) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE last_used_at = CURRENT_TIMESTAMP',
+                'INSERT INTO fcm_tokens (token_id, user_id, token, device_type) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE device_type = VALUES(device_type), last_used_at = CURRENT_TIMESTAMP',
                 [uuidv4(), userId, token, deviceType || 'android']
             );
 
@@ -62,6 +68,21 @@ const notificationController = {
         } catch (error) {
             console.error('FCM token registration error:', error);
             res.status(500).json({ error: 'Failed to register FCM token' });
+        }
+    },
+
+    deregisterFcmToken: async (req, res) => {
+        try {
+            const userId = req.user.userId || req.user.user_id;
+            const { token } = req.body;
+
+            if (token) {
+                await pool.query('DELETE FROM fcm_tokens WHERE token = ? AND user_id = ?', [token, userId]);
+            }
+            res.status(200).json({ success: true, message: 'FCM token deregistered' });
+        } catch (error) {
+            console.error('FCM token deregistration error:', error);
+            res.status(500).json({ error: 'Failed to deregister FCM token' });
         }
     },
 
@@ -198,6 +219,7 @@ const notificationController = {
                     category: n.category || 'social',
                     isOfficial: !!n.is_official,
                     isRead: !!n.is_read,
+                    is_read: n.is_read ? 1 : 0,
                     createdAt: n.created_at,
 
                     // Backwards compatibility keys
@@ -310,14 +332,26 @@ const notificationController = {
             const [result] = await pool.query(`
                 UPDATE notifications 
                 SET is_read = 1, read_at = CURRENT_TIMESTAMP 
-                WHERE notification_id = ? AND user_id = ?
-            `, [notificationId, userId]);
+                WHERE (notification_id = ? OR id = ?) AND user_id = ?
+            `, [notificationId, notificationId, userId]);
 
             if (result.affectedRows === 0) {
-                return res.status(404).json({ error: 'Notification not found' });
+                // Try capture_notifications
+                await pool.query(`
+                    UPDATE capture_notifications 
+                    SET is_read = 1 
+                    WHERE id = ? AND recipient_user_id = ?
+                `, [notificationId, userId]).catch(() => {});
+
+                // Try push_notifications
+                await pool.query(`
+                    UPDATE push_notifications 
+                    SET is_read = 1, read_at = CURRENT_TIMESTAMP 
+                    WHERE id = ? AND user_id = ?
+                `, [notificationId, userId]).catch(() => {});
             }
 
-            res.json({ message: 'Notification marked as read' });
+            res.json({ success: true, message: 'Notification marked as read' });
         } catch (error) {
             console.error('Error marking notification as read:', error);
             res.status(500).json({ error: 'Failed to mark notification as read' });
@@ -335,7 +369,21 @@ const notificationController = {
                 WHERE user_id = ? AND is_read = 0
             `, [userId]);
 
-            res.json({ message: 'All notifications marked as read' });
+            // Also mark capture notifications as read
+            await pool.query(`
+                UPDATE capture_notifications 
+                SET is_read = 1 
+                WHERE recipient_user_id = ? AND is_read = 0
+            `).catch(() => {});
+
+            // Also mark push notifications as read
+            await pool.query(`
+                UPDATE push_notifications 
+                SET is_read = 1, read_at = CURRENT_TIMESTAMP 
+                WHERE user_id = ? AND is_read = 0
+            `).catch(() => {});
+
+            res.json({ success: true, message: 'All notifications marked as read' });
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
             res.status(500).json({ error: 'Failed to mark all notifications as read' });

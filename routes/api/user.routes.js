@@ -14,6 +14,7 @@ router.get('/me', authMiddleware, userController.getCurrentUser);
 router.get('/active-friends', authMiddleware, userController.getActiveFriends);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);
+router.get('/username-suggestions', authMiddleware, userController.getUsernameSuggestions);
 router.get('/following', authMiddleware, userController.searchFollowingUsers);
 router.get('/followers', authMiddleware, userController.getMyFollowers);
 router.get('/mutual-followers', authMiddleware, userController.getMutualFollowers);
@@ -38,6 +39,7 @@ router.post('/follow-requests/respond', authMiddleware, socialController.respond
 router.post('/follow-requests/:requestId/accept', authMiddleware, socialController.acceptRequest);
 router.post('/follow-requests/:requestId/reject', authMiddleware, socialController.rejectRequest);
 
+router.get('/advanced-settings', authMiddleware, userController.getAdvancedSettings);
 router.put('/settings', authMiddleware, userController.updateSettings);
 router.get('/export-data', authMiddleware, userController.exportUserData);
 router.get('/2fa/setup', authMiddleware, userController.generate2FASecret);

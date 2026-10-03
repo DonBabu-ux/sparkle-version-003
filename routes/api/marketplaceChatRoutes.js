@@ -4,13 +4,20 @@ const pool = require('../../config/database');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { v4: uuidv4 } = require('uuid');
 
+// Helper to robustly extract user ID across different token payload shapes
+const getUserId = (req) => req.user?.user_id || req.user?.id || req.user?.userId;
+
 // Require authentication for all marketplace chat routes
 router.use(authMiddleware);
 
 // 1. Get or Create Conversation (Clicking "Message Seller")
 router.post('/conversations', async (req, res) => {
     const { seller_id, listing_id } = req.body;
-    const buyer_id = req.user.user_id;
+    const buyer_id = getUserId(req);
+
+    if (!buyer_id) {
+        return res.status(401).json({ error: 'Unauthorized user' });
+    }
 
     if (buyer_id === seller_id) {
         return res.status(403).json({ error: 'You cannot message yourself about your own listing.' });
@@ -77,11 +84,72 @@ router.post('/conversations', async (req, res) => {
 
 // 2. Fetch User's Conversations
 router.get('/conversations', async (req, res) => {
-    const userId = req.user.user_id;
+    const userId = getUserId(req);
+    if (!userId) return res.status(401).json({ error: 'Unauthorized user' });
 
     try {
-        const [conversations] = await pool.query(`
-            SELECT c.*, 
+        const [[mConvs], [pConvs]] = await Promise.all([
+            pool.query(`
+                SELECT c.id, c.buyer_id, c.seller_id, c.listing_id, c.last_message, c.last_activity_at,
+                       c.is_muted, c.is_archived, c.is_pinned,
+                       u1.username as buyer_username, u1.name as buyer_name, u1.avatar_url as buyer_avatar,
+                       u2.username as seller_username, u2.name as seller_name, u2.avatar_url as seller_avatar,
+                       l.title as listing_title, l.price as listing_price, l.image_url as listing_image, 
+                       l.description as listing_description, l.status as listing_status
+                FROM marketplace_conversations c
+                LEFT JOIN users u1 ON c.buyer_id = u1.user_id
+                LEFT JOIN users u2 ON c.seller_id = u2.user_id
+                LEFT JOIN marketplace_listings l ON c.listing_id = l.listing_id
+                WHERE c.buyer_id = ? OR c.seller_id = ?
+                ORDER BY c.last_activity_at DESC
+            `, [userId, userId]),
+
+            pool.query(`
+                SELECT pc.chat_id as id, pc.participant1_id as buyer_id, pc.participant2_id as seller_id,
+                       pc.marketplace_listing_id as listing_id, 
+                       (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message, 
+                       pc.last_message_time as last_activity_at,
+                       0 as is_muted, 0 as is_archived, 0 as is_pinned,
+                       u1.username as buyer_username, u1.name as buyer_name, u1.avatar_url as buyer_avatar,
+                       u2.username as seller_username, u2.name as seller_name, u2.avatar_url as seller_avatar,
+                       l.title as listing_title, l.price as listing_price, l.image_url as listing_image, 
+                       l.description as listing_description, l.status as listing_status
+                FROM personal_chats pc
+                LEFT JOIN users u1 ON pc.participant1_id = u1.user_id
+                LEFT JOIN users u2 ON pc.participant2_id = u2.user_id
+                LEFT JOIN marketplace_listings l ON pc.marketplace_listing_id = l.listing_id
+                WHERE (pc.participant1_id = ? OR pc.participant2_id = ?)
+                  AND pc.marketplace_listing_id IS NOT NULL
+                ORDER BY pc.last_message_time DESC
+            `, [userId, userId])
+        ]);
+
+        const existingIds = new Set(mConvs.map(c => String(c.id)));
+        const filteredPConvs = pConvs.filter(c => !existingIds.has(String(c.id)));
+
+        const combined = [...mConvs, ...filteredPConvs].sort((a, b) => {
+            const timeA = a.last_activity_at ? new Date(a.last_activity_at).getTime() : 0;
+            const timeB = b.last_activity_at ? new Date(b.last_activity_at).getTime() : 0;
+            return timeB - timeA;
+        });
+
+        res.json(combined);
+    } catch (err) {
+        console.error('Error fetching marketplace conversations:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 2b. Fetch Single Conversation by ID
+router.get('/conversations/:id', async (req, res) => {
+    try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized user' });
+
+        const convId = req.params.id;
+        const [convs] = await pool.query(`
+            SELECT c.id, c.buyer_id, c.seller_id, c.listing_id, c.last_message, c.last_activity_at,
+                   c.is_muted, c.is_archived, c.is_pinned,
                    u1.username as buyer_username, u1.name as buyer_name, u1.avatar_url as buyer_avatar,
                    u2.username as seller_username, u2.name as seller_name, u2.avatar_url as seller_avatar,
                    l.title as listing_title, l.price as listing_price, l.image_url as listing_image, 
@@ -90,12 +158,31 @@ router.get('/conversations', async (req, res) => {
             LEFT JOIN users u1 ON c.buyer_id = u1.user_id
             LEFT JOIN users u2 ON c.seller_id = u2.user_id
             LEFT JOIN marketplace_listings l ON c.listing_id = l.listing_id
-            WHERE c.buyer_id = ? OR c.seller_id = ?
-            ORDER BY c.last_activity_at DESC
-        `, [userId, userId]);
+            WHERE c.id = ? AND (c.buyer_id = ? OR c.seller_id = ?)
+            UNION
+            SELECT pc.chat_id as id, pc.participant1_id as buyer_id, pc.participant2_id as seller_id,
+                   pc.marketplace_listing_id as listing_id, 
+                   (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message, 
+                   pc.last_message_time as last_activity_at,
+                   0 as is_muted, 0 as is_archived, 0 as is_pinned,
+                   u1.username as buyer_username, u1.name as buyer_name, u1.avatar_url as buyer_avatar,
+                   u2.username as seller_username, u2.name as seller_name, u2.avatar_url as seller_avatar,
+                   l.title as listing_title, l.price as listing_price, l.image_url as listing_image, 
+                   l.description as listing_description, l.status as listing_status
+            FROM personal_chats pc
+            LEFT JOIN users u1 ON pc.participant1_id = u1.user_id
+            LEFT JOIN users u2 ON pc.participant2_id = u2.user_id
+            LEFT JOIN marketplace_listings l ON pc.marketplace_listing_id = l.listing_id
+            WHERE pc.chat_id = ? AND (pc.participant1_id = ? OR pc.participant2_id = ?)
+        `, [convId, userId, userId, convId, userId, userId]);
 
-        res.json(conversations);
+        if (convs.length === 0) {
+            return res.status(404).json({ error: 'Conversation not found' });
+        }
+
+        res.json(convs[0]);
     } catch (err) {
+        console.error('Error fetching single conversation:', err);
         res.status(500).json({ error: err.message });
     }
 });
@@ -103,9 +190,17 @@ router.get('/conversations', async (req, res) => {
 // 3. Fetch Messages for a Thread
 router.get('/messages/:conversation_id', async (req, res) => {
     try {
+        const userId = getUserId(req);
+        if (!userId) return res.status(401).json({ error: 'Unauthorized user' });
+
+        const convId = req.params.conversation_id;
+
         const [conversations] = await pool.query(
-            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)`,
-            [req.params.conversation_id, req.user.user_id, req.user.user_id]
+            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
+             UNION
+             SELECT chat_id as id, participant1_id as buyer_id, participant2_id as seller_id, marketplace_listing_id as listing_id, NULL as last_message, last_message_time as last_activity_at, 0 as reminder_sent, 0 as is_muted, 0 as is_archived, 0 as is_pinned
+             FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,
+            [convId, userId, userId, convId, userId, userId]
         );
 
         if (conversations.length === 0) {
@@ -113,14 +208,27 @@ router.get('/messages/:conversation_id', async (req, res) => {
         }
 
         const [messages] = await pool.query(`
-            SELECT m.*, s.delivered_at, s.read_at, u.username as sender_username, u.name as sender_name, u.avatar_url as sender_avatar,
+            SELECT m.id, m.conversation_id, m.sender_id, m.message_text, m.message_type, m.media_url, m.reply_to_id, m.created_at, m.is_edited,
+                   s.delivered_at, s.read_at, u.username as sender_username, u.name as sender_name, u.avatar_url as sender_avatar,
                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('user_id', user_id, 'reaction', emoji)) FROM marketplace_message_reactions WHERE message_id = m.id) as reactions
             FROM marketplace_messages m
             LEFT JOIN marketplace_message_status s ON m.id = s.message_id
             LEFT JOIN users u ON m.sender_id = u.user_id
             WHERE m.conversation_id = ?
-            ORDER BY m.created_at ASC
-        `, [req.params.conversation_id]);
+
+            UNION ALL
+
+            SELECT m.message_id as id, m.conversation_id, m.sender_id, m.content as message_text,
+                   CASE WHEN m.message_type IS NOT NULL THEN m.message_type ELSE 'text' END as message_type,
+                   m.media_url, NULL as reply_to_id, m.created_at, 0 as is_edited,
+                   m.delivered_at, m.read_at, u.username as sender_username, u.name as sender_name, u.avatar_url as sender_avatar,
+                   NULL as reactions
+            FROM messages m
+            LEFT JOIN users u ON m.sender_id = u.user_id
+            WHERE m.conversation_id = ? AND ? NOT IN (SELECT conversation_id FROM marketplace_messages)
+
+            ORDER BY created_at ASC
+        `, [convId, convId, convId]);
         
         messages.forEach(m => m.reactions = typeof m.reactions === 'string' ? JSON.parse(m.reactions) : (m.reactions || []));
         res.json(messages);
@@ -132,9 +240,10 @@ router.get('/messages/:conversation_id', async (req, res) => {
 // 4. Edit Message
 router.put('/messages/:message_id', async (req, res) => {
     try {
+        const userId = getUserId(req);
         const { text } = req.body;
         if (!text) return res.status(400).json({ error: 'Text is required' });
-        const [msg] = await pool.query(`SELECT * FROM marketplace_messages WHERE id = ? AND sender_id = ?`, [req.params.message_id, req.user.user_id]);
+        const [msg] = await pool.query(`SELECT * FROM marketplace_messages WHERE id = ? AND sender_id = ?`, [req.params.message_id, userId]);
         if (msg.length === 0) return res.status(403).json({ error: 'Unauthorized' });
         await pool.query(`UPDATE marketplace_messages SET message_text = ?, is_edited = TRUE WHERE id = ?`, [text, req.params.message_id]);
         res.json({ success: true, message: 'Message updated' });
@@ -146,7 +255,8 @@ router.put('/messages/:message_id', async (req, res) => {
 // 5. Delete / Unsend Message
 router.delete('/messages/:message_id', async (req, res) => {
     try {
-        const [msg] = await pool.query(`SELECT * FROM marketplace_messages WHERE id = ? AND sender_id = ?`, [req.params.message_id, req.user.user_id]);
+        const userId = getUserId(req);
+        const [msg] = await pool.query(`SELECT * FROM marketplace_messages WHERE id = ? AND sender_id = ?`, [req.params.message_id, userId]);
         if (msg.length === 0) return res.status(403).json({ error: 'Unauthorized' });
         await pool.query(`DELETE FROM marketplace_messages WHERE id = ?`, [req.params.message_id]);
         await pool.query(`DELETE FROM marketplace_message_status WHERE message_id = ?`, [req.params.message_id]);
@@ -171,7 +281,7 @@ router.post('/messages/upload', messageUpload.single('media'), async (req, res) 
 router.post('/messages/:message_id/react', async (req, res) => {
     try {
         const { reaction } = req.body;
-        const userId = req.user.user_id;
+        const userId = getUserId(req);
         if (!reaction) return res.status(400).json({ error: 'Reaction is required' });
         const id = uuidv4();
         await pool.query(`DELETE FROM marketplace_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?`, [req.params.message_id, userId, reaction]);
@@ -185,9 +295,10 @@ router.post('/messages/:message_id/react', async (req, res) => {
 // 8. Get Marketplace Settings
 router.get('/settings', async (req, res) => {
     try {
+        const userId = getUserId(req);
         const [settings] = await pool.query(
             `SELECT * FROM marketplace_message_settings WHERE user_id = ?`,
-            [req.user.user_id]
+            [userId]
         );
 
         if (settings.length === 0) {
@@ -211,6 +322,7 @@ router.get('/settings', async (req, res) => {
 // 9. Update Marketplace Settings
 router.put('/settings', async (req, res) => {
     try {
+        const userId = getUserId(req);
         const { who_can_message_me, message_filter, read_receipts, typing_indicators, show_online_status, auto_reply_enabled, auto_reply_text } = req.body;
         
         await pool.query(
@@ -225,7 +337,7 @@ router.put('/settings', async (req, res) => {
                 show_online_status = VALUES(show_online_status),
                 auto_reply_enabled = VALUES(auto_reply_enabled),
                 auto_reply_text = VALUES(auto_reply_text)`,
-            [req.user.user_id, who_can_message_me, message_filter, read_receipts, typing_indicators, show_online_status, auto_reply_enabled, auto_reply_text]
+            [userId, who_can_message_me, message_filter, read_receipts, typing_indicators, show_online_status, auto_reply_enabled, auto_reply_text]
         );
 
         res.json({ success: true, message: 'Settings updated' });
@@ -237,6 +349,7 @@ router.put('/settings', async (req, res) => {
 // 10. Toggle Conversation Flags (mute, archive, pin)
 router.patch('/conversations/:id/toggle', async (req, res) => {
     try {
+        const userId = getUserId(req);
         const { field } = req.body;
         if (!['is_muted', 'is_archived', 'is_pinned'].includes(field)) {
             return res.status(400).json({ error: 'Invalid field' });
@@ -245,7 +358,7 @@ router.patch('/conversations/:id/toggle', async (req, res) => {
         // Verify ownership
         const [conv] = await pool.query(
             `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)`,
-            [req.params.id, req.user.user_id, req.user.user_id]
+            [req.params.id, userId, userId]
         );
 
         if (conv.length === 0) return res.status(403).json({ error: 'Unauthorized' });
@@ -265,13 +378,17 @@ router.patch('/conversations/:id/toggle', async (req, res) => {
 // 11. Check Block Status for a Conversation
 router.get('/conversations/:id/status', async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = getUserId(req);
+        const convId = req.params.id;
+
         const [conv] = await pool.query(
-            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)`,
-            [req.params.id, userId, userId]
+            `SELECT buyer_id, seller_id FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
+             UNION
+             SELECT participant1_id as buyer_id, participant2_id as seller_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,
+            [convId, userId, userId, convId, userId, userId]
         );
 
-        if (conv.length === 0) return res.status(404).json({ error: 'Conversation not found' });
+        if (conv.length === 0) return res.json({ isBlockedByMe: false, amIBlocked: false, opponentId: null });
 
         const opponentId = userId === conv[0].buyer_id ? conv[0].seller_id : conv[0].buyer_id;
 
@@ -300,11 +417,13 @@ router.get('/conversations/:id/status', async (req, res) => {
 // 12. Delete Conversation
 router.delete('/conversations/:id', async (req, res) => {
     try {
-        const userId = req.user.user_id;
+        const userId = getUserId(req);
         // Verify ownership
         const [conv] = await pool.query(
-            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)`,
-            [req.params.id, userId, userId]
+            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
+             UNION
+             SELECT chat_id as id, participant1_id as buyer_id, participant2_id as seller_id FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,
+            [req.params.id, userId, userId, req.params.id, userId, userId]
         );
 
         if (conv.length === 0) return res.status(403).json({ error: 'Unauthorized' });
@@ -314,6 +433,7 @@ router.delete('/conversations/:id', async (req, res) => {
         await pool.query(`DELETE FROM marketplace_message_status WHERE message_id IN (SELECT id FROM marketplace_messages WHERE conversation_id = ?)`, [req.params.id]);
         await pool.query(`DELETE FROM marketplace_messages WHERE conversation_id = ?`, [req.params.id]);
         await pool.query(`DELETE FROM marketplace_conversations WHERE id = ?`, [req.params.id]);
+        await pool.query(`DELETE FROM personal_chats WHERE chat_id = ?`, [req.params.id]);
 
         res.json({ success: true, message: 'Conversation deleted' });
     } catch (err) {

@@ -98,7 +98,7 @@ export default function Ads() {
     if (!campaignName.trim()) { setErrorMsg('Please enter a campaign name.'); return; }
 
     const budgetInt = parseFloat(budgetKES);
-    if (isNaN(budgetInt) || budgetInt < 10) { setErrorMsg('Minimum budget is KES 10.00.'); return; }
+    if (isNaN(budgetInt) || budgetInt < 100000) { setErrorMsg('Minimum budget is KES 1000.00.'); return; }
 
     const budgetCents = Math.round(budgetInt * 100);
     if (budgetCents > (wallet?.available_balance || 0)) {

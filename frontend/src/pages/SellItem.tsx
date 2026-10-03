@@ -10,6 +10,8 @@ import api from '../api/api';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
+import { useMarketplaceStore } from '../store/marketplaceStore';
+
 const CATEGORIES = [
   { id: 'vehicles', label: 'Vehicles', icon: Car },
   { id: 'housing', label: 'Housing', icon: Home },
@@ -31,6 +33,7 @@ const CATEGORIES = [
 
 export default function SellItem() {
   const navigate = useNavigate();
+  const storeLocation = useMarketplaceStore(state => state.location);
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
@@ -43,7 +46,7 @@ export default function SellItem() {
     price: '',
     category: '',
     condition: 'used_good',
-    location: 'Nairobi, Kenya',
+    location: storeLocation.name || 'Nairobi, Kenya',
     campus: 'Main Campus'
   });
 
@@ -70,6 +73,8 @@ export default function SellItem() {
     setLoading(true);
     const data = new FormData();
     Object.entries(formData).forEach(([key, val]) => data.append(key, val));
+    if (storeLocation?.lat) data.append('latitude', storeLocation.lat.toString());
+    if (storeLocation?.lng) data.append('longitude', storeLocation.lng.toString());
     media.forEach(file => data.append('media', file));
 
     try {

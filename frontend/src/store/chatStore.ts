@@ -2,7 +2,7 @@
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import { useUserStore } from './userStore';
-import { sanitizePartnerName } from '../utils/nameSanitizer';
+
 
 export interface ChatMessage {
   message_id: string;
@@ -60,6 +60,7 @@ export interface ChatConversation {
   last_message_time?: string;
   last_message_at?: string;
   last_message_status?: string;
+  last_message_sender_id?: string;
   is_archived?: boolean;
   is_muted?: boolean;
   is_pinned?: boolean | number;
@@ -71,6 +72,13 @@ export interface ChatConversation {
   disappearing_duration?: number;
   group_online_count?: number;
   is_group?: boolean;
+
+  // Blocked Conversation State
+  is_blocked?: boolean;
+  is_blocked_by_me?: boolean;
+  am_i_blocked?: boolean;
+  conversation_status?: 'active' | 'blocked';
+  can_send_messages?: boolean;
 }
 
 interface ChatState {
@@ -99,6 +107,16 @@ interface ChatState {
     convs: ChatConversation[] | ((prev: ChatConversation[]) => ChatConversation[])
   ) => void;
   updateConversation: (chatId: string, updates: Partial<ChatConversation>) => void;
+  setConversationBlockState: (
+    chatId: string,
+    blockState: {
+      is_blocked?: boolean;
+      is_blocked_by_me?: boolean;
+      am_i_blocked?: boolean;
+      conversation_status?: 'active' | 'blocked';
+      can_send_messages?: boolean;
+    }
+  ) => void;
   setActiveConversationId: (chatId: string | null) => void;
   setMessages: (chatId: string, msgs: ChatMessage[]) => void;
   addMessage: (chatId: string, msg: ChatMessage) => void;
@@ -107,6 +125,16 @@ interface ChatState {
   deleteMessageLocal: (chatId: string, msgId: string) => void;
   deleteMessagesBulkLocal: (chatId: string, msgIds: string[]) => void;
   deleteMessageForEveryone: (chatId: string, msgId: string, content: string) => void;
+
+  // Canonical Conversation Mutations
+  toggleArchive: (chatId: string, archived: boolean) => void;
+  toggleDelete: (chatId: string) => void;
+  togglePin: (chatId: string, pinned: boolean) => void;
+  toggleMute: (chatId: string, muted: boolean) => void;
+  toggleFavorite: (chatId: string, favorite: boolean) => void;
+  togglePriority: (chatId: string, priority: boolean) => void;
+  toggleUnread: (chatId: string, unread: boolean) => void;
+
   setReplyTarget: (chatId: string, msgId?: string) => void;
   setOnlineUsers: (userIds: string[]) => void;
   setSocketStatus: (status: 'connected' | 'disconnected' | 'connecting') => void;
@@ -121,6 +149,7 @@ interface ChatState {
   startEdit: (chatId: string, messageId: string, content: string) => void;
   finishEdit: (chatId: string) => void;
   updateSenderMessagePermissions: (chatId: string, senderId: string, permissions: any, privacyVersion?: number) => void;
+  removeExpiredMessages: (chatId: string, messageIds: string[]) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -145,6 +174,20 @@ export const useChatStore = create<ChatState>()(
           const createdAt = raw.created_at ?? raw.createdAt ?? raw.sent_at ?? new Date().toISOString();
           const senderId = raw.sender_id ?? raw.senderId;
           const mediaUrl = raw.media_url ?? raw.mediaUrl;
+
+          const readAt = raw.read_at ?? raw.readAt ?? null;
+          const deliveredAt = raw.delivered_at ?? raw.deliveredAt ?? null;
+          const isRead = Boolean(raw.is_read === true || raw.is_read === 1 || !!readAt || raw.status === 'read' || raw.status === 'seen');
+
+          let status = raw.status;
+          if (isRead) {
+            status = 'read';
+          } else if (deliveredAt) {
+            status = 'delivered';
+          } else if (!status) {
+            status = 'sent';
+          }
+
           return {
             ...raw,
             id,
@@ -155,11 +198,12 @@ export const useChatStore = create<ChatState>()(
             createdAt,
             created_at: createdAt,
             sent_at: raw.sent_at || createdAt,
-            delivered_at: raw.delivered_at || null,
-            read_at: raw.read_at || null,
+            delivered_at: deliveredAt,
+            read_at: readAt,
+            is_read: isRead,
             failed_at: raw.failed_at || null,
             server_sequence: raw.server_sequence ? Number(raw.server_sequence) : undefined,
-            status: raw.status || 'sent',
+            status,
           } as ChatMessage;
         },
 
@@ -243,34 +287,40 @@ export const useChatStore = create<ChatState>()(
             if (exists) {
               updatedConversations = state.conversations.map((c) => {
                 if (c.chat_id !== chatId) return c;
+                const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+                const latestSenderId = latest.sender_id || (latest as any).senderId;
+                const isFromMe = String(latestSenderId) === String(myId);
                 return {
                   ...c,
                   last_message: lastMsgText,
                   last_message_content: previewText,
                   last_message_time: latestTime,
                   last_message_status: latest.status || c.last_message_status || 'sent',
-                  unread_count: isActive ? 0 : c.unread_count,
+                  last_message_sender_id: latestSenderId,
+                  unread_count: isActive ? 0 : (isFromMe ? 0 : c.unread_count),
                 };
               });
             } else {
+              const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+              const latestSenderId = latest.sender_id || (latest as any).senderId;
+              const isFromMe = String(latestSenderId) === String(myId);
               const newConv: ChatConversation = {
                 chat_id: chatId,
-                partner_id: isFromMe ? ((latest as any).recipient_id || '') : latest.sender_id,
-                // Apply sanitization to partner_name to strip unwanted UI suffixes
-                partner_name: sanitizePartnerName(latest.sender_name || latest.sender_username || 'New Contact', latest.sender_username),
+                partner_id: isFromMe ? ((latest as any).recipient_id || '') : latestSenderId,
+                partner_name: latest.sender_name || latest.sender_username || 'New Contact',
                 partner_avatar: latest.sender_avatar || '',
-                partner_username: latest.sender_username ? latest.sender_username.replace(/\s*00$/, '').trim() : '',
+                partner_username: latest.sender_username || '',
                 unread_count: isActive ? 0 : (isFromMe ? 0 : 1),
                 last_message: lastMsgText,
                 last_message_content: previewText,
                 last_message_time: latestTime,
                 last_message_status: latest.status || 'sent',
+                last_message_sender_id: latestSenderId,
                 partner_online: true,
               };
               updatedConversations = [newConv, ...state.conversations];
             }
 
-            // Move the active/updated conversation to the top
             const updatedIndex = updatedConversations.findIndex((c) => c.chat_id === chatId);
             if (updatedIndex > 0) {
               const [updatedConv] = updatedConversations.splice(updatedIndex, 1);
@@ -292,18 +342,15 @@ export const useChatStore = create<ChatState>()(
             const currentMsgs = state.messagesByConversation[chatId] || [];
             const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
             const updatedMsgs = currentMsgs.map((m) => {
-              const isFromMe = m.sender_id === myId;
-              if (lastReadMsgId) {
-                if (lastReadMsgId === myId && !isFromMe && m.status !== 'read') {
-                  return { ...m, status: 'read', read_at: new Date().toISOString() };
-                }
-                if (lastReadMsgId !== myId && isFromMe && m.status !== 'read') {
-                  return { ...m, status: 'read', read_at: new Date().toISOString() };
-                }
-              } else {
-                if (m.status !== 'read') {
-                  return { ...m, status: 'read', read_at: new Date().toISOString() };
-                }
+              const isFromMe = String(m.sender_id || (m as any).senderId) === String(myId);
+              // CRITICAL: Opening a chat ONLY marks incoming messages from OTHER USER as read locally.
+              // Messages sent by ME (isFromMe) must NEVER be modified to 'read' locally — read status on sent messages
+              // is strictly authoritative from recipient read-receipt socket events!
+              if (isFromMe) {
+                return m;
+              }
+              if (!m.is_read || m.status !== 'read') {
+                return { ...m, is_read: true, status: 'read', read_at: m.read_at || new Date().toISOString() };
               }
               return m;
             });
@@ -325,8 +372,8 @@ export const useChatStore = create<ChatState>()(
               return {
                 conversations: safeConvs.map((c) => ({
                   ...c,
-                  partner_name: sanitizePartnerName(c.partner_name || c.partner_username, c.partner_username),
-                  partner_username: c.partner_username ? c.partner_username.replace(/\s*00$/, '').trim() : c.partner_username,
+                  partner_name: c.partner_name || c.partner_username || 'Sparkle User',
+                  partner_username: c.partner_username || '',
                 })),
               };
             }),
@@ -334,8 +381,74 @@ export const useChatStore = create<ChatState>()(
         updateConversation: (chatId, updates) =>
           set((state) => ({
             conversations: state.conversations.map((c) =>
-              c.chat_id === chatId ? { ...c, ...updates } : c
+              c.chat_id === chatId || c.partner_id === chatId ? { ...c, ...updates } : c
             ),
+          })),
+
+        setConversationBlockState: (chatId, blockState) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId || c.partner_id === chatId
+                ? {
+                    ...c,
+                    is_blocked: blockState.is_blocked,
+                    is_blocked_by_me: blockState.is_blocked_by_me,
+                    am_i_blocked: blockState.am_i_blocked,
+                    conversation_status: blockState.conversation_status,
+                    can_send_messages: blockState.can_send_messages,
+                  }
+                : c
+            ),
+          })),
+
+        // Canonical Conversation Mutations
+        toggleArchive: (chatId, archived) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, is_archived: archived } : c
+            ),
+          })),
+
+        toggleDelete: (chatId) =>
+          set((state) => ({
+            conversations: state.conversations.filter((c) => c.chat_id !== chatId),
+            messagesByConversation: { ...state.messagesByConversation, [chatId]: [] }
+          })),
+
+        togglePin: (chatId, pinned) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, is_pinned: pinned } : c
+            ),
+          })),
+
+        toggleMute: (chatId, muted) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, is_muted: muted } : c
+            ),
+          })),
+
+        toggleFavorite: (chatId, favorite) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, is_favorite: favorite } : c
+            ),
+          })),
+
+        togglePriority: (chatId, priority) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, is_priority: priority } : c
+            ),
+          })),
+
+        toggleUnread: (chatId, unread) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, unread_count: unread ? 1 : 0 } : c
+            ),
+            unreadCounts: { ...state.unreadCounts, [chatId]: unread ? 1 : 0 }
           })),
 
         setActiveConversationId: (chatId) => {
@@ -379,22 +492,37 @@ export const useChatStore = create<ChatState>()(
 
             const updatedMsgs = currentMsgs.map((msg) => {
               if (String(msg.sender_id || (msg as any).senderId) === String(senderId)) {
+                const currentVer = (msg as any).privacyVersion || (msg as any).permissions?.privacyVersion || 0;
+                if (privacyVersion && currentVer && Number(privacyVersion) < Number(currentVer)) {
+                  return msg;
+                }
+                const canCopy = newPermissions?.canCopy !== undefined
+                  ? !!newPermissions.canCopy
+                  : !!(msg as any).permissions?.canCopy;
+                const canForward = newPermissions?.canForward !== undefined
+                  ? !!newPermissions.canForward
+                  : !!(msg as any).permissions?.canForward;
+
                 return {
                   ...msg,
                   permissions: {
                     ...(msg as any).permissions,
                     ...newPermissions,
+                    canCopy,
+                    canForward,
                     ui: {
                       ...((msg as any).permissions?.ui || {}),
                       ...(newPermissions?.ui || {}),
-                      showCopy: newPermissions?.canCopy ?? newPermissions?.ui?.showCopy ?? true,
-                      showForward: newPermissions?.canForward ?? newPermissions?.ui?.showForward ?? true,
+                      showCopy: canCopy,
+                      showForward: canForward,
+                      showShare: canForward,
                     },
                     security: {
                       ...((msg as any).permissions?.security || {}),
                       ...(newPermissions?.security || {}),
-                      canCopy: newPermissions?.canCopy ?? true,
-                      canForward: newPermissions?.canForward ?? true,
+                      canCopy,
+                      canForward,
+                      canExport: canCopy && canForward,
                     },
                   },
                   privacyVersion: privacyVersion || (msg as any).privacyVersion,
@@ -428,12 +556,22 @@ export const useChatStore = create<ChatState>()(
             if (exactIndex !== -1) {
               // Message exists — merge in any new fields (e.g. permissions, status upgrade)
               // but never downgrade a status (sent > sending, read > delivered, etc.)
-              const existing = currentMsgs[exactIndex];
               const STATUS_RANK: Record<string, number> = { sending: 0, pending: 0, sent: 1, delivered: 2, read: 3, failed: -1 };
               const incomingRank = STATUS_RANK[normalized.status || ''] ?? 0;
               const existingRank = STATUS_RANK[existing.status || ''] ?? 0;
               const bestStatus = incomingRank >= existingRank ? normalized.status : existing.status;
-              const merged = { ...existing, ...normalized, status: bestStatus };
+              const bestReadAt = normalized.read_at || existing.read_at || null;
+              const bestDeliveredAt = normalized.delivered_at || existing.delivered_at || null;
+              const bestIsRead = Boolean(normalized.is_read || existing.is_read || bestReadAt);
+
+              const merged = {
+                ...existing,
+                ...normalized,
+                status: bestStatus,
+                read_at: bestReadAt,
+                delivered_at: bestDeliveredAt,
+                is_read: bestIsRead,
+              };
               const updatedMsgs = [...currentMsgs];
               updatedMsgs[exactIndex] = merged;
               return {
@@ -453,10 +591,15 @@ export const useChatStore = create<ChatState>()(
               const updatedMsgs = [...currentMsgs];
               updatedMsgs[optimisticIndex] = { ...updatedMsgs[optimisticIndex], ...normalized, status: normalized.status || 'sent' };
               const isActive = state.activeConversationId === chatId;
-              const isFromMe = normalized.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
+              const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+              const isFromMe = String(normalized.sender_id) === String(myId);
               const updatedConversations = state.conversations.map((c) => {
                 if (c.chat_id !== chatId) return c;
-                return { ...c, unread_count: isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1) };
+                return {
+                  ...c,
+                  last_message_sender_id: normalized.sender_id,
+                  unread_count: isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1)
+                };
               });
               return {
                 messagesByConversation: { ...state.messagesByConversation, [chatId]: updatedMsgs },
@@ -466,11 +609,16 @@ export const useChatStore = create<ChatState>()(
 
             // 3. Genuinely new message — append
             const isActive = state.activeConversationId === chatId;
-            const isFromMe = normalized.sender_id === (useUserStore.getState().user?.user_id || useUserStore.getState().user?.id);
+            const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+            const isFromMe = String(normalized.sender_id) === String(myId);
             const updatedConversations = state.conversations.map((c) => {
               if (c.chat_id !== chatId) return c;
               const unread_count = isActive ? 0 : (isFromMe ? 0 : c.unread_count + 1);
-              return { ...c, unread_count };
+              return {
+                ...c,
+                last_message_sender_id: normalized.sender_id,
+                unread_count
+              };
             });
             return {
               messagesByConversation: {
@@ -707,6 +855,23 @@ export const useChatStore = create<ChatState>()(
               [chatId]: content,
             },
           }));
+        },
+        removeExpiredMessages: (chatId, messageIds) => {
+          if (!messageIds || messageIds.length === 0) return;
+          const idSet = new Set(messageIds.map(String));
+          set((state) => {
+            const currentMsgs = state.messagesByConversation[chatId] || [];
+            const remaining = currentMsgs.filter(
+              (m) => !idSet.has(String(m.message_id)) && !idSet.has(String(m.id))
+            );
+            return {
+              messagesByConversation: {
+                ...state.messagesByConversation,
+                [chatId]: remaining,
+              },
+            };
+          });
+          get().refreshConversation(chatId);
         },
         finishEdit: (chatId) => {
           set((state) => ({

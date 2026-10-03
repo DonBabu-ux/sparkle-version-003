@@ -25,13 +25,16 @@ const loginSchema = Joi.object({
  * Profile update validation
  */
 const updateProfileSchema = Joi.object({
-    name: Joi.string().min(2).max(100).optional(),
+    name: Joi.string().min(2).max(30).optional()
+        .messages({ 'string.max': 'Display name cannot exceed 30 characters.' }),
     username: Joi.string().pattern(/^[a-zA-Z0-9._]+$/).min(3).max(30).optional()
         .messages({ 'string.pattern.base': 'Username can only contain letters, numbers, underscores and dots.' }),
-    bio: Joi.string().max(500).allow('').optional(),
+    bio: Joi.string().max(160).allow('').optional()
+        .messages({ 'string.max': 'Bio cannot exceed 160 characters.' }),
     major: Joi.string().max(100).allow('').optional(),
     campus: Joi.string().max(100).allow('').optional(),
-    headline: Joi.string().max(100).allow('').optional(),
+    headline: Joi.string().max(100).allow('').optional()
+        .messages({ 'string.max': 'Headline cannot exceed 100 characters.' }),
     website: Joi.string().uri().allow('').optional(),
     birthday: Joi.date().iso().allow('', null).optional(),
     phone_number: Joi.string().max(20).allow('').optional()

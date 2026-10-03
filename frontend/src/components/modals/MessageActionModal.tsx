@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Reply, Copy, Trash2, Pin, Edit3, Forward, Info, Smile } from 'lucide-react';
+import { Reply, Copy, Trash2, Pin, Edit3, Forward, Smile } from 'lucide-react';
 import type { MessagePermissions } from '../../types/messagePermissions';
+import { useChatStore } from '../../store/chatStore';
 
 // Quick reactions
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '😡', '👍', '🔥', '💯'];
@@ -41,7 +42,32 @@ export const MessageActionModal: React.FC<MessageActionModalProps> = ({
   onReact,
   onOpenEmojiPicker,
 }) => {
+  // Subscribe to live chatStore state for real-time permission updates
+  const liveMsg = useChatStore((state) => {
+    if (!messageId) return null;
+    for (const chatId of Object.keys(state.messagesByConversation)) {
+      const found = state.messagesByConversation[chatId].find(
+        (m) => m.message_id === messageId || m.id === messageId
+      );
+      if (found) return found;
+    }
+    return null;
+  });
+
   if (!isOpen) return null;
+
+  // Resolve current effective permissions
+  const effectivePermissions = (liveMsg as any)?.permissions || permissions;
+
+  // Fail-Closed permission enforcement (never default to true for copy/forward)
+  const canCopy = effectivePermissions?.canCopy === true;
+  const canForward = effectivePermissions?.canForward === true;
+  const canReact = effectivePermissions ? effectivePermissions.canReact !== false : true;
+  const canPin = effectivePermissions ? effectivePermissions.canPin !== false : true;
+  const isPinned = !!effectivePermissions?.pinned;
+  const canEdit = isMe && (effectivePermissions ? effectivePermissions.canEdit !== false : true);
+  const canDeleteForMe = effectivePermissions ? effectivePermissions.canDeleteForMe !== false : true;
+  const canDeleteForEveryone = isMe && (effectivePermissions ? effectivePermissions.canDeleteForEveryone !== false : true);
 
   return (
     <AnimatePresence>
@@ -64,7 +90,7 @@ export const MessageActionModal: React.FC<MessageActionModalProps> = ({
           className="relative w-full max-w-sm overflow-hidden rounded-2xl border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur-md select-none text-white z-10"
         >
           {/* Header & Quick Reactions */}
-          {(!permissions || permissions.canReact !== false) && (
+          {canReact && (
             <div className="mb-4">
               <p className="text-xs text-white/50 font-bold tracking-wider uppercase mb-2">Reactions</p>
               <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
@@ -97,30 +123,31 @@ export const MessageActionModal: React.FC<MessageActionModalProps> = ({
             <p className="text-xs text-white/50 font-bold tracking-wider uppercase mb-2">Actions</p>
 
             <ActionButton icon={<Reply size={16} />} label="Reply" onClick={() => { onReply(); onClose(); }} />
-            {(!permissions || permissions.canCopy !== false) && (
+            
+            {canCopy && (
               <ActionButton icon={<Copy size={16} />} label="Copy Text" onClick={() => { onCopy(); onClose(); }} />
             )}
 
-            {(!permissions || permissions.canPin !== false) && (
+            {canPin && (
               <ActionButton
-                icon={<Pin size={16} className={permissions?.pinned ? "text-[#ff1493]" : ""} />}
-                label={permissions?.pinned ? "Unpin Message" : "Pin Message"}
+                icon={<Pin size={16} className={isPinned ? "text-[#ff1493]" : ""} />}
+                label={isPinned ? "Unpin Message" : "Pin Message"}
                 onClick={() => { onPin(); onClose(); }}
               />
             )}
 
-            {isMe && (!permissions || permissions.canEdit !== false) && (
+            {canEdit && (
               <ActionButton icon={<Edit3 size={16} />} label="Edit Message" onClick={() => { onEdit(); onClose(); }} />
             )}
 
-            {(!permissions || permissions.canForward !== false) && (
+            {canForward && (
               <ActionButton icon={<Forward size={16} />} label="Forward" onClick={() => { onForward(); onClose(); }} />
             )}
 
             <div className="h-px bg-white/10 my-2" />
 
             {/* Delete Options */}
-            {(!permissions || permissions.canDeleteForMe !== false) && (
+            {canDeleteForMe && (
               <ActionButton
                 icon={<Trash2 size={16} className="text-red-400" />}
                 label="Delete for Me"
@@ -129,7 +156,7 @@ export const MessageActionModal: React.FC<MessageActionModalProps> = ({
               />
             )}
 
-            {isMe && (!permissions || permissions.canDeleteForEveryone !== false) && (
+            {canDeleteForEveryone && (
               <ActionButton
                 icon={<Trash2 size={16} className="text-red-500 font-bold" />}
                 label="Delete for Everyone"

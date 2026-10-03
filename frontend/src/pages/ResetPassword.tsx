@@ -28,7 +28,7 @@ export default function ResetPassword() {
   const [error, setError] = useState('');
   const [timer, setTimer] = useState(45);
   const [resending, setResending] = useState(false);
-  const [resendSuccess, setResendSuccess] = useState(false);
+  const [resendSuccess, setResendSuccess] = useState<boolean>(() => Boolean(emailParam));
 
   // Timer for code resend
   useEffect(() => {
@@ -210,16 +210,27 @@ export default function ResetPassword() {
         )}
 
         {resendSuccess && (
-          <div className="mb-6 bg-emerald-500/10 border border-emerald-500/20 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-emerald-600 text-xs font-semibold">
-            <Check size={16} className="flex-shrink-0" />
-            <span>Verification code sent successfully.</span>
+          <div className="mb-6 bg-emerald-50 border border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700/50 px-4 py-3.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in text-emerald-800 dark:text-emerald-300 text-xs font-bold shadow-sm">
+            <div className="flex items-center gap-2.5">
+              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+                <Check size={14} strokeWidth={3} />
+              </div>
+              <span>Verification code sent successfully.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setResendSuccess(false)}
+              className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 p-1 rounded-lg hover:bg-emerald-200/50 transition-colors"
+            >
+              <X size={14} />
+            </button>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Identity Verification OTP Blocks */}
           <div className="space-y-3 bg-white/40 border border-pink-500/10 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600">Verify Your Identity</h3>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600">Verify Your Sparkle Identity</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
               We've sent a verification code to <span className="text-gray-900 font-semibold">{maskEmail(emailParam)}</span>. Enter the code below to continue.
             </p>
@@ -366,7 +377,7 @@ export default function ResetPassword() {
             {loading ? (
               <>
                 <div className="spinner" />
-                Updating...
+                Updating Please wait...
               </>
             ) : (
               'Update Password →'

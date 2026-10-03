@@ -332,6 +332,18 @@ if (require.main === module) {
         // Initialize database tables and prewarm moments feed
         initDB().then(() => {
             momentsController.prewarm();
+            try {
+                const { startAutoWithdrawalScheduler } = require('./services/autoWithdrawalScheduler.service');
+                startAutoWithdrawalScheduler();
+            } catch (err) {
+                logger.warn('Failed to start auto withdrawal scheduler:', err.message);
+            }
+            try {
+                const { startBoostScheduler } = require('./services/boostScheduler.service');
+                startBoostScheduler();
+            } catch (err) {
+                logger.warn('Failed to start boost scheduler:', err.message);
+            }
         }).catch(err => logger.error('Failed to initialize database:', err));
     });
     

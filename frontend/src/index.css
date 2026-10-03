@@ -98,6 +98,10 @@ body.note-modal-open nav {
     @apply bg-transparent;
   }
 
+  .sparkly-md, .sparkly-md p, .sparkly-md li, .sparkly-md span, .sparkly-md ul, .sparkly-md ol {
+    color: #ffffff !important;
+  }
+
   .custom-scrollbar::-webkit-scrollbar-thumb {
     @apply bg-black/10 rounded-full hover:bg-black/20 transition-colors;
   }

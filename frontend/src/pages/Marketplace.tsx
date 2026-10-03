@@ -14,6 +14,8 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+
 interface Listing {
   listing_id: string;
   title: string;
@@ -28,6 +30,7 @@ interface Listing {
   distance_km?: number;
   created_at?: string;
   media?: any[];
+  image_urls?: string[];
 }
 
 export default function Marketplace() {
@@ -295,6 +298,12 @@ export default function Marketplace() {
                   <SlidersHorizontal size={14} /> Filters
                 </button>
                 <button 
+                  onClick={() => navigate('/sparkly-bot')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded text-[13px] font-extrabold whitespace-nowrap flex-shrink-0 shadow-sm active:scale-95 transition-all"
+                >
+                  <Sparkles size={14} className="animate-pulse" /> Sparkly AI
+                </button>
+                <button 
                   onClick={() => setActiveModal('sort')}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-marketplace-border rounded text-[13px] font-bold text-marketplace-text whitespace-nowrap flex-shrink-0"
                 >
@@ -357,13 +366,13 @@ export default function Marketplace() {
                         className="bg-white cursor-pointer flex flex-col pb-4" 
                         onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
                       >
-                        <div className="aspect-[4/5] relative bg-marketplace-bg overflow-hidden">
-                          <img 
-                            src={item.image_url || (item.media && item.media.length > 0 ? item.media[0].media_url : '/uploads/defaults/no-image.png')} 
-                            alt={item.title} 
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
+                        <MarketplaceImageSlider
+                          media={item.media}
+                          imageUrls={item.image_urls}
+                          fallbackUrl={item.image_url}
+                          alt={item.title}
+                          aspectRatio="aspect-[4/5]"
+                        />
                         <div className="px-2 pt-2 flex flex-col">
                           {categoryId === 'vehicles' ? (
                             <>
@@ -400,6 +409,27 @@ export default function Marketplace() {
           )}
         </main>
       </div>
+
+      {/* Anchored Sparkly AI Shopping Assistant Launcher */}
+      <motion.button
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        whileHover={{ scale: 1.04, translateY: -2 }}
+        whileTap={{ scale: 0.96 }}
+        onClick={() => navigate('/sparkly-bot', { state: { source: 'marketplace' } })}
+        className="fixed bottom-20 mb-safe right-4 sm:right-6 z-40 flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-xl shadow-purple-950/30 border border-purple-500/30 hover:border-purple-400/50 transition-all group cursor-pointer"
+        title="Ask Sparkly AI Shopping Assistant"
+      >
+        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 group-hover:bg-purple-500/30 transition-colors">
+          <Sparkles size={15} className="text-purple-300" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-slate-900" />
+        </div>
+        <div className="flex flex-col text-left">
+          <span className="text-xs font-black tracking-wide text-white leading-tight">Sparkly AI</span>
+          <span className="text-[10px] text-purple-300/80 font-medium leading-none">Shopping Assistant</span>
+        </div>
+      </motion.button>
+
       <MarketplaceModals />
     </div>
   );

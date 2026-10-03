@@ -81,17 +81,85 @@ const updateProfile = async (req, res) => {
             return res.status(403).json({ error: 'Sparkle Official Account profile cannot be edited.' });
         }
 
-        // check if username is being changed and if it is taken
-        if (req.body.username) {
-            const existingUser = await User.findByUsername(req.body.username);
-            if (existingUser && existingUser.user_id !== userId) {
-                return res.status(409).json({ error: 'Username already taken' });
+        // Fetch current user for cooldown checks + bio diff
+        const currentUser = await User.findById(userId);
+        if (!currentUser) return res.status(404).json({ error: 'User not found' });
+
+        const now = Date.now();
+
+        // --- 7-Day Display Name Cooldown (server clock only) ---
+        if (req.body.name !== undefined && req.body.name !== currentUser.name) {
+            if (currentUser.name_updated_at) {
+                const msSince = now - new Date(currentUser.name_updated_at).getTime();
+                const daysSince = msSince / (1000 * 60 * 60 * 24);
+                if (daysSince < 7) {
+                    const retryDays = Math.ceil(7 - daysSince);
+                    const retryAt = new Date(new Date(currentUser.name_updated_at).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                    return res.status(429).json({
+                        code: 'NAME_CHANGE_COOLDOWN',
+                        message: `You can change your display name again in ${retryDays} day${retryDays > 1 ? 's' : ''}.`,
+                        error: `You can change your display name again in ${retryDays} day${retryDays > 1 ? 's' : ''}.`,
+                        retryDays,
+                        retryAt
+                    });
+                }
+            }
+        }
+
+        // --- 30-Day Username Cooldown + Availability (server clock only) ---
+        const { normalizeUsername, validateUsername } = require('../utils/validation/username');
+        const authService = require('../services/auth.service');
+        let normNewUsername = null;
+
+        if (req.body.username !== undefined) {
+            normNewUsername = normalizeUsername(req.body.username);
+            const normCurrentUsername = normalizeUsername(currentUser.username);
+
+            if (normNewUsername !== normCurrentUsername) {
+                // 1. Validate format
+                const validation = validateUsername(normNewUsername);
+                if (!validation.valid) {
+                    return res.status(400).json({
+                        code: validation.error.code,
+                        error: validation.error.message,
+                        message: validation.error.message
+                    });
+                }
+
+                // 2. Enforce 30-day cooldown
+                if (currentUser.username_updated_at) {
+                    const msSince = now - new Date(currentUser.username_updated_at).getTime();
+                    const daysSince = msSince / (1000 * 60 * 60 * 24);
+                    if (daysSince < 30) {
+                        const retryDays = Math.ceil(30 - daysSince);
+                        const retryAt = new Date(new Date(currentUser.username_updated_at).getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                        return res.status(429).json({
+                            code: 'USERNAME_CHANGE_COOLDOWN',
+                            message: `You can change your username again in ${retryDays} day${retryDays > 1 ? 's' : ''}.`,
+                            error: `You can change your username again in ${retryDays} day${retryDays > 1 ? 's' : ''}.`,
+                            retryDays,
+                            retryAt
+                        });
+                    }
+                }
+
+                // 3. Check availability using indexed database lookup
+                const existingUser = await User.findByUsername(normNewUsername);
+                if (existingUser && String(existingUser.user_id) !== String(userId)) {
+                    const suggestions = await authService.generateAvailableUsernames(normNewUsername);
+                    return res.status(409).json({
+                        code: 'USERNAME_TAKEN',
+                        error: 'Username already taken',
+                        message: 'This username is already taken. Please choose another.',
+                        suggestions
+                    });
+                }
             }
         }
 
         const updates = {
             name: req.body.name,
-            username: req.body.username,
+            username: normNewUsername !== null ? normNewUsername : req.body.username,
             bio: req.body.bio,
             major: req.body.major,
             campus: req.body.campus,
@@ -101,11 +169,108 @@ const updateProfile = async (req, res) => {
             phone_number: req.body.phone_number
         };
 
+        // Atomically set cooldown timestamps on changes
+        if (req.body.name !== undefined && req.body.name !== currentUser.name) {
+            updates.name_updated_at = new Date();
+        }
+        if (normNewUsername !== null && normNewUsername !== normalizeUsername(currentUser.username)) {
+            updates.username_updated_at = new Date();
+        }
+
+        // Strip undefined keys so we don't overwrite with null accidentally
+        Object.keys(updates).forEach(k => { if (updates[k] === undefined) delete updates[k]; });
+
+        const oldBio = currentUser.bio || '';
         await User.update(userId, updates);
-        res.json({ message: 'Profile updated successfully' });
+
+        // Invalidate profile/user caches
+        try {
+            const cacheService = require('../services/cache.service');
+            const oldNorm = normalizeUsername(currentUser.username);
+            await Promise.all([
+                cacheService.del(`user:${userId}`),
+                cacheService.del(`profile:${userId}`),
+                oldNorm ? cacheService.del(`user:username:${oldNorm}`) : Promise.resolve(),
+                normNewUsername ? cacheService.del(`user:username:${normNewUsername}`) : Promise.resolve()
+            ]);
+        } catch (cacheErr) {
+            logger.warn('Cache invalidation warning on profile update: ' + (cacheErr?.message || cacheErr));
+        }
+
+        // --- Bio @mention notification dispatch (only on successful save) ---
+        if (req.body.bio !== undefined && req.body.bio !== oldBio) {
+            try {
+                const newBio = req.body.bio || '';
+                const mentionRegex = /@([a-zA-Z0-9._]+)/g;
+                const oldMentions = new Set([...oldBio.matchAll(mentionRegex)].map(m => m[1].toLowerCase()));
+                const newMentionsArr = [...newBio.matchAll(mentionRegex)].map(m => m[1].toLowerCase());
+                const newMentions = newMentionsArr.filter(u => !oldMentions.has(u) && u !== (currentUser.username || '').toLowerCase());
+                for (const mentionedUsername of newMentions) {
+                    const mentionedUser = await User.findByUsername(mentionedUsername);
+                    if (mentionedUser && mentionedUser.user_id !== userId) {
+                        await notificationController.createNotification({
+                            user_id: mentionedUser.user_id,
+                            actor_id: userId,
+                            type: 'mention',
+                            title: 'Mentioned in Bio',
+                            content: `${currentUser.name || currentUser.username} mentioned you in their bio`
+                        });
+                    }
+                }
+            } catch (mentionErr) {
+                logger.warn('Bio mention dispatch error: ' + (mentionErr?.message || mentionErr));
+            }
+        }
+
+        // Return updated user for immediate store reconciliation
+        const updatedUser = await User.findById(userId);
+
+        // Broadcast profile update via socket to followers and user's devices
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                const pool = require('../config/database');
+                const [followers] = await pool.query(
+                    'SELECT follower_id FROM follows WHERE following_id = ?',
+                    [userId]
+                );
+                const rooms = followers.map(f => `user:${f.follower_id}`);
+                rooms.push(`user:${userId}`);
+                const publicProfile = {
+                    user_id: updatedUser.user_id,
+                    name: updatedUser.name,
+                    username: updatedUser.username,
+                    avatar_url: updatedUser.avatar_url,
+                    bio: updatedUser.bio,
+                    headline: updatedUser.headline,
+                    campus: updatedUser.campus,
+                    major: updatedUser.major,
+                    is_verified: updatedUser.is_verified,
+                    name_updated_at: updatedUser.name_updated_at,
+                    username_updated_at: updatedUser.username_updated_at
+                };
+                io.to(rooms).emit('profile_updated', publicProfile);
+            }
+        } catch (socketErr) {
+            logger.warn('Failed to emit profile_updated: ' + (socketErr?.message || socketErr));
+        }
+
+        res.json({ message: 'Profile updated successfully', user: updatedUser });
     } catch (error) {
-        if (error.code === 'ER_DUP_ENTRY') {
-            return res.status(409).json({ error: 'Username or email already taken' });
+        if (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) {
+            let suggestions = [];
+            if (req.body.username) {
+                const { normalizeUsername } = require('../utils/validation/username');
+                const authService = require('../services/auth.service');
+                suggestions = await authService.generateAvailableUsernames(normalizeUsername(req.body.username));
+            }
+            return res.status(409).json({
+                code: 'USERNAME_TAKEN',
+                error: 'Username already taken',
+                message: 'This username is already taken. Please choose another.',
+                suggestions
+            });
         }
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Update profile error: ' + errorMsg);
@@ -127,12 +292,34 @@ const updateSettings = async (req, res) => {
             'profile_visibility',
             'theme',
             'font_size',
+            'font_scale',
             'language',
             'last_seen_privacy',
             'message_privacy',
             'dnd_start',
             'dnd_end',
-            'activity_status_enabled' // if added later
+            'activity_status_enabled',
+            'sensitive_content_level',
+            'ai_content_opt_out',
+            'recommendation_personalization',
+            'search_indexing_enabled',
+            'profile_discoverability',
+            'reduced_motion',
+            'auto_download_media',
+            'link_previews_enabled',
+            'haptic_intensity',
+            'media_quality',
+            'chat_pin',
+            'chat_theme',
+            'default_read_receipts',
+            'default_typing_indicator',
+            'default_allow_media_download',
+            'default_allow_copy_text',
+            'default_allow_reactions',
+            'default_allow_forwarding',
+            'default_screenshot_notification',
+            'default_disappearing_mode',
+            'blur_screen_recording'
         ];
 
         for (const key of Object.keys(req.body)) {
@@ -143,6 +330,28 @@ const updateSettings = async (req, res) => {
 
         if (Object.keys(updates).length > 0) {
             await User.updateSettings(userId, updates);
+
+            const globalPrivacyKeys = [
+                'default_read_receipts',
+                'default_typing_indicator',
+                'default_allow_forwarding',
+                'default_allow_copy_text',
+                'default_screenshot_notification'
+            ];
+            const hasPrivacyUpdate = Object.keys(updates).some(k => globalPrivacyKeys.includes(k));
+            if (hasPrivacyUpdate) {
+                try {
+                    const { getIO } = require('../socket');
+                    const io = getIO();
+                    io.to(`user:${userId}`).emit('global_privacy_updated', {
+                        userId,
+                        updates,
+                        timestamp: new Date().toISOString()
+                    });
+                } catch (socketErr) {
+                    logger.warn('Failed to emit global_privacy_updated: ' + (socketErr?.message || socketErr));
+                }
+            }
         }
 
         res.json({ message: 'Settings updated successfully', updates });
@@ -150,6 +359,51 @@ const updateSettings = async (req, res) => {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Update settings error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to update settings' });
+    }
+};
+
+const getAdvancedSettings = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        res.json({
+            success: true,
+            settings: {
+                sensitive_content_level: user.sensitive_content_level || 'standard',
+                ai_content_opt_out: !!user.ai_content_opt_out,
+                recommendation_personalization: user.recommendation_personalization !== 0,
+                search_indexing_enabled: user.search_indexing_enabled !== 0,
+                profile_discoverability: user.profile_discoverability || 'everyone',
+                reduced_motion: !!user.reduced_motion,
+                font_scale: user.font_scale || 'medium',
+                auto_download_media: user.auto_download_media || 'wifi',
+                link_previews_enabled: user.link_previews_enabled !== 0,
+                haptic_intensity: user.haptic_intensity || 'medium',
+                media_quality: user.media_quality || 'standard',
+                anonymous_enabled: !!user.anonymous_enabled,
+                dark_mode_enabled: !!user.dark_mode_enabled,
+                email_notifications: user.email_notifications !== 0,
+                push_notifications: user.push_notifications !== 0,
+                theme: user.theme || 'soft_pink',
+                chat_pin: user.chat_pin || null,
+                chat_theme: user.chat_theme || 'default',
+                default_read_receipts: user.default_read_receipts !== 0,
+                default_typing_indicator: user.default_typing_indicator !== 0,
+                default_allow_media_download: user.default_allow_media_download !== 0,
+                default_allow_copy_text: user.default_allow_copy_text !== 0,
+                default_allow_reactions: user.default_allow_reactions !== 0,
+                default_allow_forwarding: user.default_allow_forwarding !== 0,
+                default_screenshot_notification: user.default_screenshot_notification !== 0,
+                default_disappearing_mode: user.default_disappearing_mode || 'off',
+                blur_screen_recording: user.blur_screen_recording !== undefined ? user.blur_screen_recording !== 0 : true
+            }
+        });
+    } catch (error) {
+        logger.error('Get advanced settings error: ' + (error?.message || error));
+        res.status(500).json({ error: 'Failed to fetch advanced settings' });
     }
 };
 
@@ -191,9 +445,40 @@ const uploadAvatar = async (req, res) => {
         }
 
         await User.update(userId, { avatar_url: avatarUrl });
+        const updatedUser = await User.findById(userId);
+
+        // Broadcast avatar update via socket
+        try {
+            const { getIO } = require('../socket');
+            const io = getIO();
+            if (io) {
+                const pool = require('../config/database');
+                const [followers] = await pool.query(
+                    'SELECT follower_id FROM follows WHERE following_id = ?',
+                    [userId]
+                );
+                const rooms = followers.map(f => `user:${f.follower_id}`);
+                rooms.push(`user:${userId}`);
+                io.to(rooms).emit('profile_updated', {
+                    user_id: updatedUser.user_id,
+                    name: updatedUser.name,
+                    username: updatedUser.username,
+                    avatar_url: avatarUrl,
+                    bio: updatedUser.bio,
+                    headline: updatedUser.headline,
+                    campus: updatedUser.campus,
+                    major: updatedUser.major,
+                    is_verified: updatedUser.is_verified
+                });
+            }
+        } catch (socketErr) {
+            logger.warn('Failed to emit avatar profile_updated: ' + (socketErr?.message || socketErr));
+        }
+
         res.json({
             message: 'Avatar updated successfully',
-            avatar_url: avatarUrl
+            avatar_url: avatarUrl,
+            user: updatedUser
         });
 
     } catch (error) {
@@ -815,6 +1100,21 @@ const matchContacts = async (req, res) => {
     }
 };
 
+const getUsernameSuggestions = async (req, res) => {
+    try {
+        const username = req.query.username || req.query.q || '';
+        if (!username) {
+            return res.status(400).json({ success: false, error: 'Username parameter is required', suggestions: [] });
+        }
+        const authService = require('../services/auth.service');
+        const suggestions = await authService.generateAvailableUsernames(username);
+        res.json({ success: true, suggestions });
+    } catch (error) {
+        logger.error('Get username suggestions error:', error);
+        res.status(500).json({ success: false, error: 'Failed to generate suggestions', suggestions: [] });
+    }
+};
+
 module.exports = {
     getCurrentUser,
     searchUsers,
@@ -830,7 +1130,9 @@ module.exports = {
     getUserProfile,
     getUserPosts,
     getSuggestions,
+    getUsernameSuggestions,
     updateSettings,
+    getAdvancedSettings,
     exportUserData,
     disableTwoFactor,
     enableTwoFactor,

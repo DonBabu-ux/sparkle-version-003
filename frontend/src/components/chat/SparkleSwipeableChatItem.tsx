@@ -49,6 +49,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const isSelfChat = chat.chat_type === 'self' || chat.partner_id === (user?.id || user?.user_id);
   const displayName = isSelfChat ? 'Saved Messages' : itemIdentity.displayName;
 
+  const currentUserId = user?.id || user?.user_id;
+  const lastSenderId = chat.last_message_sender_id || chat.last_sender_id;
+  const isLastMsgFromMe = Boolean(currentUserId && lastSenderId && String(lastSenderId) === String(currentUserId));
+  const hasUnreadIncoming = !isLastMsgFromMe && Boolean(chat.unread_count > 0);
+
   // Reset swipe translation whenever selection mode changes
   useEffect(() => {
     if (isSelectionMode) {
@@ -168,55 +173,77 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           <div className="flex justify-between items-center mb-0.5">
             <h4 className={clsx(
               "text-[15px] tracking-tight truncate leading-tight flex items-center gap-1.5",
-              chat.unread_count > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
+              hasUnreadIncoming ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
             )}>
               {displayName}
               {!isSelfChat && (
                 <VerifiedBadge accountType={itemIdentity.accountType} isVerified={itemIdentity.badge.show} color={itemIdentity.badge.color} size="xs" />
               )}
-              {chat.is_priority && (
+              {Boolean(chat.is_priority) && (
                 <span className="inline-flex items-center text-amber-400" title="Sparkle Priority">
                   <Star size={13} className="fill-amber-400 text-amber-400 shrink-0" />
                 </span>
               )}
-              {chat.is_pinned && <Pin size={12} className="text-[#ff1493] fill-[#ff1493] shrink-0" />}
-              {chat.is_favorite && (
+              {Boolean(chat.is_pinned) && <Pin size={12} className="text-[#ff1493] fill-[#ff1493] shrink-0" />}
+              {Boolean(chat.is_favorite) && (
                 <span className="inline-flex items-center text-purple-400 animate-pulse">
                   <Sparkles size={13} className="fill-purple-400 shrink-0" />
                 </span>
               )}
-              {chat.is_muted && <VolumeX size={12} className="text-purple-400 shrink-0" />}
+              {Boolean(chat.is_muted) && <VolumeX size={12} className="text-purple-400 shrink-0" />}
             </h4>
+
+            {hasUnreadIncoming && (
+              chat.unread_count > 1 ? (
+                <div
+                  className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#ff1493] flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.6)] animate-bounce motion-reduce:animate-none ml-2"
+                  aria-label={`${chat.unread_count} unread messages`}
+                >
+                  <span className="text-[11px] font-black text-white leading-none tabular-nums">
+                    {chat.unread_count > 99 ? '99+' : chat.unread_count}
+                  </span>
+                </div>
+              ) : (
+                <div
+                  className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-bounce shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.6)] motion-reduce:animate-none ml-2"
+                  aria-label="Unread message indicator"
+                />
+              )
+            )}
           </div>
 
           <div className="flex items-center justify-between gap-2">
             <div className="flex-1 min-w-0">
-              {chat.unread_count > 1 ? (
-                <div className="flex items-center gap-1.5 truncate">
-                  <p className="text-[13px] font-black text-[#ff1493] lowercase">
-                    {chat.unread_count > 4 ? '4+ new messages' : `${chat.unread_count} new messages`}
-                  </p>
-                  <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
-                </div>
-              ) : chat.unread_count === 1 ? (
-                <div className="flex items-center gap-1.5 truncate">
-                  <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
-                    {chat.last_message_type === 'attachment' ? '🎬 Story reply' : chat.last_message ? formatMessageText(chat.last_message) : 'Sent a photo'}
-                  </p>
-                  <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
-                </div>
-              ) : (() => {
-                const isTypingHere = typingUsers.some(t => t.chatId === chat.chat_id);
-                const statusLabel = getStatusLabel(chat);
+              {(() => {
+                const typingUser = typingUsers.find(t => t.chatId === chat.chat_id);
+                if (typingUser) {
+                  return (
+                    <div className="flex items-center gap-1.5 truncate">
+                      <p className="text-[13px] font-bold text-[#ff1493] italic truncate">
+                        {typingUser.name ? `${typingUser.name} is typing • • •` : 'is typing • • •'}
+                      </p>
+                      <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
+                    </div>
+                  );
+                }
+
+                const rawText = chat.last_message_type === 'attachment'
+                  ? '🎬 Story reply'
+                  : chat.last_message
+                  ? formatMessageText(chat.last_message)
+                  : 'Sent a photo';
+
+                const previewText = isLastMsgFromMe ? `You: ${rawText}` : rawText;
+
                 return (
                   <div className="flex items-center gap-1.5 truncate">
-                    {isTypingHere ? (
-                      <p className="text-[12px] font-bold text-[#ff1493] italic animate-pulse">Typing…</p>
-                    ) : (
-                      <p className="text-[12px] font-medium text-[#f5f5f5]/40 truncate lowercase">
-                        {statusLabel}{statusLabel && timeLabel ? ' · ' : ''}{timeLabel}
-                      </p>
-                    )}
+                    <p className={clsx(
+                      "text-[13px] truncate flex-1",
+                      hasUnreadIncoming ? "font-bold text-[#f5f5f5]" : "font-normal text-[#f5f5f5]/60"
+                    )}>
+                      {previewText}
+                    </p>
+                    <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
                   </div>
                 );
               })()}
@@ -227,4 +254,5 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
     </div>
   );
 };
+
 

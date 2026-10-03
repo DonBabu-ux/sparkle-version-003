@@ -111,9 +111,12 @@ class User {
      * Find user by username
      */
     static async findByUsername(username) {
+        if (!username) return null;
+        const { normalizeUsername } = require('../utils/validation/username');
+        const norm = normalizeUsername(username);
         const [users] = await pool.query(
-            'SELECT * FROM users WHERE username = ?',
-            [username]
+            'SELECT * FROM users WHERE username_normalized = ? OR username = ? LIMIT 1',
+            [norm, username]
         );
         const user = users[0] || null;
         if (user) {
@@ -475,6 +478,9 @@ class User {
      * Get user with profile stats
      */
     static async getProfileWithStats(identifier, currentUserId) {
+        if (!identifier) return null;
+        const { normalizeUsername } = require('../utils/validation/username');
+        const norm = normalizeUsername(identifier);
         const [users] = await pool.query(
             `SELECT u.*, 
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -484,8 +490,8 @@ class User {
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
                     (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as is_requested_by_me
              FROM users u 
-             WHERE u.username = ? OR u.user_id = ?`,
-            [currentUserId, currentUserId, identifier, identifier]
+             WHERE u.username_normalized = ? OR u.username = ? OR u.user_id = ?`,
+            [currentUserId, currentUserId, norm, identifier, identifier]
         );
         const user = users[0] || null;
         if (user) {

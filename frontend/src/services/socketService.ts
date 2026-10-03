@@ -23,7 +23,8 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
     s = io(url, {
       auth: (cb) => {
         const currentToken = useUserStore.getState().token;
-        const currentUserId = useUserStore.getState().user?.user_id;
+        const currentUser = useUserStore.getState().user;
+        const currentUserId = currentUser?.user_id || currentUser?.id;
         cb({ token: currentToken, userId: currentUserId });
       },
       reconnectionAttempts: Infinity,
@@ -47,6 +48,22 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
     });
     s.on('disconnect', (reason) => {
       console.warn(`⚡ Socket disconnected from namespace ${namespace || '/'}:`, reason);
+    });
+
+    s.on('profile_updated', (updatedProfile: any) => {
+      try {
+        const currentUser = useUserStore.getState().user;
+        const currentUserId = currentUser?.user_id || currentUser?.id;
+        if (currentUser && String(currentUserId) === String(updatedProfile.user_id)) {
+          useUserStore.getState().setUser({
+            ...currentUser,
+            ...updatedProfile
+          });
+        }
+        window.dispatchEvent(new CustomEvent('sparkle:profile_updated', { detail: updatedProfile }));
+      } catch (err) {
+        console.error('Failed to handle profile_updated event:', err);
+      }
     });
 
     s.on('connect_error', async (err) => {

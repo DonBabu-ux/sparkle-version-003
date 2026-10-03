@@ -15,6 +15,7 @@ import {
 import Spinner from '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
+import BoostConnectModal from '../components/modals/BoostConnectModal';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface WalletSummary {
@@ -1079,86 +1080,14 @@ export default function ProfessionalDashboard() {
       </AnimatePresence>
 
       {/* ── Boost Hub Modal ── */}
-      <AnimatePresence>
-        {showSubscription && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[110] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 md:p-6 overflow-y-auto">
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="bg-white border border-[#FF1F6D]/20 w-full max-w-[800px] rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row relative">
-              <button onClick={() => setShowSubscription(false)}
-                className="absolute top-5 right-5 w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors z-10">
-                <X size={18} className="text-slate-800" />
-              </button>
-
-              <div className="md:w-[35%] p-8 flex flex-col justify-between relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #fff0f6 0%, #ffe3ec 100%)' }}>
-                <div className="absolute top-[-50px] right-[-50px] w-40 h-40 bg-[#FF1F6D] rounded-full blur-[80px] opacity-15" />
-                <div className="absolute bottom-[-50px] left-[-50px] w-40 h-40 bg-[#ec4899] rounded-full blur-[80px] opacity-10" />
-                <div className="relative z-10">
-                  <h2 className="text-3xl font-black text-slate-900 italic leading-none uppercase tracking-tighter mb-2">Power Up.</h2>
-                  <p className="text-[10px] font-black text-[#FF1F6D] uppercase tracking-widest italic mb-6">Boost Tier Selection</p>
-                  <p className="text-xs text-slate-700 font-medium leading-relaxed">Amplify your content with advanced reach optimization and viral sequencing.</p>
-                </div>
-                <div className="relative z-10 bg-white border border-[#FF1F6D]/15 p-4 rounded-2xl mt-6">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Zap size={16} className="text-amber-500" fill="currentColor" />
-                    <span className="text-[10px] font-black text-[#FF1F6D] uppercase italic">Instant Activation</span>
-                  </div>
-                  <p className="text-[9px] text-slate-500 font-bold uppercase italic">Global reach sync enabled</p>
-                </div>
-              </div>
-
-              <div className="flex-1 p-8 md:p-10 space-y-8">
-                <div>
-                  <h3 className="text-2xl font-black text-slate-900 italic tracking-tighter uppercase mb-2">Select Boost Tier</h3>
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">Weekly Distribution Plans</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {[
-                    { name: 'Nano', price: 'KES 99', perks: ['2× Reach', 'Basic Pulse'], style: 'bg-slate-50 border-slate-200 text-slate-800' },
-                    { name: 'Viral', price: 'KES 499', perks: ['10× Reach', 'Pro Analytics', 'Signal Priority'], popular: true, style: 'bg-gradient-to-br from-[#FF1F6D] to-[#ff6b35] text-white border-transparent' },
-                    { name: 'Matrix', price: 'KES 999', perks: ['Unlimited Reach', 'Global Sync', '24/7 Support'], style: 'bg-slate-900 text-white border-transparent' },
-                  ].map((plan, i) => {
-                    const isDarkCard = plan.name === 'Viral' || plan.name === 'Matrix';
-                    return (
-                      <div key={i} className={`${plan.style} border p-5 rounded-3xl flex flex-col relative hover:scale-[1.03] transition-all shadow-xl`}>
-                        {plan.popular && (
-                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF1F6D] text-white px-3 py-1 rounded-full text-[8px] font-black uppercase italic shadow-md">
-                            Most Popular
-                          </div>
-                        )}
-                        <h4 className={`text-xs font-black uppercase italic tracking-widest mb-1 ${isDarkCard ? 'text-white' : 'text-slate-800'}`}>{plan.name}</h4>
-                        <div className="flex items-baseline gap-1 mb-5">
-                          <span className={`text-2xl font-black italic ${isDarkCard ? 'text-white' : 'text-slate-900'}`}>{plan.price}</span>
-                          <span className={`text-[8px] font-bold uppercase ${isDarkCard ? 'text-white/60' : 'text-slate-500'}`}>/ Week</span>
-                        </div>
-                        <div className="flex-1 space-y-3 mb-5">
-                          {plan.perks.map((p, j) => (
-                            <div key={j} className="flex items-center gap-2">
-                              <div className={`w-1 h-1 rounded-full ${isDarkCard ? 'bg-white/60' : 'bg-slate-400'}`} />
-                              <span className={`text-[9px] font-bold uppercase italic ${isDarkCard ? 'text-white/80' : 'text-slate-600'}`}>{p}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <button className={`w-full py-3 rounded-xl text-[9px] font-black uppercase tracking-widest italic shadow-lg active:scale-95 transition-all ${
-                          isDarkCard 
-                            ? 'bg-white/10 hover:bg-white/20 text-white' 
-                            : 'bg-[#FF1F6D] hover:bg-[#e61a62] text-white shadow-[#FF1F6D]/20'
-                        }`}>
-                          Pay Now
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="text-center pt-4 border-t border-slate-100">
-                  <p className="text-[9px] font-black text-slate-500 uppercase italic">Secure via Sparkle Payment Gateway (KES)</p>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <BoostConnectModal
+        isOpen={showSubscription}
+        onClose={() => setShowSubscription(false)}
+        onSuccess={() => {
+          fetchStats();
+          fetchWallet();
+        }}
+      />
 
       {/* Auto Withdrawal Settings Modal */}
       <AutoWithdrawalModal

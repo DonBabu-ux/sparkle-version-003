@@ -13,6 +13,7 @@ router.use(authMiddleware);
 // Inbox & Conversations
 router.get('/inbox', messageController.getInbox);
 router.get('/conversations', messageController.getInbox);
+router.get('/archived', messageController.getArchivedConversations);
 router.get('/welcome-cards', messageController.getWelcomeCards);
 router.get('/official-chat', messageController.getOfficialChatStatus);
 router.post('/official-chat/status', messageController.updateOfficialOnboardingStatus);
@@ -41,6 +42,17 @@ router.post('/chat/:chatId/mute', messageController.muteConversation);
 router.patch('/chat/:chatId/mute', messageController.muteConversation);
 router.post('/chat/:chatId/archive', messageController.archiveConversation);
 router.patch('/chat/:chatId/archive', messageController.archiveConversation);
+router.post('/chat/:chatId/unarchive', (req, res, next) => {
+    req.body.archived = false;
+    req.body.isArchived = false;
+    messageController.archiveConversation(req, res, next);
+});
+router.post('/chat/:chatId/pin', messageController.pinConversation);
+router.patch('/chat/:chatId/pin', messageController.pinConversation);
+router.post('/chat/:chatId/favorite', messageController.favoriteConversation);
+router.patch('/chat/:chatId/favorite', messageController.favoriteConversation);
+router.post('/chat/:chatId/priority', messageController.priorityConversation);
+router.patch('/chat/:chatId/priority', messageController.priorityConversation);
 router.delete('/chat/:chatId', messageController.deleteConversation);
 
 // Per-message actions

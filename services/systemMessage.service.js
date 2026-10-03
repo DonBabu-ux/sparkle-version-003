@@ -432,6 +432,89 @@ class SystemMessageService {
             logger.error('[SystemMessage] sendWalletNotification error:', error.message);
         }
     }
+
+    /**
+     * Send Sparkle Account notification & chat update when boost is activated.
+     */
+    async sendBoostActivatedNotification(userId, data = {}) {
+        try {
+            const { budgetKes, durationDays, boostStrength, endTime } = data;
+            const endDateFormatted = new Date(endTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+            const messageText = `⚡ Sparkle Boost Activated!\n\nYour profile and content are now amplified with a ${boostStrength}× reach multiplier for the next ${durationDays} day(s).\n\n• Budget: KES ${Number(budgetKes).toFixed(2)}\n• Duration: ${durationDays} day(s)\n• Expires: ${endDateFormatted}\n\nTrack real-time performance inside your Professional Dashboard.`;
+
+            const payload = {
+                title: '⚡ Sparkle Boost Active',
+                body: messageText,
+                category: 'boost',
+                type: 'BOOST_ACTIVATED',
+                data: { ...data, actionUrl: '/professional-dashboard' }
+            };
+
+            await this._saveNotification(userId, payload);
+            const chatId = await this.ensureSystemConversation(userId);
+            if (chatId) {
+                await this._postSystemChatMessage(userId, chatId, messageText);
+            }
+            logger.info(`[SystemMessage] Boost activation message sent to ${userId}`);
+        } catch (error) {
+            logger.error('[SystemMessage] sendBoostActivatedNotification error:', error.message);
+        }
+    }
+
+    /**
+     * Send Sparkle Account notification & chat update when boost is expiring soon.
+     */
+    async sendBoostReminderNotification(userId, data = {}) {
+        try {
+            const { daysLeft, boostStrength, endTime } = data;
+            const endDateFormatted = new Date(endTime).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            const messageText = `⏳ Sparkle Boost Ending Soon!\n\nYour ${boostStrength}× boost status has ${daysLeft} day(s) remaining (expires ${endDateFormatted}).\n\nTo maintain peak content reach without interruption, visit your Professional Dashboard to renew your campaign.`;
+
+            const payload = {
+                title: `⏳ ${daysLeft} Day(s) Left on Sparkle Boost`,
+                body: messageText,
+                category: 'boost',
+                type: 'BOOST_REMINDER',
+                data: { ...data, actionUrl: '/professional-dashboard' }
+            };
+
+            await this._saveNotification(userId, payload);
+            const chatId = await this.ensureSystemConversation(userId);
+            if (chatId) {
+                await this._postSystemChatMessage(userId, chatId, messageText);
+            }
+            logger.info(`[SystemMessage] Boost ${daysLeft}-day reminder sent to ${userId}`);
+        } catch (error) {
+            logger.error('[SystemMessage] sendBoostReminderNotification error:', error.message);
+        }
+    }
+
+    /**
+     * Send Sparkle Account notification & chat update when boost has expired.
+     */
+    async sendBoostExpiredNotification(userId, data = {}) {
+        try {
+            const { boostStrength } = data;
+            const messageText = `🏁 Sparkle Boost Expired\n\nYour previous ${boostStrength}× reach boost campaign has completed. Your content reach has returned to standard baseline distribution.\n\nReady to launch your next boost? Re-ignite your reach inside the Boost Hub!`;
+
+            const payload = {
+                title: '🏁 Sparkle Boost Expired',
+                body: messageText,
+                category: 'boost',
+                type: 'BOOST_EXPIRED',
+                data: { ...data, actionUrl: '/professional-dashboard' }
+            };
+
+            await this._saveNotification(userId, payload);
+            const chatId = await this.ensureSystemConversation(userId);
+            if (chatId) {
+                await this._postSystemChatMessage(userId, chatId, messageText);
+            }
+            logger.info(`[SystemMessage] Boost expiration message sent to ${userId}`);
+        } catch (error) {
+            logger.error('[SystemMessage] sendBoostExpiredNotification error:', error.message);
+        }
+    }
 }
 
 module.exports = new SystemMessageService();

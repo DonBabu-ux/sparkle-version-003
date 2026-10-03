@@ -12,22 +12,21 @@ module.exports = (io) => {
     // Authentication middleware specific to marketplace NS
     marketplaceNs.use(async (socket, next) => {
         try {
-            // Re-use logic from index.js but here we just need the userId
-            // Assuming socket.handshake.auth.userId is passed from the client,
-            // or we decode from token
             let userId = socket.handshake.auth.userId;
 
             if (!userId && socket.handshake.auth.token) {
+                let token = socket.handshake.auth.token;
+                if (token.startsWith('Bearer ')) token = token.slice(7);
                 const jwt = require('jsonwebtoken');
-                const decoded = jwt.verify(socket.handshake.auth.token, process.env.JWT_SECRET);
-                userId = decoded.userId || decoded.user_id;
+                const decoded = jwt.verify(token, process.env.JWT_SECRET);
+                userId = decoded.userId || decoded.user_id || decoded.id || (decoded.user && decoded.user.id);
             }
 
             if (!userId) {
                 return next(new Error('Authentication required'));
             }
 
-            socket.userId = userId;
+            socket.userId = String(userId);
             next();
         } catch (error) {
             logger.error('Marketplace Socket Auth Error:', error.message);
@@ -77,11 +76,15 @@ module.exports = (io) => {
                 // Initialize status
                 await pool.query(`INSERT INTO marketplace_message_status (message_id) VALUES (?)`, [messageId]);
 
-                // Update Conversation Activity
+                // Update Conversation Activity in marketplace_conversations & personal_chats
                 const lastMessageText = text || (type === 'image' ? '📷 Sent an image' : type === 'video' ? '🎥 Sent a video' : 'Sent media');
                 await pool.query(
                     `UPDATE marketplace_conversations SET last_message = ?, last_activity_at = NOW(), reminder_sent = FALSE WHERE id = ?`,
                     [lastMessageText, conversationId]
+                );
+                await pool.query(
+                    `UPDATE personal_chats SET last_message_time = NOW() WHERE chat_id = ?`,
+                    [conversationId]
                 );
 
                 const messagePayload = {

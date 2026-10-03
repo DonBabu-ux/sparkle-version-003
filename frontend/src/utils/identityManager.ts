@@ -101,8 +101,8 @@ export class IdentityManager {
       };
     }
 
-    const rawUsername = (user.username || user.partner_username || user.handle || '').toLowerCase().replace(/^@/, '');
-    const cleanUsername = rawUsername.replace(/\s*00$/, '').trim();
+    const rawUsername = (user.username || user.partner_username || user.handle || '').toLowerCase().replace(/^@/, '').trim();
+    const cleanUsername = rawUsername;
     const userId = String(user.user_id || user.id || user.partner_id || user.participant_id || '');
 
     const isSystemAccount = (
@@ -119,11 +119,7 @@ export class IdentityManager {
 
     const accountType = isSystemAccount ? 'system' : (user.account_type || user.accountType || 'user').toLowerCase();
     const rawDisplayName = user.displayName || user.partner_name || user.name || user.username || user.partner_username || 'Sparkle User';
-    // Clean unwanted UI/seed generated trailing "00" suffix from display names (e.g. "Naty Babu00" -> "Naty Babu", "username00" -> "username")
-    let displayName = rawDisplayName;
-    if (typeof rawDisplayName === 'string') {
-      displayName = rawDisplayName.replace(/\s*00$/, '').trim();
-    }
+    const displayName = typeof rawDisplayName === 'string' ? rawDisplayName.trim() : String(rawDisplayName || 'Sparkle User');
 
 
     // 1. Avatar Pipeline Resolution

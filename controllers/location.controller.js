@@ -42,45 +42,88 @@ const ensureLiveLocationTable = async () => {
 // Run table check on startup
 ensureLiveLocationTable();
 
+const KENYA_LOCATIONS = [
+    { name: 'Nairobi, Kenya', lat: -1.2921, lng: 36.8219 },
+    { name: 'Mombasa, Kenya', lat: -4.0435, lng: 39.6682 },
+    { name: 'Kisumu, Kenya', lat: -0.0917, lng: 34.7680 },
+    { name: 'Nakuru, Kenya', lat: -0.3031, lng: 36.0800 },
+    { name: 'Eldoret, Kenya', lat: 0.5143, lng: 35.2698 },
+    { name: 'Nyeri, Kenya', lat: -0.4201, lng: 36.9476 },
+    { name: 'Thika, Kenya', lat: -1.0396, lng: 37.0900 },
+    { name: 'Kiambu, Kenya', lat: -1.1714, lng: 36.8356 },
+    { name: 'Ruiru, Kenya', lat: -1.1462, lng: 36.9602 },
+    { name: 'Karatina, Kenya', lat: -0.4813, lng: 37.1268 },
+    { name: 'Othaya, Kenya', lat: -0.5471, lng: 36.9458 },
+    { name: 'Kericho, Kenya', lat: -0.3689, lng: 35.2863 },
+    { name: 'Kitale, Kenya', lat: 1.0197, lng: 35.0023 }
+];
+
+function resolveNearestLandmark(lat, lng) {
+    let minDistance = Infinity;
+    let closestName = 'Current Location';
+
+    for (const loc of KENYA_LOCATIONS) {
+        const dLat = (loc.lat - lat) * (Math.PI / 180);
+        const dLng = (loc.lng - lng) * (Math.PI / 180);
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                  Math.cos(lat * (Math.PI / 180)) * Math.cos(loc.lat * (Math.PI / 180)) *
+                  Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distKm = 6371 * c;
+
+        if (distKm < minDistance) {
+            minDistance = distKm;
+            closestName = loc.name;
+        }
+    }
+
+    return minDistance < 50 ? closestName : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+
 /**
  * Resolve Location (reverse geocode or IP fallback)
  */
 const resolveLocation = async (req, res) => {
     try {
-        const { lat, lon } = req.body;
+        const inputLat = req.body.lat ?? req.body.latitude;
+        const inputLng = req.body.lon ?? req.body.lng ?? req.body.longitude;
 
-        if (lat && lon && !isNaN(lat) && !isNaN(lon)) {
+        if (inputLat !== undefined && inputLng !== undefined && !isNaN(parseFloat(inputLat)) && !isNaN(parseFloat(inputLng))) {
+            const latNum = parseFloat(inputLat);
+            const lngNum = parseFloat(inputLng);
+
             try {
-                const results = await geocoder.reverse({ lat, lon });
+                const results = await geocoder.reverse({ lat: latNum, lon: lngNum });
                 if (results && results.length > 0) {
                     const addr = results[0];
-                    const name = [addr.city || addr.town || addr.village, addr.state || addr.county, addr.country]
+                    const name = [addr.city || addr.town || addr.village || addr.suburb, addr.state || addr.county, addr.country]
                         .filter(Boolean)
                         .join(', ');
                     
                     return res.json({
                         success: true,
                         location: {
-                            lat: parseFloat(lat),
-                            lng: parseFloat(lon),
-                            name: name || 'Current Location',
+                            lat: latNum,
+                            lng: lngNum,
+                            name: name || resolveNearestLandmark(latNum, lngNum),
                             formattedAddress: addr.formattedAddress || name,
                             source: 'gps'
                         }
                     });
                 }
             } catch (geoError) {
-                logger.warn('Reverse geocoding failed, returning raw coords:', geoError.message);
-                return res.json({
-                    success: true,
-                    location: {
-                        lat: parseFloat(lat),
-                        lng: parseFloat(lon),
-                        name: `${parseFloat(lat).toFixed(4)}, ${parseFloat(lon).toFixed(4)}`,
-                        source: 'gps'
-                    }
-                });
+                logger.warn('Reverse geocoding failed, using landmark fallback:', geoError.message);
             }
+
+            return res.json({
+                success: true,
+                location: {
+                    lat: latNum,
+                    lng: lngNum,
+                    name: resolveNearestLandmark(latNum, lngNum),
+                    source: 'gps'
+                }
+            });
         }
 
         // Fallback: IP-based resolution
@@ -90,13 +133,13 @@ const resolveLocation = async (req, res) => {
         }
 
         const geo = geoip.lookup(ip);
-        if (geo) {
+        if (geo && geo.ll) {
             return res.json({
                 success: true,
                 location: {
                     lat: geo.ll[0],
                     lng: geo.ll[1],
-                    name: `${geo.city ? geo.city + ', ' : ''}${geo.region}, ${geo.country}`,
+                    name: `${geo.city ? geo.city + ', ' : ''}${geo.region || 'Kenya'}`,
                     source: 'ip'
                 }
             });
@@ -108,7 +151,7 @@ const resolveLocation = async (req, res) => {
             location: {
                 lat: -1.2921,
                 lng: 36.8219,
-                name: 'Nairobi, Kenya (Estimated)',
+                name: 'Nairobi, Kenya',
                 source: 'default'
             }
         });

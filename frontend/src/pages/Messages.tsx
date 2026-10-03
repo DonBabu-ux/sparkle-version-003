@@ -12,7 +12,9 @@ import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
-import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal } from '../components/chat/MessageActionModals';
+import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet } from '../components/chat/MessageActionModals';
+import { useLongPress } from '../hooks/useLongPress';
+
 import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../components/SafeLayout';
@@ -36,6 +38,9 @@ import { SparkleUndoToast } from '../components/chat/SparkleUndoToast';
 import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
 import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
 import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
+import { SparklyListingCard } from '../components/marketplace/SparklyListingCard';
+import { SparklyAvatar } from '../components/sparkly/SparklyAvatar';
+import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
@@ -68,6 +73,9 @@ import {
   MapPin,
   Check,
   CheckCircle2,
+  RotateCw,
+  AlertCircle,
+  Flag,
   Trash2,
   Info,
   Orbit,
@@ -116,13 +124,15 @@ import {
   ChevronLeft,
   Play,
   Pause,
-  Forward
+  Forward,
+  Settings
 } from 'lucide-react';
 import { useCall } from '../components/MockCallProvider';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';
 import ChatSettingsModal from '../components/chat/ChatSettingsModal';
+import { PullUpDisappearingGesture } from '../components/chat/PullUpDisappearingGesture';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
@@ -295,7 +305,7 @@ const AttachmentCard = ({ metadata }: { metadata: string }) => {
 
   if (att.type === 'story') {
     return (
-      <div 
+      <div
         onClick={() => navigate(`/stories/${att.owner}`)}
         className="rounded-[20px] overflow-hidden border border-white/10 cursor-pointer max-w-[240px] bg-white/5 backdrop-blur-md relative group select-none shadow-xl transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] mt-1"
       >
@@ -424,6 +434,34 @@ const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
   return null;
 };
 
+const MessageBubbleWrapper: React.FC<{
+  onLongPress: () => void;
+  onContextMenu: (e: React.MouseEvent) => void;
+  onClick: (e: React.MouseEvent) => void;
+  className: string;
+  style: React.CSSProperties;
+  children: React.ReactNode;
+}> = ({ onLongPress, onContextMenu, onClick, className, style, children }) => {
+  const lp = useLongPress(onLongPress, 500);
+  return (
+    <div
+      onPointerDown={lp.onPointerDown}
+      onPointerMove={lp.onPointerMove}
+      onPointerUp={lp.onPointerUp}
+      onPointerCancel={lp.onPointerCancel}
+      onContextMenu={onContextMenu}
+      onClick={(e) => {
+        lp.onClick(e);
+        onClick(e);
+      }}
+      className={className}
+      style={style}
+    >
+      {children}
+    </div>
+  );
+};
+
 const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
   if (!theme) return <div className="absolute inset-0 z-0 bg-[#000000]" />;
 
@@ -465,7 +503,7 @@ const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
 const EMOJIS = {
   smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🤭', '🤫', '🤥', '😶', '😐', '😑', '😬', '🙄', '😯', '😦', '😧', '😮', '😲', '🥱', '😴', '🤤', '😪', '😵', '🤐', '🥴', '🤢', '🤮', '🤧', '😷', '🤒', '🤕'],
   gestures: ['👋', '🤚', '🖐', '✋', '🖖', '👌', '🤏', '✌️', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍', '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝', '🙏', '✍️', '💅', '🤳', '💪', '🦾', '🦵', '🦿', '🦶', '👣', '👂', '🦻', '👃', '🧠', '🦷', '🦴', '👀', '👁', '👅', '👄'],
-hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
+  hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟'],
   nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒', '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🕷', '🕸', '🦂', '🐢', '🐍', '🦎', '🦖', '🦕', '🐙', '🦑', '🦐', '🦞', '🦀', '🐡', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🦛', '🦏', '🐪', '🐫', '🦒', '🦘', '🐃', '🐄', '🐎', '🐖', '🐏', '🐑', '🐐', '🦌', '🐕', '🐩', '🦮', '🐕‍🦺', '🐈', '🐓', '🦃', '🦚', '🦜', '🦢', '🦩', '🕊', '🐇', '🦝', '🦨', '🦡', '🦦', '🦥', '🐁', '🐀', '🐿', '🦔', '🐾', '🐉', '🐲', '🌵', '🎄', '🌲', '🌳', '🌴', '🌱', '🌿', '☘️', '🍀', '🎍', '🎋', '🍃', '🍂', '🍁', '🍄', '🐚', '🌾', '💐', '🌷', '🌹', '🥀', '🌺', '🌸', '🌼', '🌻', '🌞', '🌝', '🌛', '🌜', '🌚', '🌕', '🌖', '🌗', '🌘', '🌑', '🌒', '🌓', '🌔', '🌙', '🌎', '🌍', '🌏', '🪐', '💫', '⭐️', '🌟', '✨', '⚡️', '☄️', '💥', '🔥', '🌪', '🌈', '☀️', '🌤', '⛅️', '🌥', '☁️', '🌦', '🌧', '🌨', '🌩', '🌨', '❄️', '☃️', '⛄️', '🌬', '💨', '💧', '💦', '☔️', '☂️', '🌊', '🌫'],
   activities: ['⚽️', '🏀', '🏈', '⚾️', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳️', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🛹', '🛼', '🛷', '⛸', '🎿', '⛷', '🏂', '🏋️', '🤺', '🤼', '🤸', '⛹️', '🤺', '🏇', '🧘', '🩰', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎸', '🎻', '🎲', '🧩', '🎳', '🎮', '🎰', '🎯'],
   places: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🚏', '🛣', '🛤', '⛽️', '🚨', '🚥', '🚦', '🛑', '🚧', '⚓️', '⛵️', '🛶', '🚤', '🛳', '⛴', '🚢', '✈️', '🛩', '🛫', '🛬', '🚀', '🛸', '🛰', '🚠', '🚟', '🚁', '🏟', '🏗', '🏘', '🏚', '🏠', '🏡', '🏢', '🏣', '🏤', '🏥', '🏦', '🏨', '🏪', '🏫', '🏬', '🏭', '🏰', '🏯', '💒', '🗼', '🗽', '⛪️', '🕌', '🕍', '⛩', '🕋', '⛲️', '⛺️', '🌁', '🌃', '🏙', '🌄', '🌅', '🌆', '🌇', '🌉', '♨️', '🎠', '🎡', '🎢', '💈', '🎪'],
@@ -565,11 +603,14 @@ const ChatInput = memo(({
   showAttachmentMenu,
   onVoiceSend,
   theme,
-  replyToMessage
+  replyToMessage,
+  onFileSelect
 }: any) => {
   const drafts = useChatStore(state => state.drafts);
   const setDraft = useChatStore(state => state.setDraft);
   const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
+  const isTyping = Boolean(localMessage.length > 0);
+
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState<'emojis' | 'stickers' | 'gifs' | 'avatars'>('emojis');
   const [giphySearch, setGiphySearch] = useState('');
@@ -632,18 +673,7 @@ const ChatInput = memo(({
 
   const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
 
-  const themePrimary = theme?.colors?.primary || '#ff1493';
-  const themeBg = theme?.colors?.backgroundDark || '#000000';
-
-  if (selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_id === 'd75fe3b5-7a45-4581-ab13-91934d8b54de') {
-    return (
-      <ChatInputDock className="z-30 shrink-0 border-t border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
-        <OfficialComposerFooter />
-      </ChatInputDock>
-    );
-  }
-
-  const fetchGiphy = async (type: 'gifs' | 'stickers', query?: string) => {
+  const fetchGiphy = useCallback(async (type: 'gifs' | 'stickers', query?: string) => {
     setLoadingGiphy(true);
     try {
       const endpoint = query ? 'search' : 'trending';
@@ -656,13 +686,69 @@ const ChatInput = memo(({
     } finally {
       setLoadingGiphy(false);
     }
-  };
+  }, [GIPHY_KEY]);
 
   useEffect(() => {
     if (showEmojiPicker && (pickerTab === 'gifs' || pickerTab === 'stickers')) {
       fetchGiphy(pickerTab === 'gifs' ? 'gifs' : 'stickers', giphySearch);
     }
-  }, [showEmojiPicker, pickerTab, giphySearch]);
+  }, [showEmojiPicker, pickerTab, giphySearch, fetchGiphy]);
+
+  const themePrimary = theme?.colors?.primary || '#ff1493';
+  const themeBg = theme?.colors?.backgroundDark || '#000000';
+
+  const isBlocked = Boolean(selectedChat?.is_blocked || selectedChat?.conversation_status === 'blocked' || selectedChat?.can_send_messages === false);
+  const isBlockedByMe = Boolean(selectedChat?.is_blocked_by_me);
+
+  if (isBlocked) {
+    return (
+      <ChatInputDock className="z-30 shrink-0 border-t border-white/10 transition-all duration-300" backgroundColor={themeBg}>
+        <div className="w-full max-w-[1200px] mx-auto py-5 px-6 text-center">
+          <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-red-500/10 text-red-500 mb-2 shadow-sm border border-red-500/20">
+            <Ban size={22} strokeWidth={2.5} />
+          </div>
+          <h3 className="text-sm font-black text-white mb-1 tracking-tight">
+            {isBlockedByMe ? 'You blocked this user' : 'Messaging is blocked'}
+          </h3>
+          <p className="text-xs font-medium text-slate-400 max-w-sm mx-auto mb-3 leading-relaxed">
+            {isBlockedByMe
+              ? 'Messaging is unavailable while this user is blocked.'
+              : 'Messages cannot be sent in this conversation.'}
+          </p>
+          {isBlockedByMe && selectedChat?.partner_id && (
+            <button
+              type="button"
+              onClick={async () => {
+                try {
+                  await api.delete(`/users/block/${selectedChat.partner_id}`);
+                  useChatStore.getState().setConversationBlockState(selectedChat.chat_id, {
+                    is_blocked: false,
+                    is_blocked_by_me: false,
+                    am_i_blocked: false,
+                    conversation_status: 'active',
+                    can_send_messages: true
+                  });
+                } catch (err) {
+                  console.error('Failed to unblock user:', err);
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-xs transition-all active:scale-95 border border-red-500/30 shadow-md"
+            >
+              Unblock User
+            </button>
+          )}
+        </div>
+      </ChatInputDock>
+    );
+  }
+
+  if (selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_id === 'd75fe3b5-7a45-4581-ab13-91934d8b54de') {
+    return (
+      <ChatInputDock className="z-30 shrink-0 border-t border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
+        <OfficialComposerFooter />
+      </ChatInputDock>
+    );
+  }
 
   const STICKERS = [
     'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941344_1280.png',
@@ -731,14 +817,116 @@ const ChatInput = memo(({
             onSend={handleFinishAndSendRecording}
           />
         ) : (
-          <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative">
-            {!isMenuCollapsed ? (
-              <div className="flex items-center shrink-0">
-                <button type="button" onClick={() => setShowAttachmentMenu(!showAttachmentMenu)} className="p-2 text-white/40 hover:text-white transition-all rounded-full hover:bg-white/5 active:scale-95"><Paperclip size={20} /></button>
-              </div>
-            ) : null}
+          <form onSubmit={handleSubmit} className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2 relative gap-1.5">
+            {/* Native @ / Sparkle Mention Suggestion Popup */}
+            <AnimatePresence>
+              {(() => {
+                const isAtTrigger = /@(?:s|sp|spar|spark|sparkle|sparkly)?$/i.test(localMessage);
+                const isKeywordTrigger = /(^|\s)sparkl(?:y|e)\b/i.test(localMessage) && !/@sparkl(?:y|e)\b/i.test(localMessage);
+                const showPopup = isAtTrigger || isKeywordTrigger;
 
-            <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-2">
+                if (!showPopup) return null;
+
+                return (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 5, scale: 0.95 }}
+                    className="absolute bottom-full left-4 mb-2 z-50 bg-slate-900/95 backdrop-blur-xl border border-purple-500/40 rounded-2xl p-2.5 shadow-2xl shadow-purple-950/50 flex items-center gap-3 cursor-pointer hover:border-purple-400/70 transition-all group"
+                    onClick={() => {
+                      let updated = localMessage;
+                      if (isAtTrigger) {
+                        updated = localMessage.replace(/@(?:s|sp|spar|spark|sparkle|sparkly)?$/i, '@sparkle ');
+                      } else if (isKeywordTrigger) {
+                        if (/^\s*sparkl(?:y|e)\b/i.test(localMessage)) {
+                          updated = localMessage.replace(/^\s*sparkl(?:y|e)\b\s*/i, '@sparkle ');
+                        } else {
+                          updated = '@sparkle ' + localMessage.replace(/(^|\s)sparkl(?:y|e)\b/i, '$1').trim();
+                        }
+                      }
+                      if (selectedChat) {
+                        setDraft(selectedChat.chat_id, updated);
+                      }
+                      onTyping(updated);
+                      inputRef.current?.focus();
+                    }}
+                  >
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-purple-600 via-indigo-600 to-pink-500 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform shrink-0">
+                      <Sparkles size={16} />
+                    </div>
+                    <div className="flex flex-col pr-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-white leading-tight">Sparkly AI</span>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">Ask Sparkly</span>
+                      </div>
+                      <span className="text-[10px] text-slate-400 font-medium leading-tight">
+                        {isKeywordTrigger ? 'Tap to authorize Sparkly AI request' : 'Tap to ask questions or search Marketplace'}
+                      </span>
+                    </div>
+                  </motion.div>
+                );
+              })()}
+            </AnimatePresence>
+
+            {/* Left Action Icons: Plus (+), Camera (📷), Files (📎) — Visible ONLY when NOT typing */}
+            <AnimatePresence initial={false}>
+              {!isTyping && (
+                <motion.div
+                  key="composer-left-actions"
+                  initial={{ opacity: 0, width: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, width: 'auto', scale: 1 }}
+                  exit={{ opacity: 0, width: 0, scale: 0.8 }}
+                  transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
+                  className="flex items-center gap-0.5 shrink-0 overflow-hidden"
+                >
+                  {/* 1. Plus (+) — Main Attachment Sheet Button */}
+                  <button
+                    type="button"
+                    onClick={() => setShowAttachmentMenu(true)}
+                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0"
+                    title="Attach Options"
+                  >
+                    <Plus size={20} strokeWidth={2.5} />
+                  </button>
+
+                  {/* 2. Camera (📷) — Sparkle Camera Flow */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (onCameraOpen) onCameraOpen();
+                    }}
+                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0"
+                    title="Open Camera"
+                  >
+                    <Camera size={19} strokeWidth={2.2} />
+                  </button>
+
+                  {/* 3. Files (📎) — Device File Picker */}
+                  <label
+                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0 cursor-pointer"
+                    title="Choose Files"
+                  >
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files.length > 0) {
+                          if (onFileSelect) {
+                            onFileSelect(e.target.files);
+                          }
+                          e.target.value = '';
+                        }
+                      }}
+                    />
+                    <Paperclip size={19} strokeWidth={2.2} />
+                  </label>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Input Area — Naturally expands as left icons collapse */}
+            <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-1 transition-all duration-200 min-w-0">
               <input
                 ref={inputRef}
                 type="text"
@@ -928,8 +1116,8 @@ const ChatInput = memo(({
           )}
         </AnimatePresence>
       </div>
-    
-  </ChatInputDock>
+
+    </ChatInputDock>
   );
 });
 
@@ -1030,7 +1218,7 @@ export default function Messages() {
       if (res.data?.data) {
         setShowOfficialOnboarding(res.data.data.showOnboarding);
         if (res.data.data.status === 'NOT_STARTED') {
-          api.post('/messages/official-chat/status', { targetStatus: 'VIEWED' }).catch(() => {});
+          api.post('/messages/official-chat/status', { targetStatus: 'VIEWED' }).catch(() => { });
         }
       }
     }).catch(console.warn);
@@ -1052,32 +1240,39 @@ export default function Messages() {
     );
   };
 
+  const toggleArchive = useChatStore(state => state.toggleArchive);
+  const toggleDelete = useChatStore(state => state.toggleDelete);
+  const togglePin = useChatStore(state => state.togglePin);
+  const toggleMute = useChatStore(state => state.toggleMute);
+  const toggleFavorite = useChatStore(state => state.toggleFavorite);
+  const togglePriority = useChatStore(state => state.togglePriority);
+  const toggleUnread = useChatStore(state => state.toggleUnread);
+
   const handleBatchArchive = () => {
     const idsToArchive = [...selectedChatIds];
     if (idsToArchive.length === 0) return;
 
-    // Snapshot current state for Undo
-    const previousConversations = [...conversations];
-    
-    // Optimistic state update
-    setConversations(prev => prev.map(c =>
-      idsToArchive.includes(c.chat_id) ? { ...c, is_archived: true } : c
-    ));
     setSelectedChatIds([]);
+
+    idsToArchive.forEach(id => {
+      toggleArchive(id, true);
+      api.post(`/messages/chat/${id}/archive`, { isArchived: true }).catch(() => {
+        api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+      });
+    });
 
     setUndoToast({
       id: 'archive_' + Date.now(),
       message: `${idsToArchive.length} chat(s) archived`,
       undoAction: () => {
-        setConversations(previousConversations);
-      },
-      commitAction: () => {
         idsToArchive.forEach(id => {
-          api.post(`/messages/chat/${id}/archive`, { isArchived: true }).catch(() => {
-            api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+          toggleArchive(id, false);
+          api.post(`/messages/chat/${id}/archive`, { isArchived: false }).catch(() => {
+            api.patch(`/messages/chat/${id}/archive`, { isArchived: false }).catch(console.error);
           });
         });
       },
+      commitAction: () => { }, // No-op, action already committed
     });
   };
 
@@ -1091,22 +1286,20 @@ export default function Messages() {
     setDeleteConfirmCount(null);
     if (idsToDelete.length === 0) return;
 
-    const previousConversations = [...conversations];
-
-    setConversations(prev => prev.filter(c => !idsToDelete.includes(c.chat_id)));
     setSelectedChatIds([]);
 
+    idsToDelete.forEach(id => {
+      toggleDelete(id);
+      api.delete(`/messages/chat/${id}`).catch(console.error);
+    });
+
+    // Delete cannot be undone on the server side because data is dropped,
+    // so we don't allow undoing deletions in the toast anymore, we just show a regular toast or nothing.
     setUndoToast({
       id: 'delete_' + Date.now(),
       message: `${idsToDelete.length} chat(s) deleted`,
-      undoAction: () => {
-        setConversations(previousConversations);
-      },
-      commitAction: () => {
-        idsToDelete.forEach(id => {
-          api.delete(`/messages/chat/${id}`).catch(console.error);
-        });
-      },
+      undoAction: () => { },
+      commitAction: () => { },
     });
   };
 
@@ -1117,12 +1310,10 @@ export default function Messages() {
     const allPinned = idsToPin.every(id => conversations.find(c => c.chat_id === id)?.is_pinned);
     const targetState = !allPinned;
 
-    setConversations(prev => prev.map(c =>
-      idsToPin.includes(c.chat_id) ? { ...c, is_pinned: targetState } : c
-    ));
     setSelectedChatIds([]);
 
     idsToPin.forEach(id => {
+      togglePin(id, targetState);
       api.patch(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(() => {
         api.post(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(console.error);
       });
@@ -1136,12 +1327,10 @@ export default function Messages() {
     const allMuted = idsToMute.every(id => conversations.find(c => c.chat_id === id)?.is_muted);
     const targetState = !allMuted;
 
-    setConversations(prev => prev.map(c =>
-      idsToMute.includes(c.chat_id) ? { ...c, is_muted: targetState } : c
-    ));
     setSelectedChatIds([]);
 
     idsToMute.forEach(id => {
+      toggleMute(id, targetState);
       api.post(`/messages/chat/${id}/mute`, { muted: targetState }).catch(() => {
         api.patch(`/messages/chat/${id}/mute`, { muted: targetState }).catch(console.error);
       });
@@ -1155,12 +1344,10 @@ export default function Messages() {
     const allFav = idsToFav.every(id => conversations.find(c => c.chat_id === id)?.is_favorite);
     const targetState = !allFav;
 
-    setConversations(prev => prev.map(c =>
-      idsToFav.includes(c.chat_id) ? { ...c, is_favorite: targetState } : c
-    ));
     setSelectedChatIds([]);
 
     idsToFav.forEach(id => {
+      toggleFavorite(id, targetState);
       api.patch(`/messages/chat/${id}/favorite`, { isFavorite: targetState }).catch(console.error);
     });
   };
@@ -1172,12 +1359,10 @@ export default function Messages() {
     const allPriority = idsToPriority.every(id => conversations.find(c => c.chat_id === id)?.is_priority);
     const targetState = !allPriority;
 
-    setConversations(prev => prev.map(c =>
-      idsToPriority.includes(c.chat_id) ? { ...c, is_priority: targetState } : c
-    ));
     setSelectedChatIds([]);
 
     idsToPriority.forEach(id => {
+      togglePriority(id, targetState);
       api.patch(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(() => {
         api.post(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(console.error);
       });
@@ -1192,12 +1377,10 @@ export default function Messages() {
     const allUnread = idsToMark.every(id => (conversations.find(c => c.chat_id === id)?.unread_count || 0) > 0);
     const targetUnread = !allUnread;
 
-    setConversations(prev => prev.map(c =>
-      idsToMark.includes(c.chat_id) ? { ...c, unread_count: targetUnread ? 1 : 0 } : c
-    ));
     setSelectedChatIds([]);
 
     idsToMark.forEach(id => {
+      toggleUnread(id, targetUnread);
       if (targetUnread) {
         api.post(`/messages/unread/${id}`).catch(console.error);
       } else {
@@ -1253,1486 +1436,1520 @@ export default function Messages() {
 
   useEffect(() => {
     currentChatIdRef.current = selectedChat?.chat_id || null;
+    const activeId = selectedChat?.chat_id || null;
+    useChatStore.getState().setActiveConversationId(activeId);
+    return () => {
+      useChatStore.getState().setActiveConversationId(null);
+    };
   }, [selectedChat?.chat_id]);
 
-const chatId = selectedChat?.chat_id ?? '';
-const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
-const setStoreMessages = useChatStore(state => state.setMessages);
-const addMessage = useChatStore(state => state.addMessage);
-const editMessage = useChatStore(state => state.editMessage);
-const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
-const deleteMessagesBulkLocal = useChatStore(state => state.deleteMessagesBulkLocal);
-const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
-const updateMessages = (updater: (msgs: any[]) => any[]) => {
-  if (!chatId) return;
-  const current = useChatStore.getState().messagesByConversation[chatId] || [];
-  const updated = updater(current);
-  console.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
-  setStoreMessages(chatId, updated);
-};
-const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
-  if (!targetChatId) return;
-  const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
-  const updated = updater(current);
-  console.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
-  setStoreMessages(targetChatId, updated);
-};
+  useEffect(() => {
+    const handleSynced = (e: any) => {
+      const { chatId: syncedChatId } = e.detail || {};
+      if (syncedChatId && selectedChat?.chat_id === syncedChatId) {
+        console.log('🔄 [Messages] Reactive sync event received for active chat:', syncedChatId);
+        const msgs = useChatStore.getState().messagesByConversation[syncedChatId] || [];
+        updateMessages(() => [...msgs]);
+      }
+    };
+    const handleTimeout = (e: any) => {
+      const { messageId: timeoutMsgId } = e.detail || {};
+      if (timeoutMsgId) {
+        console.log('⏰ [Messages] Message timeout event received for messageId:', timeoutMsgId);
+        updateMessages(prev => prev.map(m => (m.message_id === timeoutMsgId || m.id === timeoutMsgId ? { ...m, status: 'failed' } : m)));
+      }
+    };
+
+    window.addEventListener('sparkle_messages_synced', handleSynced);
+    window.addEventListener('sparkle_message_timeout', handleTimeout);
+    return () => {
+      window.removeEventListener('sparkle_messages_synced', handleSynced);
+      window.removeEventListener('sparkle_message_timeout', handleTimeout);
+    };
+  }, [selectedChat?.chat_id]);
+
+  const chatId = selectedChat?.chat_id ?? '';
+  const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
+  const setStoreMessages = useChatStore(state => state.setMessages);
+  const addMessage = useChatStore(state => state.addMessage);
+  const editMessage = useChatStore(state => state.editMessage);
+  const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
+  const deleteMessagesBulkLocal = useChatStore(state => state.deleteMessagesBulkLocal);
+  const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
+  const updateMessages = (updater: (msgs: any[]) => any[]) => {
+    if (!chatId) return;
+    const current = useChatStore.getState().messagesByConversation[chatId] || [];
+    const updated = updater(current);
+    console.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
+    setStoreMessages(chatId, updated);
+  };
+  const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
+    if (!targetChatId) return;
+    const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
+    const updated = updater(current);
+    console.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
+    setStoreMessages(targetChatId, updated);
+  };
   const [messageSearch, setMessageSearch] = useState('');
-const [loading, setLoading] = useState(true);
-const [sending, setSending] = useState(false);
-const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
-const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
-const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
-const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
-const [isSelectionMode, setIsSelectionMode] = useState(false);
-const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
-const [pendingDeletingIds, setPendingDeletingIds] = useState<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
+  const [reactionSheetMsg, setReactionSheetMsg] = useState<any | null>(null);
+  const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [messageToDelete, setMessageToDelete] = useState<any | null>(null);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
+  const [pendingDeletingIds, setPendingDeletingIds] = useState<Set<string>>(new Set());
+  const [failedResendModalMsg, setFailedResendModalMsg] = useState<any | null>(null);
 
-const handleBulkDeleteForMe = () => {
-  if (selectedMessageIds.size === 0 || !selectedChat) return;
-  const idsArray = Array.from(selectedMessageIds);
-  const targetChatId = selectedChat.chat_id;
-  const operationId = crypto.randomUUID();
+  const handleBulkDeleteForMe = () => {
+    if (selectedMessageIds.size === 0 || !selectedChat) return;
+    const idsArray = Array.from(selectedMessageIds);
+    const targetChatId = selectedChat.chat_id;
+    const operationId = crypto.randomUUID();
 
-  // 1. Instantly update local UI (<100ms)
-  deleteMessagesBulkLocal(targetChatId, idsArray);
-  idsArray.forEach(id => useMessageStore.getState().deleteMessage(id));
+    // 1. Instantly update local UI (<100ms)
+    deleteMessagesBulkLocal(targetChatId, idsArray);
+    idsArray.forEach(id => useMessageStore.getState().deleteMessage(id));
 
-  // 2. Transmit background socket / offline queue
-  const payload = { operationId, messageIds: idsArray, chatId: targetChatId };
-  if (socket?.connected) {
-    socket.emit('delete-for-me-bulk', payload);
-  } else {
-    PersistentOfflineQueue.enqueueInteraction({
-      type: 'delete-message',
-      chatId: targetChatId,
-      messageId: idsArray[0]
-    });
-  }
-
-  // 3. Clear selection mode & restore normal composer
-  setIsSelectionMode(false);
-  setSelectedMessageIds(new Set());
-  setShowDeleteConfirm(false);
-  setMessageToDelete(null);
-};
-
-const [audioPreviewFile, setAudioPreviewFile] = useState<File | null>(null);
-const [showAudioPreviewModal, setShowAudioPreviewModal] = useState<boolean>(false);
-
-const replyTargetId = useChatStore(state => state.replyTargets[chatId]);
-const replyToMessage = useMemo(() => {
-  if (!chatId || !replyTargetId) return null;
-  return useChatStore.getState().findMessage(chatId, replyTargetId) || null;
-}, [chatId, replyTargetId]);
-const [showForwardModal, setShowForwardModal] = useState(false);
-const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
-const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
-const [forwardSearchQuery, setForwardSearchQuery] = useState('');
-const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
-const [infoModalMessageId, setInfoModalMessageId] = useState<string | null>(null);
-
-useEffect(() => {
-  const handleJumpToMessage = (e: any) => {
-    const targetMsgId = e.detail?.messageId;
-    if (targetMsgId) {
-      setTimeout(() => {
-        const el = document.getElementById(`msg-${targetMsgId}`);
-        if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
-          setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2500);
-        }
-      }, 300);
-    }
-  };
-  window.addEventListener('sparkle:jump-to-message', handleJumpToMessage);
-  return () => window.removeEventListener('sparkle:jump-to-message', handleJumpToMessage);
-}, []);
-const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
-const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
-const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
-const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
-const [showMediaComposer, setShowMediaComposer] = useState(false);
-const [mediaCaption, setMediaCaption] = useState('');
-const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
-const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
-const [mediaPermission, setMediaPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
-const [showChatSettings, setShowChatSettings] = useState(false);
-const [showNewChatModal, setShowNewChatModal] = useState(false);
-const [peopleHubMode, setPeopleHubMode] = useState<'new_chat' | 'share_contact'>('new_chat');
-const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
-const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
-const [showCameraModal, setShowCameraModal] = useState(false);
-const [showNoteModal, setShowNoteModal] = useState(false);
-const [noteView, setNoteView] = useState('main');
-// Helper to toggle selection of chats/contacts for forwarding
-const toggleForwardChat = (chatId: string) => {
-  setSelectedForwardChatIds(prev => {
-    if (prev.includes(chatId)) {
-      return prev.filter(id => id !== chatId);
-    }
-    return [...prev, chatId];
-  });
-};
-const [noteText, setNoteText] = useState(user?.note || '');
-const [showViewNoteModal, setShowViewNoteModal] = useState(false);
-const [viewingNote, setViewingNote] = useState<any>(null);
-const [noteReactionEmoji, setNoteReactionEmoji] = useState<string | null>(null);
-const [showNoteOptions, setShowNoteOptions] = useState(false);
-const [unreadCountInChat, setUnreadCountInChat] = useState(0);
-const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-const [activeSettingView, setActiveSettingView] = useState('main');
-const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
-const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
-const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
-const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
-const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
-const [partnerIsTyping, setPartnerIsTyping] = useState(false);
-const [typingUsers, setTypingUsers] = useState<{ chatId: string, name: string }[]>([]);
-const [isNearBottom, setIsNearBottom] = useState(true);
-const isNearBottomRef = useRef(true);
-// Tracks whether the user is actively scrolling — used to subtly dim header presence text
-const [isScrollingMessages, setIsScrollingMessages] = useState(false);
-const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-const isTypingRef = useRef(false);
-const scrollContainerRef = useRef<HTMLDivElement>(null);
-// Note reaction states
-const [noteBubbles, setNoteBubbles] = useState<Array<{ id: number; emoji: string; x: number; delay: number }>>([]);
-const [noteReacted, setNoteReacted] = useState<string | null>(null);
-const [noteNotification, setNoteNotification] = useState<{ emoji: string; name: string; note: string } | null>(null);
-const [noteReactSent, setNoteReactSent] = useState(false);
-const [isNoteReacting, setIsNoteReacting] = useState(false);
-const [noteReplyText, setNoteReplyText] = useState('');
-const [showNoteEmojiPicker, setShowNoteEmojiPicker] = useState(false);
-
-// --- Chat Filter & Lists ---
-const [activeFilter, setActiveFilter] = useState<string>('all');
-const [customLists, setCustomLists] = useState<{ id: string; name: string; chatIds: string[]; isMuted?: boolean }[]>(() => {
-  try {
-    const saved = localStorage.getItem('sparkle_custom_lists');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-});
-const [tabOrder, setTabOrder] = useState<string[]>(() => {
-  try {
-    const saved = localStorage.getItem('sparkle_tab_order');
-    return saved ? JSON.parse(saved) : ['all', 'unread', 'groups', 'archived'];
-  } catch {
-    return ['all', 'unread', 'groups', 'archived'];
-  }
-});
-const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
-  try {
-    const saved = localStorage.getItem('sparkle_hidden_tabs');
-    return saved ? JSON.parse(saved) : [];
-  } catch {
-    return [];
-  }
-});
-
-const [showNewListFlow, setShowNewListFlow] = useState<'none' | 'name' | 'addPeople'>('none');
-const [newListName, setNewListName] = useState('');
-const [pendingListId, setPendingListId] = useState<string | null>(null);
-const [editingListId, setEditingListId] = useState<string | null>(null);
-const [listSelectedChats, setListSelectedChats] = useState<string[]>([]);
-const [tabDropdown, setTabDropdown] = useState<{ tabId: string; x: number; y: number } | null>(null);
-const [showReorderModal, setShowReorderModal] = useState(false);
-const [tempTabOrder, setTempTabOrder] = useState<string[]>([]);
-const [tempHiddenTabs, setTempHiddenTabs] = useState<string[]>([]);
-const [showDevConsole, setShowDevConsole] = useState(false);
-
-// Hide bottom nav when viewing someone's note or using camera
-useEffect(() => {
-  if (showViewNoteModal || showCameraModal) {
-    document.body.classList.add('note-modal-open');
-  } else {
-    document.body.classList.remove('note-modal-open');
-    if (!showViewNoteModal) {
-      // Reset reaction state on close
-      setNoteBubbles([]);
-    }
-  }
-  return () => document.body.classList.remove('note-modal-open');
-}, [showViewNoteModal, showCameraModal]);
-
-// Hide bottom nav when list creation or reorder modals are open
-useEffect(() => {
-  if (showNewListFlow !== 'none' || showReorderModal) {
-    document.body.classList.add('list-modal-open');
-  } else {
-    document.body.classList.remove('list-modal-open');
-  }
-  return () => document.body.classList.remove('list-modal-open');
-}, [showNewListFlow, showReorderModal]);
-
-// Fetch permissions for active message when menu opens
-useEffect(() => {
-  if (activeMessageMenu?.msg?.message_id) {
-    api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
-      .then(res => {
-        if (res.data?.permissions) {
-          setActiveMessagePermissions(res.data.permissions);
-        }
-      })
-      .catch(err => {
-        console.error("Error fetching message permissions:", err);
-        setActiveMessagePermissions(undefined);
+    // 2. Transmit background socket / offline queue
+    const payload = { operationId, messageIds: idsArray, chatId: targetChatId };
+    if (socket?.connected) {
+      socket.emit('delete-for-me-bulk', payload);
+    } else {
+      PersistentOfflineQueue.enqueueInteraction({
+        type: 'delete-message',
+        chatId: targetChatId,
+        messageId: idsArray[0]
       });
-  } else {
-    setActiveMessagePermissions(undefined);
-  }
-}, [activeMessageMenu]);
+    }
 
-const effectiveMessagePermissions = useMemo(() => {
-  const isCopyDisabledByPrivacy = !!activePrivacy && (activePrivacy.copyProtection || (activePrivacy as any).allowCopy === false);
-  const isForwardDisabledByPrivacy = !!activePrivacy && (activePrivacy.forwardProtection || (activePrivacy as any).allowForward === false);
-
-  const basePermissions = activeMessagePermissions || {
-    canCopy: !isCopyDisabledByPrivacy,
-    canForward: !isForwardDisabledByPrivacy,
-    canEdit: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
-    canDeleteForMe: true,
-    canDeleteForEveryone: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
-    canReply: true,
-    canReact: true,
-    canPin: true,
+    // 3. Clear selection mode & restore normal composer
+    setIsSelectionMode(false);
+    setSelectedMessageIds(new Set());
+    setShowDeleteConfirm(false);
+    setMessageToDelete(null);
   };
 
-  return {
-    ...basePermissions,
-    canCopy: isCopyDisabledByPrivacy ? false : (basePermissions.canCopy ?? true),
-    canForward: isForwardDisabledByPrivacy ? false : (basePermissions.canForward ?? true),
-  };
-}, [activeMessagePermissions, activePrivacy, activeMessageMenu?.msg?.sender_id, user]);
+  const [audioPreviewFile, setAudioPreviewFile] = useState<File | null>(null);
+  const [showAudioPreviewModal, setShowAudioPreviewModal] = useState<boolean>(false);
 
-// Web Screenshot, Screen Recording & Clipboard Privacy Enforcement
-useEffect(() => {
-  if (!selectedChat?.chat_id || selectedChat.chat_id.startsWith('temp_')) {
-    setIsWindowBlurred(false);
-    setShowScreenshotShield(false);
-    return;
-  }
+  const replyTargetId = useChatStore(state => state.replyTargets[chatId]);
+  const replyToMessage = useMemo(() => {
+    if (!chatId || !replyTargetId) return null;
+    return useChatStore.getState().findMessage(chatId, replyTargetId) || null;
+  }, [chatId, replyTargetId]);
+  const [showForwardModal, setShowForwardModal] = useState(false);
+  const [forwardingMessage, setForwardingMessage] = useState<any | null>(null);
+  const [selectedForwardChatIds, setSelectedForwardChatIds] = useState<string[]>([]);
+  const [forwardSearchQuery, setForwardSearchQuery] = useState('');
+  const [showFullEmojiPicker, setShowFullEmojiPicker] = useState(false);
+  const [infoModalMessageId, setInfoModalMessageId] = useState<string | null>(null);
 
-  const isScreenshotProtected = !!(
-    activePrivacy?.screenshotProtection ||
-    (activePrivacy as any)?.blockScreenshots
-  );
-  const isRecordingProtected = !!(
-    activePrivacy?.screenRecordingProtection ||
-    (activePrivacy as any)?.blurScreenRecording
-  );
-  const isCopyProtected = !!(
-    activePrivacy?.copyProtection ||
-    (activePrivacy as any)?.allowCopy === false
-  );
-
-  const handleKeyDown = (e: KeyboardEvent) => {
-    if (!isScreenshotProtected && !isRecordingProtected) return;
-
-    const isPrtScn = e.key === 'PrintScreen' || e.code === 'PrintScreen';
-    const isWinShiftS = e.key === 'S' && e.shiftKey && (e.metaKey || e.ctrlKey);
-    const isMacScreenshot = (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5'));
-    const isPrint = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P');
-
-    if (isPrtScn || isWinShiftS || isMacScreenshot || isPrint) {
-      if (isPrint) e.preventDefault();
-      setShowScreenshotShield(true);
-      if (activePrivacy?.captureNotifications !== false && selectedChat?.chat_id) {
-        api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
-          attemptType: 'SCREENSHOT_ATTEMPT',
-          detectionMethod: 'WEB_KEYBOARD_LISTENER',
-          deviceInfo: { userAgent: navigator.userAgent },
-        }).catch(() => {});
+  useEffect(() => {
+    const handleJumpToMessage = (e: any) => {
+      const targetMsgId = e.detail?.messageId;
+      if (targetMsgId) {
+        setTimeout(() => {
+          const el = document.getElementById(`msg-${targetMsgId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2500);
+          }
+        }, 300);
       }
-      setTimeout(() => setShowScreenshotShield(false), 2500);
+    };
+    window.addEventListener('sparkle:jump-to-message', handleJumpToMessage);
+    return () => window.removeEventListener('sparkle:jump-to-message', handleJumpToMessage);
+  }, []);
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
+  const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
+  const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
+  const [showMediaComposer, setShowMediaComposer] = useState(false);
+  const [mediaCaption, setMediaCaption] = useState('');
+  const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
+  const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
+  const [mediaPermission, setMediaPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [showChatSettings, setShowChatSettings] = useState(false);
+  const [showNewChatModal, setShowNewChatModal] = useState(false);
+  const [peopleHubMode, setPeopleHubMode] = useState<'new_chat' | 'share_contact'>('new_chat');
+  const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
+  const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [noteView, setNoteView] = useState('main');
+  // Helper to toggle selection of chats/contacts for forwarding
+  const toggleForwardChat = (chatId: string) => {
+    setSelectedForwardChatIds(prev => {
+      if (prev.includes(chatId)) {
+        return prev.filter(id => id !== chatId);
+      }
+      return [...prev, chatId];
+    });
+  };
+  const [noteText, setNoteText] = useState(user?.note || '');
+  const [showViewNoteModal, setShowViewNoteModal] = useState(false);
+  const [viewingNote, setViewingNote] = useState<any>(null);
+  const [noteReactionEmoji, setNoteReactionEmoji] = useState<string | null>(null);
+  const [showNoteOptions, setShowNoteOptions] = useState(false);
+  const [unreadCountInChat, setUnreadCountInChat] = useState(0);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [activeSettingView, setActiveSettingView] = useState('main');
+  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
+  const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
+  const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
+  const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
+  const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
+  const [partnerIsTyping, setPartnerIsTyping] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<{ chatId: string, name: string }[]>([]);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const isNearBottomRef = useRef(true);
+  // Tracks whether the user is actively scrolling — used to subtly dim header presence text
+  const [isScrollingMessages, setIsScrollingMessages] = useState(false);
+  const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingExpiryTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const isTypingRef = useRef(false);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // Note reaction states
+  const [noteBubbles, setNoteBubbles] = useState<Array<{ id: number; emoji: string; x: number; delay: number }>>([]);
+  const [noteReacted, setNoteReacted] = useState<string | null>(null);
+  const [noteNotification, setNoteNotification] = useState<{ emoji: string; name: string; note: string } | null>(null);
+  const [noteReactSent, setNoteReactSent] = useState(false);
+  const [isNoteReacting, setIsNoteReacting] = useState(false);
+  const [noteReplyText, setNoteReplyText] = useState('');
+  const [showNoteEmojiPicker, setShowNoteEmojiPicker] = useState(false);
+
+  // --- Chat Filter & Lists ---
+  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [customLists, setCustomLists] = useState<{ id: string; name: string; chatIds: string[]; isMuted?: boolean }[]>(() => {
+    try {
+      const saved = localStorage.getItem('sparkle_custom_lists');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  };
-
-  const handleKeyUp = (e: KeyboardEvent) => {
-    if (!isScreenshotProtected && !isRecordingProtected) return;
-    if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
-      setShowScreenshotShield(true);
-      setTimeout(() => setShowScreenshotShield(false), 2500);
+  });
+  const [tabOrder, setTabOrder] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sparkle_tab_order');
+      return saved ? JSON.parse(saved) : ['all', 'unread', 'groups', 'archived'];
+    } catch {
+      return ['all', 'unread', 'groups', 'archived'];
     }
-  };
-
-  const handleWindowBlur = () => {
-    if (isScreenshotProtected || isRecordingProtected) {
-      setIsWindowBlurred(true);
+  });
+  const [hiddenTabs, setHiddenTabs] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('sparkle_hidden_tabs');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
     }
-  };
+  });
 
-  const handleWindowFocus = () => {
-    setIsWindowBlurred(false);
-  };
+  const [showNewListFlow, setShowNewListFlow] = useState<'none' | 'name' | 'addPeople'>('none');
+  const [newListName, setNewListName] = useState('');
+  const [pendingListId, setPendingListId] = useState<string | null>(null);
+  const [editingListId, setEditingListId] = useState<string | null>(null);
+  const [listSelectedChats, setListSelectedChats] = useState<string[]>([]);
+  const [tabDropdown, setTabDropdown] = useState<{ tabId: string; x: number; y: number } | null>(null);
+  const [showReorderModal, setShowReorderModal] = useState(false);
+  const [tempTabOrder, setTempTabOrder] = useState<string[]>([]);
+  const [tempHiddenTabs, setTempHiddenTabs] = useState<string[]>([]);
+  const [showDevConsole, setShowDevConsole] = useState(false);
 
-  const handleVisibilityChange = () => {
-    if (document.hidden && (isScreenshotProtected || isRecordingProtected)) {
-      setIsWindowBlurred(true);
-    } else if (!document.hidden) {
+  // Hide bottom nav when viewing someone's note or using camera
+  useEffect(() => {
+    if (showViewNoteModal || showCameraModal) {
+      document.body.classList.add('note-modal-open');
+    } else {
+      document.body.classList.remove('note-modal-open');
+      if (!showViewNoteModal) {
+        // Reset reaction state on close
+        setNoteBubbles([]);
+      }
+    }
+    return () => document.body.classList.remove('note-modal-open');
+  }, [showViewNoteModal, showCameraModal]);
+
+  // Hide bottom nav when list creation or reorder modals are open
+  useEffect(() => {
+    if (showNewListFlow !== 'none' || showReorderModal) {
+      document.body.classList.add('list-modal-open');
+    } else {
+      document.body.classList.remove('list-modal-open');
+    }
+    return () => document.body.classList.remove('list-modal-open');
+  }, [showNewListFlow, showReorderModal]);
+
+  // Fetch permissions for active message when menu opens
+  useEffect(() => {
+    if (activeMessageMenu?.msg?.message_id) {
+      api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
+        .then(res => {
+          if (res.data?.permissions) {
+            setActiveMessagePermissions(res.data.permissions);
+          }
+        })
+        .catch(err => {
+          console.error("Error fetching message permissions:", err);
+          setActiveMessagePermissions(undefined);
+        });
+    } else {
+      setActiveMessagePermissions(undefined);
+    }
+  }, [activeMessageMenu]);
+
+  const messagesByConversation = useChatStore(state => state.messagesByConversation);
+
+  const effectiveMessagePermissions = useMemo(() => {
+    const msgId = activeMessageMenu?.msg?.message_id;
+    const storeMsg = selectedChat?.chat_id && msgId
+      ? messagesByConversation[selectedChat.chat_id]?.find(m => m.message_id === msgId)
+      : null;
+
+    const msgPermissions = storeMsg?.permissions || activeMessagePermissions || activeMessageMenu?.msg?.permissions;
+    if (msgPermissions) {
+      return {
+        ...msgPermissions,
+        canCopy: msgPermissions.canCopy !== false,
+        canForward: msgPermissions.canForward !== false,
+      };
+    }
+    return {
+      canCopy: true,
+      canForward: true,
+      canEdit: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
+      canDeleteForMe: true,
+      canDeleteForEveryone: activeMessageMenu?.msg?.sender_id === (user?.id || user?.user_id),
+      canReply: true,
+      canReact: true,
+      canPin: true,
+    };
+  }, [activeMessagePermissions, activeMessageMenu?.msg, selectedChat?.chat_id, messagesByConversation, user]);
+
+  // Web Screenshot, Screen Recording & Clipboard Privacy Enforcement
+  useEffect(() => {
+    if (!selectedChat?.chat_id || selectedChat.chat_id.startsWith('temp_')) {
       setIsWindowBlurred(false);
+      setShowScreenshotShield(false);
+      return;
     }
-  };
 
-  const handleCopyEvent = (e: ClipboardEvent) => {
-    if (isCopyProtected) {
-      e.preventDefault();
-    }
-  };
+    const isScreenshotProtected = !!(
+      activePrivacy?.screenshotProtection ||
+      (activePrivacy as any)?.blockScreenshots
+    );
+    const isRecordingProtected = !!(
+      activePrivacy?.screenRecordingProtection ||
+      (activePrivacy as any)?.blurScreenRecording
+    );
+    const isCopyProtected = !!(
+      activePrivacy?.copyProtection ||
+      (activePrivacy as any)?.allowCopy === false
+    );
 
-  window.addEventListener('keydown', handleKeyDown, true);
-  window.addEventListener('keyup', handleKeyUp, true);
-  window.addEventListener('blur', handleWindowBlur);
-  window.addEventListener('focus', handleWindowFocus);
-  document.addEventListener('visibilitychange', handleVisibilityChange);
-  document.addEventListener('copy', handleCopyEvent);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!isScreenshotProtected && !isRecordingProtected) return;
 
-  return () => {
-    window.removeEventListener('keydown', handleKeyDown, true);
-    window.removeEventListener('keyup', handleKeyUp, true);
-    window.removeEventListener('blur', handleWindowBlur);
-    window.removeEventListener('focus', handleWindowFocus);
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-    document.removeEventListener('copy', handleCopyEvent);
-  };
-}, [selectedChat?.chat_id, activePrivacy]);
+      const isPrtScn = e.key === 'PrintScreen' || e.code === 'PrintScreen';
+      const isWinShiftS = e.key === 'S' && e.shiftKey && (e.metaKey || e.ctrlKey);
+      const isMacScreenshot = (e.metaKey && e.shiftKey && (e.key === '3' || e.key === '4' || e.key === '5'));
+      const isPrint = (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 'P');
 
-// Listen to real-time privacy settings update
-useEffect(() => {
-  if (!socket || !selectedChat) return;
-
-  const handlePrivacyUpdated = (data: any) => {
-    if (data.chatId === selectedChat.chat_id) {
-      // If role is receiver or omitted, update active privacy restrictions placed on us
-      if (!data.role || data.role === 'receiver') {
-        const enforced = {
-          screenshotProtection: !!data.screenshotProtection,
-          screenRecordingProtection: !!data.screenRecordingProtection,
-          copyProtection: !!data.copyProtection,
-          forwardProtection: !!data.forwardProtection,
-          captureNotifications: !!data.captureNotifications,
-        };
-        setActivePrivacy(enforced);
-        toggleAndroidSecure(enforced.screenshotProtection);
+      if (isPrtScn || isWinShiftS || isMacScreenshot || isPrint) {
+        if (isPrint) e.preventDefault();
+        setShowScreenshotShield(true);
+        if (activePrivacy?.captureNotifications !== false && selectedChat?.chat_id) {
+          api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
+            attemptType: 'SCREENSHOT_ATTEMPT',
+            detectionMethod: 'WEB_KEYBOARD_LISTENER',
+            deviceInfo: { userAgent: navigator.userAgent },
+          }).catch(() => { });
+        }
+        setTimeout(() => setShowScreenshotShield(false), 2500);
       }
+    };
 
-      // Refresh active message permissions if the menu is open
-      if (activeMessageMenu?.msg?.message_id) {
-        api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!isScreenshotProtected && !isRecordingProtected) return;
+      if (e.key === 'PrintScreen' || e.code === 'PrintScreen') {
+        setShowScreenshotShield(true);
+        setTimeout(() => setShowScreenshotShield(false), 2500);
+      }
+    };
+
+    const handleWindowBlur = () => {
+      if (isScreenshotProtected || isRecordingProtected) {
+        setIsWindowBlurred(true);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      setIsWindowBlurred(false);
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden && (isScreenshotProtected || isRecordingProtected)) {
+        setIsWindowBlurred(true);
+      } else if (!document.hidden) {
+        setIsWindowBlurred(false);
+      }
+    };
+
+    const handleCopyEvent = (e: ClipboardEvent) => {
+      if (isCopyProtected) {
+        e.preventDefault();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('keyup', handleKeyUp, true);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('copy', handleCopyEvent);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('keyup', handleKeyUp, true);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      document.removeEventListener('copy', handleCopyEvent);
+    };
+  }, [selectedChat?.chat_id, activePrivacy]);
+
+  // Listen to real-time privacy settings update
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
+
+    const handlePrivacyUpdated = (data: any) => {
+      if (data.chatId === selectedChat.chat_id) {
+        // If role is receiver or omitted, update active privacy restrictions placed on us
+        if (!data.role || data.role === 'receiver') {
+          // Normalize: read from flat top-level OR nested privacySettings/permissions
+          const ps = data.privacySettings || {};
+          const enforced = {
+            screenshotProtection: !!(data.screenshotProtection ?? ps.screenshotProtection ?? ps.blockScreenshots ?? data.permissions?.security?.secureWindow),
+            screenRecordingProtection: !!(data.screenRecordingProtection ?? ps.screenRecordingProtection ?? ps.blurScreenRecording),
+            copyProtection: !!(data.copyProtection ?? ps.copyProtection ?? (ps.allowCopy === false) ?? !(data.permissions?.canCopy ?? true)),
+            forwardProtection: !!(data.forwardProtection ?? ps.forwardProtection ?? (ps.allowForward === false) ?? !(data.permissions?.canForward ?? true)),
+            captureNotifications: !!(data.captureNotifications ?? ps.captureNotifications ?? ps.notifyScreenshotAttempts),
+          };
+          setActivePrivacy(enforced);
+          toggleAndroidSecure(enforced.screenshotProtection);
+        }
+
+        // Refresh active message permissions if the menu is open
+        if (activeMessageMenu?.msg?.message_id) {
+          api.get(`/messages/${activeMessageMenu.msg.message_id}/permissions`)
+            .then(res => {
+              if (res.data?.permissions) {
+                setActiveMessagePermissions(res.data.permissions);
+              }
+            })
+            .catch(console.error);
+        }
+      }
+    };
+
+    // When global defaults change, re-fetch privacy for the active chat so DEFAULT-inheriting rows update
+    const handleGlobalPrivacyUpdated = (_data: any) => {
+      if (selectedChat?.chat_id) {
+        api.get(`/messages/${selectedChat.chat_id}/privacy`)
           .then(res => {
-            if (res.data?.permissions) {
-              setActiveMessagePermissions(res.data.permissions);
-            }
+            const data = res.data || {};
+            const ps = data.mySettings || {};
+            const enforced = data.enforcedSettings || {};
+            const effective = enforced.effective || {};
+            setActivePrivacy({
+              screenshotProtection: !!effective.blockScreenshot,
+              screenRecordingProtection: !!effective.blurScreenRecording,
+              copyProtection: !effective.allowCopy,
+              forwardProtection: !effective.allowForward,
+              captureNotifications: !!effective.notifyScreenshotAttempts,
+            });
           })
           .catch(console.error);
       }
-    }
-  };
+    };
 
-  const handleCaptureAttempt = (data: any) => {
-    if (data.payload?.chatId === selectedChat.chat_id) {
-      setPrivacyAlert({
-        message: `⚠️ Alert: Screen capture attempt detected via ${data.payload.detectionMethod || 'system'}!`,
-        actorUserId: data.payload.actorUserId,
-        timestamp: data.payload.timestamp
+    const handleCaptureAttempt = (data: any) => {
+      if (data.payload?.chatId === selectedChat.chat_id) {
+        setPrivacyAlert({
+          message: `⚠️ Alert: Screen capture attempt detected via ${data.payload.detectionMethod || 'system'}!`,
+          actorUserId: data.payload.actorUserId,
+          timestamp: data.payload.timestamp
+        });
+        setTimeout(() => {
+          setPrivacyAlert(null);
+        }, 6000);
+      }
+    };
+
+    socket.on('privacy_updated', handlePrivacyUpdated);
+    socket.on('conversation_privacy_updated', handlePrivacyUpdated);
+    socket.on('global_privacy_updated', handleGlobalPrivacyUpdated);
+    socket.on('capture_attempt', handleCaptureAttempt);
+    return () => {
+      socket.off('privacy_updated', handlePrivacyUpdated);
+      socket.off('conversation_privacy_updated', handlePrivacyUpdated);
+      socket.off('global_privacy_updated', handleGlobalPrivacyUpdated);
+      socket.off('capture_attempt', handleCaptureAttempt);
+    };
+  }, [socket, selectedChat, activeMessageMenu]);
+
+  // --- Local Storage Sync & Persistence Effects ---
+  useEffect(() => {
+    localStorage.setItem('sparkle_custom_lists', JSON.stringify(customLists));
+  }, [customLists]);
+
+  useEffect(() => {
+    localStorage.setItem('sparkle_tab_order', JSON.stringify(tabOrder));
+  }, [tabOrder]);
+
+  useEffect(() => {
+    localStorage.setItem('sparkle_hidden_tabs', JSON.stringify(hiddenTabs));
+  }, [hiddenTabs]);
+
+  // Keep tabOrder synchronized with added and deleted customLists
+  useEffect(() => {
+    setTabOrder(prev => {
+      const missing = customLists.map(l => l.id).filter(id => !prev.includes(id));
+      if (missing.length > 0) {
+        return [...prev, ...missing];
+      }
+      const existing = prev.filter(id => {
+        if (['all', 'unread', 'groups', 'archived'].includes(id)) return true;
+        return customLists.some(l => l.id === id);
       });
-      setTimeout(() => {
-        setPrivacyAlert(null);
-      }, 6000);
+      if (existing.length !== prev.length) {
+        return existing;
+      }
+      return prev;
+    });
+  }, [customLists]);
+
+  // Fallback to 'all' if the active filter gets hidden or deleted
+  useEffect(() => {
+    if (hiddenTabs.includes(activeFilter)) {
+      setActiveFilter('all');
     }
+  }, [hiddenTabs, activeFilter]);
+
+  const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
+  const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
+  const activeThemeId = currentChatTheme?.id;
+
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const notePlaceholder = "Feeling sparkle ✨";
+
+  const getShortLastSeen = (time: string | null | undefined) => {
+    if (!time) return '...';
+    const diff = Date.now() - new Date(time).getTime();
+    if (diff < 60000) return 'now';
+    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
+    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
+    return `${Math.floor(diff / 86400000)}d`;
   };
 
-  socket.on('privacy_updated', handlePrivacyUpdated);
-  socket.on('conversation_privacy_updated', handlePrivacyUpdated);
-  socket.on('capture_attempt', handleCaptureAttempt);
-  return () => {
-    socket.off('privacy_updated', handlePrivacyUpdated);
-    socket.off('conversation_privacy_updated', handlePrivacyUpdated);
-    socket.off('capture_attempt', handleCaptureAttempt);
+  // --- Effects ---
+  useEffect(() => {
+    fetchInbox();
+    fetchSuggested();
+  }, []);
+
+  // --- Real Device Media Initializer & Scanner ---
+  useEffect(() => {
+    // Start with empty array so only real device files are shown
+    setDeviceMedia([]);
+  }, []);
+
+  const handleDeviceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    const newItems: any[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const objectUrl = URL.createObjectURL(file);
+      newItems.push({
+        id: `local_media_${Date.now()}_${i}`,
+        type: file.type.startsWith('video/') ? 'video' : 'image',
+        url: objectUrl,
+        file: file,
+        name: file.name,
+        folder: file.type.startsWith('video/') ? 'Videos' : 'Downloads',
+        isLarge: i === 0 || i === 1
+      });
+    }
+
+    setDeviceMedia(prev => [...newItems, ...prev]);
+    setMediaPermission('granted');
   };
-}, [socket, selectedChat, activeMessageMenu]);
 
-// --- Local Storage Sync & Persistence Effects ---
-useEffect(() => {
-  localStorage.setItem('sparkle_custom_lists', JSON.stringify(customLists));
-}, [customLists]);
+  // showLastSeen is always true for offline partners — no toggling timer
+  // The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
+  const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
 
-useEffect(() => {
-  localStorage.setItem('sparkle_tab_order', JSON.stringify(tabOrder));
-}, [tabOrder]);
-
-useEffect(() => {
-  localStorage.setItem('sparkle_hidden_tabs', JSON.stringify(hiddenTabs));
-}, [hiddenTabs]);
-
-// Keep tabOrder synchronized with added and deleted customLists
-useEffect(() => {
-  setTabOrder(prev => {
-    const missing = customLists.map(l => l.id).filter(id => !prev.includes(id));
-    if (missing.length > 0) {
-      return [...prev, ...missing];
-    }
-    const existing = prev.filter(id => {
-      if (['all', 'unread', 'groups', 'archived'].includes(id)) return true;
-      return customLists.some(l => l.id === id);
-    });
-    if (existing.length !== prev.length) {
-      return existing;
-    }
-    return prev;
-  });
-}, [customLists]);
-
-// Fallback to 'all' if the active filter gets hidden or deleted
-useEffect(() => {
-  if (hiddenTabs.includes(activeFilter)) {
-    setActiveFilter('all');
-  }
-}, [hiddenTabs, activeFilter]);
-
-const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
-const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
-const activeThemeId = currentChatTheme?.id;
-
-const messagesEndRef = useRef<HTMLDivElement>(null);
-
-const notePlaceholder = "Feeling sparkle ✨";
-
-const getShortLastSeen = (time: string | null | undefined) => {
-  if (!time) return '...';
-  const diff = Date.now() - new Date(time).getTime();
-  if (diff < 60000) return 'now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-  return `${Math.floor(diff / 86400000)}d`;
-};
-
-// --- Effects ---
-useEffect(() => {
-  fetchInbox();
-  fetchSuggested();
-}, []);
-
-// --- Real Device Media Initializer & Scanner ---
-useEffect(() => {
-  // Start with empty array so only real device files are shown
-  setDeviceMedia([]);
-}, []);
-
-const handleDeviceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-  const files = e.target.files;
-  if (!files || files.length === 0) return;
-
-  const newItems: any[] = [];
-  for (let i = 0; i < files.length; i++) {
-    const file = files[i];
-    const objectUrl = URL.createObjectURL(file);
-    newItems.push({
-      id: `local_media_${Date.now()}_${i}`,
-      type: file.type.startsWith('video/') ? 'video' : 'image',
-      url: objectUrl,
-      file: file,
-      name: file.name,
-      folder: file.type.startsWith('video/') ? 'Videos' : 'Downloads',
-      isLarge: i === 0 || i === 1
-    });
-  }
-
-  setDeviceMedia(prev => [...newItems, ...prev]);
-  setMediaPermission('granted');
-};
-
-// showLastSeen is always true for offline partners — no toggling timer
-// The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
-const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
-
-useEffect(() => {
-  if (targetChatId) {
-    const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
-    if (chat) {
-      setSelectedChat(chat);
-    } else if (conversations.length > 0 && lastFetchedTargetRef.current !== targetChatId) {
-      lastFetchedTargetRef.current = targetChatId;
-      fetchInbox();
-    } else if (conversations.length > 0) {
+  useEffect(() => {
+    if (targetChatId) {
+      const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
+      if (chat) {
+        setSelectedChat(chat);
+      } else if (conversations.length > 0 && lastFetchedTargetRef.current !== targetChatId) {
+        lastFetchedTargetRef.current = targetChatId;
+        fetchInbox();
+      } else if (conversations.length > 0) {
+        setSelectedChat(null);
+      }
+    } else {
       setSelectedChat(null);
     }
-  } else {
-    setSelectedChat(null);
-  }
-}, [targetChatId, conversations]);
+  }, [targetChatId, conversations]);
 
-useEffect(() => {
-  const store = useChatStore.getState();
-  if (selectedChat) {
-    store.setActiveConversationId(selectedChat.chat_id);
-    socket?.emit('mark-read', selectedChat.chat_id);
-    store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
-    store.refreshConversation(selectedChat.chat_id);
-    fetchMessages(selectedChat.chat_id);
-  } else {
-    store.setActiveConversationId(null);
-  }
-}, [selectedChat?.chat_id, socket, user]);
-
-useEffect(() => {
-  if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
-    const chatId = selectedChat.chat_id;
-    const cacheKey = `sparkle_privacy_cache_${chatId}`;
-    // 1. Immediately hydrate from private sandbox / preferences cache to eliminate screen exposure lag
-    SparkleStorage.getPrivacyCache(chatId).then(cached => {
-      if (cached) {
-        setActivePrivacy(cached);
-        toggleAndroidSecure(!!cached?.screenshotProtection);
-      } else {
-        try {
-          const raw = localStorage.getItem(cacheKey);
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            setActivePrivacy(parsed);
-            toggleAndroidSecure(!!parsed?.screenshotProtection);
-          }
-        } catch (e) {}
-      }
-    }).catch(() => {});
-
-    // 2. Fetch authoritative privacy settings from server
-    api.get(`/messages/${chatId}/privacy`)
-      .then(res => {
-        const enforced = res.data?.enforcedSettings || res.data;
-        setActivePrivacy(enforced);
-        toggleAndroidSecure(!!enforced?.screenshotProtection);
-        SparkleStorage.setPrivacyCache(chatId, enforced).catch(() => {});
-        try {
-          localStorage.setItem(cacheKey, JSON.stringify(enforced));
-        } catch (e) {}
-      })
-      .catch(err => {
-        console.error('Failed to load chat privacy settings:', err);
-      });
-  } else {
-    setActivePrivacy(null);
-    toggleAndroidSecure(false);
-  }
-
-  return () => {
-    toggleAndroidSecure(false);
-  };
-}, [selectedChat?.chat_id]);
-
-// Register native Android screenshot detection listener
-useEffect(() => {
-  let sub: any = null;
-  let cancelled = false;
-
-  (async () => {
-    try {
-      if (PrivacyProtection && typeof PrivacyProtection.addListener === 'function') {
-        const handle = await PrivacyProtection.addListener('onScreenshotAttempt', (eventData: any) => {
-          if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
-            api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
-              attemptType: 'SCREENSHOT_ATTEMPT',
-              detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
-              deviceInfo: { userAgent: navigator.userAgent },
-            }).catch(console.error);
-          }
-        });
-        if (!cancelled) {
-          sub = handle;
-        } else if (handle && typeof handle.remove === 'function') {
-          handle.remove();
-        }
-      }
-    } catch (_err) {
-      // PrivacyProtection plugin is not implemented on web — silently ignore
+  useEffect(() => {
+    const store = useChatStore.getState();
+    if (selectedChat) {
+      store.setActiveConversationId(selectedChat.chat_id);
+      socket?.emit('mark-read', selectedChat.chat_id);
+      store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
+      store.refreshConversation(selectedChat.chat_id);
+      fetchMessages(selectedChat.chat_id);
+    } else {
+      store.setActiveConversationId(null);
     }
-  })();
+  }, [selectedChat?.chat_id, socket, user]);
 
-  return () => {
-    cancelled = true;
-    if (sub && typeof sub.remove === 'function') {
-      try { sub.remove(); } catch (_e) {}
-    }
-  };
-}, [selectedChat?.chat_id]);
-
-
-// --- Handlers ---
-const fetchInbox = async () => {
-  setLoading(true);
-  try {
-    const res = await api.get('/messages/inbox');
-    const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-    setConversations(list);
-  } catch (err: any) {
-    console.error('Failed to fetch inbox', err.response?.data || err);
-    setConversations([]);
-  } finally {
-    setLoading(false);
-  }
-};
-
-const fetchSuggested = async () => {
-  try {
-    const res = await api.get('/users/active-friends');
-    setSuggestedContacts(Array.isArray(res.data) ? res.data : []);
-  } catch (err) {
-    console.error('Failed to fetch suggested', err);
-    setSuggestedContacts([]);
-  }
-};
-
-const handleOpenDirectChat = (contact: any) => {
-  const partnerId = contact.user_id || contact.id;
-  const existing = conversations.find(c => c.partner_id === partnerId);
-
-  if (existing) {
-    setSelectedChat(existing);
-    navigate(`/messages?chat=${existing.chat_id}`);
-  } else {
-    // Create a temporary chat object for the UI — no client-generated timestamps
-    setSelectedChat({
-      chat_id: 'temp_' + Date.now(),
-      partner_id: partnerId,
-      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
-      partner_avatar: contact.avatar_url,
-      unread_count: 0,
-      last_message_time: null,
-      partner_online: contact.is_online
-    });
-    // Clear the chat param since we are in a temp chat
-    navigate('/messages', { replace: true });
-  }
-};
-
-const fetchMessages = async (chatId: string) => {
-  // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
-  const cached: any[] = [];
-  if (cached && cached.length > 0) {
-    setStoreMessages(chatId, cached);
-    scrollToBottom();
-  }
-
-  // 2. Fetch fresh from network
-  try {
-    const res = await api.get(`/messages/chat/${chatId}`);
-    const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-    // Deduplicate: merge server list with any optimistic local msgs
-    updateMessages(prev => {
-      const serverIds = new Set(msgs.map((m: any) => m.message_id));
-      const localOnly = prev.filter(m => !serverIds.has(m.message_id));
-      return [...msgs, ...localOnly];
-    });
-    scrollToBottom();
-  } catch (err) {
-    console.error('Failed to fetch messages', err);
-  }
-};
-
-const selectedChatRef = useRef<any>(null);
-useEffect(() => {
-  selectedChatRef.current = selectedChat;
-}, [selectedChat]);
-
-// Dedicated effect to handle initial read receipts when a new conversation is explicitly opened/tapped
-useEffect(() => {
-  if (!socket || !selectedChat) return;
-
-  if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
-    socket.emit('mark-read', selectedChat.chat_id);
-    setUnreadCountInChat(0);
-
-    // Cleanly clear local unread count badge in sidebar list
-    setConversations((prev: any[]) => prev.map(c => {
-      if (c.chat_id === selectedChat.chat_id) {
-        return { ...c, unread_count: 0 };
-      }
-      return c;
-    }));
-  }
-}, [socket, selectedChat?.chat_id]);
-
-// Join the socket.io room for the active chat whenever it changes
-useEffect(() => {
-  if (!socket || !selectedChat) return;
-  const targetId = selectedChat.chat_id;
-  if (targetId && !targetId.startsWith('temp_')) {
-    console.log('[JOIN_CHAT_EMIT]', targetId);
-    socket.emit('join-chat', targetId);
-  }
-}, [socket, selectedChat?.chat_id]);
-
-useEffect(() => {
-  if (!socket) return;
-
-  const handleNewMessage = (msg: any) => {
-    console.log('[MESSAGE_RECEIVED]', msg);
-    const activeChat = selectedChatRef.current;
-    const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
-
-    // 1. If it belongs to current active chat, update message array
-    if (isCurrentChat) {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId) {
-        updateMessagesForChat(activeChatId, prev => {
-          if (prev.some(m => m.message_id === msg.message_id)) return prev;
-          return [...prev, msg];
-        });
-      }
-      triggerWordEffect(msg.content);
-
-      // Let backend know we received it ONLY IF NOT GROUP
-      const isGroup = activeChat?.is_group || activeChat?.chat_type === 'group' || msg.chat_type === 'group';
-      if (!isGroup) {
-        if (document.hasFocus()) {
-          socket.emit('mark-read', msg.conversation_id || msg.chat_id);
+  useEffect(() => {
+    if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+      const chatId = selectedChat.chat_id;
+      const cacheKey = `sparkle_privacy_cache_${chatId}`;
+      // 1. Immediately hydrate from private sandbox / preferences cache to eliminate screen exposure lag
+      SparkleStorage.getPrivacyCache(chatId).then(cached => {
+        if (cached) {
+          setActivePrivacy(cached);
+          toggleAndroidSecure(!!cached?.screenshotProtection);
         } else {
+          try {
+            const raw = localStorage.getItem(cacheKey);
+            if (raw) {
+              const parsed = JSON.parse(raw);
+              setActivePrivacy(parsed);
+              toggleAndroidSecure(!!parsed?.screenshotProtection);
+            }
+          } catch (e) { }
+        }
+      }).catch(() => { });
+
+      // 2. Fetch authoritative privacy settings from server
+      api.get(`/messages/${chatId}/privacy`)
+        .then(res => {
+          const enforced = res.data?.enforcedSettings || res.data;
+          setActivePrivacy(enforced);
+          toggleAndroidSecure(!!enforced?.screenshotProtection);
+          SparkleStorage.setPrivacyCache(chatId, enforced).catch(() => { });
+          try {
+            localStorage.setItem(cacheKey, JSON.stringify(enforced));
+          } catch (e) { }
+        })
+        .catch(err => {
+          console.error('Failed to load chat privacy settings:', err);
+        });
+    } else {
+      setActivePrivacy(null);
+      toggleAndroidSecure(false);
+    }
+
+    return () => {
+      toggleAndroidSecure(false);
+    };
+  }, [selectedChat?.chat_id]);
+
+  // Register native Android screenshot detection listener
+  useEffect(() => {
+    let sub: any = null;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        if (PrivacyProtection && typeof PrivacyProtection.addListener === 'function') {
+          const handle = await PrivacyProtection.addListener('onScreenshotAttempt', (eventData: any) => {
+            if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
+              api.post(`/messages/${selectedChat.chat_id}/capture-attempt`, {
+                attemptType: 'SCREENSHOT_ATTEMPT',
+                detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
+                deviceInfo: { userAgent: navigator.userAgent },
+              }).catch(console.error);
+            }
+          });
+          if (!cancelled) {
+            sub = handle;
+          } else if (handle && typeof handle.remove === 'function') {
+            handle.remove();
+          }
+        }
+      } catch (_err) {
+        // PrivacyProtection plugin is not implemented on web — silently ignore
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (sub && typeof sub.remove === 'function') {
+        try { sub.remove(); } catch (_e) { }
+      }
+    };
+  }, [selectedChat?.chat_id]);
+
+
+  // --- Handlers ---
+  const fetchInbox = async () => {
+    setLoading(true);
+    try {
+      const res = await api.get('/messages/inbox');
+      const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      setConversations(list);
+    } catch (err: any) {
+      console.error('Failed to fetch inbox', err.response?.data || err);
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchSuggested = async () => {
+    try {
+      const res = await api.get('/users/active-friends');
+      setSuggestedContacts(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      console.error('Failed to fetch suggested', err);
+      setSuggestedContacts([]);
+    }
+  };
+
+  const handleOpenDirectChat = (contact: any) => {
+    const partnerId = contact.user_id || contact.id;
+    const existing = conversations.find(c => c.partner_id === partnerId);
+
+    if (existing) {
+      setSelectedChat(existing);
+      navigate(`/messages?chat=${existing.chat_id}`);
+    } else {
+      // Create a temporary chat object for the UI — no client-generated timestamps
+      setSelectedChat({
+        chat_id: 'temp_' + Date.now(),
+        partner_id: partnerId,
+        partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
+        partner_avatar: contact.avatar_url,
+        unread_count: 0,
+        last_message_time: null,
+        partner_online: contact.is_online
+      });
+      // Clear the chat param since we are in a temp chat
+      navigate('/messages', { replace: true });
+    }
+  };
+
+  const fetchMessages = async (chatId: string) => {
+    // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
+    const cached: any[] = [];
+    if (cached && cached.length > 0) {
+      setStoreMessages(chatId, cached);
+      scrollToBottom();
+    }
+
+    // 2. Fetch fresh from network
+    try {
+      const res = await api.get(`/messages/chat/${chatId}`);
+      const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
+      // Deduplicate: merge server list with any optimistic local msgs
+      updateMessages(prev => {
+        const serverIds = new Set(msgs.map((m: any) => m.message_id));
+        const localOnly = prev.filter(m => !serverIds.has(m.message_id));
+        return [...msgs, ...localOnly];
+      });
+      scrollToBottom();
+    } catch (err) {
+      console.error('Failed to fetch messages', err);
+    }
+  };
+
+  const selectedChatRef = useRef<any>(null);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  // Dedicated effect to handle initial read receipts when a new conversation is explicitly opened/tapped
+  useEffect(() => {
+    if (selectedChat) {
+      const isTyping = typingUsers.some(t => t.chatId === selectedChat.chat_id);
+      setPartnerIsTyping(isTyping);
+    } else {
+      setPartnerIsTyping(false);
+    }
+
+    if (!socket || !selectedChat) return;
+
+    if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
+      socket.emit('mark-read', selectedChat.chat_id);
+      socket.emit('message-read-ack', { chatId: selectedChat.chat_id });
+      setUnreadCountInChat(0);
+
+      // Cleanly clear local unread count badge in sidebar list
+      setConversations((prev: any[]) => prev.map(c => {
+        if (c.chat_id === selectedChat.chat_id) {
+          return { ...c, unread_count: 0 };
+        }
+        return c;
+      }));
+    }
+  }, [socket, selectedChat?.chat_id, typingUsers]);
+
+  // Join the socket.io room for the active chat whenever it changes
+  useEffect(() => {
+    if (!socket || !selectedChat) return;
+    const targetId = selectedChat.chat_id;
+    if (targetId && !targetId.startsWith('temp_')) {
+      console.log('[JOIN_CHAT_EMIT]', targetId);
+      socket.emit('join-chat', targetId);
+    }
+  }, [socket, selectedChat?.chat_id]);
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleNewMessage = (msg: any) => {
+      console.log('[MESSAGE_RECEIVED]', msg);
+      const activeChat = selectedChatRef.current;
+      const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
+
+      // 1. If it belongs to current active chat, update message array
+      if (isCurrentChat) {
+        const activeChatId = currentChatIdRef.current;
+        if (activeChatId) {
+          updateMessagesForChat(activeChatId, prev => {
+            if (prev.some(m => m.message_id === msg.message_id)) return prev;
+            return [...prev, msg];
+          });
+        }
+        triggerWordEffect(msg.content);
+
+        // Let backend know we received it ONLY IF NOT GROUP
+        const isGroup = activeChat?.is_group || activeChat?.chat_type === 'group' || msg.chat_type === 'group';
+        if (!isGroup) {
+          if (document.hasFocus()) {
+            socket.emit('mark-read', msg.conversation_id || msg.chat_id);
+          } else {
+            socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
+          }
+        }
+
+        if (isNearBottomRef.current) {
+          setTimeout(() => scrollToBottom('smooth'), 50);
+          setUnreadCountInChat(0);
+        } else {
+          setUnreadCountInChat(prev => prev + 1);
+        }
+      } else {
+        // We received a message for a different chat, mark it delivered if personal
+        if (msg.chat_type !== 'group') {
           socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
         }
       }
 
-      if (isNearBottomRef.current) {
-        setTimeout(() => scrollToBottom('smooth'), 50);
-        setUnreadCountInChat(0);
-      } else {
-        setUnreadCountInChat(prev => prev + 1);
-      }
-    } else {
-      // We received a message for a different chat, mark it delivered if personal
-      if (msg.chat_type !== 'group') {
-        socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
-      }
-    }
+      // 2. Reactively update the conversations list — use ONLY server-provided timestamps
+      setConversations((prev: any[]) => {
+        const chatId = msg.conversation_id || msg.chat_id;
+        const chatIndex = prev.findIndex(c => c.chat_id === chatId || c.partner_id === msg.sender_id);
 
-    // 2. Reactively update the conversations list — use ONLY server-provided timestamps
-    setConversations((prev: any[]) => {
-      const chatId = msg.conversation_id || msg.chat_id;
-      const chatIndex = prev.findIndex(c => c.chat_id === chatId || c.partner_id === msg.sender_id);
-      
-      const getFormattedPreview = (m: any) => {
-        const t = m.type || 'text';
-        const cnt = m.content || '';
-        if (t === 'location') {
-          if (cnt && typeof cnt === 'string' && cnt.startsWith('{')) {
+        const getFormattedPreview = (m: any) => {
+          const t = m.type || 'text';
+          const cnt = m.content || '';
+          if (t === 'location') {
+            if (cnt && typeof cnt === 'string' && cnt.startsWith('{')) {
+              try {
+                const p = JSON.parse(cnt);
+                if (p.name || p.address) return `📍 ${p.name || p.address}`;
+              } catch (e) { }
+            }
+            return '📍 Location';
+          }
+          if (t === 'live_location') return '📍 Live Location';
+          if (t === 'attachment') return '🎬 Story reply';
+          if (t === 'image') return '📷 Photo';
+          if (t === 'video') return '🎥 Video';
+          if (t === 'audio') return '🎤 Voice note';
+          if (t === 'document') return '📄 Document';
+          if (t === 'contact') return '👤 Contact Card';
+          if (cnt && typeof cnt === 'string' && cnt.startsWith('{"type":')) {
             try {
               const p = JSON.parse(cnt);
-              if (p.name || p.address) return `📍 ${p.name || p.address}`;
-            } catch (e) {}
+              if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
+              if (p.type === 'live_location') return '📍 Live Location';
+            } catch (e) { }
           }
-          return '📍 Location';
-        }
-        if (t === 'live_location') return '📍 Live Location';
-        if (t === 'attachment') return '🎬 Story reply';
-        if (t === 'image') return '📷 Photo';
-        if (t === 'video') return '🎥 Video';
-        if (t === 'audio') return '🎤 Voice note';
-        if (t === 'document') return '📄 Document';
-        if (t === 'contact') return '👤 Contact Card';
-        if (cnt && typeof cnt === 'string' && cnt.startsWith('{"type":')) {
-          try {
-            const p = JSON.parse(cnt);
-            if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
-            if (p.type === 'live_location') return '📍 Live Location';
-          } catch (e) {}
-        }
-        return cnt || (t !== 'text' ? `Shared ${t}` : '');
-      };
-
-      const displayPreview = getFormattedPreview(msg);
-
-      if (chatIndex >= 0) {
-        const newConvs = [...prev];
-        const chat = { ...newConvs[chatIndex] };
-        chat.last_message = displayPreview;
-        chat.last_message_type = msg.type;
-        chat.last_message_content = displayPreview;
-        // Use server timestamp only — never fall back to client Date
-        chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
-        // Inherit status from the server message payload; never assume 'sent'
-        chat.last_message_status = msg.status || 'sent';
-        if (msg.sender_id !== (user?.id || user?.user_id) && (!activeChat || activeChat.chat_id !== chat.chat_id)) {
-          chat.unread_count = (chat.unread_count || 0) + 1;
-        }
-        newConvs.splice(chatIndex, 1);
-        newConvs.unshift(chat);
-        return newConvs;
-      } else {
-        // New conversation!
-        const newChat: any = {
-          chat_id: chatId,
-          partner_id: msg.sender_id,
-          partner_name: sanitizePartnerName(msg.sender_name || msg.sender_username || 'New Contact', msg.sender_username),
-          partner_avatar: msg.sender_avatar,
-          unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
-          last_message: displayPreview,
-          last_message_type: msg.type,
-          last_message_content: displayPreview,
-          last_message_time: msg.sent_at || msg.created_at,
-          last_message_status: msg.status || 'sent',
-          partner_online: true
+          return cnt || (t !== 'text' ? `Shared ${t}` : '');
         };
-        return [newChat, ...prev];
-      }
-    });
-  };
 
-  const handleMessagesDelivered = (data: { chatId: string, messageId?: string, userId: string }) => {
-    const myId = user?.id || user?.user_id;
-    if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
+        const displayPreview = getFormattedPreview(msg);
 
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => {
-        if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
-          return { ...m, status: 'delivered' };
-        }
-        return m;
-      }));
-    }
-    setConversations((prev: any[]) => prev.map(c => {
-      if (c.chat_id === data.chatId && c.last_message_status !== 'read') {
-        return { ...c, last_message_status: 'delivered' };
-      }
-      return c;
-    }));
-  };
-
-  const handleMessagesRead = (data: { chatId: string, readAt?: string, userId?: string }) => {
-    const myId = user?.id || user?.user_id;
-    if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
-
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => {
-        // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
-        if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
-          return { ...m, status: 'read', read_at: data.readAt };
-        }
-        return m;
-      }));
-    }
-    setConversations((prev: any[]) => prev.map(c => {
-      if (c.chat_id === data.chatId) {
-        return { ...c, last_message_status: 'read', unread_count: 0 };
-      }
-      return c;
-    }));
-  };
-
-  const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
-    setConversations((prev: any[]) => prev.map(chat => {
-      if (chat.partner_id === data.userId) {
-        return { ...chat, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline };
-      }
-      return chat;
-    }));
-    const activeChat = selectedChatRef.current;
-    if (activeChat && activeChat.partner_id === data.userId) {
-      setSelectedChat(prev => prev ? { ...prev, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline } : null);
-    }
-  };
-
-  const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean, username?: string }) => {
-    const myId = user?.id || user?.user_id;
-    if (data.userId === myId) return;
-
-    const activeChat = selectedChatRef.current;
-    if (activeChat && activeChat.chat_id === data.chatId) {
-      setPartnerIsTyping(data.isTyping);
-    }
-    setTypingUsers(prev => {
-      if (data.isTyping) {
-        if (prev.some(t => t.chatId === data.chatId)) return prev;
-        return [...prev, { chatId: data.chatId, name: data.username || 'Someone' }];
-      }
-      return prev.filter(t => t.chatId !== data.chatId);
-    });
-  };
-
-  const handleUserNoteUpdate = (data: { userId: string, note: string | null }) => {
-    setSuggestedContacts((prev: any[]) => prev.map(contact => {
-      if (contact.user_id === data.userId || contact.id === data.userId) {
-        return { ...contact, note: data.note };
-      }
-      return contact;
-    }));
-  };
-
-  const handleGroupPresenceUpdate = (data: { chatId: string, onlineCount: number }) => {
-    setConversations((prev: any[]) => prev.map(chat => {
-      if (chat.chat_id === data.chatId) {
-        return { ...chat, group_online_count: data.onlineCount };
-      }
-      return chat;
-    }));
-    const activeChat = selectedChatRef.current;
-    if (activeChat && activeChat.chat_id === data.chatId) {
-      setSelectedChat(prev => prev ? { ...prev, group_online_count: data.onlineCount } : null);
-    }
-  };
-
-  const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
-    }
-  };
-
-  const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
-    }
-  };
-
-  const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
-    }
-  };
-
-  const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
-    console.log('[DELETE_RECEIVED]', data);
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => {
-        const updated = prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m);
-        const updatedMsg = updated.find(m => m.message_id === data.messageId);
-        console.log('[DELETE_STORE_UPDATED]', updatedMsg);
-        return updated;
-      });
-    }
-  };
-
-  const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.filter(m => m.message_id !== data.messageId));
-    }
-  };
-
-  const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => {
-        if (m.message_id === data.messageId) {
-          const reactions = m.reactions || [];
-          if (reactions.some(r => r.user_id === data.userId)) {
-            return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
+        if (chatIndex >= 0) {
+          const newConvs = [...prev];
+          const chat = { ...newConvs[chatIndex] };
+          chat.last_message = displayPreview;
+          chat.last_message_type = msg.type;
+          chat.last_message_content = displayPreview;
+          // Use server timestamp only — never fall back to client Date
+          chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
+          // Inherit status from the server message payload; never assume 'sent'
+          chat.last_message_status = msg.status || 'sent';
+          if (msg.sender_id !== (user?.id || user?.user_id) && (!activeChat || activeChat.chat_id !== chat.chat_id)) {
+            chat.unread_count = (chat.unread_count || 0) + 1;
           }
-          return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
+          newConvs.splice(chatIndex, 1);
+          newConvs.unshift(chat);
+          return newConvs;
+        } else {
+          // New conversation!
+          const newChat: any = {
+            chat_id: chatId,
+            partner_id: msg.sender_id,
+            partner_name: sanitizePartnerName(msg.sender_name || msg.sender_username || 'New Contact', msg.sender_username),
+            partner_avatar: msg.sender_avatar,
+            unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
+            last_message: displayPreview,
+            last_message_type: msg.type,
+            last_message_content: displayPreview,
+            last_message_time: msg.sent_at || msg.created_at,
+            last_message_status: msg.status || 'sent',
+            partner_online: true
+          };
+          return [newChat, ...prev];
         }
-        return m;
-      }));
-    }
-  };
-// Lightweight re-fetch wrapper used by chat-updated listener
-const fetchChatList = () => fetchInbox();
-  const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-    const activeChatId = currentChatIdRef.current;
-    if (activeChatId && data.chatId === activeChatId) {
-      updateMessagesForChat(activeChatId, prev => prev.map(m => {
-        if (m.message_id === data.messageId) {
-          const reactions = m.reactions || [];
-          return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
+      });
+    };
+
+    const handleMessagesDelivered = (data: { chatId: string, messageId?: string, userId: string }) => {
+      const myId = user?.id || user?.user_id;
+      if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
+
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => {
+          if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
+            return { ...m, status: 'delivered' };
+          }
+          return m;
+        }));
+      }
+      setConversations((prev: any[]) => prev.map(c => {
+        if (c.chat_id === data.chatId && c.last_message_status !== 'read') {
+          return { ...c, last_message_status: 'delivered' };
         }
-        return m;
+        return c;
       }));
-    }
-  };
+    };
 
-  const handleNewMessageWrapped = (message: any) => {
-    console.log('[NEW_MESSAGE]', message.chatId);
-    console.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
-    console.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
-    handleNewMessage(message);
-  };
+    const handleMessagesRead = (data: { chatId: string, readAt?: string, userId?: string }) => {
+      const myId = user?.id || user?.user_id;
+      if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
 
-  // Commented out to avoid duplication with useMessageSocket.ts which updates the chatStore directly.
-  // socket.on('new-message', handleNewMessageWrapped);
-  // socket.on('receive_message', handleNewMessage);
-  // socket.on('messages-delivered', handleMessagesDelivered);
-  // socket.on('messages-read', handleMessagesRead);
-  socket.on('user-status', handleUserStatus);
-  socket.on('user-typing', handleUserTyping);
-  socket.on('user-note-update', handleUserNoteUpdate);
-  socket.on('group:presence:update', handleGroupPresenceUpdate);
-  socket.on('message-pinned', handleMessagePinned);
-  socket.on('message-unpinned', handleMessageUnpinned);
-  // socket.on('message-edited', handleMessageEdited);
-  // socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
-  // socket.on('message-deleted-me', handleMessageDeletedMe);
-  // socket.on('new-reaction', handleNewReaction);
-  // socket.on('reaction-removed', handleReactionRemoved);
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => {
+          // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
+          if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
+            return { ...m, status: 'read', read_at: data.readAt };
+          }
+          return m;
+        }));
+      }
+      setConversations((prev: any[]) => prev.map(c => {
+        if (c.chat_id === data.chatId) {
+          return { ...c, last_message_status: 'read', unread_count: 0 };
+        }
+        return c;
+      }));
+    };
 
-  // Listen for chat-updated events so the sidebar refreshes
-  const handleChatUpdated = (data: { chatId: string }) => {
-    console.log('[CHAT_UPDATED_RECEIVED]', data);
-    // Re-fetch inbox to pick up new last_message / unread_count
-    fetchInbox();
-  };
-  socket.on('chat-updated', handleChatUpdated);
+    const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
+      setConversations((prev: any[]) => prev.map(chat => {
+        if (chat.partner_id === data.userId) {
+          return { ...chat, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline };
+        }
+        return chat;
+      }));
+      const activeChat = selectedChatRef.current;
+      if (activeChat && activeChat.partner_id === data.userId) {
+        setSelectedChat(prev => prev ? { ...prev, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline } : null);
+      }
+    };
 
-  const handleReconnect = () => {
-    const activeChatId = currentChatIdRef.current;
-    console.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
-    if (activeChatId && !activeChatId.startsWith('temp_')) {
-      socket.emit('join-chat', activeChatId);
-    }
-  };
-  socket.on('connect', handleReconnect);
+    const handleUserTyping = (data: { chatId: string, userId: string, isTyping: boolean, username?: string }) => {
+      const myId = user?.id || user?.user_id;
+      if (data.userId === myId) return;
 
-  return () => {
-    socket.off('new-message', handleNewMessageWrapped);
-    socket.off('receive_message', handleNewMessage);
-    socket.off('messages-delivered', handleMessagesDelivered);
-    socket.off('messages-read', handleMessagesRead);
-    socket.off('user-status', handleUserStatus);
-    socket.off('user-typing', handleUserTyping);
-    socket.off('user-note-update', handleUserNoteUpdate);
-    socket.off('group:presence:update', handleGroupPresenceUpdate);
-    socket.off('message-pinned', handleMessagePinned);
-    socket.off('message-unpinned', handleMessageUnpinned);
-    socket.off('message-edited', handleMessageEdited);
-    socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
-    socket.off('message-deleted-me', handleMessageDeletedMe);
-    socket.off('new-reaction', handleNewReaction);
-    socket.off('reaction-removed', handleReactionRemoved);
-    socket.off('chat-updated', handleChatUpdated);
-    socket.off('connect', handleReconnect);
-  };
-}, [socket, user?.id, user?.user_id]);
+      // Clear existing safety timer for this chat if any
+      const existingTimer = typingExpiryTimersRef.current.get(data.chatId);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+        typingExpiryTimersRef.current.delete(data.chatId);
+      }
 
-const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-  messagesEndRef.current?.scrollIntoView({ behavior });
-  setUnreadCountInChat(0);
-};
+      const activeChat = selectedChatRef.current;
+      const isCurrentChat = activeChat && activeChat.chat_id === data.chatId;
 
-// Scroll to bottom when visual viewport height changes (e.g. keyboard opens/closes)
-useEffect(() => {
-  const vv = window.visualViewport;
-  if (!vv) return;
+      if (data.isTyping) {
+        if (isCurrentChat) {
+          setPartnerIsTyping(true);
+        }
+        setTypingUsers(prev => {
+          const filtered = prev.filter(t => t.chatId !== data.chatId);
+          return [...filtered, { chatId: data.chatId, name: data.username || 'Someone' }];
+        });
 
-  const handleResize = () => {
-    if (selectedChat && isNearBottomRef.current) {
-      // Wait slightly for layout to settle before scrolling
-      setTimeout(() => {
-        scrollToBottom('auto');
-      }, 80);
-    }
-  };
-
-  vv.addEventListener('resize', handleResize);
-  return () => vv.removeEventListener('resize', handleResize);
-}, [selectedChat?.chat_id]);
-
-// Trigger UI side effects when new messages are added to the store for this active conversation
-useEffect(() => {
-  if (!messages || messages.length === 0 || !selectedChat) return;
-  const lastMsg = messages[messages.length - 1];
-  if (!lastMsg) return;
-
-  const myId = user?.id || user?.user_id;
-  const isMe = lastMsg.sender_id === myId;
-
-  if (!isMe) {
-    // 1. Trigger word animations
-    if (lastMsg.content) {
-      triggerWordEffect(lastMsg.content);
-    }
-
-    // 2. Mark read/delivered if not group
-    const isGroup = selectedChat.is_group || selectedChat.chat_type === 'group';
-    if (!isGroup && !selectedChat.chat_id.startsWith('temp_')) {
-      if (document.hasFocus()) {
-        socket?.emit('mark-read', selectedChat.chat_id);
+        // 5-second safety timer to clear typing state if stop-event is lost
+        const timer = setTimeout(() => {
+          setTypingUsers(prev => prev.filter(t => t.chatId !== data.chatId));
+          if (selectedChatRef.current?.chat_id === data.chatId) {
+            setPartnerIsTyping(false);
+          }
+          typingExpiryTimersRef.current.delete(data.chatId);
+        }, 5000);
+        typingExpiryTimersRef.current.set(data.chatId, timer);
       } else {
-        socket?.emit('mark-delivered', { messageId: lastMsg.message_id, chatId: selectedChat.chat_id });
+        if (isCurrentChat) {
+          setPartnerIsTyping(false);
+        }
+        setTypingUsers(prev => prev.filter(t => t.chatId !== data.chatId));
+      }
+    };
+
+    const handleUserNoteUpdate = (data: { userId: string, note: string | null }) => {
+      setSuggestedContacts((prev: any[]) => prev.map(contact => {
+        if (contact.user_id === data.userId || contact.id === data.userId) {
+          return { ...contact, note: data.note };
+        }
+        return contact;
+      }));
+    };
+
+    const handleGroupPresenceUpdate = (data: { chatId: string, onlineCount: number }) => {
+      setConversations((prev: any[]) => prev.map(chat => {
+        if (chat.chat_id === data.chatId) {
+          return { ...chat, group_online_count: data.onlineCount };
+        }
+        return chat;
+      }));
+      const activeChat = selectedChatRef.current;
+      if (activeChat && activeChat.chat_id === data.chatId) {
+        setSelectedChat(prev => prev ? { ...prev, group_online_count: data.onlineCount } : null);
+      }
+    };
+
+    const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
+      }
+    };
+
+    const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
+      }
+    };
+
+    const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
+      }
+    };
+
+    const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
+      console.log('[DELETE_RECEIVED]', data);
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => {
+          const updated = prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m);
+          const updatedMsg = updated.find(m => m.message_id === data.messageId);
+          console.log('[DELETE_STORE_UPDATED]', updatedMsg);
+          return updated;
+        });
+      }
+    };
+
+    const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.filter(m => m.message_id !== data.messageId));
+      }
+    };
+
+    const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => {
+          if (m.message_id === data.messageId) {
+            const reactions = m.reactions || [];
+            if (reactions.some(r => r.user_id === data.userId)) {
+              return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
+            }
+            return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
+          }
+          return m;
+        }));
+      }
+    };
+    // Lightweight re-fetch wrapper used by chat-updated listener
+    const fetchChatList = () => fetchInbox();
+    const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
+      const activeChatId = currentChatIdRef.current;
+      if (activeChatId && data.chatId === activeChatId) {
+        updateMessagesForChat(activeChatId, prev => prev.map(m => {
+          if (m.message_id === data.messageId) {
+            const reactions = m.reactions || [];
+            return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
+          }
+          return m;
+        }));
+      }
+    };
+
+    const handleNewMessageWrapped = (message: any) => {
+      console.log('[NEW_MESSAGE]', message.chatId);
+      console.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
+      console.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
+      handleNewMessage(message);
+    };
+
+    // Commented out to avoid duplication with useMessageSocket.ts which updates the chatStore directly.
+    // socket.on('new-message', handleNewMessageWrapped);
+    // socket.on('receive_message', handleNewMessage);
+    // socket.on('messages-delivered', handleMessagesDelivered);
+    // socket.on('messages-read', handleMessagesRead);
+    socket.on('user-status', handleUserStatus);
+    socket.on('user-typing', handleUserTyping);
+    socket.on('user-note-update', handleUserNoteUpdate);
+    socket.on('group:presence:update', handleGroupPresenceUpdate);
+    socket.on('message-pinned', handleMessagePinned);
+    socket.on('message-unpinned', handleMessageUnpinned);
+    // socket.on('message-edited', handleMessageEdited);
+    // socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
+    // socket.on('message-deleted-me', handleMessageDeletedMe);
+    // socket.on('new-reaction', handleNewReaction);
+    // socket.on('reaction-removed', handleReactionRemoved);
+
+    // Listen for chat-updated events so the sidebar refreshes
+    const handleChatUpdated = (data: { chatId: string }) => {
+      console.log('[CHAT_UPDATED_RECEIVED]', data);
+      // Re-fetch inbox to pick up new last_message / unread_count
+      fetchInbox();
+    };
+    socket.on('chat-updated', handleChatUpdated);
+
+    const handleReconnect = () => {
+      const activeChatId = currentChatIdRef.current;
+      console.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
+      if (activeChatId && !activeChatId.startsWith('temp_')) {
+        socket.emit('join-chat', activeChatId);
+      }
+    };
+    socket.on('connect', handleReconnect);
+
+    return () => {
+      socket.off('new-message', handleNewMessageWrapped);
+      socket.off('receive_message', handleNewMessage);
+      socket.off('messages-delivered', handleMessagesDelivered);
+      socket.off('messages-read', handleMessagesRead);
+      socket.off('user-status', handleUserStatus);
+      socket.off('user-typing', handleUserTyping);
+      socket.off('user-note-update', handleUserNoteUpdate);
+      socket.off('group:presence:update', handleGroupPresenceUpdate);
+      socket.off('message-pinned', handleMessagePinned);
+      socket.off('message-unpinned', handleMessageUnpinned);
+      socket.off('message-edited', handleMessageEdited);
+      socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
+      socket.off('message-deleted-me', handleMessageDeletedMe);
+      socket.off('new-reaction', handleNewReaction);
+      socket.off('reaction-removed', handleReactionRemoved);
+      socket.off('chat-updated', handleChatUpdated);
+      socket.off('connect', handleReconnect);
+    };
+  }, [socket, user?.id, user?.user_id]);
+
+  const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
+    messagesEndRef.current?.scrollIntoView({ behavior });
+    setUnreadCountInChat(0);
+  };
+
+  // Scroll to bottom when visual viewport height changes (e.g. keyboard opens/closes)
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      if (selectedChat && isNearBottomRef.current) {
+        // Wait slightly for layout to settle before scrolling
+        setTimeout(() => {
+          scrollToBottom('auto');
+        }, 80);
+      }
+    };
+
+    vv.addEventListener('resize', handleResize);
+    return () => vv.removeEventListener('resize', handleResize);
+  }, [selectedChat?.chat_id]);
+
+  // Trigger UI side effects when new messages are added to the store for this active conversation
+  useEffect(() => {
+    if (!messages || messages.length === 0 || !selectedChat) return;
+    const lastMsg = messages[messages.length - 1];
+    if (!lastMsg) return;
+
+    const myId = user?.id || user?.user_id;
+    const isMe = lastMsg.sender_id === myId;
+
+    if (!isMe) {
+      // 1. Trigger word animations
+      if (lastMsg.content) {
+        triggerWordEffect(lastMsg.content);
+      }
+
+      // 2. Mark read/delivered if not group
+      const isGroup = selectedChat.is_group || selectedChat.chat_type === 'group';
+      if (!isGroup && !selectedChat.chat_id.startsWith('temp_')) {
+        if (document.hasFocus()) {
+          socket?.emit('mark-read', selectedChat.chat_id);
+        } else {
+          socket?.emit('mark-delivered', { messageId: lastMsg.message_id, chatId: selectedChat.chat_id });
+        }
       }
     }
-  }
 
-  // 3. Scroll to bottom
-  if (isNearBottomRef.current) {
-    setTimeout(() => scrollToBottom('smooth'), 50);
-  }
-}, [messages.length, selectedChat?.chat_id]);
-
-const triggerWordEffect = (content: string) => {
-  if (!selectedChat) return;
-  const effects = getWordEffects(selectedChat.chat_id);
-  if (!effects || effects.length === 0) return;
-
-  const lowerContent = content.toLowerCase();
-  for (const effect of effects) {
-    if (lowerContent.includes(effect.word)) {
-      setPlayingEffectEmoji(effect.emoji);
-      setTimeout(() => setPlayingEffectEmoji(null), 3000);
-      return;
+    // 3. Scroll to bottom
+    if (isNearBottomRef.current) {
+      setTimeout(() => scrollToBottom('smooth'), 50);
     }
-  }
-};
+  }, [messages.length, selectedChat?.chat_id]);
 
-/**
- * Canonical Media Selection Handler
- * Normalizes input from Direct Camera, Direct File picker, or Attachment Sheet.
- * Ensures media goes through Media Composer & Upload Queue, NEVER text pipeline.
- */
-const handleMediaSelection = async (payload: {
-  source: 'camera' | 'file' | 'picker' | 'attachment';
-  files?: FileList | File[] | null;
-  file?: File | Blob | null;
-  uri?: string;
-  dataUrl?: string;
-  type?: 'image' | 'video' | 'audio' | 'document';
-  fileName?: string;
-}) => {
-  console.log(`[MEDIA_SHORTCUT] source=${payload.source}`);
-  if (!selectedChat) return;
+  const triggerWordEffect = (content: string) => {
+    if (!selectedChat) return;
+    const effects = getWordEffects(selectedChat.chat_id);
+    if (!effects || effects.length === 0) return;
 
-  const normalizedItems: any[] = [];
+    const lowerContent = content.toLowerCase();
+    for (const effect of effects) {
+      if (lowerContent.includes(effect.word)) {
+        setPlayingEffectEmoji(effect.emoji);
+        setTimeout(() => setPlayingEffectEmoji(null), 3000);
+        return;
+      }
+    }
+  };
 
-  // 1. Multiple raw files (from File input / picker)
-  if (payload.files && payload.files.length > 0) {
-    for (let i = 0; i < payload.files.length; i++) {
-      const f = payload.files[i];
+  /**
+   * Canonical Media Selection Handler
+   * Normalizes input from Direct Camera, Direct File picker, or Attachment Sheet.
+   * Ensures media goes through Media Composer & Upload Queue, NEVER text pipeline.
+   */
+  const handleMediaSelection = async (payload: {
+    source: 'camera' | 'file' | 'picker' | 'attachment';
+    files?: FileList | File[] | null;
+    file?: File | Blob | null;
+    uri?: string;
+    dataUrl?: string;
+    type?: 'image' | 'video' | 'audio' | 'document';
+    fileName?: string;
+  }) => {
+    console.log(`[MEDIA_SHORTCUT] source=${payload.source}`);
+    if (!selectedChat) return;
+
+    const normalizedItems: any[] = [];
+
+    // 1. Multiple raw files (from File input / picker)
+    if (payload.files && payload.files.length > 0) {
+      for (let i = 0; i < payload.files.length; i++) {
+        const f = payload.files[i];
+        const mime = f.type || '';
+        let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document';
+        if (mime.startsWith('image/')) mediaType = 'image';
+        else if (mime.startsWith('video/')) mediaType = 'video';
+        else if (mime.startsWith('audio/')) mediaType = 'audio';
+
+        const url = URL.createObjectURL(f);
+        console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name}`);
+        normalizedItems.push({
+          id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+          type: mediaType,
+          url: url,
+          file: f,
+          name: f.name || payload.fileName || `Attachment_${i + 1}`
+        });
+      }
+    }
+    // 2. Single raw file / Blob (from Document input / File picker)
+    else if (payload.file) {
+      const f = payload.file as File;
       const mime = f.type || '';
-      let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document';
+      let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || 'document';
       if (mime.startsWith('image/')) mediaType = 'image';
       else if (mime.startsWith('video/')) mediaType = 'video';
       else if (mime.startsWith('audio/')) mediaType = 'audio';
 
       const url = URL.createObjectURL(f);
-      console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name}`);
+      console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name || payload.fileName}`);
       normalizedItems.push({
-        id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
+        id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         type: mediaType,
         url: url,
         file: f,
-        name: f.name || payload.fileName || `Attachment_${i + 1}`
+        name: f.name || payload.fileName || `Attachment_${Date.now()}`
       });
     }
-  } 
-  // 2. Single raw file / Blob (from Document input / File picker)
-  else if (payload.file) {
-    const f = payload.file as File;
-    const mime = f.type || '';
-    let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || 'document';
-    if (mime.startsWith('image/')) mediaType = 'image';
-    else if (mime.startsWith('video/')) mediaType = 'video';
-    else if (mime.startsWith('audio/')) mediaType = 'audio';
+    // 3. DataUrl / URI (from Camera capture or Base64 picker)
+    else if (payload.dataUrl || payload.uri) {
+      const rawUri = payload.dataUrl || payload.uri || '';
+      if (!rawUri) return;
 
-    const url = URL.createObjectURL(f);
-    console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name || payload.fileName}`);
-    normalizedItems.push({
-      id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      type: mediaType,
-      url: url,
-      file: f,
-      name: f.name || payload.fileName || `Attachment_${Date.now()}`
-    });
-  } 
-  // 3. DataUrl / URI (from Camera capture or Base64 picker)
-  else if (payload.dataUrl || payload.uri) {
-    const rawUri = payload.dataUrl || payload.uri || '';
-    if (!rawUri) return;
+      const isVideo = rawUri.startsWith('data:video') || rawUri.includes('video/mp4') || rawUri.endsWith('.mp4') || rawUri.endsWith('.webm');
+      const isAudio = rawUri.startsWith('data:audio') || rawUri.endsWith('.mp3') || rawUri.endsWith('.wav');
+      const isDoc = rawUri.endsWith('.pdf') || rawUri.endsWith('.docx') || rawUri.endsWith('.zip');
+      let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || (isVideo ? 'video' : isAudio ? 'audio' : isDoc ? 'document' : 'image');
 
-    const isVideo = rawUri.startsWith('data:video') || rawUri.includes('video/mp4') || rawUri.endsWith('.mp4') || rawUri.endsWith('.webm');
-    const isAudio = rawUri.startsWith('data:audio') || rawUri.endsWith('.mp3') || rawUri.endsWith('.wav');
-    const isDoc = rawUri.endsWith('.pdf') || rawUri.endsWith('.docx') || rawUri.endsWith('.zip');
-    let mediaType: 'image' | 'video' | 'audio' | 'document' = payload.type || (isVideo ? 'video' : isAudio ? 'audio' : isDoc ? 'document' : 'image');
-
-    let fileBlob: Blob | undefined;
-    try {
-      if (rawUri.startsWith('data:')) {
-        const res = await fetch(rawUri);
-        fileBlob = await res.blob();
+      let fileBlob: Blob | undefined;
+      try {
+        if (rawUri.startsWith('data:')) {
+          const res = await fetch(rawUri);
+          fileBlob = await res.blob();
+        }
+      } catch (err) {
+        console.warn('[Camera] Failed to convert URI to blob:', err);
       }
-    } catch (err) {
-      console.warn('[Camera] Failed to convert URI to blob:', err);
+
+      const name = payload.fileName || `Camera_${mediaType === 'video' ? 'Video' : mediaType === 'audio' ? 'Audio' : 'Photo'}_${Date.now()}`;
+      console.log(`[MEDIA_NORMALIZED] type=${mediaType} name=${name}`);
+      normalizedItems.push({
+        id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        type: mediaType,
+        url: rawUri,
+        file: fileBlob,
+        name: name
+      });
     }
 
-    const name = payload.fileName || `Camera_${mediaType === 'video' ? 'Video' : mediaType === 'audio' ? 'Audio' : 'Photo'}_${Date.now()}`;
-    console.log(`[MEDIA_NORMALIZED] type=${mediaType} name=${name}`);
-    normalizedItems.push({
-      id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      type: mediaType,
-      url: rawUri,
-      file: fileBlob,
-      name: name
-    });
-  }
+    // Reject invalid / empty payload early
+    if (normalizedItems.length === 0) {
+      console.warn('[MEDIA_PIPELINE_WARN] Empty or invalid media payload rejected.');
+      return;
+    }
 
-  // Reject invalid / empty payload early
-  if (normalizedItems.length === 0) {
-    console.warn('[MEDIA_PIPELINE_WARN] Empty or invalid media payload rejected.');
-    return;
-  }
+    // Route documents/audio directly to Upload Queue with optimistic cards, or images/videos into Media Composer
+    const firstItem = normalizedItems[0];
+    if (firstItem.type === 'document' || firstItem.type === 'audio') {
+      setShowAttachmentSheet(false);
+      for (const item of normalizedItems) {
+        const queueId = `upload_${Date.now()}_${item.id}`;
+        const tempMessageId = crypto.randomUUID();
+        console.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
 
-  // Route documents/audio directly to Upload Queue with optimistic cards, or images/videos into Media Composer
-  const firstItem = normalizedItems[0];
-  if (firstItem.type === 'document' || firstItem.type === 'audio') {
-    setShowAttachmentSheet(false);
-    for (const item of normalizedItems) {
-      const queueId = `upload_${Date.now()}_${item.id}`;
-      const tempMessageId = crypto.randomUUID();
-      console.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
+        // Optimistic document / audio message bubble
+        const optimisticMsg: any = {
+          message_id: tempMessageId,
+          id: tempMessageId,
+          sender_id: user?.id || user?.user_id || '',
+          content: item.name || 'Attachment',
+          status: 'sending',
+          sent_at: new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          is_read: false,
+          type: item.type,
+          media_url: item.url,
+          mediaUrl: item.url
+        };
+        console.log(`[MEDIA_MESSAGE_CREATE] messageId=${tempMessageId} type=${item.type}`);
+        updateMessages(prev => [...prev, optimisticMsg]);
+        AudioSessionManager.playSound('send');
+        if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
 
-      // Optimistic document / audio message bubble
-      const optimisticMsg: any = {
-        message_id: tempMessageId,
-        id: tempMessageId,
-        sender_id: user?.id || user?.user_id || '',
-        content: item.name || 'Attachment',
-        status: 'sending',
-        sent_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-        is_read: false,
-        type: item.type,
-        media_url: item.url,
-        mediaUrl: item.url
-      };
-      console.log(`[MEDIA_MESSAGE_CREATE] messageId=${tempMessageId} type=${item.type}`);
-      updateMessages(prev => [...prev, optimisticMsg]);
-      AudioSessionManager.playSound('send');
-      if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
+        setUploadQueue(prev => [...prev, { id: queueId, name: item.name, progress: 0, status: 'uploading' }]);
 
-      setUploadQueue(prev => [...prev, { id: queueId, name: item.name, progress: 0, status: 'uploading' }]);
+        (async () => {
+          try {
+            const filePayload = item.file || item.url;
+            const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
+              setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
+            });
 
-      (async () => {
-        try {
-          const filePayload = item.file || item.url;
-          const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
-            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
-          });
+            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
+            setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
 
-          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
-          setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
+            const finalMediaUrl = uploadedUrl || item.url;
+            if (selectedChat) {
+              const payload = {
+                messageId: tempMessageId,
+                chatId: selectedChat.chat_id,
+                partnerId: selectedChat.partner_id,
+                content: item.name || 'Attachment',
+                type: item.type,
+                mediaUrl: finalMediaUrl
+              };
 
-          const finalMediaUrl = uploadedUrl || item.url;
-          if (selectedChat) {
-            const payload = {
-              messageId: tempMessageId,
-              chatId: selectedChat.chat_id,
-              partnerId: selectedChat.partner_id,
-              content: item.name || 'Attachment',
-              type: item.type,
-              mediaUrl: finalMediaUrl
-            };
-
-            if (socket?.connected) {
-              socket.emit('send-message', payload, (response: any) => {
-                if (response?.success) {
-                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                    ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
-                    : m
-                  ));
-                } else {
-                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                    ? { ...m, status: 'failed' }
-                    : m
-                  ));
-                }
-              });
-            } else {
-              PersistentOfflineQueue.enqueue(payload);
+              if (socket?.connected) {
+                socket.emit('send-message', payload, (response: any) => {
+                  if (response?.success) {
+                    updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                      ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
+                      : m
+                    ));
+                  } else {
+                    updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                      ? { ...m, status: 'failed' }
+                      : m
+                    ));
+                  }
+                });
+              } else {
+                PersistentOfflineQueue.enqueue(payload);
+              }
             }
+          } catch (err) {
+            console.error('[MediaUpload] Upload failed:', err);
+            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+            updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+              ? { ...m, status: 'failed' }
+              : m
+            ));
           }
-        } catch (err) {
-          console.error('[MediaUpload] Upload failed:', err);
-          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
-          updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-            ? { ...m, status: 'failed' }
-            : m
-          ));
-        }
-      })();
+        })();
+      }
+    } else {
+      // Route images / videos into existing Media Composer for preview & captioning
+      setShowAttachmentSheet(false);
+      setSelectedMediaItems(normalizedItems);
+      setMediaCaption('');
+      setShowMediaComposer(true);
     }
-  } else {
-    // Route images / videos into existing Media Composer for preview & captioning
-    setShowAttachmentSheet(false);
-    setSelectedMediaItems(normalizedItems);
-    setMediaCaption('');
-    setShowMediaComposer(true);
-  }
-};
-
-const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string, metadataPayload?: string) => {
-  if (e) e.preventDefault();
-  const currentChatId = selectedChat?.chat_id || '';
-  const storeDraft = useChatStore.getState().drafts[currentChatId] || '';
-  const content = contentOverride || storeDraft;
-  const isRich = !!specialType;
-  if (!content.trim() && !isRich) return;
-  if (!selectedChat) return;
-
-  // Safeguard assertion: Never allow raw media payloads or JSON stringified files into text pipeline
-  const messageType = specialType || 'text';
-  const isMediaPayload = content.includes('"type":"camera_capture"') || content.includes('"type":"file"') || content.startsWith('data:image') || content.startsWith('data:video');
-  if (messageType === 'text' && isMediaPayload) {
-    console.error('[MEDIA_PIPELINE_ERROR] Media attempted to enter text pipeline! Intercepting.', { content });
-    return;
-  }
-
-  const editing = useChatStore.getState().editing;
-  if (editing.messageId && editing.chatId === selectedChat.chat_id) {
-    const msgId = editing.messageId;
-    socket?.emit('edit-message', {
-      messageId: msgId,
-      chatId: selectedChat.chat_id,
-      content
-    }, (response: { success: boolean, error?: string }) => {
-      if (!response.success) {
-        alert(response.error || 'Failed to edit message');
-      }
-    });
-    useChatStore.getState().finishEdit(selectedChat.chat_id);
-    return;
-  }
-
-  if (!isRich) triggerWordEffect(content);
-
-  const sendStartTime = performance.now();
-  // ── Generate a stable UUID BEFORE anything else.
-  // This same ID goes into the optimistic bubble AND the socket payload,
-  // so every retry is idempotent on the server.
-  const messageId = crypto.randomUUID();
-  const optimisticMsg: any = {
-    message_id: messageId,
-    id: messageId,
-    sender_id: user?.id || user?.user_id || '',
-    content: content || (specialType ? `Shared ${specialType}` : ''),
-    status: 'sending',
-    sent_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    is_read: false,
-    type: specialType || 'text',
-    media_url: mediaUrl,
-    mediaUrl: mediaUrl,
-    metadata: metadataPayload
   };
 
-  if (replyToMessage) {
-    optimisticMsg.reply_to_message_id = replyToMessage.message_id;
-    optimisticMsg.reply_content = replyToMessage.content;
-    optimisticMsg.reply_type = replyToMessage.type || 'text';
-    optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
-  }
+  const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string, metadataPayload?: string) => {
+    if (e) e.preventDefault();
+    const currentChatId = selectedChat?.chat_id || '';
+    const storeDraft = useChatStore.getState().drafts[currentChatId] || '';
+    const content = contentOverride || storeDraft;
+    const isRich = !!specialType;
+    if (!content.trim() && !isRich) return;
+    if (!selectedChat) return;
 
-  // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
-  updateMessages(prev => [...prev, optimisticMsg]);
-  if (!contentOverride && !isRich) setNewMessage('');
-  if (selectedChat) {
-    useChatStore.getState().setDraft(selectedChat.chat_id, '');
-  }
-  // Release the sending lock immediately — the message is already visible.
-  // Network status is indicated by the bubble's status field, not the input lock.
-  setSending(false);
+    // Safeguard assertion: Never allow raw media payloads or JSON stringified files into text pipeline
+    const messageType = specialType || 'text';
+    const isMediaPayload = content.includes('"type":"camera_capture"') || content.includes('"type":"file"') || content.startsWith('data:image') || content.startsWith('data:video');
+    if (messageType === 'text' && isMediaPayload) {
+      console.error('[MEDIA_PIPELINE_ERROR] Media attempted to enter text pipeline! Intercepting.', { content });
+      return;
+    }
 
-  const localRenderMs = Math.round(performance.now() - sendStartTime);
-
-  // ── Sparkle Audio: instant 'send' feedback ──
-  AudioSessionManager.playSound('send');
-
-  // Auto scroll if was at bottom
-  if (isNearBottom) {
-    setTimeout(() => scrollToBottom('smooth'), 50);
-  }
-
-  // Stop typing immediately on send
-  if (isTypingRef.current) {
-    socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
-    isTypingRef.current = false;
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-  }
-
-  const payload: any = {
-    messageId,               // ← client UUID travels to server for idempotency
-    chatId: selectedChat.chat_id,
-    partnerId: selectedChat.partner_id,
-    content: content || (specialType ? `Shared ${specialType}` : ''),
-    type: specialType || 'text',
-    mediaUrl: mediaUrl,
-    metadata: metadataPayload
-  };
-
-  if (replyToMessage) {
-    payload.replyToId = replyToMessage.message_id;
-  }
-
-  const currentReplyTo = replyToMessage;
-  if (selectedChat) {
-    useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
-  }
-
-  // ── Step 2: Transmit via WebSocket in the background ──
-  // The message is already visible to the user (status: 'sending').
-  // The ACK merely upgrades the status to 'sent' and reconciles the UUID.
-  const emitStartTime = performance.now();
-  if (socket?.connected) {
-    socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
-      const serverAckMs = Math.round(performance.now() - emitStartTime);
-      const totalMs = Math.round(performance.now() - sendStartTime);
-      console.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
-      if (response.success && response.messageId) {
-        if (selectedChat) {
-          useChatStore.getState().setDraft(selectedChat.chat_id, '');
+    const editing = useChatStore.getState().editing;
+    if (editing.messageId && editing.chatId === selectedChat.chat_id) {
+      const msgId = editing.messageId;
+      socket?.emit('edit-message', {
+        messageId: msgId,
+        chatId: selectedChat.chat_id,
+        content
+      }, (response: { success: boolean, error?: string }) => {
+        if (!response.success) {
+          alert(response.error || 'Failed to edit message');
         }
-        // ACK received — reconcile: the server echoed back the same UUID we sent,
-        // so we just update status + server-authoritative sentAt in-place.
-        updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
-          ? {
-            ...m,
-            message_id: response.messageId!,
-            id: response.messageId!,
-            status: 'sent',
-            sent_at: response.sentAt || m.sent_at,
-            reply_to_message_id: currentReplyTo?.message_id || null,
-            reply_content: currentReplyTo?.content || null,
-            reply_type: currentReplyTo?.type || null
-          }
-          : m
-        ));
-        setConversations((prev: any[]) => {
-          const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
-          if (chatIndex >= 0) {
-            const newConvs = [...prev];
-            const preview = specialType === 'location'
-              ? '📍 Location'
-              : specialType === 'live_location'
-              ? '📍 Live Location'
-              : (content || (specialType ? `Shared ${specialType}` : ''));
-            chat.last_message = preview;
-            chat.last_message_type = specialType || 'text';
-            chat.last_message_content = preview;
-            chat.last_message_status = 'sent';
-            chat.last_message_time = response.sentAt || chat.last_message_time;
-            newConvs.splice(chatIndex, 1);
-            newConvs.unshift(chat);
-            return newConvs;
-          }
-          return prev;
-        });
-      } else {
-        // Network or server error — mark as 'failed' so UI can show retry option.
-        // We do NOT delete the message; it stays visible with a retry affordance.
-        console.error('[Sparkle] Failed to send message via socket:', response?.error);
-        updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
-          ? { ...m, status: 'failed' }
-          : m
-        ));
-      }
-    });
-  } else {
-    // Socket is not connected — persist to offline queue using the same UUID.
-    // useMessageSocket will flush this on reconnect with the same messageId,
-    // so the server can deduplicate any prior attempt.
+      });
+      useChatStore.getState().finishEdit(selectedChat.chat_id);
+      return;
+    }
+
+    if (!isRich) triggerWordEffect(content);
+
+    const sendStartTime = performance.now();
+    // ── Generate a stable UUID BEFORE anything else.
+    // This same ID goes into the optimistic bubble AND the socket payload,
+    // so every retry is idempotent on the server.
+    const messageId = crypto.randomUUID();
+    const optimisticMsg: any = {
+      message_id: messageId,
+      id: messageId,
+      sender_id: user?.id || user?.user_id || '',
+      content: content || (specialType ? `Shared ${specialType}` : ''),
+      status: 'sending',
+      sent_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      is_read: false,
+      type: specialType || 'text',
+      media_url: mediaUrl,
+      mediaUrl: mediaUrl,
+      metadata: metadataPayload
+    };
+
+    if (replyToMessage) {
+      optimisticMsg.reply_to_message_id = replyToMessage.message_id;
+      optimisticMsg.reply_content = replyToMessage.content;
+      optimisticMsg.reply_type = replyToMessage.type || 'text';
+      optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
+    }
+
+    // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
+    updateMessages(prev => [...prev, optimisticMsg]);
+    if (!contentOverride && !isRich) setNewMessage('');
+    if (selectedChat) {
+      useChatStore.getState().setDraft(selectedChat.chat_id, '');
+    }
+    // Release the sending lock immediately — the message is already visible.
+    // Network status is indicated by the bubble's status field, not the input lock.
+    setSending(false);
+
+    const localRenderMs = Math.round(performance.now() - sendStartTime);
+
+    // ── Sparkle Audio: instant 'send' feedback ──
+    AudioSessionManager.playSound('send');
+
+    // Auto scroll if was at bottom
+    if (isNearBottom) {
+      setTimeout(() => scrollToBottom('smooth'), 50);
+    }
+
+    // Stop typing immediately on send
+    if (isTypingRef.current) {
+      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+      isTypingRef.current = false;
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    }
+
+    const payload: any = {
+      messageId,               // ← client UUID travels to server for idempotency
+      chatId: selectedChat.chat_id,
+      partnerId: selectedChat.partner_id,
+      content: content || (specialType ? `Shared ${specialType}` : ''),
+      type: specialType || 'text',
+      mediaUrl: mediaUrl,
+      metadata: metadataPayload
+    };
+
+    if (replyToMessage) {
+      payload.replyToId = replyToMessage.message_id;
+    }
+
+    const currentReplyTo = replyToMessage;
+    if (selectedChat) {
+      useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
+    }
+
+    // ── Step 2: Enqueue to Durable Local Outbox FIRST ──
     PersistentOfflineQueue.enqueue({
       messageId,
       chatId: selectedChat.chat_id,
@@ -2741,517 +2958,590 @@ const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, 
       content: content || (specialType ? `Shared ${specialType}` : ''),
       type: specialType || 'text',
       mediaUrl: mediaUrl,
-    }).then(() => {
-      console.log('[Sparkle] Message queued for offline delivery:', messageId);
-    });
-    // Message stays as 'sending' — will be upgraded to 'sent' on reconnect flush
-  }
-};
+      replyToId: currentReplyTo?.message_id,
+      context: 'chat'
+    }).catch((err) => console.warn('[Sparkle] Outbox persistence warning:', err));
 
-const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
-
-/**
- * Retry a failed message using its existing UUID — fully idempotent.
- * The server will return the existing message if it already has the UUID,
- * so this is safe to call multiple times.
- */
-const handleRetryMessage = (failedMsg: any) => {
-  if (!socket || !selectedChat) return;
-  const msgId = failedMsg.message_id || failedMsg.id;
-
-  // Mark back to 'sending'
-  updateMessages(prev => prev.map(m =>
-    (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'sending' } : m
-  ));
-
-  const payload: any = {
-    messageId: msgId,  // same UUID — server deduplicates
-    chatId: selectedChat.chat_id,
-    partnerId: selectedChat.partner_id,
-    content: failedMsg.content,
-    type: failedMsg.type || 'text',
-    mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
-  };
-  if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
-
-  socket.emit('send-message', payload, (response: any) => {
-    if (response?.success && response.messageId) {
-      updateMessages(prev => prev.map(m =>
-        (m.message_id === msgId || m.id === msgId)
-          ? { ...m, message_id: response.messageId, id: response.messageId, status: 'sent', sent_at: response.sentAt || m.sent_at }
-          : m
-      ));
-    } else {
-      updateMessages(prev => prev.map(m =>
-        (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'failed' } : m
-      ));
-    }
-  });
-};
-
-const handleVoiceSend = async (file: File, durationSeconds?: number, source: 'recorded_voice_note' | 'device_audio_attachment' = 'recorded_voice_note') => {
-  if (!selectedChat) return;
-
-  const clientMessageId = crypto.randomUUID();
-  const blobUrl = URL.createObjectURL(file);
-  const queueId = `upload_${clientMessageId}`;
-
-  const messageType = source === 'device_audio_attachment' ? 'audio' : 'voice_note';
-  const metadataPayload = JSON.stringify({
-    duration: durationSeconds || 0,
-    source,
-    fileName: file.name,
-    fileSize: file.size,
-    mimeType: file.type
-  });
-
-  const optimisticMsg: any = {
-    message_id: clientMessageId,
-    id: clientMessageId,
-    sender_id: user?.id || user?.user_id || '',
-    content: source === 'device_audio_attachment' ? file.name : '🎤 Voice note',
-    status: 'sending',
-    sent_at: new Date().toISOString(),
-    created_at: new Date().toISOString(),
-    is_read: false,
-    type: messageType,
-    media_url: blobUrl,
-    mediaUrl: blobUrl,
-    metadata: metadataPayload
-  };
-
-  if (replyToMessage) {
-    optimisticMsg.reply_to_message_id = replyToMessage.message_id;
-    optimisticMsg.reply_content = replyToMessage.content;
-    optimisticMsg.reply_type = replyToMessage.type || 'text';
-    optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
-  }
-
-  // 1. Instantly render voice/audio message bubble optimistically
-  updateMessages(prev => [...prev, optimisticMsg]);
-  AudioSessionManager.playSound('send');
-
-  // Clear reply state if set
-  if (selectedChat) {
-    useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
-  }
-
-  // 2. Queue background upload
-  setUploadQueue(prev => [...prev, { id: queueId, name: file.name || 'Voice Note', progress: 0, status: 'uploading' }]);
-
-  try {
-    const mediaUrl = await uploadFileWithProgress(file, (progress) => {
-      setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress } : item));
-    });
-
-    setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: 100, status: 'completed' } : item));
-    setTimeout(() => {
-      setUploadQueue(prev => prev.filter(item => item.id !== queueId));
-    }, 3000);
-
-    if (mediaUrl) {
-      // 3. Update local message bubble with uploaded URL
-      updateMessages(prev => prev.map(m =>
-        (m.message_id === clientMessageId || m.id === clientMessageId)
-          ? { ...m, media_url: mediaUrl, mediaUrl: mediaUrl }
-          : m
-      ));
-
-      // 4. Emit message payload with clientMessageId over socket / offline queue
-      const payload: any = {
-        messageId: clientMessageId,
-        chatId: selectedChat.chat_id,
-        partnerId: selectedChat.partner_id,
-        content: optimisticMsg.content,
-        type: messageType,
-        mediaUrl,
-        metadata: metadataPayload
-      };
-      if (replyToMessage) payload.replyToId = replyToMessage.message_id;
-
-      if (socket && socket.connected) {
-        socket.emit('send-message', payload, (response: any) => {
-          if (response?.success) {
-            updateMessages(prev => prev.map(m =>
-              (m.message_id === clientMessageId || m.id === clientMessageId)
-                ? { ...m, status: 'sent', sent_at: response.sentAt || m.sent_at }
-                : m
-            ));
-          } else {
-            updateMessages(prev => prev.map(m =>
-              (m.message_id === clientMessageId || m.id === clientMessageId)
-                ? { ...m, status: 'failed' }
-                : m
-            ));
-          }
-        });
-      } else {
-        PersistentOfflineQueue.enqueue(payload);
+    // Start individual 10-second delivery timeout timer
+    PersistentOfflineQueue.startMessageTimeout(messageId, () => {
+      updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'failed' } : m)));
+      if (selectedChat) {
+        useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'failed' });
       }
+    });
+
+    // ── Step 3: Transmit via WebSocket if connected ──
+    const emitStartTime = performance.now();
+    if (socket?.connected) {
+      socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
+        const serverAckMs = Math.round(performance.now() - emitStartTime);
+        const totalMs = Math.round(performance.now() - sendStartTime);
+        console.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
+        if (response && response.success && response.messageId) {
+          PersistentOfflineQueue.acknowledge(messageId);
+          if (selectedChat) {
+            useChatStore.getState().setDraft(selectedChat.chat_id, '');
+          }
+          updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
+            ? {
+              ...m,
+              message_id: response.messageId!,
+              id: response.messageId!,
+              status: 'sent',
+              sent_at: response.sentAt || m.sent_at,
+              reply_to_message_id: currentReplyTo?.message_id || null,
+              reply_content: currentReplyTo?.content || null,
+              reply_type: currentReplyTo?.type || null
+            }
+            : m
+          ));
+          setConversations((prev: any[]) => {
+            const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
+            if (chatIndex >= 0) {
+              const newConvs = [...prev];
+              const chat = { ...newConvs[chatIndex] };
+              const preview = specialType === 'location'
+                ? '📍 Location'
+                : specialType === 'live_location'
+                  ? '📍 Live Location'
+                  : (content || (specialType ? `Shared ${specialType}` : ''));
+              chat.last_message = preview;
+              chat.last_message_type = specialType || 'text';
+              chat.last_message_content = preview;
+              chat.last_message_status = 'sent';
+              chat.last_message_time = response.sentAt || chat.last_message_time;
+              newConvs.splice(chatIndex, 1);
+              newConvs.unshift(chat);
+              return newConvs;
+            }
+            return prev;
+          });
+        } else {
+          console.warn('[Sparkle] Socket emit unacknowledged, message remains in outbox:', response?.error);
+        }
+      });
     } else {
+      console.log('[Sparkle] Offline — message safely persisted in local outbox:', messageId);
+    }
+  };
+
+  const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
+
+  /**
+   * Retry a failed message using its existing UUID — fully idempotent.
+   * The server will return the existing message if it already has the UUID,
+   * so this is safe to call multiple times.
+   */
+  const handleRetryMessage = (failedMsg: any) => {
+    if (!selectedChat) return;
+    const msgId = failedMsg.message_id || failedMsg.id;
+
+    // Mark back to 'sending'
+    updateMessages(prev => prev.map(m =>
+      (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'sending' } : m
+    ));
+    useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'sending' });
+    PersistentOfflineQueue.updateStatus(msgId, 'sending');
+
+    // Start individual 10-second timer for manual resend attempt
+    PersistentOfflineQueue.startMessageTimeout(msgId, () => {
+      updateMessages(prev => prev.map(m => (m.message_id === msgId || m.id === msgId ? { ...m, status: 'failed' } : m)));
+      useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'failed' });
+    });
+
+    const payload: any = {
+      messageId: msgId,  // same UUID — server deduplicates
+      chatId: selectedChat.chat_id,
+      partnerId: selectedChat.partner_id,
+      content: failedMsg.content,
+      type: failedMsg.type || 'text',
+      mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
+    };
+    if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
+
+    if (socket?.connected) {
+      socket.emit('send-message', payload, (response: any) => {
+        if (response?.success && response.messageId) {
+          PersistentOfflineQueue.acknowledge(msgId);
+          updateMessages(prev => prev.map(m =>
+            (m.message_id === msgId || m.id === msgId)
+              ? { ...m, message_id: response.messageId, id: response.messageId, status: 'sent', sent_at: response.sentAt || m.sent_at }
+              : m
+          ));
+        } else {
+          PersistentOfflineQueue.markFailed(msgId);
+          updateMessages(prev => prev.map(m =>
+            (m.message_id === msgId || m.id === msgId) ? { ...m, status: 'failed' } : m
+          ));
+        }
+      });
+    } else {
+      console.log('[Sparkle] Retry queued offline, will sync when connection returns:', msgId);
+    }
+  };
+
+  const handleVoiceSend = async (file: File, durationSeconds?: number, source: 'recorded_voice_note' | 'device_audio_attachment' = 'recorded_voice_note') => {
+    if (!selectedChat) return;
+
+    const clientMessageId = crypto.randomUUID();
+    const blobUrl = URL.createObjectURL(file);
+    const queueId = `upload_${clientMessageId}`;
+
+    const messageType = source === 'device_audio_attachment' ? 'audio' : 'voice_note';
+    const metadataPayload = JSON.stringify({
+      duration: durationSeconds || 0,
+      source,
+      fileName: file.name,
+      fileSize: file.size,
+      mimeType: file.type
+    });
+
+    const optimisticMsg: any = {
+      message_id: clientMessageId,
+      id: clientMessageId,
+      sender_id: user?.id || user?.user_id || '',
+      content: source === 'device_audio_attachment' ? file.name : '🎤 Voice note',
+      status: 'sending',
+      sent_at: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      is_read: false,
+      type: messageType,
+      media_url: blobUrl,
+      mediaUrl: blobUrl,
+      metadata: metadataPayload
+    };
+
+    if (replyToMessage) {
+      optimisticMsg.reply_to_message_id = replyToMessage.message_id;
+      optimisticMsg.reply_content = replyToMessage.content;
+      optimisticMsg.reply_type = replyToMessage.type || 'text';
+      optimisticMsg.reply_sender_name = replyToMessage.sender_name || replyToMessage.sender_username || 'User';
+    }
+
+    // 1. Instantly render voice/audio message bubble optimistically
+    updateMessages(prev => [...prev, optimisticMsg]);
+    AudioSessionManager.playSound('send');
+
+    // Clear reply state if set
+    if (selectedChat) {
+      useChatStore.getState().setReplyTarget(selectedChat.chat_id, undefined);
+    }
+
+    // 2. Queue background upload
+    setUploadQueue(prev => [...prev, { id: queueId, name: file.name || 'Voice Note', progress: 0, status: 'uploading' }]);
+
+    try {
+      const mediaUrl = await uploadFileWithProgress(file, (progress) => {
+        setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress } : item));
+      });
+
+      setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, progress: 100, status: 'completed' } : item));
+      setTimeout(() => {
+        setUploadQueue(prev => prev.filter(item => item.id !== queueId));
+      }, 3000);
+
+      if (mediaUrl) {
+        // 3. Update local message bubble with uploaded URL
+        updateMessages(prev => prev.map(m =>
+          (m.message_id === clientMessageId || m.id === clientMessageId)
+            ? { ...m, media_url: mediaUrl, mediaUrl: mediaUrl }
+            : m
+        ));
+
+        // 4. Emit message payload with clientMessageId over socket / offline queue
+        const payload: any = {
+          messageId: clientMessageId,
+          chatId: selectedChat.chat_id,
+          partnerId: selectedChat.partner_id,
+          content: optimisticMsg.content,
+          type: messageType,
+          mediaUrl,
+          metadata: metadataPayload
+        };
+        if (replyToMessage) payload.replyToId = replyToMessage.message_id;
+
+        if (socket && socket.connected) {
+          socket.emit('send-message', payload, (response: any) => {
+            if (response?.success) {
+              updateMessages(prev => prev.map(m =>
+                (m.message_id === clientMessageId || m.id === clientMessageId)
+                  ? { ...m, status: 'sent', sent_at: response.sentAt || m.sent_at }
+                  : m
+              ));
+            } else {
+              updateMessages(prev => prev.map(m =>
+                (m.message_id === clientMessageId || m.id === clientMessageId)
+                  ? { ...m, status: 'failed' }
+                  : m
+              ));
+            }
+          });
+        } else {
+          PersistentOfflineQueue.enqueue(payload);
+        }
+      } else {
+        updateMessages(prev => prev.map(m =>
+          (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
+        ));
+      }
+    } catch (err) {
+      console.error('Failed to upload voice/audio note:', err);
+      setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
       updateMessages(prev => prev.map(m =>
         (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
       ));
     }
-  } catch (err) {
-    console.error('Failed to upload voice/audio note:', err);
-    setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
-    updateMessages(prev => prev.map(m =>
-      (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
-    ));
-  }
-};
-
-const handleDeleteMessage = async (msgId: string) => {
-  updateMessages(prev => prev.filter(m => m.message_id !== msgId));
-  if (socket && selectedChat) {
-    socket.emit('delete-for-everyone', {
-      messageId: msgId,
-      chatId: selectedChat.chat_id,
-      isGroup: selectedChat.type === 'group'
-    });
-  }
-};
-
-const handleReactToMessage = async (msgId: string, emoji: string) => {
-  if (!selectedChat) return;
-  const chatId = selectedChat.chat_id;
-  const currentUserId = user?.id || user?.user_id;
-  if (!currentUserId) return;
-
-  // Find message in current list
-  const targetMsg = messages.find(m => (m.message_id === msgId || (m as any).id === msgId));
-  const currentReactions = targetMsg?.reactions || [];
-  const myExistingReaction = currentReactions.find((r: any) => r.user_id === currentUserId);
-
-  if (myExistingReaction && myExistingReaction.emoji === emoji) {
-    // Toggle off / remove reaction
-    useChatStore.getState().removeReaction(chatId, msgId, currentUserId, emoji);
-    const item = PersistentOfflineQueue.enqueueInteraction({
-      type: 'remove-reaction',
-      chatId,
-      messageId: msgId
-    });
-    if (socket && socket.connected) {
-      socket.emit('remove-reaction', { ...item, operationId: item.operationId });
-    }
-  } else {
-    // Add / Replace reaction
-    useChatStore.getState().addReaction(chatId, msgId, currentUserId, emoji);
-    const item = PersistentOfflineQueue.enqueueInteraction({
-      type: 'add-reaction',
-      chatId,
-      messageId: msgId,
-      emoji
-    });
-    if (socket && socket.connected) {
-      socket.emit('add-reaction', { ...item, operationId: item.operationId });
-    }
-  }
-};
-const handleTyping = (val: string) => {
-  setNewMessage(val);
-  if (val.length > 0 && !isMenuCollapsed) setIsMenuCollapsed(true);
-  if (val.length === 0 && isMenuCollapsed) setIsMenuCollapsed(false);
-
-  if (selectedChat) {
-    // Logic for typing:start / typing:stop
-    if (!isTypingRef.current && val.length > 0) {
-      isTypingRef.current = true;
-      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: true });
-    } else if (isTypingRef.current && val.length === 0) {
-      isTypingRef.current = false;
-      socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
-    }
-
-    // Refresh timeout for inactivity
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    if (val.length > 0) {
-      typingTimeoutRef.current = setTimeout(() => {
-        isTypingRef.current = false;
-        socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
-      }, 2000);
-    }
-  }
-};
-const handleScroll = (e: any) => {
-  const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
-  const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
-  setIsNearBottom(nearBottom);
-  isNearBottomRef.current = nearBottom;
-  setShowScrollToBottom(!nearBottom);
-  if (nearBottom) setUnreadCountInChat(0);
-
-  // Mark as scrolling — debounce the stop signal 300ms after last scroll event
-  // This dims header presence text ONLY during active scrolling, then restores it.
-  // No looping timers: purely reactive to user input.
-  setIsScrollingMessages(true);
-  if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
-  scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
-};
-// Memoized filtered messages based on search term
-const filteredMessages = useMemo(() => {
-  if (!messageSearch.trim()) return messages;
-  const term = messageSearch.trim().toLowerCase();
-  return messages.filter(m => (m.content ?? '').toLowerCase().includes(term));
-}, [messages, messageSearch]);
-
-const pinnedMessages = useMemo(() => {
-  return messages.filter(m => m.pinned);
-}, [messages]);
-
-const startNewChat = (contact: any) => {
-  const existing = conversations.find(c => c.partner_id === contact.user_id);
-  if (existing) {
-    setSelectedChat(existing);
-  } else {
-    setSelectedChat({
-      chat_id: 'temp_' + Date.now(),
-      partner_id: contact.user_id,
-      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
-      partner_avatar: contact.avatar_url,
-      unread_count: 0,
-      last_message_time: new Date().toISOString()
-    });
-  }
-  setShowNewChatModal(false);
-};
-
-const handleAction = (label: string) => {
-  if (label === 'Customize themes') setActiveSettingView('customize');
-  else alert(`Action: ${label}`);
-};
-
-const handleApplyTheme = () => {
-  if (previewThemeId && selectedChat) {
-    const theme = PRESET_THEMES.find(t => t.id === previewThemeId);
-    if (theme) setThemeForChat(selectedChat.chat_id, theme);
-    setPreviewThemeId(null);
-    setActiveSettingView('main');
-  }
-};
-
-const safeTime = (time: string) => {
-  if (!time) return '';
-  const date = new Date(time);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-};
-
-/**
- * WhatsApp-style absolute last-seen for private chat header.
- * Never uses relative counters — always anchors to today / yesterday / weekday / date.
- * "last seen" prefix is added by the JSX caller.
- */
-const formatLastSeen = (time: string) => formatLastSeenChat(time);
-
-const formatMessageText = (content?: string) => {
-  if (!content) return '';
-  try {
-    const parsed = JSON.parse(content);
-    if (parsed.type === 'camera_capture') return '📷 Photo';
-    if (parsed.type === 'marketplace_inquiry') return '🛒 Marketplace inquiry';
-  } catch (e) { }
-  return content;
-};
-
-const getDeletedMessageText = (msg: any, isMe: boolean) => {
-  const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group';
-  if (!isGroup) {
-    return isMe ? "You deleted this message" : "This message was deleted";
-  } else {
-    if (isMe) return "You deleted this message";
-    if (msg.content && msg.content.includes("deleted by admin")) {
-      return msg.content;
-    }
-    return `Message deleted by ${msg.sender_name || msg.sender_username || 'User'}`;
-  }
-};
-
-const getStatusLabel = (chat: ChatConversation) => {
-  // Only show outgoing receipt status when there are no unread incoming messages
-  if ((chat.unread_count ?? 0) > 0) return '';
-  // Map backend 'read' → display 'Seen', 'delivered' → 'Delivered', else 'Sent'
-  // IMPORTANT: Never derive 'Delivered' from partner_online — that causes false positives.
-  // Status must only advance via explicit socket ACK (mark-delivered / join-chat).
-  const s = chat.last_message_status;
-  if (s === 'read' || s === 'seen') return 'Seen';
-  if (s === 'delivered') return 'Delivered';
-  if (s === 'sent') return 'Sent';
-  return '';
-};
-
-/** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
-const getTimeAgo = (time?: string) => formatChatTimestamp(time);
-
-// --- Filtered & Sorted conversations ---
-const filteredConversations = useMemo(() => {
-  const convsList = Array.isArray(conversations) ? conversations : [];
-  let list = convsList;
-  if (activeFilter === 'unread') {
-    list = convsList.filter(c => (c.unread_count || 0) > 0 && !c.is_archived);
-  } else if (activeFilter === 'groups') {
-    list = convsList.filter(c => !!(c.is_group || c.chat_type === 'group') && !c.is_archived);
-  } else if (activeFilter === 'archived') {
-    list = convsList.filter(c => !!c.is_archived);
-  } else {
-    const custom = customLists.find(l => l.id === activeFilter);
-    if (custom) {
-      list = convsList.filter(c => custom.chatIds.includes(c.chat_id) && !c.is_archived);
-    } else {
-      // Main 'all' tab: hide archived chats
-      list = convsList.filter(c => !c.is_archived);
-    }
-  }
-
-  // Filter by message search query if typed
-  if (messageSearch.trim()) {
-    const q = messageSearch.toLowerCase();
-    list = list.filter(c => {
-      const identity = IdentityManager.resolveIdentity(c);
-      const name = (identity.displayName || c.partner_name || '').toLowerCase();
-      const msg = (c.last_message || '').toLowerCase();
-      return name.includes(q) || msg.includes(q);
-    });
-  }
-
-  // Tiered sorting: Pinned -> Priority/Favorites -> Normal (by newest timestamp)
-  return [...list].sort((a, b) => {
-    const aPinned = a.is_pinned ? 1 : 0;
-    const bPinned = b.is_pinned ? 1 : 0;
-    if (aPinned !== bPinned) return bPinned - aPinned;
-
-    const aPriority = (a.is_priority || a.is_favorite) ? 1 : 0;
-    const bPriority = (b.is_priority || b.is_favorite) ? 1 : 0;
-    if (aPriority !== bPriority) return bPriority - aPriority;
-
-    const aTime = new Date(a.last_message_at || a.last_message_time || 0).getTime();
-    const bTime = new Date(b.last_message_at || b.last_message_time || 0).getTime();
-    return bTime - aTime;
-  });
-}, [conversations, activeFilter, customLists, messageSearch]);
-
-
-const visibleTabs = useMemo(() => {
-  const presetLabels: Record<string, string> = {
-    all: 'All',
-    unread: 'Unread',
-    groups: 'Groups',
-    archived: 'Archived'
   };
 
-  return tabOrder
-    .filter(id => !hiddenTabs.includes(id))
-    .map(id => {
-      const custom = customLists.find(l => l.id === id);
-      return {
-        id,
-        label: custom ? custom.name : (presetLabels[id] || id),
-        isCustom: !!custom,
-        isMuted: custom?.isMuted
-      };
+  const handleDeleteMessage = async (msgId: string) => {
+    updateMessages(prev => prev.filter(m => m.message_id !== msgId));
+    if (socket && selectedChat) {
+      socket.emit('delete-for-everyone', {
+        messageId: msgId,
+        chatId: selectedChat.chat_id,
+        isGroup: selectedChat.type === 'group'
+      });
+    }
+  };
+
+  const handleReactToMessage = async (msgId: string, emoji: string) => {
+    if (!selectedChat) return;
+    const chatId = selectedChat.chat_id;
+    const currentUserId = user?.id || user?.user_id;
+    if (!currentUserId) return;
+
+    // Find message in current list
+    const targetMsg = messages.find(m => (m.message_id === msgId || (m as any).id === msgId));
+    const currentReactions = targetMsg?.reactions || [];
+    const myExistingReaction = currentReactions.find((r: any) => r.user_id === currentUserId);
+
+    if (myExistingReaction && myExistingReaction.emoji === emoji) {
+      // Toggle off / remove reaction
+      useChatStore.getState().removeReaction(chatId, msgId, currentUserId, emoji);
+      const item = PersistentOfflineQueue.enqueueInteraction({
+        type: 'remove-reaction',
+        chatId,
+        messageId: msgId
+      });
+      if (socket && socket.connected) {
+        socket.emit('remove-reaction', { ...item, operationId: item.operationId });
+      }
+    } else {
+      // Add / Replace reaction
+      useChatStore.getState().addReaction(chatId, msgId, currentUserId, emoji);
+      const item = PersistentOfflineQueue.enqueueInteraction({
+        type: 'add-reaction',
+        chatId,
+        messageId: msgId,
+        emoji
+      });
+      if (socket && socket.connected) {
+        socket.emit('add-reaction', { ...item, operationId: item.operationId });
+      }
+    }
+  };
+  const handleTyping = (val: string) => {
+    if (val.length > 0 && !isMenuCollapsed) setIsMenuCollapsed(true);
+    if (val.length === 0 && isMenuCollapsed) setIsMenuCollapsed(false);
+
+    if (selectedChat) {
+      // Logic for typing:start / typing:stop
+      if (!isTypingRef.current && val.length > 0) {
+        isTypingRef.current = true;
+        socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: true });
+      } else if (isTypingRef.current && val.length === 0) {
+        isTypingRef.current = false;
+        socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+      }
+
+      // Refresh timeout for inactivity
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      if (val.length > 0) {
+        typingTimeoutRef.current = setTimeout(() => {
+          isTypingRef.current = false;
+          socket?.emit('typing', { chatId: selectedChat.chat_id, isTyping: false });
+        }, 2000);
+      }
+    }
+  };
+  const handleScroll = (e: any) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const nearBottom = scrollHeight - scrollTop - clientHeight < 100;
+    setIsNearBottom(nearBottom);
+    isNearBottomRef.current = nearBottom;
+    setShowScrollToBottom(!nearBottom);
+    if (nearBottom) setUnreadCountInChat(0);
+
+    // Mark as scrolling — debounce the stop signal 300ms after last scroll event
+    // This dims header presence text ONLY during active scrolling, then restores it.
+    // No looping timers: purely reactive to user input.
+    setIsScrollingMessages(true);
+    if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
+    scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
+  };
+  // Memoized filtered messages based on search term
+  const filteredMessages = useMemo(() => {
+    if (!messageSearch.trim()) return messages;
+    const term = messageSearch.trim().toLowerCase();
+    return messages.filter(m => (m.content ?? '').toLowerCase().includes(term));
+  }, [messages, messageSearch]);
+
+  const pinnedMessages = useMemo(() => {
+    return messages.filter(m => m.pinned);
+  }, [messages]);
+
+  const startNewChat = (contact: any) => {
+    const existing = conversations.find(c => c.partner_id === contact.user_id);
+    if (existing) {
+      setSelectedChat(existing);
+    } else {
+      setSelectedChat({
+        chat_id: 'temp_' + Date.now(),
+        partner_id: contact.user_id,
+        partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
+        partner_avatar: contact.avatar_url,
+        unread_count: 0,
+        last_message_time: new Date().toISOString()
+      });
+    }
+    setShowNewChatModal(false);
+  };
+
+  const handleAction = (label: string) => {
+    if (label === 'Customize themes') setActiveSettingView('customize');
+    else alert(`Action: ${label}`);
+  };
+
+  const handleApplyTheme = () => {
+    if (previewThemeId && selectedChat) {
+      const theme = PRESET_THEMES.find(t => t.id === previewThemeId);
+      if (theme) setThemeForChat(selectedChat.chat_id, theme);
+      setPreviewThemeId(null);
+      setActiveSettingView('main');
+    }
+  };
+
+  const safeTime = (time: string) => {
+    if (!time) return '';
+    const date = new Date(time);
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  /**
+   * WhatsApp-style absolute last-seen for private chat header.
+   * Never uses relative counters — always anchors to today / yesterday / weekday / date.
+   * "last seen" prefix is added by the JSX caller.
+   */
+  const formatLastSeen = (time: string) => formatLastSeenChat(time);
+
+  const formatMessageText = (content?: string) => {
+    if (!content) return '';
+    try {
+      const parsed = JSON.parse(content);
+      if (parsed.type === 'camera_capture') return '📷 Photo';
+      if (parsed.type === 'marketplace_inquiry') return '🛒 Marketplace inquiry';
+    } catch (e) { }
+    return content;
+  };
+
+  const getDeletedMessageText = (msg: any, isMe: boolean) => {
+    const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group';
+    if (!isGroup) {
+      return isMe ? "You deleted this message" : "This message was deleted";
+    } else {
+      if (isMe) return "You deleted this message";
+      if (msg.content && msg.content.includes("deleted by admin")) {
+        return msg.content;
+      }
+      return `Message deleted by ${msg.sender_name || msg.sender_username || 'User'}`;
+    }
+  };
+
+  const getStatusLabel = (chat: ChatConversation) => {
+    // Only show outgoing receipt status when there are no unread incoming messages
+    if ((chat.unread_count ?? 0) > 0) return '';
+    // Map backend 'read' → display 'Seen', 'delivered' → 'Delivered', else 'Sent'
+    // IMPORTANT: Never derive 'Delivered' from partner_online — that causes false positives.
+    // Status must only advance via explicit socket ACK (mark-delivered / join-chat).
+    const s = chat.last_message_status;
+    if (s === 'read' || s === 'seen') return 'Seen';
+    if (s === 'delivered') return 'Delivered';
+    if (s === 'sent') return 'Sent';
+    return '';
+  };
+
+  /** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
+  const getTimeAgo = (time?: string) => formatChatTimestamp(time);
+
+  // --- Filtered & Sorted conversations ---
+  const filteredConversations = useMemo(() => {
+    const convsList = Array.isArray(conversations) ? conversations : [];
+    let list = convsList;
+    if (activeFilter === 'unread') {
+      list = convsList.filter(c => (c.unread_count || 0) > 0 && !c.is_archived);
+    } else if (activeFilter === 'groups') {
+      list = convsList.filter(c => !!(c.is_group || c.chat_type === 'group') && !c.is_archived);
+    } else if (activeFilter === 'archived') {
+      list = convsList.filter(c => !!c.is_archived);
+    } else {
+      const custom = customLists.find(l => l.id === activeFilter);
+      if (custom) {
+        list = convsList.filter(c => custom.chatIds.includes(c.chat_id) && !c.is_archived);
+      } else {
+        // Main 'all' tab: hide archived chats
+        list = convsList.filter(c => !c.is_archived);
+      }
+    }
+
+    // Filter by message search query if typed
+    if (messageSearch.trim()) {
+      const q = messageSearch.toLowerCase();
+      list = list.filter(c => {
+        const identity = IdentityManager.resolveIdentity(c);
+        const name = (identity.displayName || c.partner_name || '').toLowerCase();
+        const msg = (c.last_message || '').toLowerCase();
+        return name.includes(q) || msg.includes(q);
+      });
+    }
+
+    // Tiered sorting: Pinned -> Priority/Favorites -> Normal (by newest timestamp)
+    return [...list].sort((a, b) => {
+      const aPinned = a.is_pinned ? 1 : 0;
+      const bPinned = b.is_pinned ? 1 : 0;
+      if (aPinned !== bPinned) return bPinned - aPinned;
+
+      const aPriority = (a.is_priority || a.is_favorite) ? 1 : 0;
+      const bPriority = (b.is_priority || b.is_favorite) ? 1 : 0;
+      if (aPriority !== bPriority) return bPriority - aPriority;
+
+      const aTime = new Date(a.last_message_at || a.last_message_time || 0).getTime();
+      const bTime = new Date(b.last_message_at || b.last_message_time || 0).getTime();
+      return bTime - aTime;
     });
-}, [tabOrder, hiddenTabs, customLists]);
+  }, [conversations, activeFilter, customLists, messageSearch]);
 
-const handleCreateList = () => {
-  if (!newListName.trim()) return;
-  if (!editingListId) {
-    const id = `list_${Date.now()}`;
-    setPendingListId(id);
-  }
-  setShowNewListFlow('addPeople');
-};
 
-const handleConfirmList = () => {
-  if (!newListName.trim()) return;
-  if (editingListId) {
-    setCustomLists(prev => prev.map(l => l.id === editingListId ? { ...l, name: newListName.trim(), chatIds: listSelectedChats } : l));
-    setActiveFilter(editingListId);
-  } else {
-    const id = pendingListId || `list_${Date.now()}`;
-    setCustomLists(prev => [...prev, { id, name: newListName.trim(), chatIds: listSelectedChats }]);
-    setActiveFilter(id);
-  }
-  setShowNewListFlow('none');
-  setNewListName('');
-  setListSelectedChats([]);
-  setPendingListId(null);
-  setEditingListId(null);
-};
+  const visibleTabs = useMemo(() => {
+    const presetLabels: Record<string, string> = {
+      all: 'All',
+      unread: 'Unread',
+      groups: 'Groups',
+      archived: 'Archived'
+    };
 
-// --- Long Press & Context Menu Event Handlers for Tabs ---
-const touchTimerRef = useRef<any>(null);
+    return tabOrder
+      .filter(id => !hiddenTabs.includes(id))
+      .map(id => {
+        const custom = customLists.find(l => l.id === id);
+        return {
+          id,
+          label: custom ? custom.name : (presetLabels[id] || id),
+          isCustom: !!custom,
+          isMuted: custom?.isMuted
+        };
+      });
+  }, [tabOrder, hiddenTabs, customLists]);
 
-const startTouchTimer = (e: React.TouchEvent, tabId: string) => {
-  const touch = e.touches[0];
-  const clientX = touch.clientX;
-  const clientY = touch.clientY;
+  const handleCreateList = () => {
+    if (!newListName.trim()) return;
+    if (!editingListId) {
+      const id = `list_${Date.now()}`;
+      setPendingListId(id);
+    }
+    setShowNewListFlow('addPeople');
+  };
 
-  if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+  const handleConfirmList = () => {
+    if (!newListName.trim()) return;
+    if (editingListId) {
+      setCustomLists(prev => prev.map(l => l.id === editingListId ? { ...l, name: newListName.trim(), chatIds: listSelectedChats } : l));
+      setActiveFilter(editingListId);
+    } else {
+      const id = pendingListId || `list_${Date.now()}`;
+      setCustomLists(prev => [...prev, { id, name: newListName.trim(), chatIds: listSelectedChats }]);
+      setActiveFilter(id);
+    }
+    setShowNewListFlow('none');
+    setNewListName('');
+    setListSelectedChats([]);
+    setPendingListId(null);
+    setEditingListId(null);
+  };
 
-  touchTimerRef.current = setTimeout(() => {
+  // --- Long Press & Context Menu Event Handlers for Tabs ---
+  const touchTimerRef = useRef<any>(null);
+
+  const startTouchTimer = (e: React.TouchEvent, tabId: string) => {
+    const touch = e.touches[0];
+    const clientX = touch.clientX;
+    const clientY = touch.clientY;
+
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+
+    touchTimerRef.current = setTimeout(() => {
+      setTabDropdown({
+        tabId,
+        x: clientX,
+        y: clientY + 12
+      });
+      if (navigator.vibrate) navigator.vibrate(50);
+    }, 600);
+  };
+
+  const clearTouchTimer = () => {
+    if (touchTimerRef.current) {
+      clearTimeout(touchTimerRef.current);
+      touchTimerRef.current = null;
+    }
+  };
+
+  const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
     setTabDropdown({
       tabId,
-      x: clientX,
-      y: clientY + 12
+      x: e.clientX,
+      y: e.clientY + 8
     });
-    if (navigator.vibrate) navigator.vibrate(50);
-  }, 600);
-};
+  };
 
-const clearTouchTimer = () => {
-  if (touchTimerRef.current) {
-    clearTimeout(touchTimerRef.current);
-    touchTimerRef.current = null;
-  }
-};
+  const moveTabInList = (id: string, direction: 'up' | 'down') => {
+    setTempTabOrder(prev => {
+      const isPreset = ['unread', 'groups', 'archived'].includes(id);
+      let activeList: string[] = [];
+      if (isPreset) {
+        activeList = prev.filter(x => ['unread', 'groups', 'archived'].includes(x) && !tempHiddenTabs.includes(x));
+      } else {
+        activeList = prev.filter(x => !['all', 'unread', 'groups', 'archived'].includes(x));
+      }
 
-const handleContextMenu = (e: React.MouseEvent, tabId: string) => {
-  e.preventDefault();
-  setTabDropdown({
-    tabId,
-    x: e.clientX,
-    y: e.clientY + 8
-  });
-};
+      const idx = activeList.indexOf(id);
+      if (idx === -1) return prev;
 
-const moveTabInList = (id: string, direction: 'up' | 'down') => {
-  setTempTabOrder(prev => {
-    const isPreset = ['unread', 'groups', 'archived'].includes(id);
-    let activeList: string[] = [];
-    if (isPreset) {
-      activeList = prev.filter(x => ['unread', 'groups', 'archived'].includes(x) && !tempHiddenTabs.includes(x));
-    } else {
-      activeList = prev.filter(x => !['all', 'unread', 'groups', 'archived'].includes(x));
-    }
+      const newActive = [...activeList];
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx >= 0 && targetIdx < newActive.length) {
+        const temp = newActive[idx];
+        newActive[idx] = newActive[targetIdx];
+        newActive[targetIdx] = temp;
+      }
 
-    const idx = activeList.indexOf(id);
-    if (idx === -1) return prev;
+      const finalPresets = isPreset
+        ? newActive
+        : prev.filter(x => ['unread', 'groups', 'archived'].includes(x));
 
-    const newActive = [...activeList];
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx >= 0 && targetIdx < newActive.length) {
-      const temp = newActive[idx];
-      newActive[idx] = newActive[targetIdx];
-      newActive[targetIdx] = temp;
-    }
+      const finalCustoms = !isPreset
+        ? newActive
+        : prev.filter(x => !['all', 'unread', 'groups', 'archived'].includes(x));
 
-    const finalPresets = isPreset
-      ? newActive
-      : prev.filter(x => ['unread', 'groups', 'archived'].includes(x));
-
-    const finalCustoms = !isPreset
-      ? newActive
-      : prev.filter(x => !['all', 'unread', 'groups', 'archived'].includes(x));
-
-    const finalOrder = [
-      'all',
-      ...finalPresets.filter(x => !tempHiddenTabs.includes(x)),
-      ...finalCustoms.filter(x => !tempHiddenTabs.includes(x)),
-      ...prev.filter(x => tempHiddenTabs.includes(x))
-    ];
-    return finalOrder;
-  });
-};
+      const finalOrder = [
+        'all',
+        ...finalPresets.filter(x => !tempHiddenTabs.includes(x)),
+        ...finalCustoms.filter(x => !tempHiddenTabs.includes(x)),
+        ...prev.filter(x => tempHiddenTabs.includes(x))
+      ];
+      return finalOrder;
+    });
+  };
 
   return (
     <AppScreen>
@@ -3296,6 +3586,13 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                     className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
                   >
                     <SquarePen size={22} strokeWidth={2.2} />
+                  </button>
+                  <button
+                    onClick={() => navigate('/messages/settings')}
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                    title="Message Settings"
+                  >
+                    <Settings size={22} strokeWidth={2.2} />
                   </button>
                   <button
                     onClick={() => setShowOrbitMenu(true)}
@@ -3413,30 +3710,34 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   }}
                   onLongPress={() => toggleChatSelection(chat.chat_id)}
                   onArchive={() => {
-                    const previous = [...conversations];
-                    setConversations(prev => prev.map(c => c.chat_id === chat.chat_id ? { ...c, is_archived: true } : c));
+                    const targetId = chat.chat_id;
+                    toggleArchive(targetId, true);
+                    api.post(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(() => {
+                      api.patch(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(console.error);
+                    });
+
                     setUndoToast({
                       id: 'archive_' + Date.now(),
                       message: 'Chat archived',
-                      undoAction: () => setConversations(previous),
-                      commitAction: () => {
-                        api.post(`/messages/chat/${chat.chat_id}/archive`, { isArchived: true }).catch(() => {
-                          api.patch(`/messages/chat/${chat.chat_id}/archive`, { isArchived: true }).catch(console.error);
+                      undoAction: () => {
+                        toggleArchive(targetId, false);
+                        api.post(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(() => {
+                          api.patch(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(console.error);
                         });
-                      }
+                      },
+                      commitAction: () => { },
                     });
                   }}
                   onDelete={() => {
                     const targetId = chat.chat_id;
-                    const previous = [...conversations];
-                    setConversations(prev => prev.filter(c => c.chat_id !== targetId));
+                    toggleDelete(targetId);
+                    api.delete(`/messages/chat/${targetId}`).catch(console.error);
+
                     setUndoToast({
                       id: 'delete_' + Date.now(),
                       message: 'Conversation deleted',
-                      undoAction: () => setConversations(previous),
-                      commitAction: () => {
-                        api.delete(`/messages/chat/${targetId}`).catch(console.error);
-                      }
+                      undoAction: () => { },
+                      commitAction: () => { },
                     });
                   }}
                   getStatusLabel={(c) => {
@@ -3449,7 +3750,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                         const p = JSON.parse(msgTxt);
                         if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
                         if (p.type === 'live_location') return '📍 Live Location';
-                      } catch (e) {}
+                      } catch (e) { }
                     }
                     return msgTxt || 'No messages yet';
                   }}
@@ -3459,11 +3760,28 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                         const p = JSON.parse(txt);
                         if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
                         if (p.type === 'live_location') return '📍 Live Location';
-                      } catch (e) {}
+                      } catch (e) { }
                     }
                     return txt;
                   }}
-                  typingUsers={typingUsers ? Object.entries(typingUsers).flatMap(([cId, uList]) => uList.map(u => ({ chatId: cId, name: u.username }))) : []}
+                  typingUsers={
+                    Array.isArray(typingUsers)
+                      ? typingUsers
+                      : typingUsers && typeof typingUsers === 'object'
+                        ? Object.entries(typingUsers).flatMap(([cId, uList]) => {
+                          if (Array.isArray(uList)) {
+                            return uList.map((u: any) => ({ chatId: cId, name: typeof u === 'string' ? u : (u?.username || u?.name || 'Someone') }));
+                          }
+                          if (uList && typeof uList === 'object') {
+                            return [{ chatId: cId, name: (uList as any).username || (uList as any).name || 'Someone' }];
+                          }
+                          if (typeof uList === 'string') {
+                            return [{ chatId: cId, name: uList }];
+                          }
+                          return [];
+                        })
+                        : []
+                  }
                 />
               ))
             )}
@@ -3479,7 +3797,14 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           {selectedChat && <ChatBackground theme={currentChatTheme} />}
 
           {selectedChat ? (
-            <>
+            <PullUpDisappearingGesture
+              chatId={selectedChat.chat_id}
+              disappearingDuration={selectedChat.disappearing_duration || 0}
+              onDurationChanged={(newDur) => {
+                setSelectedChat(prev => prev ? { ...prev, disappearing_duration: newDur } : null);
+                useChatStore.getState().updateConversation(selectedChat.chat_id, { disappearing_duration: newDur });
+              }}
+            >
               <StatusBarBackground backgroundColor={currentChatTheme?.colors?.backgroundDark || '#000000'} />
               <header
                 className="h-[56px] z-40 relative px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0"
@@ -3788,14 +4113,21 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                 : 'border-white/30 bg-transparent hover:border-white/50'
                             )}>
                               {isSelected && (
-                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                                <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2.5 6L5 8.5L9.5 3.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                               )}
                             </div>
                           </button>
                         )}
 
                         <div className={clsx((window as any).__sparkleIsOfficialChat && !isMe ? "max-w-[95%]" : "max-w-[72%]", "flex flex-col", isMe ? 'items-end' : 'items-start')}>
-                          <div
+                          <MessageBubbleWrapper
+                            onLongPress={() => {
+                              if (isSelectionMode) return;
+                              setActiveMessageMenu({ msg, type: 'longPress' });
+                              if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                                try { navigator.vibrate(50); } catch (e) { }
+                              }
+                            }}
                             onContextMenu={(e) => {
                               e.preventDefault();
                               if (isSelectionMode) {
@@ -3808,23 +4140,19 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                               }
                               setActiveMessageMenu({ msg, type: 'longPress' });
                             }}
-                            onClick={() => {
+                            onClick={(e) => {
                               if (isSelectionMode) {
                                 setSelectedMessageIds(prev => {
                                   const next = new Set(prev);
                                   if (next.has(msgId)) next.delete(msgId); else next.add(msgId);
                                   return next;
                                 });
-                                return;
-                              }
-                              if (isMe) {
-                                setActiveMessageMenu({ msg, type: 'click' });
                               }
                             }}
                             className={clsx(
                               (window as any).__sparkleIsOfficialChat && !isMe
-                                ? "px-4 py-3 text-[16px] leading-[1.65] transition-all duration-300 relative z-10 min-w-[120px] break-words whitespace-pre-wrap"
-                                : "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap",
+                                ? "px-4 py-3 text-[16px] leading-[1.65] transition-all duration-300 relative z-10 min-w-[120px] break-words whitespace-pre-wrap select-none cursor-pointer"
+                                : "px-2.5 py-1.5 text-[15px] leading-relaxed transition-all duration-300 relative z-10 min-w-[80px] break-words whitespace-pre-wrap select-none cursor-pointer",
                               isMe ? 'rounded-[14px]' : 'rounded-[14px]',
                               isMe && hasTail ? 'rounded-tr-none' : isMe ? 'rounded-tr-[14px]' : '',
                               isMe && isLast ? 'rounded-br-[14px]' : isMe ? 'rounded-br-md' : '',
@@ -3870,7 +4198,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                     replySenderName = replySenderName || refMsg.sender_name || refMsg.sender_username || 'User';
                                     replyType = refMsg.type || 'text';
                                     replyMediaUrl = refMsg.media_url || refMsg.mediaUrl;
-                                    
+
                                     if (refMsg.content && refMsg.content.trim() !== '') {
                                       if (replyType === 'image' || replyType === 'photo') replyContent = `📷 ${refMsg.content}`;
                                       else if (replyType === 'video') replyContent = `🎥 ${refMsg.content}`;
@@ -3969,11 +4297,39 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                       const isTextLike = (!msg.type || msg.type === 'text' || msg.type === 'official' || msg.type === 'system' || msg.type === 'onboarding' || msg.type === 'announcement' || msg.type === 'notification' || msg.type === 'card') && !isLocationMsg;
 
                                       if (isTextLike) {
+                                        const isSparklyBot = msg.sender_id === 'sparkly_bot' || msg.senderId === 'sparkly_bot' || msg.is_sparkly_bot || msg.metadata?.includes('sparkly_bot');
+                                        let cardsList: any[] = msg.structured_data?.cards || [];
+                                        if (cardsList.length === 0 && msg.metadata) {
+                                          try {
+                                            const metaObj = typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata;
+                                            if (Array.isArray(metaObj?.cards)) {
+                                              cardsList = metaObj.cards;
+                                            }
+                                          } catch { }
+                                        }
+
                                         return (
                                           <>
-                                            <span className="whitespace-pre-wrap break-words text-white leading-relaxed font-normal" style={{ color: '#ffffff !important' }}>
-                                              {textContent}
-                                            </span>
+                                            {isSparklyBot && (
+                                              <div className="flex items-center gap-1.5 mb-1.5 pb-1 border-b border-purple-500/20">
+                                                <SparklyAvatar size={18} />
+                                                <span className="text-[11px] font-black text-purple-300">Sparkly AI</span>
+                                              </div>
+                                            )}
+                                            {isSparklyBot ? (
+                                              <SparklyMarkdown content={textContent} className="text-white" />
+                                            ) : (
+                                              <span className="whitespace-pre-wrap break-words text-white leading-relaxed font-normal" style={{ color: '#ffffff' }}>
+                                                {textContent}
+                                              </span>
+                                            )}
+                                            {cardsList.length > 0 && (
+                                              <div className="mt-2.5 space-y-2">
+                                                {cardsList.map((card: any, idx: number) => (
+                                                  <SparklyListingCard key={card.listing_id || idx} listing={card} />
+                                                ))}
+                                              </div>
+                                            )}
                                             <span className="inline-block w-[75px] h-[1px]"></span>
                                           </>
                                         );
@@ -4088,7 +4444,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                       let contactMeta: any = null;
                                       try {
                                         if (msg.metadata) contactMeta = typeof msg.metadata === 'string' ? JSON.parse(msg.metadata) : msg.metadata;
-                                      } catch (e) {}
+                                      } catch (e) { }
 
                                       const contactName = contactMeta?.name || msg.content || 'Contact Card';
                                       const contactPhoneOrHandle = contactMeta?.phone || msg.media_url || msg.mediaUrl || (contactMeta?.username ? `@${contactMeta.username}` : '+1 (555) 019-2834');
@@ -4098,7 +4454,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
                                       return (
                                         <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 min-w-[240px] max-w-[300px] select-none flex flex-col gap-3 my-1">
-                                          <div 
+                                          <div
                                             className="flex items-center gap-3 cursor-pointer group"
                                             onClick={() => {
                                               if (contactUsername) {
@@ -4156,15 +4512,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                 <div className="flex items-center -ml-0.5">
                                   {(selectedChat?.is_group || selectedChat?.chat_type === 'group') ? (
                                     <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
-                                  ) : msg.status === 'failed' ? (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleRetryMessage(msg); }}
-                                      title="Tap to retry"
-                                      className="flex items-center gap-0.5 ml-1"
-                                    >
-                                      <AlertTriangle size={12} className="text-red-400 drop-shadow-md" strokeWidth={2.5} />
-                                    </button>
-                                  ) : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
+                                  ) : msg.status === 'failed' ? null : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
                                     <div className="flex -space-x-[7px] drop-shadow-md">
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
@@ -4182,7 +4530,80 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                                 </div>
                               )}
                             </div>
-                          </div>
+                          </MessageBubbleWrapper>
+
+                          {/* Outer Delivery-Error Row for Outgoing Failed Messages */}
+                          {isMe && msg.status === 'failed' && (
+                            <div className="flex items-center justify-end gap-3 mt-1.5 mb-1.5 px-1 select-none animate-fade-in">
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFailedResendModalMsg(msg);
+                                }}
+                                className="flex items-center gap-2 text-red-500 hover:text-red-400 font-extrabold text-xs tracking-tight transition-colors cursor-pointer group"
+                              >
+                                <span className="w-6 h-6 rounded-full bg-red-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-md shadow-red-600/30 group-hover:scale-110 transition-transform">
+                                  !
+                                </span>
+                                <span className="font-extrabold text-red-500 hover:text-red-400">
+                                  Message not delivered · {safeTime(msg.failed_at || msg.sent_at || msg.created_at || '')}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRetryMessage(msg);
+                                }}
+                                disabled={msg.status === 'sending'}
+                                title="Resend message"
+                                aria-label="Resend message"
+                                className="flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 text-white transition-all cursor-pointer shadow-lg shadow-red-600/40 border border-red-400/30 ml-0.5"
+                              >
+                                <RotateCw size={22} strokeWidth={3} className={clsx("text-white drop-shadow-sm", msg.status === 'sending' && "animate-spin")} />
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Reaction Badges */}
+                          {(() => {
+                            const reacts = msg.reactions || [];
+                            if (!reacts || reacts.length === 0) return null;
+                            const grouped: Record<string, number> = {};
+                            reacts.forEach((r: any) => {
+                              if (r.emoji) grouped[r.emoji] = (grouped[r.emoji] || 0) + 1;
+                            });
+                            const entries = Object.entries(grouped);
+                            if (entries.length === 0) return null;
+
+                            return (
+                              <div
+                                className={clsx(
+                                  'flex items-center gap-1 flex-wrap mt-1 mb-0.5 relative z-20',
+                                  isMe ? 'justify-end' : 'justify-start'
+                                )}
+                              >
+                                {entries.map(([emoji, count]) => (
+                                  <button
+                                    key={emoji}
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      e.preventDefault();
+                                      setReactionSheetMsg(msg);
+                                    }}
+                                    className="flex items-center gap-1 bg-[#1e1e2e]/90 backdrop-blur-md border border-white/15 rounded-full px-2 py-0.5 text-[13px] shadow-lg hover:bg-[#2a2a3e] active:scale-95 transition-all cursor-pointer select-none"
+                                  >
+                                    <span>{emoji}</span>
+                                    {count > 1 && (
+                                      <span className="text-white/80 font-bold text-[11px] ml-0.5">{count}</span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     );
@@ -4261,23 +4682,25 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   selectedChat?.partner_username === 'sparkleofficial' ||
                   selectedChat?.username === 'sparkleofficial' ||
                   selectedChat?.partner_name === 'Sparkle Official'
-                ) && partnerIsTyping && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 36, opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="flex items-center gap-2 px-5 overflow-hidden border-t border-white/5 shrink-0"
-                    style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000' }}
-                  >
-                    <div className="flex gap-1">
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                      <motion.div animate={{ opacity: [0.3, 1, 0.3] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
-                    </div>
-                    <span className="text-[11px] font-semibold text-white/50">{sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username)} is typing…</span>
-                  </motion.div>
-                )}
+                ) && (partnerIsTyping || typingUsers.some(t => t.chatId === selectedChat?.chat_id)) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 36, opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="flex items-center gap-2 px-5 overflow-hidden border-t border-white/5 shrink-0 select-none"
+                      style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000' }}
+                    >
+                      <div className="flex items-center gap-1.5 py-1">
+                        <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                        <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.15 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                        <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.3 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
+                      </div>
+                      <span className="text-[12px] font-bold text-[#ff1493]">
+                        {(typingUsers.find(t => t.chatId === selectedChat?.chat_id)?.name) || sanitizePartnerName(selectedChat?.partner_name, selectedChat?.partner_username)} is typing…
+                      </span>
+                    </motion.div>
+                  )}
               </AnimatePresence>
 
               {isSelectionMode ? (
@@ -4343,9 +4766,10 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                   onVoiceSend={handleVoiceSend}
                   theme={currentChatTheme}
                   replyToMessage={replyToMessage}
+                  onFileSelect={(files: FileList | File[]) => handleMediaSelection({ source: 'file', files })}
                 />
               )}
-            </>
+            </PullUpDisappearingGesture>
           ) : loading ? (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
               <div className="w-8 h-8 border-4 border-[#ff1493] border-t-transparent rounded-full animate-spin"></div>
@@ -4599,6 +5023,30 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         messageId={infoModalMessageId}
         isOpen={!!infoModalMessageId}
         onClose={() => setInfoModalMessageId(null)}
+      />
+
+      <ReactionDetailsSheet
+        isOpen={!!reactionSheetMsg}
+        onClose={() => setReactionSheetMsg(null)}
+        reactions={reactionSheetMsg?.reactions || []}
+        currentUserId={user?.id || user?.user_id || ''}
+        onRemoveReaction={() => {
+          if (reactionSheetMsg) {
+            const myId = user?.id || user?.user_id || '';
+            const myReact = (reactionSheetMsg.reactions || []).find((r: any) => (r.user_id || r.userId) === myId);
+            if (myReact && selectedChat) {
+              handleReactToMessage(reactionSheetMsg.message_id, myReact.emoji);
+            }
+          }
+          setReactionSheetMsg(null);
+        }}
+        onChangeReaction={(emoji) => {
+          if (reactionSheetMsg && selectedChat) {
+            handleReactToMessage(reactionSheetMsg.message_id, emoji);
+          }
+          setReactionSheetMsg(null);
+        }}
+        themeColor={currentChatTheme?.colors?.primary || '#ff1493'}
       />
 
       <FullEmojiPickerModal
@@ -5069,6 +5517,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
 
       {showChatSettings && selectedChat && (
         <ChatSettingsModal
+          key={selectedChat.chat_id || selectedChat.id}
           chat={selectedChat}
           onClose={() => setShowChatSettings(false)}
           onNavigateProfile={() => {
@@ -5118,7 +5567,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
                 {/* Refactored Compact Quick Actions Grid */}
                 <div className="flex flex-col gap-3 py-2">
                   <span className="text-[11px] font-bold text-white/50 text-center tracking-widest uppercase mb-1">Attach</span>
-                  
+
                   {/* Top Row: Camera | Photos | Document */}
                   <div className="grid grid-cols-3 gap-3 px-2">
                     <button
@@ -5997,6 +6446,7 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
         onExportChat={() => alert('Exporting Chat...')}
         onBlockUser={() => alert('User Blocked')}
         onReportUser={() => alert('User Reported')}
+        onMessageSettings={() => navigate('/messages/settings')}
         isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
         isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
         isMuted={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_muted}
@@ -6148,6 +6598,90 @@ const moveTabInList = (id: string, direction: 'up' | 'down') => {
           handleVoiceSend(file, undefined, 'device_audio_attachment');
         }}
       />
+
+      {/* Failed Resend Action Sheet Modal */}
+      <AnimatePresence>
+        {failedResendModalMsg && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="w-full sm:max-w-md bg-slate-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 text-white shadow-2xl space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30">
+                    <AlertCircle size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white">Undelivered Message</h3>
+                    <p className="text-xs text-white/50">This message could not be sent to Sparkle servers.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFailedResendModalMsg(null)}
+                  className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const msg = failedResendModalMsg;
+                    setFailedResendModalMsg(null);
+                    handleRetryMessage(msg);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-[#ff1493] hover:bg-[#ff1493]/90 text-white font-extrabold text-sm transition-all shadow-lg active:scale-98"
+                >
+                  <RotateCw size={16} />
+                  <span>Resend Message</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selectedChat) {
+                      const msgId = failedResendModalMsg.message_id || failedResendModalMsg.id;
+                      deleteMessageLocal(selectedChat.chat_id, msgId);
+                      PersistentOfflineQueue.acknowledge(msgId);
+                    }
+                    setFailedResendModalMsg(null);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/5 hover:bg-red-500/20 text-red-400 font-bold text-sm transition-all border border-red-500/20 active:scale-98"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete Undelivered Message</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFailedResendModalMsg(null);
+                    alert("Problem report submitted to Sparkle Support.");
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 font-semibold text-sm transition-all active:scale-98"
+                >
+                  <Flag size={16} />
+                  <span>Report a Problem</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setFailedResendModalMsg(null)}
+                  className="w-full py-2.5 text-center text-xs font-bold text-white/40 hover:text-white/70 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

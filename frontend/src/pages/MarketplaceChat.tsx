@@ -157,12 +157,20 @@ const MarketplaceChat = () => {
     const fetchHistory = async () => {
       try {
         const convRes = await api.get(`/marketplace/conversations`);
-        const allConvs = convRes.data;
-        const currentConv = allConvs.find((c: any) => c.id === conversationId);
+        const allConvs = Array.isArray(convRes.data) ? convRes.data : [];
+        let currentConv = allConvs.find((c: any) => String(c.id).toLowerCase() === String(conversationId).toLowerCase());
+        
+        if (!currentConv) {
+          const singleRes = await api.get(`/marketplace/conversations/${conversationId}`).catch(() => null);
+          if (singleRes?.data) {
+            currentConv = singleRes.data;
+          }
+        }
+
         if (currentConv) {
           setConversation(currentConv);
           
-          const statusRes = await api.get(`/marketplace/conversations/${conversationId}/status`);
+          const statusRes = await api.get(`/marketplace/conversations/${conversationId}/status`).catch(() => ({ data: { isBlockedByMe: false, amIBlocked: false } }));
           setIsBlockedByMe(statusRes.data.isBlockedByMe);
           setAmIBlocked(statusRes.data.amIBlocked);
         }
@@ -179,11 +187,18 @@ const MarketplaceChat = () => {
   useEffect(() => {
     if (!socket || !conversationId) return;
 
-    socket.emit('join_conversation', conversationId);
+    const joinRoom = () => {
+      socket.emit('join_conversation', conversationId);
+    };
+
+    if (socket.connected) {
+      joinRoom();
+    }
+    socket.on('connect', joinRoom);
 
     const handleReceiveMessage = (msg: Message) => {
       setMessages(prev => {
-        if (prev.find(m => m.id === msg.id)) return prev;
+        if (prev.some(m => m.id === msg.id)) return prev;
         return [...prev, msg];
       });
       socket.emit('mark_read', { messageId: msg.id, conversationId });
@@ -224,20 +239,35 @@ const MarketplaceChat = () => {
       }));
     };
 
+    const handleConversationBlocked = (data: any) => {
+      setIsBlockedByMe(Boolean(data.isBlockedByMe));
+      setAmIBlocked(Boolean(data.amIBlocked));
+    };
+
+    const handleConversationUnblocked = (data: any) => {
+      setIsBlockedByMe(false);
+      setAmIBlocked(false);
+    };
+
     socket.on('receive_message', handleReceiveMessage);
     socket.on('user_status_change', handleStatusChange);
     socket.on('user_typing', handleTyping);
     socket.on('message_edited', handleMessageEdited);
     socket.on('message_deleted', handleMessageDeleted);
     socket.on('message_reaction', handleMessageReaction);
+    socket.on('conversation_blocked', handleConversationBlocked);
+    socket.on('conversation_unblocked', handleConversationUnblocked);
 
     return () => {
+      socket.off('connect', joinRoom);
       socket.off('receive_message', handleReceiveMessage);
       socket.off('user_status_change', handleStatusChange);
       socket.off('user_typing', handleTyping);
       socket.off('message_edited', handleMessageEdited);
       socket.off('message_deleted', handleMessageDeleted);
       socket.off('message_reaction', handleMessageReaction);
+      socket.off('conversation_blocked', handleConversationBlocked);
+      socket.off('conversation_unblocked', handleConversationUnblocked);
       socket.emit('leave_conversation', conversationId);
     };
   }, [socket, conversationId, conversation, user?.user_id, user?.id]);
@@ -670,9 +700,39 @@ const MarketplaceChat = () => {
                        <video src={msg.media_url || msg.mediaUrl} controls className="max-w-[200px] sm:max-w-[300px] rounded-md shadow-sm" />
                     )}
 
-                    {msg.message_text && (
-                       <p className="text-[15px] leading-relaxed break-words">{msg.message_text}</p>
-                    )}
+                    {(() => {
+                      if (msg.message_text && msg.message_text.trim().startsWith('{')) {
+                        try {
+                          const parsed = JSON.parse(msg.message_text);
+                          if (parsed.type === 'marketplace_alert' || parsed.type === 'marketplace_inquiry') {
+                            return (
+                              <div 
+                                onClick={() => parsed.listing_id && navigate(`/marketplace/listings/${parsed.listing_id}`)}
+                                className="p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl cursor-pointer hover:shadow-md transition-all my-1 flex gap-3 items-center"
+                              >
+                                {parsed.image_url && (
+                                  <img src={getMediaUrl(parsed.image_url)} alt={parsed.title} className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-[10px] font-black uppercase tracking-wider text-blue-600">
+                                    {parsed.type === 'marketplace_alert' ? '🔔 New Seller Listing' : '🛍️ Listing Inquiry'}
+                                  </div>
+                                  <h4 className="font-bold text-gray-900 text-xs truncate">{parsed.title}</h4>
+                                  {parsed.price !== undefined && (
+                                    <p className="text-blue-700 font-extrabold text-xs mt-0.5">
+                                      {new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(parsed.price || 0)}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          }
+                        } catch (_) { /* fallback to standard text below */ }
+                      }
+                      return msg.message_text ? (
+                        <p className="text-[15px] leading-relaxed break-words">{msg.message_text}</p>
+                      ) : null;
+                    })()}
                   </div>
                   <div className={`absolute top-0 ${isMine ? '-left-8' : '-right-8'} opacity-0 group-hover:opacity-100 transition-opacity`}>
                      <button onClick={() => setReplyToMessage(msg)} className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200"><ArrowLeft size={14} className="rotate-180" /></button>

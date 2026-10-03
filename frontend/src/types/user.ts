@@ -39,4 +39,15 @@ export interface User {
   note?: string;
   highlights?: { id: string; img: string; title: string }[];
   onboarding_step?: number;
+  // Digital Identity cooldown timestamps (server-authoritative)
+  name_updated_at?: string | null;
+  username_updated_at?: string | null;
+  // Reputation shape returned from User.deriveReputation()
+  reputation?: {
+    trustLevel: number;
+    prestigeScore: number;
+    nextThreshold: number;
+    isVerified: boolean;
+  };
 }
+

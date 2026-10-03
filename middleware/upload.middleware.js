@@ -63,7 +63,7 @@ const marketplaceStorage = new CloudinaryStorage({
         const patchedTimestamp = Math.round(Date.now() / 1000) + driftOffset;
         return {
             folder: 'marketplace_listings',
-            allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
+            allowed_formats: ['jpg', 'png', 'jpeg', 'webp', 'gif', 'jfif', 'avif', 'heic', 'heif', 'bmp', 'svg'],
             transformation: [{ width: 1000, height: 1000, crop: 'limit' }],
             timestamp: patchedTimestamp
         };
@@ -86,31 +86,29 @@ const messageStorage = new CloudinaryStorage({
 const upload = multer({
     storage: storage,
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp|mp4|webm|mov|avi/;
-        const ext = path.extname(file.originalname).toLowerCase();
-        const isExtMatch = allowedTypes.test(ext);
-        const isMimeMatch = allowedTypes.test(file.mimetype);
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const isImageOrVideoMime = file.mimetype ? (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/') || file.mimetype === 'application/octet-stream') : false;
+        const isImageOrVideoExt = /\.(jpg|jpeg|png|gif|webp|jfif|avif|heic|heif|bmp|svg|mp4|webm|mov|avi|m4v)$/i.test(ext);
 
-        if (isExtMatch && isMimeMatch) {
+        if (isImageOrVideoMime || isImageOrVideoExt) {
             return cb(null, true);
         } else {
             cb(new Error('Invalid file type! Only images and videos are allowed.'));
         }
     },
     limits: { 
-        fileSize: 3 * 1024 * 1024 // 3MB limit for profile/avatar/group icons
+        fileSize: 10 * 1024 * 1024 // 10MB limit
     }
 });
 
 const marketplaceUpload = multer({
     storage: marketplaceStorage,
     fileFilter: (req, file, cb) => {
-        const allowedTypes = /jpeg|jpg|png|gif|webp/;
-        const ext = path.extname(file.originalname).toLowerCase();
-        const isExtMatch = allowedTypes.test(ext);
-        const isMimeMatch = allowedTypes.test(file.mimetype);
+        const ext = path.extname(file.originalname || '').toLowerCase();
+        const isImageMime = file.mimetype ? (file.mimetype.startsWith('image/') || file.mimetype === 'application/octet-stream') : false;
+        const isImageExt = /\.(jpg|jpeg|png|gif|webp|jfif|avif|heic|heif|bmp|svg|tiff)$/i.test(ext);
 
-        if (isExtMatch && isMimeMatch) {
+        if (isImageMime || isImageExt) {
             return cb(null, true);
         } else {
             cb(new Error('Invalid file type! Only images are allowed for marketplace listings.'));

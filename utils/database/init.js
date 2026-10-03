@@ -1,4 +1,5 @@
 require('dotenv').config();
+const { v4: uuidv4 } = require('uuid');
 const pool = require('../../config/database');
 const logger = require('../logger');
 
@@ -104,7 +105,24 @@ const repairUsersTable = async () => {
             { name: 'major', type: 'VARCHAR(100) DEFAULT NULL' },
             { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' },
             { name: 'profile_views', type: 'INT DEFAULT 0' },
-            { name: 'note', type: 'VARCHAR(60) DEFAULT NULL' }
+            { name: 'note', type: 'VARCHAR(60) DEFAULT NULL' },
+            { name: 'default_read_receipts', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_typing_indicator', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_allow_media_download', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_allow_copy_text', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_allow_reactions', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_allow_forwarding', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_screenshot_notification', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'default_disappearing_mode', type: 'VARCHAR(50) DEFAULT "off"' },
+            { name: 'blur_screen_recording', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'last_seen_privacy', type: "VARCHAR(50) DEFAULT 'everyone'" },
+            { name: 'message_privacy', type: "VARCHAR(50) DEFAULT 'followers'" },
+            { name: 'activity_status_enabled', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'auto_download_media', type: "VARCHAR(50) DEFAULT 'wifi'" },
+            { name: 'link_previews_enabled', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'media_quality', type: "VARCHAR(50) DEFAULT 'standard'" },
+            { name: 'chat_pin', type: 'VARCHAR(255) DEFAULT NULL' },
+            { name: 'chat_theme', type: "VARCHAR(100) DEFAULT 'whatsapp_v5'" }
         ];
 
         for (const col of columnsToAdd) {
@@ -118,12 +136,61 @@ const repairUsersTable = async () => {
             }
         }
 
+        // Ensure username_normalized column exists with UNIQUE constraint
+        const [hasNorm] = await pool.query(`
+            SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'username_normalized'
+        `);
+        if (hasNorm.length === 0) {
+            await pool.query(`
+                ALTER TABLE users 
+                ADD COLUMN username_normalized VARCHAR(100) 
+                GENERATED ALWAYS AS (LOWER(TRIM(username))) STORED 
+                AFTER username
+            `);
+            logger.info('Added username_normalized generated column to users table');
+        }
+
+        const [hasNormIdx] = await pool.query(`
+            SELECT INDEX_NAME FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND INDEX_NAME = 'uq_users_username_normalized'
+        `);
+        if (hasNormIdx.length === 0) {
+            await pool.query(`
+                ALTER TABLE users 
+                ADD UNIQUE KEY uq_users_username_normalized (username_normalized)
+            `);
+            logger.info('Added UNIQUE key uq_users_username_normalized to users table');
+        }
+
         // Set first user as admin if not already set
         const [users] = await pool.query('SELECT user_id, role FROM users ORDER BY joined_at LIMIT 1');
         if (users.length > 0 && users[0].role !== 'admin') {
             await pool.query('UPDATE users SET role = "admin" WHERE user_id = ?', [users[0].user_id]);
             logger.info('✅ First user set as admin.');
         }
+
+        // Ensure system users exist (including sparkly_bot)
+        const systemUsers = [
+            { id: 'sparkly_bot', name: 'Sparkly AI Assistant', username: 'sparkly_bot', email: 'sparkly_bot@sparkle.app', bio: 'Official Sparkly AI Assistant on Sparkle' },
+            { id: 'd75fe3b5-7a45-4581-ab13-91934d8b54de', name: 'Sparkle Official', username: 'sparkleofficial', email: 'sparkleofficial@sparkle.app', bio: 'Official Sparkle Account' },
+            { id: 'd75fe3b5-7a45-4581-ab13-91934d8b54e0', name: 'Sparkle AI Assistant', username: 'sparkleai', email: 'sparkleai@sparkle.app', bio: 'Official AI Companion' }
+        ];
+
+        for (const sysUser of systemUsers) {
+            try {
+                await pool.query(`
+                    INSERT INTO users (
+                        user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio
+                    ) VALUES (
+                        ?, ?, ?, ?, 'NO_LOGIN', 'system', 'system', 'active', 1, 6, ?
+                    ) ON DUPLICATE KEY UPDATE name = VALUES(name), username = VALUES(username)
+                `, [sysUser.id, sysUser.name, sysUser.username, sysUser.email, sysUser.bio]);
+            } catch (e) {
+                // Ignore duplicate/schema warning
+            }
+        }
+        logger.info('✅ System users (including sparkly_bot) verified in users table');
     } catch (err) {
         logger.error('❌ Failed to repair users table:', err.message);
     }
@@ -643,6 +710,10 @@ const initPersonalChatsTable = async () => {
             { name: 'is_deleted_p2', type: 'TINYINT(1) DEFAULT 0' },
             { name: 'is_pinned_p1', type: 'TINYINT(1) DEFAULT 0' },
             { name: 'is_pinned_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_favorite_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_favorite_p2', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_priority_p1', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'is_priority_p2', type: 'TINYINT(1) DEFAULT 0' },
             { name: 'is_muted_p1', type: 'TINYINT(1) DEFAULT 0' },
             { name: 'is_muted_p2', type: 'TINYINT(1) DEFAULT 0' },
             { name: 'is_archived_p1', type: 'TINYINT(1) DEFAULT 0' },
@@ -783,6 +854,24 @@ const initChatPrivacySettingsTable = async () => {
         try {
             await pool.query('CREATE INDEX idx_chat_privacy_settings_lookup ON chat_privacy_settings(chat_id, user_id)');
         } catch (e) {}
+
+        const chatPrivacyCols = [
+            { name: 'read_receipts_enabled', type: 'TINYINT(1) DEFAULT NULL' },
+            { name: 'typing_indicator_enabled', type: 'TINYINT(1) DEFAULT NULL' },
+            { name: 'privacy_version', type: 'INT DEFAULT 1' }
+        ];
+        for (const col of chatPrivacyCols) {
+            try {
+                const [exists] = await pool.query(`
+                    SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+                    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'chat_privacy_settings' AND COLUMN_NAME = ?
+                `, [col.name]);
+                if (exists.length === 0) {
+                    await pool.query(`ALTER TABLE chat_privacy_settings ADD COLUMN ${col.name} ${col.type}`);
+                    logger.info(`Added ${col.name} to chat_privacy_settings`);
+                }
+            } catch (e) {}
+        }
 
         // 2. capture_attempts
         await pool.query(`
@@ -1149,15 +1238,98 @@ const initMarketplaceTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 8. Tags Table
+        // 9. Seller Alerts Table
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS listing_tags (
-                listing_id CHAR(36) NOT NULL,
-                tag_name VARCHAR(100) NOT NULL,
-                PRIMARY KEY (listing_id, tag_name),
-                FOREIGN KEY (listing_id) REFERENCES marketplace_listings(listing_id) ON DELETE CASCADE
+            CREATE TABLE IF NOT EXISTS marketplace_seller_alerts (
+                alert_id CHAR(36) NOT NULL PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                seller_id CHAR(36) NOT NULL,
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_seller_alert (user_id, seller_id),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+                FOREIGN KEY (seller_id) REFERENCES users(user_id) ON DELETE CASCADE
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
+
+        // 8. Auto-consolidate existing duplicate listings (same seller, title, price) into 1 listing with slideable media
+        try {
+            const [duplicates] = await pool.query(`
+                SELECT seller_id, title, price, COUNT(*) as cnt
+                FROM marketplace_listings
+                WHERE status = 'active' AND is_sold = 0
+                GROUP BY seller_id, title, price
+                HAVING cnt > 1
+            `);
+
+            if (Array.isArray(duplicates) && duplicates.length > 0) {
+                for (const group of duplicates) {
+                    const [dupListings] = await pool.query(`
+                        SELECT listing_id, image_url
+                        FROM marketplace_listings
+                        WHERE seller_id = ? AND title = ? AND price = ? AND status = 'active' AND is_sold = 0
+                        ORDER BY created_at ASC
+                    `, [group.seller_id, group.title, group.price]);
+
+                    if (dupListings.length > 1) {
+                        const masterId = dupListings[0].listing_id;
+                        const [[maxOrderRow]] = await pool.query(`
+                            SELECT COALESCE(MAX(upload_order), -1) as max_ord FROM listing_media WHERE listing_id = ?
+                        `, [masterId]);
+                        let nextOrder = maxOrderRow ? maxOrderRow.max_ord + 1 : 0;
+
+                        // Ensure primary image of master is in listing_media
+                        if (dupListings[0].image_url) {
+                            const [mExist] = await pool.query(
+                                'SELECT media_id FROM listing_media WHERE listing_id = ? AND media_url = ?',
+                                [masterId, dupListings[0].image_url]
+                            );
+                            if (mExist.length === 0) {
+                                await pool.query(
+                                    'INSERT INTO listing_media (media_id, listing_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                                    [uuidv4(), masterId, dupListings[0].image_url, 'image', nextOrder++]
+                                );
+                            }
+                        }
+
+                        // Merge remaining duplicate listings into master
+                        for (let i = 1; i < dupListings.length; i++) {
+                            const dup = dupListings[i];
+                            const [subMedia] = await pool.query(
+                                'SELECT * FROM listing_media WHERE listing_id = ?',
+                                [dup.listing_id]
+                            );
+                            for (const sm of subMedia) {
+                                await pool.query(
+                                    'INSERT INTO listing_media (media_id, listing_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                                    [uuidv4(), masterId, sm.media_url, sm.media_type || 'image', nextOrder++]
+                                );
+                            }
+                            if (dup.image_url) {
+                                const [imgCheck] = await pool.query(
+                                    'SELECT media_id FROM listing_media WHERE listing_id = ? AND media_url = ?',
+                                    [masterId, dup.image_url]
+                                );
+                                if (imgCheck.length === 0) {
+                                    await pool.query(
+                                        'INSERT INTO listing_media (media_id, listing_id, media_url, media_type, upload_order) VALUES (?, ?, ?, ?, ?)',
+                                        [uuidv4(), masterId, dup.image_url, 'image', nextOrder++]
+                                    );
+                                }
+                            }
+                            await pool.query(
+                                "UPDATE marketplace_listings SET status = 'deleted' WHERE listing_id = ?",
+                                [dup.listing_id]
+                            );
+                        }
+                        logger.info(`Merged ${dupListings.length - 1} duplicate listing(s) into listing ${masterId}`);
+                    }
+                }
+            }
+        } catch (e) {
+            logger.warn('Duplicate listing consolidation check note:', e.message);
+        }
 
         logger.debug('✅ Marketplace tables verified');
     } catch (err) {
@@ -1675,6 +1847,101 @@ const initWalletTables = async () => {
     }
 };
 
+const initBoostTables = async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS user_boosts (
+                boost_id        VARCHAR(36) PRIMARY KEY,
+                user_id         VARCHAR(36) NOT NULL,
+                budget_kes      DECIMAL(12,2) NOT NULL,
+                duration_days   INT NOT NULL,
+                boost_strength  DECIMAL(5,2) NOT NULL,
+                start_time      DATETIME NOT NULL,
+                end_time        DATETIME NOT NULL,
+                status          ENUM('active', 'expired', 'cancelled') DEFAULT 'active',
+                payment_id      VARCHAR(64) NULL,
+                created_at      DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at      DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_boosts_user (user_id),
+                INDEX idx_user_boosts_status_end (status, end_time)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Persistent account-linked boost records'
+        `);
+
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS boost_reminders (
+                id              VARCHAR(36) PRIMARY KEY,
+                boost_id        VARCHAR(36) NOT NULL,
+                reminder_type   ENUM('2_day', '1_day', 'expired') NOT NULL,
+                sent_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uk_boost_reminder (boost_id, reminder_type),
+                INDEX idx_boost_reminder_boost (boost_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Idempotency guard for boost reminders and expiration alerts'
+        `);
+
+        logger.debug('✅ Boost tables initialized (user_boosts & boost_reminders)');
+    } catch (err) {
+        logger.error('❌ Failed to init boost tables:', err.message);
+        throw err;
+    }
+};
+
+const initSparklyTables = async () => {
+    try {
+        // 1. Conversations
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sparkly_conversations (
+                id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                title VARCHAR(255) DEFAULT 'New Chat',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 2. Messages
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sparkly_messages (
+                id CHAR(36) PRIMARY KEY,
+                conversation_id CHAR(36) NOT NULL,
+                user_id CHAR(36) NOT NULL,
+                role ENUM('user', 'assistant', 'system') NOT NULL,
+                content TEXT NOT NULL,
+                structured_data JSON DEFAULT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_conv_id (conversation_id),
+                INDEX idx_user_id (user_id),
+                FOREIGN KEY (conversation_id) REFERENCES sparkly_conversations(id) ON DELETE CASCADE,
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        // 3. User Memories
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS sparkly_user_memories (
+                id CHAR(36) PRIMARY KEY,
+                user_id CHAR(36) NOT NULL,
+                memory_type VARCHAR(50) NOT NULL DEFAULT 'preference',
+                memory_key VARCHAR(100) NOT NULL,
+                memory_value TEXT NOT NULL,
+                confidence FLOAT DEFAULT 1.0,
+                source VARCHAR(100) DEFAULT 'chat',
+                is_active TINYINT(1) DEFAULT 1,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_user_key (user_id, memory_key),
+                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        `);
+
+        logger.debug('✅ Sparkly Bot tables verified');
+    } catch (err) {
+        logger.error('❌ Failed to init Sparkly Bot tables:', err.message);
+    }
+};
+
 const initDB = async () => {
     // Test connection first with retry logic
     logger.debug('Testing database connection...');
@@ -1719,6 +1986,7 @@ const initDB = async () => {
         try { await initLostFoundTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('LostFound init failed:', getErrorMessage(e)); }
         try { await initSkillMarketTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('SkillMarket init failed:', getErrorMessage(e)); }
         try { await initMarketplaceTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Marketplace Init Error:', getErrorMessage(e)); }
+        try { await initSparklyTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Sparkly Init Error:', getErrorMessage(e)); }
         try { await initSearchTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Search Tables Init Error:', getErrorMessage(e)); }
         try { await initHighlightsTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Highlights Tables Init Error:', getErrorMessage(e)); }
         try { await initUserActionsTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('User Actions Init Error:', getErrorMessage(e)); }
@@ -1726,6 +1994,8 @@ const initDB = async () => {
         try { await initOtaTable();
         // Initialize wallet tables after core tables
         await initWalletTables();
+        // Initialize boost tables
+        await initBoostTables();
         // Backfill wallets for any existing users without a wallet
         try {
             const users = await pool.query('SELECT user_id FROM users');

@@ -23,6 +23,7 @@ router.post('/register-fcm-token', notificationController.registerFcmToken);
 
 // Mark all as read
 router.put('/read-all', notificationController.markAllAsRead);
+router.post('/read-all', notificationController.markAllAsRead);
 
 // Mark specific notification as read (existing PUT)
 router.put('/:notificationId/read', notificationController.markAsRead);

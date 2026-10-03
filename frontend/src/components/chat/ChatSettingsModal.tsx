@@ -20,6 +20,7 @@ import QRCode from 'react-qr-code';
 import { SharedContentExplorer } from './SharedContentExplorer';
 import { PinnedMessagesView } from './PinnedMessagesView';
 import { ChatSearchModal } from './ChatSearchModal';
+import PrivacySettingsModal from './PrivacySettingsModal';
 
 interface ChatSettingsModalProps {
   chat: any;
@@ -79,7 +80,7 @@ const generateEncryptionKeys = (chatId: string) => {
 
 export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
   const navigate = useNavigate();
-  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification'>('main');
+  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>('main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
 
   // ── Create Group state ──
@@ -170,7 +171,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   // Settings state
   const [isMuted, setIsMuted] = useState(chat.is_muted ?? false);
   const [autoSave, setAutoSave] = useState(true);
-  const [disappearingMsgs, setDisappearingMsgs] = useState('Off');
+  const [disappearingDuration, setDisappearingDuration] = useState<number>(chat.disappearing_duration || 0);
   const [readReceipts, setReadReceipts] = useState(true);
   const [typingIndicator, setTypingIndicator] = useState(true);
   const [allowForward, setAllowForward] = useState(true);
@@ -178,8 +179,28 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [blockScreenshots, setBlockScreenshots] = useState(false);
   const [blurScreenRecording, setBlurScreenRecording] = useState(true);
   const [notifyScreenshotAttempts, setNotifyScreenshotAttempts] = useState(true);
+  const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [privacyDefaults, setPrivacyDefaults] = useState<any>({
+    readReceipts: true,
+    typingIndicator: true,
+    allowForward: true,
+    allowCopy: true,
+    notifyScreenshotAttempts: true
+  });
+  const [rawPrivacyOverrides, setRawPrivacyOverrides] = useState<Record<string, boolean | null>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
+
+  // Helper to format disappearing duration label
+  const formatDisappearingLabel = (sec: number) => {
+    if (!sec || sec <= 0) return 'Off';
+    if (sec < 60) return `${sec} seconds`;
+    if (sec < 3600) return `${Math.round(sec / 60)} minutes`;
+    if (sec < 86400) return `${Math.round(sec / 3600)} hours`;
+    return `${Math.round(sec / 86400)} days`;
+  };
+
+  const disappearingMsgsLabel = formatDisappearingLabel(disappearingDuration);
 
   // Sync isMuted state with chat.is_muted
   useEffect(() => {
@@ -242,20 +263,46 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   // Deterministic encryption verification keys — same on both sides since chatId is shared
   const encryptionKeys = useMemo(() => generateEncryptionKeys(chat.chat_id || chat.id || ''), [chat.chat_id, chat.id]);
 
-  // Load privacy settings from backend when modal opens
-  useEffect(() => {
+  // Load canonical privacy settings from backend when modal opens
+  // Uses a captured chatId snapshot so stale responses from a previous chat never overwrite current state
+  const fetchChatPrivacy = useCallback(() => {
+    const activeChatId = chat.chat_id || chat.id;
     api
-      .get(`/messages/${chat.chat_id || chat.id}/privacy`)
+      .get(`/messages/${activeChatId}/privacy`)
       .then((res) => {
+        // Discard response if the chat prop changed before this resolved
+        if ((chat.chat_id || chat.id) !== activeChatId) return;
         const data = res.data || {};
-        setAllowForward(data.allowForward ?? true);
-        setAllowCopy(data.allowCopy ?? true);
-        setBlockScreenshots(data.blockScreenshots ?? false);
-        setBlurScreenRecording(data.blurScreenRecording ?? true);
-        setNotifyScreenshotAttempts(data.notifyScreenshotAttempts ?? true);
+        const my = data.mySettings || {};
+        const raw = data.rawOverrides || my.rawOverrides || {};
+        const defs = data.defaults || my.defaults || {};
+
+        setPrivacyDefaults({
+          readReceipts: defs.readReceipts ?? true,
+          typingIndicator: defs.typingIndicator ?? true,
+          allowForward: defs.allowForward ?? true,
+          allowCopy: defs.allowCopy ?? true,
+          notifyScreenshotAttempts: defs.notifyScreenshotAttempts ?? true,
+        });
+        setRawPrivacyOverrides(raw);
+
+        setAllowForward(data.allowForward ?? !my.forwardProtection ?? true);
+        setAllowCopy(data.allowCopy ?? !my.copyProtection ?? true);
+        setBlockScreenshots(data.blockScreenshots ?? my.screenshotProtection ?? false);
+        setBlurScreenRecording(data.blurScreenRecording ?? my.screenRecordingProtection ?? true);
+        setNotifyScreenshotAttempts(data.notifyScreenshotAttempts ?? my.captureNotifications ?? true);
+        setReadReceipts(data.readReceipts ?? my.readReceipts ?? true);
+        setTypingIndicator(data.typingIndicator ?? my.typingIndicator ?? true);
+        if (data.disappearingDuration !== undefined) {
+          setDisappearingDuration(Number(data.disappearingDuration));
+        }
       })
       .catch(console.error);
   }, [chat.chat_id, chat.id]);
+
+  useEffect(() => {
+    fetchChatPrivacy();
+  }, [fetchChatPrivacy]);
 
   const [chatStats, setChatStats] = useState<any>(null);
 
@@ -582,67 +629,114 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <ActionItem icon={Share2} label="Share contact" onClick={() => setView('share_contact')} primaryColor={currentTheme?.colors.primary} />
                 </Section>
   
-                <Section title="Privacy & support">
-                  <ActionItem icon={Clock} label="Disappearing messages" subtext={disappearingMsgs} onClick={() => setDisappearingMsgs(disappearingMsgs === 'Off' ? '24 Hours' : 'Off')} primaryColor={currentTheme?.colors.primary} />
-                  <ActionItem icon={Eye} label="Read receipts" subtext={readReceipts ? 'On' : 'Off'} onClick={() => setReadReceipts(!readReceipts)} toggle={readReceipts} primaryColor={currentTheme?.colors.primary} />
-                  <ActionItem icon={MoreHorizontal} label="Typing indicator" subtext={typingIndicator ? 'On' : 'Off'} onClick={() => setTypingIndicator(!typingIndicator)} toggle={typingIndicator} primaryColor={currentTheme?.colors.primary} />
-                  <ActionItem icon={Shield} label="Message permissions" onClick={() => alert('Managing message permissions...')} primaryColor={currentTheme?.colors.primary} />
-                                      <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted..Not even Sparkle can listen to your messages" onClick={() => setView('encryption_verification')} primaryColor={currentTheme?.colors.primary} />
-                    <ActionItem icon={Eye} label="Allow forwarding" subtext={allowForward ? "Enabled" : "Disabled"} toggle={allowForward} onClick={() => {
+                <Section title="Privacy & permissions">
+                  <ActionItem 
+                    icon={Shield} 
+                    label="Chat privacy & permissions" 
+                    subtext="Manage default inheritance, screen protection & copy limits" 
+                    onClick={() => setShowPrivacyModal(true)} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem icon={Clock} label="Disappearing messages" subtext={disappearingMsgsLabel} onClick={() => setView('disappearing_selector')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem 
+                    icon={Eye} 
+                    label="Read receipts" 
+                    subtext={rawPrivacyOverrides.readReceipts === null || rawPrivacyOverrides.readReceipts === undefined ? `Default (${privacyDefaults.readReceipts ? 'On' : 'Off'})` : (readReceipts ? 'On (Override)' : 'Off (Override)')} 
+                    toggle={readReceipts} 
+                    onClick={() => {
+                      const newVal = !readReceipts;
+                      setReadReceipts(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        readReceipts: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem 
+                    icon={MoreHorizontal} 
+                    label="Typing indicator" 
+                    subtext={rawPrivacyOverrides.typingIndicator === null || rawPrivacyOverrides.typingIndicator === undefined ? `Default (${privacyDefaults.typingIndicator ? 'On' : 'Off'})` : (typingIndicator ? 'On (Override)' : 'Off (Override)')} 
+                    toggle={typingIndicator} 
+                    onClick={() => {
+                      const newVal = !typingIndicator;
+                      setTypingIndicator(newVal);
+                      api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                        typingIndicator: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem icon={Lock} label="End-to-end encryption" subtext="This chat is end-to-end encrypted. Not even Sparkle can listen to your messages" onClick={() => setView('encryption_verification')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem 
+                    icon={Eye} 
+                    label="Allow forwarding" 
+                    subtext={rawPrivacyOverrides.allowForward === null || rawPrivacyOverrides.allowForward === undefined ? `Default (${privacyDefaults.allowForward ? 'Allowed' : 'Blocked'})` : (allowForward ? 'Allowed' : 'Blocked')} 
+                    toggle={allowForward} 
+                    onClick={() => {
                       const newVal = !allowForward;
                       setAllowForward(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
-                        allowForward: newVal,
-                        allowCopy,
-                        blockScreenshots,
-                        blurScreenRecording,
-                        notifyScreenshotAttempts,
-                      }).catch(console.error);
-                    }} primaryColor={currentTheme?.colors.primary} />
-                    <ActionItem icon={Eye} label="Allow copy" subtext={allowCopy ? "Enabled" : "Disabled"} toggle={allowCopy} onClick={() => {
+                        allowForward: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem 
+                    icon={Eye} 
+                    label="Allow copy" 
+                    subtext={rawPrivacyOverrides.allowCopy === null || rawPrivacyOverrides.allowCopy === undefined ? `Default (${privacyDefaults.allowCopy ? 'Allowed' : 'Blocked'})` : (allowCopy ? 'Allowed' : 'Blocked')} 
+                    toggle={allowCopy} 
+                    onClick={() => {
                       const newVal = !allowCopy;
                       setAllowCopy(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
-                        allowForward,
-                        allowCopy: newVal,
-                        blockScreenshots,
-                        blurScreenRecording,
-                        notifyScreenshotAttempts,
-                      }).catch(console.error);
-                    }} primaryColor={currentTheme?.colors.primary} />
-                    <ActionItem icon={Shield} label="Block screenshots" subtext={blockScreenshots ? "Enabled" : "Disabled"} toggle={blockScreenshots} onClick={() => {
+                        allowCopy: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem 
+                    icon={Shield} 
+                    label="Block screenshots" 
+                    subtext={rawPrivacyOverrides.blockScreenshot === null || rawPrivacyOverrides.blockScreenshot === undefined ? 'Default (Off)' : (blockScreenshots ? 'Blocked' : 'Allowed')} 
+                    toggle={blockScreenshots} 
+                    onClick={() => {
                       const newVal = !blockScreenshots;
                       setBlockScreenshots(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
-                        allowForward,
-                        allowCopy,
-                        blockScreenshots: newVal,
-                        blurScreenRecording,
-                        notifyScreenshotAttempts,
-                      }).catch(console.error);
-                    }} primaryColor={currentTheme?.colors.primary} />
-                    <ActionItem icon={Shield} label="Blur on screen recording" subtext={blurScreenRecording ? "Enabled" : "Disabled"} toggle={blurScreenRecording} onClick={() => {
+                        blockScreenshots: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem 
+                    icon={Shield} 
+                    label="Blur on screen recording" 
+                    subtext={rawPrivacyOverrides.blurScreenRecording === null || rawPrivacyOverrides.blurScreenRecording === undefined ? 'Default (On)' : (blurScreenRecording ? 'Enabled' : 'Disabled')} 
+                    toggle={blurScreenRecording} 
+                    onClick={() => {
                       const newVal = !blurScreenRecording;
                       setBlurScreenRecording(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
-                        allowForward,
-                        allowCopy,
-                        blockScreenshots,
-                        blurScreenRecording: newVal,
-                        notifyScreenshotAttempts,
-                      }).catch(console.error);
-                    }} primaryColor={currentTheme?.colors.primary} />
-                    <ActionItem icon={Shield} label="Notify screenshot attempts" subtext={notifyScreenshotAttempts ? "Enabled" : "Disabled"} toggle={notifyScreenshotAttempts} onClick={() => {
+                        blurScreenRecording: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
+                  <ActionItem 
+                    icon={Shield} 
+                    label="Notify screenshot attempts" 
+                    subtext={rawPrivacyOverrides.notifyScreenshotAttempts === null || rawPrivacyOverrides.notifyScreenshotAttempts === undefined ? `Default (${privacyDefaults.notifyScreenshotAttempts ? 'On' : 'Off'})` : (notifyScreenshotAttempts ? 'On' : 'Off')} 
+                    toggle={notifyScreenshotAttempts} 
+                    onClick={() => {
                       const newVal = !notifyScreenshotAttempts;
                       setNotifyScreenshotAttempts(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
-                        allowForward,
-                        allowCopy,
-                        blockScreenshots,
-                        blurScreenRecording,
-                        notifyScreenshotAttempts: newVal,
-                      }).catch(console.error);
-                    }} primaryColor={currentTheme?.colors.primary} />
+                        notifyScreenshotAttempts: newVal
+                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                    }} 
+                    primaryColor={currentTheme?.colors.primary} 
+                  />
                   <ActionItem 
                     icon={MinusCircle} 
                     label="Block" 
@@ -696,6 +790,59 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     }} 
                   />
                 </Section>
+              </div>
+            </motion.div>
+          ) : view === 'disappearing_selector' ? (
+            <motion.div key="disappearing_selector" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#0a0a0a]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <h2 className="text-xl font-bold text-white">Disappearing Messages</h2>
+              </div>
+
+              <div className="p-6 flex flex-col gap-4 overflow-y-auto no-scrollbar">
+                <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-2xl">
+                  <p className="text-xs text-white/80 font-medium leading-relaxed">
+                    When active, new messages sent in this conversation will automatically disappear after the selected duration for both you and your partner.
+                  </p>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-2xl divide-y divide-white/10 overflow-hidden">
+                  {[
+                    { label: 'Off', value: 0 },
+                    { label: '15 seconds', value: 15 },
+                    { label: '30 seconds', value: 30 },
+                    { label: '1 minute', value: 60 },
+                    { label: '5 minutes', value: 300 },
+                    { label: '1 hour', value: 3600 },
+                    { label: '24 hours (1 day)', value: 86400 },
+                    { label: '7 days', value: 604800 },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      onClick={async () => {
+                        setDisappearingDuration(opt.value);
+                        try {
+                          // Only send disappearingDuration — do NOT include privacy booleans here
+                          // (sending them would overwrite NULL/DEFAULT-inherited DB rows with explicit values)
+                          await api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
+                            disappearingDuration: opt.value,
+                          });
+                        } catch (e) {
+                          console.error('Failed to update disappearing duration:', e);
+                        }
+                        setView('main');
+                      }}
+                      className="w-full p-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
+                    >
+                      <span className="text-sm font-semibold text-white">{opt.label}</span>
+                      {disappearingDuration === opt.value && (
+                        <div className="w-6 h-6 bg-[#ff1493] rounded-full flex items-center justify-center text-white">
+                          <Check size={14} strokeWidth={3} />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
               </div>
             </motion.div>
           ) : view === 'customize' ? (
@@ -1850,6 +1997,17 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
           )}
         </AnimatePresence>
       </div>
+
+      {showPrivacyModal && (
+        <PrivacySettingsModal
+          key={chat.chat_id || chat.id}
+          chatId={chat.chat_id || chat.id}
+          onClose={() => {
+            setShowPrivacyModal(false);
+            fetchChatPrivacy();
+          }}
+        />
+      )}
     </div>
   );
 }

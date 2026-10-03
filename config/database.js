@@ -9,8 +9,8 @@ const pool = mysql.createPool({
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
     // Connection limits
     waitForConnections: true,
-    connectionLimit: 10,
-    maxIdle: 5,          // Keep at most 5 idle connections; rest are destroyed
+    connectionLimit: process.env.DB_POOL_LIMIT ? parseInt(process.env.DB_POOL_LIMIT, 10) : 25,
+    maxIdle: 10,          // Keep at most 10 idle connections
     queueLimit: 0,
     connectTimeout: 30000,
     // SSL for remote DBs

@@ -11,6 +11,7 @@ import {
   Ban,
   Flag,
   X,
+  Settings,
 } from 'lucide-react';
 import { useThemeStore } from '../../store/themeStore';
 
@@ -39,6 +40,7 @@ interface SparkleActionSheetProps {
   onExportChat?: () => void;
   onBlockUser?: () => void;
   onReportUser?: () => void;
+  onMessageSettings?: () => void;
   isPinned?: boolean;
   isFavorite?: boolean;
   isMuted?: boolean;
@@ -56,6 +58,7 @@ export const SparkleActionSheet: React.FC<SparkleActionSheetProps> = ({
   onExportChat,
   onBlockUser,
   onReportUser,
+  onMessageSettings,
   isPinned = false,
   isFavorite = false,
   isMuted = false,
@@ -120,6 +123,12 @@ export const SparkleActionSheet: React.FC<SparkleActionSheetProps> = ({
           label: 'Export Chat',
           icon: <Download size={18} className="text-blue-400" />,
           onClick: () => onExportChat?.(),
+        },
+        {
+          id: 'message_settings',
+          label: 'Message Settings',
+          icon: <Settings size={18} className="text-slate-300" />,
+          onClick: () => onMessageSettings?.(),
         },
       ],
     },

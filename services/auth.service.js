@@ -112,42 +112,42 @@ class AuthService {
      * Generate list of available username suggestions for a base username
      */
     async generateAvailableUsernames(baseUsername) {
-        const clean = baseUsername.trim().toLowerCase().replace(/[^a-z0-9._]/g, '');
-        if (clean.length < 3) {
+        const { normalizeUsername } = require('../utils/validation/username');
+        const clean = normalizeUsername(baseUsername);
+        if (clean.length < 2) {
             return [];
         }
 
-        const candidates = [
-            clean,
-            `its${clean}`,
-            `real${clean}`,
-            `hey${clean}`,
-            `official${clean}`,
+        // Generate meaningful candidates based on the requested username
+        const rawCandidates = [
+            `${clean}1`,
+            `${clean}_1`,
             `${clean}01`,
-            `${clean}99`,
             `${clean}_dev`,
-            `${clean}_x`,
-            `${clean}_official`
+            `${clean}_ke`,
+            `${clean}2`,
+            `${clean}_2`,
+            `${clean}02`,
+            `${clean}_spark`,
+            `${clean}_official`,
+            `real_${clean}`,
+            `the_${clean}`
         ];
+
+        // Ensure candidates are valid length and format
+        const candidates = rawCandidates.filter(c => c.length >= 3 && c.length <= 30 && /^[a-z0-9._]+$/.test(c));
+        if (candidates.length === 0) return [];
 
         const placeholders = candidates.map(() => '?').join(', ');
         const rows = await safeQuery(
-            `SELECT username FROM users WHERE username IN (${placeholders})`,
+            `SELECT username_normalized FROM users WHERE username_normalized IN (${placeholders})`,
             candidates
         );
 
-        const taken = new Set(rows.map(r => r.username.toLowerCase()));
+        const taken = new Set(rows.map(r => r.username_normalized.toLowerCase()));
         const available = candidates.filter(c => !taken.has(c.toLowerCase()));
 
-        while (available.length < 3) {
-            const randomSuffix = `${clean}${Math.floor(100 + Math.random() * 900)}`;
-            const checkRows = await safeQuery('SELECT username FROM users WHERE username = ? LIMIT 1', [randomSuffix]);
-            if (checkRows.length === 0) {
-                available.push(randomSuffix);
-            }
-        }
-
-        return available.slice(0, 3);
+        return available.slice(0, 4);
     }
 
     /** Signup */

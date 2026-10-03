@@ -8,8 +8,8 @@ module.exports = function welcomeTemplate({ userName = 'there' } = {}) {
         priority: 'low',
         category: 'onboarding',
         isOfficial: true,
-        title: `Welcome to Sparkle ✨`,
-        body: `Hey ${userName}! We're excited to have you here. Start exploring moments, connect with creators, and share your first spark.`,
+        title: `Welcome to SparkleApp ✨`,
+        body: `Hey ${userName}! We're excited to have you here onboard. Start exploring moments, connect with creators, and share your first spark.`,
         entities: [],
         actions: [
             { label: 'Complete Profile', route: '/settings?tab=profile', style: 'primary' },

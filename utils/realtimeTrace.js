@@ -14,14 +14,22 @@ class RealtimeTraceLogger {
   // Record a trace step
   trace(traceId, stage, data = {}) {
     if (!this.enabled) return;
-    const entry = { traceId, stage, timestamp: new Date().toISOString(), data };
-    if (this.traces.size >= this.maxTraces) {
-      const oldestKey = this.traces.keys().next().value;
-      this.traces.delete(oldestKey);
+    const now = Date.now();
+    let traceObj = this.traces.get(traceId);
+    if (!traceObj) {
+      traceObj = { traceId, startMs: now, steps: [] };
+      if (this.traces.size >= this.maxTraces) {
+        const oldestKey = this.traces.keys().next().value;
+        this.traces.delete(oldestKey);
+      }
+      this.traces.set(traceId, traceObj);
     }
-    this.traces.set(traceId, entry);
+    const deltaMs = now - traceObj.startMs;
+    const entry = { stage, deltaMs, timestamp: new Date().toISOString(), data };
+    traceObj.steps.push(entry);
+
     const hash = (id) => typeof id === 'string' ? id.slice(0, 8) : id;
-    console.log(`[TRACE] ${traceId} | ${stage} | ${JSON.stringify(data, (k, v) => (k.endsWith('Id') ? hash(v) : v))}`);
+    console.log(`[TRACE +${deltaMs}ms] ${traceId} | ${stage} | ${JSON.stringify(data, (k, v) => (k.endsWith('Id') ? hash(v) : v))}`);
   }
 
   error(traceId, stage, err, data = {}) {

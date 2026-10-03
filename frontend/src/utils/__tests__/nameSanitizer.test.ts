@@ -1,17 +1,14 @@
 import { sanitizePartnerName } from '../nameSanitizer';
 
 describe('sanitizePartnerName', () => {
-  it('removes trailing "00" suffix from partner display names', () => {
-    expect(sanitizePartnerName('Naty Babu00')).toBe('Naty Babu');
-    expect(sanitizePartnerName('John Doe 00')).toBe('John Doe');
+  it('preserves names as-is without stripping trailing zeros', () => {
+    expect(sanitizePartnerName('Naty Babu00')).toBe('Naty Babu00');
+    expect(sanitizePartnerName('Naty Babu0000')).toBe('Naty Babu0000');
+    expect(sanitizePartnerName('John Doe 00')).toBe('John Doe 00');
+    expect(sanitizePartnerName('User00')).toBe('User00');
   });
 
-  it('sanitizes usernames ending with "00"', () => {
-    expect(sanitizePartnerName('User00', 'user00')).toBe('User');
-    expect(sanitizePartnerName('username00', 'username00')).toBe('username');
-  });
-
-  it('handles names without trailing "00"', () => {
+  it('handles standard names properly', () => {
     expect(sanitizePartnerName('Naty Babu')).toBe('Naty Babu');
     expect(sanitizePartnerName('Jane')).toBe('Jane');
   });
@@ -21,3 +18,4 @@ describe('sanitizePartnerName', () => {
     expect(sanitizePartnerName(null as any)).toBe('');
   });
 });
+

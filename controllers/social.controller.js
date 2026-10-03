@@ -168,6 +168,30 @@ module.exports = {
                 // We don't fail the whole block if only marketplace archiving fails
             }
 
+            // Real-time Socket.IO notification to both users
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${currentUserId}`).emit('conversation_blocked', {
+                        partnerId: targetId,
+                        conversationStatus: 'blocked',
+                        isBlockedByMe: true,
+                        amIBlocked: false,
+                        canSendMessages: false
+                    });
+                    io.to(`user:${targetId}`).emit('conversation_blocked', {
+                        partnerId: currentUserId,
+                        conversationStatus: 'blocked',
+                        isBlockedByMe: false,
+                        amIBlocked: true,
+                        canSendMessages: false
+                    });
+                }
+            } catch (sErr) {
+                console.error('[Social] Socket block emit warning:', sErr.message);
+            }
+
             res.json({ success: true, message: 'User blocked' });
         } catch (error) {
             console.error('[Social] Block failed:', error);
@@ -181,7 +205,7 @@ module.exports = {
             const targetId = req.params.id;
             
             const [blocks] = await pool.query(
-                'SELECT blocker_id, blocked_id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocker_id = ?)',
+                'SELECT blocker_id, blocked_id FROM user_blocks WHERE (blocker_id = ? AND blocked_id = ?) OR (blocker_id = ? AND blocked_id = ?)',
                 [currentUserId, targetId, targetId, currentUserId]
             );
 
@@ -199,6 +223,31 @@ module.exports = {
             const currentUserId = req.user?.user_id || req.user?.userId;
             const targetId = req.params.id;
             await User.unblockUser(currentUserId, targetId);
+
+            // Real-time Socket.IO notification to both users
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${currentUserId}`).emit('conversation_unblocked', {
+                        partnerId: targetId,
+                        conversationStatus: 'active',
+                        isBlockedByMe: false,
+                        amIBlocked: false,
+                        canSendMessages: true
+                    });
+                    io.to(`user:${targetId}`).emit('conversation_unblocked', {
+                        partnerId: currentUserId,
+                        conversationStatus: 'active',
+                        isBlockedByMe: false,
+                        amIBlocked: false,
+                        canSendMessages: true
+                    });
+                }
+            } catch (sErr) {
+                console.error('[Social] Socket unblock emit warning:', sErr.message);
+            }
+
             res.json({ success: true, message: 'User unblocked' });
         } catch (error) {
             res.status(500).json({ error: error.message });

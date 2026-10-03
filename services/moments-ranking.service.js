@@ -361,11 +361,15 @@ class MomentsRankingService {
             // scores see a different ordering even from the same candidate pool
             const explorationNoise = (Math.random() * noiseRange) + (uSeed * 0.05);
 
-            const finalScore = (baseScore * interestMatch * affinityBoost * timeDecay) + explorationNoise;
+            // Creator Boost Connect Amplification
+            let boostMultiplier = Number(m.boost_strength) || (m.is_boosted ? 1.5 : 1.0);
+
+            const finalScore = (baseScore * interestMatch * affinityBoost * timeDecay * boostMultiplier) + explorationNoise;
 
             return {
                 ...m,
                 exploration_score: finalScore,
+                boost_multiplier: boostMultiplier,
                 is_aligned: interestMatch > 1.0 || (query && m.category?.toLowerCase() === query.toLowerCase())
             };
         });

@@ -19,6 +19,9 @@ export default function Login() {
   const [show2FA, setShow2FA] = useState(false);
   const [pin, setPin] = useState(['', '', '', '', '', '']);
   const [twoFactorUserId, setTwoFactorUserId] = useState('');
+  const [twoFactorMessage, setTwoFactorMessage] = useState('');
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
 
   const { login } = useUserStore();
@@ -64,6 +67,7 @@ export default function Login() {
       if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {
         setShow2FA(true);
         setTwoFactorUserId(data.userId);
+        setTwoFactorMessage(data.message || 'Please enter your verification code or recovery backup code.');
         setLoading(false);
         return;
       }
@@ -148,22 +152,26 @@ export default function Login() {
 
   const handleVerify2FA = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    const code = pin.join('');
-    if (code.length !== 6) {
+    const codeToVerify = useRecoveryCode ? recoveryCode.trim() : pin.join('');
+    if (!useRecoveryCode && codeToVerify.length !== 6) {
       showError('Please enter the full 6-digit code');
+      return;
+    }
+    if (useRecoveryCode && codeToVerify.length < 8) {
+      showError('Please enter your recovery backup code (e.g. 5A2F9-C104B)');
       return;
     }
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-2fa', { userId: twoFactorUserId, code });
+      const res = await api.post('/auth/verify-2fa', { userId: twoFactorUserId, code: codeToVerify, rememberMe });
       const data = res.data;
       if (data?.status === 'success' && data?.token) {
         showSuccess('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
-        setTimeout(() => navigate('/dashboard'), 1500);
+        setTimeout(() => navigate('/dashboard'), 1200);
       }
     } catch (err: any) {
-      showError(err.response?.data?.message || 'Invalid code');
+      showError(err.response?.data?.message || 'Invalid or expired code');
     } finally {
       setLoading(false);
     }
@@ -346,9 +354,13 @@ export default function Login() {
                 <div className="login-2fa__badge">
                   <ShieldCheck size={36} strokeWidth={1.5} />
                 </div>
-                <h3 className="login-card__title">Two-factor auth</h3>
-                <p className="login-card__sub" style={{ marginBottom: '0.5rem' }}>
-                  Use your Authenticator App, or send a code to your email.
+                <h3 className="login-card__title">
+                  {useRecoveryCode ? 'Recovery Backup Code' : 'Two-Factor Authentication'}
+                </h3>
+                <p className="login-card__sub" style={{ marginBottom: '0.75rem', lineHeight: '1.4' }}>
+                  {useRecoveryCode
+                    ? 'Enter one of your 10-character emergency recovery codes (e.g. 5A2F9-C104B).'
+                    : twoFactorMessage || 'Enter the 6-digit verification code sent to your account.'}
                 </p>
 
                 {(error || success) && (
@@ -358,37 +370,99 @@ export default function Login() {
                   </div>
                 )}
 
-                <button 
-                  onClick={handleSendRecoveryCode} 
-                  disabled={loading || cooldown > 0}
-                  type="button" 
-                  className="login-btn login-btn--alt" 
-                  style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.5rem' }}
-                >
-                  {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Send code to email'}
-                </button>
+                {!useRecoveryCode && (
+                  <>
+                    <button 
+                      onClick={handleSendRecoveryCode} 
+                      disabled={loading || cooldown > 0}
+                      type="button" 
+                      className="login-btn login-btn--alt" 
+                      style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.75rem' }}
+                    >
+                      {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+                    </button>
 
-                <div className="login-pins">
-                  {pin.map((digit, i) => (
+                    <div className="login-pins">
+                      {pin.map((digit, i) => (
+                        <input
+                          key={i}
+                          id={`pin-${i}`}
+                          type="text"
+                          inputMode="numeric"
+                          value={digit}
+                          onChange={(e) => handlePinInput(i, e)}
+                          onKeyDown={(e) => handlePinKeyDown(i, e)}
+                          className="login-pin"
+                          aria-label={`PIN digit ${i + 1}`}
+                          autoFocus={i === 0}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                {useRecoveryCode && (
+                  <div style={{ width: '100%', marginBottom: '1rem' }}>
                     <input
-                      key={i}
-                      id={`pin-${i}`}
                       type="text"
-                      inputMode="numeric"
-                      value={digit}
-                      onChange={(e) => handlePinInput(i, e)}
-                      onKeyDown={(e) => handlePinKeyDown(i, e)}
+                      placeholder="XXXXX-XXXXX"
+                      value={recoveryCode}
+                      onChange={(e) => setRecoveryCode(e.target.value.toUpperCase())}
                       className="login-pin"
-                      aria-label={`PIN digit ${i + 1}`}
+                      style={{
+                        width: '100%',
+                        height: '50px',
+                        fontSize: '1.2rem',
+                        fontWeight: 700,
+                        letterSpacing: '3px',
+                        textAlign: 'center',
+                        textTransform: 'uppercase',
+                        borderRadius: '14px',
+                        border: '1.5px solid #cbd5e1',
+                        background: '#ffffff',
+                        color: '#0f172a'
+                      }}
+                      autoFocus
                     />
-                  ))}
-                </div>
+                    <p style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '0.4rem', textAlign: 'center' }}>
+                      Each code can only be used once.
+                    </p>
+                  </div>
+                )}
 
                 <button onClick={handleVerify2FA} disabled={loading} className="login-btn login-btn--main">
-                  {loading ? <span className="login-spin" /> : <><span>Verify code</span><ArrowRight size={18} strokeWidth={2.5} /></>}
+                  {loading ? (
+                    <span className="login-spin" />
+                  ) : (
+                    <>
+                      <span>{useRecoveryCode ? 'Verify recovery code' : 'Verify code'}</span>
+                      <ArrowRight size={18} strokeWidth={2.5} />
+                    </>
+                  )}
                 </button>
 
-                <button onClick={() => { setShow2FA(false); setPin(['', '', '', '', '', '']); }} className="login-back" type="button">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setUseRecoveryCode(!useRecoveryCode);
+                    setError('');
+                  }}
+                  className="login-back"
+                  style={{ color: '#ff1493', fontWeight: 600, fontSize: '0.82rem', marginTop: '0.5rem' }}
+                >
+                  {useRecoveryCode ? '← Use 6-digit verification code' : 'Lost your device? Use a recovery backup code'}
+                </button>
+
+                <button
+                  onClick={() => {
+                    setShow2FA(false);
+                    setPin(['', '', '', '', '', '']);
+                    setRecoveryCode('');
+                    setUseRecoveryCode(false);
+                  }}
+                  className="login-back"
+                  type="button"
+                >
                   Back to login
                 </button>
               </div>

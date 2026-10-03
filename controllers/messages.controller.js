@@ -281,6 +281,20 @@ class MessageController {
             res.json({ status: 'success', data: { messageId } });
         } catch (error) {
             console.error('[ERROR] sendMessage:', error);
+            if (error.code === 'MESSAGE_BLOCKED' || error.isBlocked) {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'MESSAGE_BLOCKED',
+                    error: 'Messaging is blocked in this conversation'
+                });
+            }
+            if (error.code === 'MESSAGE_PERMISSION_DENIED') {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'MESSAGE_PERMISSION_DENIED',
+                    error: error.message
+                });
+            }
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }
@@ -545,8 +559,42 @@ class MessageController {
             const { chatId } = req.params;
             const userId = req.user.user_id || req.user.userId;
             await Message.deleteConversation(userId, chatId);
+
+            // Emit real-time event so other tabs/devices sync
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('conversation_updated', {
+                        chatId, action: 'deleted', userId
+                    });
+                }
+            } catch (err) {}
+
             res.json({ status: 'success' });
         } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async getArchivedConversations(req, res) {
+        try {
+            const userId = req.user.user_id || req.user.userId;
+            const conversations = await Message.getUserConversations(userId);
+            const { formatSystemUser, isSystemAccountId } = require('../helpers/systemAccount.helper');
+            const archived = (conversations || [])
+                .filter(c => Number(c.is_archived) === 1)
+                .map(c => {
+                    const isSys = isSystemAccountId(c.partner_id) || Boolean(c.is_system_account);
+                    return {
+                        ...formatSystemUser(c),
+                        is_system: isSys,
+                        is_system_account: isSys
+                    };
+                });
+            res.json({ status: 'success', data: archived, conversations: archived });
+        } catch (error) {
+            console.error('getArchivedConversations Error:', error);
             res.status(500).json({ status: 'error', error: error.message });
         }
     }
@@ -555,9 +603,89 @@ class MessageController {
         try {
             const { chatId } = req.params;
             const userId = req.user.user_id || req.user.userId;
-            // Assumes client might send { archived: false } to unarchive
-            const archived = req.body.archived !== false;
+            const archived = req.body.archived !== false && req.body.isArchived !== false;
             await Message.archiveConversation(userId, chatId, archived);
+
+            // Emit real-time event so other tabs/devices sync
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('conversation_updated', {
+                        chatId, action: archived ? 'archived' : 'unarchived', userId, is_archived: archived
+                    });
+                }
+            } catch (err) {}
+
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async pinConversation(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const isPinned = req.body.isPinned !== false;
+            await Message.pinConversation(userId, chatId, isPinned);
+
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('conversation_updated', {
+                        chatId, action: isPinned ? 'pinned' : 'unpinned', userId, is_pinned: isPinned
+                    });
+                }
+            } catch (err) {}
+
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async favoriteConversation(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const isFavorite = req.body.isFavorite !== false;
+            await Message.favoriteConversation(userId, chatId, isFavorite);
+
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('conversation_updated', {
+                        chatId, action: isFavorite ? 'favorited' : 'unfavorited', userId, is_favorite: isFavorite
+                    });
+                }
+            } catch (err) {}
+
+            res.json({ status: 'success' });
+        } catch (error) {
+            res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
+    async priorityConversation(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const isPriority = req.body.isPriority !== false;
+            await Message.priorityConversation(userId, chatId, isPriority);
+
+            try {
+                const { getIO } = require('../socket');
+                const io = getIO();
+                if (io) {
+                    io.to(`user:${userId}`).to(`user_${userId}`).emit('conversation_updated', {
+                        chatId, action: isPriority ? 'priority_on' : 'priority_off', userId, is_priority: isPriority
+                    });
+                }
+            } catch (err) {}
+
             res.json({ status: 'success' });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
@@ -641,6 +769,7 @@ class MessageController {
     async copyMessage(req, res) {
         try {
             const { messageId } = req.params;
+            const viewerUserId = req.user ? (req.user.user_id || req.user.userId || req.user.id) : null;
             const originalMsg = await Message.getById(messageId);
             if (!originalMsg) {
                 return res.status(404).json({ status: 'error', error: 'Original message not found' });
@@ -648,14 +777,26 @@ class MessageController {
 
             const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
             
-            // Check original sender's copy protection
+            // Fetch policy owner's privacy settings
             const [privacyRows] = await pool.query(
-                'SELECT allow_copy FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-                [sourceChatId, originalMsg.sender_id]
+                'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                [sourceChatId, originalMsg.sender_id || originalMsg.senderId]
             );
 
-            if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_copy) {
-                return res.status(403).json({ status: 'error', error: 'Copying is disabled by message owner privacy settings' });
+            const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+            const permissions = PermissionEngine.computePermissions({
+                message: originalMsg,
+                senderPrivacy,
+                viewerUserId
+            });
+
+            if (!permissions.canCopy) {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'MESSAGE_PERMISSION_DENIED',
+                    permission: 'copy',
+                    error: 'Copying is disabled by message owner privacy settings'
+                });
             }
 
             res.json({ status: 'success', data: { content: originalMsg.content } });
@@ -668,7 +809,7 @@ class MessageController {
         try {
             const { messageId } = req.params;
             const { targetChatIds } = req.body;
-            const userId = req.user.user_id || req.user.userId;
+            const viewerUserId = req.user ? (req.user.user_id || req.user.userId || req.user.id) : null;
 
             if (!targetChatIds || !Array.isArray(targetChatIds)) {
                 return res.status(400).json({ status: 'error', error: 'targetChatIds array is required' });
@@ -681,14 +822,26 @@ class MessageController {
 
             const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
             
-            // Check original sender's forward protection
+            // Fetch policy owner's privacy settings
             const [privacyRows] = await pool.query(
-                'SELECT allow_forward FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-                [sourceChatId, originalMsg.sender_id]
+                'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                [sourceChatId, originalMsg.sender_id || originalMsg.senderId]
             );
 
-            if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_forward) {
-                return res.status(403).json({ status: 'error', error: 'Forwarding is disabled by message owner privacy settings' });
+            const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+            const permissions = PermissionEngine.computePermissions({
+                message: originalMsg,
+                senderPrivacy,
+                viewerUserId
+            });
+
+            if (!permissions.canForward) {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'MESSAGE_PERMISSION_DENIED',
+                    permission: 'forward',
+                    error: 'Forwarding is disabled by message owner privacy settings'
+                });
             }
 
             const forwardedMessages = [];

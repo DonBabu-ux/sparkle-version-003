@@ -441,6 +441,39 @@ const createListing = [
                 }
             }
             
+            // Resolve coordinates if missing
+            const KENYA_PRESETS = [
+                { match: /nairobi/i, lat: -1.2921, lng: 36.8219 },
+                { match: /mombasa/i, lat: -4.0435, lng: 39.6682 },
+                { match: /kisumu/i, lat: -0.0917, lng: 34.7680 },
+                { match: /nakuru/i, lat: -0.3031, lng: 36.0800 },
+                { match: /eldoret/i, lat: 0.5143, lng: 35.2698 },
+                { match: /nyeri/i, lat: -0.4201, lng: 36.9476 },
+                { match: /thika/i, lat: -1.0396, lng: 37.0900 },
+                { match: /kiambu/i, lat: -1.1714, lng: 36.8356 },
+                { match: /ruiru/i, lat: -1.1462, lng: 36.9602 },
+                { match: /karatina/i, lat: -0.4813, lng: 37.1268 },
+                { match: /othaya/i, lat: -0.5471, lng: 36.9458 },
+                { match: /kericho/i, lat: -0.3689, lng: 35.2863 },
+                { match: /kitale/i, lat: 1.0197, lng: 35.0023 }
+            ];
+
+            let resolvedLat = req.body.latitude ? parseFloat(req.body.latitude) : null;
+            let resolvedLng = req.body.longitude ? parseFloat(req.body.longitude) : null;
+
+            if (resolvedLat === null || resolvedLng === null || isNaN(resolvedLat) || isNaN(resolvedLng)) {
+                const locText = (req.body.location || req.body.campus || '').toString();
+                const matched = KENYA_PRESETS.find(p => p.match.test(locText));
+                if (matched) {
+                    resolvedLat = matched.lat;
+                    resolvedLng = matched.lng;
+                } else {
+                    // Default to Nairobi coordinates for Kenya marketplace items
+                    resolvedLat = -1.2921;
+                    resolvedLng = 36.8219;
+                }
+            }
+
             // Construct listing data
             const listingData = {
                 seller_id: user.user_id || user.id,
@@ -450,9 +483,9 @@ const createListing = [
                 category: req.body.category || 'other',
                 condition: req.body.condition || 'good',
                 campus: req.body.campus || user.campus || 'main_campus',
-                location: req.body.location || '',
-                latitude: req.body.latitude ? parseFloat(req.body.latitude) : null,
-                longitude: req.body.longitude ? parseFloat(req.body.longitude) : null,
+                location: req.body.location || 'Nairobi, Kenya',
+                latitude: resolvedLat,
+                longitude: resolvedLng,
                 tags: tags,
                 image_url: primaryImage,
                 media: media
@@ -461,6 +494,53 @@ const createListing = [
             logger.info(`Attempting to create listing for user ${user.user_id || user.id}`);
             const listingId = await Marketplace.createListing(listingData);
             
+            // Notify subscribers who set alerts for this seller
+            try {
+                const subscriberIds = await Marketplace.getUsersAlertedForSeller(user.user_id || user.id);
+                if (subscriberIds && subscriberIds.length > 0) {
+                    const SystemMessageService = require('../services/systemMessage.service');
+                    for (const subUserId of subscriberIds) {
+                        notificationController.createNotification({
+                            user_id: subUserId,
+                            actor_id: user.user_id || user.id,
+                            type: 'marketplace_seller_alert',
+                            title: `🔔 ${user.name || user.username || 'A seller'} posted a new item!`,
+                            content: `${user.name || user.username || 'A seller'} posted "${req.body.title}"`,
+                            related_id: listingId,
+                            related_type: 'marketplace_listing',
+                            action_url: `/marketplace/listings/${listingId}`
+                        }).catch(() => {});
+
+                        try {
+                            const officialConvId = await SystemMessageService.ensureSystemConversation(
+                                subUserId,
+                                'd75fe3b5-7a45-4581-ab13-91934d8b54e2',
+                                'Sparkle Marketplace Official',
+                                'Official alerts and notifications'
+                            );
+                            const payload = JSON.stringify({
+                                type: 'marketplace_alert',
+                                listing_id: listingId,
+                                title: req.body.title,
+                                price: parseFloat(req.body.price) || 0,
+                                image_url: primaryImage,
+                                seller_id: user.user_id || user.id,
+                                seller_name: user.name || user.username || 'Seller'
+                            });
+                            await SystemMessageService.sendSystemMessage(
+                                officialConvId,
+                                'd75fe3b5-7a45-4581-ab13-91934d8b54e2',
+                                payload
+                            );
+                        } catch (sysErr) {
+                            logger.warn('Official alert system message failed:', sysErr.message);
+                        }
+                    }
+                }
+            } catch (alertErr) {
+                logger.warn('Failed sending seller alert notifications:', alertErr.message);
+            }
+
             res.status(201).json({
                 success: true,
                 message: 'Listing created successfully',
@@ -623,12 +703,71 @@ const contactSeller = [
                 return res.status(400).json({ success: false, message: 'Cannot contact yourself' });
             }
 
-            const chat = await Marketplace.getOrCreateChat(user.user_id, sellerId, listingId);
-            if (message && message.trim()) {
-                await Marketplace.sendMessage(chat.chat_id, user.user_id, message);
+            const buyerId = user.user_id || user.id;
+
+            // Check if thread exists in marketplace_conversations
+            const [existingConv] = await pool.query(
+                `SELECT id FROM marketplace_conversations WHERE (buyer_id = ? AND seller_id = ?) OR (buyer_id = ? AND seller_id = ?)`,
+                [buyerId, sellerId, sellerId, buyerId]
+            );
+
+            let chatId;
+            if (existingConv.length > 0) {
+                chatId = existingConv[0].id;
+            } else {
+                chatId = crypto.randomUUID();
+                await pool.query(
+                    `INSERT INTO marketplace_conversations (id, buyer_id, seller_id, listing_id, last_activity_at) VALUES (?, ?, ?, ?, NOW())`,
+                    [chatId, buyerId, sellerId, listingId || null]
+                );
             }
 
-            res.json({ success: true, chatId: chat.chat_id, redirect: `/messages?chat=${chat.chat_id}` });
+            // Also mirror in personal_chats for backward compatibility
+            try {
+                await Marketplace.getOrCreateChat(buyerId, sellerId, listingId);
+            } catch (_) {}
+
+            // Check existing messages in this chat
+            const [existingMsgs] = await pool.query(
+                `SELECT id FROM marketplace_messages WHERE conversation_id = ? LIMIT 1`,
+                [chatId]
+            );
+
+            if (existingMsgs.length === 0) {
+                const listing = listingId ? await Marketplace.getListingWithMedia(listingId) : null;
+                const inquiryPayload = JSON.stringify({
+                    type: 'marketplace_inquiry',
+                    listing_id: listingId,
+                    title: listing?.title || 'Marketplace Item',
+                    price: listing?.price || 0,
+                    image_url: listing?.image_url || listing?.media?.[0]?.media_url,
+                    location: listing?.location || listing?.campus || 'Sparkle Network'
+                });
+                const initialText = message && message.trim() ? message.trim() : 'Is this still available?';
+                const msgId = crypto.randomUUID();
+
+                await pool.query(
+                    `INSERT INTO marketplace_messages (id, conversation_id, sender_id, message_text, message_type) VALUES (?, ?, ?, ?, 'text')`,
+                    [msgId, chatId, buyerId, `${initialText}\n${inquiryPayload}`]
+                );
+                await pool.query(`INSERT INTO marketplace_message_status (message_id) VALUES (?)`, [msgId]);
+                await pool.query(`UPDATE marketplace_conversations SET last_message = ?, last_activity_at = NOW() WHERE id = ?`, [initialText, chatId]);
+            } else if (message && message.trim()) {
+                const msgId = crypto.randomUUID();
+                await pool.query(
+                    `INSERT INTO marketplace_messages (id, conversation_id, sender_id, message_text, message_type) VALUES (?, ?, ?, ?, 'text')`,
+                    [msgId, chatId, buyerId, message.trim()]
+                );
+                await pool.query(`INSERT INTO marketplace_message_status (message_id) VALUES (?)`, [msgId]);
+                await pool.query(`UPDATE marketplace_conversations SET last_message = ?, last_activity_at = NOW() WHERE id = ?`, [message.trim(), chatId]);
+            }
+
+            res.json({ 
+                success: true, 
+                chatId: chatId, 
+                conversationId: chatId,
+                redirect: `/marketplace/messages/${chatId}` 
+            });
         } catch (error) {
             logger.error('Contact seller error:', error);
             res.status(500).json({ success: false, message: 'Failed to contact seller' });
@@ -1321,6 +1460,36 @@ const getSellerProfile = async (req, res) => {
     }
 };
 
+const toggleSellerAlert = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const sellerId = req.params.sellerId || req.body.sellerId;
+        if (!sellerId) return res.status(400).json({ success: false, message: 'Seller ID is required' });
+
+        const result = await Marketplace.toggleSellerAlert(user.user_id, sellerId);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        logger.error('Toggle seller alert error:', error);
+        res.status(500).json({ success: false, message: 'Failed to update alert preference' });
+    }
+};
+
+const getSellerAlertStatus = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.json({ success: true, isAlerted: false });
+
+        const { sellerId } = req.params;
+        const result = await Marketplace.getSellerAlertStatus(user.user_id, sellerId);
+        res.json({ success: true, ...result });
+    } catch (error) {
+        logger.error('Get seller alert status error:', error);
+        res.json({ success: true, isAlerted: false });
+    }
+};
+
 module.exports = {
     // Web Routes
     renderMarketplace,
@@ -1370,6 +1539,8 @@ module.exports = {
     relistItem,
     getRecommendations,
     toggleSellerFavorite,
+    toggleSellerAlert,
+    getSellerAlertStatus,
     recordView,
     recordShare,
     getCounts

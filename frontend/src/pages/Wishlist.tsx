@@ -5,6 +5,7 @@ import api from '../api/api';
 import type { Listing } from '../types/listing';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -76,11 +77,13 @@ export default function Wishlist() {
                   key={item.listing_id} 
                   className="group relative"
                 >
-                  <div className="aspect-square rounded-[32px] overflow-hidden bg-marketplace-bg border border-marketplace-border relative mb-3">
-                    <img 
-                      src={item.image_url || '/uploads/marketplace/default.png'} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
-                      alt="" 
+                  <div className="aspect-square rounded-[32px] overflow-hidden bg-marketplace-bg border border-marketplace-border relative mb-3 cursor-pointer" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
+                    <MarketplaceImageSlider
+                      media={item.media}
+                      imageUrls={item.image_urls}
+                      fallbackUrl={item.image_url}
+                      alt={item.title}
+                      aspectRatio="aspect-square"
                     />
                     <button 
                       onClick={() => removeItem(item.listing_id)}

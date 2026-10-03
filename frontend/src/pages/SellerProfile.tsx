@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, Check, Star, AlertCircle, ShoppingBag, 
   Send, Share2, MoreHorizontal, ShieldCheck, 
-  Calendar, MapPin, MessageSquare, Award, ExternalLink
+  Calendar, MapPin, MessageSquare, Award, ExternalLink, Bell
 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProfileShareModal from '../components/modals/ProfileShareModal';
 import MarketplaceSettingsModal from '../components/modals/MarketplaceSettingsModal';
 import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 import Spinner from '../components/ui/Spinner';
 
 interface Seller {
@@ -20,11 +21,13 @@ interface Seller {
   name?: string;
   avatar_url?: string;
   bio?: string;
-  location?: string;
-  listings?: any[];
-  reviews?: any[];
   created_at?: string;
   is_verified?: boolean;
+  active_listings?: number;
+  sold_count?: number;
+  rating?: number;
+  listings?: any[];
+  reviews?: any[];
   average_rating?: string | number;
   total_reviews?: number;
 }
@@ -39,6 +42,7 @@ export default function SellerProfile() {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
+  const [isAlerted, setIsAlerted] = useState(false);
 
   // If no :id in URL (my-shop route), use the logged-in user's id
   const sellerId = id || user?.user_id || user?.id;
@@ -50,6 +54,36 @@ export default function SellerProfile() {
       // Update local state or refetch
     } catch (err) {
       console.error('Follow error:', err);
+    }
+  };
+
+  const handleAlertToggle = async () => {
+    if (!seller) return;
+    try {
+      const res = await api.post(`/marketplace/sellers/${seller.user_id}/alert`);
+      if (res.data.success) {
+        setIsAlerted(res.data.alerted);
+        alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+      }
+    } catch (err) {
+      console.error('Alert toggle error:', err);
+    }
+  };
+
+  const handleMessageSeller = async () => {
+    if (!seller) return;
+    try {
+      const res = await api.post(`/marketplace/listings/contact`, {
+        sellerId: seller.user_id,
+        message: "Hello! I am interested in your listings on Sparkle Marketplace."
+      });
+      const convId = res.data.chatId || res.data.conversationId || res.data.id;
+      if (convId) {
+        navigate(`/marketplace/messages/${convId}`);
+      }
+    } catch (err) {
+      console.error('Contact seller failed:', err);
+      navigate(`/marketplace/messages`);
     }
   };
 
@@ -80,6 +114,13 @@ export default function SellerProfile() {
     try {
       const res = await api.get(`/marketplace/sellers/${sellerId}`);
       setSeller(res.data.seller || res.data);
+
+      // Fetch alert status
+      api.get(`/marketplace/sellers/${sellerId}/alert`)
+        .then(aRes => {
+          if (aRes.data.success) setIsAlerted(aRes.data.alerted);
+        })
+        .catch(() => {});
     } catch (err) {
       console.error('Failed to fetch seller:', err);
     } finally {
@@ -173,11 +214,19 @@ export default function SellerProfile() {
             <div className="flex items-center justify-center gap-3">
               {!isOwner ? (
                 <>
-                  <button onClick={() => navigate(`/messages?chat=${seller.user_id}`)} className="flex-1 sm:flex-none px-8 py-3.5 bg-marketplace-text text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-slate-200 hover:scale-105 transition-all active:scale-95">
-                    <MessageSquare size={18} /> Message
+                  <button onClick={handleMessageSeller} className="flex-1 sm:flex-none px-8 py-3.5 bg-marketplace-text text-white rounded-2xl font-black text-sm flex items-center justify-center gap-2 shadow-xl shadow-slate-200 hover:scale-105 transition-all active:scale-95">
+                    <MessageSquare size={18} /> Message Seller
                   </button>
-                  <button className="p-3.5 bg-marketplace-bg text-marketplace-text rounded-2xl font-black hover:bg-slate-200 transition-all border border-marketplace-border">
-                    <Star size={20} />
+                  <button 
+                    onClick={handleAlertToggle} 
+                    title={isAlerted ? "Disable Alert" : "Notify me when this seller posts new listings"}
+                    className={clsx(
+                      "p-3.5 rounded-2xl font-black transition-all border flex items-center gap-1.5",
+                      isAlerted ? "bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200" : "bg-marketplace-bg text-marketplace-text hover:bg-slate-200 border-marketplace-border"
+                    )}
+                  >
+                    <Bell size={20} fill={isAlerted ? "currentColor" : "none"} />
+                    <span className="text-xs">{isAlerted ? 'Alert On' : 'Alert'}</span>
                   </button>
                 </>
               ) : (
@@ -272,12 +321,14 @@ export default function SellerProfile() {
                     className="group cursor-pointer"
                   >
                     <div className="aspect-square rounded-3xl overflow-hidden bg-marketplace-bg border border-marketplace-border relative mb-3">
-                      <img 
-                        src={listing.image_url || '/uploads/marketplace/default.png'} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
-                        alt="" 
+                      <MarketplaceImageSlider
+                        media={listing.media}
+                        imageUrls={listing.image_urls}
+                        fallbackUrl={listing.image_url}
+                        alt={listing.title}
+                        aspectRatio="aspect-square"
                       />
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm">
+                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm pointer-events-none z-10">
                         <span className="text-[12px] font-black">KES {parseFloat(listing.price).toLocaleString()}</span>
                       </div>
                     </div>

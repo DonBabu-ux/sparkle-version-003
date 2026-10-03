@@ -61,6 +61,8 @@ router.use('/onboarding', onboardingRoutes);
 router.use('/discover', discoverRoutes);
 router.use('/rooms', roomsRoutes);
 router.use('/location', require('./location.routes'));
+router.use('/ai', aiRoutes);
+router.use('/sparkly', require('./sparklyKnowledge.routes'));
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');
@@ -90,6 +92,8 @@ router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));
 router.use('/ota', require('./ota.routes'));
 router.use('/wallet', require('./wallet.routes'));
+router.use('/boost', require('./boost.routes'));
 router.use('/media', require('./media.routes'));
+router.use('/security', require('./security.routes'));
 
 module.exports = router;

@@ -5,7 +5,7 @@ exports.rateLimiter = rateLimit({
     max: 100, // Limit each IP to 100 requests per windowMs
     message: {
         success: false,
-        message: 'Too many requests, please try again later.'
+        message: 'Too many requests, please try again later after a while.'
     },
     standardHeaders: true,
     legacyHeaders: false
@@ -16,6 +16,6 @@ exports.strictLimiter = rateLimit({
     max: 10, // Very strict limit for sensitive endpoints
     message: {
         success: false,
-        message: 'Too many requests. Please wait before trying again.'
+        message: 'Too many requests. Please wait before trying again later after a while.'
     }
 });

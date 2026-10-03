@@ -20,6 +20,7 @@ import { MockCallProvider } from './components/MockCallProvider';
 import { SocketProvider } from './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
+import { AppLockOverlay } from './components/security/AppLockOverlay';
 import { UploadManager } from './services/UploadManager';
 import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
 import { useSocket } from './hooks/useSocket';
@@ -36,6 +37,11 @@ import Groups from './pages/Groups';
 import Messages from './pages/Messages';
 import MessagesSettings from './pages/MessagesSettings';
 import Settings from './pages/Settings';
+import SecurityCentre from './pages/SecurityCentre';
+import ChangePassword from './pages/ChangePassword';
+import CrossDeviceSecurityAlertOverlay from './components/security/CrossDeviceSecurityAlertOverlay';
+import AdvancedSettings from './pages/AdvancedSettings';
+import AdvancedSettingsDetail from './pages/AdvancedSettingsDetail';
 import Notifications from './pages/Notifications';
 import Search from './pages/Search';
 import SearchHistory from './pages/SearchHistory';
@@ -64,6 +70,8 @@ import MarketplaceSafety from './pages/MarketplaceSafety';
 import MarketplaceModals from './components/modals/MarketplaceModals';
 import MarketplaceChat from './pages/MarketplaceChat';
 import MarketplaceSettings from './pages/MarketplaceSettings';
+import SparklyBot from './pages/SparklyBot';
+
 
 // Phase 2 — Social & Community
 import Clubs from './pages/Clubs';
@@ -391,6 +399,8 @@ function App() {
                       updates online/offline state regardless of which page is active. */}
                   <PresenceManager />
                   <CallOverlay />
+                  <AppLockOverlay />
+                  <CrossDeviceSecurityAlertOverlay />
                   <UploadNotificationCenter />
                   <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
@@ -408,6 +418,10 @@ function App() {
                     <Route path="/messages/:targetId" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
                     <Route path="/messages/settings" element={isAuthenticated ? <MessagesSettings /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+                    <Route path="/settings/security" element={isAuthenticated ? <SecurityCentre /> : <Navigate to="/login" />} />
+                    <Route path="/settings/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" />} />
+                    <Route path="/settings/advanced" element={isAuthenticated ? <AdvancedSettings /> : <Navigate to="/login" />} />
+                    <Route path="/settings/advanced/:section" element={isAuthenticated ? <AdvancedSettingsDetail /> : <Navigate to="/login" />} />
                     <Route path="/settings/blocked" element={isAuthenticated ? <BlockedUsers /> : <Navigate to="/login" />} />
                     <Route path="/settings/audio-diagnostics" element={isAuthenticated ? <AudioDiagnostics /> : <Navigate to="/login" />} />
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
@@ -435,6 +449,14 @@ function App() {
                     <Route path="/marketplace/seller/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/messages/:conversationId" element={isAuthenticated ? <MarketplaceChat /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/settings" element={isAuthenticated ? <MarketplaceSettings /> : <Navigate to="/login" />} />
+                    <Route path="/sparkly-bot" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/sparkly-bot/*" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/sparkly" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/sparkly/*" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/sparklybot" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/marketplace/sparkly" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/ai/sparkly" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
+                    <Route path="/ai/sparkly-bot" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
                     <Route path="/profile/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
                     <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
                     <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />

@@ -71,14 +71,18 @@ export const MessageActionSheet: React.FC<ActionSheetProps> = ({
 
             {/* Action Bar (Sleek Rectangle) */}
             <div className="bg-[#1e1e1e] w-full max-w-[340px] rounded-[16px] py-3 px-2 border border-white/10 flex justify-around shadow-2xl">
-              <ActionButton icon={<Reply size={22} />} label="Reply" onClick={onReply} color={themeColor} />
+              {permissions?.canReply !== false && (
+                <ActionButton icon={<Reply size={22} />} label="Reply" onClick={onReply} color={themeColor} />
+              )}
               {(!permissions || permissions.canCopy !== false) && (
                 <ActionButton icon={<Copy size={22} />} label="Copy" onClick={onCopy} color={themeColor} />
               )}
               {(!permissions || permissions.canForward !== false) && (
                 <ActionButton icon={<Forward size={22} />} label="Forward" onClick={onForward} color={themeColor} />
               )}
-              <ActionButton icon={<Trash2 size={22} />} label="Delete" onClick={onDelete} color="#ef4444" />
+              {permissions?.canDeleteForMe !== false && (
+                <ActionButton icon={<Trash2 size={22} />} label="Delete" onClick={onDelete} color="#ef4444" />
+              )}
               <ActionButton icon={<MoreHorizontal size={22} />} label="More" onClick={onMore} color={themeColor} />
             </div>
           </motion.div>
@@ -130,7 +134,9 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
                     label={isPinned ? "Unpin Message" : "Pin Message"} 
                     onClick={onPin} 
                   />
-                  <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
+                  {(!permissions || permissions.canEdit !== false) && (
+                    <MoreOption icon={<Edit2 size={18} className="text-white/60" />} label="Edit Message" onClick={onEdit} />
+                  )}
                   {(!permissions || permissions.canForward !== false) && (
                     <MoreOption icon={<Forward size={18} className="text-white/60" />} label="Forward" onClick={onForward} />
                   )}
@@ -249,3 +255,142 @@ const MoreOption = ({ icon, label, onClick }: any) => (
     <span className="text-[15px] font-medium text-white">{label}</span>
   </button>
 );
+
+interface ReactionDetailsSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  reactions: Array<{
+    user_id?: string;
+    userId?: string;
+    emoji: string;
+    sender_name?: string;
+    sender_avatar?: string;
+    username?: string;
+  }>;
+  currentUserId: string;
+  onRemoveReaction: () => void;
+  onChangeReaction: (emoji: string) => void;
+  themeColor?: string;
+}
+
+export const ReactionDetailsSheet: React.FC<ReactionDetailsSheetProps> = ({
+  isOpen,
+  onClose,
+  reactions,
+  currentUserId,
+  onRemoveReaction,
+  onChangeReaction,
+  themeColor = '#ff1493'
+}) => {
+  const [showPicker, setShowPicker] = useState(false);
+
+  const grouped = reactions.reduce((acc, r) => {
+    acc[r.emoji] = (acc[r.emoji] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const myReaction = reactions.find(r => (r.user_id || r.userId) === currentUserId);
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 z-[110] backdrop-blur-xs"
+            onClick={onClose}
+          />
+          <motion.div
+            initial={{ y: '100%' }}
+            animate={{ y: 0 }}
+            exit={{ y: '100%' }}
+            transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+            className="fixed left-0 right-0 z-[111] bg-[#1a1a2e] rounded-t-[24px] px-5 pt-4 pb-8 border-t border-white/10 shadow-2xl max-w-md mx-auto"
+            style={{ bottom: 0 }}
+          >
+            <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-white font-bold text-[16px]">
+                {reactions.length} reaction{reactions.length !== 1 ? 's' : ''}
+              </span>
+              {myReaction && (
+                <button
+                  onClick={() => setShowPicker(!showPicker)}
+                  className="flex items-center gap-1 text-[13px] text-white/70 hover:text-white transition-colors bg-white/10 px-2.5 py-1 rounded-full"
+                >
+                  <Plus size={14} /> Change
+                </button>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 mb-4 flex-wrap">
+              {Object.entries(grouped).map(([emoji, count]) => (
+                <div key={emoji} className="flex items-center gap-1.5 bg-white/10 border border-white/10 rounded-full px-3 py-1 text-sm">
+                  <span>{emoji}</span>
+                  <span className="text-xs font-bold text-white/80">{count}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+              {reactions.map((r, i) => {
+                const uid = r.user_id || r.userId;
+                const isMe = uid === currentUserId;
+                const name = isMe ? 'You' : (r.sender_name || r.username || 'User');
+                return (
+                  <div key={i} className="flex items-center justify-between py-1.5 border-b border-white/5 last:border-0">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
+                        style={{ backgroundColor: themeColor + '40' }}
+                      >
+                        {r.sender_avatar ? (
+                          <img src={r.sender_avatar} alt={name} className="w-full h-full rounded-full object-cover" />
+                        ) : (
+                          name[0]?.toUpperCase() || '?'
+                        )}
+                      </div>
+                      <span className="text-[14px] text-white font-medium truncate">{name}</span>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="text-[20px]">{r.emoji}</span>
+                      {isMe && (
+                        <button
+                          onClick={onRemoveReaction}
+                          className="text-[12px] text-rose-400 font-medium hover:text-rose-300 transition-colors bg-rose-500/10 hover:bg-rose-500/20 px-2.5 py-1 rounded-full"
+                        >
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {showPicker && (
+              <div className="mt-4 pt-3 border-t border-white/10 max-h-[250px] overflow-y-auto">
+                <Picker
+                  data={data}
+                  onEmojiSelect={(emoji: any) => {
+                    onChangeReaction(emoji.native);
+                    setShowPicker(false);
+                  }}
+                  theme="dark"
+                  previewPosition="none"
+                  skinTonePosition="none"
+                  perLine={8}
+                />
+              </div>
+            )}
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+};
+

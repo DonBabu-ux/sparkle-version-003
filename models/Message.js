@@ -109,7 +109,10 @@ class Message {
                 [senderId, recipientId, recipientId, senderId]
             );
             if (blocked.length > 0) {
-                throw new Error('You cannot message this user (blocked)');
+                const blockedErr = new Error('You cannot message this user (blocked)');
+                blockedErr.code = 'MESSAGE_BLOCKED';
+                blockedErr.isBlocked = true;
+                throw blockedErr;
             }
         }
 
@@ -126,16 +129,43 @@ class Message {
         const serverSequence = seqRow[0]?.last_sequence || 1;
 
         const sentAt = new Date();
+        let validReplyToId = replyToId || null;
+        if (validReplyToId) {
+            try {
+                const [checkRows] = await db.query('SELECT message_id FROM messages WHERE message_id = ? LIMIT 1', [validReplyToId]);
+                if (!checkRows || checkRows.length === 0) {
+                    logger.warn(`[Message] replyToId "${validReplyToId}" not found in DB, setting to null to avoid FK error`);
+                    validReplyToId = null;
+                }
+            } catch (chkErr) {
+                validReplyToId = null;
+            }
+        }
+
+        // Calculate disappearing expiration if active for this chat
+        let expiresAt = null;
+        try {
+            const table = personalChatId ? 'personal_chats' : 'group_chats';
+            const [dRows] = await db.query(`SELECT disappearing_duration FROM ${table} WHERE chat_id = ?`, [activeChatId]);
+            const disappearingDuration = dRows && dRows[0] ? (parseInt(dRows[0].disappearing_duration, 10) || 0) : 0;
+            if (disappearingDuration > 0) {
+                expiresAt = new Date(sentAt.getTime() + disappearingDuration * 1000);
+            }
+        } catch (e) {
+            console.warn('[Message.sendMessage] Error checking disappearing duration:', e.message);
+        }
+
         try {
             await db.query(`
                 INSERT INTO messages (
-                    message_id, chat_id, conversation_id, personal_chat_id, 
+                    message_id, client_message_id, chat_id, conversation_id, personal_chat_id, 
                     sender_id, recipient_id, content, type, media_url, 
-                    story_id, reply_to_message_id, status, is_read, sent_at, context, metadata,
+                    story_id, reply_to_message_id, status, is_read, sent_at, expires_at, context, metadata,
                     server_sequence, payload_hash, version
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?, ?, ?, ?, 1)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, ?, ?, ?, ?, ?, 1)
             `, [
                 messageId, 
+                clientMsgId || messageId,
                 groupChatId, 
                 personalChatId, 
                 personalChatId, 
@@ -145,8 +175,9 @@ class Message {
                 type, 
                 mediaUrl, 
                 storyId,
-                replyToId, 
+                validReplyToId, 
                 sentAt, 
+                expiresAt,
                 context,
                 metadata,
                 serverSequence,
@@ -172,18 +203,24 @@ class Message {
                 `, [sentAt, groupChatId]);
             }
 
-            // Enqueue delivery tasks into delivery_queue for recipient sessions
+            // Enqueue delivery tasks into delivery_queue for recipient sessions (non-blocking)
             if (recipientId) {
-                const SessionService = require('../services/session.service');
-                const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
-                const sessions = await SessionService.getActiveSessions(recipientId);
-                for (const session of sessions) {
-                    await DeliveryQueueWorker.enqueue({
-                        messageId,
-                        recipientId,
-                        sessionId: session.session_id
-                    });
-                }
+                setImmediate(async () => {
+                    try {
+                        const SessionService = require('../services/session.service');
+                        const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+                        const sessions = await SessionService.getActiveSessions(recipientId);
+                        for (const session of sessions) {
+                            await DeliveryQueueWorker.enqueue({
+                                messageId,
+                                recipientId,
+                                sessionId: session.session_id
+                            });
+                        }
+                    } catch (queueErr) {
+                        logger.warn('[Message] Non-blocking delivery queue enqueue error:', queueErr.message);
+                    }
+                });
             }
 
             return messageId;
@@ -241,6 +278,7 @@ class Message {
                 LEFT JOIN users ru ON rm.sender_id = ru.user_id
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE (m.conversation_id = ? OR m.chat_id = ?)
+                  AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
@@ -267,6 +305,8 @@ class Message {
                     ...m,
                     sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
                     read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
+                    expires_at: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
+                    expiresAt: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
                     reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
                     permissions
                 };
@@ -293,6 +333,7 @@ class Message {
                 LEFT JOIN users ru ON rm.sender_id = ru.user_id
                 LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
                 WHERE m.chat_id = ?
+                  AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
                   AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
                   AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
@@ -317,6 +358,8 @@ class Message {
                     ...m,
                     sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
                     read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
+                    expires_at: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
+                    expiresAt: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
                     reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
                     permissions
                 };
@@ -329,8 +372,8 @@ class Message {
      * Get user's active conversations (Personal + Group)
      */
     static async getUserConversations(userId) {
-        // This is a complex query to combine personal and group chats with latest messages
-        const [rows] = await db.query(`
+        const runQuery = async () => {
+            return await db.query(`
             SELECT * FROM (
                 -- Personal Chats
                 SELECT 
@@ -350,8 +393,10 @@ class Message {
                     (SELECT COUNT(*) FROM messages m2 
                      WHERE (m2.conversation_id = pc.chat_id OR m2.personal_chat_id = pc.chat_id)
                      AND m2.sender_id != ? AND (m2.status != 'read' AND m2.is_read = 0)) as unread_count,
-                    IF(pc.participant1_id = ?, pc.is_pinned_p1, pc.is_pinned_p2) as is_pinned,
-                    IF(pc.participant1_id = ?, pc.is_muted_p1, pc.is_muted_p2) as is_muted,
+                    CASE WHEN pc.participant1_id = ? THEN pc.is_pinned_p1 ELSE pc.is_pinned_p2 END as is_pinned,
+                    CASE WHEN pc.participant1_id = ? THEN pc.is_favorite_p1 ELSE pc.is_favorite_p2 END as is_favorite,
+                    CASE WHEN pc.participant1_id = ? THEN pc.is_priority_p1 ELSE pc.is_priority_p2 END as is_priority,
+                    CASE WHEN pc.participant1_id = ? THEN pc.is_muted_p1 ELSE pc.is_muted_p2 END as is_muted,
                     IF(pc.participant1_id = ?, pc.is_archived_p1, pc.is_archived_p2) as is_archived,
                     2 as member_count,
                     pc.marketplace_listing_id,
@@ -390,6 +435,8 @@ class Message {
                     m.status as last_message_status,
                     0 as unread_count, 
                     0 as is_pinned,
+                    0 as is_favorite,
+                    0 as is_priority,
                     0 as is_muted,
                     0 as is_archived,
                     (SELECT COUNT(*) FROM group_chat_members WHERE chat_id = gc.chat_id AND status != 'left') as member_count,
@@ -409,16 +456,83 @@ class Message {
                 WHERE gcm.user_id = ? AND gcm.status = 'active'
             ) as conversations
             ORDER BY is_pinned DESC, last_message_at DESC
-        `, [userId, userId, userId, userId, userId, userId, userId, userId]);
+        `, [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]);
+        };
+
+        let rows;
+        try {
+            [rows] = await runQuery();
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR' || e.errno === 1054) {
+                const pcMigrationCols = [
+                    'is_deleted_p1 TINYINT(1) DEFAULT 0',
+                    'is_deleted_p2 TINYINT(1) DEFAULT 0',
+                    'is_pinned_p1 TINYINT(1) DEFAULT 0',
+                    'is_pinned_p2 TINYINT(1) DEFAULT 0',
+                    'is_favorite_p1 TINYINT(1) DEFAULT 0',
+                    'is_favorite_p2 TINYINT(1) DEFAULT 0',
+                    'is_priority_p1 TINYINT(1) DEFAULT 0',
+                    'is_priority_p2 TINYINT(1) DEFAULT 0',
+                    'is_muted_p1 TINYINT(1) DEFAULT 0',
+                    'is_muted_p2 TINYINT(1) DEFAULT 0',
+                    'is_archived_p1 TINYINT(1) DEFAULT 0',
+                    'is_archived_p2 TINYINT(1) DEFAULT 0',
+                    'disappearing_duration INT DEFAULT 0'
+                ];
+                for (const colDef of pcMigrationCols) {
+                    await db.query(`ALTER TABLE personal_chats ADD COLUMN ${colDef}`).catch(() => {});
+                }
+                [rows] = await runQuery();
+            } else {
+                throw e;
+            }
+        }
+
+        let blockedByMeSet = new Set();
+        let blockedMeSet = new Set();
+        try {
+            const [myBlocks] = await db.query('SELECT blocked_id FROM user_blocks WHERE blocker_id = ?', [userId]);
+            const [blocksOfMe] = await db.query('SELECT blocker_id FROM user_blocks WHERE blocked_id = ?', [userId]);
+            blockedByMeSet = new Set((myBlocks || []).map(b => String(b.blocked_id)));
+            blockedMeSet = new Set((blocksOfMe || []).map(b => String(b.blocker_id)));
+        } catch (bErr) {
+            // Non-fatal fallback
+        }
 
         const { formatSystemUser } = require('../helpers/systemAccount.helper');
         return rows.map(conv => {
             const formatted = formatSystemUser(conv);
+            const pid = conv.partner_id ? String(conv.partner_id) : null;
+            const isBlockedByMe = pid ? blockedByMeSet.has(pid) : false;
+            const amIBlocked = pid ? blockedMeSet.has(pid) : false;
+            const isBlocked = isBlockedByMe || amIBlocked;
+
             return {
                 ...conv,
                 ...formatted,
+                is_blocked: isBlocked,
+                is_blocked_by_me: isBlockedByMe,
+                am_i_blocked: amIBlocked,
+                conversation_status: isBlocked ? 'blocked' : 'active',
+                can_send_messages: !isBlocked,
+                // Ensure display-name fields are always strings (never numeric 0 from SQL DEFAULT 0 columns)
+                partner_name: isBlocked ? 'Sparkle User' : String(conv.partner_name || conv.partner_username || 'Sparkle User'),
+                partner_username: isBlocked ? '' : String(conv.partner_username || ''),
+                partner_avatar: isBlocked ? null : conv.partner_avatar,
+                is_online: isBlocked ? false : Boolean(conv.is_online),
+                // Convert all TINYINT(1) DEFAULT 0 columns to proper booleans
+                is_pinned: Boolean(conv.is_pinned),
+                is_favorite: Boolean(conv.is_favorite),
+                is_priority: Boolean(conv.is_priority),
+                is_muted: Boolean(conv.is_muted),
+                is_archived: Boolean(conv.is_archived),
+                // Ensure numeric fields are numbers, not strings
+                unread_count: Number(conv.unread_count) || 0,
+                member_count: Number(conv.member_count) || 0,
+                only_admins_send: Boolean(conv.only_admins_send),
+                disappearing_duration: Number(conv.disappearing_duration) || 0,
                 last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
-                last_seen_at: (conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null
+                last_seen_at: isBlocked ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
             };
         });
     }
@@ -640,7 +754,14 @@ class Message {
         const isP1 = chat[0].participant1_id === userId;
         const column = isP1 ? 'is_muted_p1' : 'is_muted_p2';
 
-        await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [muted ? 1 : 0, chatId]);
+        try {
+            await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [muted ? 1 : 0, chatId]);
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR') {
+                await db.query(`ALTER TABLE personal_chats ADD COLUMN is_muted_p1 TINYINT(1) DEFAULT 0, ADD COLUMN is_muted_p2 TINYINT(1) DEFAULT 0`).catch(() => {});
+                await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [muted ? 1 : 0, chatId]);
+            } else throw e;
+        }
         return true;
     }
 
@@ -654,7 +775,79 @@ class Message {
         const isP1 = String(chat[0].participant1_id) === String(userId);
         const column = isP1 ? 'is_archived_p1' : 'is_archived_p2';
 
-        await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [archived ? 1 : 0, chatId]);
+        try {
+            await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [archived ? 1 : 0, chatId]);
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR') {
+                await db.query(`ALTER TABLE personal_chats ADD COLUMN is_archived_p1 TINYINT(1) DEFAULT 0, ADD COLUMN is_archived_p2 TINYINT(1) DEFAULT 0`).catch(() => {});
+                await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [archived ? 1 : 0, chatId]);
+            } else throw e;
+        }
+        return true;
+    }
+
+    /**
+     * Pin or unpin a conversation for a user
+     */
+    static async pinConversation(userId, chatId, pinned = true) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const isP1 = String(chat[0].participant1_id) === String(userId);
+        const column = isP1 ? 'is_pinned_p1' : 'is_pinned_p2';
+
+        try {
+            await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [pinned ? 1 : 0, chatId]);
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR') {
+                await db.query(`ALTER TABLE personal_chats ADD COLUMN is_pinned_p1 TINYINT(1) DEFAULT 0, ADD COLUMN is_pinned_p2 TINYINT(1) DEFAULT 0`).catch(() => {});
+                await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [pinned ? 1 : 0, chatId]);
+            } else throw e;
+        }
+        return true;
+    }
+
+    /**
+     * Favorite or unfavorite a conversation for a user
+     */
+    static async favoriteConversation(userId, chatId, favorite = true) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const isP1 = String(chat[0].participant1_id) === String(userId);
+        const column = isP1 ? 'is_favorite_p1' : 'is_favorite_p2';
+
+        // Safe migration: add column if missing
+        try {
+            await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [favorite ? 1 : 0, chatId]);
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR') {
+                await db.query(`ALTER TABLE personal_chats ADD COLUMN is_favorite_p1 TINYINT(1) DEFAULT 0, ADD COLUMN is_favorite_p2 TINYINT(1) DEFAULT 0`).catch(() => {});
+                await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [favorite ? 1 : 0, chatId]);
+            } else throw e;
+        }
+        return true;
+    }
+
+    /**
+     * Set or unset priority for a conversation for a user
+     */
+    static async priorityConversation(userId, chatId, priority = true) {
+        const [chat] = await db.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [chatId]);
+        if (chat.length === 0) return false;
+
+        const isP1 = String(chat[0].participant1_id) === String(userId);
+        const column = isP1 ? 'is_priority_p1' : 'is_priority_p2';
+
+        // Safe migration: add column if missing
+        try {
+            await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [priority ? 1 : 0, chatId]);
+        } catch (e) {
+            if (e.code === 'ER_BAD_FIELD_ERROR') {
+                await db.query(`ALTER TABLE personal_chats ADD COLUMN is_priority_p1 TINYINT(1) DEFAULT 0, ADD COLUMN is_priority_p2 TINYINT(1) DEFAULT 0`).catch(() => {});
+                await db.query(`UPDATE personal_chats SET ${column} = ? WHERE chat_id = ?`, [priority ? 1 : 0, chatId]);
+            } else throw e;
+        }
         return true;
     }
 
@@ -724,7 +917,31 @@ class Message {
             LIMIT 200
         `, [userId, userId, userId, Number(lastCursor) || 0]);
 
-        return messages;
+        if (!messages || messages.length === 0) return [];
+
+        const chatIds = [...new Set(messages.map(m => m.chat_id || m.conversation_id).filter(Boolean))];
+        const privacyMap = new Map();
+        if (chatIds.length > 0) {
+            const [privacyRows] = await db.query(
+                'SELECT chat_id, user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id IN (?)',
+                [chatIds]
+            );
+            (privacyRows || []).forEach(r => privacyMap.set(`${r.chat_id}:${r.user_id}`, r));
+        }
+
+        return messages.map(m => {
+            const chatId = m.chat_id || m.conversation_id;
+            const senderPrivacy = privacyMap.get(`${chatId}:${m.sender_id}`) || {};
+            const permissions = PermissionEngine.computePermissions({
+                message: m,
+                senderPrivacy,
+                viewerUserId: userId
+            });
+            return {
+                ...m,
+                permissions
+            };
+        });
     }
 
     /**
@@ -792,7 +1009,10 @@ class Message {
      */
     static async addReaction(messageId, userId, emoji) {
         const [msg] = await db.query('SELECT conversation_id, chat_id FROM messages WHERE message_id = ?', [messageId]);
-        if (!msg.length) throw new Error('Message not found');
+        if (!msg || !msg.length) {
+            logger.warn(`[Message] addReaction: message ${messageId} not found in DB, ignoring reaction`);
+            return { action: 'ignored', messageId };
+        }
         const chatId = msg[0].conversation_id || msg[0].chat_id;
 
         await db.query(`

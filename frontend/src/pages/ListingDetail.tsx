@@ -8,6 +8,7 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
 import Spinner from '../components/ui/Spinner';
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -18,6 +19,7 @@ export default function ListingDetail() {
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [isAlerted, setIsAlerted] = useState(false);
   const [message, setMessage] = useState("Is this still available?");
   const [suggestedGroups, setSuggestedGroups] = useState<any[]>([]);
   const [suggestedListings, setSuggestedListings] = useState<Listing[]>([]);
@@ -31,6 +33,14 @@ export default function ListingDetail() {
           if (listingRes.data.success) {
             setListing(listingRes.data.listing);
             setIsWishlisted(listingRes.data.listing.is_wishlisted);
+
+            if (listingRes.data.listing.seller_id) {
+              api.get(`/marketplace/sellers/${listingRes.data.listing.seller_id}/alert`)
+                .then(alertRes => {
+                  if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
+                })
+                .catch(() => {});
+            }
           }
         } catch (err: any) {
           if (err.response?.status === 404 && String(id).startsWith('l-')) {
@@ -78,14 +88,37 @@ export default function ListingDetail() {
     setActiveModal('offer');
   };
 
-  const handleAlert = () => {
-    alert("You'll be notified when similar items are listed!");
+  const handleAlert = async () => {
+    if (!listing?.seller_id) return;
+    try {
+      const res = await api.post(`/marketplace/sellers/${listing.seller_id}/alert`);
+      if (res.data.success) {
+        setIsAlerted(res.data.alerted);
+        alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+      }
+    } catch (err) {
+      console.error("Alert toggle failed:", err);
+    }
   };
 
   const handleShare = async () => {
     if (!listing) return;
-    setSelectedListing(listing);
-    setActiveModal('share');
+    const shareUrl = `${window.location.origin}/marketplace/listings/${listing.listing_id || id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: listing.title,
+          text: `Check out ${listing.title} for KES ${parseFloat(listing.price as string).toLocaleString()} on Sparkle Marketplace!`,
+          url: shareUrl
+        });
+      } catch (err) {
+        navigator.clipboard.writeText(shareUrl);
+        alert('Listing link copied to clipboard!');
+      }
+    } else {
+      navigator.clipboard.writeText(shareUrl);
+      alert('Listing link copied to clipboard!');
+    }
   };
 
   const handleMore = () => {
@@ -106,18 +139,15 @@ export default function ListingDetail() {
   };
 
   const handleContact = async () => {
-    if (!listing) return;
+    if (!listing || !listing.seller_id) return;
     try {
-      // Create or get conversation
-      const res = await api.post('/marketplace/conversations', {
-        seller_id: listing.seller_id,
-        listing_id: id
+      const res = await api.post(`/marketplace/listings/${listing.listing_id || id}/contact`, {
+        sellerId: listing.seller_id,
+        message: message || "Is this still available?"
       });
-      const convId = res.data.id;
-      
-      // Navigate to the conversation thread and pass the initial message
+      const convId = res.data.chatId || res.data.conversationId || res.data.id;
       if (convId) {
-        navigate(`/marketplace/messages/${convId}`, { state: { initialMessage: message } });
+        navigate(`/marketplace/messages/${convId}`);
       }
     } catch (err) {
       console.error('Contact failed:', err);
@@ -153,20 +183,14 @@ export default function ListingDetail() {
       </header>
 
       {/* 2. Media Gallery */}
-      <div className="relative bg-marketplace-bg aspect-square w-full">
-        <img 
-          src={media[activeImage]?.media_url || listing.image_url || '/uploads/marketplace/default.png'} 
-          className="w-full h-full object-cover" 
-          alt={listing.title} 
-        />
-        {media.length > 1 && (
-          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {media.map((_, idx: number) => (
-              <div key={idx} className={`w-2 h-2 rounded-full ${idx === activeImage ? 'bg-white' : 'bg-white/50'}`} />
-            ))}
-          </div>
-        )}
-      </div>
+      <MarketplaceImageSlider
+        media={media}
+        imageUrls={listing.image_urls}
+        fallbackUrl={listing.image_url}
+        alt={listing.title}
+        aspectRatio="aspect-square"
+        className="w-full shadow-inner"
+      />
 
       {/* 3. Basic Info */}
       <div className="px-4 py-4 space-y-1">

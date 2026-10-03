@@ -59,4 +59,8 @@ router.post('/ticket', optionalAuthMiddleware, async (req, res) => {
     }
 });
 
+// Sparkly AI Assistant Support Bot endpoint
+const aiController = require('../../controllers/ai.controller');
+router.post('/bot/ask', optionalAuthMiddleware, aiController.sparklyChat);
+
 module.exports = router;

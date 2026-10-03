@@ -5,7 +5,7 @@ import api from '../api/api';
 import type { Listing } from '../types/listing';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
-import Spinner from '../components/ui/Spinner';
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 
 export default function MyListings() {
   const navigate = useNavigate();
@@ -87,14 +87,14 @@ export default function MyListings() {
                 key={item.listing_id} 
                 className="bg-white rounded-[32px] overflow-hidden border border-marketplace-border shadow-sm group hover:shadow-xl transition-all duration-300"
               >
-                <div className="aspect-[16/10] relative overflow-hidden bg-marketplace-bg">
-                  <img 
-                    src={item.image_url || '/uploads/marketplace/default.png'} 
-                    alt={item.title} 
-                    className={clsx(
-                      "w-full h-full object-cover transition-transform duration-700 group-hover:scale-110",
-                      item.status === 'sold' && "grayscale opacity-60"
-                    )}
+                <div className="relative overflow-hidden">
+                  <MarketplaceImageSlider
+                    media={item.media}
+                    imageUrls={item.image_urls}
+                    fallbackUrl={item.image_url}
+                    alt={item.title}
+                    aspectRatio="aspect-[16/10]"
+                    className={item.status === 'sold' ? 'grayscale opacity-60' : ''}
                   />
                   {item.status === 'sold' && (
                     <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">

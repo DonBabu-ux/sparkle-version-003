@@ -8,6 +8,8 @@ import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 
+let isSyncInProgress = false;
+
 export const useMessageSocket = () => {
   const socket = useSocket();
 
@@ -15,77 +17,120 @@ export const useMessageSocket = () => {
     if (!socket) return;
     console.log('[TRACE] Registering enterprise message socket listeners');
 
-    // Always access stores via .getState() inside the effect so we never
-    // close over a stale reference AND never need them in the dep array.
     const getChatStore  = () => useChatStore.getState();
     const getMsgStore   = () => useMessageStore.getState();
 
-    // Clean previous listeners to avoid duplicates
-    socket.off('connect');
-    socket.off('new-message');
-    socket.off('receive_message');
-    socket.off('message-delivered-update');
-    socket.off('message-read-update');
-    socket.off('messages-delivered');
-    socket.off('messages-read');
-    socket.off('message-pinned');
-    socket.off('message-unpinned');
-    socket.off('message-edited');
-    socket.off('message_deleted');
-    socket.off('message-deleted-everyone');
-    socket.off('message-deleted-me');
-    socket.off('new-reaction');
-    socket.off('reaction-removed');
-    socket.off('new_group_created');
+    const runReconnectSyncSequence = async () => {
+      if (isSyncInProgress || !socket.connected) return;
+      isSyncInProgress = true;
+      console.log('🔄 [SyncCoordinator:SYNC_START] Outbox & delta sync sequence initiated');
+      getChatStore().setSocketStatus('connecting');
 
-    const triggerCursorSync = () => {
-      const myUserId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      if (!myUserId) return;
+      try {
+        // Step 1: Outbox Sync (Flush pending outgoing messages)
+        const pending = PersistentOfflineQueue.getPendingMessagesImmediate();
+        if (pending.length > 0) {
+          console.log(`📤 [SyncCoordinator:OUTBOX_RECONCILED] Flushing ${pending.length} pending outbox messages...`);
+          const batchSize = 3;
+          for (let i = 0; i < pending.length; i += batchSize) {
+            const batch = pending.slice(i, i + batchSize);
+            await Promise.all(
+              batch.map((item) => {
+                return new Promise<void>((resolve) => {
+                  console.log(`🚀 [SyncCoordinator:MESSAGE_SEND_ATTEMPT] Attempting send for messageId=${item.messageId}`);
+                  
+                  // Start individual 10-second timer for this specific message
+                  PersistentOfflineQueue.startMessageTimeout(item.messageId, () => {
+                    console.warn(`⏰ [SyncCoordinator:MESSAGE_SYNC_TIMEOUT] 10s timeout for messageId=${item.messageId}`);
+                    getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
+                    window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
+                  });
 
-      // Find highest server_sequence stored across all conversations
-      let maxCursor = 0;
-      Object.values(getChatStore().messagesByConversation).forEach((msgs) => {
-        msgs.forEach((m) => {
-          if (m.server_sequence && m.server_sequence > maxCursor) {
-            maxCursor = m.server_sequence;
+                  socket.emit('send-message', item, (ackRes: any) => {
+                    if (ackRes && ackRes.success) {
+                      console.log(`✅ [SyncCoordinator:MESSAGE_SERVER_ACK] Message ACKed: ${item.messageId}`);
+                      PersistentOfflineQueue.acknowledge(item.messageId);
+                      getChatStore().updateMessage(item.chatId, item.messageId, {
+                        status: 'sent',
+                        sent_at: ackRes.sentAt || new Date().toISOString(),
+                      });
+                      window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
+                    } else if (ackRes?.isBlocked || ackRes?.code === 'MESSAGE_BLOCKED' || ackRes?.error?.includes('blocked')) {
+                      console.warn(`⛔ [SyncCoordinator] Outbox message permanently BLOCKED: ${item.messageId}`);
+                      PersistentOfflineQueue.markBlocked(item.messageId);
+                      getChatStore().updateMessage(item.chatId, item.messageId, { status: 'blocked' });
+                      getChatStore().setConversationBlockState(item.chatId, {
+                        is_blocked: true,
+                        conversation_status: 'blocked',
+                        can_send_messages: false
+                      });
+                      window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
+                    } else {
+                      console.warn(`⚠️ [SyncCoordinator] Outbox message ACK failed for ${item.messageId}`);
+                      PersistentOfflineQueue.markFailed(item.messageId);
+                      getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
+                    }
+                    resolve();
+                  });
+                });
+              })
+            );
           }
-        });
-      });
+        }
 
-      console.log('🔄 Triggering cursor-based delta sync from cursor:', maxCursor);
-      socket.emit('cursor-sync-request', { lastCursor: maxCursor }, (res: any) => {
-        if (res && res.success && Array.isArray(res.messages)) {
-          res.messages.forEach((msg: any) => {
-            const chatId = msg.conversation_id || msg.chat_id;
-            if (chatId) {
-              getChatStore().addMessage(chatId, msg);
+        // Step 2: Incoming Delta Sync
+        let maxCursor = 0;
+        Object.values(getChatStore().messagesByConversation).forEach((msgs: any) => {
+          msgs.forEach((m: any) => {
+            if (m.server_sequence && m.server_sequence > maxCursor) {
+              maxCursor = m.server_sequence;
             }
           });
-        }
-      });
-
-      // Flush persistent offline outgoing queue
-      const dueMessages = PersistentOfflineQueue.getDueMessages();
-      dueMessages.forEach((item) => {
-        socket.emit('send-message', item, (ackRes: any) => {
-          if (ackRes && ackRes.success) {
-            PersistentOfflineQueue.acknowledge(item.messageId);
-          } else {
-            PersistentOfflineQueue.markFailed(item.messageId);
-          }
         });
-      });
 
-      // Flush persistent offline interaction queue
-      const dueInteractions = PersistentOfflineQueue.getDueInteractions();
-      dueInteractions.forEach((item) => {
-        socket.emit(item.type, item);
-      });
+        const affectedChatIds = new Set<string>();
+
+        await new Promise<void>((resolve) => {
+          socket.emit('cursor-sync-request', { lastCursor: maxCursor }, (res: any) => {
+            if (res && res.success && Array.isArray(res.messages)) {
+              console.log(`📥 [SyncCoordinator:SYNC_MESSAGES_RECEIVED] ${res.messages.length} messages from cursor ${maxCursor}`);
+              res.messages.forEach((msg: any) => {
+                const chatId = msg.conversation_id || msg.chat_id;
+                if (chatId) {
+                  getChatStore().addMessage(chatId, msg);
+                  affectedChatIds.add(chatId);
+                }
+              });
+            }
+            resolve();
+          });
+        });
+
+        // Notify active chat views of newly synced messages
+        affectedChatIds.forEach((chatId) => {
+          console.log(`⚡ [SyncCoordinator:ACTIVE_CHAT_UPDATED] Dispatching sync re-render for chatId: ${chatId}`);
+          window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId } }));
+        });
+
+        // Step 3: Flush persistent offline interaction queue
+        const dueInteractions = PersistentOfflineQueue.getDueInteractions();
+        dueInteractions.forEach((item) => {
+          socket.emit(item.type, item);
+        });
+
+        getChatStore().setSocketStatus('connected');
+        console.log('✅ [SyncCoordinator:SYNC_COMPLETE] Normal Realtime Mode restored');
+      } catch (err) {
+        console.error('❌ [SyncCoordinator] Reconnection sync error:', err);
+        getChatStore().setSocketStatus('connected');
+      } finally {
+        isSyncInProgress = false;
+      }
     };
 
     const handleConnect = () => {
       console.log('⚡ Socket connected, triggering delta sync & privacy reconciliation');
-      triggerCursorSync();
+      runReconnectSyncSequence();
       const activeChatId = getChatStore().activeConversationId;
       if (activeChatId && !activeChatId.startsWith('temp_')) {
         api.get(`/messages/${activeChatId}/privacy`)
@@ -150,18 +195,29 @@ export const useMessageSocket = () => {
     };
 
     // Enterprise tri-condition read update handler
-    const handleMessageReadUpdate = (data: { chatId: string; messageIds?: string[]; readAt: string; readerUserId: string }) => {
+    const handleMessageReadUpdate = (data: { chatId: string; messageIds?: string[]; readAt?: string; readerUserId?: string; userId?: string }) => {
       const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      if (data.readerUserId === myId) return;
+      const readerId = data.readerUserId || data.userId;
+      
+      // If the read event came from another user, mark ALL our sent messages in this chat as READ (blue ticks)
+      if (readerId && myId && String(readerId).toLowerCase() === String(myId).toLowerCase()) {
+        return;
+      }
 
+      const readTime = data.readAt || new Date().toISOString();
       const chatStore = getChatStore();
       const msgs = chatStore.messagesByConversation[data.chatId] || [];
+
       msgs.forEach((m) => {
-        if (m.sender_id === myId) {
-          if (!data.messageIds || data.messageIds.includes(m.message_id || (m as any).id)) {
-            chatStore.updateMessage(data.chatId, m.message_id || (m as any).id, {
-              read_at: data.readAt,
-              delivered_at: m.delivered_at || data.readAt,
+        const msgSenderId = m.sender_id || (m as any).senderId;
+        const isFromMe = msgSenderId && myId && String(msgSenderId).toLowerCase() === String(myId).toLowerCase();
+
+        if (isFromMe) {
+          const msgId = m.message_id || (m as any).id;
+          if (!data.messageIds || data.messageIds.length === 0 || data.messageIds.includes(msgId)) {
+            chatStore.updateMessage(data.chatId, msgId, {
+              read_at: readTime,
+              delivered_at: m.delivered_at || readTime,
               status: 'read',
               is_read: true,
             });
@@ -172,14 +228,15 @@ export const useMessageSocket = () => {
 
     const handleMessagesDelivered = (data: { chatId: string; messageId?: string; userId?: string }) => {
       const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      if (data.userId === myId) return;
+      if (data.userId && myId && String(data.userId).toLowerCase() === String(myId).toLowerCase()) return;
 
       const chatStore = getChatStore();
       const msgs = chatStore.messagesByConversation[data.chatId] || [];
       msgs.forEach((m) => {
-        const isFromMe = m.sender_id === myId;
+        const msgSenderId = m.sender_id || (m as any).senderId;
+        const isFromMe = msgSenderId && myId && String(msgSenderId).toLowerCase() === String(myId).toLowerCase();
         if (isFromMe && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
-          chatStore.updateMessage(data.chatId, m.message_id, {
+          chatStore.updateMessage(data.chatId, m.message_id || (m as any).id, {
             status: 'delivered',
             delivered_at: new Date().toISOString(),
           });
@@ -187,8 +244,15 @@ export const useMessageSocket = () => {
       });
     };
 
-    const handleMessagesRead = (data: { chatId: string; readAt?: string; userId?: string }) => {
-      getChatStore().markRead(data.chatId, '');
+    const handleMessagesRead = (data: { chatId: string; readAt?: string; userId?: string; readerUserId?: string }) => {
+      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+      const readerId = data.readerUserId || data.userId;
+
+      if (readerId && myId && String(readerId).toLowerCase() !== String(myId).toLowerCase()) {
+        handleMessageReadUpdate(data);
+      } else {
+        getChatStore().markRead(data.chatId, '');
+      }
     };
 
     const handleMessagePinned = (data: { messageId: string; chatId: string; pinnedBy: string }) => {
@@ -280,8 +344,17 @@ export const useMessageSocket = () => {
       const senderId = data.senderId || data.sender_id || data.setterId;
       const privacyVersion = data.privacyVersion || data.privacy_version;
 
-      const canCopy = data.permissions?.canCopy ?? (data.privacySettings ? (data.privacySettings.allow_copy !== 0 && !data.privacySettings.copyProtection) : true);
-      const canForward = data.permissions?.canForward ?? (data.privacySettings ? (data.privacySettings.allow_forward !== 0 && !data.privacySettings.forwardProtection) : true);
+      const canCopy = data.permissions?.canCopy !== undefined
+        ? (data.permissions.canCopy === true || data.permissions.canCopy === 1)
+        : (data.privacySettings
+            ? (data.privacySettings.allow_copy !== 0 && data.privacySettings.allow_copy !== false && data.privacySettings.allow_copy !== '0' && data.privacySettings.allow_copy !== 'false' && !data.privacySettings.copyProtection)
+            : false);
+
+      const canForward = data.permissions?.canForward !== undefined
+        ? (data.permissions.canForward === true || data.permissions.canForward === 1)
+        : (data.privacySettings
+            ? (data.privacySettings.allow_forward !== 0 && data.privacySettings.allow_forward !== false && data.privacySettings.allow_forward !== '0' && data.privacySettings.allow_forward !== 'false' && !data.privacySettings.forwardProtection)
+            : false);
 
       if (chatId && senderId) {
         getChatStore().updateSenderMessagePermissions(chatId, senderId, { canCopy, canForward }, privacyVersion);
@@ -322,10 +395,115 @@ export const useMessageSocket = () => {
       }
     };
 
+    const handleConversationUpdated = (data: { chatId: string; action: string; userId?: string; [key: string]: any }) => {
+      const chatStore = getChatStore();
+      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+      // We process this even if it's from us, in case it's a different tab syncing
+      if (data.action === 'archived' || data.action === 'unarchived') {
+        chatStore.toggleArchive(data.chatId, data.action === 'archived');
+      } else if (data.action === 'deleted') {
+        chatStore.toggleDelete(data.chatId);
+      } else if (data.action === 'pinned' || data.action === 'unpinned') {
+        chatStore.togglePin(data.chatId, data.action === 'pinned');
+      } else if (data.action === 'favorited' || data.action === 'unfavorited') {
+        chatStore.toggleFavorite(data.chatId, data.action === 'favorited');
+      } else if (data.action === 'priority_on' || data.action === 'priority_off') {
+        chatStore.togglePriority(data.chatId, data.action === 'priority_on');
+      }
+    };
+
+    const handleSparklyStreamChunk = (data: { chatId: string; messageId: string; text: string; fullContent: string }) => {
+      getChatStore().updateMessage(data.chatId, data.messageId, {
+        content: data.fullContent
+      });
+    };
+
+    const handleSparklyStreamCards = (data: { chatId: string; messageId: string; cards: any[] }) => {
+      getChatStore().updateMessage(data.chatId, data.messageId, {
+        structured_data: { cards: data.cards } as any
+      });
+    };
+
+    const handleSparklyStreamComplete = (data: { chatId: string; messageId: string; finalMessage: any }) => {
+      getChatStore().updateMessage(data.chatId, data.messageId, {
+        ...data.finalMessage,
+        is_sparkly_bot: true
+      });
+    };
+
+    const handleOnlineOrFocus = () => {
+      if (socket.connected) {
+        console.log('⚡ Connection/Focus trigger detected, running SyncCoordinator sequence');
+        runReconnectSyncSequence();
+      }
+    };
+
+    window.addEventListener('online', handleOnlineOrFocus);
+    window.addEventListener('focus', handleOnlineOrFocus);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') handleOnlineOrFocus();
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     // If socket is already connected when hook runs, trigger sync immediately
     if (socket.connected) {
-      triggerCursorSync();
+      runReconnectSyncSequence();
     }
+
+    const handleConversationBlocked = (data: { chatId?: string; partnerId?: string; isBlockedByMe?: boolean; amIBlocked?: boolean }) => {
+      console.log('⛔ [Socket] conversation_blocked event received:', data);
+      const chatStore = getChatStore();
+      const targetId = data.chatId || data.partnerId;
+      if (targetId) {
+        chatStore.setConversationBlockState(targetId, {
+          is_blocked: true,
+          is_blocked_by_me: !!data.isBlockedByMe,
+          am_i_blocked: !!data.amIBlocked,
+          conversation_status: 'blocked',
+          can_send_messages: false
+        });
+      }
+      window.dispatchEvent(new CustomEvent('sparkle_conversation_blocked', { detail: data }));
+    };
+
+    const handleConversationUnblocked = (data: { chatId?: string; partnerId?: string }) => {
+      console.log('🟢 [Socket] conversation_unblocked event received:', data);
+      const chatStore = getChatStore();
+      const targetId = data.chatId || data.partnerId;
+      if (targetId) {
+        chatStore.setConversationBlockState(targetId, {
+          is_blocked: false,
+          is_blocked_by_me: false,
+          am_i_blocked: false,
+          conversation_status: 'active',
+          can_send_messages: true
+        });
+      }
+      window.dispatchEvent(new CustomEvent('sparkle_conversation_unblocked', { detail: data }));
+    };
+
+    const handleMessageError = (data: { error?: string; code?: string; isBlocked?: boolean; chatId?: string; clientMessageId?: string }) => {
+      console.warn('⚠️ [Socket] message-error received:', data);
+      if (data.isBlocked || data.code === 'MESSAGE_BLOCKED' || data.error?.includes('blocked')) {
+        if (data.clientMessageId) {
+          PersistentOfflineQueue.markBlocked(data.clientMessageId);
+        }
+        if (data.chatId && data.clientMessageId) {
+          getChatStore().updateMessage(data.chatId, data.clientMessageId, { status: 'blocked' });
+          getChatStore().setConversationBlockState(data.chatId, {
+            is_blocked: true,
+            conversation_status: 'blocked',
+            can_send_messages: false
+          });
+        }
+      }
+    };
+
+    const handleMessagesExpired = (data: { chatId: string; messageIds: string[] }) => {
+      if (data?.chatId && Array.isArray(data.messageIds)) {
+        getChatStore().removeExpiredMessages(data.chatId, data.messageIds);
+      }
+    };
 
     socket.on('connect', handleConnect);
     socket.on('new-message', handleNewMessage);
@@ -334,6 +512,7 @@ export const useMessageSocket = () => {
     socket.on('message-read-update', handleMessageReadUpdate);
     socket.on('messages-delivered', handleMessagesDelivered);
     socket.on('messages-read', handleMessagesRead);
+    socket.on('messages_expired', handleMessagesExpired);
     socket.on('message-pinned', handleMessagePinned);
     socket.on('message-unpinned', handleMessageUnpinned);
     socket.on('message-pinned-updated', handleMessagePinnedUpdated);
@@ -349,6 +528,13 @@ export const useMessageSocket = () => {
     socket.on('sync-response', handleSyncResponse);
     socket.on('official_onboarding_status_changed', handleOnboardingStatusChanged);
     socket.on('conversation_privacy_updated', handleConversationPrivacyUpdated);
+    socket.on('conversation_updated', handleConversationUpdated);
+    socket.on('sparkly-stream-chunk', handleSparklyStreamChunk);
+    socket.on('sparkly-stream-cards', handleSparklyStreamCards);
+    socket.on('sparkly-stream-complete', handleSparklyStreamComplete);
+    socket.on('conversation_blocked', handleConversationBlocked);
+    socket.on('conversation_unblocked', handleConversationUnblocked);
+    socket.on('message-error', handleMessageError);
 
     // Live Location Listeners
     const handleLiveLocationStarted = (data: any) => {
@@ -366,6 +552,10 @@ export const useMessageSocket = () => {
     socket.on('live_location_stopped', handleLiveLocationStopped);
 
     return () => {
+      window.removeEventListener('online', handleOnlineOrFocus);
+      window.removeEventListener('focus', handleOnlineOrFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+
       socket.off('connect', handleConnect);
       socket.off('new-message', handleNewMessage);
       socket.off('receive_message', handleNewMessage);
@@ -373,6 +563,7 @@ export const useMessageSocket = () => {
       socket.off('message-read-update', handleMessageReadUpdate);
       socket.off('messages-delivered', handleMessagesDelivered);
       socket.off('messages-read', handleMessagesRead);
+      socket.off('messages_expired', handleMessagesExpired);
       socket.off('message-pinned', handleMessagePinned);
       socket.off('message-unpinned', handleMessageUnpinned);
       socket.off('message-pinned-updated', handleMessagePinnedUpdated);
@@ -387,10 +578,16 @@ export const useMessageSocket = () => {
       socket.off('sync-response', handleSyncResponse);
       socket.off('official_onboarding_status_changed', handleOnboardingStatusChanged);
       socket.off('conversation_privacy_updated', handleConversationPrivacyUpdated);
+      socket.off('conversation_updated', handleConversationUpdated);
+      socket.off('sparkly-stream-chunk', handleSparklyStreamChunk);
+      socket.off('sparkly-stream-cards', handleSparklyStreamCards);
+      socket.off('sparkly-stream-complete', handleSparklyStreamComplete);
+      socket.off('conversation_blocked', handleConversationBlocked);
+      socket.off('conversation_unblocked', handleConversationUnblocked);
+      socket.off('message-error', handleMessageError);
       socket.off('live_location_started', handleLiveLocationStarted);
       socket.off('live_location_update', handleLiveLocationUpdate);
       socket.off('live_location_stopped', handleLiveLocationStopped);
     };
-  }, [socket]); // ✅ Only re-run when the socket instance itself changes
+  }, [socket]);
 };
-

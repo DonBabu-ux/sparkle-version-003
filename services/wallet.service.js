@@ -472,22 +472,24 @@ class WalletService {
             let recipientCode;
 
             if (method === 'mpesa') {
-                // M-Pesa recipient
+                // M-Pesa recipient: Paystack expects digits only (e.g. 0712345678 or 254712345678)
+                const cleanPhone = (details.phone || '').replace(/[^0-9]/g, '');
                 const recipientRes = await paystackService.createTransferRecipient({
                     type: 'mobile_money',
                     name: details.accountName || 'Sparkle Creator',
-                    account_number: details.phone,
+                    account_number: cleanPhone,
                     bank_code: 'MPESA',
                     currency: 'KES',
                     description: `Sparkle withdrawal ${withdrawalId}`,
                 });
                 recipientCode = recipientRes.data?.recipient_code;
             } else {
-                // Bank transfer
+                // Bank transfer recipient
+                const cleanAccount = (details.accountNumber || '').replace(/[^0-9]/g, '');
                 const recipientRes = await paystackService.createTransferRecipient({
                     type: 'nuban',
-                    name: details.accountName,
-                    account_number: details.accountNumber,
+                    name: details.accountName || 'Sparkle Creator',
+                    account_number: cleanAccount,
                     bank_code: details.bankCode,
                     currency: 'KES',
                     description: `Sparkle withdrawal ${withdrawalId}`,
@@ -517,7 +519,25 @@ class WalletService {
             logger.info(`[WalletService] Paystack transfer initiated: ${transferCode} for withdrawal ${withdrawalId}`);
         } catch (err) {
             logger.error(`[WalletService] _executePaystackTransfer failed for ${withdrawalId}:`, err.message);
-            // Mark withdrawal failed, refund balance
+            const errMsg = (err.message || '').toLowerCase();
+            const isStarterBusinessError = errMsg.includes('starter business') || errMsg.includes('third party payouts');
+
+            if (isStarterBusinessError) {
+                logger.warn(`[WalletService] Paystack Starter Business restriction detected for withdrawal ${withdrawalId}. Payout queued for manual admin processing.`);
+                try {
+                    await pool.query(
+                        `UPDATE wallet_withdrawals
+                         SET status = 'Pending', metadata = JSON_SET(COALESCE(metadata,'{}'), '$.starterBusinessNote', 'Paystack API requires registered business for automatic API transfers. Payout queued for admin processing.')
+                         WHERE withdrawal_id = ?`,
+                        [withdrawalId]
+                    );
+                } catch (dbErr) {
+                    logger.error('[WalletService] Could not update starter business withdrawal status:', dbErr.message);
+                }
+                return;
+            }
+
+            // Standard failure: mark withdrawal failed, refund balance
             try {
                 const connection = await pool.getConnection();
                 await connection.beginTransaction();
@@ -685,6 +705,65 @@ class WalletService {
         );
 
         return this.getAutoWithdrawalConfig(userId);
+    }
+
+    // ── Boost Wallet Payment ──────────────────────────────────────────────────
+
+    /**
+     * Deduct funds from creator's wallet for a Boost purchase.
+     * @param {string} userId
+     * @param {number} amountCents (integer cents)
+     * @param {object} metadata
+     */
+    async deductFundsForBoost(userId, amountCents, metadata = {}) {
+        if (!Number.isInteger(amountCents) || amountCents <= 0) {
+            throw new Error('Amount must be a positive integer (cents)');
+        }
+        const walletId = await this.getOrCreateWallet(userId);
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+
+            const [[wallet]] = await connection.query(
+                'SELECT available_balance FROM wallets WHERE wallet_id = ? FOR UPDATE',
+                [walletId]
+            );
+
+            if (!wallet || wallet.available_balance < amountCents) {
+                const avail = wallet ? (wallet.available_balance / 100).toFixed(2) : '0.00';
+                await connection.rollback();
+                throw new Error(`Insufficient wallet balance. Available: KES ${avail}`);
+            }
+
+            const transactionId = crypto.randomUUID();
+            const reference = `SPK_BST_${crypto.randomBytes(8).toString('hex').toUpperCase()}`;
+
+            // 1. Insert immutable ledger entry
+            await connection.query(
+                `INSERT INTO wallet_transactions
+                    (transaction_id, wallet_id, reference, type, status, amount, currency, payment_provider, metadata)
+                 VALUES (?, ?, ?, 'BoostPurchase', 'Completed', ?, 'KES', 'SparkleWallet', ?)`,
+                [transactionId, walletId, reference, amountCents, JSON.stringify(metadata)]
+            );
+
+            // 2. Deduct available balance
+            await connection.query(
+                `UPDATE wallets
+                 SET available_balance = available_balance - ?,
+                     updated_at = NOW()
+                 WHERE wallet_id = ?`,
+                [amountCents, walletId]
+            );
+
+            await connection.commit();
+            logger.info(`[WalletService] Deducted KES ${(amountCents / 100).toFixed(2)} for boost (user: ${userId}, ref: ${reference})`);
+            return { transactionId, reference };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
     }
 
     /**

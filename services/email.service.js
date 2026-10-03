@@ -59,11 +59,23 @@ class EmailService {
             const templatePath = path.join(__dirname, '../views/emails', `${templateName}.ejs`);
             const html = await ejs.renderFile(templatePath, templateData);
 
+            const logoPath = path.join(__dirname, '../public/images/logo.png');
+            const fs = require('fs');
+            const attachments = [];
+            if (fs.existsSync(logoPath)) {
+                attachments.push({
+                    filename: 'logo.png',
+                    path: logoPath,
+                    cid: 'sparklelogo'
+                });
+            }
+
             const mailOptions = {
                 from: `"Sparkle" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
                 to,
                 subject,
                 html,
+                attachments,
                 text: `Please view this email in an HTML client. ${templateData.actionUrl || ''}`
             };
 

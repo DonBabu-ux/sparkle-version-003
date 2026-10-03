@@ -79,10 +79,10 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
             {/* Conversation Name (18-20px, Semibold) */}
             <h3 className="text-xl font-semibold text-white tracking-tight flex items-center justify-center gap-1.5">
               <span>{identity.displayName}</span>
-              {chat.is_pinned && (
+              {Boolean(chat.is_pinned) && (
                 <Pin size={15} className="text-[#FF008A] fill-[#FF008A] shrink-0" />
               )}
-              {chat.is_favorite && (
+              {Boolean(chat.is_favorite) && (
                 <Sparkles size={15} className="text-amber-400 fill-amber-400 shrink-0" />
               )}
             </h3>

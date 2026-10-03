@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375973367613",
+    "project_id": "sparklenotifications-b2e50",
+    "storage_bucket": "sparklenotifications-b2e50.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375973367613:android:9775ebf478fb5b943e7f54",
+        "android_client_info": {
+          "package_name": "com.sparkleapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD1yz2x02YvpZk-ihIixPCM19AO2Z7Fk64"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

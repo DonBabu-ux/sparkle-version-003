@@ -1,5 +1,6 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const boostService = require('../services/boost.service');
 
 // Deterministic mock helper based on userId string to keep it stable but realistic
 const getDeterministicValue = (str, min, max) => {
@@ -16,6 +17,7 @@ exports.getCreatorStats = async (req, res) => {
     const timeRange = (req.query.timeRange || '30D').toUpperCase();
 
     try {
+        const activeBoost = await boostService.getActiveBoost(userId).catch(() => null);
         // 1. Get basic user stats (followers, following, posts, views)
         const [userStats] = await pool.query(
             `SELECT 
@@ -321,7 +323,9 @@ exports.getCreatorStats = async (req, res) => {
                 currency: 'NGN'
             },
             contentPerformance,
-            isBoosted: isNewUser
+            isBoosted: !!activeBoost,
+            boostStrength: activeBoost ? activeBoost.boostStrength : 1.0,
+            activeBoost
         });
 
     } catch (error) {

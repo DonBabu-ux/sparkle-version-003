@@ -209,6 +209,55 @@ class Marketplace {
     }
 
     /**
+     * Toggle seller alert (notify me on new listings)
+     */
+    static async toggleSellerAlert(userId, sellerId) {
+        const [existing] = await pool.query(
+            'SELECT alert_id, is_active FROM marketplace_seller_alerts WHERE user_id = ? AND seller_id = ?',
+            [userId, sellerId]
+        );
+
+        if (existing.length > 0) {
+            const nextActive = existing[0].is_active ? 0 : 1;
+            await pool.query(
+                'UPDATE marketplace_seller_alerts SET is_active = ? WHERE alert_id = ?',
+                [nextActive, existing[0].alert_id]
+            );
+            return { alerted: Boolean(nextActive) };
+        } else {
+            await pool.query(
+                'INSERT INTO marketplace_seller_alerts (alert_id, user_id, seller_id, is_active) VALUES (?, ?, ?, 1)',
+                [uuidv4(), userId, sellerId]
+            );
+            return { alerted: true };
+        }
+    }
+
+    /**
+     * Get seller alert status for user
+     */
+    static async getSellerAlertStatus(userId, sellerId) {
+        if (!userId || !sellerId) return { alerted: false };
+        const [existing] = await pool.query(
+            'SELECT is_active FROM marketplace_seller_alerts WHERE user_id = ? AND seller_id = ?',
+            [userId, sellerId]
+        );
+        return { alerted: Boolean(existing[0]?.is_active) };
+    }
+
+    /**
+     * Get list of user IDs who subscribed to seller alerts
+     */
+    static async getUsersAlertedForSeller(sellerId) {
+        if (!sellerId) return [];
+        const [rows] = await pool.query(
+            'SELECT user_id FROM marketplace_seller_alerts WHERE seller_id = ? AND is_active = 1',
+            [sellerId]
+        );
+        return rows.map(r => r.user_id);
+    }
+
+    /**
      * Create a review for a seller
      */
     static async createReview(reviewData) {
@@ -249,7 +298,50 @@ class Marketplace {
              WHERE f.user_id = ?`,
             [userId]
         );
+        await Marketplace.populateListingsMedia(rows);
         return rows;
+    }
+
+    /**
+     * Helper to populate media array and image_urls for a list of listing objects
+     */
+    static async populateListingsMedia(listings = []) {
+        if (!listings || listings.length === 0) return listings;
+        try {
+            const listingIds = listings.map(l => l.listing_id).filter(Boolean);
+            if (listingIds.length === 0) return listings;
+
+            const [allMedia] = await pool.query(
+                'SELECT * FROM listing_media WHERE listing_id IN (?) ORDER BY upload_order ASC',
+                [listingIds]
+            );
+
+            const mediaMap = {};
+            for (const m of allMedia) {
+                if (!mediaMap[m.listing_id]) mediaMap[m.listing_id] = [];
+                mediaMap[m.listing_id].push(m);
+            }
+
+            for (const l of listings) {
+                const mediaItems = mediaMap[l.listing_id] || [];
+                if (mediaItems.length > 0) {
+                    l.media = mediaItems;
+                    l.image_urls = mediaItems.map(m => m.media_url).filter(Boolean);
+                    if (!l.image_url) l.image_url = l.image_urls[0];
+                } else if (l.image_url || l.media_url) {
+                    const fallbackUrl = l.image_url || l.media_url;
+                    l.media = [{ media_url: fallbackUrl, media_type: 'image', upload_order: 0 }];
+                    l.image_urls = [fallbackUrl];
+                    if (!l.image_url) l.image_url = fallbackUrl;
+                } else {
+                    l.media = [];
+                    l.image_urls = [];
+                }
+            }
+        } catch (err) {
+            logger.warn('Failed to populate listings media:', err.message);
+        }
+        return listings;
     }
 
     /**
@@ -258,6 +350,7 @@ class Marketplace {
     static async getListings(filters = {}, userId = null) {
         const {
             search = '',
+            query: queryFilter = '',
             category = '',
             campus = '',
             condition = '',
@@ -274,6 +367,9 @@ class Marketplace {
             radius = 25
         } = filters;
 
+        const effectiveSearch = (search || queryFilter || '').trim();
+        const isMetaSearch = /(trending|deals|deal|top rated|popular|hot|featured)/i.test(effectiveSearch);
+
         const sessionUserId = currentUserId || userId;
         const userLat = location?.lat || lat;
         const userLng = location?.lng || lng;
@@ -281,8 +377,16 @@ class Marketplace {
 
         try {
             let distanceSelect = '';
-            if (userLat && userLng) {
-                distanceSelect = `, (6371 * acos(cos(radians(${parseFloat(userLat)})) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(${parseFloat(userLng)})) + sin(radians(${parseFloat(userLat)})) * sin(radians(l.latitude)))) AS distance`;
+            if (userLat && userLng && !isNaN(parseFloat(userLat)) && !isNaN(parseFloat(userLng))) {
+                const parsedLat = parseFloat(userLat);
+                const parsedLng = parseFloat(userLng);
+                distanceSelect = `, CASE 
+                    WHEN l.latitude IS NULL OR l.longitude IS NULL THEN NULL
+                    ELSE (6371 * acos(LEAST(1.0, GREATEST(-1.0, 
+                        cos(radians(${parsedLat})) * cos(radians(l.latitude)) * cos(radians(l.longitude) - radians(${parsedLng})) + 
+                        sin(radians(${parsedLat})) * sin(radians(l.latitude))
+                    ))))
+                END AS distance`;
             }
 
             let query = `
@@ -290,12 +394,12 @@ class Marketplace {
                     l.*,
                     u.username as seller_username,
                     u.avatar_url as seller_avatar,
-                    (SELECT media_url FROM listing_media WHERE listing_id = l.listing_id LIMIT 1) as media_url,
-                    (SELECT AVG(rating) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as seller_rating,
-                    (SELECT COUNT(*) FROM marketplace_reviews WHERE reviewee_id = l.seller_id) as review_count,
+                    l.image_url as media_url,
+                    COALESCE(l.average_rating, 0) as seller_rating,
+                    0 as review_count,
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
-                    (SELECT COUNT(*) FROM marketplace_orders WHERE listing_id = l.listing_id) as order_count
+                    0 as order_count
                     ${distanceSelect}
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
@@ -306,9 +410,9 @@ class Marketplace {
             
             const params = [sessionUserId, sessionUserId];
 
-            if (search) {
+            if (effectiveSearch && !isMetaSearch) {
                 query += ` AND (l.title LIKE ? OR l.description LIKE ?)`;
-                params.push(`%${search}%`, `%${search}%`);
+                params.push(`%${effectiveSearch}%`, `%${effectiveSearch}%`);
             }
 
             if (category && category !== 'all') {
@@ -326,12 +430,6 @@ class Marketplace {
                 params.push(condition);
             }
 
-            // High-Precision Location Filtering
-            if (userLat && userLng && searchRadius) {
-                query += ` HAVING distance <= ?`;
-                params.push(parseFloat(searchRadius));
-            }
-
             if (!isNaN(parseFloat(minPrice)) && parseFloat(minPrice) > 0) {
                 query += ` AND l.price >= ?`;
                 params.push(parseFloat(minPrice));
@@ -342,9 +440,16 @@ class Marketplace {
                 params.push(parseFloat(maxPrice));
             }
 
+            // High-Precision Location Filtering (Must come AFTER all WHERE clauses!)
+            if (userLat && userLng && searchRadius && !isNaN(parseFloat(searchRadius))) {
+                query += ` HAVING (distance IS NULL OR distance <= ?)`;
+                params.push(parseFloat(searchRadius));
+            }
+
             // Sorting
             if (sort === 'price_asc') query += ` ORDER BY l.price ASC`;
             else if (sort === 'price_desc') query += ` ORDER BY l.price DESC`;
+            else if (sort === 'distance_asc' && userLat && userLng) query += ` ORDER BY (CASE WHEN distance IS NULL THEN 999999 ELSE distance END) ASC`;
             else if (sort === 'popular') query += ` ORDER BY order_count DESC`;
             else query += ` ORDER BY l.created_at DESC`;
 
@@ -352,6 +457,9 @@ class Marketplace {
             params.push(parseInt(limit), parseInt(offset));
 
             const [listings] = await pool.query(query, params);
+
+            // Populate all media and image_urls for returned listings
+            await Marketplace.populateListingsMedia(listings);
 
             // Get total count
             const [totalResult] = await pool.query(
@@ -1226,6 +1334,7 @@ class Marketplace {
                 [userId]
             );
 
+            await Marketplace.populateListingsMedia(listings);
             return listings;
         } catch (error) {
             logger.error('Database error in getUserListings:', error);
@@ -2423,6 +2532,70 @@ class Marketplace {
         } catch (error) {
             logger.error('Database error in deleteChat:', error);
             throw error;
+        }
+    }
+
+    /**
+     * Toggle alert notifications for a seller
+     */
+    static async toggleSellerAlert(userId, sellerId) {
+        try {
+            const [existing] = await pool.query(
+                'SELECT alert_id, is_active FROM marketplace_seller_alerts WHERE user_id = ? AND seller_id = ?',
+                [userId, sellerId]
+            );
+
+            if (existing.length > 0) {
+                const newActive = existing[0].is_active ? 0 : 1;
+                await pool.query(
+                    'UPDATE marketplace_seller_alerts SET is_active = ?, updated_at = NOW() WHERE alert_id = ?',
+                    [newActive, existing[0].alert_id]
+                );
+                return { isAlerted: !!newActive };
+            } else {
+                const alert_id = uuidv4();
+                await pool.query(
+                    'INSERT INTO marketplace_seller_alerts (alert_id, user_id, seller_id, is_active) VALUES (?, ?, ?, 1)',
+                    [alert_id, userId, sellerId]
+                );
+                return { isAlerted: true };
+            }
+        } catch (error) {
+            logger.error('Error in toggleSellerAlert:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get alert status for a seller
+     */
+    static async getSellerAlertStatus(userId, sellerId) {
+        try {
+            if (!userId || !sellerId) return { isAlerted: false };
+            const [rows] = await pool.query(
+                'SELECT is_active FROM marketplace_seller_alerts WHERE user_id = ? AND seller_id = ?',
+                [userId, sellerId]
+            );
+            return { isAlerted: rows.length > 0 && !!rows[0].is_active };
+        } catch (error) {
+            logger.error('Error in getSellerAlertStatus:', error);
+            return { isAlerted: false };
+        }
+    }
+
+    /**
+     * Get all users subscribed to alerts for a seller
+     */
+    static async getUsersAlertedForSeller(sellerId) {
+        try {
+            const [rows] = await pool.query(
+                'SELECT user_id FROM marketplace_seller_alerts WHERE seller_id = ? AND is_active = 1',
+                [sellerId]
+            );
+            return rows.map(r => r.user_id);
+        } catch (error) {
+            logger.error('Error in getUsersAlertedForSeller:', error);
+            return [];
         }
     }
 }

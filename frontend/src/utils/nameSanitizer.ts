@@ -1,10 +1,10 @@
 // src/utils/nameSanitizer.ts
 /**
- * Sanitizes partner/display names by removing UI‑generated trailing "00" suffix.
+ * Partner name passthrough — trims whitespace but no longer strips trailing zeros.
+ * The underlying data issue (numeric DEFAULT 0 leaking into display fields)
+ * is now fixed at the backend data layer in Message.js getUserConversations.
  */
 export const sanitizePartnerName = (name: string | undefined, _username?: string): string => {
   if (typeof name !== 'string') return '';
-  // Remove trailing spaces and "00"
-  return name.replace(/\s*00$/, '').trim();
+  return name.trim();
 };
-

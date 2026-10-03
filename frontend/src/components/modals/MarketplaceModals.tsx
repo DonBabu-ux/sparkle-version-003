@@ -450,23 +450,28 @@ export default function MarketplaceModals() {
                       ))}
                     </div>
 
-                    <p className="text-xs text-marketplace-muted mb-4 uppercase font-bold tracking-wider">Sub-locations (3x3)</p>
+                    <p className="text-xs text-marketplace-muted mb-4 uppercase font-bold tracking-wider">Sub-locations</p>
                     <div className="grid grid-cols-3 gap-2">
                       {[
-                        'Othaya', 'Karatina', 'Nyeri', 
-                        'Thika', 'Kiambu', 'Ruiru',
-                        'Eldoret', 'Kericho', 'Kitale'
-                      ].map(name => (
+                        { name: 'Othaya', lat: -0.5471, lng: 36.9458 },
+                        { name: 'Karatina', lat: -0.4813, lng: 37.1268 },
+                        { name: 'Nyeri', lat: -0.4201, lng: 36.9476 },
+                        { name: 'Thika', lat: -1.0396, lng: 37.0900 },
+                        { name: 'Kiambu', lat: -1.1714, lng: 36.8356 },
+                        { name: 'Ruiru', lat: -1.1462, lng: 36.9602 },
+                        { name: 'Eldoret', lat: 0.5143, lng: 35.2698 },
+                        { name: 'Kericho', lat: -0.3689, lng: 35.2863 },
+                        { name: 'Kitale', lat: 1.0197, lng: 35.0023 }
+                      ].map(loc => (
                         <button 
-                          key={name}
+                          key={loc.name}
                           onClick={() => {
-                            // Dummy coordinates for sub-locations in this demo
-                            setFilters({ location: { lat: -1.2921, lng: 36.8219, name: name + ', Kenya', source: 'manual' } });
+                            setFilters({ location: { ...loc, name: loc.name + ', Kenya', source: 'manual' } });
                             setActiveModal(null);
                           }}
                           className="p-2.5 bg-slate-50 border border-marketplace-border rounded-lg text-[13px] font-semibold text-marketplace-muted hover:bg-marketplace-bg transition-all"
                         >
-                          {name}
+                          {loc.name}
                         </button>
                       ))}
                     </div>

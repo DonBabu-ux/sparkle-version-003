@@ -130,23 +130,43 @@ const initializeSocket = (server) => {
             logger.error(`⚠️  setOnlineStatus failed for ${socket.userId}: ${dbErr.message}`);
         }
 
-        // Periodic cleanup for disappearing messages (Runs once per connection to ensure it's active)
+        // Periodic cleanup for disappearing messages (Runs once per connection)
         if (!global._disappearingCleanupStarted) {
             global._disappearingCleanupStarted = true;
             setInterval(async () => {
                 try {
-                    // Find messages that have exceeded the disappearing duration of their chat
-                    // duration is in hours, sent_at is UTC
-                    await pool.query(`
-                        DELETE messages FROM messages 
-                        INNER JOIN personal_chats pc ON (messages.conversation_id = pc.chat_id OR messages.chat_id = pc.chat_id)
-                        WHERE pc.disappearing_duration > 0 
-                        AND messages.sent_at < DATE_SUB(NOW(), INTERVAL pc.disappearing_duration HOUR)
-                    `);
+                    // Find messages where expires_at <= NOW()
+                    const [expiredRows] = await pool.query(
+                        'SELECT message_id, chat_id, personal_chat_id, conversation_id FROM messages WHERE expires_at IS NOT NULL AND expires_at <= NOW()'
+                    );
+                    if (expiredRows && expiredRows.length > 0) {
+                        const byChat = new Map();
+                        const expiredIds = [];
+                        expiredRows.forEach(r => {
+                            const cid = r.chat_id || r.personal_chat_id || r.conversation_id;
+                            if (cid) {
+                                if (!byChat.has(cid)) byChat.set(cid, []);
+                                byChat.get(cid).push(r.message_id);
+                            }
+                            expiredIds.push(r.message_id);
+                        });
+
+                        // Delete from delivery_queue and messages
+                        await pool.query('DELETE FROM delivery_queue WHERE message_id IN (?)', [expiredIds]);
+                        await pool.query('DELETE FROM messages WHERE message_id IN (?)', [expiredIds]);
+
+                        // Broadcast realtime expiration to active chat rooms
+                        byChat.forEach((msgIds, chatId) => {
+                            io.to(`chat:${chatId}`).to(`conversation:${chatId}`).emit('messages_expired', {
+                                chatId,
+                                messageIds: msgIds
+                            });
+                        });
+                    }
                 } catch (e) {
-                    console.error('Cleanup error:', e);
+                    console.error('Disappearing cleanup error:', e.message);
                 }
-            }, 60000); // Check every minute
+            }, 10000); // Check every 10 seconds for precise disappearing message lifecycle
         }
 
         // Join user to their personal room
@@ -207,9 +227,24 @@ socket.on('get-rooms', () => {
     rooms: Array.from(socket.rooms)
   });
 });
-        // Typing indicator — server-coordinated with auto-expiry
-        socket.on('typing', (data) => {
+        // Typing indicator — server-coordinated with auto-expiry & privacy enforcement
+        socket.on('typing', async (data) => {
             const { chatId, isTyping } = data;
+            if (!chatId) return;
+
+            // Check sender's typing_indicator_enabled setting
+            try {
+                const [pRows] = await pool.query(
+                    'SELECT typing_indicator_enabled FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                    [chatId, socket.userId]
+                );
+                if (pRows && pRows.length > 0 && pRows[0].typing_indicator_enabled === 0) {
+                    // Typing indicator privacy is disabled — do not transmit event
+                    return;
+                }
+            } catch (pErr) {
+                // If query fails, fallback to normal broadcast
+            }
 
             // Track which chats this socket is actively typing in
             if (isTyping) {
@@ -518,41 +553,47 @@ socket.on('get-rooms', () => {
 
         // Send Message
         socket.on('send-message', async (data, callback) => {
-        const traceId = realtimeLogger.generateTraceId();
-        realtimeLogger.trace(traceId, 'SERVER_RECEIVE', { chatId: data.chatId, senderId: socket.userId });
+            const traceId = realtimeLogger.generateTraceId();
+            realtimeLogger.trace(traceId, 'SERVER_RECEIVE', { chatId: data.chatId, senderId: socket.userId });
             try {
                 const MESSAGE_TRACE_ID = crypto.randomUUID();
                 secureLogger.messageTrace(MESSAGE_TRACE_ID, 'client_send', { chatId: data.chatId, senderId: socket.userId, recipientId: data.recipientId || data.partnerId });
                 const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment, messageId: clientMessageId } = data;
-                logger.info(`🔌 Socket Auth SUCCESS userId=${socket.userId} socketId=${socket.id}`);
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
 
-                // Serialize generic attachment (story, post, event, marketplace, etc.)
                 const metadata = attachment ? JSON.stringify({ attachment }) : null;
 
                 // --- Moderation & Group Access Enforcement ---
                 if (chatId) {
                     try {
                         const [groups] = await pool.query('SELECT only_admins_send FROM group_chats WHERE chat_id = ?', [chatId]);
-                        if (groups.length > 0) {
+                        if (groups.length > 0 && groups[0].only_admins_send === 1) {
                             const isAdmin = await GroupMember.isAdmin(chatId, socket.userId);
-                            if (groups[0].only_admins_send === 1 && !isAdmin) {
+                            if (!isAdmin) {
                                 return socket.emit('message-error', { error: 'Only admins can send messages' });
                             }
                         }
                     } catch (moderationErr) {
                         logger.warn(`[Socket] GroupMember moderation check failed for chatId=${chatId}, allowing message: ${moderationErr.message}`);
-                        // Allow the message through rather than blocking on moderation errors
                     }
                 }
 
-                // Auto-infer marketplace context
                 if (context === 'chat' && (marketplaceListingId || data.listingId)) context = 'marketplace';
 
-                // 1. Save to DB (pass client UUID for idempotency)
+                // Check for idempotency (if message was saved previously but ACK was lost)
+                let alreadyExisted = false;
+                if (clientMessageId) {
+                    const [chk] = await pool.query('SELECT message_id FROM messages WHERE message_id = ? LIMIT 1', [clientMessageId]);
+                    if (chk && chk.length > 0) {
+                        alreadyExisted = true;
+                        logger.info(`🔄 [Socket Idempotency] Duplicate message retry detected for messageId=${clientMessageId}`);
+                    }
+                }
+
+                // 1. Authoritative MySQL Persistence (Validate -> INSERT -> COMMIT)
                 realtimeLogger.trace(traceId, 'DB_SAVE_START', { chatId: data.chatId, clientMessageId });
-        const messageId = await Message.sendMessage({
+                const messageId = await Message.sendMessage({
                     messageId: clientMessageId || undefined,
                     chatId,
                     recipientId,
@@ -567,92 +608,108 @@ socket.on('get-rooms', () => {
                     context,
                     metadata,
                 });
-                console.log('MESSAGE SAVED', messageId);
-        realtimeLogger.trace(traceId, 'DB_SAVE_SUCCESS', { messageId });
+                realtimeLogger.trace(traceId, 'DB_SAVE_SUCCESS', { messageId, alreadyExisted });
 
-                // Get the saved message with sender info and reply info
+                // Retrieve saved message with minimal metadata
                 const [fullMessage] = await pool.query(`
                     SELECT m.*, 
-                           u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
-                           rm.content as reply_content, rm.type as reply_type,
-                           ru.name as reply_sender_name
+                           u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
                     FROM messages m
                     JOIN users u ON m.sender_id = u.user_id
-                    LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
-                    LEFT JOIN users ru ON rm.sender_id = ru.user_id
                     WHERE m.message_id = ?
                 `, [messageId]);
-                // Resolve message object and chat identifiers
+
                 const message = fullMessage[0] || {};
-                const finalChatId = message.chat_id || message.conversation_id || message.personal_chat_id;
-                // Ensure chat_id set for consistency
+                const finalChatId = message.chat_id || message.conversation_id || message.personal_chat_id || chatId;
                 if (!message.chat_id) { message.chat_id = finalChatId; }
                 message.chatId = finalChatId;
                 message.id = message.message_id;
                 message.senderId = message.sender_id;
-                // Compute server-authoritative per-message permissions based on sender privacy settings
-                const PermissionEngine = require('../services/PermissionEngine');
-                const [privacyRows] = await pool.query(
-                    'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-                    [finalChatId, message.sender_id]
-                );
-                const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
 
-                message.permissions = PermissionEngine.computePermissions({
-                    message,
-                    senderPrivacy,
-                    viewerUserId: socket.userId
-                });
-
-
-
-                // Acknowledge receipt to the sender with server-authoritative sentAt
-                // IMPORTANT: sentAt comes from the DB record, not from the client clock
+                // 2. Authoritative ACK to Sender
                 if (typeof callback === 'function') {
                     callback({ success: true, messageId, sentAt: message.sent_at });
                 }
 
-                console.log(
-                    '[ROOM_CHECK]',
-                    finalChatId,
-                    Array.from(io.sockets.adapter.rooms.get(`chat:${finalChatId}`) || [])
-                );
-                console.log('[MESSAGE_EMIT]', message);
-
-                // 2. Confirm to sender (no 'new-message' echo — sender already updated optimistically)
                 realtimeLogger.trace(traceId, 'EMIT_TO_SENDER', { messageId });
                 socket.emit('message-sent', message);
 
-                // 3. Emit to all OTHER participants in the chat room
-                realtimeLogger.trace(traceId, 'EMIT_TO_ROOM', { chatId: finalChatId, messageId });
-                socket.to(`chat:${finalChatId}`).emit('new-message', message);
-logSocketRooms(socket, `room-emit:${finalChatId}`);
-                console.log('MESSAGE EMITTED', finalChatId);
-                // Emit to participants' user rooms for chat list update
-                io.to(`user:${socket.userId}`).emit('chat-updated', { chatId: finalChatId });
-                if (recipientId) {
-                    io.to(`user:${recipientId}`).emit('chat-updated', { chatId: finalChatId });
+                // If this message was already processed in a previous attempt, skip duplicate room broadcast & push notifications
+                if (alreadyExisted) {
+                    return;
                 }
 
-                // 4. Handle push notifications if it's a personal chat and recipient is offline
-                if (recipientId) {
-                    const isOnline = userSockets.has(recipientId) && userSockets.get(recipientId).size > 0;
-                    if (!isOnline) {
-                        await queuePushNotification(recipientId, {
-                            type: 'message',
-                            title: socket.user.name,
-                            body: type === 'text' ? content : `Sent a ${type}`,
-                            data: { chatId: finalChatId, messageId }
-                        });
+                realtimeLogger.trace(traceId, 'EMIT_TO_ROOM', { chatId: finalChatId, messageId });
+                socket.to(`chat:${finalChatId}`).emit('new-message', message);
+
+                // 3. Asynchronous Non-Critical Operations (Post-Emit)
+                setImmediate(async () => {
+                    try {
+                        // User room chat list update
+                        io.to(`user:${socket.userId}`).emit('chat-updated', { chatId: finalChatId });
+                        if (recipientId) {
+                            io.to(`user:${recipientId}`).emit('chat-updated', { chatId: finalChatId });
+
+                            // Push Notification queueing for offline recipient
+                            const isOnline = userSockets.has(recipientId) && userSockets.get(recipientId).size > 0;
+                            if (!isOnline) {
+                                await queuePushNotification(recipientId, {
+                                    type: 'message',
+                                    title: socket.user.name,
+                                    body: type === 'text' ? content : `Sent a ${type}`,
+                                    data: { chatId: finalChatId, messageId }
+                                });
+                            }
+                        }
+
+                        // Check for @Sparkle mention OR reply to a Sparkly AI message
+                        const sparklyMentionMatch = content && /@sparkl(?:y|e)\b/i.test(content);
+                        let isReplyToSparkly = false;
+                        const replyId = data.replyToId || data.reply_to_message_id;
+                        if (replyId) {
+                            try {
+                                const [replyRows] = await pool.query('SELECT sender_id, metadata FROM messages WHERE message_id = ? LIMIT 1', [replyId]);
+                                if (replyRows && replyRows.length > 0) {
+                                    const rMsg = replyRows[0];
+                                    if (rMsg.sender_id === 'sparkly_bot' || (rMsg.metadata && rMsg.metadata.includes('sparkly_bot'))) {
+                                        isReplyToSparkly = true;
+                                    }
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (sparklyMentionMatch || isReplyToSparkly) {
+                            handleSparklyMentionInChat({
+                                io,
+                                chatId: finalChatId,
+                                senderUserId: socket.userId,
+                                senderName: socket.user?.name || socket.user?.username || 'User',
+                                userMessage: content,
+                                replyToMessageId: replyId
+                            }).catch(err => logger.error('[SparklyMention] Async execution error:', err));
+                        }
+                    } catch (asyncErr) {
+                        logger.error('[Socket Post-Emit Error]:', asyncErr);
                     }
-                }
+                });
+
             } catch (error) {
                 logger.error('Send message error:', error);
-        realtimeLogger.error(traceId, 'SEND_MESSAGE_ERROR', error, { data });
+                realtimeLogger.error(traceId, 'SEND_MESSAGE_ERROR', error, { data });
+                const isBlocked = Boolean(error.isBlocked || error.code === 'MESSAGE_BLOCKED' || error.message?.includes('blocked'));
+                const errorCode = isBlocked ? 'MESSAGE_BLOCKED' : 'MESSAGE_ERROR';
+                const errorMessage = isBlocked ? 'You cannot message this user (blocked)' : (error.message || 'Failed to send message');
+
                 if (typeof callback === 'function') {
-                    callback({ success: false, error: 'Database or broadcast error' });
+                    callback({ success: false, code: errorCode, isBlocked, error: errorMessage });
                 }
-                socket.emit('message-error', { error: 'Failed to send message' });
+                socket.emit('message-error', {
+                    code: errorCode,
+                    isBlocked,
+                    error: errorMessage,
+                    chatId: data.chatId,
+                    clientMessageId: data.messageId || data.clientMessageId
+                });
             }
         });
 
@@ -719,12 +776,16 @@ logSocketRooms(socket, `room-emit:${finalChatId}`);
                 if (!chatId) return;
                 await Message.markReadTriCondition(chatId, messageIds, socket.userId);
 
-                io.to(`chat:${chatId}`).emit('message-read-update', {
+                const readAt = new Date().toISOString();
+                const payload = {
                     chatId,
-                    messageIds,
+                    messageIds: messageIds || null,
                     readerUserId: socket.userId,
-                    readAt: new Date().toISOString()
-                });
+                    userId: socket.userId,
+                    readAt
+                };
+                io.to(`chat:${chatId}`).emit('message-read-update', payload);
+                io.to(`chat:${chatId}`).emit('messages-read', payload);
                 if (typeof callback === 'function') callback({ success: true });
             } catch (err) {
                 logger.error('message-read-ack error:', err);
@@ -751,7 +812,15 @@ logSocketRooms(socket, `room-emit:${finalChatId}`);
         socket.on('mark-read', async (chatId) => {
             try {
                 await Message.markReadTriCondition(chatId, null, socket.userId);
-                io.to(`chat:${chatId}`).emit('messages-read', { chatId, userId: socket.userId, readAt: new Date().toISOString() });
+                const readAt = new Date().toISOString();
+                const payload = {
+                    chatId,
+                    readerUserId: socket.userId,
+                    userId: socket.userId,
+                    readAt
+                };
+                io.to(`chat:${chatId}`).emit('message-read-update', payload);
+                io.to(`chat:${chatId}`).emit('messages-read', payload);
             } catch (error) {
                 logger.error('Mark read error:', error);
             }
@@ -1259,15 +1328,20 @@ const joinUserChatRooms = async (socket) => {
 const joinUserRoomChannels = async (socket) => {
     try {
         const rooms = await Room.getUserRooms(socket.userId);
+        if (!Array.isArray(rooms)) return;
         for (const r of rooms) {
             socket.join(`room:${r.room_id}`);
             const channels = await RoomChannel.listByRoom(r.room_id);
-            for (const ch of channels) {
-                socket.join(`room_channel:${ch.channel_id}`);
+            if (Array.isArray(channels)) {
+                for (const ch of channels) {
+                    socket.join(`room_channel:${ch.channel_id}`);
+                }
             }
         }
     } catch (error) {
-        logger.error('Join room channels error:', error);
+        if (error?.code !== 'ER_NO_SUCH_TABLE') {
+            logger.warn('Join room channels notice:', error.message || error);
+        }
     }
 };
 
@@ -1342,12 +1416,10 @@ const queuePushNotification = async (userId, notification) => {
                 notification.body, JSON.stringify(notification.data)]
         );
     } catch (error) {
-        // Fallback: search for existing notification mechanism
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.warn('Push notification table error (using standard notifications): ' + errorMsg);
         try {
             if (notification.type === 'message') {
-                // Do not insert message notification in database (stop in-app notifications for messages)
                 return;
             }
             await pool.query(`
@@ -1375,18 +1447,23 @@ const emitNotification = (userId, notificationData) => {
     }
 };
 
-/**
- * Notify participants about order updates
- */
+const emitSecurityAlert = (userId, alertData) => {
+    try {
+        if (io) {
+            io.to(`user:${userId}`).emit('security:alert', alertData);
+            logger.info(`🚨 Security alert broadcasted to user:${userId} event=${alertData.event_type || 'alert'}`);
+        }
+    } catch (error) {
+        logger.error('emitSecurityAlert error:', error);
+    }
+};
+
 const notifyOrderUpdate = (orderData) => {
     try {
         if (!io) return;
         const { order_id, buyer_id, seller_id, status } = orderData;
-
-        // Notify both parties
         io.to(`user:${buyer_id}`).emit('marketplace:order_update', { orderId: order_id, status });
         io.to(`user:${seller_id}`).emit('marketplace:order_update', { orderId: order_id, status });
-
         logger.info(`📡 Order update broadcasted: ${order_id} -> ${status}`);
     } catch (error) {
         logger.error('notifyOrderUpdate error:', error);
@@ -1403,4 +1480,134 @@ const emitMarketplaceMessage = (chatId, message) => {
     }
 };
 
-module.exports = { initializeSocket, getIO, emitNotification, notifyOrderUpdate, emitMarketplaceMessage };
+async function ensureSparklyBotUserExists() {
+    try {
+        await pool.query(`
+            INSERT INTO users (
+                user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio
+            ) VALUES (
+                'sparkly_bot', 'Sparkly AI Assistant', 'sparkly_bot', 'sparkly_bot@sparkle.app', 'NO_LOGIN', 'system', 'system', 'active', 1, 6, 'Official Sparkly AI Assistant on Sparkle'
+            ) ON DUPLICATE KEY UPDATE name = VALUES(name)
+        `);
+    } catch (e) {
+        // Suppress duplicate/concurrent insertion warning
+    }
+}
+
+/**
+ * Asynchronously processes @Sparkle mentions in normal chat rooms.
+ * Streams real-time tokens into a single growing bot response bubble.
+ */
+async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName, userMessage, replyToMessageId }) {
+    await ensureSparklyBotUserExists();
+    const cleanPrompt = userMessage.replace(/@sparkl(?:y|e)\b/gi, '').trim() || "Hi Sparkly, how can you help me today?";
+    const botMessageId = 'msg_sparkly_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
+    const SparklyService = require('../services/sparkly.service');
+
+    const initialBotMessage = {
+        id: botMessageId,
+        message_id: botMessageId,
+        chatId: chatId,
+        chat_id: chatId,
+        conversation_id: chatId,
+        sender_id: 'sparkly_bot',
+        senderId: 'sparkly_bot',
+        sender_name: 'Sparkly AI',
+        sender_username: 'sparkly',
+        sender_avatar: '/assets/system/sparkle-logo.svg',
+        content: '',
+        type: 'text',
+        sent_at: new Date().toISOString(),
+        is_sparkly_bot: true,
+        metadata: JSON.stringify({ source: 'sparkly_bot', streaming: true })
+    };
+
+    io.to(`chat:${chatId}`).emit('new-message', initialBotMessage);
+
+    let accumulatedContent = '';
+    let cards = [];
+
+    try {
+        await SparklyService.processMessageStream({
+            userId: senderUserId,
+            userMessage: cleanPrompt,
+            conversationId: chatId,
+            replyToMessageId,
+            persona: 'friendly',
+            responseStyle: 'conversational',
+            onInit: () => {},
+            onChunk: (textChunk) => {
+                accumulatedContent += textChunk;
+                io.to(`chat:${chatId}`).emit('sparkly-stream-chunk', {
+                    chatId,
+                    messageId: botMessageId,
+                    text: textChunk,
+                    fullContent: accumulatedContent
+                });
+            },
+            onCards: (receivedCards) => {
+                cards = receivedCards;
+                io.to(`chat:${chatId}`).emit('sparkly-stream-cards', {
+                    chatId,
+                    messageId: botMessageId,
+                    cards: receivedCards
+                });
+            },
+            onDone: async (finalData) => {
+                const finalContent = finalData.answer || accumulatedContent || "I'm here to help!";
+                const finalCards = finalData.structuredCards || cards || [];
+                const finalMetadata = JSON.stringify({ source: 'sparkly_bot', cards: finalCards });
+
+                try {
+                    await ensureSparklyBotUserExists();
+                    await pool.query(`
+                        INSERT INTO messages (
+                            message_id, chat_id, conversation_id, personal_chat_id, 
+                            sender_id, content, type, status, is_read, sent_at, context, metadata
+                        ) VALUES (?, ?, ?, ?, 'sparkly_bot', ?, 'text', 'sent', 0, NOW(), 'chat', ?)
+                    `, [botMessageId, chatId, chatId, chatId, finalContent, finalMetadata]);
+                } catch (dbErr) {
+                    logger.error('[SparklyMention] DB save error:', dbErr);
+                }
+
+                io.to(`chat:${chatId}`).emit('sparkly-stream-complete', {
+                    chatId,
+                    messageId: botMessageId,
+                    finalMessage: {
+                        ...initialBotMessage,
+                        content: finalContent,
+                        structured_data: { cards: finalCards },
+                        metadata: finalMetadata
+                    }
+                });
+            }
+        });
+    } catch (err) {
+        logger.error('[SparklyMention] AI execution failed:', err);
+        const errorFallback = "Sparkly couldn't generate a response right now. Please try again in a moment.";
+        const fallbackMeta = JSON.stringify({ source: 'sparkly_bot', error: true });
+        try {
+            await ensureSparklyBotUserExists();
+            await pool.query(`
+                INSERT INTO messages (
+                    message_id, chat_id, conversation_id, personal_chat_id, 
+                    sender_id, content, type, status, is_read, sent_at, context, metadata
+                ) VALUES (?, ?, ?, ?, 'sparkly_bot', ?, 'text', 'sent', 0, NOW(), 'chat', ?)
+            `, [botMessageId, chatId, chatId, chatId, errorFallback, fallbackMeta]);
+        } catch (dbErr) {
+            logger.error('[SparklyMention] Fallback DB save error:', dbErr);
+        }
+
+        io.to(`chat:${chatId}`).emit('sparkly-stream-complete', {
+            chatId,
+            messageId: botMessageId,
+            finalMessage: {
+                ...initialBotMessage,
+                content: errorFallback,
+                metadata: fallbackMeta
+            }
+        });
+    }
+}
+
+module.exports = { initializeSocket, getIO, emitNotification, emitSecurityAlert, notifyOrderUpdate, emitMarketplaceMessage, handleSparklyMentionInChat };

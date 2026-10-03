@@ -1,4 +1,5 @@
 const Message = require('../models/Message');
+const PermissionEngine = require('../services/PermissionEngine');
 
 /**
  * Forward a message to one or more target chats.
@@ -16,6 +17,7 @@ async function forwardMessage(req, res) {
     try {
         const { messageId } = req.params;
         const { targetChatIds, adminOverride, adminUsername } = req.body;
+        const viewerUserId = req.user ? (req.user.user_id || req.user.userId || req.user.id) : null;
 
         if (!Array.isArray(targetChatIds) || targetChatIds.length === 0) {
             return res.status(400).json({ error: 'targetChatIds must be a non-empty array' });
@@ -31,12 +33,24 @@ async function forwardMessage(req, res) {
         const db = require('../config/database');
         const sourceChatId = original.chat_id || original.conversation_id || original.personal_chat_id;
         const [privacyRows] = await db.query(
-            'SELECT allow_forward FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+            'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
             [sourceChatId, original.sender_id || original.senderId]
         );
 
-        if (privacyRows && privacyRows.length > 0 && !privacyRows[0].allow_forward) {
-            return res.status(403).json({ error: 'Forwarding is disabled by message owner privacy settings' });
+        const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+        const permissions = PermissionEngine.computePermissions({
+            message: original,
+            senderPrivacy,
+            viewerUserId
+        });
+
+        if (!permissions.canForward) {
+            return res.status(403).json({
+                status: 'error',
+                code: 'MESSAGE_PERMISSION_DENIED',
+                permission: 'forward',
+                error: 'Forwarding is disabled by message owner privacy settings'
+            });
         }
 
         const forwardPromises = targetChatIds.map(async (chatId) => {

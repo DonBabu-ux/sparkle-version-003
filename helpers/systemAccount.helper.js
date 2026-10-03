@@ -44,6 +44,17 @@ const OFFICIAL_ECOSYSTEM_ACCOUNTS = {
         badge: 'Official AI',
         accentColor: '#8b5cf6'
     },
+    'sparkly_bot': {
+        id: 'sparkly_bot',
+        name: 'Sparkly AI Assistant',
+        username: 'sparkly_bot',
+        user_handle: '@sparkly_bot',
+        bio: 'Official Sparkly AI Assistant • Sparkle Assistant for Marketplace & Chat.',
+        category: 'ai',
+        icon: 'Sparkles',
+        badge: 'Official Sparkly',
+        accentColor: '#8b5cf6'
+    },
     'sparkle_support': {
         id: 'd75fe3b5-7a45-4581-ab13-91934d8b54e1',
         name: 'Sparkle Help & Support',

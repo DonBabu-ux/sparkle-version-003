@@ -76,14 +76,18 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({ messageId, onClear }
     }
   };
 
+  const isSparklyBot = message.sender_id === 'sparkly_bot' || message.senderId === 'sparkly_bot' || message.is_sparkly_bot || (message.metadata && typeof message.metadata === 'string' && message.metadata.includes('sparkly_bot'));
   const thumbnail = renderThumbnail();
 
   return (
     <div className="flex items-center gap-2 p-2 bg-white/5 border-l-2 border-[#ff1493]" style={designTokens.replyBorder}>
       {thumbnail && <div className="flex-shrink-0">{thumbnail}</div>}
       <div className="flex-1 min-w-0">
-        <div className="text-[11px] font-bold text-[#ff1493] leading-none mb-1">
-          Replying to {message.sender_name || message.sender_username || 'User'}
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#ff1493] leading-none mb-1">
+          <span>Replying to {isSparklyBot ? 'Sparkly AI' : (message.sender_name || message.sender_username || 'User')}</span>
+          {isSparklyBot && (
+            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">✨ AI Follow-up</span>
+          )}
         </div>
         <div className="truncate text-sm text-white/80 leading-tight">{getDisplayText()}</div>
       </div>

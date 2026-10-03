@@ -410,7 +410,7 @@ function NotificationBell() {
       try {
         const res = await api.get('/notifications');
         const notifs = res.data.notifications || res.data || [];
-        const count = notifs.filter((n: any) => !n.is_read).length;
+        const count = notifs.filter((n: any) => !n.is_read && !n.isRead).length;
         setUnreadCount(count);
       } catch (e) {
         console.error('Failed to fetch unread count', e);
@@ -419,7 +419,14 @@ function NotificationBell() {
     
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
-    return () => clearInterval(interval);
+
+    const onAllRead = () => setUnreadCount(0);
+    window.addEventListener('notifications_all_read', onAllRead);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications_all_read', onAllRead);
+    };
   }, []);
 
   return (

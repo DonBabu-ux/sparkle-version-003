@@ -20,9 +20,9 @@
         </div>
         <p>Hi <%= name %>,</p>
         <div class="alert">
-            <p><strong>A new login was detected on your Sparkle account.</strong></p>
+            <p><strong><%= typeof alertMessage !== 'undefined' ? alertMessage : 'A new login was detected on your Sparkle account.' %></strong></p>
         </div>
-        <p>If this was you, you can safely ignore this email. If you don't recognize this activity, please secure your account immediately.</p>
+        <p><%= typeof subMessage !== 'undefined' ? subMessage : "If this was you, you can safely ignore this email. If you don't recognize this activity, please secure your account immediately." %></p>
         
         <div class="details">
             <p><strong>Time:</strong> <%= time %></p>

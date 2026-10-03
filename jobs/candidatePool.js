@@ -20,7 +20,7 @@ async function buildCandidatePool() {
             WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
             AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
             ORDER BY p.created_at DESC
-            LIMIT 1000
+            LIMIT 150
         `);
 
         if (posts && posts.length > 0) {
@@ -45,7 +45,7 @@ async function buildCandidatePool() {
                 media_files: mediaMap[p.post_id] || []
             }));
 
-            await redisService.set('feed:candidate_pool', enrichedPosts, 60); // 60 sec TTL
+            await redisService.set('feed:candidate_pool', enrichedPosts, 300); // 300 sec TTL
             logger.info(`🔄 Candidate Pool refreshed with ${enrichedPosts.length} posts`);
         }
     } catch (error) {
@@ -54,7 +54,7 @@ async function buildCandidatePool() {
     }
 }
 
-// Run every 30 seconds
-cron.schedule('*/30 * * * * *', buildCandidatePool);
+// Run every 3 minutes to avoid DB connection pool starvation
+cron.schedule('0 */3 * * * *', buildCandidatePool);
 
 module.exports = { buildCandidatePool };

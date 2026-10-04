@@ -46,9 +46,11 @@ class MessageController {
             const { chatId: resolvedChatId, messages } = await Message.getMessages(chatId, userId);
             res.json({ status: 'success', data: messages, chatId: resolvedChatId });
         } catch (error) {
-            const errorMsg = error?.message || error?.sqlMessage || String(error).slice(0, 200) || 'Unknown error';
-            console.error('getConversationMessages Error:', errorMsg);
-            res.status(500).json({ status: 'error', error: errorMsg });
+            console.error('getConversationMessages Error:', error?.message || error);
+            if (error?.statusCode === 404) {
+                return res.status(404).json({ status: 'error', message: 'Conversation not found.' });
+            }
+            res.status(500).json({ status: 'error', message: 'Something went wrong while loading messages.' });
         }
     }
 

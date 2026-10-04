@@ -138,6 +138,15 @@ class Message {
             // Check if it's a group chat_id
             const [groupExists] = await db.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [input]);
             if (groupExists.length === 0) {
+                // Not a chat the user participates in: input may still be a partner user id.
+                // Foreign chat ids or garbage uuids must404 instead of crashing on FK insert.
+                const [asChat] = await db.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [input]);
+                const [asUser] = await db.query('SELECT user_id FROM users WHERE user_id = ?', [input]);
+                if (asChat.length > 0 || asUser.length === 0) {
+                    const err = new Error('Conversation not found');
+                    err.statusCode = 404;
+                    throw err;
+                }
                 // Assume it's a partnerId and find/create the conversation
                 chatId = await this.getOrCreateConversation(userId, input);
             }
@@ -459,6 +468,14 @@ class Message {
             ORDER BY m.sent_at ASC
         `, [chatId, chatId, chatId]);
         return rows;
+    }
+
+    /**
+     * Messages for a group chat — group messages live in the messages table,
+     * addressed by chat_id, same shape as direct messages.
+     */
+    static async getGroupMessages(chatId) {
+        return this.getChatMessages(chatId);
     }
 
     /**

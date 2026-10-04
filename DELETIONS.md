@@ -1319,3 +1319,16 @@ updatesalgorithm.txt
 vapid.txt  ⚠ secret (still in git history — rotate)
 videos.json
 ```
+
+---
+
+## Post-audit deletions (after commit `9a5a3bd`, 2026-10-04)
+
+Found during full API-endpoint testing; removed the same day:
+
+| File | Why | Replacement |
+|---|---|---|
+| `routes/api/userTabs.routes.js` | custom-chat-tabs API was dead code: mounted but never called anywhere in the frontend | none needed — no consumers |
+| `controllers/userTabs.controller.js` | same feature; every request failed (`UserTab.findAll is not a function` → 500) because the Sequelize model was never wired and no `user_tabs` table exists | none needed — no consumers |
+
+Cleanup total across both batches: **1074 deleted files**.

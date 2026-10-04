@@ -96,10 +96,16 @@ class GroupChatController {
     async getMessages(req, res) {
         try {
             const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+            const members = await GroupMember.getMembers(chatId);
+            if (!members.some(m => m.user_id === userId)) {
+                return res.status(404).json({ status: 'error', message: 'Conversation not found.' });
+            }
             const messages = await Message.getGroupMessages(chatId);
             res.json({ status: 'success', data: messages });
         } catch (error) {
-            res.status(500).json({ status: 'error', error: error.message });
+            console.error('groupChat getMessages Error:', error?.message || error);
+            res.status(500).json({ status: 'error', message: 'Something went wrong while loading messages.' });
         }
     }
 

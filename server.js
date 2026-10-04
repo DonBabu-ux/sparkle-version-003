@@ -206,9 +206,9 @@ app.use((req, res, next) => {
 // API Tester & Route Debugging (Development Only)
 if (process.env.NODE_ENV !== 'production') {
     const { scanRoutes } = require('./utils/route-scanner');
-    const { ejsAuthMiddleware } = require('./middleware/auth.middleware');
+    const { authMiddleware } = require('./middleware/auth.middleware');
 
-    app.get('/api/debug/routes', ejsAuthMiddleware, (req, res) => {
+    app.get('/api/debug/routes', authMiddleware, (req, res) => {
         try {
             const routes = scanRoutes(app);
             res.json(routes);

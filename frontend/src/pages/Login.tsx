@@ -39,7 +39,7 @@ export default function Login() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) { showError('Fields incomplete'); return; }
+    if (!email || !password) { showError('Please enter your email/username and password.'); return; }
 
     setLoading(true);
     setError('');
@@ -63,11 +63,11 @@ export default function Login() {
         return;
       }
 
-      showError(data?.message || 'Invalid username or password');
+      showError(data?.message || 'Incorrect email/username or password.');
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const msg = err.response?.data?.message || err.response?.data?.error;
-        showError(msg || 'Invalid credentials');
+        showError(msg || 'Incorrect email/username or password.');
       }
       else showError((err as Error).message || 'Connection lost');
     } finally {

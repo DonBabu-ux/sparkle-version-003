@@ -171,7 +171,8 @@ const login = async (req, res) => {
         );
         
         if (users.length === 0) {
-            return res.status(404).json({ status: 'error', message: 'Account not found' });
+            // Same response as a wrong password: friendly + no account enumeration
+            return res.status(401).json({ status: 'error', message: 'Incorrect email/username or password.' });
         }
         
         const user = users[0];
@@ -182,7 +183,7 @@ const login = async (req, res) => {
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         
         if (!passwordMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(401).json({ status: 'error', message: 'Incorrect email/username or password.' });
         }
 
 

@@ -1,201 +1,317 @@
-from pathlib import Path
-import textwrap
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sparkle — Presence over performance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0b0712;--ink:#f6eefc;--mut:#b9a8cc;--pink:#ff2d87;--pur:#8134af;--ind:#6d5dfc;--edge:rgba(255,255,255,.16);--ok:#46e6a0;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px);scroll-behavior:smooth}
+*,*::before,*::after{box-sizing:inherit}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.6 "DM Sans",system-ui,sans-serif;overflow-x:hidden}
+h1,h2,h3{font-family:"Bricolage Grotesque","DM Sans",system-ui,sans-serif;margin:0;line-height:1.02;letter-spacing:-.02em}
+h1{font-size:clamp(2.8rem,7vw,5.6rem);font-weight:800}
+h2{font-size:clamp(2rem,4.4vw,3.2rem);font-weight:800}
+h3{font-size:1.25rem;font-weight:800}
+p{margin:0;color:var(--mut);max-width:60ch}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.55;z-index:-1;animation:drift 22s ease-in-out infinite alternate}
+.o1{width:520px;height:520px;background:var(--pink);top:-140px;left:-120px}
+.o2{width:560px;height:560px;background:var(--pur);right:-180px;top:30vh;animation-delay:-8s}
+.o3{width:420px;height:420px;background:var(--ind);left:25vw;bottom:-200px;animation-delay:-14s}
+@keyframes drift{to{transform:translate(70px,50px) scale(1.15)}}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px}
+section{padding:90px 0 20px}
+.head{margin-bottom:34px;display:grid;gap:14px}
 
-root = Path("/mnt/data/sparkle-readme")
-assets = root / "assets"
-assets.mkdir(parents=True, exist_ok=True)
+/* glass + skeuomorphic surfaces */
+.glass{background:linear-gradient(160deg,rgba(255,255,255,.13),rgba(255,255,255,.03));backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);border:1px solid var(--edge);border-radius:28px;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.38),inset 0 -14px 28px rgba(0,0,0,.28),0 28px 60px -22px rgba(0,0,0,.75)}
+.btn{font:700 15px "DM Sans",sans-serif;color:#fff;border:0;border-radius:999px;padding:13px 24px;cursor:pointer;background:linear-gradient(180deg,#ff6aa9,var(--pink) 45%,#d4106a);
+box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -3px 6px rgba(120,0,50,.5),0 10px 24px -6px rgba(255,45,135,.7),0 2px 0 #9b0a4d;transition:transform .12s,box-shadow .12s;text-decoration:none;display:inline-block}
+.btn:active{transform:translateY(2px);box-shadow:inset 0 3px 8px rgba(80,0,35,.7),0 4px 10px -4px rgba(255,45,135,.6),0 0 0 #9b0a4d}
+.btn.ghost{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.05));box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 20px -8px #000;border:1px solid var(--edge)}
+:focus-visible{outline:2px solid #fff;outline-offset:3px}
 
-hero_svg = r'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 680">
-<defs>
-  <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-    <stop offset="0" stop-color="#090612"/><stop offset=".55" stop-color="#160923"/><stop offset="1" stop-color="#2b0d35"/>
-  </linearGradient>
-  <linearGradient id="pink" x1="0" y1="0" x2="1" y2="1">
-    <stop stop-color="#ff2d87"/><stop offset="1" stop-color="#9b5cff"/>
-  </linearGradient>
-  <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
-    <stop stop-color="#ffffff" stop-opacity=".16"/><stop offset="1" stop-color="#ffffff" stop-opacity=".04"/>
-  </linearGradient>
-  <filter id="blur"><feGaussianBlur stdDeviation="35"/></filter>
-  <filter id="shadow"><feDropShadow dx="0" dy="20" stdDeviation="25" flood-opacity=".45"/></filter>
-</defs>
+nav{position:sticky;top:calc(env(safe-area-inset-top,0px) + 12px);z-index:20;margin:12px auto 0;max-width:640px;width:calc(100% - 28px);display:flex;align-items:center;justify-content:space-between;padding:10px 12px 10px 20px;border-radius:999px}
+nav b{font:800 18px "Bricolage Grotesque",sans-serif}
+nav div{display:flex;gap:6px;align-items:center}
+nav a:not(.btn){color:var(--mut);text-decoration:none;font-size:14px;padding:6px 10px}
+nav a:not(.btn):hover{color:#fff}
+@media(max-width:560px){nav a:not(.btn){display:none}}
 
-<rect width="1200" height="680" rx="42" fill="url(#bg)"/>
+/* hero */
+.hero{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;align-items:center;padding-top:60px}
+.hero .copy{display:grid;gap:22px}
+.hero h1 span{display:block;background:linear-gradient(90deg,var(--pink),#c06bff,var(--ind));-webkit-background-clip:text;background-clip:text;color:transparent}
+.pills{display:flex;flex-wrap:wrap;gap:10px}
+.pill{font-size:13px;font-weight:700;padding:7px 14px;border-radius:999px;border:1px solid var(--edge);background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.03));box-shadow:inset 0 1px 0 rgba(255,255,255,.35)}
+.pill i{font-style:normal;color:var(--pink);margin-right:6px}
+.stage{perspective:1200px;display:grid;place-items:center;min-height:620px;position:relative}
+.phone{width:290px;aspect-ratio:9/19;border-radius:46px;padding:11px;position:relative;transform-style:preserve-3d;transition:transform .15s ease-out;
+background:linear-gradient(145deg,#4a3d5c,#15101d 40%,#3a2f49);box-shadow:inset 0 0 0 2px #6a5b7e,inset 0 0 12px #000,0 50px 80px -30px #000,0 0 90px -20px rgba(255,45,135,.5);animation:rise 1.1s cubic-bezier(.2,.8,.2,1) both}
+.phone::before,.phone::after{content:"";position:absolute;width:4px;border-radius:3px;background:linear-gradient(90deg,#2a2236,#6a5b7e);left:-4px}
+.phone::before{top:110px;height:44px}.phone::after{top:170px;height:70px}
+.screen{height:100%;border-radius:36px;overflow:hidden;position:relative;padding:38px 14px 12px;display:flex;flex-direction:column;gap:12px;background:radial-gradient(120% 70% at 20% 0%,#4b1858,#1a0b27 60%,#0f0818)}
+.screen::before{content:"";position:absolute;top:10px;left:50%;translate:-50% 0;width:82px;height:22px;border-radius:99px;background:#05030a;box-shadow:inset 0 -1px 2px #333}
+.screen::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,rgba(255,255,255,.16),transparent 35%);pointer-events:none;border-radius:inherit}
+.row{display:flex;align-items:center;justify-content:space-between}
+.hi{font:800 18px "Bricolage Grotesque",sans-serif}
+.dots{display:flex;gap:9px}
+.ring{width:42px;height:42px;border-radius:50%;padding:2.5px;background:conic-gradient(var(--pink),var(--ind),var(--pink));animation:spin 6s linear infinite}
+.ring i{display:block;width:100%;height:100%;border-radius:50%;background:#1a0b27;border:2px solid #1a0b27;background-image:radial-gradient(circle at 35% 30%,#ff9dc6,#8134af)}
+@keyframes spin{to{filter:hue-rotate(40deg);transform:rotate(360deg)}}
+.mini{border-radius:20px;padding:13px;font-size:13px}
+.mini b{display:block;font:800 15px "Bricolage Grotesque",sans-serif;color:#fff}
+.mini span{color:var(--mut)}
+.vid{flex:1;border-radius:20px;background:radial-gradient(circle at 30% 20%,#ff5fa5,transparent 50%),radial-gradient(circle at 80% 80%,#6d5dfc,transparent 55%),#2a1040;display:grid;place-items:center;font-size:34px;box-shadow:inset 0 0 30px rgba(0,0,0,.4)}
+.tabs{display:flex;justify-content:space-around;padding:10px 0 2px;font-size:11px;color:var(--mut);border-top:1px solid var(--edge)}
+.tabs .on{color:#fff}
+.float{position:absolute;padding:12px 16px;border-radius:20px;font-size:13px;animation:rise 1.3s .5s cubic-bezier(.2,.8,.2,1) both,bob 6s 1.8s ease-in-out infinite;z-index:2}
+.float b{display:block;font:800 15px "Bricolage Grotesque",sans-serif;color:#fff}
+.f1{left:-4%;top:22%}.f2{right:-2%;bottom:20%;animation-delay:.8s,2s}
+@keyframes rise{from{opacity:0;transform:translateY(60px) scale(.94)}}
+@keyframes bob{50%{translate:0 -12px}}
+@media(max-width:860px){.hero{grid-template-columns:1fr}.stage{min-height:600px}.f1{left:0}.f2{right:0}}
 
-<!-- animated ambient blobs -->
-<circle cx="170" cy="120" r="115" fill="#ff2d87" opacity=".28" filter="url(#blur)">
-  <animate attributeName="cx" values="170;270;170" dur="7s" repeatCount="indefinite"/>
-  <animate attributeName="cy" values="120;210;120" dur="9s" repeatCount="indefinite"/>
-</circle>
-<circle cx="1030" cy="510" r="150" fill="#7c3aed" opacity=".28" filter="url(#blur)">
-  <animate attributeName="cx" values="1030;910;1030" dur="8s" repeatCount="indefinite"/>
-  <animate attributeName="cy" values="510;410;510" dur="10s" repeatCount="indefinite"/>
-</circle>
+/* universe cards */
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px}
+.card{padding:26px;display:grid;gap:14px;align-content:start}
+.glyph{width:54px;height:54px;border-radius:17px;display:grid;place-items:center;font-size:24px;background:linear-gradient(160deg,#ff6aa9,#8134af);box-shadow:inset 0 2px 0 rgba(255,255,255,.55),inset 0 -4px 8px rgba(0,0,0,.35),0 10px 20px -6px rgba(255,45,135,.6)}
+.timer{position:relative;width:132px;height:132px;margin:6px auto 0}
+.timer svg{transform:rotate(-90deg)}
+.timer .t{position:absolute;inset:0;display:grid;place-items:center;font:800 24px "Bricolage Grotesque",sans-serif;font-variant-numeric:tabular-nums}
+.spark{display:flex;align-items:center;gap:12px}
+.spark output{font:800 22px "Bricolage Grotesque",sans-serif;font-variant-numeric:tabular-nums;min-width:3ch}
 
-<!-- particles -->
-<g fill="#fff">
-  <circle cx="100" cy="510" r="3"><animate attributeName="cy" values="510;420;510" dur="4s" repeatCount="indefinite"/></circle>
-  <circle cx="300" cy="90" r="2"><animate attributeName="cy" values="90;145;90" dur="3s" repeatCount="indefinite"/></circle>
-  <circle cx="900" cy="110" r="3"><animate attributeName="cy" values="110;60;110" dur="4.5s" repeatCount="indefinite"/></circle>
-  <circle cx="1080" cy="230" r="2"><animate attributeName="cy" values="230;300;230" dur="3.5s" repeatCount="indefinite"/></circle>
-</g>
+/* connect */
+.panel{padding:28px;display:grid;gap:22px}
+.search{padding:14px 20px;border-radius:16px;background:rgba(0,0,0,.35);box-shadow:inset 0 3px 8px rgba(0,0,0,.6),0 1px 0 rgba(255,255,255,.12);color:var(--mut)}
+.chips{display:flex;gap:10px;flex-wrap:wrap}
+.chip{font:500 14px "DM Sans",sans-serif;color:var(--ink);padding:9px 18px;border-radius:999px;border:1px solid var(--edge);cursor:pointer;background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 4px 10px -4px #000}
+.chip[aria-pressed=true]{background:linear-gradient(180deg,#ff6aa9,#d4106a);box-shadow:inset 0 2px 6px rgba(90,0,40,.6)}
+.people{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px}
+.person{padding:18px;text-align:center;border-radius:22px;transition:opacity .3s,transform .3s}
+.person.off{opacity:.18;transform:scale(.95)}
+.av{width:58px;height:58px;border-radius:50%;margin:0 auto 10px;box-shadow:inset 0 2px 3px rgba(255,255,255,.6),inset 0 -5px 8px rgba(0,0,0,.35),0 8px 16px -6px #000}
+.person b{display:block}.person small{color:var(--mut)}
 
-<!-- left branding -->
-<g transform="translate(82 100)">
-  <circle cx="48" cy="48" r="48" fill="url(#pink)">
-    <animateTransform attributeName="transform" type="rotate" values="0 48 48;360 48 48" dur="12s" repeatCount="indefinite"/>
-  </circle>
-  <path d="M25 51c13-28 29-28 44 0-15 18-29 18-44 0Z" fill="none" stroke="white" stroke-width="7" stroke-linecap="round"/>
-  <circle cx="47" cy="51" r="6" fill="white"/>
-</g>
+/* anonymous */
+.two{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center}
+@media(max-width:820px){.two{grid-template-columns:1fr}}
+.switch{display:flex;align-items:center;gap:16px;font-weight:700}
+.sw{width:74px;height:40px;border-radius:99px;border:0;padding:4px;cursor:pointer;background:#1b1228;box-shadow:inset 0 4px 10px #000,0 1px 0 rgba(255,255,255,.18);position:relative;transition:background .3s}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:32px;height:32px;border-radius:50%;background:linear-gradient(180deg,#fff,#cfc3dc);box-shadow:0 3px 6px rgba(0,0,0,.6),inset 0 -2px 3px rgba(0,0,0,.2);transition:transform .3s cubic-bezier(.3,1.5,.5,1)}
+.sw[aria-checked=true]{background:linear-gradient(90deg,#8134af,var(--pink))}
+.sw[aria-checked=true]::after{transform:translateX(34px)}
+.conf{padding:26px;display:grid;gap:14px}
+.conf q{font:500 20px/1.4 "Bricolage Grotesque",sans-serif;quotes:none}
+.who{transition:filter .4s}
+.who.hide{filter:blur(6px)}
+.badge{display:inline-flex;gap:8px;align-items:center;font-size:13px;color:var(--ok)}
 
-<text x="82" y="230" fill="white" font-family="Arial, sans-serif" font-size="72" font-weight="800">SPARKLE</text>
-<text x="84" y="276" fill="#f2d7e7" font-family="Arial, sans-serif" font-size="23">A Kenyan social experience built for connection.</text>
+/* chat */
+.chat{padding:18px;height:380px;display:flex;flex-direction:column}
+.chat header{display:flex;align-items:center;gap:12px;padding-bottom:12px;border-bottom:1px solid var(--edge)}
+.live{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 12px var(--ok);animation:pulse 2s infinite}
+@keyframes pulse{50%{opacity:.4}}
+.msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:14px 0}
+.m{max-width:78%;padding:10px 16px;border-radius:20px;font-size:15px;animation:pop .35s cubic-bezier(.3,1.4,.5,1) both}
+.m.in{background:rgba(255,255,255,.1);border-bottom-left-radius:6px;align-self:flex-start;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)}
+.m.out{background:linear-gradient(180deg,#ff6aa9,#d4106a);border-bottom-right-radius:6px;align-self:flex-end;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.m.typing{letter-spacing:4px;color:var(--mut)}
+@keyframes pop{from{opacity:0;transform:translateY(14px) scale(.9)}}
+.compose{padding:12px 18px;border-radius:99px;background:rgba(0,0,0,.35);box-shadow:inset 0 3px 8px rgba(0,0,0,.6);color:var(--mut);font-size:15px}
 
-<!-- animated pill -->
-<g transform="translate(84 325)">
-  <rect width="255" height="52" rx="26" fill="url(#glass)" stroke="#ffffff" stroke-opacity=".18"/>
-  <circle cx="28" cy="26" r="7" fill="#ff2d87">
-    <animate attributeName="r" values="7;11;7" dur="1.5s" repeatCount="indefinite"/>
-    <animate attributeName="opacity" values="1;.35;1" dur="1.5s" repeatCount="indefinite"/>
-  </circle>
-  <text x="48" y="34" fill="white" font-family="Arial, sans-serif" font-size="17">LIVE • BUILD • CONNECT</text>
-</g>
+/* safety + arch */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.tile{padding:20px;border-radius:22px}
+.tile h3{font-size:1.05rem;margin-bottom:6px}
+.tile p{font-size:15px}
+.arch{padding:20px;overflow-x:auto}
+.arch svg{min-width:640px;width:100%;height:auto;display:block}
+.node rect{fill:rgba(255,255,255,.08);stroke:rgba(255,255,255,.25)}
+.node text{fill:#f6eefc;font:700 14px "DM Sans",sans-serif;text-anchor:middle}
+.node.core rect{fill:rgba(255,45,135,.25);stroke:var(--pink)}
+.flow{fill:none;stroke:var(--pink);stroke-width:2;stroke-dasharray:6 8;animation:dash 1.4s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-28}}
 
-<!-- phone -->
-<g filter="url(#shadow)">
-  <rect x="705" y="55" width="330" height="570" rx="46" fill="#08070d" stroke="#ffffff" stroke-opacity=".22" stroke-width="3"/>
-  <rect x="722" y="76" width="296" height="528" rx="34" fill="#110d19"/>
-  <rect x="835" y="89" width="70" height="6" rx="3" fill="#4b4350"/>
+/* roadmap */
+.road ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:10px}
+.road li{display:flex;gap:12px;align-items:center}
+.road li::before{content:"";width:22px;height:22px;border-radius:7px;flex:none;background:linear-gradient(180deg,#5ff0b0,#1fae75);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),0 3px 8px -2px rgba(70,230,160,.6)}
+.road .grow li::before{background:linear-gradient(180deg,#ff6aa9,#8134af);box-shadow:inset 0 1px 0 rgba(255,255,255,.6),0 3px 8px -2px rgba(255,45,135,.6)}
+.road .card{padding:28px}
 
-  <!-- story strip -->
-  <circle cx="760" cy="135" r="26" fill="url(#pink)"/>
-  <circle cx="827" cy="135" r="26" fill="#9b5cff"/>
-  <circle cx="894" cy="135" r="26" fill="#ff5c9d"/>
-  <circle cx="961" cy="135" r="26" fill="#6337ff"/>
+footer{text-align:center;padding:110px 0 70px;display:grid;gap:22px;justify-items:center}
+footer p{margin:0 auto}
+footer small{color:var(--mut)}
 
-  <!-- feed card -->
-  <rect x="742" y="184" width="256" height="195" rx="25" fill="url(#glass)" stroke="#ffffff" stroke-opacity=".12"/>
-  <rect x="762" y="205" width="38" height="38" rx="19" fill="url(#pink)"/>
-  <rect x="814" y="211" width="105" height="9" rx="4.5" fill="#fff" opacity=".85"/>
-  <rect x="814" y="227" width="70" height="7" rx="3.5" fill="#fff" opacity=".3"/>
-  <rect x="762" y="262" width="216" height="82" rx="18" fill="#25142b"/>
-  <circle cx="785" cy="364" r="8" fill="#ff2d87">
-    <animate attributeName="r" values="8;13;8" dur="1.2s" repeatCount="indefinite"/>
-  </circle>
-  <text x="803" y="370" fill="#fff" font-family="Arial" font-size="13">1.8K Sparks</text>
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div>
 
-  <!-- bottom nav -->
-  <rect x="742" y="540" width="256" height="48" rx="24" fill="#0b0910" stroke="#fff" stroke-opacity=".08"/>
-  <circle cx="775" cy="564" r="7" fill="#fff" opacity=".5"/>
-  <circle cx="830" cy="564" r="7" fill="#ff2d87"/>
-  <circle cx="885" cy="564" r="7" fill="#fff" opacity=".5"/>
-  <circle cx="940" cy="564" r="7" fill="#fff" opacity=".5"/>
-  <circle cx="775" cy="564" r="15" fill="none" stroke="#fff" stroke-opacity=".12"/>
-  <circle cx="830" cy="564" r="15" fill="none" stroke="#ff2d87" stroke-opacity=".25">
-    <animate attributeName="r" values="15;19;15" dur="1.6s" repeatCount="indefinite"/>
-  </circle>
-</g>
+<nav class="glass" aria-label="Main">
+  <b>✦ Sparkle</b>
+  <div><a href="#universe">Universe</a><a href="#connect">Connect</a><a href="#safety">Safety</a><a href="#roadmap">Roadmap</a><a class="btn" href="#connect">Get started</a></div>
+</nav>
 
-<!-- orbiting spark -->
-<g>
-  <circle cx="600" cy="500" r="5" fill="#ff2d87">
-    <animateMotion dur="6s" repeatCount="indefinite" path="M0,0 C80,-180 160,-180 230,0 C160,180 80,180 0,0"/>
-  </circle>
-</g>
-</svg>'''
+<main class="wrap">
+<div class="hero">
+  <div class="copy">
+    <h1>Presence over performance.<span>Connection over clout.</span></h1>
+    <p>Sparkle is a social app built around your campus: the people near you, what's happening today, and what you want to share, without a follower count in sight.</p>
+    <div class="pills">
+      <span class="pill"><i>✦</i>Campus first</span><span class="pill"><i>◉</i>Privacy first</span><span class="pill"><i>⚡</i>Real time</span><span class="pill"><i>◈</i>Community</span>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap"><a class="btn" href="#universe">Explore the app</a><a class="btn ghost" href="#stack">See how it's built</a></div>
+  </div>
+  <div class="stage" id="stage">
+    <div class="float glass f1"><b>Amina posted a Moment</b>Karatina University</div>
+    <div class="phone" id="phone">
+      <div class="screen">
+        <div class="row"><span class="hi">Good evening, Don</span><span>🔔</span></div>
+        <div class="dots"><div class="ring"><i></i></div><div class="ring"><i></i></div><div class="ring"><i></i></div><div class="ring"><i></i></div></div>
+        <div class="mini glass"><b>Campus pulse</b><span>284 sparks · 31 online</span></div>
+        <div class="vid">🎬</div>
+        <div class="tabs"><span class="on">Home</span><span>Connect</span><span>Spark</span><span>Chats</span><span>Me</span></div>
+      </div>
+    </div>
+    <div class="float glass f2"><b>Afterglow ends in 08:42</b>Share, glow, disappear</div>
+  </div>
+</div>
 
-architecture_svg = r'''<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 520">
-<defs>
- <linearGradient id="a" x1="0" x2="1"><stop stop-color="#ff2d87"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient>
- <filter id="glow"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-</defs>
-<rect width="1200" height="520" rx="32" fill="#0b0711"/>
-<text x="60" y="70" fill="white" font-family="Arial" font-size="30" font-weight="700">SPARKLE • SYSTEM FLOW</text>
-<text x="60" y="102" fill="#a99cab" font-family="Arial" font-size="15">Requests move through the stack — visually, not just in a diagram.</text>
+<section id="universe">
+  <div class="head"><h2>Three places to spend an evening</h2><p>Home shows your campus today. Afterglow is for stories that fade. Moments is short video without a scoreboard. Try the controls.</p></div>
+  <div class="grid3">
+    <article class="glass card"><div class="glyph">🏠</div><h3>Home</h3><p>Your campus, your people, your pulse. Tap the button to send a spark.</p>
+      <div class="spark"><button class="btn" id="sparkBtn">✦ Send a spark</button><output id="sparks">284</output></div></article>
+    <article class="glass card"><div class="glyph">🌤</div><h3>Afterglow</h3><p>Stories without the pressure. Everything fades when the ring runs out.</p>
+      <div class="timer"><svg width="132" height="132" viewBox="0 0 132 132"><circle cx="66" cy="66" r="58" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="10"/><circle id="arc" cx="66" cy="66" r="58" fill="none" stroke="url(#g)" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="0"/><defs><linearGradient id="g"><stop offset="0" stop-color="#ff2d87"/><stop offset="1" stop-color="#6d5dfc"/></linearGradient></defs></svg><div class="t" id="clock">08:42</div></div></article>
+    <article class="glass card"><div class="glyph">🎬</div><h3>Moments</h3><p>Short video from campus life. Swipe to the next one; nobody sees a like count.</p>
+      <div class="vid" style="min-height:130px;aspect-ratio:16/10">✦</div></article>
+  </div>
+</section>
 
-<g font-family="Arial" text-anchor="middle">
- <g transform="translate(80 190)">
-  <rect width="190" height="110" rx="24" fill="#17101c" stroke="#ff2d87" stroke-opacity=".45"/>
-  <text x="95" y="48" fill="white" font-size="19" font-weight="700">React / Vite</text>
-  <text x="95" y="73" fill="#a99cab" font-size="13">Web + Capacitor</text>
- </g>
- <g transform="translate(355 190)">
-  <rect width="190" height="110" rx="24" fill="#17101c" stroke="#8b5cf6" stroke-opacity=".45"/>
-  <text x="95" y="48" fill="white" font-size="19" font-weight="700">Express API</text>
-  <text x="95" y="73" fill="#a99cab" font-size="13">Auth + Services</text>
- </g>
- <g transform="translate(630 190)">
-  <rect width="190" height="110" rx="24" fill="#17101c" stroke="#ff2d87" stroke-opacity=".45"/>
-  <text x="95" y="48" fill="white" font-size="19" font-weight="700">Redis</text>
-  <text x="95" y="73" fill="#a99cab" font-size="13">Cache + Presence</text>
- </g>
- <g transform="translate(905 190)">
-  <rect width="190" height="110" rx="24" fill="#17101c" stroke="#8b5cf6" stroke-opacity=".45"/>
-  <text x="95" y="48" fill="white" font-size="19" font-weight="700">MySQL</text>
-  <text x="95" y="73" fill="#a99cab" font-size="13">Persistent data</text>
- </g>
-</g>
+<section id="connect">
+  <div class="head"><h2>Discover people, not followers</h2><p>Sparkle treats closeness as more meaningful than popularity. Filter the people near you.</p></div>
+  <div class="glass panel">
+    <div class="search">🔍 Search your campus</div>
+    <div class="chips" id="chips"><button class="chip" aria-pressed="true" data-k="all">Campus</button><button class="chip" aria-pressed="false" data-k="CS">Course: CS</button><button class="chip" aria-pressed="false" data-k="y1">Year 1</button><button class="chip" aria-pressed="false" data-k="on">Active now</button></div>
+    <div class="people" id="people">
+      <div class="glass person" data-t="CS on"><div class="av" style="background:radial-gradient(circle at 35% 30%,#ffa0c8,#8134af)"></div><b>Brian</b><small>CS · Year 2 · 0.8 km</small></div>
+      <div class="glass person" data-t="IT y1 on"><div class="av" style="background:radial-gradient(circle at 35% 30%,#a99cff,#3a2c9c)"></div><b>Amina</b><small>IT · Year 1 · 1.2 km</small></div>
+      <div class="glass person" data-t="LAW"><div class="av" style="background:radial-gradient(circle at 35% 30%,#ffd0a0,#d4106a)"></div><b>Kevin</b><small>Law · Year 3 · 1.8 km</small></div>
+      <div class="glass person" data-t="CS y1"><div class="av" style="background:radial-gradient(circle at 35% 30%,#9ff0d0,#6d5dfc)"></div><b>Wanjiru</b><small>CS · Year 1 · 2.1 km</small></div>
+    </div>
+  </div>
+</section>
 
-<g fill="none" stroke="url(#a)" stroke-width="4" stroke-linecap="round">
- <path d="M270 245H355"/>
- <path d="M545 245H630"/>
- <path d="M820 245H905"/>
-</g>
+<section id="anon">
+  <div class="head"><h2>Say it without your name on it</h2><p>Anonymous does not mean unmoderated. Confessions stay inside your campus and every post can be reported and reviewed.</p></div>
+  <div class="two">
+    <div class="glass conf">
+      <div class="switch"><button class="sw" id="sw" role="switch" aria-checked="true" aria-label="Anonymous mode"></button><span id="swLabel">Anonymous mode on</span></div>
+      <q>I accidentally attended the wrong lecture for 40 minutes…</q>
+      <div class="row"><span class="who hide" id="who">Posted by Brian</span><b>✦ 842 sparks</b></div>
+      <span class="badge">🛡 Abuse detection · Blocking · Reporting · Moderation</span>
+    </div>
+    <div class="glass chat" aria-label="Messaging demo">
+      <header><div class="live"></div><div><b>Amina</b><br><small style="color:var(--mut)">online</small></div></header>
+      <div class="msgs" id="msgs"></div>
+      <div class="compose">＋ Type a message…</div>
+    </div>
+  </div>
+</section>
 
-<!-- moving packets -->
-<g fill="#fff" filter="url(#glow)">
- <circle r="7"><animateMotion dur="2s" repeatCount="indefinite" path="M270,245 H355"/></circle>
- <circle r="7"><animateMotion dur="2.2s" repeatCount="indefinite" path="M545,245 H630"/></circle>
- <circle r="7"><animateMotion dur="2.4s" repeatCount="indefinite" path="M820,245 H905"/></circle>
-</g>
+<section id="safety">
+  <div class="head"><h2>Built around trust</h2><p>Moderation, privacy and security run through the whole app instead of sitting in a settings page.</p></div>
+  <div class="tiles">
+    <div class="glass tile"><h3>🧹 Moderation</h3><p>Content review, anonymous confession review, and community moderation for groups.</p></div>
+    <div class="glass tile"><h3>🔒 Privacy</h3><p>Blocking, visibility controls, and campus-scoped identity.</p></div>
+    <div class="glass tile"><h3>🔐 Security</h3><p>JWT sessions, hashed passwords, one-time codes and two-factor sign-in.</p></div>
+    <div class="glass tile"><h3>🚫 Enforcement</h3><p>Ban, mute and reach control, plus verification and campus administration.</p></div>
+  </div>
+</section>
 
-<g font-family="Arial" text-anchor="middle">
- <rect x="390" y="365" width="420" height="70" rx="22" fill="#15101b" stroke="#fff" stroke-opacity=".09"/>
- <text x="600" y="395" fill="white" font-size="16" font-weight="700">Socket.IO • realtime events</text>
- <text x="600" y="417" fill="#a99cab" font-size="13">Messages • typing • presence • notifications</text>
-</g>
-</svg>'''
+<section id="stack">
+  <div class="head"><h2>One interface, several real-time systems</h2><p>React and Capacitor on the front; Node, MySQL, Redis and Cloudinary behind it.</p></div>
+  <div class="glass arch">
+    <svg viewBox="0 0 760 400" role="img" aria-label="Architecture diagram: client to REST and Socket.IO, Node and Express, then MySQL, Redis and Cloudinary into Sparkle core">
+      <g class="node"><rect x="290" y="10" width="180" height="46" rx="14"/><text x="380" y="39">Sparkle client</text></g>
+      <g class="node"><rect x="150" y="100" width="150" height="42" rx="14"/><text x="225" y="126">REST API</text></g>
+      <g class="node"><rect x="460" y="100" width="150" height="42" rx="14"/><text x="535" y="126">Socket.IO</text></g>
+      <g class="node"><rect x="290" y="186" width="180" height="46" rx="14"/><text x="380" y="215">Node + Express</text></g>
+      <g class="node"><rect x="90" y="272" width="140" height="42" rx="14"/><text x="160" y="298">MySQL</text></g>
+      <g class="node"><rect x="310" y="272" width="140" height="42" rx="14"/><text x="380" y="298">Redis</text></g>
+      <g class="node"><rect x="530" y="272" width="140" height="42" rx="14"/><text x="600" y="298">Cloudinary</text></g>
+      <g class="node core"><rect x="290" y="346" width="180" height="46" rx="14"/><text x="380" y="375">✦ Sparkle core</text></g>
+      <path class="flow" d="M340 56 C340 80 240 80 225 100"/><path class="flow" d="M420 56 C420 80 520 80 535 100"/>
+      <path class="flow" d="M225 142 C225 170 340 160 345 186"/><path class="flow" d="M535 142 C535 170 420 160 415 186"/>
+      <path class="flow" d="M340 232 C300 250 200 250 160 272"/><path class="flow" d="M380 232 V272"/><path class="flow" d="M420 232 C460 250 560 250 600 272"/>
+      <path class="flow" d="M160 314 C180 335 320 330 340 346"/><path class="flow" d="M380 314 V346"/><path class="flow" d="M600 314 C580 335 440 330 420 346"/>
+    </svg>
+  </div>
+</section>
 
-readme = r'''# ✨ Sparkle
+<section id="roadmap" class="road">
+  <div class="head"><h2>From one campus to many communities</h2><p>The long-term idea is bigger than a feed: shared infrastructure for real-world communities.</p></div>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(280px,1fr))">
+    <div class="glass card"><h3>Live today</h3><ul>
+      <li>Authentication and profiles</li><li>Home feed and messaging</li><li>Moments and Afterglow</li><li>Connect, anonymous mode, confessions</li><li>Notifications and security</li><li>Mobile app</li></ul></div>
+    <div class="glass card grow"><h3>Growing</h3><ul>
+      <li>Advanced campus discovery</li><li>Communities and campus events</li><li>Sparkle Pay and marketplace</li><li>Creator ecosystem</li><li>Sparkle connectivity</li></ul></div>
+  </div>
+</section>
+</main>
 
-<p align="center">
-  <img src="./assets/sparkle-hero.svg" alt="Sparkle animated product hero" width="100%">
-</p>
+<footer class="wrap">
+  <h2>Who's around you?</h2>
+  <p>A social network that doesn't ask how popular you are. Presence, privacy, connection, community.</p>
+  <a class="btn" href="#universe">Back to the top</a>
+  <small>© Sparkle · Campus-first social technology</small>
+</footer>
 
-<p align="center">
-  <b>Connect. Express. Discover. Spark.</b><br>
-  A Kenyan social platform engineered as a real-time, mobile-first experience.
-</p>
-
-<p align="center">
-  <img src="https://img.shields.io/badge/Frontend-React%20%2B%20Vite-ff2d87?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Backend-Node%20%2B%20Express-8b5cf6?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Database-MySQL-ff2d87?style=for-the-badge">
-  <img src="https://img.shields.io/badge/Realtime-Socket.IO-8b5cf6?style=for-the-badge">
-</p>
-
----
-
-## ⚡ This README is alive
-
-The visual above is **not a screenshot**.
-
-It is an SVG generated with animation code: moving ambient light, orbiting particles, pulsing interactions and a living app mockup.
-
-That is the direction of Sparkle itself:
-
-```text
-             ┌──────────────────────────────┐
-             │            SPARKLE            │
-             │  social • realtime • mobile   │
-             └──────────────┬───────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        ▼                   ▼                   ▼
-     EXPLORE             CONNECT             EXPRESS
-        │                   │                   │
-     Home Feed           Messages           AfterGlow
-     Moments             Presence           Sparks
-     Connect             Typing             Confessions
-     Profiles            Notifications      Reactions
+<script>
+(function(){
+  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // phone tilt
+  var stage=document.getElementById('stage'),phone=document.getElementById('phone');
+  if(!reduce){
+    stage.addEventListener('pointermove',function(e){var r=stage.getBoundingClientRect();var x=(e.clientX-r.left)/r.width-.5,y=(e.clientY-r.top)/r.height-.5;phone.style.transform='rotateY('+(x*22)+'deg) rotateX('+(-y*16)+'deg)';});
+    stage.addEventListener('pointerleave',function(){phone.style.transform='';});
+  }
+  // sparks
+  var n=284,out=document.getElementById('sparks');
+  document.getElementById('sparkBtn').onclick=function(){n++;out.textContent=n;};
+  // afterglow timer
+  var total=522,left=total,arc=document.getElementById('arc'),clock=document.getElementById('clock');
+  function tick(){var m=Math.floor(left/60),s=left%60;clock.textContent=(m<10?'0':'')+m+':'+(s<10?'0':'')+s;arc.style.strokeDashoffset=364.4*(1-left/total);left=left<=0?total:left-1;}
+  tick();setInterval(tick,1000);
+  // connect filters
+  var chips=document.querySelectorAll('.chip'),ppl=document.querySelectorAll('.person');
+  chips.forEach(function(c){c.onclick=function(){
+    chips.forEach(function(x){x.setAttribute('aria-pressed',x===c)});
+    var k=c.dataset.k;ppl.forEach(function(p){p.classList.toggle('off',k!=='all'&&p.dataset.t.split(' ').indexOf(k)<0)});
+  };});
+  // anonymous switch
+  var sw=document.getElementById('sw'),who=document.getElementById('who'),lab=document.getElementById('swLabel');
+  sw.onclick=function(){var on=sw.getAttribute('aria-checked')!=='true';sw.setAttribute('aria-checked',on);who.classList.toggle('hide',on);lab.textContent=on?'Anonymous mode on':'Anonymous mode off';};
+  // chat loop
+  var script=[['in','hey 👋'],['in','You coming to the event tonight?'],['out','definitely ✦'],['in','Save me a seat?'],['out','Already did. Front row.']];
+  var box=document.getElementById('msgs'),i=0;
+  function add(t,c){var d=document.createElement('div');d.className='m '+c;d.textContent=t;box.appendChild(d);while(box.children.length>6)box.removeChild(box.firstChild);return d;}
+  function step(){
+    if(i>=script.length){setTimeout(function(){box.innerHTML='';i=0;step();},3200);return;}
+    var m=script[i++],t=add('•••',m[0]+' typing');
+    setTimeout(function(){t.remove();add(m[1],m[0]);step();},reduce?0:1300);
+  }
+  step();
+})();
+</script>
+</body>
+</html>

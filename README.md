@@ -4,7 +4,7 @@
 
 ### Presence over performance. Connection over clout.
 
-<a href="https://donbabu-ux.github.io/sparkle-version-003/index.html">
+<a href="https://donbabu-ux.github.io/sparkle-version-003/blob/main/index.html">
   <img src="https://img.shields.io/badge/▶-OPEN%20THE%20LIVE%20DEMO-ff2d87?style=for-the-badge&labelColor=0b0712" alt="Open the live demo">
 </a>
 

@@ -312,6 +312,6 @@ footer small{color:var(--mut)}
   }
   step();
 })();
-</script>
+</script> 
 </body>
 </html>

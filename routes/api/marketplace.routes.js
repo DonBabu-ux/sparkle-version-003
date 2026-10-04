@@ -10,10 +10,7 @@ const { feedRateLimiter, mutationRateLimiter } = require('../../middleware/secur
 router.get('/marketplace/listings',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getListings);
 router.get('/marketplace/categories',            optionalAuthMiddleware, feedRateLimiter, marketplaceController.getCategories);
 router.get('/marketplace/trending',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getTrending);
-// User's listings page (requires auth)
-router.get('/marketplace/my-shop', authMiddleware, marketplaceController.renderUserListings);
-router.get('/marketplace/wishlist', authMiddleware, marketplaceController.renderWishlist);
-router.get('/marketplace/orders', authMiddleware, marketplaceController.renderOrders);
+router.get('/marketplace/wishlist', authMiddleware, marketplaceController.getWishlist);
 router.get('/marketplace/listings/recommended',  optionalAuthMiddleware, feedRateLimiter, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          optionalAuthMiddleware, marketplaceController.getListingById);
 router.post('/marketplace/listings',             authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);

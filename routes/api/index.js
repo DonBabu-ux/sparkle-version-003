@@ -2,11 +2,9 @@ const express = require('express');
 const router = express.Router();
 
 const authRoutes = require('./auth.routes');
-const userTabsRoutes = require('./userTabs.routes');
 
 const userRoutes = require('./user.routes');
 const messagesRoutes = require('./messages.routes');
-const privacyRoutes = require('./privacy.routes');
 const postsRoutes = require('./posts.routes');
 const storiesRoutes = require('./stories.routes');
 const momentsRoutes = require('./moments.routes');
@@ -50,7 +48,6 @@ router.get('/health', async (req, res) => {
     }
 });
 router.use('/users', userRoutes);
-router.use('/users', userTabsRoutes);
 router.use('/messages', messagesRoutes);
 router.use('/groupChat', groupChatRoutes);
 router.use('/posts', postsRoutes);
@@ -65,6 +62,9 @@ router.use('/rooms', roomsRoutes);
 router.use('/location', require('./location.routes'));
 router.use('/ai', aiRoutes);
 router.use('/sparkly', require('./sparklyKnowledge.routes'));
+
+// Mount the AI router (SparkleAIScreen → /api/ai/*)
+router.use('/ai', aiRoutes);
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');

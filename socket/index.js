@@ -1,5 +1,5 @@
 const socketIO = require('socket.io');
-const perms = require('../backend outdated/services/messagePermission');
+const perms = require('../services/messagePermission');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');

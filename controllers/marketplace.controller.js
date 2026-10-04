@@ -1490,18 +1490,22 @@ const getSellerAlertStatus = async (req, res) => {
     }
 };
 
-module.exports = {
-    // Web Routes
-    renderMarketplace,
-    renderListingDetail,
-    renderUserListings,
-    renderOrders,
-    renderSell,
-    renderSellerProfile,
-    renderWishlist,
+const getWishlist = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.status(401).json({ success: false, message: 'Unauthorized' });
+        const wishlist = await Marketplace.getUserWishlist(user.user_id);
+        res.json({ success: true, listings: wishlist || [] });
+    } catch (error) {
+        logger.error('Get wishlist error:', error);
+        res.status(500).json({ success: false, message: 'Failed to load wishlist' });
+    }
+};
 
+module.exports = {
     // API Routes
     getListings,
+    getWishlist,
     getCategories,
     getTrending,
     getListingById,

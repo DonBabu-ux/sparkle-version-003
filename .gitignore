@@ -65,3 +65,21 @@ data.db
 
 # Prisma generated client (avoid committing generated code)
 prisma/client/
+
+# Credentials & build junk (do not commit)
+serviceAccountKey.json
+*.apk
+*.iml
+*.zip
+android/.gradle/
+frontend/dev-dist/
+
+# Scratch dirs that must never be committed again
+/scratch/
+/tmp/
+/blueprints/
+/backend outdated/
+/e head to see just the first few lines/
+
+# Local env backups
+.env.bak

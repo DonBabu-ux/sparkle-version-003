@@ -83,12 +83,12 @@ export default defineConfig({
     proxy: {
       // ── Music: always hit local backend so new route is available ──
       '/api/music': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
         secure: false,
       },
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
         secure: false,
         proxyTimeout: 10000,
@@ -105,7 +105,7 @@ export default defineConfig({
         },
       },
       '/socket.io': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         ws: true,
         configure: (proxy) => {
           proxy.on('error', (err) => {
@@ -114,11 +114,11 @@ export default defineConfig({
         },
       },
       '/uploads': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
       '/images': {
-        target: 'http://localhost:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true,
       },
     },

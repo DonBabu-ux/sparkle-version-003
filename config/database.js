@@ -2,11 +2,15 @@
 const mysql = require('mysql2/promise');
 
 // ── Pool Sizing ──────────────────────────────────────────────────────────────
-// Keep this small. The MySQL shared-hosting account has a low max_user_connections
-// limit. One pool per Node process; total DB connections = pool size × processes.
-// Default: 8. Override via DB_POOL_LIMIT env var if you know the exact headroom.
-// NEVER raise this blindly — increasing connectionLimit does NOT fix slow queries.
-const CONNECTION_LIMIT = process.env.DB_POOL_LIMIT ? parseInt(process.env.DB_POOL_LIMIT, 10) : 3;
+// Keep this small. The MySQL shared-hosting account (`lilbee`) has a low
+// max_user_connections limit — ~40 TOTAL across local dev + Render prod.
+// One pool per Node process; total DB connections = pool size × processes.
+// Default: 3. Override via DB_POOL_LIMIT (or legacy DB_CONNECTION_LIMIT), always
+// clamped to 1–10. NEVER raise this blindly — more connections don't fix slow queries.
+const CONNECTION_LIMIT = (() => {
+    const n = parseInt(process.env.DB_POOL_LIMIT || process.env.DB_CONNECTION_LIMIT, 10);
+    return Number.isFinite(n) ? Math.min(Math.max(n, 1), 10) : 3;
+})();
 
 const pool = mysql.createPool({
     host: process.env.NODE_ENV === 'production' ? process.env.DB_HOST_PROD || process.env.DB_HOST : process.env.DB_HOST,
@@ -52,17 +56,19 @@ pool.on('enqueue', () => {
     // logger.debug('⏳ Waiting for available connection...');
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
+// Graceful shutdown (SIGTERM = Render/K8s deploys, SIGINT = Ctrl-C)
+async function closePool(signal) {
     try {
         await pool.end();
-        console.log('Database pool closed gracefully');
+        console.log(`Database pool closed gracefully (${signal})`);
         process.exit(0);
     } catch (err) {
         console.error('Error closing database pool:', err);
         process.exit(1);
     }
-});
+}
+process.on('SIGINT', () => closePool('SIGINT'));
+process.on('SIGTERM', () => closePool('SIGTERM'));
 
 const logger = require('../utils/logger');
 

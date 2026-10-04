@@ -19,3 +19,18 @@ exports.strictLimiter = rateLimit({
         message: 'Too many requests. Please wait before trying again later after a while.'
     }
 });
+
+exports.loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 25,
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+        res.status(429).json({
+            success: false,
+            status: 'error',
+            code: 'TOO_MANY_ATTEMPTS',
+            message: "You've tried to log in too many times. Please wait a moment before trying again."
+        });
+    }
+});

@@ -40,11 +40,13 @@ router.get('/csrf-token', csrfProtection, (req, res) => {
 
 // Health Check Endpoint
 router.get('/health', async (req, res) => {
+    const { getPoolStatus } = require('../../config/database');
+    const poolStatus = getPoolStatus();
     try {
         await pool.query('SELECT 1');
-        res.json({ status: 'success', database: 'connected', timestamp: new Date() });
+        res.json({ status: 'success', database: 'connected', pool: poolStatus, timestamp: new Date() });
     } catch (error) {
-        res.status(503).json({ status: 'error', database: 'disconnected', error: error.message });
+        res.status(503).json({ status: 'error', database: 'disconnected', pool: poolStatus, error: error.message });
     }
 });
 router.use('/users', userRoutes);

@@ -120,17 +120,15 @@ export const useNotificationStore = create<NotificationState>()(
             });
 
             const merged = Array.from(uniqueMap.values());
-            set({ notifications: merged });
+            // Compute unread count locally — no extra HTTP round-trip needed
+            const unreadCount = merged.filter((n: SparkleNotification) => !n.isRead).length;
+            set({ notifications: merged, unreadCount });
             localStorage.setItem(STORAGE_KEY_CACHED_NOTIFS, JSON.stringify(merged.slice(0, 40)));
           }
 
           const nowIso = new Date().toISOString();
           set({ lastSyncAt: nowIso });
           localStorage.setItem(STORAGE_KEY_LAST_SYNC, nowIso);
-
-          // Refresh unread count
-          const countRes = await notificationsApi.getUnreadCount();
-          set({ unreadCount: countRes.data.unreadCount });
         } catch (err) {
           console.error('Failed to fetch notification deltas:', err);
         }

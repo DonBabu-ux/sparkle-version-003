@@ -378,5 +378,14 @@ const shutdown = (signal) => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
+// Prevent unhandled promise rejections or async controller errors from crashing the process
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('Unhandled Promise Rejection:', reason?.stack || reason?.message || reason);
+});
+
+process.on('uncaughtException', (err) => {
+    logger.error('Uncaught Exception:', err?.stack || err?.message || err);
+});
+
 module.exports = { app, server };
 

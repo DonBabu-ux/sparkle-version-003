@@ -10,8 +10,10 @@ const geocoder = NodeGeocoder({
     provider: 'openstreetmap'
 });
 
-// Auto-ensure table exists helper
+// Auto-ensure table exists helper (lazy)
+let liveLocationTableEnsured = false;
 const ensureLiveLocationTable = async () => {
+    if (liveLocationTableEnsured) return;
     try {
         await db.query(`
             CREATE TABLE IF NOT EXISTS live_location_sessions (
@@ -34,13 +36,11 @@ const ensureLiveLocationTable = async () => {
                 INDEX idx_user_active (user_id, is_active)
             );
         `);
+        liveLocationTableEnsured = true;
     } catch (err) {
         logger.error('Failed to ensure live_location_sessions table:', err);
     }
 };
-
-// Run table check on startup
-ensureLiveLocationTable();
 
 const KENYA_LOCATIONS = [
     { name: 'Nairobi, Kenya', lat: -1.2921, lng: 36.8219 },

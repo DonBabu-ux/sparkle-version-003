@@ -1,19 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import axios from 'axios';
+import {
+  validateLoginInputs,
+  classifyLoginError
+} from '../utils/authErrorClassifier';
+import type { AuthErrorInfo } from '../utils/authErrorClassifier';
+import AuthErrorCard from '../components/auth/AuthErrorCard';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=640&q=80&auto=format';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [authError, setAuthError] = useState<AuthErrorInfo | null>(null);
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isShaking, setIsShaking] = useState(false);
 
   // 2FA State
   const [show2FA, setShow2FA] = useState(false);
@@ -31,6 +37,17 @@ export default function Login() {
 
   useEffect(() => { setMounted(true); }, []);
 
+  // Listen to network connectivity changes
+  useEffect(() => {
+    const handleOnline = () => {
+      if (authError?.type === 'OFFLINE') {
+        setAuthError(null);
+      }
+    };
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [authError]);
+
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (cooldown > 0) {
@@ -39,29 +56,55 @@ export default function Login() {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const showError = (msg: string) => { setError(msg); setSuccess(''); };
-  const showSuccess = (msg: string) => { setSuccess(msg); setError(''); };
+  const triggerShake = useCallback(() => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 450);
+  }, []);
+
+  const showSuccess = (msg: string) => { setSuccess(msg); setAuthError(null); };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSuccess('');
+    setAuthError(null);
+
     const cleanEmail = email.trim().toLowerCase();
     setEmail(cleanEmail);
 
-    if (!cleanEmail) {
-      showError('Please enter your email or username.');
-      document.getElementById('login-email')?.focus();
+    // 1. Client-side input validation
+    const validationError = validateLoginInputs(cleanEmail, password);
+    if (validationError) {
+      setAuthError(validationError);
+      triggerShake();
+      if (validationError.action === 'focus_email') {
+        document.getElementById('login-email')?.focus();
+      } else if (validationError.action === 'focus_password') {
+        document.getElementById('login-pw')?.focus();
+      }
       return;
     }
-    if (!password) {
-      showError('Please enter your password.');
-      document.getElementById('login-pw')?.focus();
+
+    // 2. Client-side online detection
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      setAuthError({
+        type: 'OFFLINE',
+        title: "You're offline",
+        message: 'No internet connection. Check your connection and try again.',
+        action: 'retry',
+        actionLabel: 'Try again',
+        severity: 'warning'
+      });
       return;
     }
 
     setLoading(true);
-    setError('');
     try {
-      const res = await api.post('/auth/login', { username: cleanEmail, password });
+      // 15-second client-side timeout for responsive feedback
+      const res = await api.post(
+        '/auth/login',
+        { username: cleanEmail, password },
+        { timeout: 15000 }
+      );
       const data = res.data;
 
       if (data?.status === 'requires_2fa' || data?.status === 'twofa_required') {
@@ -69,10 +112,11 @@ export default function Login() {
         setTwoFactorUserId(data.userId);
         setTwoFactorMessage(data.message || 'Please enter your verification code or recovery backup code.');
         setLoading(false);
+        setAuthError(null);
         return;
       }
 
-      if (data?.status === 'success' && data?.token) {
+      if ((data?.status === 'success' || data?.success) && data?.token) {
         showSuccess('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
         const targetRoute = data.next?.route || '/dashboard';
@@ -80,15 +124,25 @@ export default function Login() {
         return;
       }
 
-      showError(data?.message || 'Invalid username or password');
+      // Unexpected response structure
+      const classified = classifyLoginError(data);
+      setAuthError(classified);
+      setPassword('');
       document.getElementById('login-pw')?.focus();
+      if (classified.shake) triggerShake();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        const msg = err.response?.data?.message || err.response?.data?.error;
-        showError(msg || 'Invalid credentials');
+      const classified = classifyLoginError(err, { isOnline: navigator.onLine });
+      setAuthError(classified);
+
+      // Security practice: preserve email, clear password on credential failure
+      if (classified.type === 'INVALID_CREDENTIALS') {
+        setPassword('');
+        document.getElementById('login-pw')?.focus();
       }
-      else showError((err as Error).message || 'Connection lost');
-      document.getElementById('login-pw')?.focus();
+
+      if (classified.shake) {
+        triggerShake();
+      }
     } finally {
       setLoading(false);
     }
@@ -139,12 +193,14 @@ export default function Login() {
   const handleSendRecoveryCode = async () => {
     if (cooldown > 0) return;
     setLoading(true);
+    setAuthError(null);
     try {
-      await api.post('/auth/request-2fa-recovery', { userId: twoFactorUserId });
-      showSuccess('Code sent! It expires in 2 minutes.');
+      await api.post('/auth/request-2fa-recovery', { userId: twoFactorUserId }, { timeout: 15000 });
+      showSuccess('Code sent! It expires in 15 minutes.');
       setCooldown(60);
-    } catch (err: any) {
-      showError(err.response?.data?.message || 'Failed to send code');
+    } catch (err: unknown) {
+      const classified = classifyLoginError(err, { isOnline: navigator.onLine });
+      setAuthError(classified);
     } finally {
       setLoading(false);
     }
@@ -152,26 +208,52 @@ export default function Login() {
 
   const handleVerify2FA = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
+    setSuccess('');
+    setAuthError(null);
+
     const codeToVerify = useRecoveryCode ? recoveryCode.trim() : pin.join('');
     if (!useRecoveryCode && codeToVerify.length !== 6) {
-      showError('Please enter the full 6-digit code');
+      setAuthError({
+        type: 'INVALID_REQUEST',
+        title: 'Incomplete code',
+        message: 'Please enter the full 6-digit verification code.',
+        severity: 'warning'
+      });
       return;
     }
     if (useRecoveryCode && codeToVerify.length < 8) {
-      showError('Please enter your recovery backup code (e.g. 5A2F9-C104B)');
+      setAuthError({
+        type: 'INVALID_REQUEST',
+        title: 'Check recovery code',
+        message: 'Please enter your recovery backup code (e.g. 5A2F9-C104B).',
+        severity: 'warning'
+      });
       return;
     }
+
     setLoading(true);
     try {
-      const res = await api.post('/auth/verify-2fa', { userId: twoFactorUserId, code: codeToVerify, rememberMe });
+      const res = await api.post(
+        '/auth/verify-2fa',
+        { userId: twoFactorUserId, code: codeToVerify, rememberMe },
+        { timeout: 15000 }
+      );
       const data = res.data;
-      if (data?.status === 'success' && data?.token) {
+      if ((data?.status === 'success' || data?.success) && data?.token) {
         showSuccess('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
         setTimeout(() => navigate('/dashboard'), 1200);
       }
-    } catch (err: any) {
-      showError(err.response?.data?.message || 'Invalid or expired code');
+    } catch (err: unknown) {
+      const classified = classifyLoginError(err, { isOnline: navigator.onLine });
+      setAuthError(classified);
+      if (useRecoveryCode) {
+        setRecoveryCode('');
+      } else {
+        setPin(['', '', '', '', '', '']);
+        document.getElementById('pin-0')?.focus();
+      }
+      if (classified.shake) triggerShake();
     } finally {
       setLoading(false);
     }
@@ -233,7 +315,7 @@ export default function Login() {
 
         {/* RIGHT: Login card */}
         <div className="login-card-wrap">
-          <div className="login-card">
+          <div className={`login-card ${isShaking ? 'shake-card' : ''}`}>
             {success ? (
               <div className="login-success-anim text-center py-10 flex flex-col items-center justify-center animate-scale-up" style={{ textAlign: 'center' }}>
                 <div style={{
@@ -261,12 +343,18 @@ export default function Login() {
                   <p className="login-card__sub">Sign in to your Sparkle account</p>
                 </div>
 
-                {error && (
-                  <div className="login-toast login-toast--err">
-                    <span className="login-toast__dot" />
-                    {error}
-                  </div>
-                )}
+                <AuthErrorCard
+                  error={authError}
+                  onDismiss={() => setAuthError(null)}
+                  onRetry={() => {
+                    const fakeEvent = { preventDefault: () => {} } as React.FormEvent;
+                    handleLogin(fakeEvent);
+                  }}
+                  onFocusField={(field) => {
+                    if (field === 'email') document.getElementById('login-email')?.focus();
+                    if (field === 'password') document.getElementById('login-pw')?.focus();
+                  }}
+                />
 
                 <form onSubmit={handleLogin} className="login-form">
                   <div className="login-field">
@@ -363,10 +451,18 @@ export default function Login() {
                     : twoFactorMessage || 'Enter the 6-digit verification code sent to your account.'}
                 </p>
 
-                {(error || success) && (
-                  <div className={`login-toast ${error ? 'login-toast--err' : 'login-toast--ok'}`} style={{ width: '100%', justifyContent: 'center' }}>
+                <AuthErrorCard
+                  error={authError}
+                  onDismiss={() => setAuthError(null)}
+                  onRetry={() => {
+                    handleVerify2FA();
+                  }}
+                />
+
+                {success && (
+                  <div className="login-toast login-toast--ok" style={{ width: '100%', justifyContent: 'center' }}>
                     <span className="login-toast__dot" />
-                    {error || success}
+                    {success}
                   </div>
                 )}
 
@@ -948,6 +1044,17 @@ export default function Login() {
           .login-container { transition: none; }
           .login-feat { transition: none; opacity: 1; transform: none; }
           .login-card { transition: none; }
+          .shake-card { animation: none !important; }
+        }
+
+        /* Subtle horizontal card shake on credentials error */
+        @keyframes gentleShake {
+          0%, 100% { transform: translateX(0); }
+          20%, 60% { transform: translateX(-6px); }
+          40%, 80% { transform: translateX(6px); }
+        }
+        .shake-card {
+          animation: gentleShake 0.4s ease-in-out !important;
         }
       `}</style>
     </div>

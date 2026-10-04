@@ -1346,26 +1346,24 @@ const joinUserRoomChannels = async (socket) => {
 };
 
 // Helper: Broadcast aggregated group presence
-const broadcastGroupPresence = async (io, socket) => {
+// Uses only in-memory Socket.IO room state — NO database queries.
+// Presence is maintained in Redis/memory, not MySQL.
+const broadcastGroupPresence = (io, socket) => {
     try {
-        const conversations = await Message.getUserConversations(socket.userId);
-        const groupChats = conversations.filter(c => c.chat_type === 'group');
+        // Iterate over all rooms this socket is already in and emit group:presence:update
+        // for any chat: rooms (joined during joinUserChatRooms above).
+        for (const room of socket.rooms) {
+            if (!room.startsWith('chat:')) continue;
+            const chatId = room.replace('chat:', '');
+            const roomSockets = io.sockets.adapter.rooms.get(room);
+            if (!roomSockets) continue;
 
-        for (const group of groupChats) {
-            const chatId = group.chat_id;
-            const room = io.sockets.adapter.rooms.get(`chat:${chatId}`);
-            let count = 0;
-            if (room) {
-                const userIds = new Set();
-                for (const socketId of room) {
-                    const clientSocket = io.sockets.sockets.get(socketId);
-                    if (clientSocket && clientSocket.userId) {
-                        userIds.add(clientSocket.userId);
-                    }
-                }
-                count = userIds.size;
+            const userIds = new Set();
+            for (const socketId of roomSockets) {
+                const s = io.sockets.sockets.get(socketId);
+                if (s && s.userId) userIds.add(s.userId);
             }
-            io.to(`chat:${chatId}`).emit('group:presence:update', { chatId, onlineCount: count });
+            io.to(room).emit('group:presence:update', { chatId, onlineCount: userIds.size });
         }
     } catch (e) {
         logger.error('Broadcast group presence error:', e);

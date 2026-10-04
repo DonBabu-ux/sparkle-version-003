@@ -52,29 +52,14 @@ const login = async (req, res) => {
 
         if (!loginId || !password) {
             return res.status(400).json({
-                error: 'Missing credentials',
-                message: 'Username/Email and Password are required'
-            });
-        }
-
-        /* 
-        // --- TEMPORARILY DISABLED: Rate Limiting (Algorithm 1.9) ---
-        const ip = req.ip || req.connection.remoteAddress;
-        const attempts = await query(
-            'SELECT COUNT(*) as count FROM login_attempts WHERE (login_id = ? OR ip_address = ?) AND is_successful = 0 AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)',
-            [loginId, ip]
-        );
-
-        if (attempts[0].count >= 5) {
-            return res.status(429).json({
+                success: false,
                 status: 'error',
-                message: 'Too many failed attempts. Please try again in 15 minutes.'
+                code: 'INVALID_REQUEST',
+                message: 'Username or email and password are required.'
             });
         }
-        */
 
         validateJWTSecret();
-
 
         const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
@@ -87,14 +72,55 @@ const login = async (req, res) => {
             [cleanEmail, normLoginId, loginId]
         );
 
+        // Core security principle: Prevent account enumeration with constant-time dummy compare
         if (!user) {
-            return res.status(404).json({ status: 'error', message: 'Account not found' });
+            await bcrypt.compare(password, '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy');
+            return res.status(401).json({
+                success: false,
+                status: 'error',
+                code: 'INVALID_CREDENTIALS',
+                message: 'Incorrect email or password. Please check your details and try again.'
+            });
         }
 
         const passwordMatch = await bcrypt.compare(password, user.password_hash);
         
         if (!passwordMatch) {
-            return res.status(401).json({ status: 'error', message: 'Invalid credentials' });
+            return res.status(401).json({
+                success: false,
+                status: 'error',
+                code: 'INVALID_CREDENTIALS',
+                message: 'Incorrect email or password. Please check your details and try again.'
+            });
+        }
+
+        // Account status checks (Suspended, Disabled, Locked)
+        if (user.account_status) {
+            const statusLower = String(user.account_status).trim().toLowerCase();
+            if (statusLower === 'suspended') {
+                return res.status(403).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_SUSPENDED',
+                    message: 'This account is currently unavailable. Please contact Sparkle Support if you believe this is a mistake.'
+                });
+            }
+            if (statusLower === 'disabled' || statusLower === 'deactivated') {
+                return res.status(403).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_DISABLED',
+                    message: 'This account is currently unavailable. Please contact Sparkle Support for assistance.'
+                });
+            }
+            if (statusLower === 'locked') {
+                return res.status(423).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_LOCKED',
+                    message: 'For your security, sign-in has been temporarily restricted. Please follow the recovery options to regain access.'
+                });
+            }
         }
 
 
@@ -228,16 +254,20 @@ const login = async (req, res) => {
         });
 
     } catch (error) {
+        const requestId = 'SPK-' + crypto.randomBytes(3).toString('hex').toUpperCase();
         logger.error('Login Critical Error:', {
+            requestId,
             error: error.message,
             stack: error.stack,
             body: { ...req.body, password: '***' },
             ip: req.ip
         });
         res.status(500).json({ 
+            success: false,
             status: 'error', 
-            message: 'Server error. Please try again later.', 
-            details: process.env.NODE_ENV === 'development' ? error.message : undefined 
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'Something went wrong on our side. Please try again shortly.', 
+            requestId
         });
     }
 };
@@ -340,7 +370,12 @@ const verify2FA = async (req, res) => {
         }
 
         if (!verified) {
-            return res.status(401).json({ status: 'error', message: 'Invalid or expired verification code or recovery code.' });
+            return res.status(401).json({ 
+                success: false,
+                status: 'error', 
+                code: 'INVALID_CREDENTIALS',
+                message: 'Invalid or expired verification code or recovery code.' 
+            });
         }
 
         // Token correct, issue token

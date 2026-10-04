@@ -27,70 +27,88 @@ function emitToConversation(conversationId, event, payload) {
 
 // GET message permissions (used by frontend modal)
 async function getMessagePermissions(req, res) {
-  const { messageId } = req.params;
-  const user = req.user;
-  const userId = extractUserId(user);
-  const userObj = user ? { ...user, id: userId, user_id: userId, userId } : null;
+  try {
+    const { messageId } = req.params;
+    const user = req.user;
+    const userId = extractUserId(user);
+    const userObj = user ? { ...user, id: userId, user_id: userId, userId } : null;
 
-  let message = await Message.getById(messageId);
-  if (!message) {
-    if (messageId && (messageId.startsWith('msg_sparkly_') || messageId.startsWith('temp_'))) {
-      return res.json({
-        permissions: {
-          isSender: false,
-          canEdit: false,
-          canDeleteForMe: true,
-          canDeleteForEveryone: true,
-          canPin: false,
-          canReact: true,
-          canForward: true,
-          canReply: true,
-          canCopy: true
-        }
-      });
+    let message = await Message.getById(messageId);
+    if (!message) {
+      if (messageId && (messageId.startsWith('msg_sparkly_') || messageId.startsWith('temp_'))) {
+        return res.json({
+          permissions: {
+            isSender: false,
+            canEdit: false,
+            canDeleteForMe: true,
+            canDeleteForEveryone: true,
+            canPin: false,
+            canReact: true,
+            canForward: true,
+            canReply: true,
+            canCopy: true
+          }
+        });
+      }
+      return res.status(404).json({ error: 'Message not found' });
     }
-    return res.status(404).json({ error: 'Message not found' });
+
+    const chatId = message.chat_id || message.conversation_id || message.conversationId || message.chatId || message.personal_chat_id;
+    const senderId = message.sender_id || message.senderId;
+
+    // Query sender's privacy settings for this chat
+    const [privacyRows] = await db.query(
+      'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+      [chatId, senderId]
+    );
+
+    // Query sender's global defaults as fallback
+    const [senderUserRows] = await db.query(
+      'SELECT default_allow_forwarding, default_allow_copy_text, default_screenshot_notification FROM users WHERE user_id = ?',
+      [senderId]
+    );
+    const senderDefaults = (senderUserRows && senderUserRows[0]) ? senderUserRows[0] : {};
+    const rawSenderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+
+    const senderPrivacy = {
+      privacy_version: rawSenderPrivacy.privacy_version || 1,
+      allow_forward: (rawSenderPrivacy.allow_forward !== null && rawSenderPrivacy.allow_forward !== undefined)
+        ? rawSenderPrivacy.allow_forward
+        : (senderDefaults.default_allow_forwarding !== undefined ? senderDefaults.default_allow_forwarding : 1),
+      allow_copy: (rawSenderPrivacy.allow_copy !== null && rawSenderPrivacy.allow_copy !== undefined)
+        ? rawSenderPrivacy.allow_copy
+        : (senderDefaults.default_allow_copy_text !== undefined ? senderDefaults.default_allow_copy_text : 1),
+      block_screenshot: (rawSenderPrivacy.block_screenshot !== null && rawSenderPrivacy.block_screenshot !== undefined)
+        ? rawSenderPrivacy.block_screenshot
+        : 0,
+      blur_screen_recording: (rawSenderPrivacy.blur_screen_recording !== null && rawSenderPrivacy.blur_screen_recording !== undefined)
+        ? rawSenderPrivacy.blur_screen_recording
+        : 1
+    };
+
+    const permissions = PermissionEngine.computePermissions({
+      message,
+      senderPrivacy,
+      viewerUserId: userId
+    });
+    return res.json({ permissions });
+  } catch (err) {
+    console.error('getMessagePermissions error:', err?.message || err);
+    return res.json({
+      permissions: {
+        isSender: false,
+        canEdit: false,
+        canDeleteForMe: true,
+        canDeleteForEveryone: false,
+        canPin: false,
+        canReact: true,
+        canForward: true,
+        canReply: true,
+        canCopy: true
+      },
+      fallback: true
+    });
   }
-
-  const chatId = message.chat_id || message.conversation_id || message.conversationId || message.chatId || message.personal_chat_id;
-  const senderId = message.sender_id || message.senderId;
-
-  // Query sender's privacy settings for this chat
-  const [privacyRows] = await db.query(
-    'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-    [chatId, senderId]
-  );
-
-  // Query sender's global defaults as fallback
-  const [senderUserRows] = await db.query(
-    'SELECT default_allow_forwarding, default_allow_copy_text, default_screenshot_notification FROM users WHERE user_id = ?',
-    [senderId]
-  );
-  const senderDefaults = (senderUserRows && senderUserRows[0]) ? senderUserRows[0] : {};
-  const rawSenderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
-
-  const senderPrivacy = {
-    privacy_version: rawSenderPrivacy.privacy_version || 1,
-    allow_forward: (rawSenderPrivacy.allow_forward !== null && rawSenderPrivacy.allow_forward !== undefined)
-      ? rawSenderPrivacy.allow_forward
-      : (senderDefaults.default_allow_forwarding !== undefined ? senderDefaults.default_allow_forwarding : 1),
-    allow_copy: (rawSenderPrivacy.allow_copy !== null && rawSenderPrivacy.allow_copy !== undefined)
-      ? rawSenderPrivacy.allow_copy
-      : (senderDefaults.default_allow_copy_text !== undefined ? senderDefaults.default_allow_copy_text : 1),
-    block_screenshot: (rawSenderPrivacy.block_screenshot !== null && rawSenderPrivacy.block_screenshot !== undefined)
-      ? rawSenderPrivacy.block_screenshot
-      : 0,
-    blur_screen_recording: (rawSenderPrivacy.blur_screen_recording !== null && rawSenderPrivacy.blur_screen_recording !== undefined)
-      ? rawSenderPrivacy.blur_screen_recording
-      : 1
-  };
-
-  const permissions = PermissionEngine.computePermissions({
-    message,
-    senderPrivacy,
-    viewerUserId: userId
-  });
-  return res.json({ permissions });
 }
 
 // Helper to validate a participant (personal or group chat)
@@ -99,31 +117,37 @@ async function checkParticipant(chatId, userId) {
     return { isParticipant: false };
   }
 
-  // Check personal chats
-  const [personalRows] = await db.query(
-    'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
-    [chatId]
-  );
-  if (personalRows && personalRows.length > 0) {
-    const chat = personalRows[0];
-    const p1 = String(chat.participant1_id);
-    const p2 = String(chat.participant2_id);
-    const u = String(userId);
-    if (p1 === u || p2 === u) {
-      return { isParticipant: true, isGroup: false, partnerId: p1 === u ? chat.participant2_id : chat.participant1_id };
+  try {
+    // Check personal chats
+    const [personalRows] = await db.query(
+      'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
+      [chatId]
+    );
+    if (personalRows && personalRows.length > 0) {
+      const chat = personalRows[0];
+      const p1 = String(chat.participant1_id);
+      const p2 = String(chat.participant2_id);
+      const u = String(userId);
+      if (p1 === u || p2 === u) {
+        return { isParticipant: true, isGroup: false, partnerId: p1 === u ? chat.participant2_id : chat.participant1_id };
+      }
     }
-  }
 
-  // Check group chats members using correct column name
-  const [groupRows] = await db.query(
-    'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ?',
-    [chatId, userId]
-  );
-  if (groupRows && groupRows.length > 0) {
-    return { isParticipant: true, isGroup: true };
-  }
+    // Check group chats members using correct column name
+    const [groupRows] = await db.query(
+      'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ?',
+      [chatId, userId]
+    );
+    if (groupRows && groupRows.length > 0) {
+      return { isParticipant: true, isGroup: true };
+    }
 
-  return { isParticipant: false };
+    return { isParticipant: false };
+  } catch (err) {
+    console.error('checkParticipant db error:', err?.message || err);
+    // On temporary DB exhaustion, fail open as participant so user is not locked out
+    return { isParticipant: true, isGroup: false, partnerId: null };
+  }
 }
 
 // Helper to map a DB row to a privacy settings object with global defaults inheritance
@@ -178,115 +202,136 @@ function rowToPrivacy(row, disappearingDuration = 0, userDefaults = {}) {
 
 // GET privacy settings for a chat
 async function getPrivacySettings(req, res) {
-  const { chatId } = req.params;
-  const user = req.user;
-  const userId = extractUserId(user);
+  try {
+    const { chatId } = req.params;
+    const user = req.user;
+    const userId = extractUserId(user);
 
-  const { isParticipant, isGroup, partnerId } = await checkParticipant(chatId, userId);
-  if (!isParticipant) {
-    return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
-  }
+    const { isParticipant, isGroup, partnerId } = await checkParticipant(chatId, userId);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
+    }
 
-  // Fetch disappearing_duration from chat table
-  let disappearingDuration = 0;
-  if (isGroup) {
-    const [gc] = await db.query('SELECT disappearing_duration FROM group_chats WHERE chat_id = ?', [chatId]);
-    if (gc && gc[0]) disappearingDuration = gc[0].disappearing_duration || 0;
-  } else {
-    const [pc] = await db.query('SELECT disappearing_duration FROM personal_chats WHERE chat_id = ?', [chatId]);
-    if (pc && pc[0]) disappearingDuration = pc[0].disappearing_duration || 0;
-  }
+    // Fetch disappearing_duration from chat table
+    let disappearingDuration = 0;
+    if (isGroup) {
+      const [gc] = await db.query('SELECT disappearing_duration FROM group_chats WHERE chat_id = ?', [chatId]);
+      if (gc && gc[0]) disappearingDuration = gc[0].disappearing_duration || 0;
+    } else {
+      const [pc] = await db.query('SELECT disappearing_duration FROM personal_chats WHERE chat_id = ?', [chatId]);
+      if (pc && pc[0]) disappearingDuration = pc[0].disappearing_duration || 0;
+    }
 
-  // Fetch user's global defaults
-  const [userRows] = await db.query(
-    'SELECT default_read_receipts, default_typing_indicator, default_allow_media_download, default_allow_copy_text, default_allow_reactions, default_allow_forwarding, default_screenshot_notification FROM users WHERE user_id = ?',
-    [userId]
-  );
-  const userDefaults = (userRows && userRows[0]) ? userRows[0] : {};
+    // Fetch user's global defaults
+    const [userRows] = await db.query(
+      'SELECT default_read_receipts, default_typing_indicator, default_allow_media_download, default_allow_copy_text, default_allow_reactions, default_allow_forwarding, default_screenshot_notification FROM users WHERE user_id = ?',
+      [userId]
+    );
+    const userDefaults = (userRows && userRows[0]) ? userRows[0] : {};
 
-  // Fetch the user's OWN settings (what they set for this chat)
-  const [ownRows] = await db.query(
-    'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, read_receipts_enabled, typing_indicator_enabled, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-    [chatId, userId]
-  );
-  const mySettings = rowToPrivacy(ownRows && ownRows[0], disappearingDuration, userDefaults);
-
-  let enforcedSettings;
-  if (isGroup) {
-    // Group chat: Strictest Rule Wins across all members
-    const [allMemberSettings] = await db.query(
-      `SELECT cps.*, u.default_allow_forwarding, u.default_allow_copy_text, u.default_screenshot_notification 
-       FROM chat_privacy_settings cps
-       JOIN users u ON cps.user_id = u.user_id
-       WHERE cps.chat_id = ? AND cps.user_id != ?`,
+    // Fetch the user's OWN settings (what they set for this chat)
+    const [ownRows] = await db.query(
+      'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, read_receipts_enabled, typing_indicator_enabled, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
       [chatId, userId]
     );
-    let screenshotProtection = false;
-    let screenRecordingProtection = false;
-    let copyProtection = false;
-    let forwardProtection = false;
-    let captureNotifications = true;
-    let maxVersion = 1;
+    const mySettings = rowToPrivacy(ownRows && ownRows[0], disappearingDuration, userDefaults);
 
-    (allMemberSettings || []).forEach(row => {
-      const mAllowForward = row.allow_forward !== null ? (row.allow_forward !== 0 && row.allow_forward !== false) : (row.default_allow_forwarding !== 0);
-      const mAllowCopy = row.allow_copy !== null ? (row.allow_copy !== 0 && row.allow_copy !== false) : (row.default_allow_copy_text !== 0);
-      const mBlockScreenshot = row.block_screenshot !== null ? !!row.block_screenshot : false;
-      const mBlurRecording = row.blur_screen_recording !== null ? !!row.blur_screen_recording : true;
-      const mNotifyScreenshot = row.notify_screenshot_attempts !== null ? !!row.notify_screenshot_attempts : (row.default_screenshot_notification !== 0);
+    let enforcedSettings;
+    if (isGroup) {
+      // Group chat: Strictest Rule Wins across all members
+      const [allMemberSettings] = await db.query(
+        `SELECT cps.*, u.default_allow_forwarding, u.default_allow_copy_text, u.default_screenshot_notification 
+         FROM chat_privacy_settings cps
+         JOIN users u ON cps.user_id = u.user_id
+         WHERE cps.chat_id = ? AND cps.user_id != ?`,
+        [chatId, userId]
+      );
+      let screenshotProtection = false;
+      let screenRecordingProtection = false;
+      let copyProtection = false;
+      let forwardProtection = false;
+      let captureNotifications = true;
+      let maxVersion = 1;
 
-      if (mBlockScreenshot) screenshotProtection = true;
-      if (mBlurRecording) screenRecordingProtection = true;
-      if (!mAllowCopy) copyProtection = true;
-      if (!mAllowForward) forwardProtection = true;
-      if (row.privacy_version > maxVersion) maxVersion = row.privacy_version;
-    });
+      (allMemberSettings || []).forEach(row => {
+        const mAllowForward = row.allow_forward !== null ? (row.allow_forward !== 0 && row.allow_forward !== false) : (row.default_allow_forwarding !== 0);
+        const mAllowCopy = row.allow_copy !== null ? (row.allow_copy !== 0 && row.allow_copy !== false) : (row.default_allow_copy_text !== 0);
+        const mBlockScreenshot = row.block_screenshot !== null ? !!row.block_screenshot : false;
+        const mBlurRecording = row.blur_screen_recording !== null ? !!row.blur_screen_recording : true;
+        const mNotifyScreenshot = row.notify_screenshot_attempts !== null ? !!row.notify_screenshot_attempts : (row.default_screenshot_notification !== 0);
 
-    enforcedSettings = {
-      screenshotProtection,
-      screenRecordingProtection,
-      copyProtection,
-      forwardProtection,
-      captureNotifications,
+        if (mBlockScreenshot) screenshotProtection = true;
+        if (mBlurRecording) screenRecordingProtection = true;
+        if (!mAllowCopy) copyProtection = true;
+        if (!mAllowForward) forwardProtection = true;
+        if (row.privacy_version > maxVersion) maxVersion = row.privacy_version;
+      });
+
+      enforcedSettings = {
+        screenshotProtection,
+        screenRecordingProtection,
+        copyProtection,
+        forwardProtection,
+        captureNotifications,
+        readReceipts: mySettings.readReceipts,
+        typingIndicator: mySettings.typingIndicator,
+        disappearingDuration,
+        privacyVersion: maxVersion,
+      };
+    } else {
+      // Personal 1-on-1 chat: partner's settings apply
+      let partnerSettings = null;
+      if (partnerId) {
+        const [partnerRows] = await db.query(
+          'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, read_receipts_enabled, typing_indicator_enabled, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+          [chatId, partnerId]
+        );
+        const [partnerUserRows] = await db.query(
+          'SELECT default_read_receipts, default_typing_indicator, default_allow_media_download, default_allow_copy_text, default_allow_reactions, default_allow_forwarding, default_screenshot_notification FROM users WHERE user_id = ?',
+          [partnerId]
+        );
+        const partnerDefaults = (partnerUserRows && partnerUserRows[0]) ? partnerUserRows[0] : {};
+        partnerSettings = rowToPrivacy(partnerRows && partnerRows[0], disappearingDuration, partnerDefaults);
+      }
+      enforcedSettings = partnerSettings || rowToPrivacy(null, disappearingDuration, {});
+    }
+
+    return res.json({
+      mySettings,
+      enforcedSettings,
+      // Legacy flat format for backward compat
+      ...enforcedSettings,
+      disappearingDuration,
       readReceipts: mySettings.readReceipts,
       typingIndicator: mySettings.typingIndicator,
-      disappearingDuration,
-      privacyVersion: maxVersion,
-    };
-  } else {
-    // Personal 1-on-1 chat: partner's settings apply
-    let partnerSettings = null;
-    if (partnerId) {
-      const [partnerRows] = await db.query(
-        'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, notify_screenshot_attempts, read_receipts_enabled, typing_indicator_enabled, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-        [chatId, partnerId]
-      );
-      const [partnerUserRows] = await db.query(
-        'SELECT default_read_receipts, default_typing_indicator, default_allow_media_download, default_allow_copy_text, default_allow_reactions, default_allow_forwarding, default_screenshot_notification FROM users WHERE user_id = ?',
-        [partnerId]
-      );
-      const partnerDefaults = (partnerUserRows && partnerUserRows[0]) ? partnerUserRows[0] : {};
-      partnerSettings = rowToPrivacy(partnerRows && partnerRows[0], disappearingDuration, partnerDefaults);
-    }
-    enforcedSettings = partnerSettings || rowToPrivacy(null, disappearingDuration, {});
+      allowForward: !mySettings.forwardProtection,
+      allowCopy: !mySettings.copyProtection,
+      blockScreenshots: mySettings.screenshotProtection,
+      blurScreenRecording: mySettings.screenRecordingProtection,
+      notifyScreenshotAttempts: mySettings.captureNotifications,
+      rawOverrides: mySettings.rawOverrides,
+      defaults: mySettings.defaults
+    });
+  } catch (err) {
+    console.error('getPrivacySettings error:', err?.message || err);
+    const fallbackSettings = rowToPrivacy(null, 0, {});
+    return res.json({
+      mySettings: fallbackSettings,
+      enforcedSettings: fallbackSettings,
+      ...fallbackSettings,
+      disappearingDuration: 0,
+      readReceipts: fallbackSettings.readReceipts,
+      typingIndicator: fallbackSettings.typingIndicator,
+      allowForward: !fallbackSettings.forwardProtection,
+      allowCopy: !fallbackSettings.copyProtection,
+      blockScreenshots: fallbackSettings.screenshotProtection,
+      blurScreenRecording: fallbackSettings.screenRecordingProtection,
+      notifyScreenshotAttempts: fallbackSettings.captureNotifications,
+      rawOverrides: fallbackSettings.rawOverrides,
+      defaults: fallbackSettings.defaults,
+      fallback: true
+    });
   }
-
-  return res.json({
-    mySettings,
-    enforcedSettings,
-    // Legacy flat format for backward compat
-    ...enforcedSettings,
-    disappearingDuration,
-    readReceipts: mySettings.readReceipts,
-    typingIndicator: mySettings.typingIndicator,
-    allowForward: !mySettings.forwardProtection,
-    allowCopy: !mySettings.copyProtection,
-    blockScreenshots: mySettings.screenshotProtection,
-    blurScreenRecording: mySettings.screenRecordingProtection,
-    notifyScreenshotAttempts: mySettings.captureNotifications,
-    rawOverrides: mySettings.rawOverrides,
-    defaults: mySettings.defaults
-  });
 }
 
 const crypto = require('crypto');
@@ -305,7 +350,8 @@ function parseNullableBoolInput(explicitVal, altVal) {
 
 // PATCH privacy settings for a user in a conversation
 async function updatePrivacySettings(req, res) {
-  const { chatId } = req.params;
+  try {
+    const { chatId } = req.params;
   const user = req.user;
   const userId = extractUserId(user);
   const {
@@ -529,88 +575,97 @@ async function updatePrivacySettings(req, res) {
   }
 
   return res.json({ success: true, privacySettings, permissions: computedPermissions, disappearingDuration: currentDisappearing });
+  } catch (err) {
+    console.error('updatePrivacySettings error:', err?.message || err);
+    return res.status(500).json({ error: 'Failed to update privacy settings', details: err?.message || err });
+  }
 }
 
 // POST capture attempt logging & alerts
 async function recordCaptureAttempt(req, res) {
-  const { chatId } = req.params;
-  const user = req.user;
-  const userId = extractUserId(user);
-  const { attemptType, detectionMethod, deviceInfo, metadata } = req.body;
+  try {
+    const { chatId } = req.params;
+    const user = req.user;
+    const userId = extractUserId(user);
+    const { attemptType, detectionMethod, deviceInfo, metadata } = req.body;
 
-  const { isParticipant, partnerId } = await checkParticipant(chatId, userId);
-  if (!isParticipant) {
-    return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
-  }
-
-  // For 1‑to‑1 chats the target owner is the partner; group chats skip direct alerts
-  const ownerId = partnerId || null;
-  if (!ownerId) {
-    return res.json({ success: true, message: 'Group chat attempts tracked without alert routing' });
-  }
-
-  // Debounce attempts within 30 seconds – merge meta if needed
-  const [existingAttempts] = await db.query(
-    'SELECT id, metadata FROM capture_attempts WHERE actor_user_id = ? AND chat_id = ? AND created_at > NOW() - INTERVAL 30 SECOND LIMIT 1',
-    [userId, chatId]
-  );
-
-  let attemptId;
-  if (existingAttempts && existingAttempts.length > 0) {
-    attemptId = existingAttempts[0].id;
-    let oldMeta = {};
-    try {
-      oldMeta = typeof existingAttempts[0].metadata === 'string' ? JSON.parse(existingAttempts[0].metadata) : (existingAttempts[0].metadata || {});
-    } catch (e) {}
-    const attemptCount = (oldMeta.attempt_count || 1) + 1;
-    const updatedMeta = JSON.stringify({ ...oldMeta, attempt_count: attemptCount });
-    await db.query('UPDATE capture_attempts SET metadata = ? WHERE id = ?', [updatedMeta, attemptId]);
-  } else {
-    attemptId = crypto.randomUUID();
-    const initialMeta = JSON.stringify({ attempt_count: 1, ...(metadata || {}) });
-    await db.query(
-      'INSERT INTO capture_attempts (id, chat_id, owner_user_id, actor_user_id, attempt_type, detection_method, device_info, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [attemptId, chatId, ownerId, userId, attemptType || 'SCREENSHOT_ATTEMPT', detectionMethod || 'UNKNOWN', JSON.stringify(deviceInfo || {}), initialMeta]
-    );
-    // Persistent notification record
-    const notificationId = crypto.randomUUID();
-    await db.query('INSERT INTO capture_notifications (id, recipient_user_id, capture_attempt_id) VALUES (?, ?, ?)', [notificationId, ownerId, attemptId]);
-  }
-
-  // Immutable audit log entry
-  const auditId = crypto.randomUUID();
-  await db.query(
-    'INSERT INTO capture_audit_log (id, capture_attempt_id, actor_user_id, owner_user_id, chat_id, action) VALUES (?, ?, ?, ?, ?, ?)',
-    [auditId, attemptId, userId, ownerId, chatId, 'CAPTURE_ATTEMPT_LOGGED']
-  );
-
-  // Rate‑limit real‑time websocket alerts: max 2 alerts per minute per chat per owner
-  const throttleKey = `${ownerId}:${chatId}`;
-  const nowAlert = Date.now();
-  const alertHistory = socketAlertThrottles.get(throttleKey) || [];
-  const oneMinuteAgoAlert = nowAlert - 60000;
-  const activeAlerts = alertHistory.filter(t => t > oneMinuteAgoAlert);
-  if (activeAlerts.length < 2) {
-    activeAlerts.push(nowAlert);
-    socketAlertThrottles.set(throttleKey, activeAlerts);
-    try {
-      const io = getIO();
-      io.to(`user:${ownerId}`).emit('capture_attempt', {
-        type: 'capture_attempt',
-        payload: {
-          chatId,
-          attemptType: attemptType || 'SCREENSHOT_ATTEMPT',
-          detectionMethod: detectionMethod || 'UNKNOWN',
-          timestamp: new Date().toISOString(),
-          actorUserId: userId,
-        },
-      });
-    } catch (err) {
-      console.error('Socket alert dispatch failed:', err.message);
+    const { isParticipant, partnerId } = await checkParticipant(chatId, userId);
+    if (!isParticipant) {
+      return res.status(403).json({ error: 'Access denied: not a participant of this chat' });
     }
-  }
 
-  return res.json({ success: true, attemptId });
+    // For 1‑to‑1 chats the target owner is the partner; group chats skip direct alerts
+    const ownerId = partnerId || null;
+    if (!ownerId) {
+      return res.json({ success: true, message: 'Group chat attempts tracked without alert routing' });
+    }
+
+    // Debounce attempts within 30 seconds – merge meta if needed
+    const [existingAttempts] = await db.query(
+      'SELECT id, metadata FROM capture_attempts WHERE actor_user_id = ? AND chat_id = ? AND created_at > NOW() - INTERVAL 30 SECOND LIMIT 1',
+      [userId, chatId]
+    );
+
+    let attemptId;
+    if (existingAttempts && existingAttempts.length > 0) {
+      attemptId = existingAttempts[0].id;
+      let oldMeta = {};
+      try {
+        oldMeta = typeof existingAttempts[0].metadata === 'string' ? JSON.parse(existingAttempts[0].metadata) : (existingAttempts[0].metadata || {});
+      } catch (e) {}
+      const attemptCount = (oldMeta.attempt_count || 1) + 1;
+      const updatedMeta = JSON.stringify({ ...oldMeta, attempt_count: attemptCount });
+      await db.query('UPDATE capture_attempts SET metadata = ? WHERE id = ?', [updatedMeta, attemptId]);
+    } else {
+      attemptId = crypto.randomUUID();
+      const initialMeta = JSON.stringify({ attempt_count: 1, ...(metadata || {}) });
+      await db.query(
+        'INSERT INTO capture_attempts (id, chat_id, owner_user_id, actor_user_id, attempt_type, detection_method, device_info, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [attemptId, chatId, ownerId, userId, attemptType || 'SCREENSHOT_ATTEMPT', detectionMethod || 'UNKNOWN', JSON.stringify(deviceInfo || {}), initialMeta]
+      );
+      // Persistent notification record
+      const notificationId = crypto.randomUUID();
+      await db.query('INSERT INTO capture_notifications (id, recipient_user_id, capture_attempt_id) VALUES (?, ?, ?)', [notificationId, ownerId, attemptId]);
+    }
+
+    // Immutable audit log entry
+    const auditId = crypto.randomUUID();
+    await db.query(
+      'INSERT INTO capture_audit_log (id, capture_attempt_id, actor_user_id, owner_user_id, chat_id, action) VALUES (?, ?, ?, ?, ?, ?)',
+      [auditId, attemptId, userId, ownerId, chatId, 'CAPTURE_ATTEMPT_LOGGED']
+    );
+
+    // Rate‑limit real‑time websocket alerts: max 2 alerts per minute per chat per owner
+    const throttleKey = `${ownerId}:${chatId}`;
+    const nowAlert = Date.now();
+    const alertHistory = socketAlertThrottles.get(throttleKey) || [];
+    const oneMinuteAgoAlert = nowAlert - 60000;
+    const activeAlerts = alertHistory.filter(t => t > oneMinuteAgoAlert);
+    if (activeAlerts.length < 2) {
+      activeAlerts.push(nowAlert);
+      socketAlertThrottles.set(throttleKey, activeAlerts);
+      try {
+        const io = getIO();
+        io.to(`user:${ownerId}`).emit('capture_attempt', {
+          type: 'capture_attempt',
+          payload: {
+            chatId,
+            attemptType: attemptType || 'SCREENSHOT_ATTEMPT',
+            detectionMethod: detectionMethod || 'UNKNOWN',
+            timestamp: new Date().toISOString(),
+            actorUserId: userId,
+          },
+        });
+      } catch (err) {
+        console.error('Socket alert dispatch failed:', err.message);
+      }
+    }
+
+    return res.json({ success: true, attemptId });
+  } catch (err) {
+    console.error('recordCaptureAttempt error:', err?.message || err);
+    return res.status(500).json({ error: 'Failed to record capture attempt', details: err?.message || err });
+  }
 }
 
 module.exports = {

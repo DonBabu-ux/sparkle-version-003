@@ -45,7 +45,20 @@ const authMiddleware = async (req, res, next) => {
             return res.status(401).json({ error: 'Invalid token payload: No User ID' });
         }
 
-        const [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [userId]);
+        const { isConnectionLimitError } = require('../config/database');
+        let users;
+        try {
+            [users] = await pool.query('SELECT * FROM users WHERE user_id = ?', [userId]);
+        } catch (dbErr) {
+            if (isConnectionLimitError(dbErr)) {
+                return res.status(503).json({
+                    success: false,
+                    code: 'DATABASE_TEMPORARILY_UNAVAILABLE',
+                    message: 'Sparkle is temporarily unable to complete this request. Please try again shortly.'
+                });
+            }
+            throw dbErr;
+        }
 
         if (users.length === 0) {
             console.error(`[AUTH FAIL] User ID ${userId} not found in DB`);

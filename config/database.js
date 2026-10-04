@@ -1,24 +1,31 @@
 // config/database.js - PRODUCTION VERSION
 const mysql = require('mysql2/promise');
 
+// ── Pool Sizing ──────────────────────────────────────────────────────────────
+// Keep this small. The MySQL shared-hosting account has a low max_user_connections
+// limit. One pool per Node process; total DB connections = pool size × processes.
+// Default: 8. Override via DB_POOL_LIMIT env var if you know the exact headroom.
+// NEVER raise this blindly — increasing connectionLimit does NOT fix slow queries.
+const CONNECTION_LIMIT = process.env.DB_POOL_LIMIT ? parseInt(process.env.DB_POOL_LIMIT, 10) : 3;
+
 const pool = mysql.createPool({
     host: process.env.NODE_ENV === 'production' ? process.env.DB_HOST_PROD || process.env.DB_HOST : process.env.DB_HOST,
     user: process.env.NODE_ENV === 'production' ? process.env.DB_USER_PROD || process.env.DB_USER : process.env.DB_USER,
     password: process.env.NODE_ENV === 'production' ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
     database: process.env.NODE_ENV === 'production' ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
-    // Connection limits
+    // Connection pool — bounded and shared across ALL requests, sockets, workers
     waitForConnections: true,
-    connectionLimit: process.env.DB_POOL_LIMIT ? parseInt(process.env.DB_POOL_LIMIT, 10) : 25,
-    maxIdle: 10,          // Keep at most 10 idle connections
-    queueLimit: 0,
-    connectTimeout: 30000,
+    connectionLimit: CONNECTION_LIMIT,
+    maxIdle: Math.min(2, Math.max(1, Math.floor(CONNECTION_LIMIT / 2))),
+    queueLimit: 150,          // Queue waiters; return error if exceeded
+    connectTimeout: 10000,    // Fail fast — don't hold a slot waiting forever
     // SSL for remote DBs
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-    // Keep-alive — sends a ping every 10s so the remote DB doesn't drop idle conns
+    // Keep-alive — sends a ping so the remote DB doesn't drop idle conns
     enableKeepAlive: true,
-    keepAliveInitialDelay: 10000,
-    // Evict idle connections after 30s (well before most remote DBs' 120-300s timeout)
+    keepAliveInitialDelay: 30000,
+    // Evict idle connections after 30s
     idleTimeout: 30000,
     // Timezone
     timezone: 'Z'
@@ -68,6 +75,38 @@ const isTransientError = (err) => {
            msg.includes('Connection lost');
 };
 
+/** Returns true for connection-limit errors that should be handled gracefully. */
+const isConnectionLimitError = (err) => {
+    const code = err?.code || '';
+    const errno = err?.errno;
+    const msg = err?.message || '';
+    return code === 'ER_TOO_MANY_USER_CONNECTIONS' || errno === 1203 ||
+           msg.includes('max_user_connections') || msg.includes('ER_TOO_MANY_USER_CONNECTIONS');
+};
+
+// ── Throttled error logging ───────────────────────────────────────────────────
+// Prevents flooding logs with hundreds of identical DB errors per second.
+const _errorCounts = new Map();
+const _errorLastLogged = new Map();
+const ERROR_THROTTLE_MS = 30000; // 30 seconds between duplicate log lines
+
+function throttledError(key, message) {
+    const now = Date.now();
+    const lastLogged = _errorLastLogged.get(key) || 0;
+    const count = (_errorCounts.get(key) || 0) + 1;
+    _errorCounts.set(key, count);
+
+    if (now - lastLogged >= ERROR_THROTTLE_MS) {
+        if (count > 1) {
+            logger.error(`[DB] ${message} (suppressed ${count - 1} duplicate(s) in the last 30s)`);
+        } else {
+            logger.error(`[DB] ${message}`);
+        }
+        _errorLastLogged.set(key, now);
+        _errorCounts.set(key, 0);
+    }
+}
+
 /**
  * Safe wrapper for MySQL queries that logs errors and rethrows.
  * Automatically retries once on transient ECONNRESET errors.
@@ -87,7 +126,11 @@ async function safeQuery(sql, params = []) {
                 continue;
             }
             const message = error?.message || error?.sqlMessage || String(error).slice(0, 200);
-            logger.error('[DB] Query error:', message);
+            if (isConnectionLimitError(error)) {
+                throttledError('connection_limit', 'Connection limit reached — reduce pool size or concurrent queries');
+            } else {
+                logger.error('[DB] Query error:', message);
+            }
             throw error;
         }
     }
@@ -106,11 +149,12 @@ pool.query = async (sql, params = []) => {
                 await new Promise(r => setTimeout(r, 300));
                 continue;
             }
-            // Suppress expected migration errors (duplicate columns/keys)
             const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
             const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
-            
-            if (!isDuplicateErr && message.trim().length > 0) {
+
+            if (isConnectionLimitError(error)) {
+                throttledError('connection_limit', 'ER_TOO_MANY_USER_CONNECTIONS — pool exhausted');
+            } else if (!isDuplicateErr && message.trim().length > 0) {
                 logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
             }
             throw error;
@@ -118,10 +162,32 @@ pool.query = async (sql, params = []) => {
     }
 };
 
+/**
+ * Returns safe pool diagnostics without exposing credentials.
+ * Uses the mysql2 PoolNamespace internals available in mysql2 >= 2.x
+ */
+function getPoolStatus() {
+    try {
+        // mysql2/promise wraps a core Pool; access via pool.pool for the underlying PoolNamespace
+        const corePool = pool.pool;
+        if (corePool && typeof corePool._allConnections !== 'undefined') {
+            return {
+                limit: CONNECTION_LIMIT,
+                all: corePool._allConnections.length,
+                free: corePool._freeConnections.length,
+                queued: corePool._connectionQueue ? corePool._connectionQueue.length : 0,
+                active: corePool._allConnections.length - corePool._freeConnections.length,
+            };
+        }
+    } catch (_) {}
+    return { limit: CONNECTION_LIMIT };
+}
+
 // Export pool as default so it can be imported directly as:
 // const pool = require('./config/database');
 module.exports = pool;
 
 // Also attach utility functions to the pool object for backward compatibility
 module.exports.safeQuery = safeQuery;
-module.exports.getPoolStatus = () => pool._allConnections.length;
+module.exports.isConnectionLimitError = isConnectionLimitError;
+module.exports.getPoolStatus = getPoolStatus;

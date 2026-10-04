@@ -7,11 +7,15 @@ const pool = mysql.createPool({
     password: process.env.NODE_ENV === 'production' ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
     database: process.env.NODE_ENV === 'production' ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
-    // Optimized for shared hosting resilience
+    // Shared-host cap: user `lilbee` is limited to 40 connections TOTAL across
+    // every instance (local dev + Render prod + teammates). ONE pool, sized conservatively.
     waitForConnections: true,
-    connectionLimit: 10, // Lowered for shared hosting
-    queueLimit: 0,
-    connectTimeout: 30000,
+    connectionLimit: (() => {
+        const n = parseInt(process.env.DB_CONNECTION_LIMIT, 10);
+        return Number.isFinite(n) ? Math.min(Math.max(n, 1), 10) : 5;
+    })(),
+    queueLimit: 100,
+    connectTimeout: 10000,
     // SSL for remote DBs
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     // Performance & Resilience
@@ -43,17 +47,19 @@ pool.on('enqueue', () => {
     // logger.debug('⏳ Waiting for available connection...');
 });
 
-// Graceful shutdown
-process.on('SIGINT', async () => {
+// Graceful shutdown (SIGTERM = Render/K8s deploys, SIGINT = Ctrl-C)
+async function closePool(signal) {
     try {
         await pool.end();
-        console.log('Database pool closed gracefully');
+        console.log(`Database pool closed gracefully (${signal})`);
         process.exit(0);
     } catch (err) {
         console.error('Error closing database pool:', err);
         process.exit(1);
     }
-});
+}
+process.on('SIGINT', () => closePool('SIGINT'));
+process.on('SIGTERM', () => closePool('SIGTERM'));
 
 const logger = require('../utils/logger');
 /**
@@ -97,4 +103,23 @@ module.exports = pool;
 
 // Also attach utility functions to the pool object for backward compatibility
 module.exports.safeQuery = safeQuery;
-module.exports.getPoolStatus = () => pool._allConnections.length;
+module.exports.getPoolStatus = () => {
+    try {
+        const inner = pool.pool || {};
+        const len = (a) => {
+            if (!a) return null;
+            if (Array.isArray(a)) return a.length;
+            if (typeof a.size === 'function') return a.size(); // Denque (mysql2 internal)
+            if (typeof a.size === 'number') return a.size; // Set
+            return null;
+        };
+        return {
+            connection_limit: inner.config ? inner.config.connectionLimit : null,
+            total: len(inner._allConnections),
+            idle: len(inner._freeConnections),
+            queued: len(inner._connectionQueue)
+        };
+    } catch (_) {
+        return { error: 'pool status unavailable' };
+    }
+};

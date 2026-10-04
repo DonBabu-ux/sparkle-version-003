@@ -1,5 +1,4 @@
-// services/messagePermission.js
-
+// backend/services/messagePermission.js
 // Permission utilities for messaging actions.
 // All functions assume a plain JavaScript object for user, message, and conversation.
 // Adjust to your actual data models as needed.

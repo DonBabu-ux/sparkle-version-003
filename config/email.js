@@ -20,7 +20,7 @@ const templates = {
     welcomeEmail: (name) => ({
         templateName: 'welcome',
         subject: 'Welcome to Sparkle!',
-        templateData: { name, loginUrl: `${APP_URL}/login` }
+        templateData: { name, loginUrl: `${APP_URL}/login`, dashboardUrl: `${APP_URL}/dashboard` }
     }),
     resetPassword: (name, token) => ({
         templateName: 'reset-password',

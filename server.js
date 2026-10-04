@@ -17,7 +17,6 @@ const { PORT } = require('./config/constants');
 const { initDB } = require('./utils/database/init');
 const momentsController = require('./controllers/moments.controller');
 const apiRoutes = require('./routes/api');
-const webRoutes = require('./routes/web');
 
 const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
@@ -80,6 +79,20 @@ app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
+
+// Health checks (unauthenticated, JSON) — ops monitors use these instead of raw mysql CLI
+app.get('/health', (req, res) => {
+    res.json({ status: 'ok', service: 'sparkle-api', uptime_s: Math.round(process.uptime()), timestamp: new Date().toISOString() });
+});
+app.get('/health/db', async (req, res) => {
+    const pool = require('./config/database');
+    try {
+        await pool.query('SELECT 1');
+        res.json({ status: 'ok', database: 'connected', pool_open_connections: pool.getPoolStatus(), timestamp: new Date().toISOString() });
+    } catch (error) {
+        res.status(503).json({ status: 'error', database: 'down', error: error.message });
+    }
+});
 
 const { isVerified } = require('./utils/user-helpers');
 
@@ -178,10 +191,6 @@ app.use('/uploads', (req, res) => {
     res.status(404).send('Image not found');
 });
 
-// View Engine
-app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views'));
-
 // Redirect .html requests
 app.use((req, res, next) => {
     if (req.path.endsWith('.html')) {
@@ -208,13 +217,6 @@ if (process.env.NODE_ENV !== 'production') {
             res.status(500).json({ error: 'Failed to scan routes' });
         }
     });
-
-    app.get('/api-tester', ejsAuthMiddleware, (req, res) => {
-        res.render('api-tester', {
-            title: 'Sparkle API Tester',
-            user: req.user
-        });
-    });
 }
 
 // Diagnostic Test Route (Bypasses all middleware)
@@ -234,15 +236,13 @@ app.use(express.static(path.join(__dirname, 'public'), {
     etag: true
 }));
 
-app.use('/', webRoutes);
-
 // 404 Handler
 app.use((req, res) => {
     // Suppress warning logs for devtools noise
     if (!req.url.includes('com.chrome.devtools.json')) {
         logger.warn(`404 Not Found: ${req.method} ${req.url}`);
     }
-    res.status(404).render('404', { title: '404 - Page Not Found' });
+    res.status(404).json({ success: false, message: 'Not Found' });
 });
 
 // Enhanced Error Handler
@@ -270,10 +270,9 @@ app.use((err, req, res, next) => {
         });
     }
 
-    res.status(err.status || 500).render('error', {
-        title: 'Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-        user: req.user || null
+    res.status(err.status || 500).json({
+        success: false,
+        message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error'
     });
 });
 
@@ -319,7 +318,6 @@ if (require.main === module) {
         logger.info(`🔥 Sparkle Server running on port ${PORT}`);
         logger.info(`🔌 WebSocket server initialized`);
         logger.info(`📁 Environment: ${process.env.NODE_ENV || 'development'}`);
-        logger.info(`📁 Views directory: ${path.join(__dirname, 'views')}`);
         logger.info(`📁 Public directory: ${path.join(__dirname, 'public')}`);
         logger.info(`🏥 Health checks: /health, /health/db`);
         logger.info(`------------------------------------------`);

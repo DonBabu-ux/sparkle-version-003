@@ -6,7 +6,6 @@ const userTabsRoutes = require('./userTabs.routes');
 
 const userRoutes = require('./user.routes');
 const messagesRoutes = require('./messages.routes');
-const privacyRoutes = require('./privacy.routes');
 const postsRoutes = require('./posts.routes');
 const storiesRoutes = require('./stories.routes');
 const momentsRoutes = require('./moments.routes');
@@ -54,6 +53,9 @@ router.use('/moments', momentsRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/share', shareRoutes);
 router.use('/notifications', notificationsRoutes);
+
+// Mount the AI router (SparkleAIScreen → /api/ai/*)
+router.use('/ai', aiRoutes);
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');

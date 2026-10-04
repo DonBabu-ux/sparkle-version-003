@@ -1,6 +1,5 @@
 const nodemailer = require('nodemailer');
-const ejs = require('ejs');
-const path = require('path');
+const { renderTemplate } = require('./email-templates');
 const logger = require('../utils/logger');
 
 /**
@@ -56,8 +55,7 @@ class EmailService {
         }
 
         try {
-            const templatePath = path.join(__dirname, '../views/emails', `${templateName}.ejs`);
-            const html = await ejs.renderFile(templatePath, templateData);
+            const html = renderTemplate(templateName, templateData);
 
             const mailOptions = {
                 from: `"Sparkle" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,

@@ -3,7 +3,7 @@ if (process.env.NODE_ENV === 'production') {
 } else {
   require('dotenv').config();
 }
-const pool = require('./config/database');
+const mysql = require('mysql2/promise');
 const crypto = require('crypto');
 
 // ==========================================
@@ -146,10 +146,27 @@ function generateSpreadTimestamp() {
 // ==========================================
 // 4. MAIN SEEDER LOGIC
 // ==========================================
+// Realistic Kenyan names for seeded users (must match DB rename script pools)
+const firstNames = ["Amani","Baraka","Brian","Cynthia","Dennis","Evelyn","Fatuma","Franklin","Gerald","Hilda","Ian","Jabari","Janet","Kevin","Linet","Lydia","Mercy","Nicholas","Oscar","Purity","Quinn","Rashid","Sheila","Tumaini","Uche","Victor","Xavier","Yusuf","Zawadi","Amina","Collins","Dorcas","Emmanuel","Faith","Grace","Hassan","Imani","Joy","Kelvin","Lilian"];
+const lastNames = ["Otieno","Wanjiru","Kamau","Achieng","Mwangi","Njoroge","Kiplagat","Chebet","Omondi","Wafula","Barasa","Mutua","Ndungu","Githinji","Wambui","Onyango","Cherono","Kariuki","Sigey","Jelagat"];
+
 async function seed() {
+    let db;
     try {
         console.log('--- STARTING SOCIAL GRAPH SIMULATION SEEDER ---');
         console.log('Mode: Kenyan/Sheng Audience Realism');
+
+        // ONE dedicated connection for the whole run — never touches the shared app pool,
+        // so seeding can never starve the API (and vice versa).
+        db = await mysql.createConnection({
+            host: process.env.DB_HOST,
+            user: process.env.DB_USER,
+            password: process.env.DB_PASSWORD,
+            database: process.env.DB_NAME,
+            port: process.env.DB_PORT || 3306,
+            charset: 'utf8mb4',
+            timezone: 'Z'
+        });
 
         // Check if `is_seed` exists in the users table first, gracefully handle if not.
         // We'll wrap insertions in a try-catch to ensure robustness.
@@ -159,12 +176,14 @@ async function seed() {
         const userInsertions = [];
         for (let i = 0; i < SEED_CONFIG.USER_COUNT; i++) {
             const userId = crypto.randomUUID();
-            const username = `seed_user_${i}_${rand(1000, 9999)}`;
-            const name = `Simulated User ${i}`;
+            const first = firstNames[i % firstNames.length];
+            const last = lastNames[(i * 7 + Math.floor(i / firstNames.length)) % lastNames.length];
+            const name = `${first} ${last}`;
+            const username = `${first.toLowerCase()}${last.toLowerCase()}${100 + i}`;
             const joinedAt = generateSpreadTimestamp();
 
             userInsertions.push(
-                pool.query(
+                db.query(
                     `INSERT INTO users (user_id, name, username, email, password_hash, avatar_url, campus, joined_at) 
                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
                     [
@@ -197,7 +216,7 @@ async function seed() {
             const category = randWord(categories);
 
             // Create Post
-            await pool.query(
+            await db.query(
                 `INSERT INTO posts (post_id, user_id, content, media_url, media_type, post_type, campus, spark_count, comment_count, share_count, created_at) 
                  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
                 [
@@ -239,7 +258,7 @@ async function seed() {
                 }
 
                 // Execute Bulk Insert for Comments
-                await pool.query(
+                await db.query(
                     `INSERT INTO comments (comment_id, post_id, user_id, parent_comment_id, content, created_at) VALUES ?`,
                     [commentValues]
                 );
@@ -270,7 +289,7 @@ async function seed() {
                 }
 
                 if (sparkValues.length > 0) {
-                    await pool.query(
+                    await db.query(
                         `INSERT IGNORE INTO sparks (spark_id, post_id, user_id, created_at) VALUES ?`,
                         [sparkValues]
                     );
@@ -288,6 +307,7 @@ async function seed() {
     } catch (err) {
         console.error('Seeding failed:', err);
     } finally {
+        if (db) { try { await db.end(); } catch (_) { /* ignore */ } }
         process.exit();
     }
 }

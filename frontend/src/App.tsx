@@ -108,6 +108,7 @@ import Verified from './pages/Verified';
 import Invite from './pages/Invite';
 import Help from './pages/Help';
 import Onboarding from './pages/Onboarding';
+import OnboardingSheet from './components/onboarding/OnboardingSheet';
 import Ecosystem from './pages/Ecosystem';
 
 import BlockedUsers from './pages/BlockedUsers';
@@ -523,7 +524,10 @@ function App() {
                     <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
                     <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
                     <Route path="/onboarding" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
-                    <Route path="/onboarding/about" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
+                    <Route path="/onboarding/about" element={<OnboardingSheet />} />
+                    <Route path="/onboarding/sheets" element={<OnboardingSheet />} />
+                    <Route path="/onboarding/sheet" element={<OnboardingSheet />} />
+                    <Route path="/onboarding-sheet" element={<OnboardingSheet />} />
 
                     {/* ── Phase 5: Public & Static ── */}
                     <Route path="/about" element={<About />} />

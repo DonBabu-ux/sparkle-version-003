@@ -12,19 +12,18 @@ export default function Success() {
   const { user, setUser } = useUserStore();
 
   useEffect(() => {
-    // Trigger confetti
+    // Trigger clean pink & white celebratory confetti
     confetti({
-      particleCount: 120,
-      spread: 80,
+      particleCount: 90,
+      spread: 70,
       origin: { y: 0.6 },
-      colors: ['#f43f5e', '#fb7185', '#fda4af', '#f43f5e']
+      colors: ['#ff2d87', '#ff6aa9', '#ffffff'],
     });
 
     async function finishOnboarding() {
       try {
         const res = await api.post('/onboarding/complete');
         if (res.data?.success) {
-          // Update onboarding step locally
           if (user) {
             setUser({ ...user, onboarding_step: 6 });
           }
@@ -48,29 +47,27 @@ export default function Success() {
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col items-center text-center max-w-lg mx-auto py-8"
+      transition={{ duration: 0.35, ease: 'easeOut' }}
+      className="flex flex-col items-center text-center max-w-lg mx-auto py-6"
     >
-      <div className="relative mb-8 w-24 h-24">
-        {/* Outer glowing pulsing circle */}
-        <div className="absolute inset-0 bg-rose-100 rounded-full animate-ping opacity-75" />
-        <div className="relative w-24 h-24 bg-gradient-to-tr from-rose-400 to-rose-600 text-white rounded-full flex items-center justify-center shadow-xl shadow-rose-500/30">
-          <Check size={48} strokeWidth={3.5} />
-        </div>
+      {/* Icon */}
+      <div className="relative mb-6 w-20 h-20 rounded-full bg-pink-50 dark:bg-[#ff2d87]/15 border border-pink-200 dark:border-[#ff2d87]/25 flex items-center justify-center text-[#ff2d87]">
+        <Check size={36} strokeWidth={2.5} />
       </div>
 
-      <h1 className="font-heading text-4xl md:text-5xl font-black tracking-tight text-slate-900 leading-none mb-6 uppercase italic">
-        You're <span className="text-rose-500">All Set!</span>
+      <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-2">
+        You're <span className="text-[#ff2d87]">All Set!</span>
       </h1>
 
-      <p className="text-lg font-medium text-slate-500 leading-relaxed mb-10">
-        Your Sparkle profile is fully setup. Welcome to your new campus community. Let's start sparkling!
+      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-400 leading-relaxed mb-8 max-w-[40ch]">
+        Your Sparkle profile is ready. Welcome to your campus community!
       </p>
 
-      <div className="flex flex-col items-center gap-3">
-        <Loader2 className="animate-spin text-rose-500" size={24} />
-        <span className="text-sm font-bold text-slate-400">Loading your dashboard...</span>
+      <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+        <Loader2 className="animate-spin text-[#ff2d87]" size={16} />
+        <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">Taking you to your dashboard...</span>
       </div>
     </motion.div>
   );

@@ -213,6 +213,7 @@
 - **A9** `chatStore.ts:561` — undeclared `existing` → `ReferenceError` on socket echo.
 - **A10** `useMessageSocket.ts:140` — missing `SparkleStorage` import → `ReferenceError`.
 Both are runtime crashes (H7's frozen TS2304 bucket) and must be fixed regardless of roadmap priority.
+*(Both fixed 2026-10-05 as H15/H16 — see `FIXES_NEEDED.md`; Part A entries A9/A10 describe the original defects.)*
 
 ### Conventions for future entries
 - Every Part A/B claim in this file was verified against source on 2026-10-05; update `file:line` references when touching those files.

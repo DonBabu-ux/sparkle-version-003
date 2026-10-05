@@ -556,6 +556,7 @@ export const useChatStore = create<ChatState>()(
             if (exactIndex !== -1) {
               // Message exists — merge in any new fields (e.g. permissions, status upgrade)
               // but never downgrade a status (sent > sending, read > delivered, etc.)
+              const existing = currentMsgs[exactIndex];
               const STATUS_RANK: Record<string, number> = { sending: 0, pending: 0, sent: 1, delivered: 2, read: 3, failed: -1 };
               const incomingRank = STATUS_RANK[normalized.status || ''] ?? 0;
               const existingRank = STATUS_RANK[existing.status || ''] ?? 0;

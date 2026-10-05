@@ -7,6 +7,7 @@ import { useThemeStore } from '../store/themeStore';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
+import { reconcilePrivacySettings } from '../services/privacyReconcile';
 
 let isSyncInProgress = false;
 
@@ -133,17 +134,7 @@ export const useMessageSocket = () => {
       runReconnectSyncSequence();
       const activeChatId = getChatStore().activeConversationId;
       if (activeChatId && !activeChatId.startsWith('temp_')) {
-        api.get(`/messages/${activeChatId}/privacy`)
-          .then(res => {
-            const enforced = res.data?.enforcedSettings || res.data;
-            if (enforced) {
-              SparkleStorage.setPrivacyCache(activeChatId, enforced).catch(() => {});
-              try {
-                localStorage.setItem(`sparkle_privacy_cache_${activeChatId}`, JSON.stringify(enforced));
-              } catch (e) {}
-            }
-          })
-          .catch(console.error);
+        reconcilePrivacySettings(activeChatId);
       }
     };
 

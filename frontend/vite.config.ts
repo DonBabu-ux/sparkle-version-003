@@ -15,7 +15,9 @@ export default defineConfig({
         enabled: false
       },
       workbox: {
-        maximumFileSizeToCacheInBytes: 5000000,
+        // Main bundle is ~5.2 MB; must exceed it or `vite build` fails and
+        // the app shell never reaches precache (broke Android sync too).
+        maximumFileSizeToCacheInBytes: 7500000,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,webp}'],
         runtimeCaching: [
           {

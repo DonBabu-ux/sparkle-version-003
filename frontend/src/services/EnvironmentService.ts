@@ -1,5 +1,7 @@
-const LOCAL_API_URL = 'http://localhost:3000/api';
-const LOCAL_SOCKET_URL = 'http://localhost:3000';
+// Same-origin defaults: prod builds hit the Render backend directly; the Vite
+// dev server proxies /api and /socket.io to 127.0.0.1:3000 (vite.config.ts).
+// Override with VITE_API_URL / VITE_SOCKET_URL when the API lives elsewhere.
+const DEFAULT_API_URL = '/api';
 
 export class EnvironmentService {
   static isDevelopment(): boolean {
@@ -11,10 +13,11 @@ export class EnvironmentService {
   }
 
   static getApiBaseUrl(): string {
-    return import.meta.env.VITE_API_URL || LOCAL_API_URL;
+    return import.meta.env.VITE_API_URL || DEFAULT_API_URL;
   }
 
   static getSocketUrl(): string {
-    return import.meta.env.VITE_SOCKET_URL || LOCAL_SOCKET_URL;
+    return import.meta.env.VITE_SOCKET_URL ||
+      (typeof window !== 'undefined' ? window.location.origin : '');
   }
 }

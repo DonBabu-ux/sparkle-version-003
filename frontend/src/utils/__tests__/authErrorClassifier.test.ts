@@ -3,7 +3,8 @@ import {
   validateLoginInputs,
   classifyLoginError
 } from '../authErrorClassifier';
-import { AxiosError, AxiosResponse, InternalAxiosRequestConfig } from 'axios';
+import { AxiosError } from 'axios';
+import type { AxiosResponse, InternalAxiosRequestConfig } from 'axios';
 
 function createMockAxiosError(status?: number, data?: any, code?: string): AxiosError {
   const error = new Error('Axios error') as AxiosError;

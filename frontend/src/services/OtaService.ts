@@ -2,9 +2,10 @@ import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 
-// API URL resolved from env vars at build time.
-// Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
-const DEFAULT_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// API URL resolved from env vars at build time. Same-origin '/api' by default.
+// NOTE: native (APK) builds have no same-origin backend — set VITE_API_URL to
+// the absolute backend URL when building for Capacitor/OTA.
+const DEFAULT_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 const APK_VERSION = '1.0.0'; // PACKAGED NATIVE APK VERSION BOUNDS
 const LOCAL_STORAGE_VERSION_KEY = 'sparkle_ota_js_version';
 const ACTIVE_OTA_KEY = 'sparkle_active_ota';

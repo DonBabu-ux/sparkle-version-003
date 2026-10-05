@@ -93,8 +93,10 @@ export function validateLoginInputs(loginId: string, password: string): AuthErro
  * structured, accessible, user-friendly failure states without leaking sensitive details.
  */
 export function classifyLoginError(error: unknown, options?: { isOnline?: boolean }): AuthErrorInfo {
-  // Check online status first
-  const isOnline = options?.isOnline ?? (typeof navigator !== 'undefined' ? navigator.onLine : true);
+  // Check online status first. `navigator.onLine` can be undefined in
+  // non-browser environments — treat only an explicit false as offline.
+  const isOnline = options?.isOnline ??
+    (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' ? navigator.onLine : true);
 
   if (!isOnline) {
     return {
@@ -129,7 +131,7 @@ export function classifyLoginError(error: unknown, options?: { isOnline?: boolea
 
     // Network / Unreachable (Request sent but no response received)
     if (!axiosErr.response) {
-      if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         return {
           type: 'OFFLINE',
           title: "You're offline",

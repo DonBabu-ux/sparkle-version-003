@@ -3,9 +3,10 @@ import { io, Socket } from 'socket.io-client';
 import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
 
-// Socket URL resolved from env vars at build time.
-// Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000';
+// Socket URL resolved from env vars at build time. Same-origin by default:
+// prod connects straight to Render; dev goes through the Vite /socket.io proxy.
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
+  (typeof window !== 'undefined' ? window.location.origin : '');
 
 let _socket: Socket | null = null;
 let _currentUserId: string | null = null;

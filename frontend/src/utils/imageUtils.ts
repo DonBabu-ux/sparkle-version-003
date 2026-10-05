@@ -1,8 +1,8 @@
 import defaultAvatar from '../assets/avatar.png';
 
-// API URL resolved from env vars at build time.
-// Production builds (.env.production) point to Render; dev builds (.env) point to localhost.
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// API URL resolved from env vars at build time. Same-origin '/api' by default:
+// prod builds hit the Render backend directly; dev goes through the Vite proxy.
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 

@@ -11,6 +11,7 @@ import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
+import type { Moment } from '../types/moment';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useInteractionStore } from '../store/interactionStore';
@@ -46,30 +47,6 @@ interface Comment {
   created_at: string;
   is_liked?: boolean;
   replies?: Comment[];
-}
-
-interface Moment {
-  moment_id: string;
-  username: string;
-  user_name?: string;
-  caption?: string;
-  avatar_url?: string;
-  thumbnail_url?: string;
-  media_url?: string;
-  video_url?: string;
-  streaming_url?: string;
-  resolution?: string;
-  view_count?: number;
-  like_count?: number;
-  comment_count?: number;
-  share_count?: number;
-  created_at: string;
-  is_video?: boolean;
-  media_type?: string;
-  is_liked?: boolean;
-  is_saved?: boolean;
-  is_following?: boolean;
-  user_id?: string;
 }
 
 const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void }) => {

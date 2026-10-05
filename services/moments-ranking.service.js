@@ -29,6 +29,7 @@ const userSeed = (userId) => {
  * scores appear in a different order for every user.
  */
 const bandShuffle = (arr, bandSize = 5) => {
+    if (!Array.isArray(arr)) return [];
     const out = [...arr];
     for (let i = 0; i < out.length; i += bandSize) {
         const end = Math.min(i + bandSize, out.length);
@@ -158,7 +159,7 @@ class MomentsRankingService {
             }
 
             // Query moments from users this person follows
-            const [rows] = await safeQuery(`
+            const rows = await safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at, m.completion_rate, m.quality_score,
@@ -245,7 +246,7 @@ class MomentsRankingService {
         } catch (error) {
             console.warn(`⚠️ Moments Ranking Optimization: ${error.message}. Using fast-path fallback.`);
             // FAST PATH: Direct DB fallback if ranking is too slow
-            const [fallback] = await safeQuery(`
+            const fallback = await safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type, 
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at, m.completion_rate, m.quality_score,
@@ -253,7 +254,7 @@ class MomentsRankingService {
                 FROM moments m JOIN users u ON m.user_id = u.user_id
                 ORDER BY m.created_at DESC LIMIT ? OFFSET ?
             `, [limit, offset]);
-            return fallback;
+            return Array.isArray(fallback) ? fallback : [];
         }
     }
 
@@ -283,7 +284,7 @@ class MomentsRankingService {
         // Fetch base pools + interest pools simultaneously
         const poolKeys = [
             ...pools,
-            ...Object.keys(sivProfile).map(cat => `pool:category:${cat}:shard_01`)
+            ...Object.keys(sivProfile || {}).map(cat => `pool:category:${cat}:shard_01`)
         ];
 
         const poolData = await Promise.all(poolKeys.map(k => redis.get(k)));
@@ -292,11 +293,13 @@ class MomentsRankingService {
             if (Array.isArray(data)) candidates.push(...data);
         });
 
-        candidates.push(...followingPool);
+        if (Array.isArray(followingPool)) {
+            candidates.push(...followingPool);
+        }
 
         // DB fallback + paging (fast query, no joins on cold start)
         if (candidates.length < 20 || offset > 0) {
-            const [dbItems] = await safeQuery(`
+            const dbItems = await safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at, m.completion_rate, m.quality_score,
@@ -306,7 +309,7 @@ class MomentsRankingService {
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
             `, [50, offset]);
-            candidates.push(...dbItems);
+            if (Array.isArray(dbItems)) candidates.push(...dbItems);
         }
 
         // Filter by query
@@ -331,7 +334,7 @@ class MomentsRankingService {
      * Now synchronous — no more async calls (reuses pre-fetched data).
      */
     _scoreCandidates(userId, candidates, query, sivProfile, followingPool) {
-        const followingIds = new Set(followingPool.map(f => f.moment_id));
+        const followingIds = new Set(Array.isArray(followingPool) ? followingPool.map(f => f.moment_id) : []);
         const uSeed = userSeed(userId); // unique per user, consistent within session
         const hasSIV = Object.keys(sivProfile).length > 0;
 
@@ -376,6 +379,7 @@ class MomentsRankingService {
     }
 
     _rerank(candidates, limit) {
+        if (!Array.isArray(candidates)) return [];
         // Sort by score descending
         candidates.sort((a, b) => b.exploration_score - a.exploration_score);
 
@@ -406,8 +410,9 @@ class MomentsRankingService {
     }
 
     async _applyExplorationAndDeduplicate(userId, candidates, limit, isSearch) {
+        if (!Array.isArray(candidates)) candidates = [];
         const seenVideos = isSearch ? [] : await redis.smembers(`seen_video_set:user:${userId}`);
-        const seenSet = new Set(seenVideos || []);
+        const seenSet = new Set(Array.isArray(seenVideos) ? seenVideos : []);
 
         let unique = candidates.filter(c => !seenSet.has(c.moment_id));
 
@@ -435,9 +440,11 @@ class MomentsRankingService {
         }
 
         if (!isSearch && finalBatch.length > 0) {
-            const ids = finalBatch.map(f => f.moment_id);
-            await redis.sadd(`seen_video_set:user:${userId}`, ...ids);
-            await redis.expire(`seen_video_set:user:${userId}`, 86400);
+            const ids = finalBatch.map(f => f.moment_id).filter(Boolean);
+            if (ids.length > 0) {
+                await redis.sadd(`seen_video_set:user:${userId}`, ...ids);
+                await redis.expire(`seen_video_set:user:${userId}`, 86400);
+            }
         }
 
         return finalBatch;

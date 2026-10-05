@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff } from 'lucide-react';
+import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import {
@@ -29,6 +29,7 @@ export default function Login() {
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const [resendingCode, setResendingCode] = useState(false);
 
   const { login } = useUserStore();
   const [showPassword, setShowPassword] = useState(false);
@@ -111,6 +112,7 @@ export default function Login() {
         setShow2FA(true);
         setTwoFactorUserId(data.userId);
         setTwoFactorMessage(data.message || 'Please enter your verification code or recovery backup code.');
+        setCooldown(60);
         setLoading(false);
         setAuthError(null);
         return;
@@ -190,19 +192,35 @@ export default function Login() {
     }
   };
 
-  const handleSendRecoveryCode = async () => {
-    if (cooldown > 0) return;
-    setLoading(true);
+  const handleResend2FA = async () => {
+    if (cooldown > 0 || resendingCode) return;
+    setResendingCode(true);
     setAuthError(null);
     try {
-      await api.post('/auth/request-2fa-recovery', { userId: twoFactorUserId }, { timeout: 15000 });
-      showSuccess('Code sent! It expires in 15 minutes.');
+      const res = await api.post('/auth/resend-2fa', { userId: twoFactorUserId }, { timeout: 15000 });
+      showSuccess(res.data?.message || 'Verification code resent! Check your inbox or phone.');
       setCooldown(60);
     } catch (err: unknown) {
       const classified = classifyLoginError(err, { isOnline: navigator.onLine });
       setAuthError(classified);
     } finally {
-      setLoading(false);
+      setResendingCode(false);
+    }
+  };
+
+  const handleSendRecoveryCode = async () => {
+    if (cooldown > 0 || resendingCode) return;
+    setResendingCode(true);
+    setAuthError(null);
+    try {
+      const res = await api.post('/auth/request-2fa-recovery', { userId: twoFactorUserId }, { timeout: 15000 });
+      showSuccess(res.data?.message || 'Recovery code sent! It expires in 15 minutes.');
+      setCooldown(60);
+    } catch (err: unknown) {
+      const classified = classifyLoginError(err, { isOnline: navigator.onLine });
+      setAuthError(classified);
+    } finally {
+      setResendingCode(false);
     }
   };
 
@@ -469,13 +487,22 @@ export default function Login() {
                 {!useRecoveryCode && (
                   <>
                     <button 
-                      onClick={handleSendRecoveryCode} 
-                      disabled={loading || cooldown > 0}
+                      onClick={handleResend2FA} 
+                      disabled={loading || resendingCode || cooldown > 0}
                       type="button" 
                       className="login-btn login-btn--alt" 
-                      style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.75rem' }}
+                      style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}
                     >
-                      {cooldown > 0 ? `Resend code in ${cooldown}s` : 'Resend code'}
+                      {resendingCode ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Sending code...</span>
+                        </>
+                      ) : cooldown > 0 ? (
+                        `Resend code in ${cooldown}s`
+                      ) : (
+                        'Resend code'
+                      )}
                     </button>
 
                     <div className="login-pins">
@@ -499,6 +526,24 @@ export default function Login() {
 
                 {useRecoveryCode && (
                   <div style={{ width: '100%', marginBottom: '1rem' }}>
+                    <button 
+                      onClick={handleSendRecoveryCode} 
+                      disabled={loading || resendingCode || cooldown > 0}
+                      type="button" 
+                      className="login-btn login-btn--alt" 
+                      style={{ padding: '0.6rem', fontSize: '0.85rem', marginBottom: '0.75rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', width: '100%' }}
+                    >
+                      {resendingCode ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          <span>Sending recovery code...</span>
+                        </>
+                      ) : cooldown > 0 ? (
+                        `Send recovery code in ${cooldown}s`
+                      ) : (
+                        'Email me a temporary recovery code'
+                      )}
+                    </button>
                     <input
                       type="text"
                       placeholder="XXXXX-XXXXX"

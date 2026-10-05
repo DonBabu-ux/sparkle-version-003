@@ -670,15 +670,27 @@ const OTPModal: React.FC<OTPModalProps> = ({
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setInterval(() => setCooldown(p => p - 1), 1000);
+      return () => clearInterval(t);
+    }
+  }, [cooldown]);
 
   const handleSend = async () => {
+    if (cooldown > 0) return;
     setSending(true);
     setError(null);
     try {
       await onRequest();
       setStep('verify');
+      setCooldown(60);
     } catch (e: unknown) {
-      const msg = (e as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send verification code.';
+      const msg = (e as { response?: { data?: { message?: string; retryAfter?: number } } })?.response?.data?.message || 'Failed to send verification code.';
+      const retryAfter = (e as { response?: { data?: { retryAfter?: number } } })?.response?.data?.retryAfter;
+      if (retryAfter) setCooldown(retryAfter);
       setError(msg);
     } finally {
       setSending(false);
@@ -732,7 +744,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
 
           {error && (
             <div className={`p-3 rounded-xl border text-xs flex items-center gap-2.5 transition-all ${
-              error.toLowerCase().includes('too many')
+              error.toLowerCase().includes('too many') || error.toLowerCase().includes('wait')
                 ? 'bg-red-500/15 border-2 border-red-500 text-red-600 dark:text-red-400 font-bold shadow-sm shadow-red-500/20'
                 : 'bg-red-50 dark:bg-red-500/10 border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400'
             }`}>
@@ -744,11 +756,11 @@ const OTPModal: React.FC<OTPModalProps> = ({
           {step === 'send' && (
             <button
               onClick={handleSend}
-              disabled={sending}
+              disabled={sending || cooldown > 0}
               className="w-full h-11 rounded-xl bg-[#ff1493] text-white text-sm font-semibold flex items-center justify-center gap-2 hover:bg-pink-600 active:scale-95 transition-all disabled:opacity-60"
             >
               {sending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {sending ? 'Sending…' : 'Send Verification Code'}
+              {sending ? 'Sending…' : cooldown > 0 ? `Send Code (${cooldown}s)` : 'Send Verification Code'}
             </button>
           )}
 
@@ -782,10 +794,11 @@ const OTPModal: React.FC<OTPModalProps> = ({
                 {verifying ? 'Verifying…' : 'Confirm'}
               </button>
               <button
-                onClick={() => { setStep('send'); setCode(''); setError(null); }}
-                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors"
+                onClick={handleSend}
+                disabled={sending || cooldown > 0}
+                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
               >
-                Resend code
+                {sending ? 'Sending…' : cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
             </div>
           )}
@@ -818,6 +831,14 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
   const [verificationToken, setVerificationToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setInterval(() => setCooldown(p => p - 1), 1000);
+      return () => clearInterval(t);
+    }
+  }, [cooldown]);
 
   useEffect(() => {
     loadFactors();
@@ -843,6 +864,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
   };
 
   const handleInitiate = async (factor: 'email' | 'sms' | 'recovery_code') => {
+    if (cooldown > 0) return;
     setSelectedFactor(factor);
     setLoading(true);
     setError(null);
@@ -855,6 +877,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
         setActiveTxId(res.data.data.transaction_id);
         setDestinationMasked(res.data.data.destination_masked || null);
         setStep('enter_code');
+        if (factor !== 'recovery_code') setCooldown(60);
       }
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to initiate verification.';
@@ -911,7 +934,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
   };
 
   const isTooManyStyle = (msg: string) =>
-    msg.toLowerCase().includes('too many') || msg.toLowerCase().includes('429') || msg.toLowerCase().includes('locked');
+    msg.toLowerCase().includes('too many') || msg.toLowerCase().includes('429') || msg.toLowerCase().includes('locked') || msg.toLowerCase().includes('wait');
 
   const factorOptions = [
     { key: 'email' as const, available: !!factors?.has_email_2fa, icon: Mail, label: 'Email verification code', desc: factors?.email_masked ? `Send code to ${factors.email_masked}` : 'Send code to your email' },
@@ -1068,10 +1091,10 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                 <button
                   type="button"
                   onClick={() => handleInitiate(selectedFactor)}
-                  disabled={loading}
-                  className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors"
+                  disabled={loading || cooldown > 0}
+                  className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
                 >
-                  Resend code
+                  {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
                 </button>
               )}
             </>
@@ -1134,8 +1157,17 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldown, setCooldown] = useState(0);
+
+  useEffect(() => {
+    if (cooldown > 0) {
+      const t = setInterval(() => setCooldown(p => p - 1), 1000);
+      return () => clearInterval(t);
+    }
+  }, [cooldown]);
 
   const handleRequest = async () => {
+    if (cooldown > 0) return;
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       setError('Please enter a valid email address.');
       return;
@@ -1147,9 +1179,12 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
       if (res.data?.status === 'success') {
         setTxId(res.data.data.transaction_id);
         setStep('verify_code');
+        setCooldown(60);
       }
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to send verification code.';
+      const msg = (err as { response?: { data?: { message?: string; retryAfter?: number } } })?.response?.data?.message || 'Failed to send verification code.';
+      const retryAfter = (err as { response?: { data?: { retryAfter?: number } } })?.response?.data?.retryAfter;
+      if (retryAfter) setCooldown(retryAfter);
       setError(msg);
     } finally {
       setLoading(false);
@@ -1182,7 +1217,7 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
   };
 
   const isTooManyStyle = (msg: string) =>
-    msg.toLowerCase().includes('too many') || msg.toLowerCase().includes('429');
+    msg.toLowerCase().includes('too many') || msg.toLowerCase().includes('429') || msg.toLowerCase().includes('wait');
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -1283,10 +1318,10 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
               <button
                 type="button"
                 onClick={handleRequest}
-                disabled={loading}
-                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors"
+                disabled={loading || cooldown > 0}
+                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
               >
-                Resend code
+                {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
             </>
           )}

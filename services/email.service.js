@@ -1,4 +1,6 @@
 const nodemailer = require('nodemailer');
+const path = require('path');
+const fs = require('fs');
 const { renderTemplate } = require('./email-templates');
 const logger = require('../utils/logger');
 
@@ -58,7 +60,6 @@ class EmailService {
             const html = renderTemplate(templateName, templateData);
 
             const logoPath = path.join(__dirname, '../public/images/logo.png');
-            const fs = require('fs');
             const attachments = [];
             if (fs.existsSync(logoPath)) {
                 attachments.push({

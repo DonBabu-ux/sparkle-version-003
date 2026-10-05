@@ -51,11 +51,20 @@ export default function Signup() {
     special: false
   });
   const [otpSuccess, setOtpSuccess] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
 
   const navigate = useNavigate();
   const { login } = useUserStore();
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const t = setInterval(() => setOtpCooldown(p => p - 1), 1000);
+      return () => clearInterval(t);
+    }
+  }, [otpCooldown]);
 
   useEffect(() => {
     if (!form.username.trim() || form.username.length < 3) {
@@ -170,6 +179,7 @@ export default function Signup() {
       }
       showSuccess('Signed up! Verify your email.');
       setStep(5);
+      setOtpCooldown(60);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       showError(e.response?.data?.message || 'Something went wrong.');
@@ -199,6 +209,24 @@ export default function Signup() {
       showError(e.response?.data?.message || 'Invalid code.');
     } finally {
       setVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0 || resendingOtp) return;
+    setResendingOtp(true);
+    setError('');
+    try {
+      await api.post('/auth/resend-verification', { email: form.email });
+      showSuccess('Verification code resent!');
+      setOtpCooldown(60);
+    } catch (err) {
+      const e = err as { response?: { data?: { message?: string; retryAfter?: number } } };
+      const retryAfter = e.response?.data?.retryAfter;
+      if (retryAfter) setOtpCooldown(retryAfter);
+      showError(e.response?.data?.message || 'Failed to resend code.');
+    } finally {
+      setResendingOtp(false);
     }
   };
 
@@ -533,7 +561,15 @@ export default function Signup() {
                   <button onClick={handleVerifyOTP} disabled={verifying} className="su-btn su-btn--main" type="button">
                     {verifying ? <span className="su-spin" /> : 'Complete signup'}
                   </button>
-                  <button className="su-back-text" type="button">Resend code</button>
+                  <button
+                    className="su-back-text"
+                    type="button"
+                    onClick={handleResendOtp}
+                    disabled={resendingOtp || otpCooldown > 0}
+                    style={{ opacity: resendingOtp || otpCooldown > 0 ? 0.5 : 1 }}
+                  >
+                    {resendingOtp ? 'Sending…' : otpCooldown > 0 ? `Resend code (${otpCooldown}s)` : 'Resend code'}
+                  </button>
                 </div>
               ) : null}
             </div>

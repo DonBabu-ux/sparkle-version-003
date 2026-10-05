@@ -34,6 +34,7 @@ router.post('/signup', authController.signup);
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
 router.post('/refresh', authController.refreshToken);
 router.post('/verify-2fa', authController.verify2FA);
+router.post('/resend-2fa', authController.resend2FA);
 router.post('/request-2fa-recovery', authController.request2FARecovery);
 router.post('/logout', authMiddleware, authController.logout);
 router.get('/check-username', authController.checkUsername);

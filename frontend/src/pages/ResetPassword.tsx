@@ -26,7 +26,7 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
-  const [timer, setTimer] = useState(45);
+  const [timer, setTimer] = useState(60);
   const [resending, setResending] = useState(false);
   const [resendSuccess, setResendSuccess] = useState<boolean>(() => Boolean(emailParam));
 
@@ -122,7 +122,7 @@ export default function ResetPassword() {
     try {
       await api.post('/auth/forgot-password', { email: emailParam });
       setResendSuccess(true);
-      setTimer(45);
+      setTimer(60);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
       setError(e.response?.data?.message || 'Failed to resend code. Please try again.');

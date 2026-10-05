@@ -58,6 +58,11 @@ router.post('/avatar', authMiddleware, upload.single('avatar'), userController.u
 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);
 router.delete('/me', authMiddleware, userController.deleteAccount);
 
+// Account Control — delete, terminate, hide
+router.post('/account/delete', authMiddleware, userController.deleteAccount);
+router.post('/account/terminate', authMiddleware, userController.terminateAccount);
+router.put('/account/visibility', authMiddleware, userController.setHideFromUsers);
+
 // Social & Profile Routes — specific subroutes MUST come before /:id catch-all
 router.get('/:id/posts', authMiddleware, userController.getUserPosts);
 router.get('/:id/followers', authMiddleware, userController.getFollowers);

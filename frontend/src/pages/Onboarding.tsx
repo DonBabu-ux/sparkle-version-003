@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
-import { Loader2 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Loader2, Sparkles, X } from 'lucide-react';
 import api from '../api/api';
 import Slide1 from '../components/onboarding/Slide1';
 import Slide2 from '../components/onboarding/Slide2';
@@ -9,13 +9,21 @@ import Slide3 from '../components/onboarding/Slide3';
 import Slide4 from '../components/onboarding/Slide4';
 import Slide5 from '../components/onboarding/Slide5';
 import Success from '../components/onboarding/Success';
+import OnboardingSheet from '../components/onboarding/OnboardingSheet';
 
 export default function Onboarding() {
   const [currentSlide, setCurrentSlide] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [showSheetModal, setShowSheetModal] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // If user accesses /onboarding/sheet or /onboarding/sheets directly
+    if (location.pathname.includes('/sheet') || location.pathname.includes('/about')) {
+      setShowSheetModal(true);
+    }
+
     async function fetchStatus() {
       try {
         const res = await api.get('/onboarding/status');
@@ -29,7 +37,7 @@ export default function Onboarding() {
         } else if (step >= 3) {
           setCurrentSlide(5); // Interests
         } else {
-          setCurrentSlide(1); // Welcome Pitch
+          setCurrentSlide(1); // Welcome Pitch / Onboarding Sheet
         }
       } catch (err) {
         console.error('Failed to fetch onboarding status:', err);
@@ -38,13 +46,34 @@ export default function Onboarding() {
       }
     }
     fetchStatus();
-  }, [navigate]);
+  }, [navigate, location.pathname]);
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#fdf2f4] gap-3">
-        <Loader2 className="animate-spin text-rose-500" size={36} />
-        <span className="text-sm font-bold text-rose-400">Loading experience...</span>
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0b0712] gap-3">
+        <Loader2 className="animate-spin text-[#ff2d87]" size={36} />
+        <span className="text-sm font-bold text-[#b9a8cc]">Loading Sparkle experience...</span>
+      </div>
+    );
+  }
+
+  // Slide 1 renders the full-screen immersive Onboarding Sheet experience
+  if (currentSlide === 1 && !showSheetModal) {
+    return (
+      <div className="relative">
+        <OnboardingSheet
+          onGetStarted={() => setCurrentSlide(3)}
+        />
+        {/* Floating Quick Setup Action */}
+        <div className="fixed bottom-6 right-6 z-50">
+          <button
+            onClick={() => setCurrentSlide(3)}
+            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-xl border border-white/20 text-white text-xs font-bold py-2.5 px-4 rounded-full shadow-2xl transition-all active:scale-95"
+          >
+            <span>Skip to Campus Creators</span>
+            <span>→</span>
+          </button>
+        </div>
       </div>
     );
   }
@@ -53,28 +82,43 @@ export default function Onboarding() {
   const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-[#fdf2f4] flex flex-col justify-center items-center p-6 relative overflow-hidden font-sans">
-      {/* Background Orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-rose-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[-5%] w-[600px] h-[600px] bg-rose-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0e0d13] text-slate-900 dark:text-[#f4f2f7] flex flex-col justify-center items-center p-4 sm:p-6 relative font-sans selection:bg-[#ff2d87] selection:text-white">
+      {/* Top Bar with Onboarding Sheet Trigger */}
+      <div className="w-full max-w-xl flex justify-between items-center mb-5 z-20 px-2">
+        <button
+          onClick={() => setShowSheetModal(true)}
+          className="flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white bg-white dark:bg-zinc-900/80 hover:bg-slate-100 dark:hover:bg-zinc-800 border border-slate-200 dark:border-zinc-800 px-3.5 py-1.5 rounded-full transition-colors active:scale-95 shadow-sm"
+        >
+          <Sparkles size={14} className="text-[#ff2d87]" />
+          <span>About Sparkle</span>
+        </button>
+
+        <span className="text-xs font-medium text-slate-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full shadow-sm">
+          Step {Math.min(currentSlide, 5)} of 5
+        </span>
+      </div>
 
       {/* Main wizard wrapper */}
-      <div className="w-full max-w-xl bg-white/80 backdrop-blur-2xl border border-rose-100 rounded-[38px] shadow-xl shadow-rose-500/5 overflow-hidden relative z-10 flex flex-col">
+      <div className="w-full max-w-xl bg-white dark:bg-[#16151e] border border-slate-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden relative z-10 flex flex-col">
         {/* Progress Bar */}
         {currentSlide < 6 && (
-          <div className="w-full h-1.5 bg-rose-50 overflow-hidden">
+          <div className="w-full h-1 bg-zinc-800/80 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-rose-400 to-rose-600 transition-all duration-500 ease-out"
+              className="h-full bg-[#ff2d87] transition-all duration-300 ease-out"
               style={{ width: `${progressPercent}%` }}
             />
           </div>
         )}
 
         {/* Slide Content Area */}
-        <div className="p-8 md:p-12 flex-1 flex flex-col justify-center">
+        <div className="p-6 sm:p-10 flex-1 flex flex-col justify-center">
           <AnimatePresence mode="wait">
             {currentSlide === 1 && (
-              <Slide1 key="slide1" onNext={() => setCurrentSlide(2)} />
+              <Slide1
+                key="slide1"
+                onNext={() => setCurrentSlide(3)}
+                onViewSheet={() => setShowSheetModal(true)}
+              />
             )}
             {currentSlide === 2 && (
               <Slide2
@@ -87,7 +131,7 @@ export default function Onboarding() {
               <Slide3
                 key="slide3"
                 onNext={() => setCurrentSlide(4)}
-                onBack={() => setCurrentSlide(2)}
+                onBack={() => setCurrentSlide(1)}
               />
             )}
             {currentSlide === 4 && (
@@ -108,6 +152,30 @@ export default function Onboarding() {
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Full Sheet Overlay Modal */}
+      <AnimatePresence>
+        {showSheetModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 overflow-y-auto bg-[#0b0712]"
+          >
+            <div className="relative">
+              <OnboardingSheet
+                showDismiss={true}
+                onDismiss={() => setShowSheetModal(false)}
+                onGetStarted={() => {
+                  setShowSheetModal(false);
+                  setCurrentSlide(3);
+                }}
+              />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+

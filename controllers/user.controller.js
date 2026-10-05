@@ -516,7 +516,7 @@ const updatePassword = async (req, res) => {
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const { password } = req.body;
+        const { password, reason, requestDataExport } = req.body;
 
         if (!password) {
             return res.status(400).json({ error: 'Password required to delete account' });
@@ -529,14 +529,97 @@ const deleteAccount = async (req, res) => {
             return res.status(401).json({ error: 'Incorrect password' });
         }
 
+        // Log reason if provided
+        if (reason) {
+            logger.info(`User ${userId} deleting account. Reason: ${reason}`);
+        }
+
+        // If data export requested, trigger email before deleting
+        if (requestDataExport) {
+            try {
+                const emailService = require('../services/email.service');
+                // Fire-and-forget — don't block deletion
+                emailService.sendDataExportEmail && emailService.sendDataExportEmail(user).catch(() => {});
+            } catch (_) {}
+        }
+
         await User.delete(userId);
-        
+
         res.clearCookie('sparkleToken');
-        res.json({ message: 'Account deleted successfully' });
+        res.json({ success: true, message: 'Account deleted successfully' });
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Delete account error: ' + errorMsg);
         res.status(500).json({ error: 'Failed to delete account' });
+    }
+};
+
+// Terminate account — sets account_status = 'terminated', logs out all devices
+// Reversible by contacting support. Profile hidden from all users.
+const terminateAccount = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { password, reason } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ error: 'Password required to terminate account' });
+        }
+
+        const user = await User.findById(userId);
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect password' });
+        }
+
+        logger.info(`User ${userId} terminating account. Reason: ${reason || 'none'}`);
+
+        // Mark account as terminated (keeps data, but hides from all)
+        await User.pool.query(
+            `UPDATE users SET account_status = 'terminated', is_online = 0, last_seen_at = NOW() WHERE user_id = ?`,
+            [userId]
+        );
+
+        // Revoke all sessions
+        await User.pool.query('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
+        await User.pool.query('UPDATE users SET token_version = token_version + 1 WHERE user_id = ?', [userId]);
+
+        res.clearCookie('sparkleToken');
+        res.json({ success: true, message: 'Account terminated. Contact support to reactivate.' });
+    } catch (error) {
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Terminate account error: ' + errorMsg);
+        res.status(500).json({ error: 'Failed to terminate account' });
+    }
+};
+
+// Hide from users — toggles is_hidden flag (ghost mode)
+// Account stays active but profile/posts won't appear in discover/search
+const setHideFromUsers = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { hidden } = req.body; // boolean
+
+        if (typeof hidden !== 'boolean') {
+            return res.status(400).json({ error: 'hidden must be a boolean' });
+        }
+
+        await User.pool.query(
+            'UPDATE users SET is_hidden = ? WHERE user_id = ?',
+            [hidden ? 1 : 0, userId]
+        );
+
+        res.json({
+            success: true,
+            is_hidden: hidden,
+            message: hidden
+                ? 'Your profile is now hidden from discover and search.'
+                : 'Your profile is now visible to other users.'
+        });
+    } catch (error) {
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Set hide from users error: ' + errorMsg);
+        res.status(500).json({ error: 'Failed to update visibility' });
     }
 };
 
@@ -1123,6 +1206,8 @@ module.exports = {
     uploadAvatar,
     updatePassword,
     deleteAccount,
+    terminateAccount,
+    setHideFromUsers,
     followUser,
     unfollowUser,
     getFollowers,

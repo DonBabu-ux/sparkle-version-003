@@ -87,9 +87,11 @@ class SessionInterestService {
         const values = await redis.mget(...keys);
 
         const profile = {};
-        CATEGORIES.forEach((cat, i) => {
-            if (values[i]) profile[cat] = Number(values[i]);
-        });
+        if (Array.isArray(values)) {
+            CATEGORIES.forEach((cat, i) => {
+                if (values[i]) profile[cat] = Number(values[i]);
+            });
+        }
 
         return profile;
     }

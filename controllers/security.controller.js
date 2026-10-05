@@ -39,16 +39,31 @@ const verifyOTPHash = async (code, hash) => {
  * Max 3 requests per user per channel per 10-minute window.
  */
 const checkOTPRateLimit = async (userId, channel) => {
+    try {
+        const [recent] = await pool.query(
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM otp_verifications WHERE user_id = ? AND channel = ? ORDER BY created_at DESC LIMIT 1',
+            [userId, channel]
+        );
+        if (recent.length > 0 && recent[0].elapsed !== null && recent[0].elapsed < 60) {
+            return { limited: true, retryAfter: 60 - recent[0].elapsed };
+        }
+    } catch {
+        // Fallback to redis
+    }
+
     const key = `2fa_otp_rate:${userId}:${channel}`;
     try {
         const count = await redisService.incr(key);
         if (count === 1) {
             await redisService.expire(key, 600); // 10 minute window
         }
-        return count > 3;
+        if (count > 3) {
+            return { limited: true, retryAfter: 60 };
+        }
+        return { limited: false, retryAfter: 0 };
     } catch {
         // Fail-open if Redis is unavailable
-        return false;
+        return { limited: false, retryAfter: 0 };
     }
 };
 
@@ -225,11 +240,12 @@ const requestEmail2FA = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
 
-        const isRateLimited = await checkOTPRateLimit(userId, 'email');
-        if (isRateLimited) {
+        const rateLimit = await checkOTPRateLimit(userId, 'email');
+        if (rateLimit.limited) {
             return res.status(429).json({
                 status: 'error',
-                message: 'Too many verification requests. Please wait before trying again.'
+                message: `Please wait ${rateLimit.retryAfter || 60} seconds before requesting another code.`,
+                retryAfter: rateLimit.retryAfter || 60
             });
         }
 
@@ -420,11 +436,12 @@ const requestSMS2FA = async (req, res) => {
             });
         }
 
-        const isRateLimited = await checkOTPRateLimit(userId, 'sms');
-        if (isRateLimited) {
+        const rateLimit = await checkOTPRateLimit(userId, 'sms');
+        if (rateLimit.limited) {
             return res.status(429).json({
                 status: 'error',
-                message: 'Too many verification requests. Please wait before trying again.'
+                message: `Please wait ${rateLimit.retryAfter || 60} seconds before requesting another code.`,
+                retryAfter: rateLimit.retryAfter || 60
             });
         }
 
@@ -835,6 +852,22 @@ const initiateSecurityTransaction = async (req, res) => {
                 status: 'error',
                 message: 'For your security, your account password alone cannot be used to turn off two-factor authentication. Please verify using an enrolled authentication method or recovery code.'
             });
+        }
+
+        // 1-minute countdown rate limit per resend for OTP security transactions
+        if (factor_type === 'email' || factor_type === 'sms') {
+            const [recentTx] = await pool.query(
+                'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM security_transactions WHERE user_id = ? AND purpose = ? ORDER BY created_at DESC LIMIT 1',
+                [userId, purpose]
+            );
+            if (recentTx.length > 0 && recentTx[0].elapsed !== null && recentTx[0].elapsed < 60) {
+                const waitSeconds = 60 - recentTx[0].elapsed;
+                return res.status(429).json({
+                    status: 'error',
+                    message: `Please wait ${waitSeconds} seconds before requesting a new code.`,
+                    retryAfter: waitSeconds
+                });
+            }
         }
 
         // Cancel previous pending transactions of the same user & purpose

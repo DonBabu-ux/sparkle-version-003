@@ -161,18 +161,26 @@ const login = async (req, res) => {
                 logger.info(`[LOGIN 2FA] OTP for user ${user.username} (${channel} to ${destination}): ${otpCode}`);
 
                 if (channel === 'email') {
-                    emailService.send({
-                        to: destination,
-                        subject: 'Your Sparkle Login Verification Code',
-                        templateName: '2fa-otp',
-                        templateData: {
-                            name: user.name || user.username,
-                            code: otpCode,
-                            purpose: 'Use the code below to log in to your Sparkle account.'
-                        }
-                    }).catch(e => logger.error('Failed to send login 2FA email:', e));
+                    try {
+                        await emailService.send({
+                            to: destination,
+                            subject: 'Your Sparkle Login Verification Code',
+                            templateName: '2fa-otp',
+                            templateData: {
+                                name: user.name || user.username,
+                                code: otpCode,
+                                purpose: 'Use the code below to log in to your Sparkle account.'
+                            }
+                        });
+                    } catch (e) {
+                        logger.error('Failed to send login 2FA email:', e);
+                    }
                 } else if (channel === 'sms' && user.phone_number) {
-                    sendSMS(user.phone_number, otpCode).catch(e => logger.error('Failed to send login 2FA SMS:', e));
+                    try {
+                        await sendSMS(user.phone_number, otpCode);
+                    } catch (e) {
+                        logger.error('Failed to send login 2FA SMS:', e);
+                    }
                 }
             }
 
@@ -438,14 +446,26 @@ const request2FARecovery = async (req, res) => {
         if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
 
         const user = users[0];
+
+        // 1-minute countdown rate limit per resend
+        const recentRequest = await query(
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM email_verifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+            [userId]
+        );
+        if (recentRequest.length > 0 && recentRequest[0].elapsed !== null && recentRequest[0].elapsed < 60) {
+            const waitSeconds = 60 - recentRequest[0].elapsed;
+            return res.status(429).json({
+                status: 'error',
+                message: `Please wait ${waitSeconds}s before requesting a new recovery code.`,
+                retryAfter: waitSeconds
+            });
+        }
+
         const recoveryDestination = user.security_recovery_email || user.email;
         const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-        // Insert into email_verifications instead of backup codes for temporary, strictly-expiring codes
-        // Use DATE_ADD(NOW()) to avoid Node.js vs MySQL timezone mismatch issues
-        // Increased expiry to 15 minutes to handle slow delivery or clock drift
         await query(
-            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE)) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL',
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at, created_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW()) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL, created_at = NOW()',
             [crypto.randomUUID(), userId, recoveryDestination, recoveryCode]
         );
 
@@ -459,16 +479,104 @@ const request2FARecovery = async (req, res) => {
                 message: 'Use this code to bypass your 2FA security check. It will expire in 15 minutes.',
                 verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/login`
             }
-        }).catch(err => {
-            logger.error('Failed to send 2FA recovery email:', err);
-            // We don't throw here to avoid 500 if email fails but DB record was created
-            // The user will see a success message but no email, which is better for security
         });
 
-        res.json({ status: 'success', message: 'Recovery code sent to your verified recovery email!' });
+        res.json({ status: 'success', message: 'Recovery code sent to your verified recovery email!', cooldown: 60 });
     } catch (error) {
         logger.error('2FA Recovery Error:', error);
-        res.status(500).json({ status: 'error', message: 'Failed to send recovery code' });
+        res.status(500).json({ status: 'error', message: 'Failed to send recovery code. Please try again.' });
+    }
+};
+
+const resend2FA = async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) return res.status(400).json({ status: 'error', message: 'User ID is required' });
+
+        const users = await query(
+            'SELECT user_id, name, username, email, phone_number, security_recovery_email, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret FROM users WHERE user_id = ? LIMIT 1',
+            [userId]
+        );
+        if (users.length === 0) return res.status(404).json({ status: 'error', message: 'User not found' });
+
+        const user = users[0];
+
+        // 1-minute countdown rate limit per resend across otp_verifications
+        const recentOTP = await query(
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM otp_verifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+            [userId]
+        );
+        if (recentOTP.length > 0 && recentOTP[0].elapsed !== null && recentOTP[0].elapsed < 60) {
+            const waitSeconds = 60 - recentOTP[0].elapsed;
+            return res.status(429).json({
+                status: 'error',
+                message: `Please wait ${waitSeconds}s before requesting a new code.`,
+                retryAfter: waitSeconds
+            });
+        }
+
+        let channel = 'email';
+        let destination = user.security_recovery_email || user.email;
+
+        if (user.sms_2fa_enabled && user.phone_number) {
+            channel = 'sms';
+            destination = user.phone_number;
+        } else if (user.email_2fa_enabled || (!user.sms_2fa_enabled && !user.two_factor_secret)) {
+            channel = 'email';
+            destination = user.security_recovery_email || user.email;
+        } else {
+            // Authenticator fallback
+            channel = 'email';
+            destination = user.security_recovery_email || user.email;
+        }
+
+        const otpCode = crypto.randomInt(100000, 999999).toString();
+        const codeHash = await bcrypt.hash(otpCode, 10);
+
+        await query(
+            'DELETE FROM otp_verifications WHERE user_id = ? AND channel = ? AND verified_at IS NULL',
+            [user.user_id, channel]
+        );
+
+        await query(
+            'INSERT INTO otp_verifications (verification_id, user_id, channel, destination, code_hash, expires_at, created_at) VALUES (?, ?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 10 MINUTE), NOW())',
+            [crypto.randomUUID(), user.user_id, channel, destination, codeHash]
+        );
+
+        logger.info(`[RESEND 2FA] OTP for user ${user.username} (${channel} to ${destination}): ${otpCode}`);
+
+        if (channel === 'email') {
+            await emailService.send({
+                to: destination,
+                subject: 'Your Sparkle Login Verification Code',
+                templateName: '2fa-otp',
+                templateData: {
+                    name: user.name || user.username,
+                    code: otpCode,
+                    purpose: 'Use the code below to log in to your Sparkle account.'
+                }
+            });
+        } else if (channel === 'sms' && user.phone_number) {
+            await sendSMS(user.phone_number, otpCode);
+        }
+
+        const mask = (str) => {
+            if (!str) return '***';
+            if (str.includes('@')) {
+                const [l, d] = str.split('@');
+                return `${l[0]}***@${d}`;
+            }
+            return `***${str.slice(-4)}`;
+        };
+
+        return res.json({
+            status: 'success',
+            message: `Verification code sent to ${mask(destination)}.`,
+            cooldown: 60
+        });
+    } catch (error) {
+        logger.error('Resend 2FA Error:', error);
+        return res.status(500).json({ status: 'error', message: 'Failed to resend verification code. Please try again.' });
     }
 };
 
@@ -529,19 +637,34 @@ const forgotPassword = async (req, res) => {
             // Security: don't reveal if user exists
             return res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
         }
+
+        // 1-minute countdown rate limit per reset request
+        const recentReset = await query(
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM password_resets WHERE email = ? ORDER BY created_at DESC LIMIT 1',
+            [email]
+        );
+        if (recentReset.length > 0 && recentReset[0].elapsed !== null && recentReset[0].elapsed < 60) {
+            const waitSeconds = 60 - recentReset[0].elapsed;
+            return res.status(429).json({
+                status: 'error',
+                message: `Please wait ${waitSeconds}s before requesting another reset code.`,
+                retryAfter: waitSeconds
+            });
+        }
+
         const token = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Clear previous resets for this user to avoid confusion/collisions
         await query('DELETE FROM password_resets WHERE email = ?', [email]);
 
         await query(
-            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR))',
+            'INSERT INTO password_resets (reset_id, user_id, email, token, expires_at, created_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 1 HOUR), NOW())',
             [crypto.randomUUID(), user.user_id, email, token]
         );
 
         logger.info(`Password reset requested for ${email}. Code: ${token}`);
 
-        sendEmail({
+        await sendEmail({
             to: email,
             subject: 'Reset Your Password - Sparkle ✨',
             templateName: 'reset-password',
@@ -552,7 +675,7 @@ const forgotPassword = async (req, res) => {
             }
         }).catch(e => logger.error('Reset email failed:', e));
 
-        res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
+        res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions.", cooldown: 60 });
     } catch (error) {
         logger.error('Forgot Password Error:', error);
         res.status(500).json({ status: 'error', message: 'Request failed' });
@@ -633,6 +756,20 @@ const resendVerification = async (req, res) => {
             return res.json({ status: 'success', message: 'SMS verification code resent!' });
         }
 
+        // 1-minute countdown rate limit per resend
+        const recentRequest = await query(
+            'SELECT TIMESTAMPDIFF(SECOND, created_at, NOW()) as elapsed FROM email_verifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+            [user.user_id]
+        );
+        if (recentRequest.length > 0 && recentRequest[0].elapsed !== null && recentRequest[0].elapsed < 60) {
+            const waitSeconds = 60 - recentRequest[0].elapsed;
+            return res.status(429).json({
+                status: 'error',
+                message: `Please wait ${waitSeconds}s before requesting a new code.`,
+                retryAfter: waitSeconds
+            });
+        }
+
         // --- NEW: Rate Limiting for Resend (Algorithm 3.3) ---
         const resendCount = await query(
             'SELECT COUNT(*) as count FROM verification_requests WHERE user_id = ? AND type = "email" AND requested_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)',
@@ -659,7 +796,7 @@ const resendVerification = async (req, res) => {
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         await query(
-            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?',
+            'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at, created_at) VALUES (?, ?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE code = ?, expires_at = ?, created_at = NOW()',
             [crypto.randomUUID(), user.user_id, email, code, expiresAt, code, expiresAt]
         );
 
@@ -862,4 +999,4 @@ const checkEmail = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, refreshToken, checkUsername, checkEmail };
+module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, resend2FA, refreshToken, checkUsername, checkEmail };

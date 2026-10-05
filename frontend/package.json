@@ -53,6 +53,9 @@
   "overrides": {
     "@emoji-mart/react": {
       "react": "$react"
+    },
+    "@capacitor/cli": {
+      "tar": "^7.5.21"
     }
   },
   "devDependencies": {

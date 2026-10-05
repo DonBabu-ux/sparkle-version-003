@@ -60,7 +60,8 @@
 | H1 | `GET /api/users/following` | 500 `SQL syntax … near '?\n LIMIT ?'` | `models/User.js:275-283`: **6 `?` vs 4 bind values** (subqueries at :269-270 add 2 placeholders; array lacks them). q-branch :287-297 = 8 vs 6. Thrown at `controllers/user.controller.js:72` | Bind arrays become `[cu, cu, cu, cu, SPARKLE_SYSTEM_USER_ID, limit]` (+2 `LIKE` params in q-branch) |
 | H2 | `GET /api/marketplace/conversations/:id` | 500 `Illegal mix of collations for operation 'UNION'` | `routes/api/marketplaceChatRoutes.js:162` — UNION across `utf8mb4_unicode_ci` (`marketplace_conversations`) vs `utf8mb4_general_ci` (`messages`, `personal_chats`) | `COLLATE utf8mb4_general_ci` on UNION columns, or align table charsets |
 | H3 | `GET /api/marketplace/messages/:conversation_id` | 500 `different number of columns` | `routes/api/marketplaceChatRoutes.js:200` — `SELECT * FROM marketplace_conversations` = 11 cols vs 10-col `personal_chats` branch | Enumerate identical column lists in both branches |
-| H4 | `GET /api/marketplace/chats` | **200 with empty data** (silent breakage) | `models/Marketplace.js:1503` — `Unknown column 'ml.thumbnail'`; catch swallows → `return []` (:1532-1534). Recurs in server log | Fix the column (add/repair index?→ check `marketplace_listings`) or remove from SELECT; never swallow into `[]` |
+| H4 | `GET /api/marketplace/chats` | **200 with empty data** (silent breakage) | `models/Marketplace.js:1503` — `Unknown column 'ml.thumbnail'`; catch swallows → `return []` (:1532-1534). Recurs in server log | Fix the column (add/repair index?→ check `marketplace_listings`) or remove from SELECT; never swallow into `[]` ✅ (`ml.image_url` + transient-error retry in `getUserChats`) |
+| H13 | `GET/POST /api/admin/{stats,users,reports,logs,actions,announcements}` | **404 — entire Admin panel dead** (`AdminDashboard.tsx` calls all six; `controllers/admin.controller.js` never required anywhere; only `/admin/media` was mounted) | No admin mount in `routes/api/index.js`; controller was EJS-era (`res.render` → 500, no view engine); report queries read only legacy tables (`listing_reports`, `post_reports`) while live writers use `reports`/`user_reports`/`confession_reports`; `resolveReport` referenced non-existent `resolved_by`/`resolution_notes` columns | Mounted `routes/api/admin.routes.js` (`authMiddleware` + `adminMiddleware`) with JSON contracts matching `AdminDashboard.tsx`; live+legacy report aggregation; `POST /actions` (approve/restrict/purge — restrict/purge enforced at login via `account_status`); `POST /announcements` fan-out to `notifications`. Probe suite `/tmp/opencode/admin_tests.js` 9/9 ✅ (2026-10-05) |
 
 ### Frontend
 
@@ -156,7 +157,7 @@
 
 ## 📦 In-flight work & decisions needed
 
-1. **Uncommitted (needs your OK to commit):** `config/database.js` (pool metrics), `middleware/security.middleware.js` (user-keyed limiter), `server.js` (`GET /api/debug/pool`) — +182/−17; plus untracked `UI_AUDIT.md` and this file.
+1. **Uncommitted (needs your OK to commit):** admin batch — `controllers/admin.controller.js` (JSON rewrite), `routes/api/admin.routes.js` (new), `routes/api/index.js` (mount) + this file's H13 entry; untracked `UI_AUDIT.md`. Suggester batch committed as `1ced155`; fix batch as `96fa71a`.
 2. **Render dashboard (you only):** `NODE_ENV=production`, `JWT_SECRET`, `DB_POOL_LIMIT=16..24`, `OTA_DEPLOY_TOKEN`, `DB_*_PROD`, `BACKEND_URL`/`FRONTEND_URL`, `DB_SSL`; start command `node server.js`.
 3. **Firebase console:** restrict/reset client API keys (M14).
 4. **Parked:** `UI_AUDIT.md` detail appendix.

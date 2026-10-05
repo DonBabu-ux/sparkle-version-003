@@ -148,7 +148,12 @@ router.get('/conversations/:id', async (req, res) => {
 
         const convId = req.params.id;
         const [convs] = await pool.query(`
-            SELECT c.id, c.buyer_id, c.seller_id, c.listing_id, c.last_message, c.last_activity_at,
+            SELECT c.id COLLATE utf8mb4_general_ci as id,
+                   c.buyer_id COLLATE utf8mb4_general_ci as buyer_id,
+                   c.seller_id COLLATE utf8mb4_general_ci as seller_id,
+                   c.listing_id COLLATE utf8mb4_general_ci as listing_id,
+                   c.last_message COLLATE utf8mb4_general_ci as last_message,
+                   c.last_activity_at,
                    c.is_muted, c.is_archived, c.is_pinned,
                    u1.username as buyer_username, u1.name as buyer_name, u1.avatar_url as buyer_avatar,
                    u2.username as seller_username, u2.name as seller_name, u2.avatar_url as seller_avatar,
@@ -196,7 +201,13 @@ router.get('/messages/:conversation_id', async (req, res) => {
         const convId = req.params.conversation_id;
 
         const [conversations] = await pool.query(
-            `SELECT * FROM marketplace_conversations WHERE id = ? AND (buyer_id = ? OR seller_id = ?)
+            `SELECT c.id COLLATE utf8mb4_general_ci as id,
+                    c.buyer_id COLLATE utf8mb4_general_ci as buyer_id,
+                    c.seller_id COLLATE utf8mb4_general_ci as seller_id,
+                    c.listing_id COLLATE utf8mb4_general_ci as listing_id,
+                    c.last_message COLLATE utf8mb4_general_ci as last_message,
+                    c.last_activity_at, c.reminder_sent, c.is_muted, c.is_archived, c.is_pinned
+             FROM marketplace_conversations c WHERE c.id = ? AND (c.buyer_id = ? OR c.seller_id = ?)
              UNION
              SELECT chat_id as id, participant1_id as buyer_id, participant2_id as seller_id, marketplace_listing_id as listing_id, NULL as last_message, last_message_time as last_activity_at, 0 as reminder_sent, 0 as is_muted, 0 as is_archived, 0 as is_pinned
              FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?)`,

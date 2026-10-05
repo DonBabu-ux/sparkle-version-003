@@ -1508,7 +1508,7 @@ class Marketplace {
                         ml.listing_id,
                         ml.seller_id,
                         ml.price as listing_price,
-                        ml.thumbnail as listing_image,
+                        ml.image_url as listing_image,
                         ml.status as listing_status,
                         (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message,
                         CASE 

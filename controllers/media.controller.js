@@ -6,8 +6,9 @@
 const crypto = require('crypto');
 const MediaModel = require('../models/media.model');
 
-// Secret key for HMAC signed download tokens (falls back to app default)
-const SIGNING_SECRET = process.env.JWT_SECRET || 'sparkle_ephemeral_media_secret_2026';
+// Secret key for HMAC signed download tokens (same source of truth as JWT auth;
+// config/constants throws at boot if JWT_SECRET is missing)
+const { JWT_SECRET: SIGNING_SECRET } = require('../config/constants');
 
 class MediaController {
   /**

@@ -221,8 +221,15 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 // Diagnostic Test Route (Bypasses all middleware)
-app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date() }));
+app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date().toISOString() }));
 app.get('/api/csrf-token', (req, res) => res.json({ status: 'success', csrfToken: 'sparkle_csrf_token' }));
+
+// Pool observability — auth-guarded: connection budget usage, latency percentiles,
+// queue pressure and slow queries. See config/database.js for sizing policy.
+const { authMiddleware: poolAuthGuard } = require('./middleware/auth.middleware');
+app.get('/api/debug/pool', poolAuthGuard, (req, res) => {
+    res.json({ status: 'success', ...require('./config/database').getPoolMetrics() });
+});
 
 // MASTER API TRACE
 app.use('/api', (req, res, next) => {

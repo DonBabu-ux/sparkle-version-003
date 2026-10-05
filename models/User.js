@@ -279,7 +279,7 @@ class User {
                  JOIN users u ON f.following_id = u.user_id
                  WHERE f.follower_id = ? AND u.user_id != ? AND u.user_id != ?
                  LIMIT ?`,
-                [currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, limit]
+                [currentUserId, currentUserId, currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, limit]
             );
             return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
         }
@@ -293,7 +293,7 @@ class User {
               AND u.user_id != ? AND u.user_id != ?
               AND (u.name LIKE ? OR u.username LIKE ?)
               LIMIT ?`,
-            [currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, `%${query}%`, `%${query}%`, limit]
+            [currentUserId, currentUserId, currentUserId, currentUserId, SPARKLE_SYSTEM_USER_ID, `%${query}%`, `%${query}%`, limit]
         );
         return users.map(u => ({ ...u, is_mutual: (u.is_followed_by_me && u.is_follower) }));
     }

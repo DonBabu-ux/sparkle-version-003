@@ -1,15 +1,44 @@
 const rateLimit = require('express-rate-limit');
+const { ipKeyGenerator } = rateLimit;
 const helmet = require('helmet');
 const csrf = require('csurf');
 const { body, validationResult } = require('express-validator');
+const jwt = require('jsonwebtoken');
+const { JWT_SECRET } = require('../config/constants');
 
 /**
  * Rate limiting configuration
  */
+// Authenticated requests are limited per USER (valid JWT), anonymous per IP.
+// Without this, hundreds of users behind one campus NAT share a single
+// 500/min bucket and get 429'd together. Invalid/expired tokens fall back
+// to the IP key so token-flooding cannot bypass the limiter.
+const rateLimitKey = (req) => {
+    const fromToken = (token) => {
+        if (!token || token === 'null' || token === 'undefined') return null;
+        try {
+            const decoded = jwt.verify(token, JWT_SECRET);
+            if (decoded && decoded.userId) return 'u:' + decoded.userId;
+        } catch (e) { /* invalid/expired -> IP key */ }
+        return null;
+    };
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+        const userKey = fromToken(authHeader.slice(7));
+        if (userKey) return userKey;
+    }
+    if (req.cookies && req.cookies.sparkleToken) {
+        const userKey = fromToken(req.cookies.sparkleToken);
+        if (userKey) return userKey;
+    }
+    return ipKeyGenerator(req.ip);
+};
+
 const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
     return rateLimit({
         windowMs,
         max,
+        keyGenerator: rateLimitKey,
         message: 'Too many requests from this IP, please try again later.',
         standardHeaders: true,
         legacyHeaders: false,

@@ -84,8 +84,16 @@ router.post('/deploy-ota', async (req, res) => {
         const authHeader = req.headers.authorization;
         const token = authHeader && authHeader.split(' ')[1];
         
-        // Simple token safety
-        const expectedToken = process.env.OTA_DEPLOY_TOKEN || 'sparkle_ota_super_secret_deployment_2026';
+        // Fail closed: deployment is only possible when OTA_DEPLOY_TOKEN is
+        // configured. Never fall back to a hardcoded secret.
+        const expectedToken = process.env.OTA_DEPLOY_TOKEN;
+        if (!expectedToken) {
+            logger.error('OTA deploy rejected: OTA_DEPLOY_TOKEN is not configured on this server');
+            return res.status(503).json({
+                success: false,
+                error: 'OTA deployment is disabled: server missing OTA_DEPLOY_TOKEN'
+            });
+        }
         if (!token || token !== expectedToken) {
             return res.status(401).json({
                 success: false,

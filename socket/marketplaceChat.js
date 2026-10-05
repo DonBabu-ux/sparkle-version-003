@@ -9,19 +9,21 @@ const onlineUsers = new Map();
 module.exports = (io) => {
     const marketplaceNs = io.of('/marketplace');
 
-    // Authentication middleware specific to marketplace NS
+    // Authentication middleware specific to marketplace NS.
+    // Requires a signed JWT — never trust a client-supplied userId (impersonation).
     marketplaceNs.use(async (socket, next) => {
         try {
-            let userId = socket.handshake.auth.userId;
+            let token = socket.handshake.auth.token ||
+                socket.handshake.headers.cookie?.split('sparkleToken=')[1]?.split(';')[0];
 
-            if (!userId && socket.handshake.auth.token) {
-                let token = socket.handshake.auth.token;
-                if (token.startsWith('Bearer ')) token = token.slice(7);
-                const jwt = require('jsonwebtoken');
-                const decoded = jwt.verify(token, process.env.JWT_SECRET);
-                userId = decoded.userId || decoded.user_id || decoded.id || (decoded.user && decoded.user.id);
+            if (!token) {
+                return next(new Error('Authentication required'));
             }
+            if (token.startsWith('Bearer ')) token = token.slice(7);
 
+            const jwt = require('jsonwebtoken');
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            const userId = decoded.userId || decoded.user_id || decoded.id || (decoded.user && decoded.user.id);
             if (!userId) {
                 return next(new Error('Authentication required'));
             }

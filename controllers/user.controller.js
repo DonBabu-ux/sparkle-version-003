@@ -146,7 +146,10 @@ const updateProfile = async (req, res) => {
                 // 3. Check availability using indexed database lookup
                 const existingUser = await User.findByUsername(normNewUsername);
                 if (existingUser && String(existingUser.user_id) !== String(userId)) {
-                    const suggestions = await authService.generateAvailableUsernames(normNewUsername);
+                    const suggestions = await authService.generateAvailableUsernames(
+                        normNewUsername,
+                        req.body.name !== undefined ? req.body.name : currentUser.name
+                    );
                     return res.status(409).json({
                         code: 'USERNAME_TAKEN',
                         error: 'Username already taken',
@@ -263,7 +266,10 @@ const updateProfile = async (req, res) => {
             if (req.body.username) {
                 const { normalizeUsername } = require('../utils/validation/username');
                 const authService = require('../services/auth.service');
-                suggestions = await authService.generateAvailableUsernames(normalizeUsername(req.body.username));
+                suggestions = await authService.generateAvailableUsernames(
+                    normalizeUsername(req.body.username),
+                    req.body.name
+                );
             }
             return res.status(409).json({
                 code: 'USERNAME_TAKEN',
@@ -1190,7 +1196,7 @@ const getUsernameSuggestions = async (req, res) => {
             return res.status(400).json({ success: false, error: 'Username parameter is required', suggestions: [] });
         }
         const authService = require('../services/auth.service');
-        const suggestions = await authService.generateAvailableUsernames(username);
+        const suggestions = await authService.generateAvailableUsernames(username, req.query.name);
         res.json({ success: true, suggestions });
     } catch (error) {
         logger.error('Get username suggestions error:', error);

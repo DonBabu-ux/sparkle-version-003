@@ -284,8 +284,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     const timer = setTimeout(async () => {
       try {
         const currentUserId = user?.user_id || user?.id;
+        const displayName = draft.name?.trim() || user?.name || '';
         const res = await api.get(
-          `/auth/check-username?username=${encodeURIComponent(clean)}&current_user_id=${currentUserId}`
+          `/auth/check-username?username=${encodeURIComponent(clean)}&current_user_id=${currentUserId}&name=${encodeURIComponent(displayName)}`
         );
         // Stale response check: ignore if user has typed further
         if (checkId !== latestCheckIdRef.current) return;
@@ -312,7 +313,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [tempUsername, currentView, user]);
+  }, [tempUsername, currentView, user, draft.name]);
 
   // Bio mention detection on text changes
   const handleBioChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {

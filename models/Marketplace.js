@@ -1493,46 +1493,54 @@ class Marketplace {
      * Get user's personal chats
      */
     static async getUserChats(userId) {
-        try {
-            // Check if personal_chats table exists
-            const [tables] = await pool.query("SHOW TABLES LIKE 'personal_chats'");
-            if (tables.length === 0) {
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                // Check if personal_chats table exists
+                const [tables] = await pool.query("SHOW TABLES LIKE 'personal_chats'");
+                if (tables.length === 0) {
+                    return [];
+                }
+
+                const [chats] = await pool.query(
+                    `SELECT pc.*, 
+                            u1.username as participant1_name,
+                            u2.username as participant2_name,
+                            ml.title as listing_title,
+                            ml.listing_id,
+                            ml.seller_id,
+                            ml.price as listing_price,
+                            ml.image_url as listing_image,
+                            ml.status as listing_status,
+                            (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message,
+                            CASE 
+                                WHEN pc.participant1_id = ? THEN u2.avatar_url
+                                ELSE u1.avatar_url
+                            END as other_user_avatar,
+                            CASE 
+                                WHEN pc.participant1_id = ? THEN u2.username
+                                ELSE u1.username
+                            END as other_user_name
+                     FROM personal_chats pc
+                     JOIN users u1 ON pc.participant1_id = u1.user_id
+                     JOIN users u2 ON pc.participant2_id = u2.user_id
+                     LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
+                     WHERE (pc.participant1_id = ? OR pc.participant2_id = ?)
+                     ORDER BY pc.last_message_time DESC`,
+                    [userId, userId, userId, userId]
+                );
+
+                return chats;
+            } catch (error) {
+                const transient = error && ['ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'PROTOCOL_CONNECTION_LOST'].includes(error.code);
+                if (attempt < 2 && transient) {
+                    await new Promise(resolve => setTimeout(resolve, 700));
+                    continue;
+                }
+                logger.error('Database error in getUserChats:', error);
                 return [];
             }
-
-            const [chats] = await pool.query(
-                `SELECT pc.*, 
-                        u1.username as participant1_name,
-                        u2.username as participant2_name,
-                        ml.title as listing_title,
-                        ml.listing_id,
-                        ml.seller_id,
-                        ml.price as listing_price,
-                        ml.image_url as listing_image,
-                        ml.status as listing_status,
-                        (SELECT content FROM messages WHERE conversation_id = pc.chat_id ORDER BY sent_at DESC LIMIT 1) as last_message,
-                        CASE 
-                            WHEN pc.participant1_id = ? THEN u2.avatar_url
-                            ELSE u1.avatar_url
-                        END as other_user_avatar,
-                        CASE 
-                            WHEN pc.participant1_id = ? THEN u2.username
-                            ELSE u1.username
-                        END as other_user_name
-                 FROM personal_chats pc
-                 JOIN users u1 ON pc.participant1_id = u1.user_id
-                 JOIN users u2 ON pc.participant2_id = u2.user_id
-                 LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
-                 WHERE (pc.participant1_id = ? OR pc.participant2_id = ?)
-                 ORDER BY pc.last_message_time DESC`,
-                [userId, userId, userId, userId]
-            );
-
-            return chats;
-        } catch (error) {
-            logger.error('Database error in getUserChats:', error);
-            return [];
         }
+        return [];
     }
 
     /**

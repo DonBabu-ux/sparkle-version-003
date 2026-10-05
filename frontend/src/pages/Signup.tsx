@@ -66,7 +66,9 @@ export default function Signup() {
     setCheckingUsername(true);
     const handler = setTimeout(async () => {
       try {
-        const res = await api.get(`/auth/check-username?username=${encodeURIComponent(form.username.trim())}`);
+        const res = await api.get(
+          `/auth/check-username?username=${encodeURIComponent(form.username.trim())}&name=${encodeURIComponent(form.name.trim())}`
+        );
         if (res.data) {
           setUsernameAvailable(res.data.available);
           setUsernameSuggestions(res.data.suggestions || []);
@@ -78,7 +80,7 @@ export default function Signup() {
       }
     }, 500);
     return () => clearTimeout(handler);
-  }, [form.username]);
+  }, [form.username, form.name]);
 
   useEffect(() => {
     const emailTrim = form.email.trim();
@@ -171,8 +173,22 @@ export default function Signup() {
       showSuccess('Signed up! Verify your email.');
       setStep(5);
     } catch (err) {
-      const e = err as { response?: { data?: { message?: string } } };
-      showError(e.response?.data?.message || 'Something went wrong.');
+      const e = err as {
+        response?: {
+          data?: {
+            message?: string;
+            errors?: Array<{ field?: string; code?: string; message?: string; suggestions?: string[] }>;
+          };
+        }
+      };
+      const data = e.response?.data;
+      const taken = data?.errors?.find(x => x.code === 'USERNAME_TAKEN' && x.suggestions?.length);
+      if (taken?.suggestions) {
+        setUsernameSuggestions(taken.suggestions);
+        setUsernameAvailable(false);
+        setStep(2); // land the user back on the username field with chips visible
+      }
+      showError(data?.message || taken?.message || data?.errors?.[0]?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }

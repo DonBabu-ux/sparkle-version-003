@@ -109,33 +109,67 @@ class AuthService {
     }
 
     /**
-     * Generate list of available username suggestions for a base username
+     * Generate available username suggestions for a base username.
+     * Instagram-style: separator transforms of the requested handle,
+     * a numeric ladder, tasteful suffixes/prefixes, and name-derived
+     * handles when a display name is provided.
      */
-    async generateAvailableUsernames(baseUsername) {
+    async generateAvailableUsernames(baseUsername, displayName = '') {
         const { normalizeUsername } = require('../utils/validation/username');
         const clean = normalizeUsername(baseUsername);
         if (clean.length < 2) {
             return [];
         }
 
-        // Generate meaningful candidates based on the requested username
-        const rawCandidates = [
-            `${clean}1`,
-            `${clean}_1`,
-            `${clean}01`,
-            `${clean}_dev`,
-            `${clean}_ke`,
-            `${clean}2`,
-            `${clean}_2`,
-            `${clean}02`,
-            `${clean}_spark`,
-            `${clean}_official`,
-            `real_${clean}`,
-            `the_${clean}`
-        ];
+        const seen = new Set();
+        const candidates = [];
+        const push = (c) => {
+            if (c.length >= 3 && c.length <= 30 && /^[a-z0-9._]+$/.test(c) && !seen.has(c)) {
+                seen.add(c);
+                candidates.push(c);
+            }
+        };
 
-        // Ensure candidates are valid length and format
-        const candidates = rawCandidates.filter(c => c.length >= 3 && c.length <= 30 && /^[a-z0-9._]+$/.test(c));
+        // Core handle without trailing digits/versions: wanjiku12 -> wanjiku
+        const core = clean.replace(/[._]*\d+$/, '') || clean;
+        const parts = core.split(/[._]/).filter(Boolean);
+
+        // 1. Instagram-style separator transforms of the requested handle
+        if (parts.length > 1) {
+            const first = parts[0];
+            const last = parts[parts.length - 1];
+            push(parts.join(''));            // wanjikumwangi
+            push(parts.join('_'));           // wanjiku_mwangi
+            push(`${first}.${last}`);        // wanjiku.mwangi (re-normalized)
+            push(`${first}.${last[0]}`);     // wanjiku.m
+            push(`${first}_${last[0]}`);     // wanjiku_m
+        }
+
+        // 2. Handles derived from the display name (e.g. signup: "John Doe" -> johndoe)
+        const name = String(displayName || '').trim().toLowerCase().replace(/[^a-z\s.'-]/g, '');
+        const nameParts = name.split(/[\s.'-]+/).filter(Boolean);
+        if (nameParts.length >= 2) {
+            const first = nameParts[0];
+            const last = nameParts[nameParts.length - 1];
+            push(`${first}${last}`);         // johndoe
+            push(`${first}_${last}`);        // john_doe
+            push(`${first}.${last}`);        // john.doe
+            push(`${first}.${last[0]}`);     // john.d
+        }
+
+        // 3. Numeric ladder on the requested handle and its core
+        for (const base of [clean, core]) {
+            for (const suffix of ['1', '_1', '2', '_2', '01', '02', '_3']) {
+                push(`${base}${suffix}`);
+            }
+        }
+
+        // 4. Familiar suffixes / prefixes
+        push(`${core}_ke`);
+        push(`${core}_official`);
+        push(`real_${core}`);
+        push(`the_${core}`);
+
         if (candidates.length === 0) return [];
 
         const placeholders = candidates.map(() => '?').join(', ');
@@ -143,11 +177,10 @@ class AuthService {
             `SELECT username_normalized FROM users WHERE username_normalized IN (${placeholders})`,
             candidates
         );
+        const taken = new Set(rows.map(r => String(r.username_normalized).toLowerCase()));
+        const available = candidates.filter(c => !taken.has(c.toLowerCase()) && c !== clean);
 
-        const taken = new Set(rows.map(r => r.username_normalized.toLowerCase()));
-        const available = candidates.filter(c => !taken.has(c.toLowerCase()));
-
-        return available.slice(0, 4);
+        return available.slice(0, 6);
     }
 
     /** Signup */
@@ -234,7 +267,7 @@ class AuthService {
                 errors.push({ field: 'email', code: 'EMAIL_TAKEN', message: 'Email address is already registered.' });
             }
             if (usernameTaken) {
-                const suggestions = await this.generateAvailableUsernames(normUsername);
+                const suggestions = await this.generateAvailableUsernames(normUsername, name);
                 errors.push({
                     field: 'username',
                     code: 'USERNAME_TAKEN',

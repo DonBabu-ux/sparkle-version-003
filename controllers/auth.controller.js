@@ -802,7 +802,7 @@ const checkUsername = async (req, res) => {
                     suggestions: []
                 });
             }
-            const suggestions = await authService.generateAvailableUsernames(normUsername);
+            const suggestions = await authService.generateAvailableUsernames(normUsername, req.query.name);
             return res.json({
                 success: true,
                 available: false,

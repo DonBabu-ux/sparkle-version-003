@@ -2,32 +2,6 @@ const Confession = require('../models/Confession');
 const logger = require('../utils/logger');
 
 // Web Routes
-const renderConfessions = async (req, res) => {
-    try {
-        const isRandom = req.query.feed === 'random';
-        const affiliation = 'all'; // Default to global as requested
-        
-        // Batch 3: High-entropy randomness for "Each load different"
-        const randomSeed = Math.floor(Math.random() * 1000000) + Date.now();
-
-        let confessions;
-        if (isRandom) {
-            confessions = await Confession.getFeed(affiliation, 20, randomSeed);
-        } else {
-            confessions = await Confession.getRecent(affiliation, 20);
-        }
-
-        res.render('confessions', {
-            title: 'Community Confessions',
-            confessions: confessions || [],
-            user: req.user,
-            isRandom
-        });
-    } catch (error) {
-        logger.error('Render Confessions Error:', error);
-        res.render('confessions', { title: 'Community Confessions', confessions: [], user: req.user, filter: 'all', isRandom: false });
-    }
-};
 
 // API Routes
 const createConfession = async (req, res) => {
@@ -185,7 +159,6 @@ const getConfessionsByAffiliation = async (req, res) => {
 };
 
 module.exports = {
-    renderConfessions,
     createConfession,
     reactToConfession,
     reportConfession,

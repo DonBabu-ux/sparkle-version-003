@@ -100,8 +100,21 @@ const notificationController = {
             const category = req.query.category;
             const priority = req.query.priority;
 
+            // P5: push filters + ORDER BY + LIMIT into each UNION branch so the
+            // derived table only materializes <= (offset+limit) rows per branch
+            // instead of the full per-user history (equivalence: 11/11 scenarios).
+            const bFilters1 = [], bFilters2 = [], filterParams = [];
+            if (unreadOnly) { bFilters1.push('n.is_read = 0'); bFilters2.push('cn.is_read = 0'); }
+            if (since) { bFilters1.push('n.created_at > ?'); bFilters2.push('ca.created_at > ?'); filterParams.push(since); }
+            if (category) { bFilters1.push('n.category = ?'); bFilters2.push(`'security' = ?`); filterParams.push(category); }
+            if (priority) { bFilters1.push('n.priority = ?'); bFilters2.push(`'high' = ?`); filterParams.push(priority); }
+            const pageCap = offset + limit;
+            const bSql1 = bFilters1.length ? ' AND ' + bFilters1.join(' AND ') : '';
+            const bSql2 = bFilters2.length ? ' AND ' + bFilters2.join(' AND ') : '';
+
             let baseSql = `
                 SELECT * FROM (
+                    (
                     SELECT 
                         n.notification_id AS notification_id,
                         n.type AS type,
@@ -125,10 +138,11 @@ const notificationController = {
                         n.is_official AS is_official
                     FROM notifications n
                     LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
-                    WHERE n.user_id = ?
-
+                    WHERE n.user_id = ?${bSql1}
+                    ORDER BY n.created_at DESC LIMIT ${pageCap}
+                    )
                     UNION ALL
-
+                    (
                     SELECT 
                         cn.id AS notification_id,
                         'capture_attempt' AS type,
@@ -157,26 +171,26 @@ const notificationController = {
                     FROM capture_notifications cn
                     JOIN capture_attempts ca ON ca.id = cn.capture_attempt_id
                     LEFT JOIN users u ON u.user_id = ca.actor_user_id
-                    WHERE cn.recipient_user_id = ?
+                    WHERE cn.recipient_user_id = ?${bSql2}
+                    ORDER BY ca.created_at DESC LIMIT ${pageCap}
+                    )
                 ) AS unified_notifications
                 WHERE 1=1`;
 
-            const params = [userId, userId];
+            // branch params, then the same filters re-checked on the output aliases, then paging
+            const params = [userId, ...filterParams, userId, ...filterParams, ...filterParams];
 
             if (unreadOnly) {
                 baseSql += ` AND is_read = 0`;
             }
             if (since) {
                 baseSql += ` AND created_at > ?`;
-                params.push(since);
             }
             if (category) {
                 baseSql += ` AND category = ?`;
-                params.push(category);
             }
             if (priority) {
                 baseSql += ` AND priority = ?`;
-                params.push(priority);
             }
 
             baseSql += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
@@ -249,52 +263,6 @@ const notificationController = {
         }
     },
 
-    renderNotifications: async (req, res) => {
-        try {
-            const userId = req.user.userId || req.user.user_id;
-
-            // Mark all as read when opening the page
-            await pool.query('UPDATE notifications SET is_read = 1 WHERE user_id = ? AND is_read = 0', [userId]);
-
-            const [rows] = await pool.query(`
-                SELECT n.*, u.username as actor_username, u.name as actor_name, u.avatar_url as actor_avatar
-                FROM notifications n
-                LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
-                WHERE n.user_id = ?
-                ORDER BY n.created_at DESC
-                LIMIT 50
-            `, [userId]);
-
-            const notifications = rows.map(n => ({
-                id: n.id || n.notification_id,
-                message: n.message || n.content || n.title,
-                type: n.type,
-                is_read: !!n.is_read,
-                created_at: n.created_at,
-                related_user: n.actor_id || n.related_user_id ? {
-                    id: n.related_user_id || n.actor_id,
-                    username: n.actor_username,
-                    name: n.actor_name,
-                    avatar: n.actor_avatar
-                } : null,
-                action_url: n.action_url
-            }));
-
-            res.render('notifications', {
-                title: 'Notifications',
-                user: req.user,
-                notifications
-            });
-        } catch (error) {
-            console.error('Render Notifications Error:', error);
-            res.status(500).render('error', {
-                title: 'Error',
-                message: 'Failed to load notifications',
-                error: error,
-                user: req.user
-            });
-        }
-    },
 
     clearNotifications: async (req, res) => {
         try {

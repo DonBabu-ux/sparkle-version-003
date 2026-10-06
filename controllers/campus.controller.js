@@ -11,96 +11,10 @@ const getSafeAvatarUrl = (url) => {
     return url.startsWith('/') ? url : `/${url}`;
 };
 
-const renderPolls = async (req, res) => {
-    try {
-        const affiliation = req.query.affiliation || req.query.campus;
-        let query = 'SELECT p.*, u.username, u.name as creator_name FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE (p.expires_at IS NULL OR p.expires_at > NOW())';
-        if (affiliation && affiliation !== 'all') query += ' AND p.campus = ?';
-        const [polls] = await pool.query(query + ' ORDER BY p.created_at DESC', affiliation && affiliation !== 'all' ? [affiliation] : []);
-        res.render('polls', { title: 'Community Polls', initialPolls: polls });
-    } catch (error) {
-        res.render('polls', { title: 'Community Polls', initialPolls: [] });
-    }
-};
 
-const renderPollDetail = async (req, res) => {
-    try {
-        const [polls] = await pool.query('SELECT p.*, u.username FROM polls p JOIN users u ON p.creator_id = u.user_id WHERE p.poll_id = ?', [req.params.id]);
-        if (polls.length === 0) return res.status(404).render('error', { error: 'Poll not found' });
-        const [opts] = await pool.query('SELECT * FROM poll_options WHERE poll_id = ? ORDER BY option_order', [req.params.id]);
-        const poll = polls[0]; poll.options = opts;
-        res.render('poll-detail', { title: poll.question, poll });
-    } catch (error) {
-        res.status(500).render('error', { error: error.message });
-    }
-};
 
-const renderEvents = async (req, res) => {
-    try {
-        const userId = req.user.user_id || req.user.userId;
-        const filter = req.query.filter; // 'managed' or 'campus' or null
-        const campus = req.query.campus || (filter !== 'managed' ? req.user.campus : null);
 
-        let query = `
-            SELECT e.*, u.username,
-            (SELECT status FROM event_rsvps WHERE event_id = e.event_id AND user_id = ?) as user_status,
-            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status IN ('pending', 'accepted')) as total_rsvps,
-            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended,
-            (e.creator_id = ?) as is_creator
-            FROM campus_events e 
-            JOIN users u ON e.creator_id = u.user_id 
-            WHERE 1=1
-        `;
-        const params = [userId, userId];
 
-        if (filter === 'managed') {
-            query += ' AND e.creator_id = ?';
-            params.push(userId);
-        } else {
-            query += ' AND e.is_public = TRUE';
-            if (campus && campus !== 'all') {
-                query += ' AND e.campus = ?';
-                params.push(campus);
-            }
-        }
-
-        const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
-        res.render('events', { title: 'Campus Events', initialEvents: events, currentUser: req.user, activeFilter: filter || 'all' });
-    } catch (error) {
-        console.error('Render Events Error:', error);
-        res.render('events', { title: 'Campus Events', initialEvents: [], currentUser: req.user, activeFilter: 'all' });
-    }
-};
-
-const renderEventsAdmin = async (req, res) => {
-    try {
-        const userId = req.user.user_id || req.user.userId;
-
-        // Fetch events created by this user
-        const [events] = await pool.query(`
-            SELECT e.*,
-            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status IN ('pending', 'accepted')) as total_reservations,
-            (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.event_id AND status = 'attended') as total_attended
-            FROM campus_events e 
-            WHERE e.creator_id = ?
-            ORDER BY e.start_time DESC
-        `, [userId]);
-
-        res.render('events-admin', { title: 'Manage My Events', initialEvents: events });
-    } catch (error) {
-        console.error('Events Admin Render Error:', error);
-        res.redirect('/events');
-    }
-};
-
-const renderStreams = async (req, res) => {
-    try {
-        const [streams] = await pool.query('SELECT s.*, u.username FROM live_streams s JOIN users u ON s.streamer_id = u.user_id WHERE s.status = "live" ORDER BY s.viewer_count DESC');
-        res.render('streams', { title: 'Live Streams', initialStreams: streams });
-    } catch (error) {
-        res.render('streams', { title: 'Live Streams', initialStreams: [] });
-    }
-};
 
 const getPolls = async (req, res) => {
     try {
@@ -932,10 +846,6 @@ exports.trackPollInteraction = async (req, res) => {
 };
 
 module.exports = {
-    renderPolls,
-    renderPollDetail,
-    renderEvents,
-    renderStreams,
     getPolls,
     getEvents,
     getStreams,
@@ -953,7 +863,6 @@ module.exports = {
     endStream,
     generateEventQR,
     checkInEvent,
-    renderEventsAdmin,
     deleteEvent,
     updateEventStatus,
     approveRSVP,

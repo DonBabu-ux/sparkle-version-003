@@ -5,60 +5,6 @@ const logger = require('../utils/logger');
  * Render group page
  * GET /groups/:id
  */
-const renderGroupDetail = async (req, res) => {
-    try {
-        const groupId = req.params.id;
-        const group = await Group.findById(groupId);
-
-        if (!group) {
-            return res.status(404).render('error', { error: 'Group not found' });
-        }
-
-        const memberCount = await Group.getMembersCount(groupId);
-        const posts = await Group.getPosts(groupId, 20, 0);
-        const admins = await Group.getAdmins(groupId);
-        
-        // Match specific Logic: Show 3 avatars prioritized by followed users
-        const memberPreview = await Group.getMemberPreview(groupId, req.user ? req.user.user_id : null);
-        const otherCount = memberCount > 3 ? memberCount - 3 : 0;
-
-        // Check if user is a member
-        let userRole = null;
-        let memberStatus = null;
-        if (req.user) {
-            const userId = req.user.userId || req.user.user_id;
-            const member = await Group.getMember(groupId, userId);
-            
-            if (member) {
-                userRole = member.role;
-                memberStatus = member.status;
-            }
-            
-            // CRITICAL: Creator is always owner regardless of membership row
-            if (userId === group.creator_id) {
-                userRole = 'owner';
-                memberStatus = 'active';
-            }
-        }
-
-        res.render('group-detail', {
-            title: group.name,
-            group,
-            memberCount,
-            memberPreview,
-            otherCount,
-            initialPosts: posts || [],
-            admins: admins || [],
-            userRole,
-            memberStatus,
-            user: req.user,
-            csrfToken: req.csrfToken ? req.csrfToken() : null
-        });
-    } catch (error) {
-        logger.error('Render Group Detail Error:', error);
-        res.status(500).render('error', { error: 'Internal Server Error' });
-    }
-};
 
 /**
  * Handle group updates (Settings/Images)
@@ -352,36 +298,6 @@ const banMemberAPI = async (req, res) => {
 /**
  * Render all groups
  */
-const renderGroups = async (req, res) => {
-    try {
-        const userId = req.user ? req.user.user_id : null;
-        const filter = req.query.filter || 'all';
-        let groups = await Group.getAll(userId);
-
-        // Apply filter on the result set
-        if (filter === 'my' && userId) {
-            groups = groups.filter(g => g.user_membership_status === 'active');
-        } else if (filter === 'managed' && userId) {
-            groups = groups.filter(g =>
-                (g.creator_id === userId) || 
-                (g.user_membership_status === 'active' &&
-                (g.user_role === 'admin' || g.user_role === 'owner' || g.user_role === 'super_admin' || g.user_role === 'moderator'))
-            );
-        }
-
-        res.render('groups', {
-            title: 'Groups',
-            initialGroups: groups || [],
-            activeFilter: filter,
-            user: req.user,
-            csrfToken: req.csrfToken ? req.csrfToken() : null
-        });
-    } catch (error) {
-        logger.error('Render Groups Error:', error);
-        res.render('groups', { title: 'Groups', initialGroups: [], activeFilter: 'all' });
-
-    }
-};
 
 const joinGroup = async (req, res) => {
     try {
@@ -801,8 +717,6 @@ const inviteFriends = async (req, res) => {
 };
 
 module.exports = {
-    renderGroups,
-    renderGroupDetail,
     createGroup,
     createGroupPost,
     getGroupPostsAPI,

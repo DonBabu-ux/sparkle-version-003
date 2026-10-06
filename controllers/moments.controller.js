@@ -127,158 +127,6 @@ const ensureMomentColumns = async () => {
     columnsEnsured = true;
 };
 
-const renderMoments = async (req, res) => {
-    try {
-        // Ensure moment_likes and saved_moments tables exist
-        await ensureMomentTables();
-
-        // Also ensure moments table has expected columns (add if missing)
-        await ensureMomentColumns();
-
-        // Fetch moments with user details
-        const [moments] = await pool.query(`
-            SELECT 
-                m.moment_id,
-                m.user_id,
-                m.caption,
-                m.media_url,
-                m.streaming_url,
-                m.thumbnail_url,
-                m.media_type,
-                IFNULL(m.like_count, 0) as like_count,
-                IFNULL(m.comment_count, 0) as comment_count,
-                IFNULL(m.share_count, 0) as share_count,
-                m.created_at,
-                m.category,
-                u.username,
-                u.name as user_name,
-                u.avatar_url,
-                COALESCE(fc.cnt, 0) as follower_count,
-                IF(ml.moment_id IS NULL, 0, 1) as is_liked,
-                IF(sm.moment_id IS NULL, 0, 1) as is_saved,
-                IF(f.following_id IS NOT NULL, 1, 0) as is_following
-            FROM moments m 
-            JOIN users u ON m.user_id = u.user_id
-            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = m.user_id
-            LEFT JOIN follows f ON f.follower_id = ? AND f.following_id = m.user_id
-            LEFT JOIN moment_likes ml ON ml.moment_id = m.moment_id AND ml.user_id = ?
-            LEFT JOIN saved_moments sm ON sm.moment_id = m.moment_id AND sm.user_id = ?
-            WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
-            ORDER BY m.created_at DESC
-
-            LIMIT 50
-        `, [req.user.user_id, req.user.user_id, req.user.user_id]);
-
-        // Get trending hashtags
-        let trendingHashtags = [];
-        try {
-            const [tags] = await pool.query(`
-                SELECT 
-                    hashtag,
-                    COUNT(*) as usage_count,
-                    MAX(created_at) as last_used
-                FROM moment_hashtags 
-                WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
-                GROUP BY hashtag
-                ORDER BY usage_count DESC, last_used DESC
-                LIMIT 10
-            `);
-            trendingHashtags = tags;
-        } catch (e) {
-            logger.warn('Could not fetch trending hashtags: ' + e.message);
-        }
-
-        // Get suggested users
-        const [suggestedUsers] = await pool.query(`
-            SELECT 
-                u.user_id,
-                u.username,
-                u.name,
-                u.avatar_url,
-                COALESCE(fc.cnt, 0) as follower_count
-            FROM users u
-            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
-            LEFT JOIN follows nf ON nf.follower_id = ? AND nf.following_id = u.user_id
-            WHERE u.user_id != ?
-            AND nf.following_id IS NULL
-            ORDER BY RAND()
-            LIMIT 5
-        `, [req.user.user_id, req.user.user_id]);
-
-        // Get user's interests/categories
-        let interests = [];
-        try {
-            const [userInterests] = await pool.query(`
-                SELECT DISTINCT category 
-                FROM user_interests 
-                WHERE user_id = ?
-            `, [req.user.user_id]);
-            interests = userInterests.map(i => i.category);
-        } catch (e) {
-            logger.warn('Could not fetch user interests: ' + e.message);
-        }
-
-        res.render('moments', {
-            title: 'Moments',
-            user: req.user,
-            initialMoments: moments,
-            trendingHashtags,
-            suggestedUsers,
-            userInterests: interests,
-            csrfToken: req.csrfToken ? req.csrfToken() : null,
-            env: {
-                API_URL: process.env.API_URL || '',
-                WS_URL: process.env.WS_URL || ''
-            }
-        });
-    } catch (error) {
-        logger.error('Error loading moments:', error);
-        res.render('moments', {
-            title: 'Moments',
-            user: req.user,
-            initialMoments: [],
-            trendingHashtags: [],
-            suggestedUsers: [],
-            userInterests: [],
-            csrfToken: req.csrfToken ? req.csrfToken() : null,
-            env: {
-                API_URL: process.env.API_URL || '',
-                WS_URL: process.env.WS_URL || ''
-            },
-            error: 'Failed to load moments'
-        });
-    }
-};
-
-const renderMomentDetail = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const [moments] = await pool.query(`
-            SELECT 
-                m.*,
-                u.username,
-                u.name as user_name,
-                u.avatar_url
-            FROM moments m 
-            JOIN users u ON m.user_id = u.user_id 
-            WHERE m.moment_id = ?
-        `, [id]);
-
-        if (moments.length === 0) {
-            return res.status(404).render('404', { title: 'Moment Not Found' });
-        }
-
-        res.render('moment-detail', {
-            title: 'Moment',
-            user: req.user,
-            moment: moments[0]
-        });
-    } catch (error) {
-        logger.error('Error loading moment detail:', error);
-        res.status(500).render('error', { title: 'Error', error: 'Failed to load moment' });
-    }
-}
-
 const getMomentById = async (req, res) => {
     try {
         const { id } = req.params;
@@ -306,11 +154,6 @@ const getMomentById = async (req, res) => {
         res.status(500).json({ error: 'Failed to load moment' });
     }
 }
-
-const normalizeSearchQuery = (q) => {
-    if (!q) return "";
-    return q.toLowerCase().trim().replace(/[^\w\s#]/g, "");
-};
 
 const getMomentsStream = async (req, res) => {
     try {
@@ -864,8 +707,6 @@ const prewarm = async () => {
 };
 
 module.exports = {
-    renderMoments,
-    renderMomentDetail,
     getMomentsStream,
     createMoment,
     sparkMoment,

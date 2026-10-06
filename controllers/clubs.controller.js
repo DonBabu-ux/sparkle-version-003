@@ -2,69 +2,7 @@ const Club = require('../models/Club');
 const logger = require('../utils/logger');
 
 // Web Routes (Rendering)
-const renderClubs = async (req, res) => {
-    try {
-        const clubs = await Club.getAll();
-        const stabilizedClubs = (clubs || []).map(club => {
-            if (!club.logo_url || club.logo_url.includes('picsum.photos')) {
-                club.logo_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=random&color=fff&size=256`;
-            }
-            if (!club.banner_url || club.banner_url.includes('picsum.photos')) {
-                club.banner_url = `https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200&q=80`;
-            }
-            return club;
-        });
 
-        res.render('clubs', {
-            title: 'Campus Clubs',
-            user: req.user,
-            initialClubs: stabilizedClubs,
-            currentCampus: 'all',
-            currentCategory: 'all',
-            searchQuery: ''
-        });
-    } catch (error) {
-        logger.error('Render Clubs Error:', error);
-        res.render('clubs', {
-            title: 'Campus Clubs',
-            user: req.user,
-            initialClubs: [],
-            currentCampus: 'all',
-            currentCategory: 'all',
-            searchQuery: ''
-        });
-    }
-};
-
-const renderClubDetail = async (req, res) => {
-    try {
-        const userId = req.user ? (req.user.user_id || req.user.userId) : null;
-        const club = await Club.findById(req.params.id, userId);
-
-        if (!club) {
-            return res.status(404).render('404', { title: 'Club Not Found' });
-        }
-
-        // Stabilize club media
-        if (!club.logo_url || club.logo_url.includes('picsum.photos')) {
-            club.logo_url = `https://ui-avatars.com/api/?name=${encodeURIComponent(club.name)}&background=random&color=fff&size=256`;
-        }
-        if (!club.banner_url || club.banner_url.includes('picsum.photos')) {
-            club.banner_url = `https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=1200&q=80`;
-        }
-
-        const events = await Club.getEvents(req.params.id);
-        res.render('club-detail', {
-            title: club.name,
-            club,
-            events: events || [],
-            user: req.user
-        });
-    } catch (error) {
-        logger.error('Render Club Detail Error:', error);
-        res.status(500).render('error', { error: 'Failed to load club details' });
-    }
-};
 
 // API Routes (JSON)
 const getClubs = async (req, res) => {
@@ -249,8 +187,6 @@ const getAnnouncements = async (req, res) => {
 };
 
 module.exports = {
-    renderClubs,
-    renderClubDetail,
     getClubs,
     getClubById,
     createClub,

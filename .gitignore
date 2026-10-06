@@ -81,5 +81,19 @@ frontend/dev-dist/
 /backend outdated/
 /e head to see just the first few lines/
 
+# Repo bloat: local-only backups/content (M11)
+/android_backup/
+/react-moblile-app/
+/SPARKLE ✨ SOUNDS 😇/
+/sparkle docs/
+*.new
+/migrate-*.js
+/check-notif-tables.js
+/seed-data.js
+
+# Runtime data dirs stay local; knowledge source markdown remains tracked
+/data/*
+!/data/sparkly-knowledge/
+
 # Local env backups
 .env.bak

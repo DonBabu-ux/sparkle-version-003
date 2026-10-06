@@ -2647,8 +2647,9 @@ const initPerfIndexes = async () => {
         // P4: inbox delta sync
         ['messages', 'idx_msg_recipient_seq', 'recipient_id, server_sequence'],
         ['messages', 'idx_msg_sender_seq', 'sender_id, server_sequence'],
-        // P5: notification branch reads
+        // P5: notification branch reads + branch1 index-ordered page scan
         ['capture_notifications', 'idx_cn_recipient', 'recipient_user_id, created_at'],
+        ['notifications', 'idx_notif_user_created', 'user_id, created_at'],
         // M15: notification platform category index
         ['notifications', 'idx_user_category', 'user_id, category']
     ];

@@ -64,57 +64,6 @@ const getSeedFromDevice = (req) => {
     return Math.abs(hash);
 };
 
-const renderDashboard = async (req, res) => {
-    try {
-        const affiliation = req.user.affiliation || req.user.campus || 'all';
-        const currentUserId = req.user.userId || req.user.user_id;
-        const randomSeed = getSeedFromDevice(req);
-
-        // Fetch all required dashboard data in parallel with fallbacks
-        const [posts, suggestions, stories] = await Promise.all([
-            Post.getFeed(affiliation, currentUserId, 12, 0, randomSeed).catch(err => {
-                logger.error('Dashboard Feed Fetch Error:', err);
-                return [];
-            }),
-            User.getSuggestions(currentUserId, 5, randomSeed).catch(err => {
-                logger.error('Dashboard Suggestions Fetch Error:', err);
-                return [];
-            }),
-            // Fallback for stories until model is ready
-            Promise.resolve([]).catch(() => [])
-        ]);
-
-        // Sanitize posts
-        const sanitizedPosts = (posts || []).map(p => ({
-            ...p,
-            media_url: getSafeMediaUrl(p.media_url),
-            avatar_url: getSafeAvatarUrl(p.avatar_url)
-        }));
-
-        // Sanitize suggestions
-        const sanitizedSuggestions = (suggestions || []).filter(Boolean).map(s => ({
-            ...s,
-            avatar_url: getSafeAvatarUrl(s.avatar_url)
-        }));
-
-        res.render('dashboard', {
-            title: 'Dashboard',
-            feed: sanitizedPosts,
-            suggestions: sanitizedSuggestions,
-            stories: stories || [],
-            user: req.user
-        });
-    } catch (error) {
-        logger.error('Critical Dashboard Render Error:', error);
-        res.render('dashboard', {
-            title: 'Dashboard',
-            feed: [],
-            suggestions: [],
-            stories: [],
-            user: req.user
-        });
-    }
-};
 
 const getFeedPosts = async (req, res) => {
     try {
@@ -534,39 +483,6 @@ const getStories = async (req, res) => {
     }
 };
 
-const renderPost = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const post = await Post.findById(id);
-
-        if (!post) {
-            return res.status(404).render('404', { title: 'Post Not Found' });
-        }
-
-        const sanitizedPost = {
-            ...post,
-            media_url: getSafeMediaUrl(post.media_url),
-            avatar_url: getSafeAvatarUrl(post.avatar_url),
-            title: post.title || (post.content ? post.content.split('\n')[0].substring(0, 50) : 'Sparkle Highlight')
-        };
-
-        const comments = await Post.getComments(id);
-        const sanitizedComments = comments.map(c => ({
-            ...c,
-            avatar_url: getSafeAvatarUrl(c.avatar_url)
-        }));
-
-        res.render('post', {
-            title: `Post by ${sanitizedPost.user_name}`,
-            post: sanitizedPost,
-            comments: sanitizedComments,
-            user: req.user
-        });
-    } catch (error) {
-        logger.error('Render Post Error:', error);
-        res.status(500).render('error', { title: 'Error', error: 'Failed to load post' });
-    }
-};
 
 const createStory = async (req, res) => {
     try {
@@ -1381,11 +1297,9 @@ const hideStoryFromUser = async (req, res) => {
 };
 
 module.exports = {
-    renderDashboard,
     getFeedPosts,
     getNewPosts,
     getStories,
-    renderPost,
     createStory,
     likeStory,
     getStoryLikes,

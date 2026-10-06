@@ -224,6 +224,7 @@ const originalQuery = pool.query.bind(pool);
 pool.query = async (sql, params = []) => {
     const t0 = process.hrtime.bigint();
     const label = sqlLabel(sql);
+    if (process.env.DB_QUERY_TRACE === '1') logger.info('[QTRACE] ' + label);
     for (let attempt = 0; attempt < 2; attempt++) {
         try {
             // Return the full [rows, fields] tuple like mysql2/promise does

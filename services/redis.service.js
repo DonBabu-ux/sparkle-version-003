@@ -5,6 +5,16 @@ const dns = require('dns');
 // Force IPv4 resolution to fix Node 18+ "fetch failed" issues with Upstash
 dns.setDefaultResultOrder('ipv4first');
 
+// ── L1 in-process write-through cache ──────────────────────────────────────────
+// Upstash REST costs ~450-800ms per round-trip from this server. A short-lived
+// in-process cache removes that floor for hot keys:
+//   * get/mget results are cached for REDIS_L1_TTL_MS (default 3s)
+//   * set() writes THROUGH to L1 (so read-after-write in this process is instant)
+//   * every mutator (del/incr/sadd/hset/lpush/ltrim) invalidates its key
+// TTL is intentionally tiny: with multiple instances, other nodes' writes are
+// invisible to this map for at most the TTL. Set REDIS_L1_TTL_MS=0 to disable.
+const L1_DEFAULT_TTL_MS = 3000;
+const L1_MAX_ENTRIES = 5000;
 
 /**
  * Production-ready Redis Service using Upstash REST Client.
@@ -14,6 +24,10 @@ class RedisService {
     constructor() {
         this.client = null;
         this.isEnabled = false;
+        this.l1 = new Map();        // l1Key -> { v, exp }
+        this.l1Deps = new Map();    // baseKey -> Set<l1Key> (for targeted invalidation)
+        const ttl = Number(process.env.REDIS_L1_TTL_MS);
+        this.l1TtlMs = Number.isFinite(ttl) ? ttl : L1_DEFAULT_TTL_MS;
         this.initialize();
     }
 
@@ -50,7 +64,7 @@ class RedisService {
                     token: token,
                 });
                 this.isEnabled = true;
-                logger.info('Redis Service: Initialized successfully (REST API)');
+                logger.info(`Redis Service: Initialized successfully (REST API, L1 ${this.l1TtlMs}ms)`);
             } catch (err) {
                 logger.error('Redis Service: Initialization failed (likely allowlist issue):', err.message);
                 this.isEnabled = false;
@@ -62,16 +76,71 @@ class RedisService {
         }
     }
 
+    // ── L1 helpers ───────────────────────────────────────────────────────────
+
+    /** Fresh L1 value or undefined (miss). */
+    _l1Read(l1k) {
+        if (this.l1TtlMs <= 0) return undefined;
+        const e = this.l1.get(l1k);
+        if (!e || e.exp <= Date.now()) return undefined;
+        return e.v;
+    }
+
+    /** Value even if expired (used as stale fallback when Upstash is unreachable). */
+    _l1Stale(l1k) {
+        if (this.l1TtlMs <= 0) return undefined;
+        const e = this.l1.get(l1k);
+        return e ? e.v : undefined;
+    }
+
+    _l1Write(l1k, baseKey, v) {
+        if (this.l1TtlMs <= 0 || v === undefined) return;
+        if (this.l1.size >= L1_MAX_ENTRIES) this._l1Prune();
+        this.l1.set(l1k, { v, exp: Date.now() + this.l1TtlMs });
+        let s = this.l1Deps.get(baseKey);
+        if (!s) this.l1Deps.set(baseKey, (s = new Set()));
+        s.add(l1k);
+    }
+
+    _l1Invalidate(baseKey) {
+        if (this.l1TtlMs <= 0) return;
+        const s = this.l1Deps.get(baseKey);
+        if (s) {
+            for (const k of s) this.l1.delete(k);
+            this.l1Deps.delete(baseKey);
+        }
+        this.l1.delete(baseKey);
+    }
+
+    _l1Prune() {
+        const now = Date.now();
+        for (const [k, e] of this.l1) {
+            if (e.exp <= now) this.l1.delete(k);
+        }
+        if (this.l1.size >= L1_MAX_ENTRIES) {
+            // Hard cap: correctness is preserved (cold reads repopulate).
+            this.l1.clear();
+            this.l1Deps.clear();
+        }
+    }
+
+    // ── Public API ───────────────────────────────────────────────────────────
+
     /**
      * Get a value from Redis
      */
     async get(key) {
         if (!this.isEnabled) return null;
+        const fresh = this._l1Read(key);
+        if (fresh !== undefined) return fresh;
         try {
-            return await this.client.get(key);
+            const val = await this.client.get(key);
+            this._l1Write(key, key, val);
+            return val;
         } catch (error) {
             logger.error(`Redis Get Error [${key}]:`, error.message);
-            return null;
+            const stale = this._l1Stale(key);
+            return stale !== undefined ? stale : null;
         }
     }
 
@@ -80,11 +149,19 @@ class RedisService {
      */
     async mget(...keys) {
         if (!this.isEnabled) return keys.map(() => null);
+        const cached = keys.map(k => this._l1Read(k));
+        if (cached.every(v => v !== undefined)) return cached;
         try {
-            return await this.client.mget(...keys);
+            const vals = await this.client.mget(...keys);
+            const arr = Array.isArray(vals) ? vals : [vals];
+            keys.forEach((k, i) => this._l1Write(k, k, arr[i]));
+            return keys.map((k, i) => (arr[i] !== undefined ? arr[i] : null));
         } catch (error) {
             logger.error(`Redis MGet Error [${keys.length} keys]:`, error.message);
-            return keys.map(() => null);
+            return keys.map(k => {
+                const stale = this._l1Stale(k);
+                return stale !== undefined ? stale : null;
+            });
         }
     }
 
@@ -105,7 +182,14 @@ class RedisService {
                 options.nx = true;
             }
 
-            return await this.client.set(key, value, options);
+            const res = await this.client.set(key, value, options);
+            // Truthy res ("OK") = write committed (NX success included);
+            // NX failure returns null/undefined — leave L1 untouched.
+            if (res) {
+                this._l1Invalidate(key);
+                this._l1Write(key, key, value);
+            }
+            return res;
         } catch (error) {
             const msg = error.message || (typeof error === 'string' ? error : JSON.stringify(error));
             logger.error(`Redis Set Error [${key}]: ${msg}`);
@@ -118,6 +202,7 @@ class RedisService {
      */
     async del(key) {
         if (!this.isEnabled) return null;
+        this._l1Invalidate(key);
         try {
             return await this.client.del(key);
         } catch (error) {
@@ -131,6 +216,7 @@ class RedisService {
      */
     async incr(key) {
         if (!this.isEnabled) return 0;
+        this._l1Invalidate(key);
         try {
             return await this.client.incr(key);
         } catch (error) {
@@ -156,6 +242,8 @@ class RedisService {
      */
     async sadd(key, ...members) {
         if (!this.isEnabled) return 0;
+        // Set membership changed: any cached smembers/list view of this key is stale.
+        this._l1Invalidate(key);
         try {
             return await this.client.sadd(key, ...members);
         } catch (error) {
@@ -169,11 +257,17 @@ class RedisService {
      */
     async smembers(key) {
         if (!this.isEnabled) return [];
+        const l1k = `smembers:${key}`;
+        const fresh = this._l1Read(l1k);
+        if (fresh !== undefined) return fresh;
         try {
-            return await this.client.smembers(key);
+            const val = await this.client.smembers(key);
+            this._l1Write(l1k, key, val);
+            return val;
         } catch (error) {
             logger.error(`Redis SMembers Error [${key}]:`, error.message);
-            return [];
+            const stale = this._l1Stale(l1k);
+            return stale !== undefined ? stale : [];
         }
     }
 
@@ -182,16 +276,23 @@ class RedisService {
      */
     async hgetall(key) {
         if (!this.isEnabled) return null;
+        const l1k = `hgetall:${key}`;
+        const fresh = this._l1Read(l1k);
+        if (fresh !== undefined) return fresh;
         try {
-            return await this.client.hgetall(key);
+            const val = await this.client.hgetall(key);
+            this._l1Write(l1k, key, val);
+            return val;
         } catch (error) {
             logger.error(`Redis HGetAll Error [${key}]:`, error.message);
-            return null;
+            const stale = this._l1Stale(l1k);
+            return stale !== undefined ? stale : null;
         }
     }
 
     async hincrbyfloat(key, field, value) {
         if (!this.isEnabled) return 0;
+        this._l1Invalidate(key);
         try {
             return await this.client.hincrbyfloat(key, field, value);
         } catch (error) {
@@ -202,6 +303,7 @@ class RedisService {
 
     async hset(key, field, value) {
         if (!this.isEnabled) return null;
+        this._l1Invalidate(key);
         try {
             // Upstash hset takes an object or multiple field/value arguments.
             // Using object format: { [field]: value }
@@ -218,6 +320,7 @@ class RedisService {
      */
     async lpush(key, ...members) {
         if (!this.isEnabled) return 0;
+        this._l1Invalidate(key);
         try {
             return await this.client.lpush(key, ...members);
         } catch (error) {
@@ -228,16 +331,23 @@ class RedisService {
 
     async lrange(key, start, stop) {
         if (!this.isEnabled) return [];
+        const l1k = `lrange:${key}:${start}:${stop}`;
+        const fresh = this._l1Read(l1k);
+        if (fresh !== undefined) return fresh;
         try {
-            return await this.client.lrange(key, start, stop);
+            const val = await this.client.lrange(key, start, stop);
+            this._l1Write(l1k, key, val);
+            return val;
         } catch (error) {
             logger.error(`Redis LRange Error [${key}]:`, error.message);
-            return [];
+            const stale = this._l1Stale(l1k);
+            return stale !== undefined ? stale : [];
         }
     }
 
     async ltrim(key, start, stop) {
         if (!this.isEnabled) return null;
+        this._l1Invalidate(key);
         try {
             return await this.client.ltrim(key, start, stop);
         } catch (error) {

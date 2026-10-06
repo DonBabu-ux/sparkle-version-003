@@ -1,6 +1,6 @@
 # FIXES_NEEDED.md — App Audit
 
-**Date:** 2026-10-04 · **updated** 2026-10-06 · **Branch:** `sparkle-textbee-integration` @ `187288c` (+64 uncommitted files — batch H)
+**Date:** 2026-10-04 · **updated** 2026-10-06 · **Branch:** `sparkle-textbee-integration` @ `b29b002` (batch H) + uncommitted query-speed round
 **Method:** 5 parallel audits (API harness, security, DB/EXPLAIN, frontend, code-health) + spot-verification of every critical claim against source.
 **Legend:** ✅ = verified directly (source read / command run / repro) · 📋 = agent-reported, not independently re-checked.
 
@@ -113,6 +113,36 @@
 - **Login query does NOT need indexes** — `EXPLAIN` shows `type=index_merge` over `email`/`uq_users_username_normalized`/`username`, `rows=3`. Its latency is environmental (RTT + shared host), not a missing index.
 - **No SQL injection found** — dynamic SQL uses placeholders or whitelists; one second-order inline quote (`models/Marketplace.js:638`) is low risk.
 
+### Query-speed round — round-trip elimination (2026-10-06, uncommitted) ✅
+**Root causes measured (not the SQL itself):**
+1. **Upstash REST ≈ 450-800 ms/op** with 5-8 *sequential dependent* rounds per hot request (redis reads feed the next read).
+2. **DB link** ≈ 205 ms/query healthy, degrading to ~800 ms + ETIMEDOUT during flap windows → sequential SQL chains multiply the tail.
+3. **Moments ranked-feed cache never warmed**: the 2.5 s `Promise.race` always fired (3 awaited redis rounds ≈1.35 s pre-race + ~1.4 s inside > 2.5 s) → fallback path never wrote the cache → *every* request permanently cold at 4.1-4.5 s.
+
+**Fixes (round-count reduction, no behavior changes):**
+- `services/redis.service.js` — **write-through in-process L1** (default 3 s TTL, `REDIS_L1_TTL_MS=0` disables): `get/mget` cached, `set` writes through, `del/incr/sadd/hset/lpush/ltrim` invalidate, stale-serve on Upstash errors; hard cap 5000 entries. Verified by client-call counting (0 client calls on warm reads, invalidation correct, NX semantics preserved).
+- `services/moments-ranking.service.js` — opening **parallel round** merges ranked-cache get + session profile + following pool + seen `smembers` (was 3-4 sequential rounds); candidate pools ∥ fallback SQL in one round; race timeout 2.5 s → 3.5 s; **fallback result now warms the cache** (was the never-warms bug); prefetched seen set passed into dedup.
+- `models/Post.js getFeed` — was ~8 sequential rounds (raw-cache get, lrange, hgetall, 4×SQL, candidate-pool get) → **1 parallel round + 1 conditional fallback round** (hydration SQL unchanged, needs final batch).
+- `controllers/feed.controller.js` — removed the **redundant second `batchKey` get** (reuses the opening fetch; force-refresh → 0); per-iteration `batchOffset` SET hoisted after the loop (up to 3 × 450 ms); hit-path `seen` SET fire-and-forget.
+- `models/Message.js getUserConversations` — `user_blocks` ×2 now run **in parallel with the main UNION** (was +2 sequential SQL rounds; non-fatal fallback preserved).
+- `config/database.js` — `DB_QUERY_TRACE=1` env-gated per-query tracer (diagnostic; off by default).
+
+**Measured (same account, 3-run p50 probes, healthy window):**
+
+| Endpoint | Before | After |
+|---|---|---|
+| `GET /api/moments/stream` | **4304 ms** (permanently cold) | **487-1061 ms** (cache now warms) |
+| `GET /api/posts/feed` | 3478 ms | **~600-850 ms** warm; regen pulls 1.5-8 s (flap-bound) |
+| `GET /api/messages/conversations` | 3136 ms | **635-1242 ms** |
+| `GET /api/messages/inbox` | 2994 ms | **622-1250 ms** (p50 ≈ 700) |
+| `GET /api/discover/feed` | 1904 ms | **430-525 ms** |
+| `GET /api/users/suggestions` | 1593 ms | **212-499 ms** |
+| `GET /api/marketplace/listings` | 761 ms | 598-1340 ms |
+| `GET /api/notifications` | 619 ms | 386-574 ms |
+
+**Verification:** probe battery `fix_tests` **18/18**, admin **9/9**, role **4/4**, dberr **18/18**, p11 **7/8** (8th = probe's own missing param); full route sweep **421 routes / 417 ok / 0 real bugs** (identical to batch-H baseline); `npm run lint` **0 errors / 1317 warnings** (exact baseline); feed `0 items` pull after ~110 rapid pulls = **designed exhaustion** (soft-reset recovered on the next pull: 0 → 2 items).
+**Remaining levers:** Render env `DB_POOL_LIMIT` 16-24 (user, H10/H11); DB host flap (ETIMEDOUT/ENETUNREACH, ~800 ms degraded RTT) remains the tail-latency source — outside app control; `enableKeepAlive: true` already set; `SLOW_QUERY_MS = 750`.
+
 ### Index / query fixes (from EXPLAIN; read-only script at `/tmp/opencode/dbcheck.js`) 📋 unless marked
 
 | # | Problem | Evidence | Fix |
@@ -186,7 +216,8 @@
    - **F. H26 renewal adoption + socket expiry deferral:** `frontend/src/utils/tokenHeaderSync.ts` (new) + `frontend/src/api/api.ts` (interceptor adopts `x-refresh-token` on fulfilled + error responses), `frontend/src/services/socketService.ts` (deferred connect for known-expired tokens + auth-class `connect_error` → `console.warn`), `frontend/src/__tests__/tokenHeaderSync.test.ts` (new) + `frontend/src/services/__tests__/socketService.test.ts` (2 new cases, 2 strengthened), this tracker. Verified: vitest **110/110 (17 files)**, `vite build` ✓ (frontend-only, backend untouched).
    - **G. Priority sweep (P11/P7/P8 + M1–M4 + hygiene + low):** `middleware/security.middleware.js` (M1 CSRF wrapper + M2 `authRateLimiter` + 429 msg), `server.js` (M1 global mount, M3 `rawBody` verify, M4 trust-proxy gating), `routes/api/{auth.routes.js,index.js}` (M2 mounts, `csrfTokenProtection` bootstrap), `controllers/{auth,location}.controller.js` (M4 `req.ip`), `utils/database/init.js` (`idx_delivery_message`, M5 repair logs), `workers/deliveryQueueWorker.js` (M13 full-stack + 60 s orphan throttle), `models/Post.js` + `controllers/search.controller.js` (P11 grouped rewrites), `controllers/auth.controller.js` (P7 col lists), 12 duplicate indexes dropped (P8), 47 empty-catch sites → log-then-continue (M5), `services/feed.service.js` + `config/cache.js` + `utils/database/execute.js` deleted (M7), `SettingsModal.tsx` logout (M10), eslint baseline + `scripts/lintBackend.cjs` + `typecheck` scripts (M12), `frontend/eslint.config.js`, 564 console→logger conversions + `frontend/src/utils/logger.ts` (low), 3 dead `accessToken` fallbacks removed (low), `App.tsx` routes (confessions/:id added, /profile/:id removed, 78 lazy + Suspense), `ChatSettingsModal.tsx:1888` profile link, `helmet`/`socket.io` safe bumps, `pnpm-lock.yaml` ×2 deleted (H12), TS2304 ×18 fixed (H7), new tests (`marketplaceImageFallbacks` etc. already in E/F; H7 no new tests). Verified: post-change battery 18/18 + 9/9 + 4/4 + dberr 18/18 + `lint:backend` 213/0 + eslint 0 errors + vitest **110/110** + build ✓; M1 4-path check, M2 burn 429, M3 pretty-payload 200, M4 XFF spoof → `::1`, M13 index live.
    - **H. M8 + P5 + M11 + full route sweep:** `controllers/` (M8: 6 dead controllers + `feed.controller.js.new` deleted, 25 unrouted SSR `render*` funcs removed from 9 live files → 0 `res.render` repo-wide; `getMomentById` over-deletion caught + restored), `views/` + `routes/web/` deleted; `controllers/notification.controller.js` (P5: filters + `ORDER BY`/`LIMIT` pushdown per UNION branch) + `utils/database/init.js` (`idx_notif_user_created`) + `notification` index; M11: root `migrate-*.js`×6 → `migrations/archive/`, `check-notif-tables.js`/`seed-data.js` → `scripts/` (package.json `seed` updated), root `index.html`/`README.html` deleted, 5 junk dirs untracked-kept-local, `.gitignore` extended; this tracker. Verified: P5 equivalence 11/11 SQL + 7/7 live + 4/4 re-probe; **full 421-route sweep: 417 ok, 0 real bugs** (3 design skips, 1 OTA); probes 18/18 + 9/9 + 4/4 + dberr green; `lint:backend` 211/0; require-all controllers OK.
-   Recent commits: `187288c` (batch G priority sweep), `844e334` (perf + console/admin + H20/H22/H23 batches A–D), `3c15344` (H9 audit), `83c2b24` (H15/H16), `0b7f9a3` (ALGORITHMS.md), `f445fac` (P1 frontend), `1ced155` (suggester), `31d8eb5` (admin API). H7 TS2304 = 0 (total tsc errors 881→867; still frozen by decision until typecheck-green campaign).
+    - **I. Query-speed round (uncommitted):** `services/redis.service.js` (write-through in-process L1, 3 s TTL, `REDIS_L1_TTL_MS`), `services/moments-ranking.service.js` (parallel opening round, pools∥SQL, 3.5 s race, fallback warms cache — fixes permanently-cold ranked feed), `models/Post.js` (`getFeed` 8→2 rounds), `controllers/feed.controller.js` (redundant batchKey get removed, loop SET hoisted, hit-path seen fire-and-forget), `models/Message.js` (blocks ∥ UNION), `config/database.js` (`DB_QUERY_TRACE` tracer), this tracker. Verified: latencies moments 4304→~600-1000 ms, feed 3478→~600-850, conversations 3136→635-1242, inbox 2994→~700, suggestions 1593→212-499; probes 18/18 + 9/9 + 4/4 + dberr 18/18 + p11 7/8; **full 421-route sweep 417 ok / 0 real bugs**; lint 0 errors/1317 warnings; feed 0-item pull = designed exhaustion (recovered next pull).
+    Recent commits: `b29b002` (batch H M8/P5/M11), `187288c` (batch G priority sweep), `844e334` (perf + console/admin + H20/H22/H23 batches A–D), `3c15344` (H9 audit), `83c2b24` (H15/H16), `0b7f9a3` (ALGORITHMS.md), `f445fac` (P1 frontend), `1ced155` (suggester), `31d8eb5` (admin API). H7 TS2304 = 0 (total tsc errors 881→867; still frozen by decision until typecheck-green campaign).
 2. **Render dashboard (you only):** `NODE_ENV=production`, `JWT_SECRET`, `DB_POOL_LIMIT=16..24`, `OTA_DEPLOY_TOKEN`, `DB_*_PROD`, `BACKEND_URL`/`FRONTEND_URL`, `DB_SSL`; start command `node server.js`.
 3. **Firebase console:** restrict/reset client API keys (M14).
 4. **Parked:** `UI_AUDIT.md` detail appendix.
@@ -199,6 +230,6 @@
 2. **API bugs (≈ half a day):** H1 (bind arrays), H2 (COLLATE), H3 (column list), H4 (`ml.thumbnail` + stop swallowing).
 3. **Frontend prod blockers:** H5 (relative URLs), H7 (delete dead NewChatModal), H6 (rebuild Android assets).
 4. **Ops:** H9 (`npm audit fix`), H10/H11 (Render env incl. `NODE_ENV`), ~~H12 (one lockfile)~~ done 2026-10-06.
-5. **Performance (biggest UX win):** ~~P1-P3 indexes + P10 migration guard + query rewrites P1/P3/P4/P6/P9~~ done 2026-10-06 (indexes + gate + `UNION ALL`/grouped-unread/`ORDER BY`/discover grouped joins; equivalence-tested old-vs-new and live-verified via probes + `/api/messages/inbox` + `/api/discover/*` + `/api/moments/stream`). ~~**Next:** **P11** correlated subqueries in live feed/search, then P7/P8 hygiene~~ **P11 + P7 + P8 done 2026-10-06** (Post.js grouped counts + drift backfill 0/0, search grouped joins, auth col lists, 12 dup indexes dropped; probe 7/8). Re-measure via `GET /api/debug/pool`.
+5. **Performance (biggest UX win):** ~~P1-P3 indexes + P10 migration guard + query rewrites P1/P3/P4/P6/P9~~ done 2026-10-06 (indexes + gate + `UNION ALL`/grouped-unread/`ORDER BY`/discover grouped joins; equivalence-tested old-vs-new and live-verified via probes + `/api/messages/inbox` + `/api/discover/*` + `/api/moments/stream`). ~~**Next:** **P11** correlated subqueries in live feed/search, then P7/P8 hygiene~~ **P11 + P7 + P8 done 2026-10-06** (Post.js grouped counts + drift backfill 0/0, search grouped joins, auth col lists, 12 dup indexes dropped; probe 7/8). ~~**Query-speed round**~~ **done 2026-10-06** (redis L1 + parallel-round rewrites; see "Query-speed round" above; re-measure via `GET /api/debug/pool`).
 6. **Correctness/abuse:** ~~M1 (CSRF), M2 (auth limiter), M3 (webhook rawBody), M4 (trust proxy)~~ done 2026-10-06, ~~M6~~ done earlier. Remaining: M8 (EJS/dead controllers), M11 (repo bloat), M14 (Firebase keys — user), M15 done.
 7. **Hygiene:** ~~M5, M7, M8, M10, M11, M12, M13, low items~~ done 2026-10-06; only the parked `UI_AUDIT.md` appendix remains.

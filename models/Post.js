@@ -519,79 +519,85 @@ class Post {
             const offsetNum = Number(offset) || 0;
             const limitNum = Number(limit) || 10;
             const cacheKey = `feed_cache_raw:${currentUserId}:${affiliation}:${mode}:${seed}:${offsetNum}:${limitNum}`;
-            
-            // Try to serve from raw cache first
-            const cached = await redisService.get(cacheKey);
-            if (cached && !excludeIds.length) {
-                return Array.isArray(cached) ? cached : [];
-            }
-
-            // 1. DUAL-MEMORY INTEREST MODEL
-            const recentKey = `user:${currentUserId}:recent_categories`;
-            
-            // Try Redis first for session intent
-            let recentCategories = await redisService.lrange(recentKey, 0, 19);
-            
-            if (!recentCategories || recentCategories.length === 0) {
-                const [recentActions] = await pool.query(`
-                    SELECT p.category FROM posts p
-                    JOIN user_actions ua ON p.post_id = ua.post_id
-                    WHERE ua.user_id = ?
-                    ORDER BY ua.created_at DESC LIMIT 20
-                `, [currentUserId]).catch(() => [[]]);
-                
-                recentCategories = (recentActions || []).map(a => a.category).filter(Boolean);
-                
-                // Warm the list cache
-                if (recentCategories.length > 0) {
-                    redisService.lpush(recentKey, ...recentCategories).catch(() => {});
-                    redisService.expire(recentKey, 3600).catch(() => {});
-                }
-            }
-            
-            const categoryStats = await this.getCategoryStats(currentUserId);
-            
-            const [userProfile] = await pool.query('SELECT major FROM users WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
-            const staticInterests = (userProfile[0]?.major || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
 
             const excluded = Array.isArray(excludeIds) ? excludeIds : (typeof excludeIds === 'string' && excludeIds ? excludeIds.split(',') : []);
             const excludeFilter = excluded.length > 0 ? `AND p.post_id NOT IN (${excluded.map(() => '?').join(',')})` : '';
 
-            // 1.5 PRE-FETCH SPARKED IDS (Optimization)
-            const [sparkedRows] = await pool.query('SELECT post_id FROM sparks WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
-            const sparkedIds = new Set((sparkedRows || []).map(r => r.post_id));
+            // 1. DUAL-MEMORY INTEREST MODEL
+            const recentKey = `user:${currentUserId}:recent_categories`;
 
-            // 2. CANDIDATE RETRIEVAL & SCORING (v2.1) - MOVED OFF DB TO REDIS + IN-MEMORY
-            let candidatePool = await redisService.get('feed:candidate_pool');
-            
-            // Fallback if cron job hasn't run or Redis is down
-            if (!candidatePool || candidatePool.length === 0) {
-                const [fallbackPosts] = await pool.query(`
-                    SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
-                           p.group_id, p.location, p.created_at, p.category, p.is_seed,
-                           u.username, u.name as user_name, u.avatar_url,
-                           u.campus as user_affiliation, u.is_private, u.profile_visibility,
-                           COALESCE(p.spark_count, 0) as sparks,
-                           COALESCE(p.comment_count, 0) as comments,
-                           COALESCE(p.share_count, 0) as shares,
-                           COALESCE(p.view_count, 0) as views
-                    FROM posts p JOIN users u ON p.user_id = u.user_id
-                    WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
-                    AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
-                    AND p.group_id IS NULL
-                    ORDER BY p.created_at DESC LIMIT 500
-                `);
-                candidatePool = fallbackPosts || [];
+            // Round 1: raw-cache read, redis feature lookups and all context queries
+            // fire in ONE parallel batch — these used to run as ~8 sequential
+            // round-trips (≈8 × DB/REST RTT) on every feed regeneration.
+            const [cached, recentLr, categoryStats, userProfile, sparkedRows, candidatePoolRaw, follows, interests, blocks] = await Promise.all([
+                excluded.length ? Promise.resolve(null) : redisService.get(cacheKey),
+                redisService.lrange(recentKey, 0, 19),
+                this.getCategoryStats(currentUserId),
+                pool.query('SELECT major FROM users WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
+                pool.query('SELECT post_id FROM sparks WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
+                redisService.get('feed:candidate_pool'),
+                pool.query('SELECT following_id FROM follows WHERE follower_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
+                pool.query('SELECT interest_slug FROM user_interests WHERE user_id = ?', [currentUserId]).then(([r]) => r).catch(() => []),
+                pool.query('SELECT blocked_id, blocker_id FROM user_blocks WHERE blocker_id = ? OR blocked_id = ?', [currentUserId, currentUserId]).then(([r]) => r).catch(() => []),
+            ]);
+
+            // Try to serve from raw cache first
+            if (cached && !excludeIds.length) {
+                return Array.isArray(cached) ? cached : [];
             }
 
-            // 2.1 Fetch Lightweight User Context (O(1) lookups instead of heavy JOINs)
-            const [follows] = await pool.query('SELECT following_id FROM follows WHERE follower_id = ?', [currentUserId]).catch(() => [[]]);
+            const staticInterests = ((userProfile && userProfile[0]?.major) || '').toLowerCase().split(/[,\s]+/).filter(Boolean);
+            const sparkedIds = new Set((sparkedRows || []).map(r => r.post_id));
+
+            // Round 2 (conditional): both redis-miss fallbacks run together
+            let recentCategories = recentLr;
+            let candidatePool = candidatePoolRaw;
+            const needRecent = !recentCategories || recentCategories.length === 0;
+            const needPool = !candidatePool || candidatePool.length === 0;
+            if (needRecent || needPool) {
+                const [recentActions, fallbackPosts] = await Promise.all([
+                    needRecent
+                        ? pool.query(`
+                            SELECT p.category FROM posts p
+                            JOIN user_actions ua ON p.post_id = ua.post_id
+                            WHERE ua.user_id = ?
+                            ORDER BY ua.created_at DESC LIMIT 20
+                        `, [currentUserId]).then(([r]) => r).catch(() => [])
+                        : null,
+                    needPool
+                        ? pool.query(`
+                            SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
+                                   p.group_id, p.location, p.created_at, p.category, p.is_seed,
+                                   u.username, u.name as user_name, u.avatar_url,
+                                   u.campus as user_affiliation, u.is_private, u.profile_visibility,
+                                   COALESCE(p.spark_count, 0) as sparks,
+                                   COALESCE(p.comment_count, 0) as comments,
+                                   COALESCE(p.share_count, 0) as shares,
+                                   COALESCE(p.view_count, 0) as views
+                            FROM posts p JOIN users u ON p.user_id = u.user_id
+                            WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
+                            AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
+                            AND p.group_id IS NULL
+                            ORDER BY p.created_at DESC LIMIT 500
+                        `).then(([r]) => r).catch(() => [])
+                        : null,
+                ]);
+                if (needRecent) {
+                    recentCategories = (recentActions || []).map(a => a.category).filter(Boolean);
+                    // Warm the list cache
+                    if (recentCategories.length > 0) {
+                        redisService.lpush(recentKey, ...recentCategories).catch(() => {});
+                        redisService.expire(recentKey, 3600).catch(() => {});
+                    }
+                }
+                if (needPool) {
+                    candidatePool = fallbackPosts || [];
+                }
+            }
+
+            // 2.1 User context sets (round-1 results)
             const followingIds = new Set((follows || []).map(f => f.following_id));
-
-            const [interests] = await pool.query('SELECT interest_slug FROM user_interests WHERE user_id = ?', [currentUserId]).catch(() => [[]]);
             const selectedInterests = new Set((interests || []).map(i => i.interest_slug.toLowerCase()));
-
-            const [blocks] = await pool.query('SELECT blocked_id, blocker_id FROM user_blocks WHERE blocker_id = ? OR blocked_id = ?', [currentUserId, currentUserId]).catch(() => [[]]);
             const blockedUserIds = new Set();
             (blocks || []).forEach(b => {
                 blockedUserIds.add(b.blocked_id);

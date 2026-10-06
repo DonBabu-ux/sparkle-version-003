@@ -123,9 +123,10 @@ const getFeedPosts = async (req, res) => {
                 const remainingCache = cachedPosts.slice(pageLimit);
                 await redisService.set(cacheListKey, remainingCache, 3600); // 1 hour TTL
 
-                // Update seen set
+                // Update seen set (fire-and-forget: response is already determined;
+                // saves a ~450ms Upstash round-trip on every cached page hit)
                 const updatedSeen = [...seenSet, ...page.map(p => p.post_id)];
-                await redisService.set(seenKey, updatedSeen, 86400);
+                redisService.set(seenKey, updatedSeen, 86400).catch(() => {});
 
                 return res.json({
                     posts: page,
@@ -157,8 +158,9 @@ const getFeedPosts = async (req, res) => {
         }
 
         // 2. If Cache is empty (or we need more), Hit the Database
-        const cachedOffset = await redisService.get(batchKey);
-        let batchOffset = Number(cachedOffset) || 0;
+        // Reuse batchOffsetRaw from the opening parallel fetch instead of a
+        // second ~450ms round-trip; force refresh resets to 0 (batchKey deleted above).
+        let batchOffset = isForceRefresh ? 0 : (Number(batchOffsetRaw) || 0);
 
         const fetchLimit = 150; // Massive pool fetch since we only do this rarely now
         let fresh = [];
@@ -179,7 +181,6 @@ const getFeedPosts = async (req, res) => {
             fresh = [...fresh, ...spacedFresh];
 
             batchOffset += fetchLimit;
-            await redisService.set(batchKey, batchOffset, 86400);
 
             if (fresh.length >= pageLimit * 3) {
                 break; // Stop fetching if we found plenty to cache
@@ -188,6 +189,8 @@ const getFeedPosts = async (req, res) => {
                 break; // Hit end of database
             }
         }
+        // Persist the final offset once (was per-iteration: up to 3 extra ~450ms rounds)
+        await redisService.set(batchKey, batchOffset, 86400);
 
         // --- Exhaustion Cycle: Soft Reset (Smart Memory Management) ---
         if (fresh.length === 0 && postsFetched < fetchLimit) {

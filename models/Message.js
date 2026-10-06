@@ -474,6 +474,25 @@ class Message {
         `, [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]);
         };
 
+        // Blocks lookup runs in parallel with the main UNION query (independent,
+        // non-fatal on error) — saves one full round-trip on this hot path.
+        const blocksPromise = (async () => {
+            try {
+                const [myBlocks, blocksOfMe] = await Promise.all([
+                    db.query('SELECT blocked_id FROM user_blocks WHERE blocker_id = ?', [userId]),
+                    db.query('SELECT blocker_id FROM user_blocks WHERE blocked_id = ?', [userId]),
+                ]);
+                return [
+                    new Set(((myBlocks && myBlocks[0]) || []).map(b => String(b.blocked_id))),
+                    new Set(((blocksOfMe && blocksOfMe[0]) || []).map(b => String(b.blocker_id))),
+                ];
+            } catch (bErr) {
+                // Non-fatal fallback
+                logger.warn(`getUserConversations: user_blocks lookup failed for user ${userId} (blocked status omitted)`, bErr?.message || bErr);
+                return [new Set(), new Set()];
+            }
+        })();
+
         let rows;
         try {
             [rows] = await runQuery();
@@ -503,17 +522,8 @@ class Message {
             }
         }
 
-        let blockedByMeSet = new Set();
-        let blockedMeSet = new Set();
-        try {
-            const [myBlocks] = await db.query('SELECT blocked_id FROM user_blocks WHERE blocker_id = ?', [userId]);
-            const [blocksOfMe] = await db.query('SELECT blocker_id FROM user_blocks WHERE blocked_id = ?', [userId]);
-            blockedByMeSet = new Set((myBlocks || []).map(b => String(b.blocked_id)));
-            blockedMeSet = new Set((blocksOfMe || []).map(b => String(b.blocker_id)));
-        } catch (bErr) {
-            // Non-fatal fallback
-            logger.warn(`getUserConversations: user_blocks lookup failed for user ${userId} (blocked status omitted)`, bErr?.message || bErr);
-        }
+        let blockedByMeSet, blockedMeSet;
+        [blockedByMeSet, blockedMeSet] = await blocksPromise;
 
         const { formatSystemUser } = require('../helpers/systemAccount.helper');
         return rows.map(conv => {

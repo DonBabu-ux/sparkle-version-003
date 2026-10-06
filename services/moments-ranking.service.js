@@ -196,19 +196,26 @@ class MomentsRankingService {
      */
     async getRankedFeed(userId, limit = 8, options = {}) {
         const { query, offset = 0, refresh = false } = options;
+        const cacheEligible = !query && offset === 0 && !refresh;
+        const isSearch = !!query;
+
+        // ── ONE parallel round: result-cache read + shared context + seen set ──
+        // Upstash REST costs ~450ms per round-trip; previously these were three
+        // sequential rounds (~1.35s) before retrieval even started.
+        const [cachedRaw, sivProfile, followingPool, seenVideosRaw] = await Promise.all([
+            cacheEligible ? redis.get(`ranked_feed:${userId}`) : Promise.resolve(null),
+            sessionInterestService.getSessionProfile(userId),
+            this.getFollowingPool(userId),
+            isSearch ? Promise.resolve(null) : redis.smembers(`seen_video_set:user:${userId}`),
+        ]);
 
         // ── Per-user result cache (skip full pipeline on warm re-opens) ─────
-        // Bypass cache if the client explicitly asked for a refresh
-        if (!query && offset === 0 && !refresh) {
-            const cacheKey = `ranked_feed:${userId}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                const data = safeParse(cached);
-                if (Array.isArray(data) && data.length > 0) {
-                    // Kick off background refresh so the NEXT open is also fast
-                    this._refreshFeedCache(userId, limit).catch(() => { });
-                    return data;
-                }
+        if (cacheEligible && cachedRaw) {
+            const data = safeParse(cachedRaw);
+            if (Array.isArray(data) && data.length > 0) {
+                // Kick off background refresh so the NEXT open is also fast
+                this._refreshFeedCache(userId, limit).catch(() => { });
+                return data;
             }
         }
 
@@ -217,14 +224,9 @@ class MomentsRankingService {
             this.generateCandidatePools().catch(() => { });
         }
 
-        // ── Fetch shared context ONCE (used in both retrieve + score stages) ─
-        const [sivProfile, followingPool] = await Promise.all([
-            sessionInterestService.getSessionProfile(userId),
-            this.getFollowingPool(userId)
-        ]);
-
-        // RACE: Set a 2.5s timeout for the entire ranking process to ensure snappy response
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Ranking Timeout')), 2500));
+        // RACE: 3.5s budget — fits the ~4 remaining redis/DB rounds at ~450ms
+        // REST latency; on timeout the fallback still warms the result cache.
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Ranking Timeout')), 3500));
 
         try {
             const result = await Promise.race([
@@ -232,13 +234,13 @@ class MomentsRankingService {
                     const candidates = await this._retrieveCandidates(userId, query, offset, sivProfile, followingPool);
                     const scoredCandidates = this._scoreCandidates(userId, candidates, query, sivProfile, followingPool);
                     const reranked = this._rerank(scoredCandidates, limit);
-                    return await this._applyExplorationAndDeduplicate(userId, reranked, limit, !!query);
+                    return await this._applyExplorationAndDeduplicate(userId, reranked, limit, isSearch, seenVideosRaw);
                 })(),
                 timeoutPromise
             ]);
 
             // ── Cache the result for 30 seconds ──────────────────────────────────
-            if (!query && offset === 0 && result.length > 0) {
+            if (cacheEligible && result.length > 0) {
                 redis.set(`ranked_feed:${userId}`, JSON.stringify(result), 30).catch(() => { });
             }
 
@@ -254,7 +256,13 @@ class MomentsRankingService {
                 FROM moments m JOIN users u ON m.user_id = u.user_id
                 ORDER BY m.created_at DESC LIMIT ? OFFSET ?
             `, [limit, offset]);
-            return Array.isArray(fallback) ? fallback : [];
+            const rows = Array.isArray(fallback) ? fallback : [];
+            // Warm the result cache from the fallback too — otherwise every request
+            // stays on the cold path (previously the cache was never written).
+            if (cacheEligible && rows.length > 0) {
+                redis.set(`ranked_feed:${userId}`, JSON.stringify(rows), 30).catch(() => { });
+            }
+            return rows;
         }
     }
 
@@ -287,7 +295,22 @@ class MomentsRankingService {
             ...Object.keys(sivProfile || {}).map(cat => `pool:category:${cat}:shard_01`)
         ];
 
-        const poolData = await Promise.all(poolKeys.map(k => redis.get(k)));
+        // Fire pool reads and the DB fallback in ONE round: on cold pools this
+        // removes a full sequential ~450ms+ round; when pools are warm the query
+        // simply runs alongside the Redis reads at no latency cost.
+        const [poolData, dbItems] = await Promise.all([
+            Promise.all(poolKeys.map(k => redis.get(k))),
+            safeQuery(`
+                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
+                       m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.created_at, m.completion_rate, m.quality_score,
+                       u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
+                FROM moments m
+                JOIN users u ON m.user_id = u.user_id
+                ORDER BY m.created_at DESC
+                LIMIT ? OFFSET ?
+            `, [50, offset]).catch(() => null),
+        ]);
         poolData.forEach(raw => {
             const data = safeParse(raw);
             if (Array.isArray(data)) candidates.push(...data);
@@ -298,18 +321,8 @@ class MomentsRankingService {
         }
 
         // DB fallback + paging (fast query, no joins on cold start)
-        if (candidates.length < 20 || offset > 0) {
-            const dbItems = await safeQuery(`
-                SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
-                       m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                       m.created_at, m.completion_rate, m.quality_score,
-                       u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
-                FROM moments m
-                JOIN users u ON m.user_id = u.user_id
-                ORDER BY m.created_at DESC
-                LIMIT ? OFFSET ?
-            `, [50, offset]);
-            if (Array.isArray(dbItems)) candidates.push(...dbItems);
+        if ((candidates.length < 20 || offset > 0) && Array.isArray(dbItems)) {
+            candidates.push(...dbItems);
         }
 
         // Filter by query
@@ -409,9 +422,16 @@ class MomentsRankingService {
         return reranked;
     }
 
-    async _applyExplorationAndDeduplicate(userId, candidates, limit, isSearch) {
+    async _applyExplorationAndDeduplicate(userId, candidates, limit, isSearch, prefetchedSeen = null) {
         if (!Array.isArray(candidates)) candidates = [];
-        const seenVideos = isSearch ? [] : await redis.smembers(`seen_video_set:user:${userId}`);
+        let seenVideos = [];
+        if (!isSearch) {
+            // Use the seen set prefetched in the opening parallel round when given;
+            // only fall back to a blocking redis call otherwise (e.g. _refreshFeedCache).
+            seenVideos = Array.isArray(prefetchedSeen)
+                ? prefetchedSeen
+                : await redis.smembers(`seen_video_set:user:${userId}`);
+        }
         const seenSet = new Set(Array.isArray(seenVideos) ? seenVideos : []);
 
         let unique = candidates.filter(c => !seenSet.has(c.moment_id));

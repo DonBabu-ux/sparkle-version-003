@@ -1,4 +1,5 @@
 const { Redis } = require('@upstash/redis');
+const IORedis = require('ioredis');
 const logger = require('../utils/logger');
 const dns = require('dns');
 
@@ -15,6 +16,73 @@ dns.setDefaultResultOrder('ipv4first');
 // invisible to this map for at most the TTL. Set REDIS_L1_TTL_MS=0 to disable.
 const L1_DEFAULT_TTL_MS = 3000;
 const L1_MAX_ENTRIES = 5000;
+
+// ── Native TCP adapter (REDIS_CACHE_URL) ─────────────────────────────────────
+// The Upstash REST client auto-serializes: strings are stored raw, everything
+// else JSON.stringify'd; reads try-JSON.parse with raw-string fallback. The
+// adapter below replicates that byte-for-byte over ioredis so callers (and L1)
+// see identical shapes on either provider — verified against a live endpoint.
+
+/** Try-JSON.parse with raw fallback (matches REST client decode). */
+function tryParse(v) {
+    if (typeof v !== 'string') return v;
+    try { return JSON.parse(v); } catch (e) { return v; }
+}
+
+/** Strings raw, non-strings JSON (matches REST client encode). */
+function encode(v) {
+    return typeof v === 'string' ? v : JSON.stringify(v);
+}
+
+/**
+ * Wrap an ioredis client with the method signatures the REST client exposes
+ * (set with {ex,nx} options object, try-parsed reads, null hgetall on miss).
+ * Fails fast when disconnected (enableOfflineQueue: false) so callers fall back
+ * to stale L1 / their own error paths instead of buffering for seconds.
+ */
+function makeTcpClient(url) {
+    const io = new IORedis(url, {
+        connectTimeout: 5000,
+        maxRetriesPerRequest: 1,
+        enableOfflineQueue: false,
+        retryStrategy(times) {
+            return Math.min(times * 500, 15000);
+        },
+    });
+    io.on('error', (err) => logger.error('Redis Service (TCP):', err.message));
+    io.on('ready', () => logger.info('Redis Service (TCP): connected'));
+    return {
+        get: (key) => io.get(key).then(tryParse),
+        mget: (...keys) => io.mget(...keys).then((arr) => arr.map(tryParse)),
+        set: (key, value, options = {}) => {
+            const args = [key, encode(value)];
+            const opts = {};
+            for (const [k, v] of Object.entries(options || {})) opts[k.toLowerCase()] = v;
+            if (opts.ex) args.push('EX', opts.ex);
+            else if (opts.px) args.push('PX', opts.px);
+            if (opts.nx) args.push('NX');
+            return io.set(...args);
+        },
+        del: (key) => io.del(key),
+        incr: (key) => io.incr(key),
+        expire: (key, seconds) => io.expire(key, seconds),
+        sadd: (key, ...members) => io.sadd(key, ...members.map(encode)),
+        smembers: (key) => io.smembers(key).then((arr) => arr.map(tryParse)),
+        // ioredis returns {} on a missing hash; REST returns null — match REST.
+        hgetall: (key) => io.hgetall(key).then((o) => {
+            if (!o || Object.keys(o).length === 0) return null;
+            const out = {};
+            for (const [f, v] of Object.entries(o)) out[f] = tryParse(v);
+            return out;
+        }),
+        hincrbyfloat: (key, field, value) => io.hincrbyfloat(key, field, value),
+        hset: (key, field, value) => io.hset(key, field, encode(value)),
+        lpush: (key, ...members) => io.lpush(key, ...members.map(encode)),
+        lrange: (key, start, stop) => io.lrange(key, start, stop).then((arr) => arr.map(tryParse)),
+        ltrim: (key, start, stop) => io.ltrim(key, start, stop),
+        disconnect: () => io.disconnect(),
+    };
+}
 
 /**
  * Production-ready Redis Service using Upstash REST Client.
@@ -48,6 +116,17 @@ class RedisService {
             return;
         }
         try {
+            // REDIS_CACHE_URL: native TCP endpoint (rediss://...), any
+            // Redis-compatible provider (Redis Cloud, Upstash TCP, ...).
+            // Takes precedence over the Upstash REST credentials.
+            const tcpUrl = process.env.REDIS_CACHE_URL;
+            if (tcpUrl) {
+                this.client = makeTcpClient(tcpUrl);
+                this.isEnabled = true;
+                logger.info(`Redis Service: Initialized successfully (native TCP, L1 ${this.l1TtlMs}ms)`);
+                return;
+            }
+
             const url = process.env.UPSTASH_REDIS_REST_URL;
             const token = process.env.UPSTASH_REDIS_REST_TOKEN;
 

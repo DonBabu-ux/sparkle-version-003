@@ -6,6 +6,12 @@ const sessionInterestService = require('./session-interest.service');
 
 const CATEGORIES = ['Sports', 'Technology', 'Entertainment', 'Academic', 'Social', 'Music', 'Lifestyle', 'Gaming', 'Comedy', 'Education', 'Politics', 'Viral', 'Dance', 'Nature', 'Fashion', 'Health', 'Travel'];
 
+// ranked_feed entries live 30s; kicking a background refresh on EVERY warm hit
+// cost ~10-25 redis commands each. One refresh per TTL window per user is the
+// freshest a refresh can usefully be — any faster is pure command burn.
+const FEED_REFRESH_MIN_INTERVAL_MS = 30000;
+const FEED_REFRESH_TRACK_MAX = 5000;
+
 const safeParse = (val) => {
     if (!val) return null;
     if (typeof val === 'object') return val;
@@ -51,6 +57,11 @@ const bandShuffle = (arr, bandSize = 5) => {
  *  4. Fast-path DB fallback returns in <200ms when Redis is cold
  */
 class MomentsRankingService {
+
+    constructor() {
+        // userId -> epoch ms of last _refreshFeedCache kick (see _shouldRefreshFeed)
+        this._lastFeedRefreshAt = new Map();
+    }
 
     /**
      * Rebuilds the global candidate pools in Redis.
@@ -214,7 +225,10 @@ class MomentsRankingService {
             const data = safeParse(cachedRaw);
             if (Array.isArray(data) && data.length > 0) {
                 // Kick off background refresh so the NEXT open is also fast
-                this._refreshFeedCache(userId, limit).catch(() => { });
+                // (throttled to once per TTL window per user — see _shouldRefreshFeed)
+                if (this._shouldRefreshFeed(userId)) {
+                    this._refreshFeedCache(userId, limit).catch(() => { });
+                }
                 return data;
             }
         }
@@ -264,6 +278,21 @@ class MomentsRankingService {
             }
             return rows;
         }
+    }
+
+    /** True at most once per FEED_REFRESH_MIN_INTERVAL_MS per user; records the kick. */
+    _shouldRefreshFeed(userId) {
+        const now = Date.now();
+        const last = this._lastFeedRefreshAt.get(userId) || 0;
+        if (now - last < FEED_REFRESH_MIN_INTERVAL_MS) return false;
+        if (this._lastFeedRefreshAt.size >= FEED_REFRESH_TRACK_MAX) {
+            for (const [k, t] of this._lastFeedRefreshAt) {
+                if (now - t >= FEED_REFRESH_MIN_INTERVAL_MS) this._lastFeedRefreshAt.delete(k);
+            }
+            if (this._lastFeedRefreshAt.size >= FEED_REFRESH_TRACK_MAX) this._lastFeedRefreshAt.clear();
+        }
+        this._lastFeedRefreshAt.set(userId, now);
+        return true;
     }
 
     /** Background refresh so the next open is instant too */

@@ -24,10 +24,16 @@ class NotificationService {
         const targetUsers = userIds.slice(0, MAX_FANOUT);
 
         const BATCH_SIZE = 500;
+        // A network flap can stall add() for minutes (queue connection uses
+        // maxRetriesPerRequest: null). Time-box awaited enqueues; once the queue
+        // lags, enqueue remaining batches WITHOUT awaiting — ioredis' offline
+        // queue still holds them for delivery on reconnect, so the request path
+        // never blocks on a dead link and no batch is lost.
+        let queueLagging = false;
         for (let i = 0; i < targetUsers.length; i += BATCH_SIZE) {
             const batch = targetUsers.slice(i, i + BATCH_SIZE);
-            
-            await notificationQueue.add('send-notification', {
+
+            const addPromise = notificationQueue.add('send-notification', {
                 userIds: batch,
                 type,
                 priority,
@@ -37,6 +43,26 @@ class NotificationService {
                 priority: this.getPriorityValue(priority),
                 delay: i > 0 ? (i / BATCH_SIZE) * 100 : 0
             });
+
+            if (queueLagging) {
+                addPromise.catch((e) => logger.warn(`NotificationService: buffered batch enqueue failed: ${e.message}`));
+                continue;
+            }
+            try {
+                let timer;
+                await Promise.race([
+                    addPromise,
+                    new Promise((_, reject) => {
+                        timer = setTimeout(() => reject(new Error('queue add timed out')), 5000);
+                        timer.unref();
+                    }),
+                ]);
+                clearTimeout(timer);
+            } catch (e) {
+                queueLagging = true;
+                logger.warn(`NotificationService: queue add lagging (${e.message}); remaining batches enqueue without awaiting.`);
+                addPromise.catch(() => { }); // race already subscribed; keep explicit consumer
+            }
         }
     }
 

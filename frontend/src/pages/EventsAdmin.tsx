@@ -8,6 +8,7 @@ import {
   Bell, Trash2, Edit, ArrowLeft, Shield, AlertCircle 
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface Event {
   event_id: string;
@@ -63,7 +64,7 @@ export default function EventsAdmin() {
         }, 500);
       }
     } catch (err) {
-      console.error('Failed to fetch admin events', err);
+      logger.error('Failed to fetch admin events', err);
     } finally {
       setLoading(false);
     }

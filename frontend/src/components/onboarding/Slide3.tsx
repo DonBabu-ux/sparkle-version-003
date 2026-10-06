@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, UserCheck, ArrowRight, ArrowLeft, Loader2, Compass } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface Creator {
   user_id: string;
@@ -31,7 +32,7 @@ export default function Slide3({ onNext, onBack }: SlideProps) {
           setCreators(res.data.data.creators || []);
         }
       } catch (err) {
-        console.error('Failed to load popular creators:', err);
+        logger.error('Failed to load popular creators:', err);
       } finally {
         setLoading(false);
       }
@@ -63,7 +64,7 @@ export default function Slide3({ onNext, onBack }: SlideProps) {
       await api.post('/onboarding/follow', { userIds: followingIds });
       onNext();
     } catch (err) {
-      console.error('Failed to follow creators:', err);
+      logger.error('Failed to follow creators:', err);
       onNext();
     } finally {
       setSubmitting(false);

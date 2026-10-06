@@ -4,6 +4,7 @@ import { X, Music, Smile, Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface NoteEditorModalProps {
   initialNote?: string;
@@ -56,7 +57,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       const res = await api.get('/users/followers');
       setContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error('Failed to fetch contacts:', err);
+      logger.error('Failed to fetch contacts:', err);
     }
   };
 
@@ -94,7 +95,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
         hidden_from: Array.from(hiddenFrom)
       });
       if (res.data.success || res.status === 200) onSuccess(note.trim() || null);
-    } catch (err) { console.error('Failed to share note:', err); }
+    } catch (err) { logger.error('Failed to share note:', err); }
     finally { setIsSubmitting(false); }
   };
 
@@ -164,7 +165,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
                   key={contact.id}
                   onClick={() => setHiddenFrom(prev => {
                     const next = new Set(prev);
-                    next.has(contact.id) ? next.delete(contact.id) : next.add(contact.id);
+                    if (next.has(contact.id)) next.delete(contact.id); else next.add(contact.id);
                     return next;
                   })}
                   className="w-full flex items-center px-4 py-3 hover:bg-white/5 transition-colors"

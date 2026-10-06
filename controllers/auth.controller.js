@@ -62,14 +62,14 @@ const login = async (req, res) => {
 
         validateJWTSecret();
 
-        const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
+        const ip = req.ip || req.connection.remoteAddress;
         
         const { normalizeUsername } = require('../utils/validation/username');
         const normLoginId = normalizeUsername(loginId);
         const cleanEmail = String(loginId).trim().toLowerCase();
 
         const user = await queryOne(
-            'SELECT * FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
+            'SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, token_version, password_hash FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
             [cleanEmail, normLoginId, loginId]
         );
 
@@ -289,7 +289,7 @@ const verify2FA = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'User ID and code are required' });
         }
 
-        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, token_version, password_hash FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
@@ -867,7 +867,7 @@ const switchAccount = async (req, res) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
+        const users = await query('SELECT user_id FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
 
         if (users.length === 0) {
             return res.status(401).json({ status: 'error', message: 'User not found' });

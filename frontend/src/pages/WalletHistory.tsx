@@ -9,6 +9,7 @@ import {
   Activity, Calendar, ShieldCheck
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface Transaction {
   transaction_id: string;
@@ -62,7 +63,7 @@ export default function WalletHistory() {
         setTotalPages(pagesCount);
       }
     } catch (e) {
-      console.error('Failed to load transaction history:', e);
+      logger.error('Failed to load transaction history:', e);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useRef } from 'react';
+import { logger } from '../utils/logger';
 
 // Types for call state
 export type CallMode = 'voice' | 'video';
@@ -87,7 +88,7 @@ export const MockCallProvider = ({ children }: { children: ReactNode }) => {
         setCallHistory(JSON.parse(stored));
       }
     } catch (e) {
-      console.error('Failed to load call history', e);
+      logger.error('Failed to load call history', e);
     }
   }, []);
 
@@ -109,7 +110,7 @@ export const MockCallProvider = ({ children }: { children: ReactNode }) => {
     try {
       localStorage.setItem('sparkle_call_history', JSON.stringify(updated));
     } catch (e) {
-      console.error('Failed to save call history', e);
+      logger.error('Failed to save call history', e);
     }
   };
 

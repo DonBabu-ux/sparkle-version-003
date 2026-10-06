@@ -115,7 +115,7 @@ async function get(key) {
             if (cached !== null && cached !== undefined) {
                 return typeof cached === 'string' ? safeParse(cached) : cached;
             }
-        } catch (_) { /* fallthrough */ }
+        } catch (_) { logger.debug('redis get failed for ' + key + '; falling through to memory cache'); }
     }
     return memGet(key);
 }

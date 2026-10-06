@@ -13,7 +13,9 @@
     "start:prod": "node --dns-result-order=ipv4first server.js",
     "build:css": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css",
     "build:css:watch": "npx -y tailwindcss -i ./public/css/tailwind.css -o ./public/css/output.css --watch",
-    "lint": "npm run lint --prefix frontend",
+    "lint": "npm run lint:backend && npm run lint --prefix frontend",
+    "lint:backend": "node scripts/lintBackend.cjs",
+    "typecheck": "npm run typecheck --prefix frontend",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

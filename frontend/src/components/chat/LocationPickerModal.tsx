@@ -26,6 +26,7 @@ import { useUserStore } from '../../store/userStore';
 import { LiveLocationIntroModal } from './LiveLocationIntroModal';
 import { LiveLocationConfigPanel, type LiveDuration } from './LiveLocationConfigPanel';
 import { liveLocationService } from '../../services/liveLocationService';
+import { logger } from '../../utils/logger';
 
 export interface LocationPayload {
   latitude: number;
@@ -160,7 +161,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
         setNearbyPlaces(response.data.places);
       }
     } catch (err) {
-      console.warn('Failed to fetch nearby places:', err);
+      logger.warn('Failed to fetch nearby places:', err);
     } finally {
       setLoadingNearby(false);
     }
@@ -221,7 +222,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           setIsRefreshing(false);
         },
         (error) => {
-          console.warn('GPS location error:', error.message);
+          logger.warn('GPS location error:', error.message);
           setGpsStatus('Location unavailable');
           setIsRefreshing(false);
           // Fallback coords (Nairobi)
@@ -331,7 +332,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     // 2. Resolve reverse geocoded address asynchronously in background
     api.post('/location/resolve', { lat: finalLat, lon: finalLng }).then((res) => {
       if (res.data?.success && res.data?.location?.name) {
-        console.log('[LocationPickerModal] Resolved place name in background:', res.data.location.name);
+        logger.log('[LocationPickerModal] Resolved place name in background:', res.data.location.name);
       }
     }).catch(() => {});
   };
@@ -376,7 +377,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       }
       onClose();
     } catch (err) {
-      console.error('Failed to start live location session:', err);
+      logger.error('Failed to start live location session:', err);
     } finally {
       setIsStartingLive(false);
     }

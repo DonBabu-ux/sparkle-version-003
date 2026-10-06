@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 const PEXELS_API_KEY = import.meta.env.VITE_PEXELS_API_KEY || '';
 const PEXELS_BASE = 'https://api.pexels.com/v1';
 
@@ -23,7 +24,7 @@ const CACHE_TTL = 1000 * 60 * 30;
 
 async function fetchFromPexels(endpoint: string): Promise<PexelsPhoto[]> {
   if (!PEXELS_API_KEY) {
-    console.warn('[Pexels] No API key found. Using fallback images.');
+    logger.warn('[Pexels] No API key found. Using fallback images.');
     return [];
   }
   try {
@@ -34,7 +35,7 @@ async function fetchFromPexels(endpoint: string): Promise<PexelsPhoto[]> {
     const data: PexelsResponse = await res.json();
     return data.photos || [];
   } catch (err) {
-    console.warn('[Pexels] Fetch failed:', err);
+    logger.warn('[Pexels] Fetch failed:', err);
     return [];
   }
 }

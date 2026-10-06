@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../../utils/logger');
 const router = express.Router();
 const pool = require('../../config/database');
 const { optionalAuthMiddleware } = require('../../middleware/auth.middleware');
@@ -46,6 +47,7 @@ router.post('/ticket', optionalAuthMiddleware, async (req, res) => {
             );
         } catch (_) {
             // Soft fail fallback if support_requests table schema varies
+            logger.debug('support ticket insert soft-failed for ticket ' + ticketId);
         }
 
         res.json({

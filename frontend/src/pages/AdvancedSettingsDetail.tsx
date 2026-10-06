@@ -28,6 +28,7 @@ import { SettingRow } from '../components/settings/SettingRow';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useSocket } from '../hooks/useSocket';
+import { logger } from '../utils/logger';
 
 export default function AdvancedSettingsDetail() {
   const { section } = useParams<{ section: string }>();
@@ -76,7 +77,7 @@ export default function AdvancedSettingsDetail() {
         setSettings((prev) => ({ ...prev, ...res.data.settings }));
       }
     } catch (err) {
-      console.error('Failed to load advanced settings:', err);
+      logger.error('Failed to load advanced settings:', err);
     } finally {
       setLoading(false);
     }
@@ -91,7 +92,7 @@ export default function AdvancedSettingsDetail() {
         setSessions(res.data.sessions);
       }
     } catch (err) {
-      console.error('Failed to fetch sessions:', err);
+      logger.error('Failed to fetch sessions:', err);
     }
   };
 

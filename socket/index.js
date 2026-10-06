@@ -4,6 +4,7 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { socketAuthErrorMessage } = require('../utils/socketAuthError');
 const realtimeLogger = require('../utils/realtimeTrace');
 const secureLogger = require('../utils/secureLogger');
 const Message = require('../models/Message');
@@ -101,8 +102,10 @@ const initializeSocket = (server) => {
             next();
         } catch (error) {
             logger.error(`🔌 Socket Auth Error [${socket.id}]:`, error.message);
-            const message = error.name === 'TokenExpiredError' ? 'Token expired' : 'Invalid token';
-            next(new Error(message));
+            // H24: DB blips during User.findById map to ServiceUnavailable,
+            // never to "Invalid token" (which would make clients refresh-loop
+            // on a perfectly valid JWT).
+            next(new Error(socketAuthErrorMessage(error)));
         }
     });
 
@@ -244,6 +247,7 @@ socket.on('get-rooms', () => {
                 }
             } catch (pErr) {
                 // If query fails, fallback to normal broadcast
+                logger.debug('typing-privacy lookup failed; broadcasting typing event', pErr?.message || pErr);
             }
 
             // Track which chats this socket is actively typing in
@@ -675,7 +679,9 @@ socket.on('get-rooms', () => {
                                         isReplyToSparkly = true;
                                     }
                                 }
-                            } catch (e) {}
+                            } catch (e) {
+                                logger.debug('sparkly reply lookup failed', e?.message || e);
+                            }
                         }
 
                         if (sparklyMentionMatch || isReplyToSparkly) {
@@ -1489,6 +1495,7 @@ async function ensureSparklyBotUserExists() {
         `);
     } catch (e) {
         // Suppress duplicate/concurrent insertion warning
+        logger.debug('sparkly bot upsert (expected on duplicate)', e?.message || e);
     }
 }
 

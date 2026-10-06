@@ -1,6 +1,7 @@
 const db = require('../config/database');
 const crypto = require('crypto');
 const PermissionEngine = require('../services/PermissionEngine');
+const logger = require('../utils/logger');
 
 class Message {
     /**
@@ -511,6 +512,7 @@ class Message {
             blockedMeSet = new Set((blocksOfMe || []).map(b => String(b.blocker_id)));
         } catch (bErr) {
             // Non-fatal fallback
+            logger.warn(`getUserConversations: user_blocks lookup failed for user ${userId} (blocked status omitted)`, bErr?.message || bErr);
         }
 
         const { formatSystemUser } = require('../helpers/systemAccount.helper');

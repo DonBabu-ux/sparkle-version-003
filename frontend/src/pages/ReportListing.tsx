@@ -4,6 +4,7 @@ import { ChevronLeft, ShieldAlert, CheckCircle2, AlertTriangle, ShieldCheck, Inf
 import api from '../api/api';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '../utils/logger';
 
 export default function ReportListing() {
   const { id } = useParams();
@@ -21,7 +22,7 @@ export default function ReportListing() {
         const res = await api.get(`/marketplace/listings/${id}`);
         setListing(res.data.listing);
       } catch (err) {
-        console.error(err);
+        logger.error(err);
       } finally {
         setLoading(false);
       }
@@ -60,7 +61,7 @@ export default function ReportListing() {
         navigate('/marketplace');
       }, 3500);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       alert('Failed to submit report. Please try again.');
     }
   };

@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { 
   X, Zap, Settings, ChevronLeft, Send, Sparkles, 
   Smile, Camera, Music, Search, Bookmark, Mic2, LayoutGrid,
-  Plus, History, TrendingUp, Music2, Infinity, Type, 
+  Plus, History, TrendingUp, Music2, Type, 
   AtSign, Palette, Timer, Gauge, Wand2, Image as ImageIcon,
   RotateCw, Check, Layers, UserPlus, Pencil, Music4, ChevronDown,
   MapPin, AlignLeft, ArrowRightLeft, MousePointer2, AlignCenter,
@@ -28,6 +28,7 @@ import CameraControls from '../components/camera/CameraControls';
 import CameraPermissionsManager from '../components/camera/CameraPermissionsManager';
 import { useUploadStore, type UploadJob, type StoryMetadata } from '../store/uploadStore';
 import { UploadManager } from '../services/UploadManager';
+import { logger } from '../utils/logger';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
 type Mode = 'post' | 'story' | 'reel' | 'live';
@@ -257,7 +258,7 @@ export default function CreateStory() {
             return;
           }
         } catch (err) {
-          console.error('Failed to load native phone gallery files:', err);
+          logger.error('Failed to load native phone gallery files:', err);
         }
       }
 
@@ -289,7 +290,7 @@ export default function CreateStory() {
           }
         }
       } catch (e) {
-        console.error('Failed to load local media cache:', e);
+        logger.error('Failed to load local media cache:', e);
       }
 
       // 3. Fallback on browser: Automatically click hidden file input to let the user select their photos gallery folder/files
@@ -322,7 +323,7 @@ export default function CreateStory() {
     if (videoRef.current && stream) {
       videoRef.current.srcObject = stream;
       videoRef.current.play().catch(err => {
-        console.warn('[CreateStory] Auto-play interrupted:', err);
+        logger.warn('[CreateStory] Auto-play interrupted:', err);
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -365,7 +366,7 @@ export default function CreateStory() {
         }
       }
     } catch (e) {
-      console.error('In-app media capture failed:', e);
+      logger.error('In-app media capture failed:', e);
     }
   };
 
@@ -388,7 +389,7 @@ export default function CreateStory() {
         setPreviewUrl(item.url);
         setPhase('editor');
       } catch (err) {
-        console.error('Failed to load remote media:', err);
+        logger.error('Failed to load remote media:', err);
         setPreviewUrl(item.url);
         setPhase('editor');
       } finally {
@@ -416,7 +417,7 @@ export default function CreateStory() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      console.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
+      logger.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
       
       if (previewUrl && previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewUrl);
@@ -441,7 +442,7 @@ export default function CreateStory() {
       const params = new URLSearchParams({ per_page: '20' });
       if (query.trim()) params.set('q', query.trim());
       // Match the same token resolution as api.ts interceptor
-      const token = useUserStore.getState().token || localStorage.getItem('accessToken') || '';
+      const token = useUserStore.getState().token || '';
       const res = await fetch(`/api/music/search?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`
@@ -561,7 +562,7 @@ export default function CreateStory() {
 
   const handleSubmit = async () => {
       if (!file && !selectedMusic && phase !== 'text_story') return;
-      console.log('🚀 Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
+      logger.log('🚀 Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
       setUploading(true);
       try {
           // ── STORY MODE: Background queue (instant close) ──
@@ -683,7 +684,7 @@ export default function CreateStory() {
               // Wake the upload manager to pick up the new job
               UploadManager.wake();
 
-              console.log(`✨ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
+              logger.log(`✨ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
               sessionStorage.setItem('sparkle_story_posted', '1');
               navigate('/dashboard');
               return; // Exit early — upload happens in background
@@ -692,7 +693,7 @@ export default function CreateStory() {
           // ── POST / REEL / LIVE: Traditional upload (unchanged) ──
           const formData = new FormData();
           if (file) {
-              console.log('📎 Appending media to FormData:', file.name);
+              logger.log('📎 Appending media to FormData:', file.name);
               formData.append('media', file);
           }
           if (phase === 'text_story') {
@@ -713,7 +714,7 @@ export default function CreateStory() {
               alert('Live streaming is coming soon to Sparkle Matrix! 🚀');
           }
       } catch (e) {
-          console.error('Upload failed', e);
+          logger.error('Upload failed', e);
           alert('Upload failed. Please check your connection.');
       } finally {
           setUploading(false);
@@ -1100,16 +1101,16 @@ export default function CreateStory() {
                         muted 
                         loop 
                         playsInline
-                        onLoadedData={() => console.log('📽️ Video preview ready')}
-                        onError={(e) => console.error('📽️ Video Preview Error:', e)}
+                        onLoadedData={() => logger.log('📽️ Video preview ready')}
+                        onError={(e) => logger.error('📽️ Video Preview Error:', e)}
                         className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`}
                     />
                   ) : (
                     <img 
                         key={previewUrl}
                         src={previewUrl} 
-                        onLoad={() => console.log('🖼️ Image preview ready')}
-                        onError={(e) => console.error('🖼️ Image Preview Error:', e)}
+                        onLoad={() => logger.log('🖼️ Image preview ready')}
+                        onError={(e) => logger.error('🖼️ Image Preview Error:', e)}
                         className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`} 
                         alt="Preview" 
                     />

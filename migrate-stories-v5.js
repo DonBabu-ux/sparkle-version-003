@@ -91,6 +91,7 @@ async function migrate() {
                         musicInfo = typeof s.music_info === 'string' ? JSON.parse(s.music_info) : s.music_info;
                     } catch (err) {
                         // ignore
+                        console.warn('migrate-stories-v5: music_info parse skipped:', err.message);
                     }
                 }
                 

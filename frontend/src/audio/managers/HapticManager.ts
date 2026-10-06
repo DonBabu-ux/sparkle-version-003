@@ -1,4 +1,5 @@
 import { EventBus } from '../EventBus';
+import { logger } from '../../utils/logger';
 
 export type HapticType = 'send' | 'receive' | 'follow' | 'success' | 'error' | 'click';
 
@@ -61,7 +62,7 @@ export class HapticManager {
           break;
       }
     } catch (err) {
-      console.warn('[HapticManager] Vibrate block or permission issue:', err);
+      logger.warn('[HapticManager] Vibrate block or permission issue:', err);
     }
   }
 }

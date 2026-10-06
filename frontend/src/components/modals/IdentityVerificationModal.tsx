@@ -5,6 +5,7 @@ import {
   AlertCircle, Loader2, Frame, SwitchCamera, ImageIcon
 } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InAppCaptureModal
@@ -44,7 +45,7 @@ function InAppCaptureModal({ mode, onCapture, onClose }: InAppCaptureModalProps)
         videoRef.current.onloadedmetadata = () => setReady(true);
       }
     } catch (err) {
-      console.error('[InAppCamera] stream error:', err);
+      logger.error('[InAppCamera] stream error:', err);
       setError('Camera unavailable. Please grant camera permission or pick from gallery.');
     }
   }, []);
@@ -227,7 +228,7 @@ export default function IdentityVerificationModal({
         setStep('success');
       }, 2500);
     } catch (err) {
-      console.error('Verification failed:', err);
+      logger.error('Verification failed:', err);
       alert('Verification failed. Please try again.');
       setStep('intro');
       setIsProcessing(false);

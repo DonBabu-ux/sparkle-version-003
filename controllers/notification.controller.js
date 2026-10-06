@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const webpush = require('web-push');
+const logger = require('../utils/logger');
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
@@ -12,7 +13,7 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 let _emitNotification = null;
 const getEmitter = () => {
     if (!_emitNotification) {
-        try { _emitNotification = require('../socket').emitNotification; } catch (e) { /* not yet init */ }
+        try { _emitNotification = require('../socket').emitNotification; } catch (e) { logger.debug('socket emitter not yet initialised', e?.message || e); }
     }
     return _emitNotification;
 };
@@ -486,7 +487,9 @@ const notificationController = {
                                 [data.actor_id]
                             );
                             if (actor) actorInfo = actor;
-                        } catch (_) { }
+                        } catch (_) {
+                            logger.debug(`notification actor lookup failed for actor ${data.actor_id}`, _?.message || _);
+                        }
                     }
 
                     // Emit socket with updated info
@@ -537,7 +540,7 @@ const notificationController = {
                         [data.actor_id]
                     );
                     if (actor) actorInfo = actor;
-                } catch (_) { /* non-blocking */ }
+                } catch (_) { logger.debug('actor lookup failed for notification ' + (data.type || '')); }
             }
 
             // Emit real-time socket notification

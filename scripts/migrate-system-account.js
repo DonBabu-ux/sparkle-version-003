@@ -17,10 +17,10 @@ async function migrateSystemAccount() {
     console.log('Updating Sparkle Official Account...');
 
     // 1. Ensure columns exist on users table
-    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type ENUM('user', 'system', 'business', 'creator', 'bot', 'organization') NOT NULL DEFAULT 'user'"); } catch (_) {}
-    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_account TINYINT(1) DEFAULT 0"); } catch (_) {}
-    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(255) DEFAULT NULL"); } catch (_) {}
-    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT 'Sparkle Official'"); } catch (_) {}
+    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS account_type ENUM('user', 'system', 'business', 'creator', 'bot', 'organization') NOT NULL DEFAULT 'user'"); } catch (_) { console.warn("migrate-system-account: alter skipped:", _ && _.message || _); }
+    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_system_account TINYINT(1) DEFAULT 0"); } catch (_) { console.warn("migrate-system-account: alter skipped:", _ && _.message || _); }
+    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS display_name VARCHAR(255) DEFAULT NULL"); } catch (_) { console.warn("migrate-system-account: alter skipped:", _ && _.message || _); }
+    try { await queryWithRetry("ALTER TABLE users ADD COLUMN IF NOT EXISTS name VARCHAR(255) DEFAULT 'Sparkle Official'"); } catch (_) { console.warn("migrate-system-account: alter skipped:", _ && _.message || _); }
 
     // Find primary system user or username = 'sparkleofficial'
     const [rows] = await queryWithRetry(
@@ -54,7 +54,7 @@ async function migrateSystemAccount() {
     `, [systemUserId]);
 
     console.log('✓ Sparkle Official Account updated successfully.');
-    try { await db.end(); } catch (_) {}
+    try { await db.end(); } catch (_) { console.warn("migrate-system-account: alter skipped:", _ && _.message || _); }
     process.exit(0);
 }
 

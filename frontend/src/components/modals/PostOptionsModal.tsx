@@ -5,6 +5,7 @@ import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
 import { useUserStore } from '../../store/userStore';
 import type { Post } from '../../types/post';
+import { logger } from '../../utils/logger';
 
 interface PostOptionsModalProps {
   post: Post;
@@ -30,7 +31,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
       onClose();
       triggerRefresh();
     } catch (err) {
-      console.error('Failed to delete post:', err);
+      logger.error('Failed to delete post:', err);
       alert('Failed to delete post.');
     }
   };
@@ -90,7 +91,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                 alert('Saved to bookmarks');
                 onClose();
               } catch (err) {
-                console.error('Failed to save post', err);
+                logger.error('Failed to save post', err);
                 alert('Failed to save');
               }
             }}

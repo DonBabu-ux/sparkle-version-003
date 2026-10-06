@@ -3,6 +3,7 @@ import { X, Repeat2, Loader2, AtSign } from 'lucide-react';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface User {
   user_id: string;
@@ -30,7 +31,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
         const res = await api.get(`/users/search?q=${mentionQuery.replace('@', '')}`);
         setSuggestions(res.data.users || []);
       } catch (err) {
-        console.error('Mention search failed:', err);
+        logger.error('Mention search failed:', err);
       }
     };
     const timer = setTimeout(handleMentionSearch, 300);
@@ -72,7 +73,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Reshare failed:', err);
+      logger.error('Reshare failed:', err);
       alert('Failed to reshare post.');
     } finally {
       setResharing(false);

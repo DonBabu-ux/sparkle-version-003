@@ -6,6 +6,7 @@ import {
 import api from '../../api/api';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { logger } from '../../utils/logger';
 
 interface SkillOfferDetail {
   offer_id: string;
@@ -54,7 +55,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
     Promise.all([
       api.get(`/skill-market/offers/${offerId}`)
         .then(r => setOffer(r.data.offer || r.data.data || r.data))
-        .catch(console.error),
+        .catch(logger.error),
       api.get(`/skill-market/offers/${offerId}/reviews`)
         .then(r => setReviews(r.data.reviews || r.data || []))
         .catch(() => {}),
@@ -67,7 +68,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
       await api.post(`/skill-market/offers/${offerId}/book`, bookingData);
       setBooked(true);
     } catch (err) {
-      console.error('Booking failed:', err);
+      logger.error('Booking failed:', err);
       alert('Booking failed — please try again.');
     } finally {
       setIsBooking(false);

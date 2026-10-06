@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { useNetworkStore } from '../store/networkStore';
 import type { NetworkQuality } from '../store/networkStore';
 import { useOfflineQueueStore } from '../store/offlineQueueStore';
+import { logger } from '../utils/logger';
 
 export function NetworkStatusProvider({ children }: { children: React.ReactNode }) {
   const { setOffline, setQuality, setSaveDataMode } = useNetworkStore();
@@ -47,7 +48,7 @@ export function NetworkStatusProvider({ children }: { children: React.ReactNode 
 
       setQuality(quality);
       
-      console.log(`📡 Network Status: ${quality.toUpperCase()} | Type: ${type} | Speed: ${downlink} Mbps | SaveData: ${saveData}`);
+      logger.log(`📡 Network Status: ${quality.toUpperCase()} | Type: ${type} | Speed: ${downlink} Mbps | SaveData: ${saveData}`);
     };
 
     if (connection) {

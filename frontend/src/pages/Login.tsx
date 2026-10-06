@@ -590,7 +590,7 @@ export default function Login() {
                   type="button"
                   onClick={() => {
                     setUseRecoveryCode(!useRecoveryCode);
-                    setError('');
+                    setAuthError(null);
                   }}
                   className="login-back"
                   style={{ color: '#ff1493', fontWeight: 600, fontSize: '0.82rem', marginTop: '0.5rem' }}

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
+import { logger } from '../../utils/logger';
 
 interface ChatSearchModalProps {
   chatId: string;
@@ -89,7 +90,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
         setResults(response.data.data || []);
       }
     } catch (err) {
-      console.error('Error performing search:', err);
+      logger.error('Error performing search:', err);
     } finally {
       setLoading(false);
     }

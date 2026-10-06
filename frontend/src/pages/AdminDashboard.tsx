@@ -8,6 +8,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
+import { logger } from '../utils/logger';
 
 interface AdminStats {
   users?: { total: number };
@@ -53,7 +54,7 @@ export default function AdminDashboard() {
       const response = await api.get('/admin/stats');
       setStats(response.data);
     } catch (err) {
-      console.error('Failed to fetch admin stats:', err);
+      logger.error('Failed to fetch admin stats:', err);
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export default function AdminDashboard() {
         else if (activeTab === 'reports') setContent(response.data.reports || response.data.reportedItems || []);
         else setContent(response.data.data || []);
       } catch (err) {
-        console.error(`Failed to fetch ${activeTab}:`, err);
+        logger.error(`Failed to fetch ${activeTab}:`, err);
       }
     };
     if (activeTab !== 'overview') fetchTabData();

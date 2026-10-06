@@ -100,6 +100,7 @@ class UserBootstrapService {
             });
         } catch (_) {
             // Non-critical — swallow silently
+            logger.debug('userBootstrapped analytics event log failed', _?.message || _);
         }
     }
 }

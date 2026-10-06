@@ -4,6 +4,7 @@ import {
   Smile, User, ShieldCheck, Info
 } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface MessageInfoModalProps {
   messageId: string | null;
@@ -33,7 +34,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
         setInfo(response.data.data);
       }
     } catch (err) {
-      console.error('Error fetching message info:', err);
+      logger.error('Error fetching message info:', err);
     } finally {
       setLoading(false);
     }

@@ -8,6 +8,7 @@
     "prebuild": "node scripts/verifyRelease.cjs",
     "build": "vite build",
     "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.app.json",
     "preview": "vite preview",
     "test": "vitest run"
   },

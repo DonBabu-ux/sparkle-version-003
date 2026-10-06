@@ -4,6 +4,7 @@ import { ArrowLeft, UserX, Shield, Search } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface BlockedUser {
   user_id: string;
@@ -28,7 +29,7 @@ export default function BlockedUsers() {
       const res = await api.get('/users/blocks');
       setBlockedUsers(res.data || []);
     } catch (error) {
-      console.error('Failed to fetch blocked users:', error);
+      logger.error('Failed to fetch blocked users:', error);
     } finally {
       setLoading(false);
     }
@@ -40,7 +41,7 @@ export default function BlockedUsers() {
         await api.delete(`/users/block/${userId}`);
         setBlockedUsers(blockedUsers.filter(u => u.user_id !== userId));
       } catch (error) {
-        console.error('Failed to unblock user:', error);
+        logger.error('Failed to unblock user:', error);
       }
     }
   };

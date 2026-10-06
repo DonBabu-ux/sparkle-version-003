@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Message = require('../models/Message');
 const GroupChannel = require('../models/GroupChannel');
 const { getIO } = require('../socket');
+const logger = require('../utils/logger');
 
 class GroupChatController {
 
@@ -170,7 +171,9 @@ class GroupChatController {
                     io.to(`user:${uid}`).emit('new_group_created', { chatId });
                 });
                 // Notify existing group that someone joined? (Optional system message would be better)
-            } catch (ioErr) { }
+            } catch (ioErr) {
+                logger.debug(`socket emit new_group_created failed for chat ${chatId}`, ioErr?.message || ioErr);
+            }
 
             res.json({ status: 'success', message: 'Members added' });
         } catch (error) {

@@ -546,7 +546,9 @@ const deleteAccount = async (req, res) => {
                 const emailService = require('../services/email.service');
                 // Fire-and-forget — don't block deletion
                 emailService.sendDataExportEmail && emailService.sendDataExportEmail(user).catch(() => {});
-            } catch (_) {}
+            } catch (_) {
+                logger.debug(`deleteAccount: data export email trigger failed for user ${userId}`, _?.message || _);
+            }
         }
 
         await User.delete(userId);

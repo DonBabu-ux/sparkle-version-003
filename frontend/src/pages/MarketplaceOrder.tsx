@@ -7,6 +7,7 @@ import {
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 export default function MarketplaceOrder() {
   const [searchParams] = useSearchParams();
@@ -55,7 +56,7 @@ export default function MarketplaceOrder() {
           setAgreedPrice(res.data.listing.price.toString());
         }
       } catch (err) {
-        console.error('Failed to fetch listing:', err);
+        logger.error('Failed to fetch listing:', err);
       } finally {
         setLoading(false);
       }
@@ -122,7 +123,7 @@ export default function MarketplaceOrder() {
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
           <div className="flex gap-4">
             <img 
-              src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/marketplace/default.png'} 
+              src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/defaults/no-image.png'} 
               className="w-24 h-24 rounded-2xl object-cover" 
               alt={listing.title} 
             />

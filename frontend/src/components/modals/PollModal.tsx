@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface PollModalProps {
   onClose: () => void;
@@ -66,7 +67,7 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Poll creation failed:', err);
+      logger.error('Poll creation failed:', err);
     } finally {
       setSubmitting(false);
     }

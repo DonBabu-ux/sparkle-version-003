@@ -119,6 +119,7 @@ const markAllAsRead = async (req, res) => {
             });
         } catch (e) {
             // Socket may not be initialized in some contexts
+            logger.debug(`socket emit all-messages-read failed for chat ${chatId}`, e?.message || e);
         }
 
         res.json({ status: 'success', message: 'All messages marked as read' });

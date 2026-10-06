@@ -8,6 +8,7 @@
  */
 
 import { SparkleStorage } from './SparkleStorageService';
+import { logger } from '../utils/logger';
 
 export const CURRENT_STORAGE_VERSION = 3;
 const VERSION_KEY = 'sparkle_storage_version';
@@ -67,14 +68,14 @@ export class StorageVersionManagerClass {
       const step = this.migrations.find(m => m.fromVersion === current);
       if (!step) break;
 
-      console.log(`[StorageVersionManager] Running migration v${step.fromVersion} -> v${step.toVersion}: ${step.description}`);
+      logger.log(`[StorageVersionManager] Running migration v${step.fromVersion} -> v${step.toVersion}: ${step.description}`);
       try {
         await step.migrate();
         current = step.toVersion;
         await SparkleStorage.setItem(VERSION_KEY, current.toString());
         executed.push(`v${step.fromVersion}->v${step.toVersion}: ${step.description}`);
       } catch (err: any) {
-        console.error(`[StorageVersionManager] Migration failed at v${step.fromVersion}:`, err);
+        logger.error(`[StorageVersionManager] Migration failed at v${step.fromVersion}:`, err);
         break;
       }
     }

@@ -11,6 +11,7 @@ import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { useMarketplaceStore } from '../store/marketplaceStore';
+import { logger } from '../utils/logger';
 
 const CATEGORIES = [
   { id: 'vehicles', label: 'Vehicles', icon: Car },
@@ -85,7 +86,7 @@ export default function SellItem() {
         navigate(`/marketplace/listings/${res.data.listing_id || res.data.id}`);
       }
     } catch (err: any) {
-      console.error('Failed to create listing:', err);
+      logger.error('Failed to create listing:', err);
       // Fallback for 401: if unauthorized, maybe token expired
       if (err.response?.status === 401) {
         alert('Your session has expired. Please log in again.');

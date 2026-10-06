@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Orbit, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface Story {
   id: string;
@@ -36,7 +37,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
       const res = await api.get('/stories/archive');
       setStories(res.data.stories || []);
     } catch (err) {
-      console.error('Failed to fetch archive:', err);
+      logger.error('Failed to fetch archive:', err);
     } finally {
       setLoading(false);
     }
@@ -49,7 +50,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
       setStories(stories.filter(s => s.id !== storyId));
       setSelectedStory(null);
     } catch (err) {
-      console.error('Failed to delete story:', err);
+      logger.error('Failed to delete story:', err);
     }
   };
 

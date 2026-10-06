@@ -1,3 +1,4 @@
+import { logger } from './logger';
 type UploadEvent = 
   | 'UPLOAD_STARTED' 
   | 'UPLOAD_PROGRESS' 
@@ -32,7 +33,7 @@ class EventBus {
         try {
           listener(data);
         } catch (error) {
-          console.error(`[UploadEventBus] Listener error for ${event}:`, error);
+          logger.error(`[UploadEventBus] Listener error for ${event}:`, error);
         }
       });
     }

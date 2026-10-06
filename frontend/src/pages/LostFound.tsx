@@ -3,6 +3,7 @@ import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar,
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { logger } from '../utils/logger';
 
 type FilterType = 'all' | 'lost' | 'found';
 
@@ -37,7 +38,7 @@ export default function LostFound() {
       const res = await api.get(`/lost-found?type=${filter}`);
       setItems(res.data.items || res.data || []);
     } catch (err) {
-      console.error('LF fetch error:', err);
+      logger.error('LF fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -54,7 +55,7 @@ export default function LostFound() {
       setForm({ category: 'Electronics', title: '', description: '', location: '' });
       fetchItems();
     } catch (err) {
-      console.error('Report submit error:', err);
+      logger.error('Report submit error:', err);
     } finally {
       setSubmitting(false);
     }

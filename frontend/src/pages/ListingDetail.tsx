@@ -9,6 +9,7 @@ import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
 import Spinner from '../components/ui/Spinner';
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import { logger } from '../utils/logger';
 
 export default function ListingDetail() {
   const { id } = useParams();
@@ -71,7 +72,7 @@ export default function ListingDetail() {
         setSuggestedListings(sugList.filter((l: Listing) => l.listing_id !== id).slice(0, 4));
 
       } catch (err) {
-        console.error('Failed to fetch data:', err);
+        logger.error('Failed to fetch data:', err);
       } finally {
         setLoading(false);
       }
@@ -97,7 +98,7 @@ export default function ListingDetail() {
         alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
-      console.error("Alert toggle failed:", err);
+      logger.error("Alert toggle failed:", err);
     }
   };
 
@@ -134,7 +135,7 @@ export default function ListingDetail() {
         setIsWishlisted(!isWishlisted);
       }
     } catch (err) {
-      console.error('Wishlist toggle failed:', err);
+      logger.error('Wishlist toggle failed:', err);
     }
   };
 
@@ -150,7 +151,7 @@ export default function ListingDetail() {
         navigate(`/marketplace/messages/${convId}`);
       }
     } catch (err) {
-      console.error('Contact failed:', err);
+      logger.error('Contact failed:', err);
     }
   };
 
@@ -379,7 +380,7 @@ export default function ListingDetail() {
                   <MoreHorizontal size={14} className="text-marketplace-muted ml-auto" />
                 </div>
                 <div className="aspect-square bg-marketplace-bg rounded-lg overflow-hidden relative">
-                  <img src={item.image_url || '/uploads/marketplace/default.png'} className="w-full h-full object-cover" alt={item.title} />
+                  <img src={item.media_url || item.image_url || '/uploads/defaults/no-image.png'} className="w-full h-full object-cover" alt={item.title} />
                 </div>
                 <p className="text-[14px] font-bold text-marketplace-text mt-2 leading-tight">KES{parseFloat(item.price as string).toLocaleString()}</p>
                 <p className="text-[14px] font-medium text-marketplace-text mt-1 truncate">{item.title}</p>

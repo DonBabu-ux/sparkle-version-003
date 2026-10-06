@@ -25,6 +25,7 @@ import { useUploadStore } from '../store/uploadStore';
 import { CloudUpload, AlertTriangle, RefreshCw, X as XIcon } from 'lucide-react';
 import { useUploadNotificationStore } from '../components/notifications/UploadNotificationCenter';
 import AestheticProfileCompletionBanner from '../components/profile/AestheticProfileCompletionBanner';
+import { logger } from '../utils/logger';
 
 interface StoryItem {
   story_id?: string;
@@ -75,7 +76,7 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
       await api.post(`/users/${s.user_id}/follow`);
       setFollowing(true);
     } catch (err) {
-      console.error('Failed to follow', err);
+      logger.error('Failed to follow', err);
     } finally {
       setLoading(false);
     }
@@ -135,7 +136,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
         lastSyncTime.current = Date.now();
       }
     } catch (err) {
-      console.error('Delta sync failed:', err);
+      logger.error('Delta sync failed:', err);
     }
   }, [prependPosts]);
 
@@ -148,7 +149,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
         storyCache.populate(res.data);
       }
     } catch (err) {
-      console.error('Failed to fetch stories:', err);
+      logger.error('Failed to fetch stories:', err);
     }
   }, [setStories]);
 
@@ -201,7 +202,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
       
       setHasMore(newPosts.length === 10);
     } catch (err) {
-      console.error('Failed to fetch dashboard data:', err);
+      logger.error('Failed to fetch dashboard data:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);

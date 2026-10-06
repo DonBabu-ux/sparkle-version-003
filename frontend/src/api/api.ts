@@ -3,6 +3,7 @@ import { useUserStore } from '../store/userStore';
 
 import { EnvironmentService } from '../services/EnvironmentService';
 import { refreshTokenOnce } from '../services/tokenRefresh';
+import { adoptServerToken } from '../utils/tokenHeaderSync';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl(),
@@ -34,16 +35,14 @@ const fetchCsrfToken = async (): Promise<string | null> => {
   }
 };
 
-console.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
+logger.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
 
 // Interceptor to add auth token, CSRF token, and device info
 api.interceptors.request.use(
   async (config) => {
-    // Prefer token from user store; fallback to localStorage if not present
-    let token = useUserStore.getState().token;
-    if (!token) {
-      token = localStorage.getItem('accessToken') || null;
-    }
+    // Token comes from the user store (the legacy localStorage 'accessToken'
+    // fallback was never written by anything and is removed).
+    const token = useUserStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -89,8 +88,14 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Interceptor to handle common errors and refresh token
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // H26: renewal rides on every authenticated response past half-life
+    adoptServerToken(response.headers);
+    return response;
+  },
   async (error) => {
+    // Same adoption on 4xx/5xx where auth still ran (401s carry no renewal)
+    if (error.response) adoptServerToken(error.response.headers);
     const originalRequest = error.config;
 
     // Handle Network Errors (like ERR_CONNECTION_REFUSED) - bypass retries for login/auth to respond immediately
@@ -99,7 +104,7 @@ api.interceptors.response.use(
       // If it's a network error and we haven't retried this specific request yet
       if (!originalRequest._networkRetry || originalRequest._networkRetry < 2) {
         originalRequest._networkRetry = (originalRequest._networkRetry || 0) + 1;
-        console.warn(`🌐 Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
+        logger.warn(`🌐 Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
         await new Promise(r => setTimeout(r, 500 * originalRequest._networkRetry));
         return api(originalRequest);
       }
@@ -150,7 +155,7 @@ api.interceptors.response.use(
           }
           // Backoff: Attempt 1 -> 1s, Attempt 2 -> 3s
           const backoff = attempt === 1 ? 1000 : 3000;
-          console.warn(`Refresh token attempt ${attempt} failed, retrying in ${backoff}ms`);
+          logger.warn(`Refresh token attempt ${attempt} failed, retrying in ${backoff}ms`);
           await delay(backoff);
         }
       }
@@ -161,6 +166,7 @@ api.interceptors.response.use(
 );
 
 import type { LoginCredentials, SignupData } from '../types/auth';
+import { logger } from '../utils/logger';
 
 export const authApi = {
   login: (credentials: LoginCredentials) => api.post('/auth/login', credentials),

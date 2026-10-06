@@ -10,6 +10,7 @@ import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStore } from '../store/modalStore';
 import clsx from 'clsx';
+import { logger } from '../utils/logger';
 
 interface SkillOffer {
   offer_id: string;
@@ -57,7 +58,7 @@ export default function SkillMarket() {
       const data = response.data.offers || response.data;
       setSkills(Array.isArray(data) ? data : []);
     } catch (err) {
-      console.error('Failed to fetch skills:', err);
+      logger.error('Failed to fetch skills:', err);
     } finally {
       setLoading(false);
     }

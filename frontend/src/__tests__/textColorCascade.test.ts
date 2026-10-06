@@ -13,9 +13,8 @@
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
-import { join } from 'node:path';
 
-const css = readFileSync(join(__dirname, '..', 'index.css'), 'utf8');
+const css = readFileSync(new URL('../index.css', import.meta.url), 'utf8');
 
 describe('H22 text-color cascade', () => {
     it('no element-level forced theme color on bare text elements', () => {

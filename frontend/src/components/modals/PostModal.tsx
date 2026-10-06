@@ -11,6 +11,7 @@ import Spinner from '../ui/Spinner';
 import FeelingActivitySelector from './FeelingActivitySelector';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { logger } from '../../utils/logger';
 
 interface PostModalProps {
   onClose: () => void;
@@ -122,7 +123,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Post operation failed:', err);
+      logger.error('Post operation failed:', err);
       alert('Failed to save post.');
     } finally {
       setUploading(false);

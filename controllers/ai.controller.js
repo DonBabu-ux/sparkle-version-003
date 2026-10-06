@@ -109,6 +109,7 @@ async function sparklyChatStream(req, res) {
             res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
         } catch (e) {
             // Client disconnected
+            logger.debug('SSE write failed (client disconnected)', e?.message || e);
         }
     };
 

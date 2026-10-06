@@ -4,6 +4,7 @@ import {
   PenTool, Type, Crop, Download, Undo, Check, Sparkles, Send, PlusCircle
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
+import { logger } from '../../utils/logger';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
         videoRef.current.srcObject = newStream;
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
+      logger.error("Error accessing camera:", err);
     }
   }, [facingMode]);
 

@@ -5,6 +5,7 @@ import {
   AlertCircle, History, Sparkles, RefreshCw, CheckCircle2, ArrowRight
 } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface ActiveBoostData {
   boostId: string;
@@ -89,7 +90,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
         setActiveBoost(null);
       }
     } catch (err: any) {
-      console.error('Failed to load boost status:', err);
+      logger.error('Failed to load boost status:', err);
     } finally {
       setLoading(false);
     }
@@ -103,7 +104,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
         setHistory(res.data.history);
       }
     } catch (err) {
-      console.error('Failed to load boost history:', err);
+      logger.error('Failed to load boost history:', err);
     } finally {
       setHistoryLoading(false);
     }

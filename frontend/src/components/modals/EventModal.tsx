@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { X, Calendar, MapPin, Users, Clock, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface EventModalProps {
   onClose: () => void;
@@ -37,7 +38,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Event creation failed:', err);
+      logger.error('Event creation failed:', err);
       alert('Failed to publish event.');
     } finally {
       setSubmitting(false);

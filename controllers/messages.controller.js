@@ -1,6 +1,7 @@
 const { Message, GroupChat, GroupMember } = require('../models');
 const pool = require('../config/database');
 const crypto = require('crypto');
+const logger = require('../utils/logger');
 
 class MessageController {
     /**
@@ -571,7 +572,9 @@ class MessageController {
                         chatId, action: 'deleted', userId
                     });
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug('socket emit conversation_updated (deleted) failed', err?.message || err);
+            }
 
             res.json({ status: 'success' });
         } catch (error) {
@@ -617,7 +620,9 @@ class MessageController {
                         chatId, action: archived ? 'archived' : 'unarchived', userId, is_archived: archived
                     });
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug('socket emit conversation_updated (archive) failed', err?.message || err);
+            }
 
             res.json({ status: 'success' });
         } catch (error) {
@@ -640,7 +645,9 @@ class MessageController {
                         chatId, action: isPinned ? 'pinned' : 'unpinned', userId, is_pinned: isPinned
                     });
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug('socket emit conversation_updated (pin) failed', err?.message || err);
+            }
 
             res.json({ status: 'success' });
         } catch (error) {
@@ -663,7 +670,9 @@ class MessageController {
                         chatId, action: isFavorite ? 'favorited' : 'unfavorited', userId, is_favorite: isFavorite
                     });
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug('socket emit conversation_updated (favorite) failed', err?.message || err);
+            }
 
             res.json({ status: 'success' });
         } catch (error) {
@@ -686,7 +695,9 @@ class MessageController {
                         chatId, action: isPriority ? 'priority_on' : 'priority_off', userId, is_priority: isPriority
                     });
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug('socket emit conversation_updated (priority) failed', err?.message || err);
+            }
 
             res.json({ status: 'success' });
         } catch (error) {
@@ -995,7 +1006,7 @@ class MessageController {
 
             const data = rawData.map(item => {
                 let meta = {};
-                try { if (item.metadata) meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; } catch(e){}
+                try { if (item.metadata) meta = typeof item.metadata === 'string' ? JSON.parse(item.metadata) : item.metadata; } catch(e){ logger.debug('getChatMedia: message metadata JSON.parse fallback', e?.message || e); }
                 return {
                     message_id: item.message_id,
                     chat_id: item.chat_id || chatId,
@@ -1070,7 +1081,7 @@ class MessageController {
 
             let data = rows.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatDocuments: message metadata JSON.parse fallback', e?.message || e); }
                 const ext = (r.media_url.split('.').pop() || '').toLowerCase();
                 let fileCategory = 'Other';
                 if (['pdf'].includes(ext)) fileCategory = 'PDF';
@@ -1160,7 +1171,7 @@ class MessageController {
                     try { domain = new URL(firstUrl).hostname.replace('www.', ''); } catch (e) { domain = firstUrl; }
                     
                     let meta = {};
-                    try { if (row.metadata) meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata; } catch(e){}
+                    try { if (row.metadata) meta = typeof row.metadata === 'string' ? JSON.parse(row.metadata) : row.metadata; } catch(e){ logger.debug('getChatLinks: message metadata JSON.parse fallback', e?.message || e); }
 
                     // Compute date category
                     const sentDate = new Date(row.sent_at);
@@ -1238,7 +1249,7 @@ class MessageController {
 
             const data = rawData.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatVoice: message metadata JSON.parse fallback', e?.message || e); }
                 return {
                     message_id: r.message_id,
                     media_url: r.media_url,
@@ -1298,7 +1309,7 @@ class MessageController {
 
             const data = rawData.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatMusic: message metadata JSON.parse fallback', e?.message || e); }
                 return {
                     message_id: r.message_id,
                     media_url: r.media_url,
@@ -1359,7 +1370,7 @@ class MessageController {
 
             const data = rawData.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatStories: message metadata JSON.parse fallback', e?.message || e); }
                 const isExpired = (Date.now() - new Date(r.sent_at).getTime()) > (24 * 3600 * 1000);
                 return {
                     message_id: r.message_id,
@@ -1420,7 +1431,7 @@ class MessageController {
 
             const data = rawData.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatPosts: message metadata JSON.parse fallback', e?.message || e); }
                 const attachment = meta.attachment || {};
                 return {
                     message_id: r.message_id,
@@ -1672,7 +1683,7 @@ class MessageController {
 
             const history = rows.map(r => {
                 let meta = {};
-                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){}
+                try { if (r.metadata) meta = typeof r.metadata === 'string' ? JSON.parse(r.metadata) : r.metadata; } catch(e){ logger.debug('getChatNicknameHistory: message metadata JSON.parse fallback', e?.message || e); }
                 return {
                     id: r.message_id,
                     content: r.content,

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { CameraService } from '../../services/CameraService';
+import { logger } from '../../utils/logger';
 
 interface CameraContextType {
   stream: MediaStream | null;
@@ -91,9 +92,9 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
       streamRef.current = newStream;
       setStream(newStream);
       setHasPermission(true);
-      console.log(`🎉 In-app camera stream ready (facing: ${facing}).`);
+      logger.log(`🎉 In-app camera stream ready (facing: ${facing}).`);
     } catch (err) {
-      console.error('[CameraProvider] Failed to start stream:', err);
+      logger.error('[CameraProvider] Failed to start stream:', err);
       setHasPermission(false);
     }
   }, [/* stable — reads facing from ref */]);
@@ -126,7 +127,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
-        console.log('📴 App backgrounded — pausing camera.');
+        logger.log('📴 App backgrounded — pausing camera.');
         stopCamera();
       }
       // Foreground recovery: CreateStory's phase-based useEffect handles restart.
@@ -165,7 +166,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
         ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
         return canvas.toDataURL('image/jpeg', 0.92);
       } catch (e) {
-        console.error('[CameraProvider] Canvas snapshot failed:', e);
+        logger.error('[CameraProvider] Canvas snapshot failed:', e);
         return null;
       }
     },
@@ -200,9 +201,9 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
       recordingIntervalRef.current = setInterval(
         () => setRecordingSeconds(s => s + 1), 1000
       );
-      console.log(`🎥 Recording started (${mimeType || 'default codec'}).`);
+      logger.log(`🎥 Recording started (${mimeType || 'default codec'}).`);
     } catch (err) {
-      console.error('[CameraProvider] MediaRecorder init failed:', err);
+      logger.error('[CameraProvider] MediaRecorder init failed:', err);
     }
   }, []);
 
@@ -217,7 +218,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
         });
         const ext  = recorder.mimeType?.includes('mp4') ? 'mp4' : 'webm';
         const file = new File([blob], `sparkle-${Date.now()}.${ext}`, { type: blob.type });
-        console.log(`🎬 Recording saved: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        logger.log(`🎬 Recording saved: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
         resolve(file);
       };
 

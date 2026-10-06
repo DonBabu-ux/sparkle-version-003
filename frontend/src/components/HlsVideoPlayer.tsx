@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
 import Hls from 'hls.js';
 import { Loader2 } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface HlsVideoPlayerProps {
   src?: string;
@@ -72,7 +73,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
             case Hls.ErrorTypes.NETWORK_ERROR:
               // If manifest fails to load (400, 404), fall back to MP4
               if (data.details === Hls.ErrorDetails.MANIFEST_LOAD_ERROR || data.details === Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT) {
-                console.warn("HLS Manifest failed, falling back to MP4:", streamingSrc);
+                logger.warn("HLS Manifest failed, falling back to MP4:", streamingSrc);
                 hls.destroy();
                 if (src) video.src = src;
               } else {

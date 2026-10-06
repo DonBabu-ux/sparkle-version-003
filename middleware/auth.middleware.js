@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../config/database');
 const { JWT_SECRET } = require('../config/constants');
+const logger = require('../utils/logger');
 
 // Memory cache to prevent constant logouts during DB instability
 const userCache = new Map();
@@ -148,6 +149,7 @@ const ejsAuthMiddleware = async (req, res, next) => {
                 return res.redirect('/dashboard');
             } catch (err) {
                 // Invalid token, proceed to public page
+                logger.debug(`authMiddleware: invalid token on public-page redirect for ${pathFromReq}`, err?.message || err);
             }
         }
         return next();

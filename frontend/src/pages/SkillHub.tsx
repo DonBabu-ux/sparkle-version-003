@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
+import { logger } from '../utils/logger';
 
 export default function SkillHub() {
   const navigate = useNavigate();
@@ -32,7 +33,7 @@ export default function SkillHub() {
       setRequests(reqsRes.data.bookings || []);
       setServices(servsRes.data.bookings || []);
     } catch (err) {
-      console.error('Failed to load bookings', err);
+      logger.error('Failed to load bookings', err);
     } finally {
       setLoading(false);
     }
@@ -44,7 +45,7 @@ export default function SkillHub() {
       // Update local state
       setServices(prev => prev.map(b => b.booking_id === bookingId ? { ...b, status } : b));
     } catch (err) {
-      console.error('Failed to update status', err);
+      logger.error('Failed to update status', err);
       alert('Failed to update. Try again.');
     }
   };
@@ -60,7 +61,7 @@ export default function SkillHub() {
       setReviewText('');
       fetchData(); // refresh to show rating
     } catch (err) {
-      console.error('Failed to submit review', err);
+      logger.error('Failed to submit review', err);
       alert('Failed to submit review. Try again.');
     } finally {
       setSubmittingReview(false);

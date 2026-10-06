@@ -10,6 +10,7 @@ import ModernOfflineState from "./ui/ModernOfflineState";
 import { useNetworkStore } from "../store/networkStore";
 import { getOptimizedMediaUrl } from "../utils/imageUtils";
 import { PrefetchEngine, MediaCacheService } from "../services/FeedCacheService";
+import { logger } from '../utils/logger';
 
 const LIMIT = 10;
 
@@ -139,7 +140,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
       await api.post(`/users/${userId}/follow`);
       setFollowing(prev => ({ ...prev, [userId]: true }));
     } catch (err) {
-      console.error('Follow failed', err);
+      logger.error('Follow failed', err);
     }
   };
 
@@ -216,7 +217,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   // Fetch next cursor-based page of posts
   const fetchFeed = useCallback(
     async (isInitial = false) => {
-      console.log("Feed fetch triggered:", isInitial ? "initial/pull-refresh" : "infinite-scroll");
+      logger.log("Feed fetch triggered:", isInitial ? "initial/pull-refresh" : "infinite-scroll");
       const now = Date.now();
       if (!isInitial && now - lastFetchTime.current < 2000) return;
       
@@ -268,7 +269,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
           setHasMore(false);
         }
       } catch (err: any) {
-        console.error("Feed fetch error:", err);
+        logger.error("Feed fetch error:", err);
         if (err.response?.status === 429) {
           setError429(true);
           setTimeout(() => fetchFeed(isInitial), 3000);
@@ -283,7 +284,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
   // Fetch new posts (delta focus refresh)
   const fetchNewPosts = useCallback(async () => {
-    console.log("Delta fetch triggered via window focus");
+    logger.log("Delta fetch triggered via window focus");
     if (posts.length === 0 || loadingRef.current || isOffline) return;
 
     try {
@@ -313,7 +314,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
         }, 0);
       }
     } catch (err) {
-      console.error("Delta fetch error:", err);
+      logger.error("Delta fetch error:", err);
     }
   }, [isOffline]);
 

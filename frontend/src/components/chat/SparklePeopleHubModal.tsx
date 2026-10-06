@@ -19,6 +19,7 @@ import {
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
+import { logger } from '../../utils/logger';
 
 export interface PeopleHubUser {
   user_id: string;
@@ -130,7 +131,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
         setSuggestedUsers(sugRes.data);
       }
     } catch (err) {
-      console.warn('[PeopleHub] Failed to fetch mutual connections:', err);
+      logger.warn('[PeopleHub] Failed to fetch mutual connections:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -154,7 +155,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
             }));
           }
         } catch (e) {
-          console.warn('[PeopleHub] Web contacts selector cancelled or failed:', e);
+          logger.warn('[PeopleHub] Web contacts selector cancelled or failed:', e);
         }
       }
 
@@ -166,7 +167,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
       setContactsPermission('granted');
       await processContactMatching(rawContacts);
     } catch (err) {
-      console.error('[PeopleHub] Contact permission error:', err);
+      logger.error('[PeopleHub] Contact permission error:', err);
       setContactsPermission('denied');
     }
   };
@@ -202,7 +203,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
         setUnmatchedContacts(deviceContacts);
       }
     } catch (e) {
-      console.warn('[PeopleHub] Contact matching error:', e);
+      logger.warn('[PeopleHub] Contact matching error:', e);
     }
   };
 

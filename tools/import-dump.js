@@ -158,7 +158,7 @@ async function main() {
         }
     }
 
-    try { await conn.end(); } catch (_) { /* ignore */ }
+    try { await conn.end(); } catch (_) { console.warn("import-dump: conn.end failed:", _ && _.message || _); }
 
     const secs = ((Date.now() - started) / 1000).toFixed(1);
     console.log(`\nDone in ${secs}s: ${ok}/${statements.length} statements ok, ${failures.length} failed.`);

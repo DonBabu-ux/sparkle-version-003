@@ -90,7 +90,9 @@ const search = async (req, res) => {
                     filterUserId = users[0].user_id;
                     filterUsername = users[0].username;
                 }
-            } catch (err) {}
+            } catch (err) {
+                logger.debug(`search: NAVIGATE username lookup failed for "${filterUsername}"`, err?.message || err);
+            }
         }
 
         // Expand Synonyms
@@ -227,10 +229,11 @@ const search = async (req, res) => {
                 const [groups] = await pool.query(
                     `SELECT 
                         g.group_id as id, 'group' as type, g.name as title,
-                        CAST(CONCAT((SELECT COUNT(*) FROM group_members gm WHERE gm.group_id = g.group_id), ' members') AS CHAR) as subtitle,
+                        CAST(CONCAT(COALESCE(gm.cnt, 0), ' members') AS CHAR) as subtitle,
                         g.icon_url as image, g.description,
                         (MATCH(g.name, g.description) AGAINST(? IN BOOLEAN MODE) * 2 + (g.name = ?) * 3) as relevance
                      FROM \`groups\` g
+                     LEFT JOIN (SELECT group_id, COUNT(*) AS cnt FROM group_members GROUP BY group_id) gm ON gm.group_id = g.group_id
                      WHERE (MATCH(g.name, g.description) AGAINST(? IN BOOLEAN MODE) OR g.name LIKE ? OR g.description LIKE ?)
                      ${campus ? 'AND g.campus = ?' : ''}
                      ORDER BY ${sortBy === 'date' ? 'g.created_at DESC' : 'relevance DESC'} LIMIT ? OFFSET ?`,
@@ -430,9 +433,11 @@ const getDiscovery = async (req, res) => {
         // 1. Fetch Top Creators
         const [creators] = await pool.query(
             `SELECT u.user_id, u.username, u.name, u.avatar_url, u.is_verified, 
-             (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count, 
+             COALESCE(fc.cnt, 0) as follower_count, 
              IF(? IS NULL, 0, EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = u.user_id)) as is_followed 
-             FROM users u WHERE u.account_status = 'active' AND u.user_id != ? 
+             FROM users u
+             LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
+             WHERE u.account_status = 'active' AND u.user_id != ? 
              ORDER BY follower_count DESC LIMIT 5`, 
             [currentUserId, currentUserId, currentUserId]
         );
@@ -440,8 +445,10 @@ const getDiscovery = async (req, res) => {
         // 2. Fetch Suggested Groups
         const [groups] = await pool.query(
             `SELECT g.group_id as id, g.name as title, g.description, g.icon_url as image, 
-             (SELECT COUNT(*) FROM group_members WHERE group_id = g.group_id) as member_count 
-             FROM \`groups\` g WHERE g.is_public = 1 ORDER BY member_count DESC LIMIT 4`
+             COALESCE(gm.cnt, 0) as member_count 
+             FROM \`groups\` g
+             LEFT JOIN (SELECT group_id, COUNT(*) AS cnt FROM group_members GROUP BY group_id) gm ON gm.group_id = g.group_id
+             WHERE g.is_public = 1 ORDER BY member_count DESC LIMIT 4`
         );
 
         // 3. 🔥 SEARCHED USER UPDATES (Optimized) 🔥

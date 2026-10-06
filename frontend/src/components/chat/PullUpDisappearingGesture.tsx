@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock, ArrowUp } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface PullUpDisappearingGestureProps {
   chatId: string;
@@ -60,7 +61,7 @@ export const PullUpDisappearingGesture: React.FC<PullUpDisappearingGestureProps>
         const newDur = res.data?.disappearingDuration ?? targetDuration;
         if (onDurationChanged) onDurationChanged(newDur);
       } catch (err) {
-        console.error('Failed to toggle disappearing messages via pull-up gesture:', err);
+        logger.error('Failed to toggle disappearing messages via pull-up gesture:', err);
       }
     }
 

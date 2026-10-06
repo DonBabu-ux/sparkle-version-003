@@ -1,4 +1,5 @@
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 export interface LocationCoords {
   latitude: number;
@@ -81,7 +82,7 @@ class LiveLocationService {
           this.handlePositionUpdate(position);
         },
         (error) => {
-          console.warn('Live location watch position error:', error.message);
+          logger.warn('Live location watch position error:', error.message);
         },
         {
           enableHighAccuracy: true,
@@ -126,7 +127,7 @@ class LiveLocationService {
         speed: speed || 0
       });
     } catch (err) {
-      console.error('Failed to transmit live location update:', err);
+      logger.error('Failed to transmit live location update:', err);
     }
   }
 
@@ -140,7 +141,7 @@ class LiveLocationService {
       }
       return response.data.success;
     } catch (err) {
-      console.error('Failed to stop live location session:', err);
+      logger.error('Failed to stop live location session:', err);
       return false;
     }
   }

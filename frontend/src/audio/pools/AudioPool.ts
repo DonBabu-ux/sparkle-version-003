@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 export interface PoolStats {
   activeCount: number;
   maxSize: number;
@@ -28,7 +29,7 @@ export class AudioPool {
       const arrayBuffer = await response.arrayBuffer();
       this.audioBuffer = await this.audioCtx.decodeAudioData(arrayBuffer);
     } catch (e) {
-      console.warn(`[AudioPool] Failed to warm pool for ${this.soundUrl}:`, e);
+      logger.warn(`[AudioPool] Failed to warm pool for ${this.soundUrl}:`, e);
     }
   }
 
@@ -43,7 +44,7 @@ export class AudioPool {
     applyLowpass?: boolean;
   }): void {
     if (!this.audioBuffer) {
-      console.warn(`[AudioPool] Sound buffer not warmed/loaded for: ${this.soundUrl}`);
+      logger.warn(`[AudioPool] Sound buffer not warmed/loaded for: ${this.soundUrl}`);
       return;
     }
 

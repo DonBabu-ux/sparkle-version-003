@@ -2,7 +2,6 @@ const express = require('express');
 const router = express.Router();
 const authController = require('../../controllers/auth.controller');
 const supabaseController = require('../../controllers/supabase.controller');
-const { csrfProtection } = require('../../middleware/security.middleware');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 
 // Check if validation middleware exists
@@ -28,24 +27,25 @@ try {
 }
 
 const { loginLimiter } = require('../../middleware/rateLimiter.middleware');
+const { authRateLimiter } = require('../../middleware/security.middleware');
 
 // Standard Auth Routes
-router.post('/signup', authController.signup);
+router.post('/signup', authRateLimiter, authController.signup);
 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
 router.post('/refresh', authController.refreshToken);
-router.post('/verify-2fa', authController.verify2FA);
-router.post('/resend-2fa', authController.resend2FA);
-router.post('/request-2fa-recovery', authController.request2FARecovery);
+router.post('/verify-2fa', authRateLimiter, authController.verify2FA);
+router.post('/resend-2fa', authRateLimiter, authController.resend2FA);
+router.post('/request-2fa-recovery', authRateLimiter, authController.request2FARecovery);
 router.post('/logout', authMiddleware, authController.logout);
 router.get('/check-username', authController.checkUsername);
 router.get('/check-email', authController.checkEmail);
 
 // Verification & Password Flow
-router.post('/verify-email', authController.verifyEmail);
-router.post('/verify-sms', authController.verifySMS);
-router.post('/forgot-password', authController.forgotPassword);
-router.post('/reset-password', authController.resetPassword);
-router.post('/resend-verification', authController.resendVerification);
+router.post('/verify-email', authRateLimiter, authController.verifyEmail);
+router.post('/verify-sms', authRateLimiter, authController.verifySMS);
+router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
+router.post('/reset-password', authRateLimiter, authController.resetPassword);
+router.post('/resend-verification', authRateLimiter, authController.resendVerification);
 
 // Unified Supabase Auth Routes
 router.post('/google/sync', supabaseController.syncSocialUser);

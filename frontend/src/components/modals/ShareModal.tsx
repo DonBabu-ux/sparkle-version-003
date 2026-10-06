@@ -6,6 +6,7 @@ import { useModalStore } from '../../store/modalStore';
 
 import type { User } from '../../types/user';
 import type { Post } from '../../types/post';
+import { logger } from '../../utils/logger';
 
 interface ShareModalProps {
   onClose: () => void;
@@ -33,7 +34,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
         const res = await api.get('/users/following');
         setRecipients(res.data.following || res.data || []);
       } catch (err) {
-        console.error('Failed to fetch recipients', err);
+        logger.error('Failed to fetch recipients', err);
       } finally {
         setLoading(false);
       }
@@ -55,7 +56,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
       });
       onClose();
     } catch (err) {
-      console.error('Failed to share to friend', err);
+      logger.error('Failed to share to friend', err);
     }
   };
 
@@ -66,7 +67,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
       setIsSaved(true);
       setTimeout(onClose, 1000);
     } catch (err) {
-      console.error('Failed to save post', err);
+      logger.error('Failed to save post', err);
     }
   };
 

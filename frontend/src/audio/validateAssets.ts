@@ -1,4 +1,5 @@
 import type { SoundTheme } from './settings/ThemeController';
+import { logger } from '../utils/logger';
 
 export interface ValidationWarning {
   type: 'missing' | 'duplicate' | 'format' | 'size' | 'samplerate';
@@ -109,9 +110,9 @@ export async function validateAssets(
   }
 
   if (warnings.length > 0) {
-    console.warn(`[AssetValidation] Theme "${themeName}" asset checks failed:`, warnings);
+    logger.warn(`[AssetValidation] Theme "${themeName}" asset checks failed:`, warnings);
   } else {
-    console.log(`[AssetValidation] Theme "${themeName}" validation passed successfully.`);
+    logger.log(`[AssetValidation] Theme "${themeName}" validation passed successfully.`);
   }
 
   return warnings;

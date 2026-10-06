@@ -158,7 +158,7 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
       return <ReactionSticker config={config} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'avatar_loop':
       return <AvatarLoopSticker config={config} />;
-    case 'mention':
+    case 'mention': {
       const mentionUser = config.username || config.text || '';
       return (
         <div className="bg-white/95 backdrop-blur-3xl px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 min-w-[120px] justify-center select-none">
@@ -166,9 +166,11 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
           <span className="text-black font-black italic uppercase tracking-tighter text-[20px]">{mentionUser}</span>
         </div>
       );
-    case 'emoji':
+    }
+    case 'emoji': {
       const emojiVal = config.emoji || config.text || '';
       return <div className="text-[80px] drop-shadow-[0_20px_50px_rgba(0,0,0,0.3)] select-none leading-none">{emojiVal}</div>;
+    }
     case 'text':
       return (
         <div 

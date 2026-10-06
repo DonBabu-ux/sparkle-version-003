@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ShoppingBag, MessageSquare, Heart, MapPin, ExternalLink, Check } from 'lucide-react';
 import api from '../../api/api';
 import { getMediaUrl } from '../../utils/imageUtils';
+import { logger } from '../../utils/logger';
 
 export interface SparklyListingItem {
   listing_id: string;
@@ -32,7 +33,7 @@ export const SparklyListingCard: React.FC<SparklyListingCardProps> = ({ listing 
       await api.post(`/marketplace/listings/${listing.listing_id}/wishlist`);
       setIsSaved(!isSaved);
     } catch (err) {
-      console.error('Failed to toggle wishlist:', err);
+      logger.error('Failed to toggle wishlist:', err);
     } finally {
       setIsSaving(false);
     }

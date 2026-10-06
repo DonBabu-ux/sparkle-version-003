@@ -15,6 +15,7 @@ import { useUserStore } from '../store/userStore';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
+import { logger } from '../utils/logger';
 
 type TabType = 'all' | 'users' | 'posts' | 'groups' | 'marketplace' | 'clubs';
 
@@ -74,7 +75,7 @@ export default function Search() {
           setTrending(trendingRes.value.data.data || []);
       }
     } catch (err) {
-      console.error('Initial fetch error:', err);
+      logger.error('Initial fetch error:', err);
     }
   }, []);
 
@@ -86,7 +87,7 @@ export default function Search() {
         showToast(`You poked ${name}! 👋`);
         setActionItem(null);
     } catch (err) {
-        console.error('Poke failed:', err);
+        logger.error('Poke failed:', err);
         showToast('Failed to send poke.', 'error');
     } finally {
         setPoking(false);
@@ -100,7 +101,7 @@ export default function Search() {
         setActionItem(null);
         showToast('Search deleted.');
     } catch (err) {
-        console.error('Delete history failed:', err);
+        logger.error('Delete history failed:', err);
         showToast('Failed to delete.', 'error');
     }
   };
@@ -123,7 +124,7 @@ export default function Search() {
         }
       }
     } catch (err) {
-      console.error('Search failed:', err);
+      logger.error('Search failed:', err);
     } finally {
       setLoading(false);
     }

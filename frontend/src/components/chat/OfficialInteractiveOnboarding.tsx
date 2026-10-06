@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface OfficialInteractiveOnboardingProps {
   onComplete: () => void;
@@ -76,7 +77,7 @@ export const OfficialInteractiveOnboarding: React.FC<OfficialInteractiveOnboardi
     try {
       await api.post('/messages/official-chat/complete-onboarding');
     } catch (err) {
-      console.warn('Failed to complete onboarding on server:', err);
+      logger.warn('Failed to complete onboarding on server:', err);
     }
     onComplete();
   };

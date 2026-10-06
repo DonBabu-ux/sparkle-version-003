@@ -74,7 +74,9 @@ class WebSearchService {
                     try {
                         const uddg = rawUrl.split('uddg=')[1].split('&')[0];
                         actualUrl = decodeURIComponent(uddg);
-                    } catch (e) {}
+                    } catch (e) {
+                        logger.debug('webSearch: DDG redirect URL decodeURIComponent failed', e?.message || e);
+                    }
                 }
                 snippets.push({ url: actualUrl, snippet: this.sanitizeText(rawSnippet) });
             }

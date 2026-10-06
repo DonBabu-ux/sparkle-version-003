@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import { logger } from '../utils/logger';
 
 interface ExploreItem {
   id: string;
@@ -117,7 +118,7 @@ export default function Explore() {
         setHasMore(false);
       }
     } catch (err) {
-      console.error('Explore fetch error:', err);
+      logger.error('Explore fetch error:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);

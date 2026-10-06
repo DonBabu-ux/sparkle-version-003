@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { UserCheck, X, Clock } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 interface FollowRequest {
   id: string;
@@ -23,7 +24,7 @@ export default function FollowRequests() {
       const res = await api.get('/users/follow-requests');
       setRequests(res.data.requests || res.data || []);
     } catch (err) {
-      console.error('Failed to load follow requests:', err);
+      logger.error('Failed to load follow requests:', err);
     } finally {
       setLoading(false);
     }
@@ -39,7 +40,7 @@ export default function FollowRequests() {
       await api.post(`/users/follow-requests/${requestId}/${action}`);
       setRequests(prev => prev.filter(r => r.id !== requestId));
     } catch (err) {
-      console.error('Request action failed:', err);
+      logger.error('Request action failed:', err);
     } finally {
       setProcessing(prev => { const next = new Set(prev); next.delete(requestId); return next; });
     }

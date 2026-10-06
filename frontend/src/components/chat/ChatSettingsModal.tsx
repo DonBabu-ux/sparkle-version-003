@@ -44,6 +44,7 @@ const MEMOJIS = [
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 const PREVIEW_MESSAGES = [
   { text: "Hey! Did you see the new themes?", isMe: false },
@@ -108,7 +109,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
         const users = Array.isArray(res.data) ? res.data : (res.data?.data || []);
         setFollowingList(users);
       } catch (err) {
-        console.error('Failed to fetch following:', err);
+        logger.error('Failed to fetch following:', err);
       } finally {
         setFollowingLoading(false);
       }
@@ -133,7 +134,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
       });
       setSharingStates(prev => ({ ...prev, [partnerId]: 'sent' }));
     } catch (err) {
-      console.error('Failed to share contact to chat:', err);
+      logger.error('Failed to share contact to chat:', err);
       setSharingStates(prev => ({ ...prev, [partnerId]: 'idle' }));
       alert('Failed to send contact in chat.');
     }
@@ -239,7 +240,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
     try {
       await api.post(`/messages/chat/${chat.chat_id || chat.id}/mute`, { muted: newMute });
     } catch (err) {
-      console.error('Failed to toggle mute:', err);
+      logger.error('Failed to toggle mute:', err);
     }
   };
 
@@ -297,7 +298,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
           setDisappearingDuration(Number(data.disappearingDuration));
         }
       })
-      .catch(console.error);
+      .catch(logger.error);
   }, [chat.chat_id, chat.id]);
 
   useEffect(() => {
@@ -313,7 +314,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
           setChatStats(res.data.data);
         }
       })
-      .catch(console.error);
+      .catch(logger.error);
   }, [chat.chat_id, chat.id]);
 
   const [customPhoto, setCustomPhoto] = useState<string | null>(null);
@@ -648,7 +649,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setReadReceipts(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         readReceipts: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -662,7 +663,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setTypingIndicator(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         typingIndicator: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -677,7 +678,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setAllowForward(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         allowForward: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -691,7 +692,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setAllowCopy(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         allowCopy: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -705,7 +706,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setBlockScreenshots(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         blockScreenshots: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -719,7 +720,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setBlurScreenRecording(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         blurScreenRecording: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -733,7 +734,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       setNotifyScreenshotAttempts(newVal);
                       api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                         notifyScreenshotAttempts: newVal
-                      }).then(() => fetchChatPrivacy()).catch(console.error);
+                      }).then(() => fetchChatPrivacy()).catch(logger.error);
                     }} 
                     primaryColor={currentTheme?.colors.primary} 
                   />
@@ -747,7 +748,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                           await api.post(`/users/block/${chat.partner_id}`);
                           alert('User blocked');
                         } catch (err) {
-                          console.error('Failed to block', err);
+                          logger.error('Failed to block', err);
                           alert('Failed to block user');
                         }
                       }
@@ -766,7 +767,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                           await api.post(`/users/${chat.partner_id}/report`, { reason });
                           alert('Report submitted');
                         } catch (err) {
-                          console.error('Failed to report', err);
+                          logger.error('Failed to report', err);
                           alert('Failed to submit report');
                         }
                       }
@@ -783,7 +784,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                           await api.delete(`/messages/chat/${chat.chat_id || chat.id}`);
                           window.location.href = '/messages';
                         } catch (err) {
-                          console.error('Failed to delete', err);
+                          logger.error('Failed to delete', err);
                           alert('Failed to delete chat');
                         }
                       }
@@ -828,7 +829,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                             disappearingDuration: opt.value,
                           });
                         } catch (e) {
-                          console.error('Failed to update disappearing duration:', e);
+                          logger.error('Failed to update disappearing duration:', e);
                         }
                         setView('main');
                       }}
@@ -1317,7 +1318,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                         nickname: cleanPartnerNick || cleanMyNick
                       });
                     } catch (err) {
-                      console.log('Saved nickname locally');
+                      logger.log('Saved nickname locally');
                     }
 
                     window.dispatchEvent(new CustomEvent('sparkle:nickname-updated', { 
@@ -1646,7 +1647,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       onClose();
                       if (newChatId) navigate(`/messages?chat=${newChatId}`);
                     } catch (err) {
-                      console.error('Failed to create group', err);
+                      logger.error('Failed to create group', err);
                     } finally {
                       setGroupCreating(false);
                     }
@@ -1884,7 +1885,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
                 {/* Visit profile CTA */}
                 <button
-                  onClick={() => { onClose(); navigate(`/profile/${chat.partner_id}`); }}
+                  onClick={() => { onClose(); navigate(`/profile/${chat.partner_username || chat.partner_id}`); }}
                   className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-sm font-bold text-white border border-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <User size={16} /> View Full Profile

@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
+import { logger } from '../utils/logger';
 
 // API URL resolved from env vars at build time. Same-origin '/api' by default.
 // NOTE: native (APK) builds have no same-origin backend — set VITE_API_URL to
@@ -43,7 +44,7 @@ export class OtaService {
             if (!activeOtaRaw) return false;
 
             const activeOta: OtaVersionMetadata = JSON.parse(activeOtaRaw);
-            console.log(`🚀 OTA Bootloader: Found dynamic version ${activeOta.version}. Bootstrapping...`);
+            logger.log(`🚀 OTA Bootloader: Found dynamic version ${activeOta.version}. Bootstrapping...`);
 
             // Start watchdog timer to detect instant boots crashes (self-healing rollback)
             this.startCrashWatchdog(activeOta.version);
@@ -65,7 +66,7 @@ export class OtaService {
             
             // If dynamic script fails to load, trigger fallback instantly
             script.onerror = async () => {
-                console.error('❌ OTA Bootloader: Dynamic script failed to load. Rolling back...');
+                logger.error('❌ OTA Bootloader: Dynamic script failed to load. Rolling back...');
                 await this.performEmergencyRollback();
                 window.location.reload();
             };
@@ -73,7 +74,7 @@ export class OtaService {
             document.body.appendChild(script);
             return true;
         } catch (err) {
-            console.error('❌ OTA Bootloader: Exception in bootloader bootstrap:', err);
+            logger.error('❌ OTA Bootloader: Exception in bootloader bootstrap:', err);
             await this.performEmergencyRollback();
             return false;
         }
@@ -105,17 +106,17 @@ export class OtaService {
                 const targetVersion = data.version;
 
                 if (blacklist.includes(targetVersion)) {
-                    console.warn(`⚠️ OTA Service: Skipping blacklisted crashing version ${targetVersion}`);
+                    logger.warn(`⚠️ OTA Service: Skipping blacklisted crashing version ${targetVersion}`);
                     return;
                 }
 
-                console.log(`🌐 OTA Service: Newer version found: ${targetVersion}. Initiating background download...`);
+                logger.log(`🌐 OTA Service: Newer version found: ${targetVersion}. Initiating background download...`);
                 await this.downloadAssets(targetVersion, data.bundleUrl, data.hash, data.mandatory);
             } else {
-                console.log('✅ OTA Service: Frontend is up to date.');
+                logger.log('✅ OTA Service: Frontend is up to date.');
             }
         } catch (err) {
-            console.warn('⚠️ OTA Service check failed silently (Offline/Network error):', err);
+            logger.warn('⚠️ OTA Service check failed silently (Offline/Network error):', err);
         }
     }
 
@@ -133,12 +134,12 @@ export class OtaService {
             const jsUrl = `${bundleBaseUrl}/index.js`;
             const cssUrl = `${bundleBaseUrl}/index.css`;
 
-            console.log(`📥 Downloading JS chunk: ${jsUrl}`);
+            logger.log(`📥 Downloading JS chunk: ${jsUrl}`);
             const jsResponse = await fetch(jsUrl);
             if (!jsResponse.ok) throw new Error('Failed to fetch dynamic JS chunk');
             const jsContent = await jsResponse.text();
 
-            console.log(`📥 Downloading CSS chunk: ${cssUrl}`);
+            logger.log(`📥 Downloading CSS chunk: ${cssUrl}`);
             const cssResponse = await fetch(cssUrl);
             if (!cssResponse.ok) throw new Error('Failed to fetch dynamic CSS chunk');
             const cssContent = await cssResponse.text();
@@ -184,14 +185,14 @@ export class OtaService {
             await Preferences.set({ key: LOCAL_STORAGE_VERSION_KEY, value: version });
             await Preferences.set({ key: STABLE_FLAG_KEY, value: 'false' }); // Reset stable flag for verification
 
-            console.log(`🎉 OTA Service: Successfully downloaded and prepared bundle v${version} for launch.`);
+            logger.log(`🎉 OTA Service: Successfully downloaded and prepared bundle v${version} for launch.`);
 
             if (mandatory) {
-                console.log('🔄 OTA Service: Mandatory patch. Restarting web container.');
+                logger.log('🔄 OTA Service: Mandatory patch. Restarting web container.');
                 window.location.reload();
             }
         } catch (err) {
-            console.error('❌ OTA Service download error:', err);
+            logger.error('❌ OTA Service download error:', err);
         }
     }
 
@@ -204,7 +205,7 @@ export class OtaService {
         this.isWatchdogActive = true;
 
         const timer = setTimeout(async () => {
-            console.log(`✅ OTA Watchdog: Bundle v${version} has booted successfully. Marking as stable.`);
+            logger.log(`✅ OTA Watchdog: Bundle v${version} has booted successfully. Marking as stable.`);
             await Preferences.set({ key: STABLE_FLAG_KEY, value: 'true' });
         }, 12000);
 
@@ -212,7 +213,7 @@ export class OtaService {
         const oldOnError = window.onerror;
         window.onerror = async (message, source, lineno, colno, error) => {
             clearTimeout(timer);
-            console.error('🔥 OTA Watchdog detected a fatal boot crash! Initiating recovery rollback...', message);
+            logger.error('🔥 OTA Watchdog detected a fatal boot crash! Initiating recovery rollback...', message);
 
             // Blacklist the crashing version
             const { value: blacklistRaw } = await Preferences.get({ key: BLACKLIST_KEY });
@@ -239,14 +240,14 @@ export class OtaService {
      * Erases dynamic updates configuration to default back to APK native packaged files
      */
     public static async performEmergencyRollback(): Promise<void> {
-        console.warn('⚠️ OTA Service: Initiating emergency rollback procedure...');
+        logger.warn('⚠️ OTA Service: Initiating emergency rollback procedure...');
         try {
             await Preferences.remove({ key: ACTIVE_OTA_KEY });
             await Preferences.remove({ key: LOCAL_STORAGE_VERSION_KEY });
             await Preferences.set({ key: STABLE_FLAG_KEY, value: 'true' });
-            console.log('✅ OTA Service: Rollback successfully registered. Reverted back to packaged assets.');
+            logger.log('✅ OTA Service: Rollback successfully registered. Reverted back to packaged assets.');
         } catch (err) {
-            console.error('❌ OTA Service: Rollback cleanup failed:', err);
+            logger.error('❌ OTA Service: Rollback cleanup failed:', err);
         }
     }
 }

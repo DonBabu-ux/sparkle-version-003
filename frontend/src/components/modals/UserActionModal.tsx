@@ -4,6 +4,7 @@ import type { User } from '../../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 const MessengerIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
     <svg 
@@ -34,7 +35,7 @@ export default function UserActionModal({ user, onClose }: Props) {
             alert(`You poked ${user.name || user.username}! 👋`);
             onClose();
         } catch (err) {
-            console.error('Poke failed:', err);
+            logger.error('Poke failed:', err);
         } finally {
             setPoking(false);
         }

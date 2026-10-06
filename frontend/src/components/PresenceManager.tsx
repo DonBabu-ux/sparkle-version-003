@@ -16,6 +16,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { useUserStore } from '../store/userStore';
+import { logger } from '../utils/logger';
 
 const HEARTBEAT_INTERVAL_MS = 20_000;   // 20 s ping
 const BACKGROUND_GRACE_MS   = 30_000;   // keep online 30 s after tab hides
@@ -59,7 +60,7 @@ export default function PresenceManager() {
 
     // ── Socket lifecycle ──
     const onConnect = () => {
-      console.log('📡 PresenceManager: socket connected → presence ONLINE');
+      logger.log('📡 PresenceManager: socket connected → presence ONLINE');
       // Cancel any pending background offline timer
       if (backgroundTimer.current) {
         clearTimeout(backgroundTimer.current);
@@ -71,7 +72,7 @@ export default function PresenceManager() {
     };
 
     const onDisconnect = (reason: string) => {
-      console.warn('📡 PresenceManager: socket disconnected →', reason);
+      logger.warn('📡 PresenceManager: socket disconnected →', reason);
       // socket.io will auto-reconnect; do NOT immediately mark offline
     };
 
@@ -105,12 +106,12 @@ export default function PresenceManager() {
 
     // ── Network events ──
     const handleOnline = () => {
-      console.log('🌐 Network restored — reconnecting socket');
+      logger.log('🌐 Network restored — reconnecting socket');
       if (!socket.connected) socket.connect();
     };
 
     const handleOffline = () => {
-      console.warn('🌐 Network lost — socket will auto-recover on reconnect');
+      logger.warn('🌐 Network lost — socket will auto-recover on reconnect');
     };
 
     // ── Unload (tab/window close) ──
@@ -123,7 +124,7 @@ export default function PresenceManager() {
 
     // ── Manager Reconnect Events ──
     const handleReconnectAttempt = (attempt: number) => {
-      console.log(`📡 Socket reconnecting... (Attempt ${attempt})`);
+      logger.log(`📡 Socket reconnecting... (Attempt ${attempt})`);
       setIsReconnecting(true);
     };
     const handleReconnect = () => {

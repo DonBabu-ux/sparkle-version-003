@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Zap, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check, ArrowRight, DollarSign } from 'lucide-react';
 import api from '../../api/api';
 import { motion } from 'framer-motion';
+import { logger } from '../../utils/logger';
 
 const CATEGORIES = [
   { id: 'tutoring',  name: 'Tutoring',     icon: GraduationCap },
@@ -66,7 +67,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         onClose();
       }, 1800);
     } catch (err) {
-      console.error('Failed to create skill offer:', err);
+      logger.error('Failed to create skill offer:', err);
       alert('Could not create listing. Please try again.');
     } finally {
       setLoading(false);

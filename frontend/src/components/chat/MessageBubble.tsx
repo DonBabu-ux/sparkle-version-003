@@ -8,6 +8,7 @@ import { useLongPress } from '../../hooks/useLongPress';
 import { MessageActionModal } from '../modals/MessageActionModal';
 import { FullEmojiPickerModal } from './MessageActionModals';
 import type { MessagePermissions } from '../../types/messagePermissions';
+import { logger } from '../../utils/logger';
 
 interface MessageBubbleProps {
   message: {
@@ -38,7 +39,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
 
   useEffect(() => {
     if (message.type && message.type !== 'text') {
-      console.log(`[MEDIA_MESSAGE_RENDER] messageId=${message.message_id} type=${message.type}`);
+      logger.log(`[MEDIA_MESSAGE_RENDER] messageId=${message.message_id} type=${message.type}`);
     }
   }, [message.message_id, message.type]);
 
@@ -133,7 +134,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isCurrent
                   <img src={message.media_url || (message as any).mediaUrl} alt="" className="w-full h-44 object-cover rounded" />
                 ) : (
                   <button
-                    onClick={() => console.log('Downloading media payload:', message.message_id)}
+                    onClick={() => logger.log('Downloading media payload:', message.message_id)}
                     className="w-full py-2 bg-[#ff1493]/20 hover:bg-[#ff1493]/30 border border-[#ff1493]/40 rounded text-xs font-bold text-white flex items-center justify-center gap-1.5 transition-all"
                   >
                     <span>↓</span> Tap to Download

@@ -5,6 +5,7 @@ import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import type { Post } from '../types/post';
+import { logger } from '../utils/logger';
 
 function LazyMediaCard({ m, idx, onClick }: { m: Post; idx: number; onClick: () => void }) {
   const [isVisible, setIsVisible] = useState(false);
@@ -83,7 +84,7 @@ export default function Gallery() {
         // Filter out posts without media
         setMedia(items.filter((i: Post) => i.media_url && i.media_url !== '/uploads/defaults/no-image.png'));
       } catch (err) {
-        console.error('Failed to fetch gallery:', err);
+        logger.error('Failed to fetch gallery:', err);
       } finally {
         setLoading(false);
       }

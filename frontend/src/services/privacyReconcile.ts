@@ -1,5 +1,6 @@
 import api from '../api/api';
 import { SparkleStorage } from './SparkleStorageService';
+import { logger } from '../utils/logger';
 
 export async function reconcilePrivacySettings(chatId: string): Promise<void> {
   try {
@@ -11,6 +12,6 @@ export async function reconcilePrivacySettings(chatId: string): Promise<void> {
       localStorage.setItem(`sparkle_privacy_cache_${chatId}`, JSON.stringify(enforced));
     } catch (e) {}
   } catch (err) {
-    console.error(err);
+    logger.error(err);
   }
 }

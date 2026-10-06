@@ -34,6 +34,7 @@ const getErrorMessage = (err) => {
             if (str && str.length > 2) return str.slice(0, 200);
         } catch (e) {
             // Fallback below
+            logger.warn(`getErrorMessage: JSON.stringify(err) failed while handling ${err?.code || err?.message || typeof err}`, e?.message || e);
         }
     }
     
@@ -237,6 +238,7 @@ const repairUsersTable = async () => {
                 `, [sysUser.id, sysUser.name, sysUser.username, sysUser.email, sysUser.bio]);
             } catch (e) {
                 // Ignore duplicate/schema warning
+                logger.warn(`repairUsersTable: system user ${sysUser.username} (${sysUser.id}) insert failed`, e?.message || e);
             }
         }
         logger.info('✅ System users (including sparkly_bot) verified in users table');
@@ -288,14 +290,17 @@ const repairPostsTable = async () => {
             }
         }
         // Ensure indices for feed performance
+        // P8: entries point at the strict-superset indexes (not their redundant prefixes)
         for (const idx of [
             { name: 'idx_posts_created_at', cols: 'created_at' },
-            { name: 'idx_posts_campus', cols: 'campus' },
-            { name: 'idx_posts_user_id', cols: 'user_id' }
+            { name: 'idx_posts_campus_type', cols: 'campus, post_type, created_at' },
+            { name: 'idx_posts_user', cols: 'user_id, created_at' }
         ]) {
             try {
                 await ensureIndex('posts', idx.name, idx.cols);
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+                logger.warn(`repairPosts: ensureIndex ${idx.name} (${idx.cols}) failed: ${e.message}`);
+            }
         }
     } catch (err) {
         logger.error('❌ Failed to repair posts table:', err.message);
@@ -861,7 +866,9 @@ const initChatPrivacySettingsTable = async () => {
         
         try {
             await ensureIndex('chat_privacy_settings', 'idx_chat_privacy_settings_lookup', 'chat_id, user_id');
-        } catch (e) {}
+        } catch (e) {
+            logger.warn(`initChatPrivacySettingsTable: ensureIndex idx_chat_privacy_settings_lookup failed`, e?.message || e);
+        }
 
         const chatPrivacyCols = [
             { name: 'read_receipts_enabled', type: 'TINYINT(1) DEFAULT NULL' },
@@ -878,7 +885,9 @@ const initChatPrivacySettingsTable = async () => {
                     await pool.query(`ALTER TABLE chat_privacy_settings ADD COLUMN ${col.name} ${col.type}`);
                     logger.info(`Added ${col.name} to chat_privacy_settings`);
                 }
-            } catch (e) {}
+            } catch (e) {
+                logger.warn(`initChatPrivacySettingsTable: column check/add ${col.name} on chat_privacy_settings failed`, e?.message || e);
+            }
         }
 
         // 2. capture_attempts
@@ -898,10 +907,14 @@ const initChatPrivacySettingsTable = async () => {
         
         try {
             await ensureIndex('capture_attempts', 'idx_capture_attempts_owner', 'owner_user_id, created_at DESC');
-        } catch (e) {}
+        } catch (e) {
+            logger.warn(`initChatPrivacySettingsTable: ensureIndex idx_capture_attempts_owner failed`, e?.message || e);
+        }
         try {
             await ensureIndex('capture_attempts', 'idx_capture_attempts_chat', 'chat_id, created_at DESC');
-        } catch (e) {}
+        } catch (e) {
+            logger.warn(`initChatPrivacySettingsTable: ensureIndex idx_capture_attempts_chat failed`, e?.message || e);
+        }
 
         // 3. capture_notifications
         await pool.query(`
@@ -1207,6 +1220,7 @@ const initMarketplaceTables = async () => {
             );
         } catch (e) {
             // FK already exists or cancelled_by column not present yet — safe to ignore
+            logger.warn(`initMarketplaceTables: ensureForeignKey fk_mo_cancelled_by on marketplace_orders failed`, e?.message || e);
         }
 
         try {
@@ -1220,6 +1234,7 @@ const initMarketplaceTables = async () => {
             }
         } catch (e) {
             // Price might not exist anymore, or syntax error
+            logger.warn(`initMarketplaceTables: marketplace_orders.price NULLABLE check/modification failed`, e?.message || e);
         }
 
         // Migration: Add tags to listings
@@ -2678,6 +2693,9 @@ const initDB = async () => {
         // Priority for current feature batch
         try { await initConfessionTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Confessions Init Error:', getErrorMessage(e)); }
         try { await repairPostsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Posts repair failed:', getErrorMessage(e)); }
+        // delivery_queue lacks message_id index in its CREATE (migrations/migrate-enterprise-messaging.js);
+        // orphan-cleanup DELETE + acknowledgeDelivery + queue SELECT all join/filter on it.
+        try { await ensureIndex('delivery_queue', 'idx_delivery_message', 'message_id'); } catch (e) { if (!isDuplicateError(e)) logger.warn('delivery_queue.message_id index failed:', getErrorMessage(e)); }
         try { await repairStoriesTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Stories repair failed:', getErrorMessage(e)); }
         try { await initStickerTables(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Stickers init failed:', getErrorMessage(e)); }
         try { await initRepostsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Reposts init failed:', getErrorMessage(e)); }

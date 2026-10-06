@@ -5,6 +5,7 @@ const Message = require('../models/Message');
 const PermissionEngine = require('../services/PermissionEngine');
 const { canPinMessage, canEditMessage, canDeleteForMe, canDeleteForEveryone, canReactMessage, canForwardMessage } = require('../services/messagePermission');
 const db = require('../config/database');
+const logger = require('../utils/logger');
 
 // Assuming you have a socket.io instance exported from your server entry
 const { getIO } = require('../socket');
@@ -612,7 +613,9 @@ async function recordCaptureAttempt(req, res) {
       let oldMeta = {};
       try {
         oldMeta = typeof existingAttempts[0].metadata === 'string' ? JSON.parse(existingAttempts[0].metadata) : (existingAttempts[0].metadata || {});
-      } catch (e) {}
+      } catch (e) {
+        logger.debug(`recordCaptureAttempt: existing metadata JSON.parse fallback (attempt ${existingAttempts[0].id})`, e?.message || e);
+      }
       const attemptCount = (oldMeta.attempt_count || 1) + 1;
       const updatedMeta = JSON.stringify({ ...oldMeta, attempt_count: attemptCount });
       await db.query('UPDATE capture_attempts SET metadata = ? WHERE id = ?', [updatedMeta, attemptId]);

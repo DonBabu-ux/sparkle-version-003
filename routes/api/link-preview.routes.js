@@ -1,4 +1,5 @@
 const express = require('express');
+const logger = require('../../utils/logger');
 const router = express.Router();
 const fetch = require('node-fetch');
 const dns = require('dns').promises;
@@ -22,7 +23,7 @@ function extractOgTags(html, targetUrl) {
 
     let siteName = get('og:site_name');
     if (!siteName) {
-        try { siteName = new URL(targetUrl).hostname.replace('www.', ''); } catch (e) {}
+        try { siteName = new URL(targetUrl).hostname.replace('www.', ''); } catch (e) { logger.debug('og hostname parse failed for ' + targetUrl, e?.message || e); }
     }
 
     return {

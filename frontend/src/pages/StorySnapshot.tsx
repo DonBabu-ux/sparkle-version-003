@@ -4,6 +4,7 @@ import { Clock, EyeOff, User, ArrowLeft, Heart, MessageSquare } from 'lucide-rea
 import api from '../api/api';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface StorySnapshot {
     story_id: string;
@@ -37,7 +38,7 @@ export default function StorySnapshot() {
                     setStory(data);
                 }
             } catch (err) {
-                console.error("Failed to fetch story snapshot:", err);
+                logger.error("Failed to fetch story snapshot:", err);
                 setError(true);
             } finally {
                 setLoading(false);

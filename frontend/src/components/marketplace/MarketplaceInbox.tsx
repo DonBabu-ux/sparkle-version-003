@@ -13,6 +13,7 @@ import { useSocket } from '../../hooks/useSocket';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 // Real chats will be fetched from API
 
@@ -67,7 +68,7 @@ export default function MarketplaceInbox() {
           setChats(mappedChats);
         }
       } catch (err) {
-        console.error('Failed to fetch marketplace chats:', err);
+        logger.error('Failed to fetch marketplace chats:', err);
       } finally {
         setLoading(false);
       }
@@ -118,7 +119,7 @@ export default function MarketplaceInbox() {
         ));
       }
     } catch (err) {
-      console.error(`Failed to toggle ${field}:`, err);
+      logger.error(`Failed to toggle ${field}:`, err);
     }
   };
 
@@ -128,7 +129,7 @@ export default function MarketplaceInbox() {
       await api.delete(`/marketplace/conversations/${chatId}`);
       setChats(prev => prev.filter(c => c.id !== chatId));
     } catch (err) {
-      console.error('Failed to delete chat:', err);
+      logger.error('Failed to delete chat:', err);
     }
   };
 
@@ -273,7 +274,7 @@ export default function MarketplaceInbox() {
                                     await api.post(`/users/block/${chat.partner.id}`);
                                     setChats(prev => prev.map(c => c.id === chat.id ? { ...c, is_archived: true } : c));
                                     setOpenMenuId(null);
-                                  } catch(err) { console.error(err); }
+                                  } catch(err) { logger.error(err); }
                                 }
                               }} 
                               className="w-full text-left px-3 py-1.5 text-xs font-bold hover:bg-gray-50 text-red-500 flex items-center gap-2"

@@ -14,6 +14,7 @@ import {
   ShieldCheck, Plus, Orbit, MessageSquare, ArrowLeft, Flame, TrendingUp, Sparkles, Globe, Smile, BookOpen,
   MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Bookmark, Heart, Send
 } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 
 const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
@@ -125,7 +126,7 @@ export default function Confessions() {
         setTrendingConfession(null);
       }
     } catch (err) {
-      console.error('Failed to fetch confessions:', err);
+      logger.error('Failed to fetch confessions:', err);
     } finally {
       setLoading(false);
     }
@@ -154,7 +155,7 @@ export default function Confessions() {
       setActiveReactionMenu(null);
     } catch (err) {
       if (forceAdd) reactedIdsRef.current.delete(confessionId);
-      console.error('Error reacting to confession:', err);
+      logger.error('Error reacting to confession:', err);
     }
   };
 
@@ -164,7 +165,7 @@ export default function Confessions() {
       const response = await api.get(`/confessions/${id}/comments`);
       setCommentsData(prev => ({ ...prev, [id]: response.data.data || response.data || [] }));
     } catch (err) {
-      console.error('Failed to fetch comments:', err);
+      logger.error('Failed to fetch comments:', err);
     }
   };
 
@@ -199,7 +200,7 @@ export default function Confessions() {
         c.confession_id === confessionId ? { ...c, comment_count: (c.comment_count || 0) + 1 } : c
       ));
     } catch (err) {
-      console.error('Failed to add comment:', err);
+      logger.error('Failed to add comment:', err);
     } finally {
       setIsCommenting(prev => ({ ...prev, [confessionId]: false }));
     }

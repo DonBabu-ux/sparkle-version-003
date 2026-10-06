@@ -307,7 +307,7 @@ async function seed() {
     } catch (err) {
         console.error('Seeding failed:', err);
     } finally {
-        if (db) { try { await db.end(); } catch (_) { /* ignore */ } }
+        if (db) { try { await db.end(); } catch (_) { console.warn("seed-data: db.end failed:", _ && _.message || _); } }
         process.exit();
     }
 }

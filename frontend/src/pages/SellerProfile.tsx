@@ -14,6 +14,7 @@ import MarketplaceSettingsModal from '../components/modals/MarketplaceSettingsMo
 import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface Seller {
   user_id: string;
@@ -53,7 +54,7 @@ export default function SellerProfile() {
       await api.post(`/marketplace/seller/favorite`, { sellerId: seller.user_id });
       // Update local state or refetch
     } catch (err) {
-      console.error('Follow error:', err);
+      logger.error('Follow error:', err);
     }
   };
 
@@ -66,7 +67,7 @@ export default function SellerProfile() {
         alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
-      console.error('Alert toggle error:', err);
+      logger.error('Alert toggle error:', err);
     }
   };
 
@@ -82,7 +83,7 @@ export default function SellerProfile() {
         navigate(`/marketplace/messages/${convId}`);
       }
     } catch (err) {
-      console.error('Contact seller failed:', err);
+      logger.error('Contact seller failed:', err);
       navigate(`/marketplace/messages`);
     }
   };
@@ -101,7 +102,7 @@ export default function SellerProfile() {
         };
       });
     } catch (err) {
-      console.error('Reply error:', err);
+      logger.error('Reply error:', err);
       alert('Failed to post reply');
     }
   };
@@ -122,7 +123,7 @@ export default function SellerProfile() {
         })
         .catch(() => {});
     } catch (err) {
-      console.error('Failed to fetch seller:', err);
+      logger.error('Failed to fetch seller:', err);
     } finally {
       setLoading(false);
     }
@@ -471,7 +472,7 @@ export default function SellerProfile() {
         isOpen={isVerificationModalOpen}
         onClose={() => setIsVerificationModalOpen(false)}
         onComplete={(data) => {
-          console.log('Verification completed:', data);
+          logger.log('Verification completed:', data);
           setIsVerificationModalOpen(false);
         }}
       />

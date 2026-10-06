@@ -5,6 +5,7 @@ const csrf = require('csurf');
 const { body, validationResult } = require('express-validator');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/constants');
+const logger = require('../utils/logger');
 
 /**
  * Rate limiting configuration
@@ -19,7 +20,7 @@ const rateLimitKey = (req) => {
         try {
             const decoded = jwt.verify(token, JWT_SECRET);
             if (decoded && decoded.userId) return 'u:' + decoded.userId;
-        } catch (e) { /* invalid/expired -> IP key */ }
+        } catch (e) { logger.debug('rate-limit key: invalid/expired token, falling back to IP key'); }
         return null;
     };
     const authHeader = req.headers.authorization;
@@ -39,7 +40,7 @@ const createRateLimiter = (windowMs = 15 * 60 * 1000, max = 100) => {
         windowMs,
         max,
         keyGenerator: rateLimitKey,
-        message: 'Too many requests from this IP, please try again later.',
+        message: 'Too many requests. Please try again later.',
         standardHeaders: true,
         legacyHeaders: false,
     });
@@ -85,15 +86,29 @@ const imageLimiter = rateLimit({
 });
 
 /**
- * CSRF Protection middleware
+ * CSRF Protection middleware (double-submit token in the httpOnly `_csrf`
+ * cookie), scoped to mutations that actually ride cookie auth:
+ *  - Bearer-token clients are exempt — a cross-site attacker page cannot set
+ *    the Authorization header, so those requests cannot be forged.
+ *  - Requests without the `sparkleToken` cookie have no session to protect
+ *    (login/signup/refresh, Paystack webhooks, probes).
+ * A browser session (cookie present, no Bearer) must present the token.
  */
-const csrfProtection = csrf({
+const csurfProtection = csrf({
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
     }
 });
+
+const csrfProtection = (req, res, next) => {
+    if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) return next();
+    if (!req.cookies || !req.cookies.sparkleToken) return next();
+    return csurfProtection(req, res, next);
+};
 
 /**
  * Sanitization middleware to prevent XSS
@@ -146,6 +161,7 @@ module.exports = {
     mutationRateLimiter,
     imageLimiter,
     csrfProtection,
+    csrfTokenProtection: csurfProtection,
     sanitizeInput,
     securityHeaders
-};
+};

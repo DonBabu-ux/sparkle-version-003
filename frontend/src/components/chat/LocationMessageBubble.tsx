@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css';
 import { MapPin, Navigation, Clock, ExternalLink, Square } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
 import { liveLocationService } from '../../services/liveLocationService';
+import { logger } from '../../utils/logger';
 
 interface LocationMessageBubbleProps {
   message: {
@@ -229,7 +230,7 @@ export const LocationMessageBubble: React.FC<LocationMessageBubbleProps> = ({
       setIsActive(false);
       setRemainingText('Live location ended');
     } catch (err) {
-      console.error('Failed to stop live location session:', err);
+      logger.error('Failed to stop live location session:', err);
     } finally {
       setIsStopping(false);
     }

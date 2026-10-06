@@ -9,6 +9,7 @@ import api from '../../api/api';
 import { getAvatarUrl, getMediaUrl } from '../../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface GroupSettingsModalProps {
   groupId: string;
@@ -62,7 +63,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
     try {
       const res = await api.get(`/groups/${groupId}/members`);
       setMembers(res.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
     finally { setLoading(false); }
   };
 
@@ -71,7 +72,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
     try {
       const res = await api.get(`/groups/${groupId}/requests`);
       setRequests(res.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
     finally { setLoading(false); }
   };
 
@@ -80,7 +81,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
     try {
       const res = await api.get(`/groups/${groupId}/pending-posts`);
       setPendingPosts(res.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
     finally { setLoading(false); }
   };
 
@@ -105,7 +106,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       onUpdate();
       alert('Circle settings updated successfully!');
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       alert('Failed to update settings.');
     } finally {
       setSaving(false);
@@ -121,7 +122,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       
       if (res.data.success || res.data) fetchMembers();
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -130,7 +131,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       await api.post(`/groups/posts/${postId}/${action}`);
       setPendingPosts(prev => prev.filter(p => p.post_id !== postId));
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       alert('Failed to process post.');
     }
   };
@@ -143,7 +144,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
         if (action === 'approve') fetchMembers();
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
       alert('Failed to process request.');
     }
   };
@@ -155,7 +156,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       onClose();
       window.location.href = '/groups';
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

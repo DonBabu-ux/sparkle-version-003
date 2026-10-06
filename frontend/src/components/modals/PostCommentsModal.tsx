@@ -10,6 +10,7 @@ import MentionText from '../MentionText';
 import { formatCount } from '../../utils/format';
 import { emitHeart } from '../TikTokHearts';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface Comment {
   comment_id: string;
@@ -65,7 +66,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         setComments(res.data);
       }
     } catch (err) {
-      console.error('Failed to fetch comments', err);
+      logger.error('Failed to fetch comments', err);
     } finally {
       setLoading(false);
     }
@@ -98,7 +99,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         setComments(updateComments(comments));
       }
     } catch (err) {
-      console.error('Failed to toggle like', err);
+      logger.error('Failed to toggle like', err);
     }
   };
 
@@ -163,7 +164,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       // Trigger heart burst on successful post
       emitHeart(window.innerWidth / 2, window.innerHeight / 2, 'v');
     } catch (err) {
-      console.error('Failed to post comment', err);
+      logger.error('Failed to post comment', err);
     } finally {
       setSubmitting(false);
     }
@@ -194,7 +195,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
           const data = await res.json();
           setGiphyResults(data.data || []);
         } catch (err) {
-          console.error('Giphy fetch error', err);
+          logger.error('Giphy fetch error', err);
         } finally {
           setLoadingGiphy(false);
         }
@@ -551,7 +552,7 @@ function CommentItem({
       setTranslatedContent(res.data.translatedText);
       setTranslated(true);
     } catch (err) {
-      console.error('Translation failed', err);
+      logger.error('Translation failed', err);
       setTranslatedContent('Translation failed.');
       setTranslated(true);
     } finally {

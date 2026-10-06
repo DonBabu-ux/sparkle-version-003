@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus, ChevronLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface ListingModalProps {
   onClose: () => void;
@@ -51,7 +52,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Marketplace listing failed:', err);
+      logger.error('Marketplace listing failed:', err);
       alert('Failed to publish item.');
     } finally {
       setSubmitting(false);

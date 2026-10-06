@@ -21,6 +21,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 import { SparkleStorage } from './SparkleStorageService';
+import { logger } from '../utils/logger';
 
 const STORAGE_KEY = 'sparkle_persistent_outgoing_queue';
 const RETRY_DELAYS_MS = [1_000, 2_000, 5_000, 10_000, 20_000, 30_000, 60_000, 300_000, 900_000];
@@ -89,9 +90,9 @@ class PersistentOfflineQueueService {
     this.memoryCache = queue;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
-      SparkleStorage.saveOfflineQueue(queue).catch(console.warn);
+      SparkleStorage.saveOfflineQueue(queue).catch(logger.warn);
     } catch (e) {
-      console.warn('[PersistentOfflineQueue] Failed to persist queue:', e);
+      logger.warn('[PersistentOfflineQueue] Failed to persist queue:', e);
     }
   }
 
@@ -103,7 +104,7 @@ class PersistentOfflineQueueService {
     this.clearMessageTimeout(messageId);
     const timer = setTimeout(() => {
       this.attemptTimers.delete(messageId);
-      console.log(`⏰ [PersistentOfflineQueue] 10s sync timeout expired for messageId=${messageId}`);
+      logger.log(`⏰ [PersistentOfflineQueue] 10s sync timeout expired for messageId=${messageId}`);
       this.updateStatus(messageId, 'failed');
       if (onTimeout) onTimeout();
       window.dispatchEvent(new CustomEvent('sparkle_message_timeout', { detail: { messageId } }));
@@ -245,7 +246,7 @@ class PersistentOfflineQueueService {
     try {
       localStorage.setItem('sparkle_persistent_interaction_queue', JSON.stringify(queue));
     } catch (e) {
-      console.warn('[PersistentOfflineQueue] Failed to persist interactions:', e);
+      logger.warn('[PersistentOfflineQueue] Failed to persist interactions:', e);
     }
   }
 

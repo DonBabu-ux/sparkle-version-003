@@ -24,6 +24,7 @@ import ModernOfflineState from '../components/ui/ModernOfflineState';
 import MentionInput from '../components/MentionInput';
 import MentionText from '../components/MentionText';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
+import { logger } from '../utils/logger';
 
 // Local utility to avoid import issues
 const formatCount = (num: number): string => {
@@ -602,7 +603,7 @@ export default function Moments() {
         const res = await api.get(endpoint);
         setGiphyResults(res.data.data || []);
       } catch (err) {
-        console.error('Giphy fetch error', err);
+        logger.error('Giphy fetch error', err);
       } finally {
         setGiphyLoading(false);
       }
@@ -676,7 +677,7 @@ export default function Moments() {
           const detailRes = await api.get(`/moments/${id}`);
           const single = detailRes.data.moment || detailRes.data;
           if (single) allData.unshift(single);
-        } catch (e) { console.error('Error fetching moment', e); }
+        } catch (e) { logger.error('Error fetching moment', e); }
       }
 
       // DEDUPLICATION: Ensure unique moments
@@ -699,7 +700,7 @@ export default function Moments() {
       setPage(pageNum);
       FeedPaginationAudit.logResponse(allData.length, nextHasMore);
     } catch (err) {
-      console.error('Moments fetch error:', err);
+      logger.error('Moments fetch error:', err);
     } finally {
       setLoading(false);
       setFetchingMore(false);
@@ -725,7 +726,7 @@ export default function Moments() {
 
   const handleQualityChange = useCallback((quality: string) => {
     // Quality tracking without UI notification
-    console.log(`Stream quality: ${quality}`);
+    logger.log(`Stream quality: ${quality}`);
   }, []);
 
   /** Pull-to-refresh: bypass 30s cache, reset scroll, get a reshuffled feed */
@@ -816,7 +817,7 @@ export default function Moments() {
       searchCache.current[cacheKey] = cacheData;
       localStorage.setItem(`search_${cacheKey}`, JSON.stringify(cacheData));
     } catch (err) {
-      console.error('Search error', err);
+      logger.error('Search error', err);
     } finally {
       setIsSearching(false);
     }
@@ -854,7 +855,7 @@ export default function Moments() {
     try {
       await api.post(`/moments/user/${userId}/follow`);
     } catch (err) {
-      console.error('Follow error', err);
+      logger.error('Follow error', err);
       // Rollback on error
       setMoments(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: false } : m));
       setSearchResults(prev => prev.map(m => m.user_id === userId ? { ...m, is_following: false } : m));
@@ -954,7 +955,7 @@ export default function Moments() {
     try {
       await api.post(`/moments/${momentId}/save`);
     } catch (err) {
-      console.error('Save error', err);
+      logger.error('Save error', err);
       // Rollback UI on failure
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_saved: wasSaved
@@ -973,7 +974,7 @@ export default function Moments() {
       const res = await api.get(`/moments/${momentId}/comments`);
       setComments(res.data.comments || res.data || []);
     } catch (err) {
-      console.error('Fetch comments error', err);
+      logger.error('Fetch comments error', err);
     }
   };
 
@@ -999,7 +1000,7 @@ export default function Moments() {
         ...m, comment_count: (m.comment_count || 0) + 1
       } : m));
     } catch (err) {
-      console.error('Post comment error', err);
+      logger.error('Post comment error', err);
     } finally {
       setSubmittingComment(false);
     }
@@ -1051,7 +1052,7 @@ export default function Moments() {
 
       setTimeout(() => setDownloadProgress(null), 1000);
     } catch (error) {
-      console.error('Download error:', error);
+      logger.error('Download error:', error);
       const link = document.createElement('a');
       link.href = moment.video_url || moment.media_url || '';
       link.download = `sparkle-moment-${moment.moment_id}.mp4`;

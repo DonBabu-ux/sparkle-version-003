@@ -7,6 +7,7 @@ import api from '../api/api';
 import clsx from 'clsx';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import { getTiktokEmbedUrl } from '../utils/tiktokEmbed';
+import { logger } from '../utils/logger';
 
 interface MomentData {
   moment_id: string;
@@ -51,7 +52,7 @@ export default function MomentDetail() {
       const res = await api.get(`/moments/${id}`);
       setMoment(res.data.moment || res.data);
     } catch (err) {
-      console.error('Moment detail error:', err);
+      logger.error('Moment detail error:', err);
     } finally {
       setLoading(false);
     }

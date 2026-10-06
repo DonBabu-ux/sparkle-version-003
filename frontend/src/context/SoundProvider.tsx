@@ -2,6 +2,7 @@
 import React, { createContext, useEffect, useRef, useCallback } from 'react';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import type { SoundKey } from '../audio/managers/SoundManager';
+import { logger } from '../utils/logger';
 
 // ── Notification type → sound key mapping ──
 const NOTIFICATION_SOUND_MAP: Record<string, SoundKey> = {
@@ -60,7 +61,7 @@ export const SoundProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Initialize the AudioSessionManager (validates assets, warms pools, etc.)
     AudioSessionManager.init().then(() => {
-      console.log('[SoundProvider] AudioSessionManager initialized.');
+      logger.log('[SoundProvider] AudioSessionManager initialized.');
     });
   }, []);
 

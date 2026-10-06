@@ -3,6 +3,7 @@ import { X, Search, Orbit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
+import { logger } from '../../utils/logger';
 
 interface FollowUser {
   id: string;
@@ -40,7 +41,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
       const res = await api.get(endpoint);
       setUsers(res.data);
     } catch (err) {
-      console.error(`Failed to fetch ${title.toLowerCase()}:`, err);
+      logger.error(`Failed to fetch ${title.toLowerCase()}:`, err);
     } finally {
       setLoading(false);
     }
@@ -56,7 +57,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
         setUsers(users.map(u => u.id === targetId ? { ...u, is_followed_by_me: true } : u));
       }
     } catch (err) {
-      console.error('Follow toggle failed:', err);
+      logger.error('Follow toggle failed:', err);
     }
   };
 

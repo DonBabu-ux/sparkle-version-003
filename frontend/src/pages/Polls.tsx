@@ -7,6 +7,7 @@ import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import { logger } from '../utils/logger';
 
 interface PollOption {
   option_id: string;
@@ -84,7 +85,7 @@ export default function Polls() {
          setTimeout(() => fetchPolls(true), 400);
       }
     } catch (err) {
-      console.error('Fetch polls error:', err);
+      logger.error('Fetch polls error:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);

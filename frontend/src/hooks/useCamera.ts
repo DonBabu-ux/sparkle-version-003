@@ -1,5 +1,6 @@
 // src/hooks/useCamera.ts
 import { useEffect, useRef, useState } from 'react';
+import { logger } from '../utils/logger';
 
 /**
  * Hook to manage device camera preview.
@@ -25,7 +26,7 @@ export const useCamera = () => {
         videoRef.current.play();
       }
     } catch (err) {
-      console.error('Camera error:', err);
+      logger.error('Camera error:', err);
     }
   };
 

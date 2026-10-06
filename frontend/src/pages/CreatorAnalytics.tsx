@@ -7,6 +7,7 @@ import {
   Eye, Video, MessageSquare, Share2, Heart, Award, ArrowUpRight, BookOpen
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface AnalyticsData {
   profileViews: number;
@@ -33,7 +34,7 @@ export default function CreatorAnalytics() {
       const res = await api.get('/analytics/creator');
       setData(res.data);
     } catch (e) {
-      console.error('Failed to load creator analytics:', e);
+      logger.error('Failed to load creator analytics:', e);
     } finally {
       setLoading(false);
     }

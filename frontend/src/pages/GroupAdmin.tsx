@@ -6,6 +6,7 @@ import type { Group } from '../types/group';
 import { Shield, ArrowLeft, Check, X, Users, Sparkles, AlertCircle } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface GroupRequest {
   request_id: string;
@@ -41,7 +42,7 @@ export default function GroupAdmin() {
         setGroup(groupRes.data.group || groupRes.data);
         setRequests(requestsRes.data || []);
       } catch (err) {
-        console.error('Admin load failed:', err);
+        logger.error('Admin load failed:', err);
         navigate(`/groups/${id}`);
       } finally {
         setLoading(false);
@@ -55,7 +56,7 @@ export default function GroupAdmin() {
       await api.post(`/groups/requests/${requestId}/${action}`);
       setRequests(prev => prev.filter(r => r.request_id !== requestId));
     } catch (err) {
-      console.error(`${action} failed:`, err);
+      logger.error(`${action} failed:`, err);
     }
   };
 

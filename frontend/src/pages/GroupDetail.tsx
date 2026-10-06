@@ -17,6 +17,7 @@ import GroupPostModal from '../components/modals/GroupPostModal';
 import type { Group, GroupMember } from '../types/group';
 import type { Post } from '../types/post';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 type Tab = 'posts' | 'about' | 'members' | 'media';
 
@@ -68,7 +69,7 @@ export default function GroupDetail() {
       const apiStatus = g.memberStatus;
       const isCreator = g.creator_id === user?.user_id;
 
-      console.log('Group Detail Permissions:', { apiRole, apiStatus, isCreator, userId: user?.user_id });
+      logger.log('Group Detail Permissions:', { apiRole, apiStatus, isCreator, userId: user?.user_id });
       
       setIsMember(apiStatus === 'active' || isCreator);
       setIsOwner(apiRole === 'owner' || isCreator);
@@ -79,7 +80,7 @@ export default function GroupDetail() {
         setPendingJoin(reqRes.data?.status === 'pending');
       }
     } catch (err) {
-      console.error('Failed to fetch group data:', err);
+      logger.error('Failed to fetch group data:', err);
     } finally {
       setLoading(false);
     }
@@ -97,7 +98,7 @@ export default function GroupDetail() {
         setPendingJoin(true);
       }
     } catch (err) {
-      console.error('Join failed:', err);
+      logger.error('Join failed:', err);
     } finally {
       setJoining(false);
     }
@@ -113,7 +114,7 @@ export default function GroupDetail() {
         setIsOwner(false);
         fetchGroupData();
       } catch (err) {
-        console.error('Leave failed:', err);
+        logger.error('Leave failed:', err);
       }
     } else {
       handleJoin();
@@ -133,7 +134,7 @@ export default function GroupDetail() {
       });
       fetchGroupData();
     } catch (err) {
-      console.error('Upload failed:', err);
+      logger.error('Upload failed:', err);
     }
   };
 

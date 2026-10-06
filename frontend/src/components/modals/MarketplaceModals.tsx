@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, MapPin, Navigation, Compass, ChevronRight, MessageCircle, ChevronDown, ChevronLeft, FileWarning, UserPlus } from 'lucide-react';
+import { X, MapPin, Navigation, Compass, ChevronRight, MessageCircle, ChevronDown, ChevronLeft, FileWarning, UserPlus, Plus } from 'lucide-react';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { useLocationDetection } from '../../hooks/useLocationDetection';
 import { useSocket } from '../../hooks/useSocket';
 import api from '../../api/api';
 import clsx from 'clsx';
+import { logger } from '../../utils/logger';
 
 export default function MarketplaceModals() {
   const navigate = useNavigate();
@@ -46,7 +47,7 @@ export default function MarketplaceModals() {
             }
           }
         } catch (e) {
-          console.warn('Job delta-sync failed:', e);
+          logger.warn('Job delta-sync failed:', e);
         }
       };
       const interval = setInterval(syncStatus, 3000); // Polling as fallback for socket

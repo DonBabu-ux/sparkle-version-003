@@ -8,6 +8,7 @@ import { Leaderboard } from '../components/Leaderboard';
 import { FloatingRewardWidget } from '../components/FloatingRewardWidget';
 import { AchievementGrid } from '../components/AchievementGrid';
 import { useReferralData } from '../hooks/useReferralData';
+import { logger } from '../utils/logger';
 
 export default function Invite() {
   const { data, loading, errors } = useReferralData();
@@ -55,7 +56,7 @@ export default function Invite() {
           url: inviteLink,
         });
       } catch (err) {
-        console.error('Transmission failed:', err);
+        logger.error('Transmission failed:', err);
       }
     } else {
       copyToClipboard();

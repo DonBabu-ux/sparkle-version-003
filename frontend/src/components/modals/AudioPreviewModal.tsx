@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Music, X, Send, AlertTriangle } from 'lucide-react';
 import AudioSessionManager from '../../audio/managers/AudioSessionManager';
+import { logger } from '../../utils/logger';
 
 interface AudioPreviewModalProps {
   file: File | null;
@@ -49,7 +50,7 @@ export const AudioPreviewModal: React.FC<AudioPreviewModalProps> = ({
       audioRef.current.pause();
     } else {
       AudioSessionManager.registerVoicePlayback(audioRef.current);
-      audioRef.current.play().catch(console.error);
+      audioRef.current.play().catch(logger.error);
     }
   };
 

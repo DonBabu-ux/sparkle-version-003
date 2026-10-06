@@ -22,6 +22,7 @@ import { ProgressiveImage } from './ProgressiveImage';
 import { VideoPlayer } from './VideoPlayer';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
+import { logger } from '../utils/logger';
 
 interface Post {
   post_id: string;
@@ -339,7 +340,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
                     await api.post(`/users/${post.user_id}/follow`);
                     window.dispatchEvent(new CustomEvent('userFollowed', { detail: post.user_id }));
                   } catch (err) {
-                    console.error('Follow failed', err);
+                    logger.error('Follow failed', err);
                     setIsFollowed(false);
                   }
                 }}

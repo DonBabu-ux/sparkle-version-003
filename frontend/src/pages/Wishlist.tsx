@@ -6,6 +6,7 @@ import type { Listing } from '../types/listing';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import { logger } from '../utils/logger';
 
 export default function Wishlist() {
   const navigate = useNavigate();
@@ -20,7 +21,7 @@ export default function Wishlist() {
           setItems(response.data.listings || []);
         }
       } catch (err) {
-        console.error('Failed to fetch wishlist:', err);
+        logger.error('Failed to fetch wishlist:', err);
       } finally {
         setLoading(false);
       }
@@ -33,7 +34,7 @@ export default function Wishlist() {
       await api.post(`/marketplace/listings/${id}/wishlist`);
       setItems(prev => prev.filter(item => item.listing_id !== id));
     } catch (err) {
-      console.error('Failed to remove item:', err);
+      logger.error('Failed to remove item:', err);
     }
   };
 

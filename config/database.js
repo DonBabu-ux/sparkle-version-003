@@ -276,7 +276,9 @@ function getPoolStatus() {
                 active: corePool._allConnections.length - corePool._freeConnections.length,
             };
         }
-    } catch (_) {}
+    } catch (_) {
+        logger.debug('getPoolStatus failed; returning default connection limit');
+    }
     return { limit: CONNECTION_LIMIT };
 }
 
@@ -286,7 +288,9 @@ setInterval(() => {
         const s = getPoolStatus();
         poolMetrics.samples.push({ t: Date.now(), a: s.active ?? null, q: s.queued ?? 0 });
         if (poolMetrics.samples.length > 900) poolMetrics.samples.shift();
-    } catch (_) { /* ignore */ }
+    } catch (_) {
+        logger.debug('pool sampler tick failed');
+    }
 }, 1000).unref();
 
 /**

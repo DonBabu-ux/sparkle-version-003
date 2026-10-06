@@ -6,6 +6,7 @@
  * safe accidental-click cancellation, and temporary local blob/file creation.
  */
 
+import { logger } from '../utils/logger';
 export interface RecordingState {
   isRecording: boolean;
   isPaused: boolean;
@@ -117,7 +118,7 @@ class VoiceRecordingService {
           this.startVisualizer(sessionId);
         }
       } catch (e) {
-        console.warn('[VoiceRecordingService] Web Audio API visualizer uninitialized:', e);
+        logger.warn('[VoiceRecordingService] Web Audio API visualizer uninitialized:', e);
       }
 
       this.mediaRecorder.start(100);
@@ -134,7 +135,7 @@ class VoiceRecordingService {
       this.notifyState();
       return true;
     } catch (err: any) {
-      console.error('[VoiceRecordingService] Failed to start recording:', err);
+      logger.error('[VoiceRecordingService] Failed to start recording:', err);
       if (this.currentSessionId === sessionId) {
         this.cleanup();
       }
@@ -207,7 +208,7 @@ class VoiceRecordingService {
       try {
         this.mediaRecorder.stop();
       } catch (e) {
-        console.error('[VoiceRecordingService] Error stopping recorder:', e);
+        logger.error('[VoiceRecordingService] Error stopping recorder:', e);
         this.cleanup();
         resolve(null);
       }
@@ -223,7 +224,7 @@ class VoiceRecordingService {
       return; // Stale cancel call from previous session
     }
 
-    console.log('[VoiceRecordingService] Accidental recording canceled & discarded for session:', this.currentSessionId);
+    logger.log('[VoiceRecordingService] Accidental recording canceled & discarded for session:', this.currentSessionId);
     this.currentSessionId = null;
 
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {

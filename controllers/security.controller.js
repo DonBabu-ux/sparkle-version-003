@@ -47,8 +47,9 @@ const checkOTPRateLimit = async (userId, channel) => {
         if (recent.length > 0 && recent[0].elapsed !== null && recent[0].elapsed < 60) {
             return { limited: true, retryAfter: 60 - recent[0].elapsed };
         }
-    } catch {
+    } catch (err) {
         // Fallback to redis
+        logger.warn(`checkOTPRateLimit: OTP rate-limit DB check failed for user ${userId} channel ${channel}, using redis fallback`, err?.message || err);
     }
 
     const key = `2fa_otp_rate:${userId}:${channel}`;
@@ -183,7 +184,9 @@ const getSecurityStatus = async (req, res) => {
                 if (Array.isArray(codes)) {
                     backupCodesRemaining = codes.length;
                 }
-            } catch {}
+            } catch (err) {
+                logger.warn(`getSecurityStatus: two_factor_backup_codes JSON.parse failed for user ${userId}`, err?.message || err);
+            }
         }
 
         // Mask email and phone for UI display
@@ -759,7 +762,9 @@ const getAvailableFactors = async (req, res) => {
                 if (Array.isArray(codes)) {
                     backupCodesRemaining = codes.length;
                 }
-            } catch {}
+            } catch (err) {
+                logger.warn(`getAvailableFactors: two_factor_backup_codes JSON.parse failed for user ${userId}`, err?.message || err);
+            }
         }
 
         const maskEmail = (email) => {
@@ -961,7 +966,9 @@ const initiateSecurityTransaction = async (req, res) => {
                     backupCodes = typeof user.two_factor_backup_codes === 'string'
                         ? JSON.parse(user.two_factor_backup_codes)
                         : user.two_factor_backup_codes;
-                } catch {}
+                } catch (err) {
+                    logger.warn(`initiateSecurityTransaction: recovery_code backup codes JSON.parse failed for tx ${txId} user ${userId}`, err?.message || err);
+                }
             }
             if (!Array.isArray(backupCodes) || backupCodes.length === 0) {
                 return res.status(400).json({ status: 'error', message: 'No recovery codes are available on this account.' });
@@ -1055,7 +1062,9 @@ const verifySecurityTransaction = async (req, res) => {
                     codes = typeof userRows[0].two_factor_backup_codes === 'string'
                         ? JSON.parse(userRows[0].two_factor_backup_codes)
                         : userRows[0].two_factor_backup_codes;
-                } catch {}
+                } catch (err) {
+                    logger.error(`verifySecurityTransaction: recovery_code backup codes JSON.parse failed for tx ${transaction_id} user ${userId} — verification cannot match codes`, err?.message || err);
+                }
 
                 const normalizedInput = code.trim().toUpperCase().replace(/[\s-]/g, '');
                 let matchedIndex = -1;

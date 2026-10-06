@@ -15,6 +15,7 @@ import clsx from 'clsx';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import { logger } from '../utils/logger';
 
 interface Listing {
   listing_id: string;
@@ -110,14 +111,14 @@ export default function Marketplace() {
       // Genius Fallback Logic:
       // 1. If local (short radius) is empty, try expanding to 1000km
       if (list.length === 0 && !isRetry && !isFallback && !searchQuery) {
-        console.log('No local results, expanding radius...');
+        logger.log('No local results, expanding radius...');
         fetchListings(true); 
         return;
       }
 
       // 2. If still empty after expansion, go Global
       if (list.length === 0 && (isRetry || isFallback) && !searchQuery) {
-        console.log('No results in expanded radius, showing global feed...');
+        logger.log('No results in expanded radius, showing global feed...');
         setIsFallback(true);
         const globalRes = await api.get(`/marketplace/listings?category=${currentCategory !== 'all' ? currentCategory : ''}&sort=${sortBy}`);
         setListings(globalRes.data.listings || []);
@@ -128,7 +129,7 @@ export default function Marketplace() {
       // Only reset fallback if we actually found items with the original filters
       if (!isRetry && list.length > 0) setIsFallback(false);
     } catch (err) {
-      console.error('Failed to fetch marketplace:', err);
+      logger.error('Failed to fetch marketplace:', err);
     } finally {
       if (!isRetry) setLoading(false);
     }

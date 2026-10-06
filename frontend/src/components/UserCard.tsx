@@ -6,6 +6,7 @@ import type { User } from '../types/user';
 import UserActionModal from './modals/UserActionModal';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from './common/VerifiedBadge';
+import { logger } from '../utils/logger';
 
 interface UserCardProps {
   u: User;
@@ -39,7 +40,7 @@ export default function UserCard({ u }: UserCardProps) {
         setRequestStatus(null);
       }
     } catch (err) {
-      console.error('Follow toggle failed', err);
+      logger.error('Follow toggle failed', err);
     } finally {
       setLoading(false);
     }

@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core';
 import { EventBus } from '../EventBus';
+import { logger } from '../../utils/logger';
 
 export class NotificationManager {
   private eventBus: EventBus;
@@ -18,7 +19,7 @@ export class NotificationManager {
    */
   public async initializeNotificationChannels(): Promise<void> {
     if (!Capacitor.isNativePlatform()) {
-      console.log('[NotificationManager] Web platform detected; push channels skipped.');
+      logger.log('[NotificationManager] Web platform detected; push channels skipped.');
       return;
     }
 
@@ -62,7 +63,7 @@ export class NotificationManager {
             vibration: true,
           });
         }
-        console.log('[NotificationManager] Local channels registered.');
+        logger.log('[NotificationManager] Local channels registered.');
       }
 
       // Setup Push Notification Channels
@@ -78,10 +79,10 @@ export class NotificationManager {
             vibration: true,
           });
         }
-        console.log('[NotificationManager] Push channels registered.');
+        logger.log('[NotificationManager] Push channels registered.');
       }
     } catch (err) {
-      console.warn('[NotificationManager] Native notification channels setup bypassed:', err);
+      logger.warn('[NotificationManager] Native notification channels setup bypassed:', err);
     }
   }
 }

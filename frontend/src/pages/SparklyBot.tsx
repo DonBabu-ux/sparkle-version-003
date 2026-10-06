@@ -12,6 +12,7 @@ import Spinner from '../components/ui/Spinner';
 import { SparklyListingCard, type SparklyListingItem } from '../components/marketplace/SparklyListingCard';
 import { SparklyAvatar, SparklyTypingDots } from '../components/sparkly/SparklyAvatar';
 import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
+import { logger } from '../utils/logger';
 
 export interface WebSource {
   title: string;
@@ -203,7 +204,7 @@ export default function SparklyBot() {
           setMessageFeedback(fbMap);
         }
       } catch (err) {
-        console.error('Failed to fetch conversation messages:', err);
+        logger.error('Failed to fetch conversation messages:', err);
       }
     };
     fetchMessages();
@@ -216,7 +217,7 @@ export default function SparklyBot() {
         setConversations(res.data.conversations || []);
       }
     } catch (err) {
-      console.error('Failed to fetch Sparkly conversations:', err);
+      logger.error('Failed to fetch Sparkly conversations:', err);
     }
   };
 
@@ -228,7 +229,7 @@ export default function SparklyBot() {
         setMemories(res.data.memories || []);
       }
     } catch (err) {
-      console.error('Failed to fetch memories:', err);
+      logger.error('Failed to fetch memories:', err);
     } finally {
       setLoadingMemories(false);
     }
@@ -239,7 +240,7 @@ export default function SparklyBot() {
       await api.delete(`/ai/sparkly/memories/${memoryId}`);
       setMemories(prev => prev.filter(m => m.id !== memoryId));
     } catch (err) {
-      console.error('Failed to delete memory:', err);
+      logger.error('Failed to delete memory:', err);
     }
   };
 
@@ -249,7 +250,7 @@ export default function SparklyBot() {
       setMemories([]);
       setShowClearConfirm(false);
     } catch (err) {
-      console.error('Failed to clear memories:', err);
+      logger.error('Failed to clear memories:', err);
     }
   };
 
@@ -269,7 +270,7 @@ export default function SparklyBot() {
         handleStartNewChat();
       }
     } catch (err) {
-      console.error('Failed to delete conversation:', err);
+      logger.error('Failed to delete conversation:', err);
     }
   };
 
@@ -292,7 +293,7 @@ export default function SparklyBot() {
           return copy;
         });
       } catch (err) {
-        console.error('Failed to remove feedback:', err);
+        logger.error('Failed to remove feedback:', err);
       }
     } else {
       try {
@@ -302,7 +303,7 @@ export default function SparklyBot() {
           [msgId]: { type: 'like' }
         }));
       } catch (err) {
-        console.error('Failed to submit like feedback:', err);
+        logger.error('Failed to submit like feedback:', err);
       }
     }
   };
@@ -327,7 +328,7 @@ export default function SparklyBot() {
         [msgId]: { type: 'dislike', category: feedbackCategory, reason: feedbackReason.trim() }
       }));
     } catch (err) {
-      console.error('Failed to submit dislike feedback:', err);
+      logger.error('Failed to submit dislike feedback:', err);
     } finally {
       setFeedbackModalMsgId(null);
     }
@@ -343,7 +344,7 @@ export default function SparklyBot() {
         setActiveConvId(newConv.id);
       }
     } catch (err) {
-      console.error('Failed to branch conversation:', err);
+      logger.error('Failed to branch conversation:', err);
     }
   };
 
@@ -395,7 +396,7 @@ export default function SparklyBot() {
 
       recognition.start();
     } catch (err) {
-      console.error('Speech recognition error:', err);
+      logger.error('Speech recognition error:', err);
       setIsListening(false);
     }
   };
@@ -442,7 +443,7 @@ export default function SparklyBot() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const token = useUserStore.getState().token || localStorage.getItem('accessToken');
+      const token = useUserStore.getState().token;
       const baseUrl = api.defaults.baseURL || '/api';
 
       let response = await fetch(`${baseUrl}/ai/sparkly/chat/stream`, {
@@ -547,7 +548,7 @@ export default function SparklyBot() {
               throw new Error(data.message || 'Stream generation error');
             }
           } catch (e) {
-            console.warn('Failed to parse SSE event chunk:', e);
+            logger.warn('Failed to parse SSE event chunk:', e);
           }
         }
       }
@@ -560,9 +561,9 @@ export default function SparklyBot() {
       }
     } catch (err: any) {
       if (err.name === 'AbortError' || err.name === 'CanceledError') {
-        console.log('Sparkly stream stopped by user');
+        logger.log('Sparkly stream stopped by user');
       } else {
-        console.warn('SSE Stream failed, attempting fallback to POST /ai/sparkly/chat...', err);
+        logger.warn('SSE Stream failed, attempting fallback to POST /ai/sparkly/chat...', err);
         try {
           const res = await api.post('/ai/sparkly/chat', {
             message: content,
@@ -588,7 +589,7 @@ export default function SparklyBot() {
             throw new Error(res.data.message || 'Failed to process response');
           }
         } catch (fallbackErr: any) {
-          console.error('Sparkly AI Fallback Error:', fallbackErr);
+          logger.error('Sparkly AI Fallback Error:', fallbackErr);
           setErrorMessage(fallbackErr.response?.data?.message || fallbackErr.message || 'Sparkly is having trouble connecting right now. Try again in a moment.');
           setMessages(prev => prev.filter(m => m.id !== streamMsgId));
         }

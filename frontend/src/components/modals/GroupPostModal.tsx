@@ -9,6 +9,7 @@ import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import FeelingActivitySelector from './FeelingActivitySelector';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface GroupPostModalProps {
   groupId: string;
@@ -80,7 +81,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Group post creation failed:', err);
+      logger.error('Group post creation failed:', err);
     } finally {
       setUploading(false);
     }

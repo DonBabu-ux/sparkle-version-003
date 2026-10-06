@@ -3,6 +3,7 @@ import { X, User, Shield, Lock, Bell, LogOut, ChevronRight, Camera, Loader2 } fr
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -28,7 +29,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         alert('Profile updated! ✨');
       }
     } catch (err) {
-      console.error('Update failed:', err);
+      logger.error('Update failed:', err);
       alert('Failed to update profile.');
     } finally {
       setSaving(false);
@@ -61,7 +62,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
             </button>
           ))}
           <div className="nav-divider"></div>
-          <button className="nav-item logout" onClick={() => { localStorage.clear(); window.location.href='/login'; }}>
+          <button className="nav-item logout" onClick={() => { useUserStore.getState().logout(); window.location.href='/login'; }}>
             <LogOut size={18} />
             <span>Log Out</span>
           </button>

@@ -13,6 +13,7 @@
  *  2. Fetch fresh data in the background and update the store.
  */
 import localforage from 'localforage';
+import { logger } from '../utils/logger';
 
 // ── Store instances ──────────────────────────────────────────────────────────
 const inboxStore = localforage.createInstance({ name: 'sparkle', storeName: 'inbox' });
@@ -35,7 +36,7 @@ export async function setCachedInbox(conversations: any[]): Promise<void> {
   try {
     await inboxStore.setItem(INBOX_KEY, conversations);
   } catch (e) {
-    console.warn('[chatCache] setCachedInbox error', e);
+    logger.warn('[chatCache] setCachedInbox error', e);
   }
 }
 
@@ -54,7 +55,7 @@ export async function setCachedMessages(chatId: string, messages: any[]): Promis
     const trimmed = messages.slice(-MAX_CACHED_MSGS);
     await msgsStore.setItem(chatId, trimmed);
   } catch (e) {
-    console.warn('[chatCache] setCachedMessages error', e);
+    logger.warn('[chatCache] setCachedMessages error', e);
   }
 }
 
@@ -69,7 +70,7 @@ export async function appendMessageToCache(chatId: string, msg: any): Promise<vo
     const updated = [...existing, msg].slice(-MAX_CACHED_MSGS);
     await msgsStore.setItem(chatId, updated);
   } catch (e) {
-    console.warn('[chatCache] appendMessageToCache error', e);
+    logger.warn('[chatCache] appendMessageToCache error', e);
   }
 }
 
@@ -88,7 +89,7 @@ export async function setPendingReadReceipts(chatIds: string[]): Promise<void> {
     const unique = [...new Set(chatIds)].slice(-50);
     await miscStore.setItem('pendingReadReceipts', unique);
   } catch (e) {
-    console.warn('[chatCache] setPendingReadReceipts error', e);
+    logger.warn('[chatCache] setPendingReadReceipts error', e);
   }
 }
 

@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 import type { Message } from '../types/message';
 import type { MessagePermissions } from '../types/messagePermissions';
+import { logger } from '../utils/logger';
 
 export interface MessageState {
   messages: Record<string, Message>;
@@ -52,7 +53,7 @@ export const useMessageStore = create<MessageState>()(
               get().updateMessage(id, { permissions: perms } as any);
             }
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         pinMessage: async (id, pinned) => {
@@ -67,7 +68,7 @@ export const useMessageStore = create<MessageState>()(
             // server returns the whole message; merge into store
             get().updateMessage(id, { permissions: updated.permissions } as any);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         reactMessage: async (id, emoji) => {
@@ -82,7 +83,7 @@ export const useMessageStore = create<MessageState>()(
             // data contains updated reactions map
             get().updateMessage(id, { reactions: data.reactions } as any);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         removeReaction: async (id, emoji) => {
@@ -96,7 +97,7 @@ export const useMessageStore = create<MessageState>()(
             const data = await resp.json();
             get().updateMessage(id, { reactions: data.reactions } as any);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         editMessage: async (id, newContent) => {
@@ -110,7 +111,7 @@ export const useMessageStore = create<MessageState>()(
             const data = await resp.json();
             get().updateMessage(id, { text: data.text, permissions: data.permissions } as any);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         deleteForMe: async (id) => {
@@ -120,7 +121,7 @@ export const useMessageStore = create<MessageState>()(
             // soft delete removes from this user’s view – we can remove locally
             get().deleteMessage(id);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         deleteForAll: async (id) => {
@@ -129,7 +130,7 @@ export const useMessageStore = create<MessageState>()(
             if (!resp.ok) throw new Error('Delete‑for‑all failed');
             get().deleteMessage(id);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
         forwardMessage: async (id) => {
@@ -140,7 +141,7 @@ export const useMessageStore = create<MessageState>()(
             const updated = await resp.json();
             get().updateMessage(id, { forwardCount: updated.forwardCount } as any);
           } catch (e) {
-            console.error(e);
+            logger.error(e);
           }
         },
       }),

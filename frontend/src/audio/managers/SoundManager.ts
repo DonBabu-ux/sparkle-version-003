@@ -4,6 +4,7 @@ import type { PoolStats } from '../pools/AudioPool';
 import { ThemeController } from '../settings/ThemeController';
 import type { SoundTheme } from '../settings/ThemeController';
 import { VolumeController } from '../settings/VolumeController';
+import { logger } from '../../utils/logger';
 
 export type SoundKey =
   | 'send' | 'receive' | 'outchat' | 'delivered' | 'read'
@@ -165,7 +166,7 @@ export class SoundManager {
         this.enabledToggles = { ...this.enabledToggles, ...parsed };
       }
     } catch (e) {
-      console.warn('[SoundManager] Failed to parse settings:', e);
+      logger.warn('[SoundManager] Failed to parse settings:', e);
     }
   }
 
@@ -174,7 +175,7 @@ export class SoundManager {
     try {
       localStorage.setItem('sparkle_sound_settings', JSON.stringify(this.enabledToggles));
     } catch (e) {
-      console.warn('[SoundManager] Failed to save settings:', e);
+      logger.warn('[SoundManager] Failed to save settings:', e);
     }
   }
 
@@ -351,7 +352,7 @@ export class SoundManager {
     const playStart = performance.now();
     const pool = this.pools.get(key);
     if (!pool) {
-      console.warn(`[SoundManager] Pool not initialized for key: ${key}`);
+      logger.warn(`[SoundManager] Pool not initialized for key: ${key}`);
       return;
     }
 
@@ -438,7 +439,7 @@ export class SoundManager {
       this.eventBus.emit('trigger_haptic', this.getHapticType(key));
     } catch (err) {
       this.metrics.failuresCount++;
-      console.warn(`[SoundManager] Play failed for ${key}:`, err);
+      logger.warn(`[SoundManager] Play failed for ${key}:`, err);
     }
 
     // Calculate latency

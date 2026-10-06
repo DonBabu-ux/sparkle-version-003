@@ -8,6 +8,7 @@ import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import api from '../api/api';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
 import { reconcilePrivacySettings } from '../services/privacyReconcile';
+import { logger } from '../utils/logger';
 
 let isSyncInProgress = false;
 
@@ -16,7 +17,7 @@ export const useMessageSocket = () => {
 
   useEffect(() => {
     if (!socket) return;
-    console.log('[TRACE] Registering enterprise message socket listeners');
+    logger.log('[TRACE] Registering enterprise message socket listeners');
 
     const getChatStore  = () => useChatStore.getState();
     const getMsgStore   = () => useMessageStore.getState();
@@ -24,32 +25,32 @@ export const useMessageSocket = () => {
     const runReconnectSyncSequence = async () => {
       if (isSyncInProgress || !socket.connected) return;
       isSyncInProgress = true;
-      console.log('🔄 [SyncCoordinator:SYNC_START] Outbox & delta sync sequence initiated');
+      logger.log('🔄 [SyncCoordinator:SYNC_START] Outbox & delta sync sequence initiated');
       getChatStore().setSocketStatus('connecting');
 
       try {
         // Step 1: Outbox Sync (Flush pending outgoing messages)
         const pending = PersistentOfflineQueue.getPendingMessagesImmediate();
         if (pending.length > 0) {
-          console.log(`📤 [SyncCoordinator:OUTBOX_RECONCILED] Flushing ${pending.length} pending outbox messages...`);
+          logger.log(`📤 [SyncCoordinator:OUTBOX_RECONCILED] Flushing ${pending.length} pending outbox messages...`);
           const batchSize = 3;
           for (let i = 0; i < pending.length; i += batchSize) {
             const batch = pending.slice(i, i + batchSize);
             await Promise.all(
               batch.map((item) => {
                 return new Promise<void>((resolve) => {
-                  console.log(`🚀 [SyncCoordinator:MESSAGE_SEND_ATTEMPT] Attempting send for messageId=${item.messageId}`);
+                  logger.log(`🚀 [SyncCoordinator:MESSAGE_SEND_ATTEMPT] Attempting send for messageId=${item.messageId}`);
                   
                   // Start individual 10-second timer for this specific message
                   PersistentOfflineQueue.startMessageTimeout(item.messageId, () => {
-                    console.warn(`⏰ [SyncCoordinator:MESSAGE_SYNC_TIMEOUT] 10s timeout for messageId=${item.messageId}`);
+                    logger.warn(`⏰ [SyncCoordinator:MESSAGE_SYNC_TIMEOUT] 10s timeout for messageId=${item.messageId}`);
                     getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
                     window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
                   });
 
                   socket.emit('send-message', item, (ackRes: any) => {
                     if (ackRes && ackRes.success) {
-                      console.log(`✅ [SyncCoordinator:MESSAGE_SERVER_ACK] Message ACKed: ${item.messageId}`);
+                      logger.log(`✅ [SyncCoordinator:MESSAGE_SERVER_ACK] Message ACKed: ${item.messageId}`);
                       PersistentOfflineQueue.acknowledge(item.messageId);
                       getChatStore().updateMessage(item.chatId, item.messageId, {
                         status: 'sent',
@@ -57,7 +58,7 @@ export const useMessageSocket = () => {
                       });
                       window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
                     } else if (ackRes?.isBlocked || ackRes?.code === 'MESSAGE_BLOCKED' || ackRes?.error?.includes('blocked')) {
-                      console.warn(`⛔ [SyncCoordinator] Outbox message permanently BLOCKED: ${item.messageId}`);
+                      logger.warn(`⛔ [SyncCoordinator] Outbox message permanently BLOCKED: ${item.messageId}`);
                       PersistentOfflineQueue.markBlocked(item.messageId);
                       getChatStore().updateMessage(item.chatId, item.messageId, { status: 'blocked' });
                       getChatStore().setConversationBlockState(item.chatId, {
@@ -67,7 +68,7 @@ export const useMessageSocket = () => {
                       });
                       window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: item.chatId } }));
                     } else {
-                      console.warn(`⚠️ [SyncCoordinator] Outbox message ACK failed for ${item.messageId}`);
+                      logger.warn(`⚠️ [SyncCoordinator] Outbox message ACK failed for ${item.messageId}`);
                       PersistentOfflineQueue.markFailed(item.messageId);
                       getChatStore().updateMessage(item.chatId, item.messageId, { status: 'failed' });
                     }
@@ -94,7 +95,7 @@ export const useMessageSocket = () => {
         await new Promise<void>((resolve) => {
           socket.emit('cursor-sync-request', { lastCursor: maxCursor }, (res: any) => {
             if (res && res.success && Array.isArray(res.messages)) {
-              console.log(`📥 [SyncCoordinator:SYNC_MESSAGES_RECEIVED] ${res.messages.length} messages from cursor ${maxCursor}`);
+              logger.log(`📥 [SyncCoordinator:SYNC_MESSAGES_RECEIVED] ${res.messages.length} messages from cursor ${maxCursor}`);
               res.messages.forEach((msg: any) => {
                 const chatId = msg.conversation_id || msg.chat_id;
                 if (chatId) {
@@ -109,7 +110,7 @@ export const useMessageSocket = () => {
 
         // Notify active chat views of newly synced messages
         affectedChatIds.forEach((chatId) => {
-          console.log(`⚡ [SyncCoordinator:ACTIVE_CHAT_UPDATED] Dispatching sync re-render for chatId: ${chatId}`);
+          logger.log(`⚡ [SyncCoordinator:ACTIVE_CHAT_UPDATED] Dispatching sync re-render for chatId: ${chatId}`);
           window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId } }));
         });
 
@@ -120,9 +121,9 @@ export const useMessageSocket = () => {
         });
 
         getChatStore().setSocketStatus('connected');
-        console.log('✅ [SyncCoordinator:SYNC_COMPLETE] Normal Realtime Mode restored');
+        logger.log('✅ [SyncCoordinator:SYNC_COMPLETE] Normal Realtime Mode restored');
       } catch (err) {
-        console.error('❌ [SyncCoordinator] Reconnection sync error:', err);
+        logger.error('❌ [SyncCoordinator] Reconnection sync error:', err);
         getChatStore().setSocketStatus('connected');
       } finally {
         isSyncInProgress = false;
@@ -130,7 +131,7 @@ export const useMessageSocket = () => {
     };
 
     const handleConnect = () => {
-      console.log('⚡ Socket connected, triggering delta sync & privacy reconciliation');
+      logger.log('⚡ Socket connected, triggering delta sync & privacy reconciliation');
       runReconnectSyncSequence();
       const activeChatId = getChatStore().activeConversationId;
       if (activeChatId && !activeChatId.startsWith('temp_')) {
@@ -287,7 +288,7 @@ export const useMessageSocket = () => {
     };
 
     const handleDeleteRejected = (data: { messageId: string; chatId: string; originalContent?: string; reason?: string }) => {
-      console.warn(`[DeleteRejected] Deletion rejected by server for msg ${data.messageId}: ${data.reason}`);
+      logger.warn(`[DeleteRejected] Deletion rejected by server for msg ${data.messageId}: ${data.reason}`);
       if (data.originalContent && data.chatId) {
         getChatStore().editMessage(data.chatId, data.messageId, data.originalContent);
       }
@@ -307,7 +308,7 @@ export const useMessageSocket = () => {
         const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
         getChatStore().setConversations(list);
       } catch (err) {
-        console.error('Failed to update conversations on group creation event:', err);
+        logger.error('Failed to update conversations on group creation event:', err);
       }
     };
 
@@ -321,16 +322,16 @@ export const useMessageSocket = () => {
       if (data.operationId) {
         PersistentOfflineQueue.acknowledgeInteraction(data.operationId);
       }
-      console.warn('[MessageSocket] Interaction failed on server:', data.error);
+      logger.warn('[MessageSocket] Interaction failed on server:', data.error);
     };
 
     const handleOnboardingStatusChanged = (data: { status: string; showOnboarding: boolean; completedAt?: string }) => {
-      console.log('⚡ [Socket] Official onboarding status updated:', data);
+      logger.log('⚡ [Socket] Official onboarding status updated:', data);
       window.dispatchEvent(new CustomEvent('sparkle_onboarding_status_changed', { detail: data }));
     };
 
     const handleConversationPrivacyUpdated = (data: any) => {
-      console.log('🔒 [Socket] conversation_privacy_updated received:', data);
+      logger.log('🔒 [Socket] conversation_privacy_updated received:', data);
       const chatId = data.chatId || data.chat_id;
       const senderId = data.senderId || data.sender_id || data.setterId;
       const privacyVersion = data.privacyVersion || data.privacy_version;
@@ -424,7 +425,7 @@ export const useMessageSocket = () => {
 
     const handleOnlineOrFocus = () => {
       if (socket.connected) {
-        console.log('⚡ Connection/Focus trigger detected, running SyncCoordinator sequence');
+        logger.log('⚡ Connection/Focus trigger detected, running SyncCoordinator sequence');
         runReconnectSyncSequence();
       }
     };
@@ -442,7 +443,7 @@ export const useMessageSocket = () => {
     }
 
     const handleConversationBlocked = (data: { chatId?: string; partnerId?: string; isBlockedByMe?: boolean; amIBlocked?: boolean }) => {
-      console.log('⛔ [Socket] conversation_blocked event received:', data);
+      logger.log('⛔ [Socket] conversation_blocked event received:', data);
       const chatStore = getChatStore();
       const targetId = data.chatId || data.partnerId;
       if (targetId) {
@@ -458,7 +459,7 @@ export const useMessageSocket = () => {
     };
 
     const handleConversationUnblocked = (data: { chatId?: string; partnerId?: string }) => {
-      console.log('🟢 [Socket] conversation_unblocked event received:', data);
+      logger.log('🟢 [Socket] conversation_unblocked event received:', data);
       const chatStore = getChatStore();
       const targetId = data.chatId || data.partnerId;
       if (targetId) {
@@ -474,7 +475,7 @@ export const useMessageSocket = () => {
     };
 
     const handleMessageError = (data: { error?: string; code?: string; isBlocked?: boolean; chatId?: string; clientMessageId?: string }) => {
-      console.warn('⚠️ [Socket] message-error received:', data);
+      logger.warn('⚠️ [Socket] message-error received:', data);
       if (data.isBlocked || data.code === 'MESSAGE_BLOCKED' || data.error?.includes('blocked')) {
         if (data.clientMessageId) {
           PersistentOfflineQueue.markBlocked(data.clientMessageId);

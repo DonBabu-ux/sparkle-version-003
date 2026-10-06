@@ -3,6 +3,7 @@ const QRCode = require('qrcode');
 const { getIO } = require('../socket');
 const PollEngagementService = require('../services/poll-engagement.service');
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../utils/logger');
 
 const getSafeAvatarUrl = (url) => {
     if (!url) return '/uploads/avatars/default.png';
@@ -305,7 +306,9 @@ const rsvpEvent = async (req, res) => {
         try {
             const io = getIO();
             io.emit('event_updated', { eventId: id });
-        } catch(ioErr) {}
+        } catch(ioErr) {
+            logger.debug('socket emit event_updated failed (RSVP update)', ioErr?.message || ioErr);
+        }
 
         res.json({ message: 'RSVP updated' });
     } catch (error) {
@@ -329,7 +332,9 @@ const approveRSVP = async (req, res) => {
             const io = getIO();
             io.to(`user:${userId}`).emit('event_rsvp_status', { eventId, status });
             io.emit('event_updated', { eventId }); // Update live stats for everyone
-        } catch (e) {}
+        } catch (e) {
+            logger.debug(`socket emit event_rsvp_status failed for user ${userId}`, e?.message || e);
+        }
 
         res.json({ status: 'success', message: `RSVP ${status}` });
     } catch (err) {
@@ -381,7 +386,9 @@ const checkInEvent = async (req, res) => {
         try {
             const io = getIO();
             io.emit('event_update', { eventId, type: 'checkin', userId });
-        } catch (e) {}
+        } catch (e) {
+            logger.debug(`socket emit event_update checkin failed for event ${eventId}`, e?.message || e);
+        }
 
         res.json({ status: 'success', message: 'Check-in successful' });
     } catch (err) {

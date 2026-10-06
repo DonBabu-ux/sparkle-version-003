@@ -23,6 +23,7 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 );
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface ConfessionModalProps {
   onClose: () => void;
@@ -65,7 +66,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
       onSuccess();
       onClose();
     } catch (err) {
-      console.error('Confession failed:', err);
+      logger.error('Confession failed:', err);
       alert('Failed to share confession.');
     } finally {
       setSubmitting(false);

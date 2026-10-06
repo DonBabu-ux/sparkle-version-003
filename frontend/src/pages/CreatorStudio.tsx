@@ -7,6 +7,7 @@ import {
   Sparkles, Megaphone, FileText, Image as ImageIcon, Calendar, Radio
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface StudioStats {
   followers: number;
@@ -45,7 +46,7 @@ export default function CreatorStudio() {
         videoViews: res.data.videoViews || 0,
       });
     } catch (e) {
-      console.error('Failed to load stats:', e);
+      logger.error('Failed to load stats:', e);
     } finally {
       setLoading(false);
     }

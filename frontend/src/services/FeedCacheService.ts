@@ -1,5 +1,6 @@
 import type { Post } from '../types/post';
 import { getOptimizedMediaUrl } from '../utils/imageUtils';
+import { logger } from '../utils/logger';
 
 /**
  * 1. MediaCacheService
@@ -45,7 +46,7 @@ export const MediaCacheService = {
       document.head.appendChild(link);
       MediaCacheService.prefetchedUrls.add(url);
     } catch (e) {
-      console.warn('Failed to prefetch video', e);
+      logger.warn('Failed to prefetch video', e);
     }
   }
 };

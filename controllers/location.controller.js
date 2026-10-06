@@ -127,7 +127,7 @@ const resolveLocation = async (req, res) => {
         }
 
         // Fallback: IP-based resolution
-        let ip = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+        let ip = req.ip || req.socket.remoteAddress;
         if (ip === '::1' || ip === '127.0.0.1' || ip.includes('::ffff:127.0.0.1')) {
             ip = '197.232.0.0'; // Nairobi dev IP
         }
@@ -184,6 +184,7 @@ const getNearbyLocations = async (req, res) => {
             }
         } catch (e) {
             // ignore fallback
+            logger.debug('reverse geocode fallback failed', e?.message || e);
         }
 
         // Generate high quality real-world representative places using Nominatim query or structured grid
@@ -419,7 +420,9 @@ const updateLiveLocation = async (req, res) => {
             try {
                 const io = getIO();
                 io.to(`chat:${session.chat_id}`).emit('live_location_expired', { live_location_id, chatId: session.chat_id });
-            } catch (e) {}
+            } catch (e) {
+                logger.debug('socket emit live_location_expired failed', e?.message || e);
+            }
 
             return res.status(410).json({ success: false, message: 'Live location session has expired' });
         }

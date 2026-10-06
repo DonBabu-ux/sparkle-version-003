@@ -725,7 +725,9 @@ const contactSeller = [
             // Also mirror in personal_chats for backward compatibility
             try {
                 await Marketplace.getOrCreateChat(buyerId, sellerId, listingId);
-            } catch (_) {}
+            } catch (_) {
+                logger.debug(`personal_chats mirror getOrCreateChat failed (listing ${listingId || 'n/a'})`, _?.message || _);
+            }
 
             // Check existing messages in this chat
             const [existingMsgs] = await pool.query(
@@ -995,7 +997,7 @@ const toggleFavorite = [
                             action_url: `/marketplace/listings/${listingId}`
                         }).catch(() => {});
                     }
-                } catch (_) { /* non-blocking */ }
+                } catch (_) { logger.debug('marketplace notification fanout failed (non-blocking)'); }
             }
 
             res.json({
@@ -1401,7 +1403,7 @@ const recordView = async (req, res) => {
                         }).catch(() => {});
                     }
                 }
-            } catch (_) { /* non-blocking */ }
+            } catch (_) { logger.debug('marketplace notification fanout failed (non-blocking)'); }
         }
 
         res.json({ success: true });
@@ -1436,7 +1438,7 @@ const recordShare = async (req, res) => {
                         action_url: `/marketplace/listings/${id}`
                     }).catch(() => {});
                 }
-            } catch (_) { /* non-blocking */ }
+            } catch (_) { logger.debug('marketplace notification fanout failed (non-blocking)'); }
         }
 
         res.json({ success: true });

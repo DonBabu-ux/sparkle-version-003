@@ -1,3 +1,4 @@
+import { logger } from '../utils/logger';
 export const CameraService = {
   /**
    * Check and request permissions for camera and microphone
@@ -9,14 +10,14 @@ export const CameraService = {
       stream.getTracks().forEach(track => track.stop());
       return true;
     } catch (err) {
-      console.warn('Media devices permission denied or unavailable:', err);
+      logger.warn('Media devices permission denied or unavailable:', err);
       // Try video-only fallback
       try {
         const videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
         videoStream.getTracks().forEach(track => track.stop());
         return true;
       } catch (e) {
-        console.error('Camera permission request failed entirely:', e);
+        logger.error('Camera permission request failed entirely:', e);
         return false;
       }
     }
@@ -87,7 +88,7 @@ export const CameraService = {
    * Video compression placeholder - browsers compress directly using codec bitrates in MediaRecorder
    */
   async compressVideo(file: File): Promise<File> {
-    console.log('📽️ Video compression handled natively by MediaRecorder bitrate caps:', file.name, file.size);
+    logger.log('📽️ Video compression handled natively by MediaRecorder bitrate caps:', file.name, file.size);
     return file;
   }
 };

@@ -39,6 +39,7 @@ import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import EditProfileModal from '../components/profile/EditProfileModal';
+import { logger } from '../utils/logger';
 
 export default function Profile() {
   const { username } = useParams();
@@ -79,7 +80,7 @@ export default function Profile() {
         navigate('/messages');
       }
     } catch (err) {
-      console.error('Failed to open conversation:', err);
+      logger.error('Failed to open conversation:', err);
       alert('Could not open conversation. Please check your connection and try again.');
     } finally {
       setIsOpeningChat(false);
@@ -109,7 +110,7 @@ export default function Profile() {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch profile:', err);
+      logger.error('Failed to fetch profile:', err);
       setProfile(null);
     } finally {
       setLoading(false);
@@ -121,7 +122,7 @@ export default function Profile() {
       const res = await api.get(`/users/${userId}/highlights`);
       setHighlights(res.data || []);
     } catch (err) {
-      console.error('Failed to fetch highlights:', err);
+      logger.error('Failed to fetch highlights:', err);
     }
   }, []);
 
@@ -130,7 +131,7 @@ export default function Profile() {
       const res = await api.get('/posts/saved');
       setSavedPosts(res.data || []);
     } catch (err) {
-      console.error('Failed to fetch saved posts:', err);
+      logger.error('Failed to fetch saved posts:', err);
     }
   }, []);
 
@@ -155,7 +156,7 @@ export default function Profile() {
         ownerAvatar: profile?.avatar_url
       });
     } catch (err) {
-      console.error('Failed to load highlight:', err);
+      logger.error('Failed to load highlight:', err);
     }
   };
 
@@ -197,7 +198,7 @@ export default function Profile() {
                          (prev.followers_count || 0)
       } : prev);
     } catch (err) {
-      console.error('Follow toggle failed:', err);
+      logger.error('Follow toggle failed:', err);
     }
   };
 

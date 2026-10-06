@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
+import { logger } from '../../utils/logger';
 
 interface SharedContentExplorerProps {
   chatId: string;
@@ -99,7 +100,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
         setData(response.data.data || []);
       }
     } catch (err) {
-      console.error(`Error fetching ${tab}:`, err);
+      logger.error(`Error fetching ${tab}:`, err);
     } finally {
       setLoading(false);
     }

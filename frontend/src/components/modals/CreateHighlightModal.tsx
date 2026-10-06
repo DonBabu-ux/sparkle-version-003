@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Plus, Check, Orbit } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface ArchivedStory {
   id: string;
@@ -40,7 +41,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
       const res = await api.get('/highlights/archive');
       setStories(res.data || []);
     } catch (err) {
-      console.error('Failed to fetch archive:', err);
+      logger.error('Failed to fetch archive:', err);
     } finally {
       setLoading(false);
     }
@@ -71,7 +72,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
       onCreated(res.data);
       onClose();
     } catch (err) {
-      console.error('Failed to create highlight:', err);
+      logger.error('Failed to create highlight:', err);
     } finally {
       setSaving(false);
     }

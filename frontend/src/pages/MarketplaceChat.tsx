@@ -9,6 +9,7 @@ import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 import { useSocket } from '../hooks/useSocket';
+import { logger } from '../utils/logger';
 
 
 const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
@@ -102,7 +103,7 @@ const MarketplaceChat = () => {
           const data = await res.json();
           setGiphyResults(data.data || []);
         } catch (err) {
-          console.error("Giphy fetch failed", err);
+          logger.error("Giphy fetch failed", err);
         } finally {
           setGiphyLoading(false);
         }
@@ -145,7 +146,7 @@ const MarketplaceChat = () => {
         const res = await api.get('/marketplace/settings');
         setUserSettings(res.data);
       } catch (err) {
-        console.error("Failed to fetch settings", err);
+        logger.error("Failed to fetch settings", err);
       }
     };
     fetchSettings();
@@ -178,7 +179,7 @@ const MarketplaceChat = () => {
         const msgRes = await api.get(`/marketplace/messages/${conversationId}`);
         setMessages(msgRes.data);
       } catch (err) {
-        console.error("Error fetching chat history:", err);
+        logger.error("Error fetching chat history:", err);
       }
     };
     fetchHistory();
@@ -280,7 +281,7 @@ const MarketplaceChat = () => {
       setMessages(prev => prev.filter(m => m.id !== messageId));
       setContextMenuId(null);
     } catch (err) {
-      console.error("Delete failed", err);
+      logger.error("Delete failed", err);
     }
   };
 
@@ -303,7 +304,7 @@ const MarketplaceChat = () => {
       }));
       setContextMenuId(null);
     } catch (err) {
-      console.error("React failed", err);
+      logger.error("React failed", err);
     }
   };
 
@@ -326,7 +327,7 @@ const MarketplaceChat = () => {
           setStagedMedia(prev => [...prev, { url: res.data.url, type: res.data.type }]);
         }
       } catch(err) {
-        console.error("Upload failed for file:", file.name, err);
+        logger.error("Upload failed for file:", file.name, err);
       }
     }
     setIsUploading(false);
@@ -374,7 +375,7 @@ const MarketplaceChat = () => {
       await api.put(`/marketplace/listings/${conversation.listing_id}`, { status: newStatus });
       setConversation(prev => prev ? { ...prev, listing_status: newStatus as any } : null);
     } catch (err) {
-      console.error("Failed to update status", err);
+      logger.error("Failed to update status", err);
     }
   };
 
@@ -390,7 +391,7 @@ const MarketplaceChat = () => {
         setEditingMessageId(null);
         setInputText('');
       } catch (err) {
-        console.error("Edit failed", err);
+        logger.error("Edit failed", err);
       }
       return;
     }
@@ -503,7 +504,7 @@ const MarketplaceChat = () => {
                   try {
                     await api.patch(`/marketplace/conversations/${conversationId}/toggle`, { field: 'is_pinned' });
                     window.location.reload(); 
-                  } catch(err) { console.error(err); }
+                  } catch(err) { logger.error(err); }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
               >
@@ -523,7 +524,7 @@ const MarketplaceChat = () => {
                     } else {
                       window.location.reload();
                     }
-                  } catch(err) { console.error(err); }
+                  } catch(err) { logger.error(err); }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
               >
@@ -539,7 +540,7 @@ const MarketplaceChat = () => {
                   try {
                     await api.patch(`/marketplace/conversations/${conversationId}/toggle`, { field: 'is_muted' });
                     window.location.reload(); 
-                  } catch(err) { console.error(err); }
+                  } catch(err) { logger.error(err); }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
               >
@@ -557,7 +558,7 @@ const MarketplaceChat = () => {
                       try {
                         await api.post(`/users/block/${isBuyer ? conversation.seller_id : conversation.buyer_id}`);
                         navigate('/marketplace/inbox');
-                      } catch(err) { console.error(err); }
+                      } catch(err) { logger.error(err); }
                     }
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-red-600 font-bold transition-colors"
@@ -578,7 +579,7 @@ const MarketplaceChat = () => {
                     try {
                       await api.delete(`/marketplace/conversations/${conversationId}`);
                       navigate('/marketplace/inbox');
-                    } catch(err) { console.error(err); }
+                    } catch(err) { logger.error(err); }
                   }
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-red-600 font-bold transition-colors"
@@ -837,7 +838,7 @@ const MarketplaceChat = () => {
                       await api.delete(`/users/block/${opponentId}`);
                       setIsBlockedByMe(false);
                       window.location.reload();
-                    } catch(err) { console.error(err); }
+                    } catch(err) { logger.error(err); }
                   }}
                   className="w-full py-4 bg-blue-600 text-white rounded-xl text-xs font-black uppercase tracking-widest shadow-xl shadow-blue-100 active:scale-95 transition-all"
                  >
@@ -850,7 +851,7 @@ const MarketplaceChat = () => {
                           try {
                             await api.delete(`/marketplace/conversations/${conversationId}`);
                             navigate('/marketplace/inbox');
-                          } catch(err) { console.error(err); }
+                          } catch(err) { logger.error(err); }
                         }
                       }}
                       className="py-3 bg-red-50 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-100 transition-colors"

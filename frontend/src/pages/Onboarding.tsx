@@ -10,6 +10,7 @@ import Slide4 from '../components/onboarding/Slide4';
 import Slide5 from '../components/onboarding/Slide5';
 import Success from '../components/onboarding/Success';
 import OnboardingSheet from '../components/onboarding/OnboardingSheet';
+import { logger } from '../utils/logger';
 
 export default function Onboarding() {
   const [currentSlide, setCurrentSlide] = useState(1);
@@ -40,7 +41,7 @@ export default function Onboarding() {
           setCurrentSlide(1); // Welcome Pitch / Onboarding Sheet
         }
       } catch (err) {
-        console.error('Failed to fetch onboarding status:', err);
+        logger.error('Failed to fetch onboarding status:', err);
       } finally {
         setLoading(false);
       }

@@ -8,6 +8,7 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import type { Post } from '../types/post';
 import { useCallback } from 'react';
+import { logger } from '../utils/logger';
 
 interface ClubMember {
   user_id: string;
@@ -53,7 +54,7 @@ export default function ClubDetail() {
       setPosts(postsRes.data.posts || postsRes.data || []);
       setMembers(membersRes.data.members || membersRes.data || []);
     } catch (err) {
-      console.error('Club detail error:', err);
+      logger.error('Club detail error:', err);
     } finally {
       setLoading(false);
     }
@@ -73,7 +74,7 @@ export default function ClubDetail() {
         setClub(prev => prev ? { ...prev, is_member: true, member_count: prev.member_count + 1 } : prev);
       }
     } catch (err) {
-      console.error('Join/leave error:', err);
+      logger.error('Join/leave error:', err);
     } finally {
       setJoining(false);
     }

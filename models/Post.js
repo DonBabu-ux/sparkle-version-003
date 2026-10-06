@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const crypto = require('crypto');
 const redisService = require('../services/redis.service');
+const logger = require('../utils/logger');
 
 class Post {
     /**
@@ -176,7 +177,9 @@ class Post {
                                 related_type: 'post',
                                 action_url: `/post/${postId}`
                             });
-                        } catch (_) { }
+                        } catch (_) {
+                            logger.debug(`notifyMentions: broadcast notification failed for user ${targetId} post ${postId}`, _?.message || _);
+                        }
                     }
                     continue; // Skip standard user lookup for broadcast keywords
                 }
@@ -197,7 +200,9 @@ class Post {
                                 related_type: 'post',
                                 action_url: `/post/${postId}`
                             });
-                        } catch (_) { }
+                        } catch (_) {
+                            logger.debug(`notifyMentions: mention notification failed for user ${mentionedUserId} post ${postId}`, _?.message || _);
+                        }
                     }
                 }
             }
@@ -489,8 +494,8 @@ class Post {
                 const feedQuery = `
                     SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                            u.campus as user_affiliation,
-                           (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                           (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                           COALESCE(p.spark_count, 0) as sparks,
+                           COALESCE(p.comment_count, 0) as comments,
                            EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
                            EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked
                     FROM posts p 
@@ -801,8 +806,8 @@ class Post {
             const query = `
                 SELECT p.*, u.username, u.name as user_name, u.avatar_url,
                         u.campus as user_affiliation,
-                        (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                        COALESCE(p.spark_count, 0) as sparks,
+                        COALESCE(p.comment_count, 0) as comments,
                         (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                          FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
                         EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
@@ -846,8 +851,8 @@ class Post {
                     CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
                     CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
                     g.name as group_name, g.icon_url as group_icon,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments
              FROM posts p 
              JOIN users u ON p.user_id = u.user_id 
              JOIN groups g ON p.group_id = g.group_id
@@ -878,8 +883,8 @@ class Post {
 
         const [posts] = await pool.query(
             `SELECT p.*, 
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p 
@@ -1216,8 +1221,8 @@ class Post {
     static async getPostsByHashtag(tag, currentUserId, limit = 20) {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments,
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files,
                     EXISTS(SELECT 1 FROM sparks WHERE user_id = ? AND post_id = p.post_id) as is_sparked
@@ -1267,8 +1272,8 @@ class Post {
     static async getSavedPosts(userId, limit = 20) {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments
              FROM bookmarks sp
              JOIN posts p ON sp.post_id = p.post_id
              JOIN users u ON p.user_id = u.user_id
@@ -1286,8 +1291,8 @@ class Post {
     static async getLikedPosts(userId, limit = 20) {
         const [posts] = await pool.query(
             `SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comments
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments
              FROM sparks s
              JOIN posts p ON s.post_id = p.post_id
              JOIN users u ON p.user_id = u.user_id
@@ -1555,15 +1560,25 @@ class Post {
     }
 
     static async deleteComment(commentId, userId, isAdmin = false) {
-        let query = 'DELETE FROM comments WHERE comment_id = ?';
+        let condition = 'comment_id = ?';
         let params = [commentId];
         
         if (!isAdmin) {
-            query += ' AND user_id = ?';
+            condition += ' AND user_id = ?';
             params.push(userId);
         }
-        
-        const [result] = await pool.query(query, params);
+
+        const [rows] = await pool.query(`SELECT post_id FROM comments WHERE ${condition}`, params);
+        if (rows.length === 0) return false;
+
+        const [result] = await pool.query(`DELETE FROM comments WHERE ${condition}`, params);
+        if (result.affectedRows > 0) {
+            // Keep the denormalized counter in sync (feeds read comment_count)
+            await pool.query(
+                'UPDATE posts SET comment_count = GREATEST(comment_count - 1, 0) WHERE post_id = ?',
+                [rows[0].post_id]
+            ).catch(err => console.error('comment_count decrement failed:', err.message));
+        }
         return result.affectedRows > 0;
     }
 

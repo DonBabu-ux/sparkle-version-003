@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import type { SparkleNotification, NotificationCategory, NotificationPriority } from '../types/notification';
 import { notificationsApi } from '../api/api';
+import { logger } from '../utils/logger';
 
 interface NotificationState {
   notifications: SparkleNotification[];
@@ -94,7 +95,7 @@ export const useNotificationStore = create<NotificationState>()(
           const countRes = await notificationsApi.getUnreadCount();
           set({ unreadCount: countRes.data.unreadCount });
         } catch (err) {
-          console.error('Failed to fetch notifications:', err);
+          logger.error('Failed to fetch notifications:', err);
           set({ loading: false });
         }
       },
@@ -130,7 +131,7 @@ export const useNotificationStore = create<NotificationState>()(
           set({ lastSyncAt: nowIso });
           localStorage.setItem(STORAGE_KEY_LAST_SYNC, nowIso);
         } catch (err) {
-          console.error('Failed to fetch notification deltas:', err);
+          logger.error('Failed to fetch notification deltas:', err);
         }
       },
 
@@ -148,7 +149,7 @@ export const useNotificationStore = create<NotificationState>()(
         try {
           await notificationsApi.markRead(id);
         } catch (err) {
-          console.error(`Failed to mark notification ${id} as read:`, err);
+          logger.error(`Failed to mark notification ${id} as read:`, err);
           // Rollback if error
           set({
             notifications: originalList,
@@ -169,7 +170,7 @@ export const useNotificationStore = create<NotificationState>()(
         try {
           await notificationsApi.markAllRead();
         } catch (err) {
-          console.error('Failed to mark all notifications as read:', err);
+          logger.error('Failed to mark all notifications as read:', err);
           // Rollback
           set({
             notifications: originalList,

@@ -3,6 +3,7 @@ import { X, Shield, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../api/api';
 import ThreeStateToggle, { type TriState } from '../common/ThreeStateToggle';
+import { logger } from '../../utils/logger';
 
 interface PrivacySettingsModalProps {
   chatId: string; // chat identifier
@@ -47,12 +48,12 @@ export default function PrivacySettingsModal({ chatId, onClose }: PrivacySetting
         setBlurScreenRecording(raw.blurScreenRecording ?? null);
         setNotifyScreenshotAttempts(raw.notifyScreenshotAttempts ?? null);
       })
-      .catch(console.error);
+      .catch(logger.error);
   }, [chatId]);
 
   // Helper to patch changes
   const patch = (payload: any) => {
-    api.patch(`/messages/${chatId}/privacy`, payload).catch(console.error);
+    api.patch(`/messages/${chatId}/privacy`, payload).catch(logger.error);
   };
 
   const handleResetToDefaults = () => {

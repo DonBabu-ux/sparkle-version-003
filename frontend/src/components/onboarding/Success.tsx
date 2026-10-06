@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
+import { logger } from '../../utils/logger';
 
 export default function Success() {
   const [loading, setLoading] = useState(true);
@@ -33,7 +34,7 @@ export default function Success() {
           }, 2000);
         }
       } catch (err) {
-        console.error('Failed to complete onboarding:', err);
+        logger.error('Failed to complete onboarding:', err);
         setTimeout(() => {
           navigate('/dashboard');
         }, 2000);

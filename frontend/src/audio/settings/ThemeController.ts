@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 export type SoundTheme = 'Sparkle Original' | 'Classic' | 'Soft' | 'Minimal';
 
 export class ThemeController {
@@ -14,7 +15,7 @@ export class ThemeController {
         this.currentTheme = stored as SoundTheme;
       }
     } catch (e) {
-      console.warn('[ThemeController] Failed to load theme setting:', e);
+      logger.warn('[ThemeController] Failed to load theme setting:', e);
     }
   }
 
@@ -22,7 +23,7 @@ export class ThemeController {
     try {
       localStorage.setItem('sparkle_audio_theme', this.currentTheme);
     } catch (e) {
-      console.warn('[ThemeController] Failed to save theme setting:', e);
+      logger.warn('[ThemeController] Failed to save theme setting:', e);
     }
   }
 

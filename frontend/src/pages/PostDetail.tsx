@@ -6,9 +6,11 @@ import Navbar from '../components/Navbar';
 import { getOptimizedMediaUrl } from '../utils/imageUtils';
 import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import clsx from 'clsx';
 
 import type { Post } from '../types/post';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface Comment {
   comment_id: string;
@@ -41,7 +43,7 @@ export default function PostDetail() {
         setComments(res.data.data);
       }
     } catch (err) {
-      console.error('Failed to fetch comments:', err);
+      logger.error('Failed to fetch comments:', err);
     } finally {
       setLoadingComments(false);
     }
@@ -55,7 +57,7 @@ export default function PostDetail() {
           setPost(postRes.data.data);
         }
       } catch (err) {
-        console.error('Failed to fetch post details:', err);
+        logger.error('Failed to fetch post details:', err);
       } finally {
         setLoading(false);
       }
@@ -85,7 +87,7 @@ export default function PostDetail() {
         setCommentText('');
       }
     } catch (err) {
-      console.error('Failed to add comment:', err);
+      logger.error('Failed to add comment:', err);
     } finally {
       setSubmitting(false);
     }

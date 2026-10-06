@@ -1,5 +1,6 @@
 import { useUserStore } from '../store/userStore';
 import { refreshTokenOnce } from './tokenRefresh';
+import { logger } from '../utils/logger';
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -36,7 +37,7 @@ export const AuthService = {
     }
 
     if (isTokenExpired(token)) {
-      console.log('[AuthService] Token expired or close to expiration. Refreshing...');
+      logger.log('[AuthService] Token expired or close to expiration. Refreshing...');
       return this.refreshAccessToken();
     }
 

@@ -3,6 +3,7 @@ import { ArrowLeft, Shield, UserX, MessageSquare, Bell, Eye, EyeOff, Check, Aler
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface MarketplaceSettings {
   who_can_message_me: 'everyone' | 'vouched_only' | 'none';
@@ -39,7 +40,7 @@ const MarketplaceSettings = () => {
         auto_reply_enabled: !!res.data.auto_reply_enabled,
       });
     } catch (err) {
-      console.error("Failed to fetch settings", err);
+      logger.error("Failed to fetch settings", err);
       setError("Failed to load settings. Please try again.");
     } finally {
       setLoading(false);
@@ -57,7 +58,7 @@ const MarketplaceSettings = () => {
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
-      console.error("Failed to save settings", err);
+      logger.error("Failed to save settings", err);
       setError("Failed to save changes.");
     } finally {
       setSaving(false);

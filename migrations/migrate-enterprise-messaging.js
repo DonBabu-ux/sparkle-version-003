@@ -28,6 +28,7 @@ async function migrateEnterpriseMessaging() {
             await db.query('ALTER TABLE messages ADD INDEX idx_server_seq (chat_id, server_sequence)');
         } catch (e) {
             // Index might already exist
+            console.warn('enterprise-messaging: index add skipped:', e.message);
         }
 
         // 2. Create or alter user_sessions table
@@ -98,7 +99,7 @@ async function migrateEnterpriseMessaging() {
             // First add standalone index on message_id if missing so foreign key constraint remains happy
             try {
                 await db.query('ALTER TABLE message_reactions ADD INDEX idx_msg_reactions (message_id)');
-            } catch (e) {}
+            } catch (e) { console.warn('enterprise-messaging: idx_msg_reactions add skipped:', e.message); }
 
             const [indexes] = await db.query("SHOW KEYS FROM message_reactions WHERE Key_name = 'unique_reaction'");
             if (indexes.length > 0 && indexes.length === 3) {

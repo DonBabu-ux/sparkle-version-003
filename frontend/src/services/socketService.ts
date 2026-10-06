@@ -3,6 +3,8 @@ import { io, Socket } from 'socket.io-client';
 import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
 import { refreshTokenOnce, ensureFreshAccessToken } from './tokenRefresh';
+import { decodeTokenPayload } from '../utils/tokenUtils';
+import { logger } from '../utils/logger';
 
 // Socket URL resolved from env vars at build time. Same-origin by default:
 // prod connects straight to Render; dev goes through the Vite /socket.io proxy.
@@ -43,18 +45,38 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
       _currentUserId = userId;
     }
 
-    // H21: first connect gets a fresh token when the stored one is expiring,
+    // H21/H26: first connect gets a fresh token when the stored one is expiring,
     // avoiding the "Token expired" connect_error → refresh → reconnect cycle.
     // The auth callback re-reads the store at connect time, so the refreshed
     // token is picked up automatically. connect_error below stays as fallback.
+    // H26: if refresh is transiently unavailable (DB outage) ensureFresh hands
+    // back the OLD token, which may already be expired — connecting then only
+    // guarantees a "Token expired" rejection loop, so defer and retry instead.
     const sock = s;
-    void ensureFreshAccessToken(30_000).finally(() => sock.connect());
+    const prepConnect = async (): Promise<void> => {
+      let tok: string | null = null;
+      try {
+        tok = await ensureFreshAccessToken(30_000);
+      } catch {
+        tok = null;
+      }
+      const store = useUserStore.getState();
+      if (!store.isAuthenticated || !store.token) return; // logged out — stay down
+      const exp = decodeTokenPayload(tok || store.token)?.exp;
+      if (typeof exp === 'number' && exp * 1000 <= Date.now()) {
+        logger.warn(`⏳ Socket namespace ${namespace || '/'}: access token expired and refresh unavailable — deferring connect`);
+        setTimeout(() => { void prepConnect(); }, 5000);
+        return;
+      }
+      sock.connect();
+    };
+    void prepConnect();
 
     s.on('connect', () => {
-      console.log(`🔗 Socket connected for user ${userId} in namespace ${namespace || '/'}`);
+      logger.log(`🔗 Socket connected for user ${userId} in namespace ${namespace || '/'}`);
     });
     s.on('disconnect', (reason) => {
-      console.warn(`⚡ Socket disconnected from namespace ${namespace || '/'}:`, reason);
+      logger.warn(`⚡ Socket disconnected from namespace ${namespace || '/'}:`, reason);
     });
 
     s.on('profile_updated', (updatedProfile: any) => {
@@ -69,7 +91,7 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
         }
         window.dispatchEvent(new CustomEvent('sparkle:profile_updated', { detail: updatedProfile }));
       } catch (err) {
-        console.error('Failed to handle profile_updated event:', err);
+        logger.error('Failed to handle profile_updated event:', err);
       }
     });
 
@@ -78,28 +100,40 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
       // token — retrying can never succeed. Stop the loop instead of
       // spamming console.error + refresh attempts while logged out.
       if (!useUserStore.getState().token) {
-        console.warn(`⚠️ Socket auth rejected with no active session in namespace ${namespace || '/'} — staying disconnected`);
+        logger.warn(`⚠️ Socket auth rejected with no active session in namespace ${namespace || '/'} — staying disconnected`);
         s.disconnect();
         return;
       }
-      console.error(`❌ Socket connection error in namespace ${namespace || '/'}:`, err);
+      // H24: backend can't reach the DB (auth lookup failed upstream) — the
+      // JWT itself is fine. Don't refresh-loop or spam red errors; let
+      // socket.io's own reconnection timer retry.
+      if (err?.message === 'ServiceUnavailable') {
+        logger.warn(`⚠️ Socket auth temporarily unavailable (backend) in namespace ${namespace || '/'} — will retry`);
+        return;
+      }
+      const msg = String(err?.message || '');
       const isAuthError =
-        err?.message?.includes('Authentication') ||
-        err?.message?.includes('jwt') ||
-        err?.message?.includes('token') ||
-        err?.message?.includes('expired') ||
-        err?.message?.includes('Expired');
+        msg.includes('Authentication') ||
+        msg.includes('jwt') ||
+        msg.includes('token') ||
+        msg.includes('expired') ||
+        msg.includes('Expired');
       if (isAuthError) {
+        // H26: auth-class rejections are self-healing (refresh + reconnect) —
+        // warn instead of a red console.error + stack on every retry.
+        logger.warn(`⚠️ Socket auth rejected in namespace ${namespace || '/'} (${msg}) — will refresh and retry`);
         try {
           // Single-flight refresh shared with api.ts (dedupes concurrent refreshes)
           // and targeted at the configured API base, not the socket origin.
           await refreshTokenOnce();
           s.connect();
-          console.log(`🔄 Token refreshed and socket reconnected in namespace ${namespace || '/'}`);
+          logger.log(`🔄 Token refreshed and socket reconnected in namespace ${namespace || '/'}`);
         } catch (e) {
-          console.warn(`⚠️ Token refresh failed, socket in namespace ${namespace || '/'} will remain disconnected`);
+          logger.warn(`⚠️ Token refresh failed, socket in namespace ${namespace || '/'} will remain disconnected`);
         }
+        return;
       }
+      logger.error(`❌ Socket connection error in namespace ${namespace || '/'}:`, err);
     });
   }
   return s;

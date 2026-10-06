@@ -16,6 +16,7 @@ import Spinner from '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
 import BoostConnectModal from '../components/modals/BoostConnectModal';
+import { logger } from '../utils/logger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface WalletSummary {
@@ -585,7 +586,7 @@ export default function ProfessionalDashboard() {
       if (res.data.wallet) setWallet(res.data.wallet);
       if (res.data.transactions) setTransactions(res.data.transactions);
     } catch (e) {
-      console.error('Wallet fetch failed:', e);
+      logger.error('Wallet fetch failed:', e);
     } finally {
       setLoadingWallet(false);
     }
@@ -612,7 +613,7 @@ export default function ProfessionalDashboard() {
       setIsBoosted(d.isBoosted || false);
       setDistribution(d.distribution || { video: 0, image: 0, text: 0 });
     } catch (e) {
-      console.error('Stats fetch failed:', e);
+      logger.error('Stats fetch failed:', e);
     } finally {
       setLoadingStats(false);
     }

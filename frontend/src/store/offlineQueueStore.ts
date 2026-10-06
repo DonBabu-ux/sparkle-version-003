@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 export type QueueAction = {
   id: string;
@@ -48,7 +49,7 @@ export const useOfflineQueueStore = create<OfflineQueueState>()(
 
         set({ isProcessing: true });
         
-        console.log(`🔄 Processing ${queue.length} offline actions...`);
+        logger.log(`🔄 Processing ${queue.length} offline actions...`);
 
         // Process sequentially to maintain order (e.g. create post then comment)
         for (const action of queue) {
@@ -61,15 +62,15 @@ export const useOfflineQueueStore = create<OfflineQueueState>()(
               // Delete typically sends data as data/params, handling simplified here
               await api.delete(action.endpoint, { data: action.payload });
             }
-            console.log(`✅ Offline action ${action.type} synced successfully.`);
+            logger.log(`✅ Offline action ${action.type} synced successfully.`);
             removeAction(action.id);
           } catch (err: any) {
             // If it's a 4xx error (bad request, unauthorized), drop it so it doesn't block the queue forever
             if (err.response && err.response.status >= 400 && err.response.status < 500) {
-              console.error(`❌ Offline action ${action.type} failed permanently (4xx), dropping from queue.`, err);
+              logger.error(`❌ Offline action ${action.type} failed permanently (4xx), dropping from queue.`, err);
               removeAction(action.id);
             } else {
-              console.warn(`⏳ Offline action ${action.type} failed (Network/5xx), will retry later.`);
+              logger.warn(`⏳ Offline action ${action.type} failed (Network/5xx), will retry later.`);
               // Break out of the loop and try the rest later
               break;
             }

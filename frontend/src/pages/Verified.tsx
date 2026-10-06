@@ -9,6 +9,7 @@ import { useUserStore } from '../store/userStore';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 export default function Verified() {
   const navigate = useNavigate();
@@ -37,7 +38,7 @@ export default function Verified() {
         });
         setLoading(false);
       } catch (err) {
-        console.error('Failed to fetch criteria stats:', err);
+        logger.error('Failed to fetch criteria stats:', err);
         setLoading(false);
       }
     };

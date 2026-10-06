@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { LifeBuoy, MessageSquare, Mail, BookOpen, ChevronRight, HelpCircle, Plus, Clock, CheckCircle, MessageCircle } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 const FAQ = [
   { q: 'How do I reset my password?', a: 'Go to Settings → Security → Change Password. You can also use "Forgot Password" on the login screen.' },
@@ -45,7 +46,7 @@ export default function Support() {
         setTickets(res.data.tickets);
       }
     } catch (err) {
-      console.error('Failed to fetch tickets:', err);
+      logger.error('Failed to fetch tickets:', err);
     } finally {
       setLoading(false);
     }

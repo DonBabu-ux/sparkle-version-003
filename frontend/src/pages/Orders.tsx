@@ -5,6 +5,7 @@ import api from '../api/api';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface Order {
   order_id: string;
@@ -31,7 +32,7 @@ export default function Orders() {
       const response = await api.get('/marketplace/orders');
       setOrders(response.data.orders || []);
     } catch (err) {
-      console.error('Failed to fetch orders:', err);
+      logger.error('Failed to fetch orders:', err);
     } finally {
       setLoading(false);
     }

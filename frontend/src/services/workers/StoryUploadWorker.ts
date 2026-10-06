@@ -5,6 +5,7 @@ import api from '../../api/api';
 import { UploadFileDB } from '../uploadFileDB';
 import { AuthService } from '../AuthService';
 import { UploadError } from '../../utils/UploadError';
+import { logger } from '../../utils/logger';
 
 // Keep track of active requests so we can cancel them
 export const activeXhrRequests = new Map<string, XMLHttpRequest>();
@@ -34,7 +35,7 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
       updateJob(job.uploadId, { thumbnailUri: thumbUrl, progress: 10 });
       UploadEventBus.emit('UPLOAD_PROGRESS', { uploadId: job.uploadId, progress: 10, status: 'GENERATING_THUMBNAIL' });
     } catch (err) {
-      console.warn('[StoryUploadWorker] Thumbnail extraction failed, fallback to normal upload:', err);
+      logger.warn('[StoryUploadWorker] Thumbnail extraction failed, fallback to normal upload:', err);
     }
   }
 
@@ -134,7 +135,7 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
           if (xhr.status === 401) {
             if (!hasTokenRefreshed) {
               hasTokenRefreshed = true;
-              console.log('[StoryUploadWorker] 401 response. Retrying with fresh token...');
+              logger.log('[StoryUploadWorker] 401 response. Retrying with fresh token...');
               try {
                 await AuthService.refreshAccessToken();
                 sendRequest();

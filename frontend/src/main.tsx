@@ -8,9 +8,10 @@ import OtaService from './services/OtaService';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { ToastProvider } from './utils/toast';
 import realtimeLogger from './utils/realtimeTrace';
+import { logger } from './utils/logger';
 
 (async () => {
-  console.log('APP STARTED');
+  logger.log('APP STARTED');
   // Expose realtime logger globally for debugging
   (window as any).__realtimeLogger = realtimeLogger;
 

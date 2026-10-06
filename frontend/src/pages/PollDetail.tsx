@@ -7,6 +7,7 @@ import CountdownTimer from '../components/ui/CountdownTimer';
 import Spinner from '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { useSocket } from '../hooks/useSocket';
+import { logger } from '../utils/logger';
 
 interface Voter {
   user_id: string;
@@ -72,7 +73,7 @@ export default function PollDetail() {
       setPoll(data);
       if (data.user_voted_option) setSelected(data.user_voted_option);
     } catch (err) {
-      console.error('Poll detail fetch error:', err);
+      logger.error('Poll detail fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -83,7 +84,7 @@ export default function PollDetail() {
       const res = await api.get('/users/followers');
       setFollowers(res.data);
     } catch (err) {
-      console.error('Followers fetch error:', err);
+      logger.error('Followers fetch error:', err);
     }
   }, []);
 
@@ -118,7 +119,7 @@ export default function PollDetail() {
       await api.post(`/polls/${id}/vote`, { option_id: optionId });
       fetchPoll();
     } catch (err) {
-      console.error('Vote error:', err);
+      logger.error('Vote error:', err);
       setSelected(poll?.user_voted_option || null);
     } finally {
       setVoting(false);
@@ -136,7 +137,7 @@ export default function PollDetail() {
         }));
         setPoll({ ...poll, options: updatedOptions });
       }
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
   };
 
   if (loading) return (
@@ -189,7 +190,7 @@ export default function PollDetail() {
                  </div>
                  <div className="ml-auto flex flex-col items-end gap-1">
                      {poll.expires_at && !isExpired ? <CountdownTimer expiresAt={poll.expires_at} onEnd={fetchPoll} /> : null}
-                     {!!isExpired ? <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">Ended</span> : null}
+                     {isExpired ? <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-2 py-1 rounded-md">Ended</span> : null}
                  </div>
               </div>
 
@@ -208,7 +209,7 @@ export default function PollDetail() {
                             setPrediction(opt.option_id);
                             try {
                                await api.post(`/polls/${id}/predict`, { option_id: opt.option_id });
-                            } catch (err) { console.error(err); }
+                            } catch (err) { logger.error(err); }
                           }}
                           className={`py-3 rounded-2xl text-[9px] font-black uppercase tracking-widest border-2 transition-all ${prediction === opt.option_id ? 'bg-primary border-primary text-white scale-105' : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20'}`}
                         >
@@ -386,7 +387,7 @@ export default function PollDetail() {
                            try {
                              await api.post(`/polls/${id}/invite`, { user_ids: [f.user_id] });
                              setInvitedUsers(prev => [...prev, f.user_id]);
-                           } catch (err) { console.error(err); }
+                           } catch (err) { logger.error(err); }
                          }}
                          className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${isInvited ? 'bg-emerald-500 text-white cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
                        >

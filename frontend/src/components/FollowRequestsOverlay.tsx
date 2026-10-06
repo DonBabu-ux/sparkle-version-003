@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Check, UserX, User } from 'lucide-react';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface FollowRequest {
   request_id: string;
@@ -28,7 +29,7 @@ export default function FollowRequestsOverlay({ onClose }: FollowRequestsOverlay
           setRequests(response.data.requests);
         }
       } catch (err) {
-        console.error('Failed to fetch follow requests:', err);
+        logger.error('Failed to fetch follow requests:', err);
       } finally {
         setLoading(false);
       }
@@ -45,7 +46,7 @@ export default function FollowRequestsOverlay({ onClose }: FollowRequestsOverlay
       await api.post(`/users/follow-requests/${requestId}/${action}`);
     } catch (err) {
       setRequests(originalRequests);
-      console.error(`Failed to ${action} request:`, err);
+      logger.error(`Failed to ${action} request:`, err);
     }
   };
 

@@ -144,7 +144,7 @@ const sparkPost = async (req, res) => {
                         action_url: `/posts/${postId}`
                     }).catch(() => { });
                 }
-            } catch (_) { /* non-blocking */ }
+            } catch (_) { /* non-blocking */ logger.debug('spark owner notification failed for post ' + postId + ': ' + (_.message || _)); }
         }
 
         res.json({
@@ -223,7 +223,7 @@ const addComment = async (req, res) => {
                     action_url: `/posts/${postId}`
                 }).catch(() => { });
             }
-        } catch (_) { /* non-blocking */ }
+        } catch (_) { /* non-blocking */ logger.debug('comment owner notification failed for post ' + postId + ': ' + (_.message || _)); }
 
         res.status(201).json({
             message: 'Comment added successfully',
@@ -296,7 +296,7 @@ const sharePost = async (req, res) => {
                     action_url: `/posts/${postId}`
                 }).catch(() => { });
             }
-        } catch (_) { /* non-blocking */ }
+        } catch (_) { /* non-blocking */ logger.debug('reshare owner notification failed for post ' + postId + ': ' + (_.message || _)); }
 
         res.json({ message: 'Post share count updated' });
     } catch (error) {
@@ -328,7 +328,9 @@ const likeComment = async (req, res) => {
                         action_url: `/posts/${comment.post_id}`
                     }).catch(() => { });
                 }
-            } catch (_) { }
+            } catch (_) {
+                logger.debug(`likeComment: comment owner notification failed for comment ${commentId}`, _?.message || _);
+            }
         }
 
         const comment = await Post.getCommentById(commentId);
@@ -413,7 +415,9 @@ const resharePost = async (req, res) => {
                     action_url: `/posts/${reshareId}`
                 }).catch(() => { });
             }
-        } catch (_) { }
+        } catch (_) {
+            logger.debug(`resharePost: original owner notification failed for post ${originalPostId}`, _?.message || _);
+        }
 
         res.status(201).json({
             message: 'Post reshared successfully',

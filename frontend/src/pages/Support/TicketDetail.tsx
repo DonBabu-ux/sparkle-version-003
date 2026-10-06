@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, CheckCircle, Clock, AlertCircle, ShieldCheck, MessageCircle, Bot } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface SupportMessage {
     message_id: string;
@@ -51,7 +52,7 @@ export default function TicketDetail() {
                 setMessages(res.data.messages);
             }
         } catch (err) {
-            console.error('Failed to fetch ticket:', err);
+            logger.error('Failed to fetch ticket:', err);
         } finally {
             setLoading(false);
         }

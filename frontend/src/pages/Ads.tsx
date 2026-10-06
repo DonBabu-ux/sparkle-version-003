@@ -7,6 +7,7 @@ import {
   DollarSign, Target, Play, ArrowRight, Zap
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 interface WalletSummary {
   available_balance: number;
@@ -78,7 +79,7 @@ export default function Ads() {
       const res = await api.get('/wallet');
       if (res.data.wallet) setWallet(res.data.wallet);
     } catch (e) {
-      console.error('Failed to load wallet:', e);
+      logger.error('Failed to load wallet:', e);
     } finally {
       setLoading(false);
     }

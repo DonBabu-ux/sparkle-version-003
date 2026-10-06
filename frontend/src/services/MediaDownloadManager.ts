@@ -8,6 +8,7 @@
 
 import CryptoService from './CryptoService';
 import SparkleSandboxStore from './SparkleSandboxStore';
+import { logger } from '../utils/logger';
 
 export interface DownloadProgress {
   mediaId: string;
@@ -140,7 +141,7 @@ export class MediaDownloadManagerService {
         body: JSON.stringify({ mediaId }),
       });
       const data = await res.json();
-      console.log('[MediaDownloadManager] Peer-Assisted Re-Delivery requested:', data);
+      logger.log('[MediaDownloadManager] Peer-Assisted Re-Delivery requested:', data);
       return data.success;
     } catch {
       return false;

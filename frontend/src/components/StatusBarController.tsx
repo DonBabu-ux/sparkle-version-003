@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import OtaService from '../services/OtaService';
+import { logger } from '../utils/logger';
 
 export type StatusBarStyleType = 'light' | 'dark' | 'transparent-light' | 'transparent-dark';
 
@@ -35,7 +36,7 @@ export const applyStatusBarStyle = async (style: StatusBarStyleType, customBg?: 
             await StatusBar.setBackgroundColor({ color: '#00000000' });
         }
     } catch (err) {
-        console.warn('⚠️ StatusBarController: Failed to apply native style:', err);
+        logger.warn('⚠️ StatusBarController: Failed to apply native style:', err);
     }
 };
 

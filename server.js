@@ -18,7 +18,7 @@ const { initDB } = require('./utils/database/init');
 const momentsController = require('./controllers/moments.controller');
 const apiRoutes = require('./routes/api');
 
-const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter } = require('./middleware/security.middleware');
+const { securityHeaders, apiRateLimiter, sanitizeInput, imageLimiter, csrfProtection } = require('./middleware/security.middleware');
 const logger = require('./utils/logger');
 const { authMiddleware } = require('./middleware/auth.middleware');
 const { startKeepAlive } = require('./utils/keep-alive');
@@ -33,7 +33,12 @@ initMediaJobs();
 require('./workers/MediaCleanupWorker').start(); // Start 10-minute ephemeral media retention worker
 
 const app = express();
-app.set('trust proxy', 1); // Trust first proxy (Vite locally, Render in prod)
+// Only trust a reverse proxy when actually behind one (Render sets
+// NODE_ENV=production; override with TRUST_PROXY=0|1|n). Direct exposure must
+// ignore client-supplied X-Forwarded-For — otherwise IP-keyed rate limits can
+// be rotated by any client.
+const trustProxySetting = process.env.TRUST_PROXY ?? (process.env.NODE_ENV === 'production' ? '1' : '');
+if (trustProxySetting) app.set('trust proxy', Number(trustProxySetting) || 1);
 
 
 // Database Initialization
@@ -76,10 +81,14 @@ app.use(cors({
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token', 'X-Device-Id']
 }));
 
-app.use(express.json({ limit: '1mb' }));
+// req.rawBody is required by the Paystack webhook for HMAC signature verification
+app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(cookieParser());
 app.use(sanitizeInput);
+
+// CSRF for every cookie-auth mutation under /api (Bearer/no-session requests exempt)
+app.use('/api', csrfProtection);
 
 // Health checks (unauthenticated, JSON) — ops monitors use these instead of raw mysql CLI
 app.get('/health', (req, res) => {
@@ -222,7 +231,6 @@ if (process.env.NODE_ENV !== 'production') {
 
 // Diagnostic Test Route (Bypasses all middleware)
 app.get('/api/ping', (req, res) => res.json({ status: 'API IS ALIVE', time: new Date().toISOString() }));
-app.get('/api/csrf-token', (req, res) => res.json({ status: 'success', csrfToken: 'sparkle_csrf_token' }));
 
 // Pool observability — auth-guarded: connection budget usage, latency percentiles,
 // queue pressure and slow queries. See config/database.js for sizing policy.

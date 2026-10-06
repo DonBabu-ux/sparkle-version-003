@@ -44,7 +44,7 @@ class AuthService {
         const tokenData = tokens[0];
 
         // 2. Get user data
-        const users = await safeQuery('SELECT * FROM users WHERE user_id = ?', [tokenData.user_id]);
+        const users = await safeQuery('SELECT user_id, email, username, role FROM users WHERE user_id = ?', [tokenData.user_id]);
 
         if (users.length === 0) {
             throw new Error('User not found');

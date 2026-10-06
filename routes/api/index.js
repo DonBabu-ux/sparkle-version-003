@@ -27,12 +27,13 @@ const roomsRoutes = require('./rooms.routes');
 
 const pool = require('../../config/database');
 
-const { csrfProtection } = require('../../middleware/security.middleware');
+const { csrfTokenProtection } = require('../../middleware/security.middleware');
 
 router.use('/auth', authRoutes);
 
-// CSRF Token Provider for SPAs
-router.get('/csrf-token', csrfProtection, (req, res) => {
+// CSRF Token Provider for SPA — raw csurf instance so req.csrfToken() is
+// installed on this GET (the scoped csrfProtection wrapper skips safe methods).
+router.get('/csrf-token', csrfTokenProtection, (req, res) => {
     res.json({ csrfToken: req.csrfToken() });
 });
 

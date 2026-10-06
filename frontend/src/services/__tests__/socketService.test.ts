@@ -44,7 +44,7 @@ const flush = () => new Promise(r => setTimeout(r, 0));
 
 describe('socketService connect_error handling (H23)', () => {
     beforeEach(() => {
-        h.handlers && Object.keys(h.handlers).forEach(k => delete h.handlers[k]);
+        if (h.handlers) Object.keys(h.handlers).forEach(k => delete h.handlers[k]);
         h.socket.connect.mockClear();
         h.socket.disconnect.mockClear();
         h.socket.on.mockClear();
@@ -84,6 +84,9 @@ describe('socketService connect_error handling (H23)', () => {
 
         expect(h.refreshTokenOnce).toHaveBeenCalledTimes(1);
         expect(s.connect).toHaveBeenCalled();
+        // H26: auth-class rejections are self-healing (refresh + reconnect) →
+        // warn level only, no red console.error + stack.
+        expect(errSpy).not.toHaveBeenCalled();
 
         errSpy.mockRestore();
         warnSpy.mockRestore();
@@ -102,8 +105,89 @@ describe('socketService connect_error handling (H23)', () => {
 
         expect(h.refreshTokenOnce).not.toHaveBeenCalled();
         expect(s.disconnect).not.toHaveBeenCalled();
+        // Genuine unexpected (network) failures stay at error level.
+        expect(errSpy).toHaveBeenCalled();
 
         errSpy.mockRestore();
         warnSpy.mockRestore();
+    });
+
+    it('ServiceUnavailable (DB blip): no refresh, no red error, no disconnect — socket.io retries', async () => {
+        useUserStore.setState({ token: 'old-token', refreshToken: 'r1', isAuthenticated: true });
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const s = createSocket('user-db-down', 'tok') as unknown as typeof h.socket;
+        await flush();
+        s.connect.mockClear();
+        s.disconnect.mockClear();
+        await h.handlers['connect_error'](new Error('ServiceUnavailable'));
+
+        expect(h.refreshTokenOnce).not.toHaveBeenCalled();
+        expect(s.disconnect).not.toHaveBeenCalled();
+        expect(errSpy).not.toHaveBeenCalled();
+        expect(warnSpy).toHaveBeenCalled();
+
+        errSpy.mockRestore();
+        warnSpy.mockRestore();
+    });
+
+    it('known-expired token: connect deferred with warn (no ❌ burst), retries and connects once fresh', async () => {
+        vi.useFakeTimers();
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const b64 = (o: unknown) => btoa(JSON.stringify(o));
+            const expired = `${b64({ alg: 'HS256' })}.${b64({ exp: Math.floor(Date.now() / 1000) - 60 })}.sig`;
+            const fresh = `${b64({ alg: 'HS256' })}.${b64({ exp: Math.floor(Date.now() / 1000) + 86400 })}.sig`;
+            useUserStore.setState({ token: expired, refreshToken: 'r1', isAuthenticated: true });
+            // Transient refresh failure → ensureFresh returns the old, expired token (H26 contract)
+            h.ensureFreshAccessToken.mockResolvedValueOnce(null);
+
+            const s = createSocket('user-expired-defer', 'tok') as unknown as typeof h.socket;
+            await vi.advanceTimersByTimeAsync(0);
+
+            expect(s.connect).not.toHaveBeenCalled();
+            expect(warnSpy).toHaveBeenCalled();
+
+            // DB recovered → deferred retry gets a fresh token and connects
+            h.ensureFreshAccessToken.mockResolvedValueOnce(fresh);
+            await vi.advanceTimersByTimeAsync(5000);
+
+            expect(s.connect).toHaveBeenCalled();
+            expect(errSpy).not.toHaveBeenCalled();
+        } finally {
+            errSpy.mockRestore();
+            warnSpy.mockRestore();
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        }
+    });
+
+    it('logged out during deferral: pending retry stops without reconnecting', async () => {
+        vi.useFakeTimers();
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        try {
+            const b64 = (o: unknown) => btoa(JSON.stringify(o));
+            const expired = `${b64({ alg: 'HS256' })}.${b64({ exp: Math.floor(Date.now() / 1000) - 60 })}.sig`;
+            useUserStore.setState({ token: expired, refreshToken: 'r1', isAuthenticated: true });
+            h.ensureFreshAccessToken.mockResolvedValueOnce(null);
+
+            const s = createSocket('user-expired-logout', 'tok') as unknown as typeof h.socket;
+            await vi.advanceTimersByTimeAsync(0);
+            expect(s.connect).not.toHaveBeenCalled();
+
+            useUserStore.setState({ token: null, refreshToken: null, isAuthenticated: false });
+            await vi.advanceTimersByTimeAsync(5000);
+
+            expect(s.connect).not.toHaveBeenCalled();
+            expect(errSpy).not.toHaveBeenCalled();
+        } finally {
+            errSpy.mockRestore();
+            warnSpy.mockRestore();
+            vi.clearAllTimers();
+            vi.useRealTimers();
+        }
     });
 });

@@ -6,6 +6,8 @@ import type { Listing } from '../types/listing';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 export default function MyListings() {
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ export default function MyListings() {
       const response = await api.get('/marketplace/my-listings');
       setListings(response.data.listings || []);
     } catch (err) {
-      console.error('Failed to fetch listings:', err);
+      logger.error('Failed to fetch listings:', err);
     } finally {
       setLoading(false);
     }

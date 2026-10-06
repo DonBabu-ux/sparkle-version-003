@@ -22,6 +22,7 @@ import { emitHeart } from '../components/TikTokHearts';
 import Spinner from '../components/ui/Spinner';
 import StoryAudioManager from '../audio/managers/StoryAudioManager';
 import AudioReactiveVisualizer from '../components/stories/AudioReactiveVisualizer';
+import { logger } from '../utils/logger';
 
 // REAL LOGOS SVGS
 const FB_LOGO = (
@@ -385,7 +386,7 @@ export default function StoryViewer() {
       const updatedStories = [...userStories.stories];
       updatedStories[currentIndex] = { ...currentStory, is_liked: res.data.liked, likes_count: res.data.liked ? (currentStory.likes_count || 0) + 1 : Math.max(0, (currentStory.likes_count || 1) - 1) };
       setUserStories({ ...userStories, stories: updatedStories });
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
   };
 
   const handlePostComment = async (text: string) => {
@@ -395,7 +396,7 @@ export default function StoryViewer() {
       setStoryComments(commentsRes.data);
       setShowCommentModal(false);
       setReplyText('');
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
   };
 
   const updateSetting = async (key: string, value: any) => {
@@ -404,7 +405,7 @@ export default function StoryViewer() {
       const updatedStories = [...userStories.stories];
       updatedStories[currentIndex] = { ...currentStory, [key]: value };
       setUserStories({ ...userStories, stories: updatedStories });
-    } catch (err) { console.error(err); }
+    } catch (err) { logger.error(err); }
   };
 
   const handleSendStoryToContact = async (contactId: string) => {
@@ -416,7 +417,7 @@ export default function StoryViewer() {
       });
       setShowShareModal(false);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setIsProcessing(false);
     }
@@ -441,7 +442,7 @@ export default function StoryViewer() {
       setReplySent(true);
       setTimeout(() => setReplySent(false), 2000);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface SlideProps {
   onNext: () => void;
@@ -46,7 +47,7 @@ export default function Slide5({ onNext, onBack }: SlideProps) {
       await api.post('/onboarding/interests', { interests: selectedSlugs });
       onNext();
     } catch (err) {
-      console.error('Failed to save interests:', err);
+      logger.error('Failed to save interests:', err);
       setError('Something went wrong. Please try again.');
     } finally {
       setSubmitting(false);

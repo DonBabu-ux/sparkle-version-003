@@ -8,6 +8,7 @@ import {
   getLeaderboard,
 } from '../services/referralService';
 import type { ReferralStats, Reward, Milestone, Achievement, InviteLink, LeaderboardEntry } from '../types/referral';
+import { logger } from '../utils/logger';
 
 export interface UseReferralDataResult {
   data: {
@@ -111,7 +112,7 @@ export const useReferralData = (): UseReferralDataResult => {
           break;
         }
         default:
-          console.warn('Unknown section refresh', section);
+          logger.warn('Unknown section refresh', section);
       }
     } catch (e) {
       setErrors(e => ({ ...e, [section]: (e as Error).message }));

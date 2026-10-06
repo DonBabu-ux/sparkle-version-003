@@ -5,6 +5,7 @@ import {
   Smartphone, Building2, AlertCircle, Loader2, Info
 } from 'lucide-react';
 import api from '../../api/api';
+import { logger } from '../../utils/logger';
 
 interface AutoWithdrawalConfig {
   config_id?: string;
@@ -85,7 +86,7 @@ export function AutoWithdrawalModal({
           setConsentConfirmed(Boolean(initialConfig.is_enabled));
         }
       } catch (err: any) {
-        console.error('Failed to load auto-withdrawal config:', err);
+        logger.error('Failed to load auto-withdrawal config:', err);
       } finally {
         setFetching(false);
       }

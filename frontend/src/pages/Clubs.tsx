@@ -4,6 +4,7 @@ import { Users, Plus, MapPin, X, Camera, Image as ImageIcon, Search, Orbit } fro
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { logger } from '../utils/logger';
 
 const CATEGORIES = ['All Communities', 'Academic', 'Social', 'Sports', 'Music/Arts', 'Technology', 'Volunteer'];
 
@@ -39,7 +40,7 @@ export default function Clubs() {
       const res = await api.get(`/clubs?category=${category}`);
       setClubs(res.data.clubs || res.data || []);
     } catch (err) {
-      console.error('Failed to fetch clubs:', err);
+      logger.error('Failed to fetch clubs:', err);
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ export default function Clubs() {
       const clubId = res.data.club_id || res.data.clubId;
       if (clubId) navigate(`/clubs/${clubId}`);
     } catch (err) {
-      console.error('Create club error:', err);
+      logger.error('Create club error:', err);
     } finally {
       setCreating(false);
     }

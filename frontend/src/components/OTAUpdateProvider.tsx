@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import OtaService from '../services/OtaService';
 import type { OtaVersionMetadata } from '../services/OtaService';
 import { Preferences } from '@capacitor/preferences';
+import { logger } from '../utils/logger';
 
 interface OtaContextProps {
     currentVersion: string;
@@ -42,7 +43,7 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                     }
                 }
             } catch (err) {
-                console.error('❌ OTAProvider: Error reading version state:', err);
+                logger.error('❌ OTAProvider: Error reading version state:', err);
             }
         };
 
@@ -59,7 +60,7 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
      */
     const triggerDynamicReload = async () => {
         setIsReloading(true);
-        console.log('🔄 OTAProvider: Starting global screen invalidation and reload...');
+        logger.log('🔄 OTAProvider: Starting global screen invalidation and reload...');
 
         try {
             // 1. Force state persistence checkpoint
@@ -75,7 +76,7 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
             // the new files in Capacitor filesystem are properly mounted by bootstrap()
             window.location.reload();
         } catch (err) {
-            console.error('❌ OTAProvider: Reload failed:', err);
+            logger.error('❌ OTAProvider: Reload failed:', err);
             setIsReloading(false);
         }
     };

@@ -4,6 +4,7 @@ import { ArrowLeft, History, Calendar, Sparkles, ChevronRight, Share2, X } from 
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import type { Post } from '../types/post';
+import { logger } from '../utils/logger';
 
 export default function Memories() {
   const navigate = useNavigate();
@@ -19,7 +20,7 @@ export default function Memories() {
         const res = await api.get('/posts/feed?limit=5');
         setMemories(res.data.posts || res.data || []);
       } catch (err) {
-        console.error('Failed to fetch memories:', err);
+        logger.error('Failed to fetch memories:', err);
       } finally {
         setLoading(false);
       }

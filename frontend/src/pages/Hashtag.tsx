@@ -5,6 +5,7 @@ import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
+import { logger } from '../utils/logger';
 
 export default function Hashtag() {
   const { tag } = useParams();
@@ -18,7 +19,7 @@ export default function Hashtag() {
       await api.post(`/search/hashtags/${tag}/follow`);
       setIsFollowing(!isFollowing);
     } catch (err) {
-      console.error('Failed to follow hashtag:', err);
+      logger.error('Failed to follow hashtag:', err);
     }
   };
 
@@ -28,7 +29,7 @@ export default function Hashtag() {
       const res = await api.get(`/search?type=posts&q=${encodeURIComponent(tag || '')}`);
       setPosts(res.data.posts || res.data || []);
     } catch (err) {
-      console.error('Hashtag fetch error:', err);
+      logger.error('Hashtag fetch error:', err);
     } finally {
       setLoading(false);
     }

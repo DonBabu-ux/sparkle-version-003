@@ -1,3 +1,4 @@
+import { logger } from '../../utils/logger';
 export type VolumeCategory =
   | 'master'
   | 'messages'
@@ -41,7 +42,7 @@ export class VolumeController {
         this.volumes = { ...DEFAULT_VOLUMES, ...JSON.parse(stored) };
       }
     } catch (e) {
-      console.warn('[VolumeController] Failed to load volumes:', e);
+      logger.warn('[VolumeController] Failed to load volumes:', e);
     }
   }
 
@@ -49,7 +50,7 @@ export class VolumeController {
     try {
       localStorage.setItem('sparkle_audio_volumes', JSON.stringify(this.volumes));
     } catch (e) {
-      console.warn('[VolumeController] Failed to save volumes:', e);
+      logger.warn('[VolumeController] Failed to save volumes:', e);
     }
   }
 

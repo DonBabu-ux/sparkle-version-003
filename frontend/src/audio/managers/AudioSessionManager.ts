@@ -11,6 +11,7 @@ import { VolumeController } from '../settings/VolumeController';
 import type { VolumeCategory } from '../settings/VolumeController';
 import { validateAssets } from '../validateAssets';
 import type { ValidationWarning } from '../validateAssets';
+import { logger } from '../../utils/logger';
 
 export class AudioSessionManager {
   private static instance: AudioSessionManager | null = null;
@@ -82,9 +83,9 @@ export class AudioSessionManager {
       }
 
       this.startupTimeMs = performance.now() - startupStart;
-      console.log(`[AudioSessionManager] Audio Engine initialized in ${this.startupTimeMs.toFixed(1)}ms`);
+      logger.log(`[AudioSessionManager] Audio Engine initialized in ${this.startupTimeMs.toFixed(1)}ms`);
     } catch (err) {
-      console.error('[AudioSessionManager] Startup failed:', err);
+      logger.error('[AudioSessionManager] Startup failed:', err);
     }
   }
 
@@ -93,9 +94,9 @@ export class AudioSessionManager {
       try {
         await this.audioCtx.resume();
         this.eventBus.emit('audio_resume');
-        console.log('[AudioSessionManager] AudioContext resumed via user gesture.');
+        logger.log('[AudioSessionManager] AudioContext resumed via user gesture.');
       } catch (err) {
-        console.warn('[AudioSessionManager] AudioContext resume failed:', err);
+        logger.warn('[AudioSessionManager] AudioContext resume failed:', err);
       }
     }
   }
@@ -103,7 +104,7 @@ export class AudioSessionManager {
   public playSound(key: SoundKey, options?: { rate?: number }): void {
     if (this.isCallActive) {
       if (key !== 'hangup' && key !== 'busy') {
-        console.log(`[AudioSessionManager] Suppressed sound "${key}" due to active call.`);
+        logger.log(`[AudioSessionManager] Suppressed sound "${key}" due to active call.`);
         return;
       }
     }
@@ -158,7 +159,7 @@ export class AudioSessionManager {
     if (this.audioCtx && this.audioCtx.state === 'running') {
       this.stopAll();
       this.audioCtx.suspend().then(() => {
-        console.log('[AudioSessionManager] AudioContext suspended.');
+        logger.log('[AudioSessionManager] AudioContext suspended.');
       });
     }
     this.eventBus.emit('audio_suspend');

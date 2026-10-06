@@ -40,6 +40,7 @@ import FloatingAction from './FloatingAction';
 import FeelingActivitySelector from './modals/FeelingActivitySelector';
 
 import Sidebar from './Sidebar';
+import { logger } from '../utils/logger';
 
 const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: string }) => (
   <svg 
@@ -413,7 +414,7 @@ function NotificationBell() {
         const count = notifs.filter((n: any) => !n.is_read && !n.isRead).length;
         setUnreadCount(count);
       } catch (e) {
-        console.error('Failed to fetch unread count', e);
+        logger.error('Failed to fetch unread count', e);
       }
     };
     

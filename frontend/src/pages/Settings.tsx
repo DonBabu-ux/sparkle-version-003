@@ -38,6 +38,7 @@ import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import EditProfileModal from '../components/profile/EditProfileModal';
+import { logger } from '../utils/logger';
 
 export default function Settings() {
   const { user, setUser, theme, setTheme } = useUserStore();
@@ -200,7 +201,7 @@ export default function Settings() {
         await authApi.logout(refreshToken);
       }
     } catch (err) {
-      console.error('Logout error:', err);
+      logger.error('Logout error:', err);
     } finally {
       useUserStore.getState().logout();
       navigate('/login');

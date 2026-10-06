@@ -4,6 +4,7 @@ import { runStoryUploadWorker, activeXhrRequests } from './workers/StoryUploadWo
 import { UploadEventBus } from '../utils/UploadEventBus';
 import { UploadFileDB } from '../services/uploadFileDB';
 import { UploadError } from '../utils/UploadError';
+import { logger } from '../utils/logger';
 
 const runningJobs = new Set<string>();
 const retryTimers = new Map<string, any>();
@@ -28,7 +29,7 @@ function getConcurrencyLimit(): number {
 
 export const UploadManager = {
   init() {
-    console.log('[UploadManager] Initializing background upload scheduler...');
+    logger.log('[UploadManager] Initializing background upload scheduler...');
 
     // Subscribe to store changes to trigger wake when new jobs are added
     useUploadStore.subscribe((state) => {
@@ -55,13 +56,13 @@ export const UploadManager = {
 
     // Event listeners
     window.addEventListener('online', () => {
-      console.log('[UploadManager] Internet restored, waking queue...');
+      logger.log('[UploadManager] Internet restored, waking queue...');
       this.wake();
     });
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
-        console.log('[UploadManager] App foregrounded, waking queue...');
+        logger.log('[UploadManager] App foregrounded, waking queue...');
         this.wake();
       }
     });
@@ -75,7 +76,7 @@ export const UploadManager = {
     const limit = getConcurrencyLimit();
 
     if (limit === 0) {
-      console.log('[UploadManager] Scheduler paused: Network is offline.');
+      logger.log('[UploadManager] Scheduler paused: Network is offline.');
       return;
     }
 
@@ -106,7 +107,7 @@ export const UploadManager = {
     const { updateJob } = useUploadStore.getState();
     runningJobs.add(job.uploadId);
 
-    console.log(`[UploadManager] Starting job ${job.uploadId} (Priority: ${job.priority})`);
+    logger.log(`[UploadManager] Starting job ${job.uploadId} (Priority: ${job.priority})`);
 
     try {
       if (job.type === 'STORY') {
@@ -125,13 +126,13 @@ export const UploadManager = {
       const isCanceled = err.message?.includes('canceled') || err.message?.includes('abort');
 
       if (isCanceled) {
-        console.log(`[UploadManager] Job ${job.uploadId} canceled successfully.`);
+        logger.log(`[UploadManager] Job ${job.uploadId} canceled successfully.`);
         this.cleanupJobAssets(job.uploadId);
         this.wake();
         return;
       }
 
-      console.error(`[UploadManager] Job ${job.uploadId} failed:`, err.message);
+      logger.error(`[UploadManager] Job ${job.uploadId} failed:`, err.message);
 
       // Handle specific error classifications if it's an UploadError
       if (err instanceof UploadError) {
@@ -252,7 +253,7 @@ export const UploadManager = {
       }
     }
 
-    UploadFileDB.deleteFile(uploadId).catch(console.error);
+    UploadFileDB.deleteFile(uploadId).catch(logger.error);
     if (retryTimers.has(uploadId)) {
       clearTimeout(retryTimers.get(uploadId));
       retryTimers.delete(uploadId);

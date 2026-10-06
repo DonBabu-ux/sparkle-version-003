@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import type { User } from '../../types/user';
 import type { Moment } from '../../types/moment';
+import { logger } from '../../utils/logger';
 
 interface MomentShareModalProps {
   moment: Moment;
@@ -32,7 +33,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         data.sort((a: any, b: any) => (b.is_online ? 1 : 0) - (a.is_online ? 1 : 0));
         setRecipients(data);
       } catch (err) {
-        console.error('Failed to fetch recipients', err);
+        logger.error('Failed to fetch recipients', err);
       } finally {
         setLoading(false);
       }
@@ -56,7 +57,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
       });
       onClose();
     } catch (err) {
-      console.error('Failed to share to friend', err);
+      logger.error('Failed to share to friend', err);
     }
   };
 
@@ -74,7 +75,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
           url: url,
         });
       } catch (err) {
-        console.error('Native share failed', err);
+        logger.error('Native share failed', err);
       }
     } else {
       handleCopyLink();
@@ -97,7 +98,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
       setSharingStory(false);
       onClose();
     } catch (err) {
-      console.error('Failed to post story', err);
+      logger.error('Failed to post story', err);
       setSharingStory(false);
     }
   };

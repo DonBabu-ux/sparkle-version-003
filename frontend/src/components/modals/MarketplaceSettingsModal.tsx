@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface MarketplaceSettingsModalProps {
   isOpen: boolean;
@@ -27,7 +28,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
         setFeatures(res.data.settings);
       }
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 
@@ -38,7 +39,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
       const res = await api.get('/marketplace/analytics');
       if (res.data.success) setData(res.data.data);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -51,7 +52,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
       const res = await api.get('/marketplace/settings/payouts');
       if (res.data.success) setData(res.data.payouts);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -312,7 +313,7 @@ function MarketplaceSupportView() {
       const res = await api.post('/support/bot/ask', { message: userMsg });
       setBotMessages(prev => [...prev, { role: 'bot', text: res.data.response }]);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -325,7 +326,7 @@ function MarketplaceSupportView() {
       const res = await api.get('/support/tickets');
       if (res.data.success) setTickets(res.data.tickets);
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -341,7 +342,7 @@ function MarketplaceSupportView() {
       alert('Ticket submitted successfully!');
       setMode('options');
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     } finally {
       setLoading(false);
     }
@@ -514,7 +515,7 @@ function BlockedUsersView() {
           // Assuming res.data is an array of users
           setBlockedUsers(res.data);
       } catch (err) {
-          console.error(err);
+          logger.error(err);
       } finally {
           setLoading(false);
       }
@@ -525,7 +526,7 @@ function BlockedUsersView() {
           await api.delete(`/users/block/${userId}`);
           setBlockedUsers(prev => prev.filter(u => u.user_id !== userId));
       } catch (err) {
-          console.error(err);
+          logger.error(err);
       }
   };
 
@@ -542,7 +543,7 @@ function BlockedUsersView() {
       await api.post(`/users/report/${userId}`, { reason, targetType: 'user' });
       alert("Report submitted successfully.");
     } catch (err) {
-      console.error(err);
+      logger.error(err);
     }
   };
 

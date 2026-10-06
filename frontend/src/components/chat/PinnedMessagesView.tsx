@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
+import { logger } from '../../utils/logger';
 
 interface PinnedMessagesViewProps {
   chatId: string;
@@ -87,7 +88,7 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
         setPinnedList(response.data.data || []);
       }
     } catch (err) {
-      console.error('Error fetching pinned messages:', err);
+      logger.error('Error fetching pinned messages:', err);
     } finally {
       setLoading(false);
     }
@@ -100,7 +101,7 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
       setPinnedList(prev => prev.filter(m => m.message_id !== messageId));
       if (onUnpinMessage) onUnpinMessage(messageId);
     } catch (err) {
-      console.error('Error unpinning message:', err);
+      logger.error('Error unpinning message:', err);
     }
   };
 

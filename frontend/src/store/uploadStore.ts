@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { UploadFileDB } from '../services/uploadFileDB';
+import { logger } from '../utils/logger';
 
 export type JobPriority = 'HIGH' | 'NORMAL' | 'LOW';
 
@@ -91,7 +92,7 @@ export const useUploadStore = create<UploadState>()(
             URL.revokeObjectURL(job.thumbnailUri);
           } catch (e) {}
         }
-        UploadFileDB.deleteFile(uploadId).catch(console.error);
+        UploadFileDB.deleteFile(uploadId).catch(logger.error);
 
         return {
           jobs: state.jobs.map((j) => 
@@ -113,7 +114,7 @@ export const useUploadStore = create<UploadState>()(
             URL.revokeObjectURL(job.thumbnailUri);
           } catch (e) {}
         }
-        UploadFileDB.deleteFile(uploadId).catch(console.error);
+        UploadFileDB.deleteFile(uploadId).catch(logger.error);
 
         return {
           jobs: state.jobs.filter((j) => j.uploadId !== uploadId)
@@ -136,7 +137,7 @@ export const useUploadStore = create<UploadState>()(
               URL.revokeObjectURL(job.thumbnailUri);
             } catch (e) {}
           }
-          UploadFileDB.deleteFile(job.uploadId).catch(console.error);
+          UploadFileDB.deleteFile(job.uploadId).catch(logger.error);
         });
 
         return { jobs: activeJobs };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, MoreHorizontal, Bookmark, EyeOff, AlertTriangle, ChevronDown } from 'lucide-react';
 import { useModalStore } from '../../store/modalStore';
 import type { Post } from '../../types/post';
+import { logger } from '../../utils/logger';
 
 export default function MediaPreviewModal() {
   const { modalData, closeModal } = useModalStore();
@@ -33,7 +34,7 @@ export default function MediaPreviewModal() {
       link.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Download failed:', err);
+      logger.error('Download failed:', err);
       window.open(mediaUrl, '_blank');
     }
   };

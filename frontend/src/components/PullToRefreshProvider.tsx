@@ -3,6 +3,7 @@ import { useRefreshStore } from '../store/refreshStore';
 import { useGesture } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw } from 'lucide-react';
+import { logger } from '../utils/logger';
 
 interface PullToRefreshContextProps {
   /** Trigger a programmatic refresh for the given pageKey */
@@ -116,7 +117,7 @@ export const usePullToRefresh = (pageKey: string, refreshCallback: () => Promise
 
   const start = async () => {
     if (!context) {
-      console.warn('PullToRefreshContext not found');
+      logger.warn('PullToRefreshContext not found');
       return;
     }
     const requestId = context.triggerRefresh(pageKey);

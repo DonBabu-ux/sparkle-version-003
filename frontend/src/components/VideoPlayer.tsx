@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNetworkStore } from '../store/networkStore';
+import { logger } from '../utils/logger';
 
 interface VideoPlayerProps {
   src: string;
@@ -46,7 +47,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({ src, className = '' })
 
       // Play video with error handling (browsers require user interaction for unmuted play)
       video.play().catch((err) => {
-        console.warn('Auto-play blocked or interrupted:', err.message);
+        logger.warn('Auto-play blocked or interrupted:', err.message);
       });
     } else {
       // Pause video when out of viewport

@@ -7,6 +7,7 @@ import {
 import api from '../api/api';
 import Navbar from '../components/Navbar';
 import Spinner from '../components/ui/Spinner';
+import { logger } from '../utils/logger';
 
 export default function SearchHistory() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ export default function SearchHistory() {
       const res = await api.get('/search/history');
       if (res.data.status === 'success') setHistory(res.data.data || []);
     } catch (err) {
-      console.error('History fetch error:', err);
+      logger.error('History fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -37,7 +38,7 @@ export default function SearchHistory() {
       setHistory(prev => prev.filter(item => item.id !== id));
       showToast('Search deleted.');
     } catch (err) {
-      console.error('Delete item failed:', err);
+      logger.error('Delete item failed:', err);
       showToast('Failed to delete.', 'error');
     }
   };
@@ -49,7 +50,7 @@ export default function SearchHistory() {
       setHistory([]);
       showToast('History cleared.');
     } catch (err) {
-      console.error('Clear all failed:', err);
+      logger.error('Clear all failed:', err);
       showToast('Failed to clear history.', 'error');
     }
   };

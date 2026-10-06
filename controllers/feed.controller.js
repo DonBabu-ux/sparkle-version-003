@@ -701,6 +701,7 @@ const createStory = async (req, res) => {
                 }
             } catch (e) {
                 // music_info is not valid JSON — ignore
+                logger.debug('createStory: music_info JSON.parse fallback', e?.message || e);
             }
         }
 
@@ -742,7 +743,9 @@ const createStory = async (req, res) => {
                             });
                         });
                     }
-                } catch (e) {}
+                } catch (e) {
+                    logger.debug('createStory: stickers JSON.parse fallback', e?.message || e);
+                }
             }
 
             if (resolvedAudioUrl) {

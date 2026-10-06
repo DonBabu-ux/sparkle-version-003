@@ -6,6 +6,7 @@ import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock
 import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
+import { logger } from '../utils/logger';
 
 export default function Groups() {
   const { user } = useUserStore();
@@ -22,7 +23,7 @@ export default function Groups() {
         const response = await api.get(`/groups?filter=${filter}`);
         setData(response.data);
       } catch (err) {
-        console.error('Failed to fetch groups:', err);
+        logger.error('Failed to fetch groups:', err);
       } finally {
         setLoading(false);
       }

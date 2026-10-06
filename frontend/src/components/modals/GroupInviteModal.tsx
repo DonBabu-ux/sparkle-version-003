@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X, Search, Check, Loader2, UserPlus } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface GroupInviteModalProps {
   groupId: string;
@@ -31,7 +32,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
         const res = await api.get('/users/active-friends');
         setFriends(res.data.friends || res.data || []);
       } catch (err) {
-        console.error('Failed to fetch friends:', err);
+        logger.error('Failed to fetch friends:', err);
       } finally {
         setLoading(false);
       }
@@ -55,7 +56,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
       setSelectedIds([]);
       // Maybe show a success state or close after a delay
     } catch (err) {
-      console.error('Invite failed:', err);
+      logger.error('Invite failed:', err);
     } finally {
       setSending(false);
     }

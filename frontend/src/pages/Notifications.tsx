@@ -8,6 +8,7 @@ import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import { logger } from '../utils/logger';
 
 interface Notification {
   notification_id: string;
@@ -76,7 +77,7 @@ export default function Notifications() {
           setNotifications(fetchedNotifs);
         }
       } catch (err) {
-        console.error('Failed to fetch notifications:', err);
+        logger.error('Failed to fetch notifications:', err);
       } finally {
         setLoading(false);
       }
@@ -147,7 +148,7 @@ export default function Notifications() {
       );
       await api.put(`/notifications/${id}/read`).catch(() => api.post(`/notifications/${id}/read`));
     } catch (err) {
-      console.error('Failed to mark read:', err);
+      logger.error('Failed to mark read:', err);
     }
   };
 
@@ -166,7 +167,7 @@ export default function Notifications() {
       setMarkedFeedback(true);
       setTimeout(() => setMarkedFeedback(false), 2000);
     } catch (err) {
-      console.error('Failed to mark all read:', err);
+      logger.error('Failed to mark all read:', err);
     } finally {
       setMarkingAll(false);
     }
@@ -179,7 +180,7 @@ export default function Notifications() {
       setNotifications(prev => prev.filter(n => (n.notification_id !== id && n.id !== id)));
       setSelectedNotif(null);
     } catch (err) {
-      console.error('Failed to delete notification:', err);
+      logger.error('Failed to delete notification:', err);
     }
   };
 
@@ -217,7 +218,7 @@ export default function Notifications() {
       await api.post(`/users/${userId}/poke`);
       alert(`You poked ${name || 'them'} back! 👋`);
     } catch (err) {
-      console.error('Poke back failed:', err);
+      logger.error('Poke back failed:', err);
       alert('Failed to send poke. Try again later.');
     }
   };

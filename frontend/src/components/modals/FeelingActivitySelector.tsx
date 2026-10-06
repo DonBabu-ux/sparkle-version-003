@@ -11,6 +11,7 @@ import {
 import api from '../../api/api';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import Spinner from '../ui/Spinner';
+import { logger } from '../../utils/logger';
 
 interface SelectionItem {
   name: string;
@@ -113,7 +114,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
       const { data } = await api.get('/users/following'); 
       setFriends(data || []);
     } catch (err) {
-      console.error('Failed to fetch following:', err);
+      logger.error('Failed to fetch following:', err);
     } finally {
       setLoadingFriends(false);
     }

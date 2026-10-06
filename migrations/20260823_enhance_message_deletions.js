@@ -25,6 +25,7 @@ async function migrateEnhanceMessageDeletions() {
       `);
     } catch (err) {
       // Column might already exist
+      console.warn('20260823: column add skipped:', err.message);
     }
 
     // 3. Add delete_operation_id to messages table if missing
@@ -34,6 +35,7 @@ async function migrateEnhanceMessageDeletions() {
       `);
     } catch (err) {
       // Column might already exist
+      console.warn('20260823: column add skipped:', err.message);
     }
 
     console.log('✅ Message deletions table & schema verified successfully.');

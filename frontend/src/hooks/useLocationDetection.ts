@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from 'react';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 const LOCATION_CACHE_KEY = 'sparkle_last_location';
 
@@ -23,7 +24,7 @@ export const useLocationDetection = () => {
         localStorage.setItem(LOCATION_CACHE_KEY, JSON.stringify(newLoc));
       }
     } catch (err) {
-      console.error('Failed to resolve location via backend:', err);
+      logger.error('Failed to resolve location via backend:', err);
     }
   }, [setFilters]);
 
@@ -48,7 +49,7 @@ export const useLocationDetection = () => {
           resolveWithBackend({ lat: latitude, lon: longitude });
         },
         (error) => {
-          console.warn('GPS detection failed:', error.message);
+          logger.warn('GPS detection failed:', error.message);
           // 3. Fallback to IP via Backend
           resolveWithBackend();
         },

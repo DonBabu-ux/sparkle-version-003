@@ -169,7 +169,9 @@ class SparklyService {
                         try {
                             const metaObj = typeof rMsg.metadata === 'string' ? JSON.parse(rMsg.metadata) : rMsg.metadata;
                             if (Array.isArray(metaObj.cards)) rCards = metaObj.cards;
-                        } catch (e) {}
+                        } catch (e) {
+                            logger.debug('processMessageStream: reply message metadata JSON.parse fallback', e?.message || e);
+                        }
                     }
                     replyContextBlock = `\n[REPLIED_TO_SPARKLY_MESSAGE]:\n"${rMsg.content || ''}"`;
                     if (rCards.length > 0) {

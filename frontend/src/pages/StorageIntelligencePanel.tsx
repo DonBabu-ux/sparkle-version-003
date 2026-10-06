@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Database, HardDrive, Trash2, Shield, Activity, RefreshCw } from 'lucide-react';
 import api from '../api/api';
 import Navbar from '../components/Navbar';
+import { logger } from '../utils/logger';
 
 interface StorageStats {
     total_assets: number;
@@ -22,7 +23,7 @@ export default function StorageIntelligencePanel() {
             const res = await api.get('/admin/media/stats');
             setStats(res.data.data);
         } catch (err) {
-            console.error('Failed to load stats', err);
+            logger.error('Failed to load stats', err);
         } finally {
             setLoading(false);
         }
@@ -38,7 +39,7 @@ export default function StorageIntelligencePanel() {
             await api.post('/admin/media/cleanup');
             await fetchStats();
         } catch (err) {
-            console.error('Failed cleanup', err);
+            logger.error('Failed cleanup', err);
         } finally {
             setCleaning(false);
         }

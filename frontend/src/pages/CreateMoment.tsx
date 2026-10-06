@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Camera, Film, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
+import { logger } from '../utils/logger';
 
 export default function CreateMoment() {
   const navigate = useNavigate();
@@ -34,7 +35,7 @@ export default function CreateMoment() {
       await api.post('/moments', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       navigate('/moments');
     } catch (err) {
-      console.error('Upload error:', err);
+      logger.error('Upload error:', err);
     } finally {
       setUploading(false);
     }

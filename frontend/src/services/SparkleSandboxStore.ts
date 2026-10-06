@@ -6,6 +6,7 @@
  * and type-specific LRU cache limits.
  */
 
+import { logger } from '../utils/logger';
 export interface CachedMediaMeta {
   mediaId: string;
   type: 'image' | 'video' | 'audio' | 'document';
@@ -50,7 +51,7 @@ export class SparkleSandboxStoreService {
       const arr = Array.from(this.index.values());
       localStorage.setItem(INDEX_KEY, JSON.stringify(arr));
     } catch (e) {
-      console.warn('[SparkleSandboxStore] Failed to save index:', e);
+      logger.warn('[SparkleSandboxStore] Failed to save index:', e);
     }
   }
 
@@ -116,7 +117,7 @@ export class SparkleSandboxStoreService {
       if (currentSize <= limit) break;
       this.index.delete(item.mediaId);
       currentSize -= item.sizeBytes;
-      console.log(`[SparkleSandboxStore] LRU Evicted ${type} object: ${item.mediaId}`);
+      logger.log(`[SparkleSandboxStore] LRU Evicted ${type} object: ${item.mediaId}`);
     }
 
     this.saveIndex();
@@ -126,7 +127,7 @@ export class SparkleSandboxStoreService {
    * Aggressively clean temp directory
    */
   clearTempDir() {
-    console.log('[SparkleSandboxStore] Cleared temporary encryption/chunk assembly directory sparkle/temp/');
+    logger.log('[SparkleSandboxStore] Cleared temporary encryption/chunk assembly directory sparkle/temp/');
   }
 }
 

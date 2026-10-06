@@ -17,6 +17,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import { logger } from '../utils/logger';
 
 const TABS = ['all', 'my campus', 'my events', 'trending'];
 
@@ -52,7 +53,7 @@ export default function Events() {
       const res = await api.get('/events', { params });
       setEvents(res.data.events || res.data || []);
     } catch (err) {
-      console.error('Events fetch error:', err);
+      logger.error('Events fetch error:', err);
     } finally {
       setLoading(false);
     }
@@ -65,7 +66,7 @@ export default function Events() {
       await api.post(`/events/${eventId}/rsvp`, { status });
       fetchEvents();
     } catch (err) {
-      console.error('RSVP error:', err);
+      logger.error('RSVP error:', err);
     }
   };
 

@@ -16,6 +16,7 @@
 import { Filesystem, Directory, Encoding } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
 import { Capacitor } from '@capacitor/core';
+import { logger } from '../utils/logger';
 
 /** Private directory structure inside the app sandbox */
 const STORAGE_DIRS = [
@@ -65,14 +66,14 @@ class SparkleStorageServiceClass {
         } catch (e: any) {
           // Directory already exists — that's fine
           if (!e?.message?.includes('exists')) {
-            console.warn(`[SparkleStorage] Failed to create ${dir}:`, e?.message);
+            logger.warn(`[SparkleStorage] Failed to create ${dir}:`, e?.message);
           }
         }
       }
     }
 
     this.initialized = true;
-    console.log(`[SparkleStorage] Initialized (${this.isNative ? 'native' : 'web'})`);
+    logger.log(`[SparkleStorage] Initialized (${this.isNative ? 'native' : 'web'})`);
   }
 
   // ─── Preferences (Key-Value) ──────────────────────────────────────

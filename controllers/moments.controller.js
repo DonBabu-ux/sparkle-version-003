@@ -106,24 +106,23 @@ const ensureMomentColumns = async () => {
         { name: 'resolution', def: 'VARCHAR(50) DEFAULT "1080p"' },
         { name: 'bitrate', def: 'INT DEFAULT 0' }
     ];
-    for (const col of momentsCols) {
-        try {
-            await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.def}`);
-            logger.info(`Added column moments.${col.name}`);
-        } catch (e) { /* ignore if already exists */ }
-    }
-
     // Check 'moment_comments' table
     const commentCols = [
         { name: 'parent_comment_id', def: 'CHAR(36) DEFAULT NULL' },
         { name: 'like_count', def: 'INT DEFAULT 0' }
     ];
-    for (const col of commentCols) {
-        try {
-            await pool.query(`ALTER TABLE moment_comments ADD COLUMN ${col.name} ${col.def}`);
-            logger.info(`Added column moment_comments.${col.name}`);
-        } catch (e) { /* ignore if already exists */ }
-    }
+
+    const ensureCols = async (table, cols) => {
+        const [rows] = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+        const have = new Set((Array.isArray(rows) ? rows : []).map(r => r.Field));
+        for (const col of cols) {
+            if (have.has(col.name)) continue;
+            await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${col.name}\` ${col.def}`);
+            logger.info(`Added column ${table}.${col.name}`);
+        }
+    };
+    await ensureCols('moments', momentsCols);
+    await ensureCols('moment_comments', commentCols);
 
     columnsEnsured = true;
 };
@@ -154,14 +153,16 @@ const renderMoments = async (req, res) => {
                 u.username,
                 u.name as user_name,
                 u.avatar_url,
-                (SELECT COUNT(*) FROM follows WHERE following_id = m.user_id) as follower_count,
-                IFNULL(ml.liked, 0) as is_liked,
-                IFNULL(sm.saved, 0) as is_saved,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
+                COALESCE(fc.cnt, 0) as follower_count,
+                IF(ml.moment_id IS NULL, 0, 1) as is_liked,
+                IF(sm.moment_id IS NULL, 0, 1) as is_saved,
+                IF(f.following_id IS NOT NULL, 1, 0) as is_following
             FROM moments m 
             JOIN users u ON m.user_id = u.user_id
-            LEFT JOIN (SELECT moment_id, 1 as liked FROM moment_likes WHERE user_id = ?) ml ON ml.moment_id = m.moment_id
-            LEFT JOIN (SELECT moment_id, 1 as saved FROM saved_moments WHERE user_id = ?) sm ON sm.moment_id = m.moment_id
+            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = m.user_id
+            LEFT JOIN follows f ON f.follower_id = ? AND f.following_id = m.user_id
+            LEFT JOIN moment_likes ml ON ml.moment_id = m.moment_id AND ml.user_id = ?
+            LEFT JOIN saved_moments sm ON sm.moment_id = m.moment_id AND sm.user_id = ?
             WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)
             ORDER BY m.created_at DESC
 
@@ -194,12 +195,12 @@ const renderMoments = async (req, res) => {
                 u.username,
                 u.name,
                 u.avatar_url,
-                (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count
+                COALESCE(fc.cnt, 0) as follower_count
             FROM users u
-            WHERE u.user_id != ? 
-            AND u.user_id NOT IN (
-                SELECT following_id FROM follows WHERE follower_id = ?
-            )
+            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
+            LEFT JOIN follows nf ON nf.follower_id = ? AND nf.following_id = u.user_id
+            WHERE u.user_id != ?
+            AND nf.following_id IS NULL
             ORDER BY RAND()
             LIMIT 5
         `, [req.user.user_id, req.user.user_id]);

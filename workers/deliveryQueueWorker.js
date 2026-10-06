@@ -42,6 +42,11 @@ class DeliveryQueueWorker {
             // We do NOT use FOR UPDATE / SKIP LOCKED because mysql2 doesn't make it
             // easy to hold the transaction open across async calls.  Instead we
             // prevent overlapping runs via the self-scheduling loop below.
+            await db.query(`
+                DELETE dq FROM delivery_queue dq
+                LEFT JOIN messages m ON dq.message_id = m.message_id
+                WHERE m.message_id IS NULL
+            `);
             const [pendingItems] = await db.query(`
                 SELECT dq.queue_id, dq.message_id, dq.recipient_id, dq.session_id, dq.attempts,
                        m.chat_id, m.conversation_id, m.content, m.type, m.sender_id,
@@ -51,6 +56,7 @@ class DeliveryQueueWorker {
                 JOIN messages m ON dq.message_id = m.message_id
                 LEFT JOIN user_sessions us ON dq.session_id = us.session_id
                 WHERE dq.next_retry_at <= NOW()
+                ORDER BY dq.next_retry_at
                 LIMIT 50
             `);
 

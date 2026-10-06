@@ -102,7 +102,7 @@ export default function Gallery() {
   return (
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden pt-20 lg:pt-0">
       <Navbar />
-      <div className="flex-1 px-4 py-8 md:px-20 md:py-32 lg:ml-72 max-w-[1400px] mx-auto w-full relative">
+      <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
         {/* Subtle ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
 

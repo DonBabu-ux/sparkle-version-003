@@ -11,6 +11,7 @@ class MediaModel {
    * Ensure database tables exist for ephemeral media tracking
    */
   static async initTables() {
+    if (MediaModel._tablesReady) return;
     try {
       await db.query(`
         CREATE TABLE IF NOT EXISTS media_objects (
@@ -41,6 +42,7 @@ class MediaModel {
           FOREIGN KEY (media_id) REFERENCES media_objects(media_id) ON DELETE CASCADE
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
       `);
+      MediaModel._tablesReady = true;
     } catch (err) {
       console.warn('[MediaModel] Table init warning:', err.message);
     }

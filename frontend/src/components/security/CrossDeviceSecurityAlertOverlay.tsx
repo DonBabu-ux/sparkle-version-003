@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShieldAlert, AlertTriangle, ArrowRight, Check } from 'lucide-react';
 import { getSocket } from '../../services/socketService';
+import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 
 interface SecurityAlertData {
@@ -22,6 +23,11 @@ export const CrossDeviceSecurityAlertOverlay: React.FC = () => {
 
   // Check unacknowledged alerts on mount & resume
   const checkUnacknowledgedAlerts = async () => {
+    // Never fire auth-protected requests while logged out (this component is
+    // mounted globally, including the login page — the GET itself would show
+    // as a red 401 in the console even though the error is caught here).
+    const { isAuthenticated, token } = useUserStore.getState();
+    if (!isAuthenticated || !token) return;
     try {
       const res = await api.get('/security/alerts/unacknowledged');
       if (res.data?.status === 'success' && res.data.data?.alerts?.length > 0) {

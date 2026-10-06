@@ -399,9 +399,7 @@ class Message {
                     m.sent_at as last_message_at,
                     m.sender_id as last_message_sender_id,
                     m.status as last_message_status,
-                    (SELECT COUNT(*) FROM messages m2 
-                     WHERE (m2.conversation_id = pc.chat_id OR m2.personal_chat_id = pc.chat_id)
-                     AND m2.sender_id != ? AND (m2.status != 'read' AND m2.is_read = 0)) as unread_count,
+                    COALESCE(ur.unread_count, 0) as unread_count,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_pinned_p1 ELSE pc.is_pinned_p2 END as is_pinned,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_favorite_p1 ELSE pc.is_favorite_p2 END as is_favorite,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_priority_p1 ELSE pc.is_priority_p2 END as is_priority,
@@ -415,6 +413,13 @@ class Message {
                     0 as only_admins_send,
                     'members' as edit_info
                 FROM personal_chats pc
+                LEFT JOIN (
+                    SELECT COALESCE(conversation_id, personal_chat_id) AS cid, COUNT(*) AS unread_count
+                    FROM messages
+                    WHERE sender_id != ? AND status != 'read' AND is_read = 0
+                      AND (conversation_id IS NOT NULL OR personal_chat_id IS NOT NULL)
+                    GROUP BY cid
+                ) ur ON ur.cid = pc.chat_id
                 JOIN users u ON (u.user_id = IF(pc.participant1_id = ?, pc.participant2_id, pc.participant1_id))
                 LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
                 LEFT JOIN messages m ON m.message_id = (
@@ -922,17 +927,25 @@ class Message {
      * Enterprise Cursor Delta Sync: fetch messages for user where server_sequence > lastCursor
      */
     static async getCursorDelta(userId, lastCursor = 0) {
+        const cursor = Number(lastCursor) || 0;
         const [messages] = await db.query(`
-            SELECT m.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
-            FROM messages m
-            JOIN users u ON m.sender_id = u.user_id
-            WHERE (m.recipient_id = ? OR m.sender_id = ? OR m.chat_id IN (
-                SELECT chat_id FROM group_chat_members WHERE user_id = ? AND status = 'active'
-            ))
-            AND m.server_sequence > ?
-            ORDER BY m.server_sequence ASC
+            SELECT x.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+            FROM (
+                SELECT m.* FROM messages m
+                WHERE m.recipient_id = ? AND m.sender_id != ? AND m.server_sequence > ?
+                UNION ALL
+                SELECT m.* FROM messages m
+                WHERE m.sender_id = ? AND m.server_sequence > ?
+                UNION ALL
+                SELECT m.* FROM messages m
+                WHERE m.chat_id IN (
+                    SELECT chat_id FROM group_chat_members WHERE user_id = ? AND status = 'active'
+                ) AND m.recipient_id != ? AND m.sender_id != ? AND m.server_sequence > ?
+            ) x
+            JOIN users u ON x.sender_id = u.user_id
+            ORDER BY x.server_sequence ASC
             LIMIT 200
-        `, [userId, userId, userId, Number(lastCursor) || 0]);
+        `, [userId, userId, cursor, userId, cursor, userId, userId, userId, cursor]);
 
         if (!messages || messages.length === 0) return [];
 

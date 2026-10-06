@@ -55,7 +55,7 @@ export default function StorageIntelligencePanel() {
     return (
         <div className="flex bg-[#0f0f0f] min-h-screen text-white font-sans">
             <Navbar />
-            <main className="flex-1 lg:ml-72 p-6 lg:p-10">
+            <main className="flex-1 p-6 lg:p-10">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-black mb-2 flex items-center gap-3">

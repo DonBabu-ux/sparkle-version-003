@@ -2,6 +2,7 @@
 import { io, Socket } from 'socket.io-client';
 import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
+import { refreshTokenOnce, ensureFreshAccessToken } from './tokenRefresh';
 
 // Socket URL resolved from env vars at build time. Same-origin by default:
 // prod connects straight to Render; dev goes through the Vite /socket.io proxy.
@@ -42,7 +43,12 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
       _currentUserId = userId;
     }
 
-    s.connect();
+    // H21: first connect gets a fresh token when the stored one is expiring,
+    // avoiding the "Token expired" connect_error → refresh → reconnect cycle.
+    // The auth callback re-reads the store at connect time, so the refreshed
+    // token is picked up automatically. connect_error below stays as fallback.
+    const sock = s;
+    void ensureFreshAccessToken(30_000).finally(() => sock.connect());
 
     s.on('connect', () => {
       console.log(`🔗 Socket connected for user ${userId} in namespace ${namespace || '/'}`);
@@ -68,6 +74,14 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
     });
 
     s.on('connect_error', async (err) => {
+      // H23: with no session in the store the auth callback sends an empty
+      // token — retrying can never succeed. Stop the loop instead of
+      // spamming console.error + refresh attempts while logged out.
+      if (!useUserStore.getState().token) {
+        console.warn(`⚠️ Socket auth rejected with no active session in namespace ${namespace || '/'} — staying disconnected`);
+        s.disconnect();
+        return;
+      }
       console.error(`❌ Socket connection error in namespace ${namespace || '/'}:`, err);
       const isAuthError =
         err?.message?.includes('Authentication') ||
@@ -77,30 +91,13 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
         err?.message?.includes('Expired');
       if (isAuthError) {
         try {
-          const refreshToken = useUserStore.getState().refreshToken;
-          const response = await fetch(`${SOCKET_URL}/api/auth/refresh`, {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ refreshToken })
-          });
-          if (response.ok) {
-            const data = await response.json();
-            const newToken = data.accessToken || data.token;
-            const newRefresh = data.refreshToken || refreshToken;
-            if (newToken) {
-              useUserStore.getState().setToken(newToken, newRefresh);
-              if (s) {
-                s.auth = { token: newToken, userId };
-                s.connect();
-              }
-              console.log(`🔄 Token refreshed and socket reconnected in namespace ${namespace || '/'}`);
-            }
-          } else {
-            console.warn(`⚠️ Token refresh failed, socket in namespace ${namespace || '/'} will remain disconnected`);
-          }
+          // Single-flight refresh shared with api.ts (dedupes concurrent refreshes)
+          // and targeted at the configured API base, not the socket origin.
+          await refreshTokenOnce();
+          s.connect();
+          console.log(`🔄 Token refreshed and socket reconnected in namespace ${namespace || '/'}`);
         } catch (e) {
-          console.error(`⚠️ Error during token refresh for namespace ${namespace || '/'}:`, e);
+          console.warn(`⚠️ Token refresh failed, socket in namespace ${namespace || '/'} will remain disconnected`);
         }
       }
     });

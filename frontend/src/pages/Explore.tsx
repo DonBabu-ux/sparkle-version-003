@@ -145,7 +145,7 @@ export default function Explore() {
       <Navbar />
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:ml-72 w-full">
+      <div className="flex-1 w-full">
         {/* Sticky Header with Search & Filters */}
         <div className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-3xl border-b border-black/[0.03] dark:border-white/10 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">

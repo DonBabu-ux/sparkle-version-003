@@ -95,7 +95,7 @@ export default function PostDetail() {
     return (
       <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72">
+        <div className="flex-1 flex flex-col items-center justify-center">
           <Spinner size="large" color="text-primary" />
         </div>
       </div>
@@ -106,7 +106,7 @@ export default function PostDetail() {
     return (
       <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 text-center p-12">
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
             <Orbit size={120} strokeWidth={1} className="text-black/5" />
             <h2 className="text-4xl font-black text-black mt-8 mb-4 tracking-tight italic">Signal Lost.</h2>
             <p className="text-black font-medium max-w-sm mx-auto mb-8">This signal was not found in the village network.</p>
@@ -122,7 +122,7 @@ export default function PostDetail() {
       
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pb-40">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pb-40">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-black/40 hover:text-primary transition-all font-bold text-sm mb-12 group">
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back to Pulse
         </button>

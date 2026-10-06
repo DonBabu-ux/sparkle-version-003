@@ -19,9 +19,12 @@ import {
   Briefcase,
   Settings,
   HelpCircle,
-  LogOut
+  LogOut,
+  Shield
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import { getRoleFromToken } from '../utils/tokenUtils';
+import { isAdminRole } from '../utils/adminRoute';
 import { useModalStore } from '../store/modalStore';
 import Avatar from './Avatar';
 import { clsx, type ClassValue } from 'clsx';
@@ -32,7 +35,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Sidebar() {
-  const { user, logout } = useUserStore();
+  const { user, logout, token } = useUserStore();
   const { setActiveModal } = useModalStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -41,6 +44,7 @@ export default function Sidebar() {
 
   const isActive = (path: string) => location.pathname === path;
 
+  const role = getRoleFromToken(token);
   const NAV_ITEMS = [
     { name: 'Home', icon: Home, path: '/dashboard' },
     { name: 'Search', icon: Search, path: '/search', action: () => navigate('/search') },
@@ -49,6 +53,7 @@ export default function Sidebar() {
     { name: 'Messages', icon: Send, path: '/messages', badge: '1' },
     { name: 'Notifications', icon: Heart, path: '/notifications', badge: 'dot' },
     { name: 'Create', icon: Plus, path: '#', action: () => setActiveModal('creation_hub') },
+    ...(isAdminRole(role) ? [{ name: 'Admin', icon: Shield, path: '/admin' }] : []),
     { name: 'Profile', icon: null, path: `/profile/${user?.username}`, isProfile: true },
   ];
 

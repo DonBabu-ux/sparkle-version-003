@@ -52,7 +52,7 @@ export default function AccountsCenter() {
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-20 md:pt-32">
         <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
           <div className="max-w-2xl space-y-8 text-center xl:text-left">
             <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5 mx-auto xl:mx-0">

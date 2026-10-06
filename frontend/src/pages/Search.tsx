@@ -174,7 +174,7 @@ export default function Search() {
           <div className="absolute bottom-[-10%] left-[-5%] w-[40vw] h-[40vw] bg-indigo-500/[0.02] rounded-full blur-[100px]" />
       </div>
 
-      <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
+      <main className="flex-1 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
         <header className="sticky top-0 z-[100] bg-white/95 dark:bg-[#101217]/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">

@@ -28,49 +28,52 @@ const renderConnect = async (req, res) => {
         const userHash = Buffer.from(currentUserId).reduce((acc, char) => acc + char, 0);
         const randomSeed = Math.abs(userHash + hourlySeed);
 
-        // Stage 1: Scoring Engine Logic (using CTE or subqueries for performance)
-        // Note: Using subqueries for mutuals and followers so we don't join massive tables directly
+        // Stage 1: Scoring Engine Logic (grouped LEFT JOINs instead of correlated subqueries)
         const scoredQuery = `
             SELECT u.*,
-            (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
-            (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
-            (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
-            (
-                SELECT COUNT(*) 
-                FROM follows f1 
-                JOIN follows f2 ON f1.following_id = f2.following_id 
-                WHERE f1.follower_id = ? AND f2.follower_id = u.user_id
-            ) as mutual_connections,
+            COALESCE(fc.cnt, 0) as followers_count,
+            IF(myf.following_id IS NOT NULL, 1, 0) as is_followed,
+            IF(fr.target_user_id IS NOT NULL, 'pending', NULL) as request_status,
+            COALESCE(mut.cnt, 0) as mutual_connections,
             -- COMPOSITE RELEVANCE SCORE Calculation
             (
                 -- Profile Similarity (Soft weighting)
                 (CASE WHEN u.major = ? AND u.major IS NOT NULL THEN 30 ELSE 0 END) +
                 (CASE WHEN u.campus = ? AND u.campus IS NOT NULL THEN 20 ELSE 0 END) +
                 (CASE WHEN u.year_of_study = ? AND u.year_of_study IS NOT NULL THEN 10 ELSE 0 END) +
-                
+
                 -- Social Graph signals (Mutuals capped at +60)
-                LEAST(60, (SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id) * 12) +
-                
+                LEAST(60, COALESCE(mut.cnt, 0) * 12) +
+
                 -- Popularity (Log Scaled Followers: log(count+1)*10)
-                (LOG10((SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) + 1) * 10) +
-                
+                (LOG10(COALESCE(fc.cnt, 0) + 1) * 10) +
+
                 -- Freshness: Activity boost (users seen recently get a boost)
                 (CASE WHEN u.last_seen_at > DATE_SUB(NOW(), INTERVAL 72 HOUR) THEN 15 ELSE 0 END)
             ) as base_score,
             RAND(${randomSeed}) as exploration_entropy
             FROM users u
+            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
+            LEFT JOIN follows myf ON myf.follower_id = ? AND myf.following_id = u.user_id
+            LEFT JOIN (SELECT DISTINCT target_user_id FROM follow_requests WHERE requester_id = ? AND status = 'pending') fr ON fr.target_user_id = u.user_id
+            LEFT JOIN (
+                SELECT f2.follower_id, COUNT(*) AS cnt
+                FROM follows f1
+                JOIN follows f2 ON f1.following_id = f2.following_id
+                WHERE f1.follower_id = ?
+                GROUP BY f2.follower_id
+            ) mut ON mut.follower_id = u.user_id
+            LEFT JOIN follows nf ON nf.follower_id = ? AND nf.following_id = u.user_id
             WHERE u.user_id != ? 
             AND u.is_system_account = FALSE
-            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+            AND nf.following_id IS NULL
             ${search ? 'AND (u.name LIKE ? OR u.username LIKE ?)' : ''}
         `;
 
         const filterBoost = (campus || major || year) ? true : false;
         const mainParams = [
-            currentUserId, currentUserId, currentUserId,
-            currentUser.major, currentUser.campus, currentUser.year_of_study, 
-            currentUserId,
-            currentUserId, currentUserId
+            currentUser.major, currentUser.campus, currentUser.year_of_study,
+            currentUserId, currentUserId, currentUserId, currentUserId, currentUserId
         ];
         if (search) {
             const s = `%${search}%`;
@@ -94,17 +97,21 @@ const renderConnect = async (req, res) => {
         // velocity = (followers * 0.4) + (new_followers_7d * 2)
         const trendingQuery = `
             SELECT u.*,
-                   (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
-                   (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                   COALESCE(fc.cnt, 0) as followers_count,
+                   IF(myf.following_id IS NOT NULL, 1, 0) as is_followed,
                    (
-                      (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) * 0.4 +
-                      (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id AND created_at > DATE_SUB(NOW(), INTERVAL 7 DAY)) * 2.0 +
+                      COALESCE(fc.cnt, 0) * 0.4 +
+                      COALESCE(fc7.cnt, 0) * 2.0 +
                       (RAND() * 5)
                    ) as trending_score
             FROM users u
+            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
+            LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows WHERE created_at > DATE_SUB(NOW(), INTERVAL 7 DAY) GROUP BY following_id) fc7 ON fc7.following_id = u.user_id
+            LEFT JOIN follows myf ON myf.follower_id = ? AND myf.following_id = u.user_id
+            LEFT JOIN follows nf ON nf.follower_id = ? AND nf.following_id = u.user_id
             WHERE u.user_id != ? 
             AND u.is_system_account = FALSE
-            AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)
+            AND nf.following_id IS NULL
             ORDER BY trending_score DESC
             LIMIT 10
         `;

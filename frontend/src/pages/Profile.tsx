@@ -207,7 +207,7 @@ export default function Profile() {
     return (
       <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 transition-all text-black dark:text-white">
+        <div className="flex-1 flex flex-col items-center justify-center transition-all text-black dark:text-white">
           <div className="relative mb-20"> {/* Increased margin */}
             <Spinner size="xl" color="text-primary" />
           </div>
@@ -247,7 +247,7 @@ export default function Profile() {
     return (
       <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans">
         <Navbar />
-        <div className="flex-1 flex items-center justify-center lg:ml-72 p-12">
+        <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState 
              type="error"
              title="Ghost Profile"
@@ -348,7 +348,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 w-full pt-[calc(5rem+env(safe-area-inset-top))] lg:pt-24 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pt-[calc(5rem+env(safe-area-inset-top))] lg:pt-24 pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-4xl mx-auto">
           <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
             {/* Main Header Row: Avatar + Basic Info */}

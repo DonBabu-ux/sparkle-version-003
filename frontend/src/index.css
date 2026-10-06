@@ -303,6 +303,15 @@ body {
   position: relative;
   min-height: 100vh;
 }
+
+/* H20 — the collapsed desktop rail (72px fixed) reserves its own space so it
+   never hides content; hover-expansion to 240px overlays content on purpose.
+   :has() scopes the offset to pages that actually render the rail (md+). */
+@media (min-width: 768px) {
+  #root:has(.desktop-sidebar-shell) {
+    padding-left: 72px;
+  }
+}
 #root::before {
   content: '';
   position: fixed;
@@ -335,16 +344,20 @@ input, textarea, select {
 /* svg icon colors are set per-component, not globally */
 
 @layer base {
-  h1, h2, h3, h4, h5, h6, p, span, b, i, strong, em {
-    @apply text-[var(--color-text-primary)];
-  }
+  /* H22: bare text (h1..h6/p/span/b/i/strong/em) deliberately has NO color rule —
+     it must INHERIT from its container so it stays visible inside inverted
+     containers (white text on dark cards in light theme, black text on light
+     cards in dark theme). The body rule above anchors the theme color;
+     utility text-* classes still win as designed. */
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading tracking-tight font-black text-[var(--color-text-primary)];
+    @apply font-heading tracking-tight font-black;
   }
   
   a {
-    @apply transition-colors duration-300 text-[var(--color-text-primary)];
+    /* inherit beats the UA stylesheet's link blue while preserving containers */
+    color: inherit;
+    @apply transition-colors duration-300;
   }
   
   .no-scrollbar, .scrollbar-hide { 

@@ -77,7 +77,7 @@ export default function Navbar() {
   return (
     <>
       {/* Desktop Sidebar Shell */}
-      <div className="hidden md:block">
+      <div className="hidden md:block desktop-sidebar-shell">
         <Sidebar />
       </div>
 

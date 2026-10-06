@@ -2,6 +2,7 @@ import axios from 'axios';
 import { useUserStore } from '../store/userStore';
 
 import { EnvironmentService } from '../services/EnvironmentService';
+import { refreshTokenOnce } from '../services/tokenRefresh';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl(),
@@ -126,26 +127,24 @@ api.interceptors.response.use(
         return Promise.reject(error);
       }
 
-      // New retry wrapper for token refresh
+      // Single-flight refresh (shared with AuthService/socketService) + retry on transient failures
       const MAX_REFRESH_RETRIES = 3;
       let attempt = 0;
       const delay = (ms: number) => new Promise(r => setTimeout(r, ms));
       
       while (attempt < MAX_REFRESH_RETRIES) {
         try {
-          const { data } = await axios.post(`${api.defaults.baseURL}/auth/refresh`, { refreshToken });
-          const newToken = data.token;
-          const newRefreshToken = data.refreshToken;
-          useUserStore.getState().setToken(newToken, newRefreshToken);
+          const newToken = await refreshTokenOnce();
           processQueue(null, newToken);
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           isRefreshing = false;
           return api(originalRequest);
         } catch (refreshError: any) {
           attempt++;
-          if (attempt >= MAX_REFRESH_RETRIES) {
+          const sessionDead = !useUserStore.getState().isAuthenticated;
+          if (attempt >= MAX_REFRESH_RETRIES || sessionDead) {
             processQueue(refreshError, null);
-            useUserStore.getState().logout();
+            if (sessionDead) useUserStore.getState().logout();
             isRefreshing = false;
             return Promise.reject(refreshError);
           }

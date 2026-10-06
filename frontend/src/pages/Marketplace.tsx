@@ -148,7 +148,7 @@ export default function Marketplace() {
     )}>
       <Navbar />
 
-      <div className="flex-1 lg:ml-72 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
+      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">

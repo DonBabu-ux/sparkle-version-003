@@ -1,4 +1,4 @@
-import { EventBus } from '../EventBus';
+import { EventBus, audioEventBus } from '../EventBus';
 
 export class StoryAudioManager {
   private static instance: StoryAudioManager | null = null;
@@ -38,10 +38,7 @@ export class StoryAudioManager {
 
   public static getInstance(audioContext?: AudioContext, eventBus?: EventBus): StoryAudioManager {
     if (!StoryAudioManager.instance) {
-      if (!eventBus) {
-        throw new Error('EventBus required to initialize StoryAudioManager singleton');
-      }
-      StoryAudioManager.instance = new StoryAudioManager(audioContext || null, eventBus);
+      StoryAudioManager.instance = new StoryAudioManager(audioContext || null, eventBus || audioEventBus);
     }
     return StoryAudioManager.instance;
   }

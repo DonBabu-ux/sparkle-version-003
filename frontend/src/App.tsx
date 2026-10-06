@@ -124,6 +124,11 @@ import Ads from './pages/Ads';
 import CreatorStudio from './pages/CreatorStudio';
 import CreatorAnalytics from './pages/CreatorAnalytics';
 import WalletHistory from './pages/WalletHistory';
+import { getRoleFromToken } from './utils/tokenUtils';
+import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
+import { ensureFreshAccessToken } from './services/tokenRefresh';
+import { isDefinitiveAuthFailure } from './utils/startupAuth';
+import { installGlobalImageFallback } from './utils/imageFallback';
 
 function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
@@ -134,6 +139,9 @@ function App() {
   const uploadManagerInitRef = useRef(false);
   const socket = useSocket();
   const { setStories } = useFeedStore();
+
+  // Any <img> whose load fails (dead CDN/link) swaps to the no-image placeholder
+  useEffect(() => installGlobalImageFallback(), []);
 
   // Helper function to manage safe navigation decision
   const performStartupNavigation = (target: string) => {
@@ -227,6 +235,10 @@ function App() {
         console.log('TOKEN FOUND');
         try {
           console.log('API REQUEST STARTED');
+          // H21: rotate the token BEFORE validate + mount effects fire, so a
+          // stale session doesn't produce a 401 burst (and a slow refresh can't
+          // trip the validation timeout → login bounce while still authenticated).
+          await ensureFreshAccessToken(30_000);
           async function runWithTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
             return Promise.race([
               p,
@@ -235,14 +247,23 @@ function App() {
               ),
             ]);
           }
-          await runWithTimeout(authApi.validateToken(), 2000);
+          await runWithTimeout(authApi.validateToken(), 5000);
           console.log('API REQUEST COMPLETED');
           
           performStartupNavigation('/dashboard');
         } catch (err) {
-          console.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
-          console.log('TOKEN NOT FOUND');
-          performStartupNavigation('/login');
+          // H23: only a definitive rejection ends the session. A timeout,
+          // 503 (DB outage) or network failure must NOT bounce a valid
+          // session to the login screen — boot optimistically instead;
+          // later 401s run the normal refresh → logout flow.
+          if (isDefinitiveAuthFailure(err) || !useUserStore.getState().isAuthenticated) {
+            console.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
+            console.log('TOKEN NOT FOUND');
+            performStartupNavigation('/login');
+          } else {
+            console.warn('⚠️ Initial auth validation transient failure (continuing boot):', err);
+            performStartupNavigation('/dashboard');
+          }
         }
       } else {
         console.log('TOKEN NOT FOUND');
@@ -406,8 +427,8 @@ function App() {
                   <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
                     <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-                    <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/dashboard" />} />
+                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={getPostLoginRoute(getRoleFromToken(token))} />} />
+                    <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={getPostLoginRoute(getRoleFromToken(token))} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
@@ -428,7 +449,7 @@ function App() {
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
-                    <Route path="/admin" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
+                    <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
                     <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
                     <Route path="/stories/:userId" element={isAuthenticated ? <StoryViewer /> : <Navigate to="/login" />} />

@@ -83,7 +83,7 @@ export default function SearchHistory() {
           <div className="absolute bottom-[-10%] left-[-5%] w-[40vw] h-[40vw] bg-indigo-500/[0.02] rounded-full blur-[100px]" />
       </div>
 
-      <main className="flex-1 lg:ml-72 flex flex-col relative z-10">
+      <main className="flex-1 flex flex-col relative z-10">
         
         {/* Sleek Header */}
         <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 py-4 md:py-8">

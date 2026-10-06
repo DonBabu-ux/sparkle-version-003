@@ -131,10 +131,11 @@ class DiscoverService {
                        m.like_count, m.comment_count, m.share_count, m.view_count,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
-                       (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) AS follower_count,
+                       COALESCE(fc.cnt, 0) AS follower_count,
                        'popular' AS source_type
                 FROM moments m
                 JOIN users u ON m.user_id = u.user_id
+                LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
                 WHERE u.account_status = 'active'
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY (COALESCE(m.like_count,0)*3 + COALESCE(m.comment_count,0)*5 + COALESCE(m.share_count,0)*8) DESC,
@@ -228,12 +229,16 @@ class DiscoverService {
     async getSuggestedUsers(userId, limit = 10) {
         const cacheKey = `discover:suggested_users:${userId || 'guest'}:${limit}`;
         return cache.getOrSet(cacheKey, CACHE_TTL, async () => {
+            const antiJoin = userId ? 'LEFT JOIN follows nf ON nf.follower_id = ? AND nf.following_id = u.user_id' : '';
+            const excludeCond = userId ? 'AND u.user_id != ? AND nf.following_id IS NULL' : '';
             return safeQuery(`
                 SELECT u.user_id, u.name, u.username, u.avatar_url, u.headline, u.is_verified,
-                       (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) AS follower_count
+                       COALESCE(fc.cnt, 0) AS follower_count
                 FROM users u
+                LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
+                ${antiJoin}
                 WHERE u.account_status = 'active'
-                  ${userId ? 'AND u.user_id != ? AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)' : ''}
+                  ${excludeCond}
                 ORDER BY follower_count DESC
                 LIMIT ?
             `, userId ? [userId, userId, limit] : [limit]);

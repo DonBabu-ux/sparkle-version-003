@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageSquare, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 import api from '../api/api';
 import clsx from 'clsx';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
+import { getTiktokEmbedUrl } from '../utils/tiktokEmbed';
 
 interface MomentData {
   moment_id: string;
@@ -29,6 +30,20 @@ export default function MomentDetail() {
   const [moment, setMoment] = useState<MomentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [liking, setLiking] = useState(false);
+  const [embedFailed, setEmbedFailed] = useState(false);
+  const [embedAttempt, setEmbedAttempt] = useState(0);
+  const embedUrl = getTiktokEmbedUrl(moment?.media_url);
+  const embedLoadedRef = useRef(false);
+
+  useEffect(() => {
+    if (!embedUrl) return;
+    embedLoadedRef.current = false;
+    setEmbedFailed(false);
+    const t = setTimeout(() => {
+      if (!embedLoadedRef.current) setEmbedFailed(true);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [embedUrl, embedAttempt]);
 
   const fetchMoment = useCallback(async () => {
     setLoading(true);
@@ -66,7 +81,7 @@ export default function MomentDetail() {
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       
 
-      <main className="flex-1 lg:ml-72 p-6 md:p-12 relative z-10 flex flex-col items-center pt-16 md:pt-12">
+      <main className="flex-1 p-6 md:p-12 relative z-10 flex flex-col items-center pt-16 md:pt-12">
         <div className="w-full max-w-[550px]">
           <button 
             onClick={() => navigate('/moments')} 
@@ -102,13 +117,37 @@ export default function MomentDetail() {
               <div className="relative w-full aspect-[9/16] max-h-[85vh] bg-black">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none z-10" />
                 
-                {moment.media_url?.includes('tiktok.com') ? (
-                  <iframe 
-                    src={`https://www.tiktok.com/embed/v2/${moment.media_url.split('/video/')[1]?.split('?')[0]}`} 
-                    className="w-full h-full border-none"
-                    allow="autoplay; encrypted-media"
-                    title="TikTok Video"
-                  />
+                {embedUrl ? (
+                  embedFailed ? (
+                    <div className="w-full h-full flex flex-col items-center justify-center gap-5 bg-black p-8 text-center">
+                      <p className="text-sm font-bold text-white/60">This TikTok couldn't load (no connection to tiktok.com).</p>
+                      <div className="flex gap-3">
+                        <button
+                          onClick={() => { setEmbedAttempt(a => a + 1); }}
+                          className="px-5 py-2.5 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all"
+                        >
+                          Retry
+                        </button>
+                        <a
+                          href={moment.media_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="px-5 py-2.5 bg-white/10 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all"
+                        >
+                          Open in TikTok
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <iframe
+                      key={embedAttempt}
+                      src={embedUrl}
+                      onLoad={() => { embedLoadedRef.current = true; }}
+                      className="w-full h-full border-none"
+                      allow="autoplay; encrypted-media"
+                      title="TikTok Video"
+                    />
+                  )
                 ) : moment.is_video ? (
                   <HlsVideoPlayer 
                     src={moment.media_url}

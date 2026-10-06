@@ -87,7 +87,7 @@ export default function LostFound() {
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-20 md:pt-32">
           
           {/* Editorial Header */}
           <header className="mb-24 animate-fade-in px-4">

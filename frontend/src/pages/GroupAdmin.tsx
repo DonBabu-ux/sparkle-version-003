@@ -62,7 +62,7 @@ export default function GroupAdmin() {
   if (loading) return (
     <div className="flex min-h-screen bg-[#fafafa]">
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-4">
+      <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Decrypting...</p>
       </div>
@@ -73,7 +73,7 @@ export default function GroupAdmin() {
     <div className="flex min-h-screen bg-[#fafafa] text-black font-sans pb-20">
       <Navbar />
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full pt-16 md:pt-24">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full pt-16 md:pt-24">
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link 

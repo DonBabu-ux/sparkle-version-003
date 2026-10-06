@@ -82,7 +82,7 @@ export default function ClubDetail() {
   if (loading) return (
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 gap-8">
+      <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Syncing Circle Node...</p>
       </div>
@@ -92,7 +92,7 @@ export default function ClubDetail() {
   if (!club) return (
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
       <Navbar />
-      <div className="flex-1 flex flex-col items-center justify-center lg:ml-72 text-center px-6 gap-10">
+      <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-10">
         <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center border-4 border-dashed border-black/10">
            <Users size={40} className="text-black opacity-10" />
         </div>
@@ -114,7 +114,7 @@ export default function ClubDetail() {
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 lg:ml-72 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
         <button 
           onClick={() => navigate('/clubs')}
           className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"

@@ -8,6 +8,8 @@ import {
   classifyLoginError
 } from '../utils/authErrorClassifier';
 import type { AuthErrorInfo } from '../utils/authErrorClassifier';
+import { getRoleFromToken } from '../utils/tokenUtils';
+import { getPostLoginRoute } from '../utils/adminRoute';
 import AuthErrorCard from '../components/auth/AuthErrorCard';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=640&q=80&auto=format';
@@ -121,7 +123,9 @@ export default function Login() {
       if ((data?.status === 'success' || data?.success) && data?.token) {
         showSuccess('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
-        const targetRoute = data.next?.route || '/dashboard';
+        const targetRoute = data.next?.route === '/onboarding'
+          ? '/onboarding'
+          : getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token));
         setTimeout(() => navigate(targetRoute), 1500);
         return;
       }
@@ -260,7 +264,7 @@ export default function Login() {
       if ((data?.status === 'success' || data?.success) && data?.token) {
         showSuccess('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
-        setTimeout(() => navigate('/dashboard'), 1200);
+        setTimeout(() => navigate(getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token))), 1200);
       }
     } catch (err: unknown) {
       const classified = classifyLoginError(err, { isOnline: navigator.onLine });

@@ -1099,7 +1099,7 @@ export default function Moments() {
 
       {/* Top Navigation Bar Overlay (Minimalist) */}
       {!isSearchOpen && (
-        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-[1100] pointer-events-none lg:ml-72">
+        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-[1100] pointer-events-none">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate(-1)}
@@ -1134,7 +1134,7 @@ export default function Moments() {
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
-            className="fixed inset-0 bg-black z-[2000] flex flex-col lg:ml-72"
+            className="fixed inset-0 bg-black z-[2000] flex flex-col"
           >
             {/* Search Header */}
             <div className="p-4 flex items-center gap-3 border-b border-white/5">
@@ -1350,7 +1350,7 @@ export default function Moments() {
                 <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
              </div>
         ) : moments.length === 0 && !loading ? (
-            <div className="h-full flex items-center justify-center p-6 lg:ml-72">
+            <div className="h-full flex items-center justify-center p-6">
                 <ModernOfflineState 
                     type={isFallback ? "error" : "empty"}
                     title={isFallback ? "Network Hiccup" : "Fresh Feed Incoming"}
@@ -1363,7 +1363,7 @@ export default function Moments() {
             </div>
         ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center lg:pl-72 relative overflow-hidden">
+              <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center relative overflow-hidden">
                 <ReelItem 
                    active={idx === activeIndex}
                    isNearActive={Math.abs(idx - activeIndex) <= 1}
@@ -1384,7 +1384,7 @@ export default function Moments() {
             ))
         )}
         {fetchingMore && (
-          <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 lg:ml-72 transition-all overflow-hidden relative">
+          <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 transition-all overflow-hidden relative">
             <div className="flex flex-col items-center gap-6">
               <TikTokLoader />
               <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Syncing Stream</p>

@@ -473,7 +473,7 @@ export default function Notifications() {
     <div className="flex bg-app min-h-screen text-black font-sans">
       <Navbar />
 
-      <main className="flex-1 lg:ml-72 pt-20 pb-24 max-w-2xl mx-auto w-full">
+      <main className="flex-1 pt-20 pb-24 max-w-2xl mx-auto w-full">
         {/* Sticky Header */}
         <header className="sticky top-[70px] z-30 bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
           <div className="flex items-center justify-between">

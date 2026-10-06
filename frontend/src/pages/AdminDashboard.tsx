@@ -109,7 +109,7 @@ export default function AdminDashboard() {
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans pb-20">
       <Navbar />
 
-      <main className="flex-1 lg:ml-72 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full pt-16 md:pt-24">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full pt-16 md:pt-24">
         
         {/* Compact Header */}
         <header className="mb-8 animate-fade-in">

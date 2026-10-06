@@ -12,6 +12,7 @@ const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
 const emailService = require('../services/email.service');
+const { respondTokenRefreshError } = require('../utils/authErrors');
 
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
@@ -249,6 +250,7 @@ const login = async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
+                role: user.role || 'user',
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
@@ -425,6 +427,7 @@ const verify2FA = async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
+                role: user.role || 'user',
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
@@ -900,8 +903,10 @@ const refreshToken = async (req, res) => {
             refreshToken: refreshToken
         });
     } catch (error) {
-        logger.error('Token refresh failed:', error.message);
-        res.status(401).json({ status: 'error', message: error.message });
+        logger.error(`Token refresh failed: ${error.message || error}`);
+        // H23: 503 for DB/network trouble, 401 only for a dead refresh token —
+        // a blanket 401 logged every client out during DB blips.
+        respondTokenRefreshError(res, error);
     }
 };
 

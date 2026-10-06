@@ -260,7 +260,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
     <AppScreen immersive={true} className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
-      <main className="flex-1 lg:ml-72 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
         <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />

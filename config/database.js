@@ -145,6 +145,27 @@ const isConnectionLimitError = (err) => {
            msg.includes('max_user_connections') || msg.includes('ER_TOO_MANY_USER_CONNECTIONS');
 };
 
+/**
+ * H23 — true when the DB is unreachable/overloaded (network-level failure),
+ * as opposed to a SQL or domain error. Callers must answer 503 for these
+ * instead of 401, otherwise clients log out a perfectly valid session
+ * during a DB blip.
+ */
+const isDatabaseUnavailableError = (err) => {
+    if (!err) return false;
+    if (err.name === 'AggregateError' || err instanceof AggregateError) return true;
+    if (isConnectionLimitError(err)) return true;
+    const code = err.code || '';
+    const msg = err.message || '';
+    const netCodes = [
+        'ETIMEDOUT', 'ETIMEOUT', 'ECONNREFUSED', 'ECONNRESET', 'ENOTFOUND',
+        'EAI_AGAIN', 'ENETUNREACH', 'EHOSTUNREACH', 'EPIPE',
+        'PROTOCOL_CONNECTION_LOST', 'PROTOCOL_ENQUEUE_AFTER_FATAL_ERROR'
+    ];
+    if (netCodes.includes(code)) return true;
+    return /connect ETIMEDOUT|ECONNREFUSED|ENOTFOUND|getaddrinfo|Too many connections|pool is exhausted|Connection lost/i.test(msg);
+};
+
 // ── Throttled error logging ───────────────────────────────────────────────────
 // Prevents flooding logs with hundreds of identical DB errors per second.
 const _errorCounts = new Map();
@@ -324,5 +345,6 @@ module.exports = pool;
 // Also attach utility functions to the pool object for backward compatibility
 module.exports.safeQuery = safeQuery;
 module.exports.isConnectionLimitError = isConnectionLimitError;
+module.exports.isDatabaseUnavailableError = isDatabaseUnavailableError;
 module.exports.getPoolStatus = getPoolStatus;
 module.exports.getPoolMetrics = getPoolMetrics;

@@ -2,6 +2,13 @@ require('dotenv').config();
 const { v4: uuidv4 } = require('uuid');
 const pool = require('../../config/database');
 const logger = require('../logger');
+const {
+    computeInitVersion,
+    ensureLedgerTable,
+    ledgerHas,
+    ledgerMark,
+    reconcileMigrations
+} = require('./schemaLedger');
 
 // Helper to safely extract error message
 const getErrorMessage = (err) => {
@@ -43,6 +50,48 @@ const getErrorMessage = (err) => {
 const isDuplicateError = (err) => {
     const msg = getErrorMessage(err);
     return msg.includes('Duplicate') || msg.includes('already exists') || msg.includes('UNIQUE');
+};
+
+// Probe first, mutate only when missing (no failing round trips)
+const ensureColumns = async (table, cols) => {
+    const [rows] = await pool.query(`SHOW COLUMNS FROM \`${table}\``);
+    const have = new Set((Array.isArray(rows) ? rows : []).map(r => r.Field));
+    let added = 0;
+    for (const c of cols) {
+        if (have.has(c.name)) continue;
+        await pool.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${c.name}\` ${c.type}`);
+        logger.debug(`Added column ${table}.${c.name}`);
+        added++;
+    }
+    return added;
+};
+
+const ensureIndex = async (table, name, cols) => {
+    const [rows] = await pool.query(
+        `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.STATISTICS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND INDEX_NAME = ?`,
+        [table, name]
+    );
+    if (Number(rows[0].n) === 0) {
+        await pool.query(`CREATE INDEX \`${name}\` ON \`${table}\`(${cols})`);
+        logger.debug(`Created index ${table}.${name}`);
+        return true;
+    }
+    return false;
+};
+
+const ensureForeignKey = async (table, name, definition) => {
+    const [rows] = await pool.query(
+        `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+         WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND CONSTRAINT_NAME = ? AND CONSTRAINT_TYPE = 'FOREIGN KEY'`,
+        [table, name]
+    );
+    if (Number(rows[0].n) === 0) {
+        await pool.query(`ALTER TABLE \`${table}\` ADD CONSTRAINT \`${name}\` ${definition}`);
+        logger.debug(`Added FK ${name} on ${table}`);
+        return true;
+    }
+    return false;
 };
 
 // Test database connection
@@ -239,20 +288,15 @@ const repairPostsTable = async () => {
             }
         }
         // Ensure indices for feed performance
-        try {
-            await pool.query('CREATE INDEX idx_posts_created_at ON posts(created_at)');
-            logger.info('Created index idx_posts_created_at');
-        } catch (e) { /* ignore if exists */ }
-        
-        try {
-            await pool.query('CREATE INDEX idx_posts_campus ON posts(campus)');
-            logger.info('Created index idx_posts_campus');
-        } catch (e) { /* ignore if exists */ }
-
-        try {
-            await pool.query('CREATE INDEX idx_posts_user_id ON posts(user_id)');
-            logger.info('Created index idx_posts_user_id');
-        } catch (e) { /* ignore if exists */ }
+        for (const idx of [
+            { name: 'idx_posts_created_at', cols: 'created_at' },
+            { name: 'idx_posts_campus', cols: 'campus' },
+            { name: 'idx_posts_user_id', cols: 'user_id' }
+        ]) {
+            try {
+                await ensureIndex('posts', idx.name, idx.cols);
+            } catch (e) { /* ignore */ }
+        }
     } catch (err) {
         logger.error('❌ Failed to repair posts table:', err.message);
     }
@@ -502,16 +546,7 @@ const initMomentsTable = async () => {
             { name: 'bitrate', type: 'INT DEFAULT 0' }
         ];
 
-        for (const col of columnsToAdd) {
-            try {
-                await pool.query(`ALTER TABLE moments ADD COLUMN ${col.name} ${col.type}`);
-                logger.debug(`✅ Added ${col.name} column to moments table`);
-            } catch (err) {
-                if (err.code !== 'ER_DUP_FIELDNAME') {
-                    logger.warn(`Could not add ${col.name} column:`, err.message);
-                }
-            }
-        }
+        await ensureColumns('moments', columnsToAdd);
 
         logger.debug('✅ Moments table verified');
     } catch (err) {
@@ -547,16 +582,7 @@ const initGroupsTable = async () => {
             { name: 'icon_url', type: 'VARCHAR(500)' }
         ];
 
-        for (const col of columnsToAdd) {
-            try {
-                await pool.query(`ALTER TABLE groups ADD COLUMN ${col.name} ${col.type}`);
-                logger.debug(`✅ Added ${col.name} column to groups table`);
-            } catch (err) {
-                if (err.code !== 'ER_DUP_FIELDNAME') {
-                    logger.warn(`Could not add ${col.name} column to groups:`, err.message);
-                }
-            }
-        }
+        await ensureColumns('groups', columnsToAdd);
 
         // Migration: add privacy_settings column if missing
         try {
@@ -603,9 +629,16 @@ const initStoriesTable = async () => {
 
         // Migration: ensure media_type supports 'text'
         try {
-            await pool.query("ALTER TABLE stories MODIFY COLUMN media_type ENUM('image', 'video', 'text') DEFAULT 'image'");
+            const [typeRows] = await pool.query(
+                `SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stories' AND COLUMN_NAME = 'media_type'`
+            );
+            if (typeRows[0] && !String(typeRows[0].COLUMN_TYPE).includes("'text'")) {
+                await pool.query("ALTER TABLE stories MODIFY COLUMN media_type ENUM('image', 'video', 'text') DEFAULT 'image'");
+                logger.debug('✅ Extended stories.media_type with text');
+            }
         } catch (e) {
-            // Might fail if column doesn't exist or other issues, usually OK if already correct
+            logger.warn('Could not verify stories.media_type:', e.message);
         }
         logger.debug('✅ Stories table verified');
     } catch (err) {
@@ -672,12 +705,7 @@ const initCommentLikesTable = async () => {
         `);
         
         // Also ensure like_count exists on comments
-        try {
-            await pool.query('ALTER TABLE comments ADD COLUMN like_count INT DEFAULT 0');
-            logger.debug('✅ Added like_count column to comments table');
-        } catch (e) {
-            if (e.code !== 'ER_DUP_FIELDNAME') throw e;
-        }
+        await ensureColumns('comments', [{ name: 'like_count', type: 'INT DEFAULT 0' }]);
 
         logger.debug('✅ Comment likes table verified');
     } catch (err) {
@@ -782,28 +810,17 @@ const initMessagesTable = async () => {
             { name: 'personal_chat_id', type: 'CHAR(36) DEFAULT NULL' }
         ];
 
-        for (const col of columnsToAdd) {
-            try {
-                await pool.query(`ALTER TABLE messages ADD COLUMN ${col.name} ${col.type}`);
-                logger.debug(`✅ Added ${col.name} column to messages table`);
-            } catch (err) {
-                if (err.code !== 'ER_DUP_FIELDNAME') {
-                    logger.warn(`Could not add ${col.name} column to messages:`, err.message);
-                }
-            }
-        }
+        await ensureColumns('messages', columnsToAdd);
 
         // Ensure foreign keys are consistent
         try {
-            await pool.query(`
-                ALTER TABLE messages 
-                ADD CONSTRAINT fk_messages_conversation 
-                FOREIGN KEY (conversation_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE
-            `);
+            await ensureForeignKey(
+                'messages',
+                'fk_messages_conversation',
+                'FOREIGN KEY (conversation_id) REFERENCES personal_chats(chat_id) ON DELETE CASCADE'
+            );
         } catch (err) {
-            if (err.code !== 'ER_DUP_CONSTRAINT_NAME' && err.errno !== 121 && !String(err.message).includes('errno: 121')) {
-                logger.warn('Could not add FK constraint to messages:', err.message);
-            }
+            logger.warn('Could not add FK constraint to messages:', err.message);
         }
 
         logger.debug('✅ Messages table verified');
@@ -816,16 +833,7 @@ const initMessagesTable = async () => {
             { name: 'blur_screen_recording', type: 'TINYINT(1) DEFAULT 1' },
             { name: 'notify_screenshot_attempts', type: 'TINYINT(1) DEFAULT 1' }
         ];
-        for (const col of privacyCols) {
-            try {
-                await pool.query(`ALTER TABLE messages ADD COLUMN ${col.name} ${col.type}`);
-                logger.debug(`✅ Added privacy snapshot column ${col.name} to messages table`);
-            } catch (err) {
-                if (err.code !== 'ER_DUP_FIELDNAME') {
-                    logger.warn(`Could not add privacy snapshot column ${col.name} to messages:`, err.message);
-                }
-            }
-        }
+        await ensureColumns('messages', privacyCols);
     } catch (err) {
         logger.error('❌ Failed to init messages table:', err.message);
         throw err;
@@ -852,7 +860,7 @@ const initChatPrivacySettingsTable = async () => {
         `);
         
         try {
-            await pool.query('CREATE INDEX idx_chat_privacy_settings_lookup ON chat_privacy_settings(chat_id, user_id)');
+            await ensureIndex('chat_privacy_settings', 'idx_chat_privacy_settings_lookup', 'chat_id, user_id');
         } catch (e) {}
 
         const chatPrivacyCols = [
@@ -889,10 +897,10 @@ const initChatPrivacySettingsTable = async () => {
         `);
         
         try {
-            await pool.query('CREATE INDEX idx_capture_attempts_owner ON capture_attempts(owner_user_id, created_at DESC)');
+            await ensureIndex('capture_attempts', 'idx_capture_attempts_owner', 'owner_user_id, created_at DESC');
         } catch (e) {}
         try {
-            await pool.query('CREATE INDEX idx_capture_attempts_chat ON capture_attempts(chat_id, created_at DESC)');
+            await ensureIndex('capture_attempts', 'idx_capture_attempts_chat', 'chat_id, created_at DESC');
         } catch (e) {}
 
         // 3. capture_notifications
@@ -1192,14 +1200,24 @@ const initMarketplaceTables = async () => {
         }
 
         try {
-            await pool.query(`ALTER TABLE marketplace_orders ADD CONSTRAINT fk_mo_cancelled_by FOREIGN KEY (cancelled_by) REFERENCES users(user_id) ON DELETE SET NULL`);
+            await ensureForeignKey(
+                'marketplace_orders',
+                'fk_mo_cancelled_by',
+                'FOREIGN KEY (cancelled_by) REFERENCES users(user_id) ON DELETE SET NULL'
+            );
         } catch (e) {
             // FK already exists or cancelled_by column not present yet — safe to ignore
         }
 
         try {
-            await pool.query('ALTER TABLE marketplace_orders MODIFY COLUMN price DECIMAL(10,2) NULL');
-            logger.debug('Modified price to be NULLABLE in marketplace_orders');
+            const [priceRows] = await pool.query(
+                `SELECT IS_NULLABLE FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'marketplace_orders' AND COLUMN_NAME = 'price'`
+            );
+            if (priceRows[0] && priceRows[0].IS_NULLABLE === 'NO') {
+                await pool.query('ALTER TABLE marketplace_orders MODIFY COLUMN price DECIMAL(10,2) NULL');
+                logger.debug('Modified price to be NULLABLE in marketplace_orders');
+            }
         } catch (e) {
             // Price might not exist anymore, or syntax error
         }
@@ -1377,8 +1395,7 @@ const initConfessionTables = async () => {
         `);
 
         // Migration: Add missing columns if they don't exist
-        const colResult = await pool.query("SHOW COLUMNS FROM confessions");
-        const [cols] = Array.isArray(colResult) ? [colResult] : colResult || [];
+        const [cols] = await pool.query("SHOW COLUMNS FROM confessions");
         const colNames = (Array.isArray(cols) ? cols : []).map(c => c.Field);
         
         const confessionsCols = [
@@ -1452,8 +1469,7 @@ const initConfessionTables = async () => {
 
         // Migration: Add parent_id and author_alias to confession_comments
         try {
-            const ccolResult = await pool.query("SHOW COLUMNS FROM confession_comments");
-            const ccols = (Array.isArray(ccolResult) ? ccolResult : (Array.isArray(ccolResult?.[0]) ? ccolResult[0] : []));
+            const [ccols] = await pool.query("SHOW COLUMNS FROM confession_comments");
             const ccolNames = (Array.isArray(ccols) ? ccols : []).map(c => c.Field);
             
             if (!ccolNames.includes('parent_id')) {
@@ -2592,14 +2608,40 @@ const repairRecoveredSchemas = async () => {
 
     // Missing indexes from canonical schema / migrations
     const recoveredIndexes = [
-        { table: 'verification_requests', ddl: 'ALTER TABLE verification_requests ADD INDEX IF NOT EXISTS idx_verif_requests_user_time (user_id, type, requested_at)' },
-        { table: 'sparks', ddl: 'ALTER TABLE sparks ADD INDEX IF NOT EXISTS idx_sparks_post_user (post_id, user_id)' }
+        { table: 'verification_requests', name: 'idx_verif_requests_user_time', cols: 'user_id, type, requested_at' },
+        { table: 'sparks', name: 'idx_sparks_post_user', cols: 'post_id, user_id' }
     ];
     for (const idx of recoveredIndexes) {
         try {
-            await pool.query(idx.ddl);
+            await ensureIndex(idx.table, idx.name, idx.cols);
         } catch (e) {
             logger.warn(`Index repair failed for ${idx.table}:`, getErrorMessage(e));
+        }
+    }
+};
+
+// Performance indexes (P1/P2/P4/P5 + M15 leftovers), probe-created once per schema version
+const initPerfIndexes = async () => {
+    const defs = [
+        // P1: unread counts
+        ['messages', 'idx_msg_conv_unread', 'conversation_id, is_read, status, sender_id'],
+        ['messages', 'idx_msg_pc_unread', 'personal_chat_id, is_read, status, sender_id'],
+        ['messages', 'idx_messages_chat_sent', 'chat_id, sent_at'],
+        // P2: expiry sweep filters expires_at (idx_messages_expiry is on expiry_at)
+        ['messages', 'idx_messages_expires_at', 'expires_at'],
+        // P4: inbox delta sync
+        ['messages', 'idx_msg_recipient_seq', 'recipient_id, server_sequence'],
+        ['messages', 'idx_msg_sender_seq', 'sender_id, server_sequence'],
+        // P5: notification branch reads
+        ['capture_notifications', 'idx_cn_recipient', 'recipient_user_id, created_at'],
+        // M15: notification platform category index
+        ['notifications', 'idx_user_category', 'user_id, category']
+    ];
+    for (const [table, name, cols] of defs) {
+        try {
+            await ensureIndex(table, name, cols);
+        } catch (e) {
+            logger.warn(`Perf index ${table}.${name} failed:`, getErrorMessage(e));
         }
     }
 };
@@ -2624,6 +2666,15 @@ const initDB = async () => {
 
     // Initialize tables with retry logic (Batch 3 Priority)
     await retryWithBackoff(async () => {
+        // Schema gate (P10): skip the entire DDL pass when init.js,
+        // schemaLedger.js and the migration set are unchanged since last pass.
+        await ensureLedgerTable();
+        const gateKey = `init.js@${computeInitVersion()}`;
+        if (await ledgerHas(gateKey)) {
+            logger.info(`✅ Schema up-to-date (${gateKey}) — skipping DDL pass`);
+            return;
+        }
+
         // Priority for current feature batch
         try { await initConfessionTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Confessions Init Error:', getErrorMessage(e)); }
         try { await repairPostsTable(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Posts repair failed:', getErrorMessage(e)); }
@@ -2650,7 +2701,6 @@ const initDB = async () => {
         try { await initMarketplaceTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Marketplace Init Error:', getErrorMessage(e)); }
         try { await initSparklyTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Sparkly Init Error:', getErrorMessage(e)); }
         try { await initSearchTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Search Tables Init Error:', getErrorMessage(e)); }
-        try { await initHighlightsTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Highlights Tables Init Error:', getErrorMessage(e)); }
         try { await initUserActionsTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('User Actions Init Error:', getErrorMessage(e)); }
         try { await initModerationTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Moderation Tables Init Error:', getErrorMessage(e)); }
         try { await initOtaTable(); } catch (e) { if (!isDuplicateError(e)) logger.error('OTA Init Error:', getErrorMessage(e)); }
@@ -2658,17 +2708,25 @@ const initDB = async () => {
         try { await initBoostTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Boost Tables Init Error:', getErrorMessage(e)); }
         try { await initRecoveredTables(); } catch (e) { if (!isDuplicateError(e)) logger.error('Recovered Tables Init Error:', getErrorMessage(e)); }
         try { await repairRecoveredSchemas(); } catch (e) { if (!isDuplicateError(e)) logger.error('Recovered Schemas Repair Error:', getErrorMessage(e)); }
-        // Backfill wallets for any existing users without a wallet
+        // Performance indexes (P1/P2/P4/P5 + M15 leftovers)
+        try { await initPerfIndexes(); } catch (e) { if (!isDuplicateError(e)) logger.warn('Perf indexes failed:', getErrorMessage(e)); }
+        // M15: apply pending migrations/ files and record dispositions.
+        // Throws on failure so the gate is not marked and the pass retries next boot.
+        await reconcileMigrations();
+        // Backfill wallets for any existing users without a wallet (set-based)
         try {
-            const users = await pool.query('SELECT user_id FROM users');
-            for (const row of users[0]) {
-                const uid = row.user_id;
-                await pool.query(`INSERT IGNORE INTO wallets (wallet_id, user_id) VALUES (UUID(), ?)`, [uid]);
-            }
+            await pool.query(`
+                INSERT INTO wallets (wallet_id, user_id)
+                SELECT UUID(), u.user_id FROM users u
+                WHERE NOT EXISTS (SELECT 1 FROM wallets w WHERE w.user_id = u.user_id)
+            `);
             logger.debug('✅ Wallet backfill complete');
         } catch (e) {
             logger.warn('⚠️ Wallet backfill error:', e.message);
         }
+
+        await ledgerMark(gateKey, 'full DDL pass');
+        logger.debug(`✅ Schema pass recorded (${gateKey})`);
     });
     
     logger.debug('✅ Database initialization process complete');

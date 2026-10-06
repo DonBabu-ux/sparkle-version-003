@@ -1,6 +1,5 @@
 import { useUserStore } from '../store/userStore';
-import axios from 'axios';
-import api from '../api/api';
+import { refreshTokenOnce } from './tokenRefresh';
 
 function isTokenExpired(token: string): boolean {
   try {
@@ -15,8 +14,6 @@ function isTokenExpired(token: string): boolean {
   }
 }
 
-let refreshPromise: Promise<string> | null = null;
-
 export const AuthService = {
   getAccessToken(): string | null {
     return useUserStore.getState().token;
@@ -27,32 +24,9 @@ export const AuthService = {
   },
 
   async refreshAccessToken(): Promise<string> {
-    if (refreshPromise) return refreshPromise;
-
-    refreshPromise = (async () => {
-      const refreshToken = this.getRefreshToken();
-      if (!refreshToken) {
-        useUserStore.getState().logout();
-        throw new Error('No refresh token available. Please login.');
-      }
-
-      try {
-        const baseURL = api.defaults.baseURL || '/api';
-        const { data } = await axios.post(`${baseURL}/auth/refresh`, { refreshToken });
-        const newToken = data.token;
-        const newRefreshToken = data.refreshToken;
-        
-        useUserStore.getState().setToken(newToken, newRefreshToken);
-        return newToken;
-      } catch (err) {
-        useUserStore.getState().logout();
-        throw new Error('Session expired. Please log in again.');
-      } finally {
-        refreshPromise = null;
-      }
-    })();
-
-    return refreshPromise;
+    // Single-flight refresh shared with api.ts interceptors and socketService
+    // (concurrent refreshes with one refresh token invalidate each other).
+    return refreshTokenOnce();
   },
 
   async getFreshToken(): Promise<string> {

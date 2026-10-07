@@ -92,7 +92,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
         case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
     }
     
-    if(shareUrl) window.open(shareUrl, '_blank');
+    if(shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
   const filteredRecipients = recipients.filter(r => 

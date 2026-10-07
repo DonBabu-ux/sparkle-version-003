@@ -49,16 +49,19 @@ const MarketplaceSettings = () => {
 
   const handleSave = async (updated: Partial<MarketplaceSettings>) => {
     if (!settings) return;
+    const prev = settings;
     const newSettings = { ...settings, ...updated };
     setSettings(newSettings);
     
     try {
       setSaving(true);
       await api.put('/marketplace/settings', newSettings);
+      setError(null);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
     } catch (err) {
       logger.error("Failed to save settings", err);
+      setSettings(prev);
       setError("Failed to save changes.");
     } finally {
       setSaving(false);
@@ -73,7 +76,30 @@ const MarketplaceSettings = () => {
     );
   }
 
-  if (!settings) return null;
+  if (!settings) {
+    return (
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className="bg-white border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <ArrowLeft size={20} />
+          </button>
+          <h1 className="text-xl font-bold text-gray-900">Marketplace Settings</h1>
+        </div>
+        <div className="max-w-2xl mx-auto p-4">
+          <div className="bg-red-50 border border-red-100 text-red-600 px-4 py-4 rounded-xl flex items-center gap-3">
+            <AlertTriangle size={20} />
+            <p className="text-sm font-medium">{error || 'Something went wrong while loading settings.'}</p>
+          </div>
+          <button
+            onClick={fetchSettings}
+            className="mt-4 px-5 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-800 transition-colors"
+          >
+            Try again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">

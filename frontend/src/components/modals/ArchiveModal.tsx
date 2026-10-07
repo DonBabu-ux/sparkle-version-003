@@ -161,7 +161,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
             </button>
             <div className="flex items-center gap-4">
                <button 
-                onClick={() => window.open(selectedStory.media_url, '_blank')}
+                onClick={() => window.open(selectedStory.media_url, '_blank', 'noopener,noreferrer')}
                 className="p-3 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-colors"
                 title="Open Raw"
               >

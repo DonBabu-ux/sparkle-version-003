@@ -165,7 +165,7 @@ export default function Signup() {
     setLoading(true);
     setError('');
     try {
-      const res = await api.post('/auth/signup', {
+      await api.post('/auth/signup', {
         name: form.name, username: form.username,
         email: form.email, password: form.password,
         campus: form.affiliation_type !== 'None' ? form.campus : undefined,
@@ -174,11 +174,9 @@ export default function Signup() {
         terms_version: '1.0',
         privacy_version: '1.0',
       });
-      if (res.data?.token) {
-        localStorage.setItem('sparkle_signup_token', res.data.token);
-        localStorage.setItem('sparkle_signup_refresh', res.data.refreshToken);
-        localStorage.setItem('sparkle_signup_user', JSON.stringify(res.data.user));
-      }
+      // A.4 #2: signup tokens were mirrored into localStorage
+      // (`sparkle_signup_*`) but never read anywhere — removed. The verify-email
+      // step issues the real session (login() below).
       showSuccess('Signed up! Verify your email.');
       setStep(5);
       setOtpCooldown(60);
@@ -314,13 +312,6 @@ export default function Signup() {
               {/* Step 1: Welcome */}
               {step === 1 && (
                 <div className="su-step">
-                  <button className="su-google" type="button">
-                    <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="su-google__img" alt="" />
-                    <span>Continue with Google</span>
-                  </button>
-
-                  <div className="su-sep"><span>or</span></div>
-
                   <button onClick={nextStep} className="su-btn su-btn--main" type="button">
                     Get started
                     <ArrowRight size={18} strokeWidth={2.5} />

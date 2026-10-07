@@ -2,6 +2,7 @@ const db = require('../config/database');
 const crypto = require('crypto');
 const PermissionEngine = require('../services/PermissionEngine');
 const logger = require('../utils/logger');
+const { isSafeMediaUrl } = require('../utils/safeUrl');
 
 class Message {
     /**
@@ -65,6 +66,14 @@ class Message {
      * Send message (Direct or Group)
      */
     static async sendMessage({ messageId: clientMsgId = null, recipientId, chatId, senderId, content, type = 'text', mediaUrl = null, storyId = null, replyToId = null, marketplaceListingId = null, viewPolicy = 'unlimited', context = 'chat', metadata = null }) {
+        // Stored-XSS guard: media URLs are rendered as clickable hrefs by the
+        // client — reject javascript:/data:/etc. at the single write funnel
+        // (HTTP + socket) (UI_AUDIT P0 #20).
+        if (!isSafeMediaUrl(mediaUrl)) {
+            const err = new Error('Invalid media URL');
+            err.code = 'INVALID_MEDIA_URL';
+            throw err;
+        }
         const messageId = clientMsgId || crypto.randomUUID();
         
         // Idempotency check: If messageId already exists, return it directly

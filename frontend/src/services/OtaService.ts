@@ -137,7 +137,33 @@ export class OtaService {
             logger.log(`📥 Downloading JS chunk: ${jsUrl}`);
             const jsResponse = await fetch(jsUrl);
             if (!jsResponse.ok) throw new Error('Failed to fetch dynamic JS chunk');
-            const jsContent = await jsResponse.text();
+            const jsBytes = await jsResponse.arrayBuffer();
+
+            // A.4 #3: the manifest's `bundle_hash` is the only trust link
+            // between these bytes and what the server declared — verify it
+            // BEFORE anything is written to disk or injected. Fail closed:
+            // missing/malformed/mismatched hash = refuse the install.
+            // (crypto.subtle needs a secure context — https://localhost in
+            // Capacitor, https in prod; otherwise the undefined access throws
+            // and the catch below refuses the install too.)
+            const normalizedExpected = (expectedHash || '').trim().toLowerCase();
+            if (!/^[0-9a-f]{64}$/.test(normalizedExpected)) {
+                throw new Error(
+                    `OTA integrity: manifest bundle_hash missing or not sha256-hex (got "${expectedHash || ''}") — refusing to install v${version}. ` +
+                    `bundle_hash must be the lowercase SHA-256 hex of ${jsUrl}.`
+                );
+            }
+            const digest = await crypto.subtle.digest('SHA-256', jsBytes);
+            const actualHash = Array.from(new Uint8Array(digest))
+                .map((b) => b.toString(16).padStart(2, '0'))
+                .join('');
+            if (actualHash !== normalizedExpected) {
+                throw new Error(
+                    `OTA integrity: SHA-256 mismatch for ${jsUrl} — expected ${normalizedExpected}, got ${actualHash} — refusing to install v${version}.`
+                );
+            }
+            const jsContent = new TextDecoder().decode(jsBytes);
+            logger.log(`✅ OTA integrity: bundle v${version} verified (sha256 ${actualHash.slice(0, 12)}…).`);
 
             logger.log(`📥 Downloading CSS chunk: ${cssUrl}`);
             const cssResponse = await fetch(cssUrl);

@@ -6,6 +6,7 @@ import Navbar from '../components/Navbar';
 export default function Help() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
 
   const faqs = [
     { q: 'How do I switch accounts?', a: 'Tap your profile picture in the top right to open the menu, then click the dropdown arrow next to your name to see and switch accounts.' },
@@ -65,8 +66,15 @@ export default function Help() {
               <h2 className="section-title">Frequently Asked Questions</h2>
               <div className="faq-list responsive-card">
                 {faqs.map((faq, i) => (
-                  <div key={i} className="faq-item group">
-                    <div className="faq-question">
+                  <div key={i} className={`faq-item group ${openFaq === i ? 'open' : ''}`}>
+                    <div
+                      className="faq-question"
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={openFaq === i}
+                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenFaq(openFaq === i ? null : i); } }}
+                    >
                       <span>{faq.q}</span>
                       <ChevronRight size={18} className="text-slate-300 group-hover:rotate-90 transition-transform" />
                     </div>
@@ -149,6 +157,10 @@ export default function Help() {
         .faq-answer { padding: 0 24px 20px; color: #64748b; font-size: 0.95rem; line-height: 1.6; display: none; }
         .dark .faq-answer { color: #94a3b8; }
         .faq-item:hover .faq-answer { display: block; }
+        .faq-item.open .faq-answer { display: block; }
+        .faq-item.open .faq-question { background: #f8fafc; }
+        .dark .faq-item.open .faq-question { background: rgba(255,255,255,0.05); }
+        .faq-item.open .faq-question svg { transform: rotate(90deg); }
 
         .contact-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
         .contact-card { background: white; border-radius: 24px; padding: 24px; border: 1px solid #f1f5f9; display: flex; flex-direction: column; justify-content: space-between; gap: 20px; }

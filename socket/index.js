@@ -703,7 +703,8 @@ socket.on('get-rooms', () => {
                 logger.error('Send message error:', error);
                 realtimeLogger.error(traceId, 'SEND_MESSAGE_ERROR', error, { data });
                 const isBlocked = Boolean(error.isBlocked || error.code === 'MESSAGE_BLOCKED' || error.message?.includes('blocked'));
-                const errorCode = isBlocked ? 'MESSAGE_BLOCKED' : 'MESSAGE_ERROR';
+                const isBadUrl = error.code === 'INVALID_MEDIA_URL';
+                const errorCode = isBlocked ? 'MESSAGE_BLOCKED' : (isBadUrl ? 'INVALID_MEDIA_URL' : 'MESSAGE_ERROR');
                 const errorMessage = isBlocked ? 'You cannot message this user (blocked)' : (error.message || 'Failed to send message');
 
                 if (typeof callback === 'function') {

@@ -63,7 +63,7 @@ export default function Onboarding() {
     return (
       <div className="relative">
         <OnboardingSheet
-          onGetStarted={() => setCurrentSlide(3)}
+          onGetStarted={() => setCurrentSlide(2)}
         />
         {/* Floating Quick Setup Action */}
         <div className="fixed bottom-6 right-6 z-50">
@@ -117,7 +117,7 @@ export default function Onboarding() {
             {currentSlide === 1 && (
               <Slide1
                 key="slide1"
-                onNext={() => setCurrentSlide(3)}
+                onNext={() => setCurrentSlide(2)}
                 onViewSheet={() => setShowSheetModal(true)}
               />
             )}
@@ -132,7 +132,7 @@ export default function Onboarding() {
               <Slide3
                 key="slide3"
                 onNext={() => setCurrentSlide(4)}
-                onBack={() => setCurrentSlide(1)}
+                onBack={() => setCurrentSlide(2)}
               />
             )}
             {currentSlide === 4 && (
@@ -169,7 +169,7 @@ export default function Onboarding() {
                 onDismiss={() => setShowSheetModal(false)}
                 onGetStarted={() => {
                   setShowSheetModal(false);
-                  setCurrentSlide(3);
+                  setCurrentSlide(2);
                 }}
               />
             </div>

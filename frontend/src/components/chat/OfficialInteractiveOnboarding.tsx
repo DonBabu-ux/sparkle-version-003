@@ -50,7 +50,7 @@ export const OfficialInteractiveOnboarding: React.FC<OfficialInteractiveOnboardi
       subtitle: 'Post campus moments and daily updates that disappear after 24h.',
       icon: <Camera size={24} className="text-pink-400" />,
       actionText: 'Create Story',
-      route: '/stories',
+      route: '/afterglow/create',
       color: '#EC4899',
     },
     {
@@ -59,7 +59,7 @@ export const OfficialInteractiveOnboarding: React.FC<OfficialInteractiveOnboardi
       subtitle: 'Listen to trending campus tracks and share playlists with friends.',
       icon: <Music size={24} className="text-amber-400" />,
       actionText: 'Open Music',
-      route: '/music',
+      route: '/streams',
       color: '#F59E0B',
     },
     {

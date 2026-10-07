@@ -140,6 +140,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { useMessageSocket } from '../hooks/useMessageSocket';
 import { logger } from '../utils/logger';
+import { safeHref } from '../utils/safeHref';
 
 // --- Types ---
 interface ChatConversation {
@@ -4391,7 +4392,7 @@ export default function Messages() {
 
                                     {msg.type === 'document' && (
                                       <a
-                                        href={msg.media_url || msg.mediaUrl}
+                                        href={safeHref(msg.media_url || msg.mediaUrl)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"

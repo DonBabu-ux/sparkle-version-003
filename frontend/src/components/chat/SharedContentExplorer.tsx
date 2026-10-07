@@ -7,6 +7,7 @@ import {
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
+import { safeHref } from '../../utils/safeHref';
 
 interface SharedContentExplorerProps {
   chatId: string;
@@ -312,7 +313,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
 
                         <div className="flex items-center gap-1 opacity-80 group-hover:opacity-100">
                           <a 
-                            href={file.file_url} 
+                            href={safeHref(file.file_url)} 
                             target="_blank" 
                             rel="noopener noreferrer" 
                             className="p-2 hover:bg-white/10 rounded-xl text-white/70 hover:text-white"
@@ -372,7 +373,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
                         <span className="text-[10px] text-white/40">{new Date(link.sent_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         <div className="flex items-center gap-2">
                           <a 
-                            href={link.url}
+                            href={safeHref(link.url)}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ background: chatBubbleSent }}
@@ -573,7 +574,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
 
           <div className="w-full flex items-center justify-center gap-4 border-t border-white/10 pt-3 z-10" onClick={e => e.stopPropagation()}>
             <a 
-              href={selectedMedia.media_url} 
+              href={safeHref(selectedMedia.media_url)} 
               download 
               target="_blank" 
               rel="noopener noreferrer" 

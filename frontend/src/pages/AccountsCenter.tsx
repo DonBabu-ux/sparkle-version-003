@@ -23,23 +23,23 @@ export default function AccountsCenter() {
     {
       title: 'Profiles',
       items: [
-        { label: 'Manage Profiles', icon: UserCircle, sub: 'Switch, add or remove accounts', path: '/settings/profiles' }
+        { label: 'Manage Profiles', icon: UserCircle, sub: 'Switch, add or remove accounts', path: '/settings' }
       ]
     },
     {
       title: 'Account Settings',
       items: [
         { label: 'Password and security', icon: Lock, sub: 'Change password, 2FA, saved logins', path: '/settings/security' },
-        { label: 'Personal details', icon: UserCircle, sub: 'Contact info, identity verification', path: '/settings/details' },
-        { label: 'Ad preferences', icon: Smartphone, sub: 'Manage what you see', path: '/settings/ads' }
+        { label: 'Personal details', icon: UserCircle, sub: 'Contact info, identity verification', path: '/settings' },
+        { label: 'Ad preferences', icon: Smartphone, sub: 'Manage what you see', path: '/settings/advanced/privacy' }
       ]
     },
     {
       title: 'Login & Security',
       items: [
-        { label: 'Recent emails', icon: Mail, sub: 'View communications from Sparkle', path: '/settings/emails' },
-        { label: 'Devices', icon: Smartphone, sub: 'Where you are logged in', path: '/settings/devices' },
-        { label: 'Recovery codes', icon: Key, sub: 'Generate or reset recovery keys', path: '/settings/recovery' }
+        { label: 'Recent emails', icon: Mail, sub: 'View communications from Sparkle', path: '/settings' },
+        { label: 'Devices', icon: Smartphone, sub: 'Where you are logged in', path: '/settings/security' },
+        { label: 'Recovery codes', icon: Key, sub: 'Generate or reset recovery keys', path: '/settings/change-password' }
       ]
     }
   ];

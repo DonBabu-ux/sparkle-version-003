@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MapPin, Settings, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
-import { useUserStore } from '../store/userStore';
 import type { Post } from '../types/post';
 import { useCallback } from 'react';
 import { logger } from '../utils/logger';
@@ -34,7 +33,6 @@ interface Club {
 export default function ClubDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useUserStore();
   const [club, setClub] = useState<Club | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [members, setMembers] = useState<ClubMember[]>([]);
@@ -105,8 +103,6 @@ export default function ClubDetail() {
       </div>
     </div>
   );
-
-  const isAdmin = club.is_admin || club.creator_id === (user?.id || user?.user_id);
 
   return (
     <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
@@ -190,14 +186,6 @@ export default function ClubDetail() {
                   >
                     {joining ? 'Harmonizing...' : club.is_member ? 'Lock Sync' : 'Initialize Sync'}
                   </button>
-                  {isAdmin && (
-                    <button 
-                      onClick={() => navigate(`/clubs/${id}/settings`)}
-                      className="w-full h-20 bg-white border-2 border-dashed border-black/10 text-black/40 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic hover:border-primary hover:text-primary transition-all active:scale-95 flex items-center justify-center gap-4"
-                    >
-                      <Settings size={20} strokeWidth={4} /> Vector Controls
-                    </button>
-                  )}
                 </div>
               </div>
             </aside>

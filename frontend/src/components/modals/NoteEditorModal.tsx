@@ -396,7 +396,11 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">
                   {gifs.map(gif => (
-                    <button key={gif.id} onClick={() => { setNote(gif.title?.slice(0, maxLength) || ''); setPanel('none'); }}
+                    <button key={gif.id} onClick={() => {
+                        const label = (gif.title || '').trim();
+                        setNote(prev => (label ? `${prev ? prev + ' ' : ''}${label}`.slice(0, maxLength) : prev));
+                        setPanel('none');
+                      }}
                       className="relative aspect-video bg-white/5 rounded-lg overflow-hidden hover:opacity-80 active:scale-95 transition-all">
                       <img src={gif.images?.fixed_height?.url} className="w-full h-full object-cover" alt="" />
                     </button>

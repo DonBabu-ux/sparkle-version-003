@@ -86,6 +86,10 @@ const authMiddleware = async (req, res, next) => {
                 userId: user.user_id, 
                 email: user.email, 
                 username: user.username,
+                // P0 #22: keep the role claim in renewal tokens — Sidebar/App
+                // re-derive the admin nav from the token, so dropping it made
+                // the Admin entry vanish ~7.5 min after login.
+                role: user.role || 'user',
                 tokenVersion: user.token_version || 0,
                 iat: now // Refresh iat
             }, JWT_SECRET, { expiresIn: tokenDuration }); // Keep same duration (24h or 30d)

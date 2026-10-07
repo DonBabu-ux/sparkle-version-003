@@ -92,6 +92,11 @@ const imageLimiter = rateLimit({
  *    the Authorization header, so those requests cannot be forged.
  *  - Requests without the `sparkleToken` cookie have no session to protect
  *    (login/signup/refresh, Paystack webhooks, probes).
+ *  - login/signup/refresh are exempt by path (A.4 #2): they carry their own
+ *    secret (credentials or the refresh token itself) and must work from a
+ *    browser that already holds the httpOnly session cookie — a cookie-auth
+ *    `/auth/refresh` with no CSRF header was 403-ing refresh (masked in
+ *    practice by the H26 x-refresh-token header renewal).
  * A browser session (cookie present, no Bearer) must present the token.
  */
 const csurfProtection = csrf({
@@ -104,6 +109,11 @@ const csurfProtection = csrf({
 
 const csrfProtection = (req, res, next) => {
     if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) return next();
+    // A.4 #2 — auth bootstrap paths: their body/credentials ARE the proof and
+    // SameSite=Strict already blocks cross-site cookie sends. A logged-in
+    // browser attaches sparkleToken to /auth/refresh (path '/'), which used to
+    // drag csurf onto refresh and 403 it whenever H26 hadn't renewed first.
+    if (req.path === '/auth/login' || req.path === '/auth/signup' || req.path === '/auth/refresh') return next();
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) return next();
     if (!req.cookies || !req.cookies.sparkleToken) return next();

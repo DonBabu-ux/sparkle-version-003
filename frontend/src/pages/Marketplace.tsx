@@ -3,7 +3,6 @@ import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
-import MarketplaceModals from '../components/modals/MarketplaceModals';
 import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
@@ -430,8 +429,6 @@ export default function Marketplace() {
           <span className="text-[10px] text-purple-300/80 font-medium leading-none">Shopping Assistant</span>
         </div>
       </motion.button>
-
-      <MarketplaceModals />
     </div>
   );
 }

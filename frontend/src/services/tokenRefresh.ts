@@ -18,13 +18,35 @@ export function refreshTokenOnce(): Promise<string> {
     if (inflight) return inflight;
 
     const run = (async () => {
-        const refreshToken = useUserStore.getState().refreshToken;
-        if (!refreshToken) {
-            useUserStore.getState().logout();
-            throw new Error('No refresh token available. Please login.');
-        }
+        const { refreshToken, accounts } = useUserStore.getState();
+        const multiAccount = accounts.length > 1;
+        const postRefresh = (body?: { refreshToken: string }) =>
+            axios.post(`${API_BASE}/auth/refresh`, body ?? {});
+
         try {
-            const { data } = await axios.post(`${API_BASE}/auth/refresh`, { refreshToken });
+            let data: { token?: string; accessToken?: string; refreshToken?: string };
+            if (multiAccount) {
+                // Multi-account: the body token names WHICH account to refresh
+                // (the httpOnly cookie can only hold the active session).
+                if (!refreshToken) {
+                    useUserStore.getState().logout();
+                    throw new Error('No refresh token available. Please login.');
+                }
+                ({ data } = await postRefresh({ refreshToken }));
+            } else {
+                // A.4 #2 cookie-first: single-account sessions refresh through
+                // the httpOnly sparkleRefresh cookie so JS never touches the
+                // secret. The stored body token is the fallback for legacy
+                // sessions (no cookie yet) and cookie eviction.
+                try {
+                    ({ data } = await postRefresh());
+                } catch (err) {
+                    const status = (err as { response?: { status?: number } })?.response?.status;
+                    const noUsableCookie = status === 400 || status === 401 || status === 403;
+                    if (!noUsableCookie || !refreshToken) throw err;
+                    ({ data } = await postRefresh({ refreshToken }));
+                }
+            }
             const newToken = data?.token || data?.accessToken;
             if (!newToken) throw new Error('Refresh response missing token');
             const newRefresh = data?.refreshToken || refreshToken;
@@ -58,13 +80,16 @@ export function refreshTokenOnce(): Promise<string> {
  * - refresh transiently failed → old token returned, session kept
  */
 export async function ensureFreshAccessToken(minSkewMs = 60_000): Promise<string | null> {
-    const { token, refreshToken } = useUserStore.getState();
+    const { token } = useUserStore.getState();
     if (!token) return null;
 
     const payload = decodeTokenPayload(token);
     if (!payload || typeof payload.exp !== 'number') return token;
     if (payload.exp * 1000 > Date.now() + minSkewMs) return token;
-    if (!refreshToken) return token;
+    // A.4 #2: no stored refresh secret does NOT mean the session is dead —
+    // a cookie-mode session refreshes through the httpOnly cookie instead
+    // (refreshTokenOnce attempts the cookie and only logs out on a definitive
+    // 4xx). Previously this returned the stale token and forced a 401 burst.
 
     try {
         return await refreshTokenOnce();

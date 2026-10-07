@@ -232,7 +232,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
     if (navigator.share) {
       navigator.share({ title: 'Sparkle Invite', text: inviteText }).catch(() => {});
     } else {
-      window.open(`sms:?body=${encodeURIComponent(inviteText)}`, '_blank');
+      window.open(`sms:?body=${encodeURIComponent(inviteText)}`, '_blank', 'noopener,noreferrer');
     }
   };
 

@@ -308,7 +308,7 @@ export default function PollDetail() {
 
       {/* Participants Sheet */}
       {showVotersSheet && poll && (
-        <div className="fixed inset-0 z-[100] flex items-end justify-center animate-fade-in">
+        <div className="fixed inset-0 z-[1500] flex items-end justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowVotersSheet(false)} />
           <div className="relative w-full max-w-xl bg-white rounded-t-[32px] max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
@@ -357,7 +357,7 @@ export default function PollDetail() {
 
       {/* Invite Sheet */}
       {showInviteSheet && (
-        <div className="fixed inset-0 z-[110] flex items-end justify-center animate-fade-in">
+        <div className="fixed inset-0 z-[1501] flex items-end justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowInviteSheet(false)} />
           <div className="relative w-full max-w-xl bg-white rounded-t-[40px] max-h-[75vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">

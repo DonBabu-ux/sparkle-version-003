@@ -298,6 +298,13 @@ class MessageController {
                     error: error.message
                 });
             }
+            if (error.code === 'INVALID_MEDIA_URL') {
+                return res.status(400).json({
+                    status: 'error',
+                    code: 'INVALID_MEDIA_URL',
+                    error: 'Invalid media_url'
+                });
+            }
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }

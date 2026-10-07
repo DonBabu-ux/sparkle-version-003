@@ -30,11 +30,11 @@ export default function Slide2({ onNext, onBack }: SlideProps) {
         <Users size={32} strokeWidth={2.2} />
       </div>
 
-      <h1 className="font-heading text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-3">
+      <h1 className="font-heading text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-3">
         Find Your <span className="text-[#ff2d87]">People.</span>
       </h1>
 
-      <p className="text-sm sm:text-base font-normal text-zinc-400 leading-relaxed mb-8 max-w-[42ch]">
+      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-400 leading-relaxed mb-8 max-w-[42ch]">
         Sparkle brings together students across your campus. Connect genuinely, share what's happening, and build real friendships.
       </p>
 

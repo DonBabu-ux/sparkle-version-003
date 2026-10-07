@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import api from '../api/api';
@@ -82,6 +82,11 @@ const CATEGORIES = [
 export default function Confessions() {
   const { user } = useUserStore();
   const navigate = useNavigate();
+  const { id: pathConfessionId } = useParams<{ id: string }>();
+  const location = useLocation();
+  const urlConfessionId =
+    pathConfessionId || new URLSearchParams(location.search).get('id') || undefined;
+  const deepLinkHandledRef = useRef(false);
   const { activeModal, setActiveModal, triggerSuccess } = useModalStore();
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [confessions, setConfessions] = useState<Confession[]>([]);
@@ -169,9 +174,47 @@ export default function Confessions() {
     }
   };
 
+  // Deep links: /confessions/:id (and legacy share links /confessions?id=…)
+  // must open the shared confession's conversation, not the plain list.
+  useEffect(() => {
+    if (!urlConfessionId || loading || deepLinkHandledRef.current) return;
+    deepLinkHandledRef.current = true;
+    (async () => {
+      const inList =
+        confessions.some((c: Confession) => c.confession_id === urlConfessionId) ||
+        trendingConfession?.confession_id === urlConfessionId;
+      if (!inList) {
+        try {
+          const res = await api.get(`/confessions/${urlConfessionId}`);
+          const single = res.data?.data;
+          if (single) {
+            setConfessions((prev) =>
+              prev.some((c: Confession) => c.confession_id === single.confession_id)
+                ? prev
+                : [single, ...prev]
+            );
+          }
+        } catch (err) {
+          logger.error('Failed to fetch shared confession:', err);
+        }
+      }
+      setActiveCommentsModal(urlConfessionId);
+      try {
+        const response = await api.get(`/confessions/${urlConfessionId}/comments`);
+        setCommentsData((prev) => ({
+          ...prev,
+          [urlConfessionId]: response.data.data || response.data || [],
+        }));
+      } catch (err) {
+        logger.error('Failed to fetch shared confession comments:', err);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlConfessionId, loading]);
+
   const handleShare = (id: string) => {
     setActiveModal('share', null, { 
-      contentUrl: `${window.location.origin}/confessions?id=${id}`,
+      contentUrl: `${window.location.origin}/confessions/${id}`,
       isAnonymous: true
     });
   };
@@ -617,7 +660,7 @@ export default function Confessions() {
                 <div className="absolute right-0 top-12 w-56 bg-[#121212] rounded-2xl p-2 border border-white/10 shadow-2xl animate-fade-in origin-top-right">
                   <button 
                     onClick={() => { 
-                      window.open(previewImage, '_blank'); 
+                      window.open(previewImage, '_blank', 'noopener,noreferrer'); 
                       setPreviewOptionsOpen(false); 
                     }}
                     className="w-full flex items-center gap-3 px-3 py-3 text-left text-white hover:bg-white/10 rounded-xl transition-colors"

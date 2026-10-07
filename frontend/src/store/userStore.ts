@@ -18,7 +18,7 @@ interface UserState {
   accounts: AccountSession[];
   activeAccountId: string | null;
   theme: 'light' | 'dark';
-  
+
   setTheme: (theme: 'light' | 'dark') => void;
   login: (token: string, refreshToken: string, user: User) => void;
   setToken: (token: string, refreshToken?: string) => void;
@@ -27,6 +27,34 @@ interface UserState {
   switchAccount: (userId: string) => void;
   removeAccount: (userId: string) => void;
 }
+
+// A.4 #7 / #2: account-scoped data that must never outlive its session — the
+// SW `api-cache` (the previous account's feed/inbox served offline) and the
+// immortal `sparkle_signup_*` keys. Purged on logout AND on account
+// switch/removal, which share the same cross-account leak vector.
+const purgeAccountScopedCaches = (): void => {
+  try {
+    if (typeof caches !== 'undefined') {
+      caches
+        .keys()
+        .then((keys) =>
+          Promise.all(
+            keys
+              .filter((k) => k === 'api-cache' || k.startsWith('api-cache'))
+              .map((k) => caches.delete(k))
+          )
+        )
+        .catch(() => {});
+    }
+  } catch { /* no Cache API */ }
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('sparkle_signup_token');
+      localStorage.removeItem('sparkle_signup_refresh');
+      localStorage.removeItem('sparkle_signup_user');
+    }
+  } catch { /* storage unavailable */ }
+};
 
 export const useUserStore = create<UserState>()(
   persist(
@@ -100,6 +128,8 @@ export const useUserStore = create<UserState>()(
           setActiveModal(null);
         } catch (e) {}
 
+        purgeAccountScopedCaches();
+
         const activeId = get().activeAccountId;
         const accounts = get().accounts.filter(acc => acc.user.user_id !== activeId);
         
@@ -137,6 +167,10 @@ export const useUserStore = create<UserState>()(
           setActiveModal(null);
         } catch (e) {}
 
+        // Same cross-account leak as logout: the new account must not inherit
+        // the previous account's offline API cache.
+        purgeAccountScopedCaches();
+
         const account = get().accounts.find(acc => acc.user.user_id === userId);
         if (account) {
           set({ 
@@ -154,6 +188,8 @@ export const useUserStore = create<UserState>()(
         const isActive = get().activeAccountId === userId;
 
         if (isActive) {
+          // Active session is ending — same purge as logout.
+          purgeAccountScopedCaches();
           if (accounts.length > 0) {
             const nextAccount = accounts[0];
             set({ 

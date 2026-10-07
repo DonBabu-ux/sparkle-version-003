@@ -45,19 +45,19 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
       name: 'WhatsApp',
       icon: <WhatsAppLogo />,
       color: 'bg-[#25D366]/10',
-      action: () => window.open(`https://wa.me/?text=${encodeURIComponent(`Check out ${name}'s profile on Sparkle Marketplace: ${profileUrl}`)}`, '_blank')
+      action: () => window.open(`https://wa.me/?text=${encodeURIComponent(`Check out ${name}'s profile on Sparkle Marketplace: ${profileUrl}`)}`, '_blank', 'noopener,noreferrer')
     },
     {
       name: 'Facebook',
       icon: <FacebookLogo />,
       color: 'bg-[#1877F2]/10',
-      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`, '_blank')
+      action: () => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(profileUrl)}`, '_blank', 'noopener,noreferrer')
     },
     {
       name: 'SMS',
       icon: <SMSLogo />,
       color: 'bg-blue-50',
-      action: () => window.open(`sms:?body=${encodeURIComponent(`Check out ${name}'s profile on Sparkle Marketplace: ${profileUrl}`)}`, '_blank')
+      action: () => window.open(`sms:?body=${encodeURIComponent(`Check out ${name}'s profile on Sparkle Marketplace: ${profileUrl}`)}`, '_blank', 'noopener,noreferrer')
     }
   ];
 
@@ -80,14 +80,14 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1500]"
           />
           <motion.div
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-            className="fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] z-[101] px-6 pt-8 pb-10 max-w-lg mx-auto"
+            className="fixed inset-x-0 bottom-0 bg-white rounded-t-[32px] z-[1501] px-6 pt-8 pb-10 max-w-lg mx-auto"
           >
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black tracking-tighter">Share Profile</h2>

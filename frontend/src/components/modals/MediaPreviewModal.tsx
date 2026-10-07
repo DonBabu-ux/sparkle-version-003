@@ -35,7 +35,7 @@ export default function MediaPreviewModal() {
       window.URL.revokeObjectURL(url);
     } catch (err) {
       logger.error('Download failed:', err);
-      window.open(mediaUrl, '_blank');
+      window.open(mediaUrl, '_blank', 'noopener,noreferrer');
     }
   };
 

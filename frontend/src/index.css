@@ -19,11 +19,18 @@
   --color-text-primary-dark: #FAFAFA; /* dark mode text */
   --color-glass-surface: rgba(255, 255, 255, 0.08);
 
+  --color-marketplace-bg: #FFFFFF;
+  --color-marketplace-text: #18181B;
+  --color-marketplace-muted: #71717A;
+  --color-marketplace-border: #E4E4E7;
+  --color-secondary: #00C9A7;
+
   --font-heading: "Varela Round", sans-serif;
   --font-sans: "Nunito Sans", sans-serif;
 }
 
 :root {
+  --bg-main: #f0f2f5;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -337,8 +344,10 @@ body {
   z-index: 0;
 }
 
-input, textarea, select {
-  @apply bg-transparent border-none outline-none focus:ring-0 transition-all;
+@layer base {
+  input, textarea, select {
+    @apply bg-transparent outline-none focus:ring-0 transition-all;
+  }
 }
 
 /* svg icon colors are set per-component, not globally */

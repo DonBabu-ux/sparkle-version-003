@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Sparkles, BookOpen, Image, User, Search } from 'lucide-react';
+import { Sparkles, Search } from 'lucide-react';
 import './SparkleAIScreen.css';
 import { useState } from 'react';
 import { useUserStore } from '../../store/userStore';
@@ -8,9 +8,6 @@ export default function SparkleAIScreen() {
   const navigate = useNavigate();
 
   const features = [
-    { name: 'Study Assistant', icon: <BookOpen size={24} />, route: '/ai/study' },
-    { name: 'Captions', icon: <Image size={24} />, route: '/ai/captions' },
-    { name: 'Bio Generator', icon: <User size={24} />, route: '/ai/bio' },
     { name: 'Search Sparkle', icon: <Search size={24} />, route: '/ai/search' },
     { name: 'Friend Discovery', icon: <Sparkles size={24} />, route: '/ai/friend' },
   ];

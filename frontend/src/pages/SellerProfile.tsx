@@ -84,7 +84,7 @@ export default function SellerProfile() {
       }
     } catch (err) {
       logger.error('Contact seller failed:', err);
-      navigate(`/marketplace/messages`);
+      navigate(`/marketplace/inbox`);
     }
   };
 

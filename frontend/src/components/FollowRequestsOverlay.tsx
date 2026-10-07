@@ -51,7 +51,7 @@ export default function FollowRequestsOverlay({ onClose }: FollowRequestsOverlay
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-300">
       <div className="premium-card w-full max-w-md bg-white p-0 shadow-2xl overflow-hidden scale-in-center">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
           <div>
@@ -90,7 +90,7 @@ export default function FollowRequestsOverlay({ onClose }: FollowRequestsOverlay
                     <p className="text-[10px] text-indigo-500 font-black uppercase tracking-tight">@{request.username}</p>
                   </div>
                 </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex gap-2">
                   <button 
                     onClick={() => handleAction(request.request_id, 'accept')}
                     className="w-10 h-10 bg-indigo-600 text-white rounded-xl shadow-lg shadow-indigo-100 flex items-center justify-center hover:bg-indigo-700 active:scale-95"

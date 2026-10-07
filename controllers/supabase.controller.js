@@ -67,8 +67,9 @@ const syncSocialUser = async (req, res) => {
             }
         }
 
-        // Generate Token
-        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
+        // Generate Token (role claim required — P0 #22: tokens without it
+        // break admin nav/post-login routing)
+        const token = jwt.sign({ userId, email, username, role: user?.role || 'user' }, JWT_SECRET, { expiresIn: '7d' });
 
         res.cookie('sparkleToken', token, {
             httpOnly: true,
@@ -168,9 +169,9 @@ const syncVerifiedOTP = async (req, res) => {
             await query(`UPDATE users SET ${updateField} = 1 WHERE user_id = ?`, [userId]);
         }
 
-        // 2. Generate Session
+        // 2. Generate Session (role claim required — P0 #22, see syncSocialUser)
         const email = users[0]?.email || metadata?.email || (type === 'email' ? value : null);
-        const token = jwt.sign({ userId, email, username }, JWT_SECRET, { expiresIn: '7d' });
+        const token = jwt.sign({ userId, email, username, role: users[0]?.role || 'user' }, JWT_SECRET, { expiresIn: '7d' });
 
         res.cookie('sparkleToken', token, {
             httpOnly: true,

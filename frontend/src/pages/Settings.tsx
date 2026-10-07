@@ -294,7 +294,7 @@ export default function Settings() {
             title="Accounts Center"
             description="Manage connected accounts & profile visibility"
             rightElement="chevron"
-            onClick={() => navigate('/accounts-center')}
+            onClick={() => navigate('/settings/accounts')}
           />
         </SettingCardGroup>
 
@@ -383,7 +383,7 @@ export default function Settings() {
       {/* Swipable Side Slide Modal: Account Control */}
       <AnimatePresence>
         {showAccountControl && (
-          <div className="fixed inset-0 z-50 overflow-hidden">
+          <div className="fixed inset-0 z-[1500] overflow-hidden">
             {/* Backdrop */}
             <motion.div
               key="ac-backdrop"
@@ -396,7 +396,7 @@ export default function Settings() {
             />
 
             {/* Side Drawer Container */}
-            <div className="fixed inset-y-0 right-0 z-50 flex max-w-full pointer-events-none">
+            <div className="fixed inset-y-0 right-0 z-[1500] flex max-w-full pointer-events-none">
               <motion.div
                 key="ac-drawer"
                 drag="x"
@@ -789,7 +789,7 @@ export default function Settings() {
 
       {/* MODAL 3: Legal & Privacy Policies */}
       {showLegalModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-200 dark:border-zinc-800 shadow-2xl max-h-[80vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-zinc-100">Legal & Privacy Policies</h2>
             <div className="space-y-3">

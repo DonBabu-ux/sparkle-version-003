@@ -636,8 +636,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           </div>
         </div>
         <div className="text-[12px] text-black/40 dark:text-white/40 flex gap-2.5 font-bold">
-          {(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0)) ? <span className="hover:underline cursor-pointer">{formatCount(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0))} comments</span> : null}
-          {(post.reshare_count || post.share_count) ? <span className="hover:underline cursor-pointer">{formatCount(post.reshare_count || post.share_count)} shares</span> : null}
+          {(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0)) ? <span onClick={(e) => e.stopPropagation()} className="hover:underline cursor-pointer">{formatCount(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0))} comments</span> : null}
+          {(post.reshare_count || post.share_count) ? <span onClick={(e) => e.stopPropagation()} className="hover:underline cursor-pointer">{formatCount(post.reshare_count || post.share_count)} shares</span> : null}
         </div>
       </div>
 
@@ -680,7 +680,10 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           
           {/* Comment */}
           <div className="flex flex-col items-center">
-            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter">
+            <span
+              onClick={(e) => e.stopPropagation()}
+              className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter"
+            >
               {formatCount(
                 post.comment_count || 
                 post.comments_count || 
@@ -691,6 +694,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
             </span>
             <button
               onClick={(e) => {
+                e.stopPropagation();
                 spawnTikTokHeart(e.clientX, e.clientY, 'v');
                 setActiveModal('post_comments', null, { post });
               }}
@@ -705,6 +709,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
             <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter invisible">0</span>
             <button
               onClick={(e) => {
+                e.stopPropagation();
                 spawnTikTokHeart(e.clientX, e.clientY, 'v');
                 setActiveModal('share', null, { post });
               }}

@@ -689,7 +689,7 @@ export default function StoryViewer() {
                     <button 
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY, 'v');
-                        window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`);
+                        window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`, '_blank', 'noopener,noreferrer');
                       }} 
                       className="p-2 active:scale-75 transition-all"
                     >

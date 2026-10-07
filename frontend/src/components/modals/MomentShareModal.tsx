@@ -114,7 +114,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         case 'telegram': shareUrl = `https://t.me/share/url?url=${url}&text=${text}`; break;
     }
     
-    if(shareUrl) window.open(shareUrl, '_blank');
+    if(shareUrl) window.open(shareUrl, '_blank', 'noopener,noreferrer');
   };
 
   const filteredRecipients = recipients.filter(r => 

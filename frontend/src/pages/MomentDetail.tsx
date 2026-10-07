@@ -8,6 +8,7 @@ import clsx from 'clsx';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import { getTiktokEmbedUrl } from '../utils/tiktokEmbed';
 import { logger } from '../utils/logger';
+import { safeHref } from '../utils/safeHref';
 
 interface MomentData {
   moment_id: string;
@@ -130,7 +131,7 @@ export default function MomentDetail() {
                           Retry
                         </button>
                         <a
-                          href={moment.media_url}
+                          href={safeHref(moment.media_url)}
                           target="_blank"
                           rel="noreferrer"
                           className="px-5 py-2.5 bg-white/10 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-105 transition-all"

@@ -111,11 +111,9 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
     if (!video) return;
 
     if (active) {
-      video.load(); // Force reset/load on active
       video.play().catch(() => {});
     } else {
       video.pause();
-      video.currentTime = 0;
     }
   }, [active]);
 
@@ -123,6 +121,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
     <div className={`relative w-full h-full ${className}`}>
       <video
         ref={localVideoRef}
+        poster={poster}
         muted={muted}
         loop={loop}
         playsInline

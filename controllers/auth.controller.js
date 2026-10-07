@@ -17,6 +17,22 @@ const { respondTokenRefreshError } = require('../utils/authErrors');
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
 
+// A.4 #2 — httpOnly refresh cookie. The browser's refresh secret is never
+// readable by JS; the body-returned refreshToken survives ONLY as a fallback
+// for legacy sessions and multi-account switching (both keep it in
+// localStorage by design). Path-scoped so the cookie rides only auth calls.
+const REFRESH_COOKIE = 'sparkleRefresh';
+const REFRESH_COOKIE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // matches auth.service 30-day refresh expiry
+const refreshCookieBase = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    path: '/api/auth'
+};
+const setRefreshCookie = (res, token, maxAgeMs) =>
+    res.cookie(REFRESH_COOKIE, token, { ...refreshCookieBase, maxAge: maxAgeMs });
+const clearRefreshCookie = (res) => res.clearCookie(REFRESH_COOKIE, refreshCookieBase);
+
 // Validate JWT secret
 const validateJWTSecret = () => {
     if (!JWT_SECRET) {
@@ -237,6 +253,10 @@ const login = async (req, res) => {
             maxAge: cookieMaxAge,
             path: '/'
         });
+        // A.4 #2: refresh secret rides in its own httpOnly cookie, mirroring the
+        // refresh credential's 30-day DB lifetime (rememberMe gates only the
+        // short-lived access cookie, as before).
+        setRefreshCookie(res, refreshToken, REFRESH_COOKIE_TTL_MS);
 
         const isOnboarded = user.onboarding_step >= 6;
         res.json({
@@ -395,6 +415,9 @@ const verify2FA = async (req, res) => {
             userId: user.user_id, 
             email: user.email, 
             username: user.username,
+            // P0 #22: 2FA logins must carry role like normal logins do
+            // (generateTokens) — otherwise admins never see the Admin nav.
+            role: user.role || 'user',
             tokenVersion: user.token_version || 0
         }, JWT_SECRET, { expiresIn: sessionDuration });
 
@@ -823,11 +846,15 @@ const resendVerification = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const { refreshToken, fcmToken, pushEndpoint } = req.body;
+        const { fcmToken, pushEndpoint } = req.body;
         const userId = req.user?.userId || req.user?.user_id;
+        // A.4 #2: cookie-mode sessions send no body token — revoke the secret
+        // the httpOnly cookie carries, so logout actually ends the refresh
+        // session. Existing userId fallback (wipe this device) unchanged.
+        const revokeToken = req.body.refreshToken || req.cookies?.[REFRESH_COOKIE];
 
-        if (refreshToken) {
-            await query('DELETE FROM refresh_tokens WHERE token = ?', [refreshToken]);
+        if (revokeToken) {
+            await query('DELETE FROM refresh_tokens WHERE token = ?', [revokeToken]);
         } else if (userId) {
             // Fallback: clear all tokens for this user on this device (optional)
             await query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
@@ -847,6 +874,7 @@ const logout = async (req, res) => {
             sameSite: 'strict',
             path: '/'
         });
+        clearRefreshCookie(res);
 
         res.json({ status: 'success', message: 'Logged out successfully' });
     } catch (error) {
@@ -890,12 +918,20 @@ const switchAccount = async (req, res) => {
 
 const refreshToken = async (req, res) => {
     try {
-        const { refreshToken: oldToken } = req.body;
+        const { refreshToken: bodyToken } = req.body;
+        // A.4 #2 cookie-first: no body token → the httpOnly sparkleRefresh
+        // cookie carries the secret (single-account sessions never expose it
+        // to JS). A body token always wins when present — legacy sessions and
+        // multi-account switching must refresh exactly the account they name.
+        const oldToken = bodyToken || req.cookies?.[REFRESH_COOKIE];
         if (!oldToken) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
 
         const { accessToken, refreshToken } = await authService.refreshAccessToken(oldToken);
+        // Rotation: keep the cookie in lockstep with the DB rotation so the
+        // cookie path stays usable for every subsequent refresh.
+        setRefreshCookie(res, refreshToken, REFRESH_COOKIE_TTL_MS);
 
         res.json({
             status: 'success',

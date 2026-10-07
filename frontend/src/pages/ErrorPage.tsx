@@ -9,19 +9,19 @@ export default function ErrorPage({ error }: ErrorPageProps) {
     <>
       <div className="mesh-bg fixed top-0 left-0 w-full h-full -z-10" />
       <div className="error-container h-screen flex items-center justify-center p-5">
-        <div className="error-card bg-white/70 backdrop-blur-xl border border-white/20 rounded-[32px] p-10 md:p-[60px_40px] max-w-[500px] w-full text-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] animate-[cardFloat_1s_ease-out]">
-          <div className="error-icon text-[80px] mb-[30px] inline-block animate-[pulse_2s_infinite]">
+        <div className="error-card bg-white/70 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[32px] p-10 md:p-[60px_40px] max-w-[500px] w-full text-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] animate-[cardFloat_1s_ease-out]">
+          <div className="error-icon text-[80px] mb-[30px] inline-block animate-[errPulse_2s_infinite]">
             <Sparkles size={80} className="text-[#FF3D6D] drop-shadow-lg" />
           </div>
-          <h1 className="font-['Outfit'] text-[32px] font-bold mb-[15px] text-[#2D3436] leading-tight">
+          <h1 className="font-['Outfit'] text-[32px] font-bold mb-[15px] text-[#2D3436] dark:text-zinc-50 leading-tight">
             Oops! Something Sparkled... Differently.
           </h1>
-          <p className="text-[#636E72] text-[18px] leading-[1.6] mb-[35px]">
+          <p className="text-[#636E72] dark:text-zinc-400 text-[18px] leading-[1.6] mb-[35px]">
             Our magical servers encountered a little hiccup. Don't worry, even the brightest stars flicker sometimes.
           </p>
 
           {error && (
-            <div className="error-details bg-black/5 p-[15px] rounded-xl font-mono text-[14px] mb-[30px] break-all text-[#d63031] flex flex-col items-start gap-2 text-left">
+            <div className="error-details bg-black/5 dark:bg-white/5 p-[15px] rounded-xl font-mono text-[14px] mb-[30px] break-all text-[#d63031] dark:text-red-400 flex flex-col items-start gap-2 text-left">
               <div className="flex items-center gap-2 font-bold uppercase"><Bug size={14} /> Error Payload</div>
               <span className="opacity-80">{error}</span>
             </div>
@@ -47,7 +47,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
           to { opacity: 1; transform: translateY(0); }
         }
 
-        @keyframes pulse {
+        @keyframes errPulse {
           0% { transform: scale(1); opacity: 1; }
           50% { transform: scale(1.05); opacity: 0.8; }
           100% { transform: scale(1); opacity: 1; }

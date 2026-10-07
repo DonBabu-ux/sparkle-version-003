@@ -120,9 +120,9 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
             onClick={onClose} 
           />
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9, y: '-40%' }} 
-            animate={{ opacity: 1, scale: 1, y: '-50%' }} 
-            exit={{ opacity: 0, scale: 0.9, y: '-40%' }}
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
             className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[111] overflow-hidden border border-white/[0.08]"
           >
@@ -187,12 +187,12 @@ export const FullEmojiPickerModal: React.FC<{
           <motion.div 
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-[121] overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
+            className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-[121] overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
           >
             <div className="w-10 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
             <div className="flex-1 w-full relative bg-black flex justify-center">
               <style dangerouslySetInnerHTML={{__html: `
-                em-emoji-picker {
+                .msg-emoji-sheet em-emoji-picker {
                   width: 100vw !important;
                   max-width: 100vw !important;
                   height: 100% !important;
@@ -204,15 +204,15 @@ export const FullEmojiPickerModal: React.FC<{
                   border-radius: 0 !important;
                 }
                 /* Hide native scrollbar but allow scrolling */
-                em-emoji-picker::part(scroll), 
-                em-emoji-picker::part(list),
-                em-emoji-picker::part(scroll-container) {
+                .msg-emoji-sheet em-emoji-picker::part(scroll), 
+                .msg-emoji-sheet em-emoji-picker::part(list),
+                .msg-emoji-sheet em-emoji-picker::part(scroll-container) {
                   scrollbar-width: none !important;
                   -ms-overflow-style: none !important;
                 }
-                em-emoji-picker::part(scroll)::-webkit-scrollbar,
-                em-emoji-picker::part(list)::-webkit-scrollbar,
-                em-emoji-picker::part(scroll-container)::-webkit-scrollbar {
+                .msg-emoji-sheet em-emoji-picker::part(scroll)::-webkit-scrollbar,
+                .msg-emoji-sheet em-emoji-picker::part(list)::-webkit-scrollbar,
+                .msg-emoji-sheet em-emoji-picker::part(scroll-container)::-webkit-scrollbar {
                   display: none !important;
                   width: 0 !important;
                   height: 0 !important;

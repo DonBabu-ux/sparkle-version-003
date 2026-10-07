@@ -37,7 +37,7 @@ const CARDS: CardItem[] = [
     title: 'Create your First Story',
     description: 'Share your moments and photos with your friends.',
     icon: Camera,
-    route: '/stories',
+    route: '/afterglow/create',
     buttonLabel: 'Create',
     accentColor: 'border-rose-500/30 hover:border-rose-500/60',
     iconBg: 'bg-rose-500/20 text-rose-400'

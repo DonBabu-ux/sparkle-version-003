@@ -364,7 +364,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
   if (chat?.account_type === 'system' || chat?.is_system_account || chat?.is_system) {
     return (
-      <div className="fixed inset-0 bg-[#000000] z-[200] flex justify-center animate-fade-in">
+      <div className="fixed inset-0 bg-[#000000] z-[1500] flex justify-center animate-fade-in">
         <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative select-none">
           <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
             <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors">
@@ -442,7 +442,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                 </button>
 
                 <button
-                  onClick={() => { onClose(); navigate('/settings/privacy'); }}
+                  onClick={() => { onClose(); navigate('/legal/privacy'); }}
                   className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
@@ -504,7 +504,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   }
 
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[200] flex justify-center animate-fade-in">
+    <div className="fixed inset-0 bg-[#000000] z-[1500] flex justify-center animate-fade-in">
       <div 
         className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative" 
         onClick={e => e.stopPropagation()}
@@ -1932,7 +1932,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
         {/* Nickname History Records Modal */}
         <AnimatePresence>
           {showNicknameHistory && (
-            <div className="fixed inset-0 z-[250] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div className="fixed inset-0 z-[1500] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
               <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}

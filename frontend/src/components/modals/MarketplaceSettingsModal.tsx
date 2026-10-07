@@ -116,7 +116,7 @@ export default function MarketplaceSettingsModal({ isOpen, onClose, onOpenVerifi
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
-          className="fixed inset-0 bg-white z-[200] overflow-y-auto"
+          className="fixed inset-0 bg-white z-[1500] overflow-y-auto"
         >
           {/* Header */}
           <div className="sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-100 px-6 py-5 flex items-center justify-between z-10">

@@ -225,7 +225,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         setTxnRef(res.data.reference);
       }
       if (res.data.authorizationUrl) {
-        window.open(res.data.authorizationUrl, '_blank');
+        window.open(res.data.authorizationUrl, '_blank', 'noopener,noreferrer');
         setStep(3);
       } else if (method === 'mpesa') {
         setStep(3);

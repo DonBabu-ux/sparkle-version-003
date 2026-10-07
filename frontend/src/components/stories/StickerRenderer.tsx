@@ -66,6 +66,10 @@ const StickerItem: FC<{
         const newY = ((dy + (sticker.y / 100) * container.height) / container.height) * 100;
         
         onUpdate?.(sticker.id, { x: newX, y: newY });
+        // Persisted position now lives in sticker.x/y (left/top %) — clear the
+        // transient drag offsets so the two don't double-apply on re-render.
+        x.set(0);
+        y.set(0);
       },
       onPinchEnd: ({ offset: [s, r] }) => {
         if (!isEditing || sticker.locked) return;

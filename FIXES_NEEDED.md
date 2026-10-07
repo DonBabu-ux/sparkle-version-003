@@ -199,7 +199,7 @@
 - Dead `accessToken` fallback never written (`src/api/api.ts:44`, `CreateStory.tsx:444`, `SparklyBot.tsx:445`) — ✅ (2026-10-06: all 3 removed; no writer exists).
 - Routing: `/confessions/:id` has no route; `/profile/:id` shadowed by `/profile/:username`; only 1 of 103 routes lazy-loaded (eager bundle) — ✅ (2026-10-06: `/confessions/:id` → `Confessions` (backend `GET /confessions/:id` **added 2026-10-07** — public, `Confession.findById`; 200 real id / 404 bogus); dead duplicate `/profile/:id` (SellerProfile) deleted — reachable at `/marketplace/seller/:id`; `ChatSettingsModal.tsx:1888` link → `/profile/${partner_username || partner_id}`; 78 page imports → `lazy()` + `<Suspense>` wrap around `<Routes>`).
 - Outdated majors: express 4.22.3, mysql2 3.24.5, helmet 8.3, multer 2.4.0, socket.io 4.8.4, capacitor 6→8, typescript 6→7 — 🟡 (2026-10-06: safe same-major bumps applied (`helmet` 8.1.0→8.3.0, `socket.io` 4.8.3→4.8.4). **Deferred majors:** express 4→5 (middleware/plugin breaking changes), multer 1→2 (API rewrite), typescript→7, vite 6→8, capacitor 6→8 (Android rebuild unverifiable here — pairs with H6). All flagged for user decision.)
-- Root docs inventory: `agent.md` (AI ref), `implementation_plan.md`, `discovery-logic.md`, `moments-production-architecture.md`, `DELETIONS.md` (stale post-merge), `UI_AUDIT.md` (untracked, appendix `<!-- AUDIT-DETAIL-A -->` never filled; its P0-P2 list remains fully open — 2 crashers, z-index/token systems, dead CTA routes) — parked (no action).
+- Root docs inventory: `agent.md` (AI ref), `implementation_plan.md`, `discovery-logic.md`, `moments-production-architecture.md`, `DELETIONS.md` (stale post-merge), `UI_AUDIT.md` (**untracked, not yet committed**) — ✅ (2026-10-07: **Pass 8 re-audit done** — appendix filled, §3 P0 marked ✅/❌/⚠️ + new items 19–26 incl. `.env.local`→dist poison, XSS, CORS `exposedHeaders`, dropped `role` claim; full detail in its Appendix A. Its P1/P2 fix work remains open → next batch.)
 - Rate-limit 429 message still says "from this IP" though authenticated buckets are now per-user (cosmetic) — ✅ (2026-10-06: → `'Too many requests. Please try again later.'` in `security.middleware.js`).
 
 ---
@@ -232,7 +232,7 @@
     Recent commits: `d227989` (caching round J), `2ec2544` (query-speed round I), `b29b002` (batch H M8/P5/M11), `187288c` (batch G priority sweep), `844e334` (perf + console/admin + H20/H22/H23 batches A–D), `3c15344` (H9 audit), `83c2b24` (H15/H16), `0b7f9a3` (ALGORITHMS.md), `f445fac` (P1 frontend), `1ced155` (suggester), `31d8eb5` (admin API). H7 TS2304 = 0 (total tsc errors 881→867; still frozen by decision until typecheck-green campaign).
 2. **Render dashboard (you only):** `NODE_ENV=production`, `JWT_SECRET`, `DB_POOL_LIMIT=16..24`, `OTA_DEPLOY_TOKEN`, `DB_*_PROD`, `BACKEND_URL`/`FRONTEND_URL`, `DB_SSL`; start command `node server.js`.
 3. **Firebase console:** restrict/reset client API keys (M14).
-4. **Parked:** `UI_AUDIT.md` detail appendix.
+4. ~~**Parked:** `UI_AUDIT.md` detail appendix.~~ → **done 2026-10-07** (Pass 8: staleness + delta + security + integrity consolidated in Appendix A). **Next frontend batch = UI_AUDIT §3 P0 1–26** (start with #19 `.env.local`/dist, #20 XSS, #21 CORS, #22 role claim); decision needed: commit `UI_AUDIT.md` (currently untracked).
 
 ---
 
@@ -240,8 +240,8 @@
 
 1. **Security quick wins (≈ half a day):** C1 (socket JWT), C3 (+1 line), C4 (+role), C2 (env + fail closed), C5 (throw on startup), C6 (start command).
 2. **API bugs (≈ half a day):** H1 (bind arrays), H2 (COLLATE), H3 (column list), H4 (`ml.thumbnail` + stop swallowing).
-3. **Frontend prod blockers:** H5 (relative URLs), H7 (delete dead NewChatModal), H6 (rebuild Android assets).
+3. **Frontend prod blockers:** H5 (relative URLs), H7 (delete dead NewChatModal), H6 (rebuild Android assets), **UI_AUDIT P0 #19** (`.env.local` `VITE_API_URL` baked into `dist/` — verified 5× loopback; delete key + re-verify build, see UI_AUDIT A.5.6).
 4. **Ops:** H9 (`npm audit fix`), H10/H11 (Render env incl. `NODE_ENV`), ~~H12 (one lockfile)~~ done 2026-10-06.
 5. **Performance (biggest UX win):** ~~P1-P3 indexes + P10 migration guard + query rewrites P1/P3/P4/P6/P9~~ done 2026-10-06 (indexes + gate + `UNION ALL`/grouped-unread/`ORDER BY`/discover grouped joins; equivalence-tested old-vs-new and live-verified via probes + `/api/messages/inbox` + `/api/discover/*` + `/api/moments/stream`). ~~**Next:** **P11** correlated subqueries in live feed/search, then P7/P8 hygiene~~ **P11 + P7 + P8 done 2026-10-06** (Post.js grouped counts + drift backfill 0/0, search grouped joins, auth col lists, 12 dup indexes dropped; probe 7/8). ~~**Query-speed round**~~ **done 2026-10-06** (redis L1 + parallel-round rewrites; see "Query-speed round" above; re-measure via `GET /api/debug/pool`).
 6. **Correctness/abuse:** ~~M1 (CSRF), M2 (auth limiter), M3 (webhook rawBody), M4 (trust proxy)~~ done 2026-10-06, ~~M6~~ done earlier. Remaining: M14 (Firebase keys — user), M16 (core-table DDL wiring — follow-up); ~~M8, M11, M15~~ done.
-7. **Hygiene:** ~~M5, M7, M8, M10, M11, M12, M13, low items~~ done 2026-10-06; only the parked `UI_AUDIT.md` appendix remains.
+7. **Hygiene:** ~~M5, M7, M8, M10, M11, M12, M13, low items~~ done 2026-10-06; ~~parked `UI_AUDIT.md` appendix~~ done 2026-10-07 (Pass 8). Remaining hygiene lives in UI_AUDIT §3 P0/§P1.

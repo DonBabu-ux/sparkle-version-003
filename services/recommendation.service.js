@@ -1,23 +1,13 @@
 // services/recommendation.service.js
 const { safeQuery } = require('../config/database');
+const cacheService = require('./cache.service');
 
-const memoryCache = new Map();
-
-function getCached(key) {
-    const cached = memoryCache.get(key);
-    if (!cached) return null;
-    if (Date.now() > cached.expiry) {
-        memoryCache.delete(key);
-        return null;
-    }
-    return cached.value;
+async function getCached(key) {
+    return cacheService.getLocal(key);
 }
 
 function setCached(key, value, ttlSeconds = 45) {
-    memoryCache.set(key, {
-        value,
-        expiry: Date.now() + (ttlSeconds * 1000)
-    });
+    return cacheService.set(key, value, ttlSeconds);
 }
 
 class RecommendationService {
@@ -28,7 +18,7 @@ class RecommendationService {
      */
     async getPopularCreators(limit = 10, currentUserId = null) {
         const cacheKey = `popular_creators:${limit}:${currentUserId || 'guest'}`;
-        const cached = getCached(cacheKey);
+        const cached = await getCached(cacheKey);
         if (cached) return cached;
 
         let sql = `
@@ -57,7 +47,7 @@ class RecommendationService {
         params.push(Number(limit));
 
         const result = await safeQuery(sql, params);
-        setCached(cacheKey, result, 45); // 45s TTL
+        await setCached(cacheKey, result, 45); // 45s TTL
         return result;
     }
 
@@ -70,7 +60,7 @@ class RecommendationService {
      */
     async getCreatorsByCategory(category, page = 1, limit = 10, currentUserId = null) {
         const cacheKey = `creators_by_category:${category}:${page}:${limit}:${currentUserId || 'guest'}`;
-        const cached = getCached(cacheKey);
+        const cached = await getCached(cacheKey);
         if (cached) return cached;
 
         const offset = (Number(page) - 1) * Number(limit);
@@ -111,7 +101,7 @@ class RecommendationService {
             }
         }
 
-        setCached(cacheKey, creators, 45); // 45s TTL
+        await setCached(cacheKey, creators, 45); // 45s TTL
         return creators;
     }
 }

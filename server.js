@@ -11,6 +11,7 @@ const cors = require('cors');
 const path = require('path');
 const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
+const compression = require('compression');
 require('dotenv').config();
 
 const { PORT } = require('./config/constants');
@@ -45,6 +46,8 @@ if (trustProxySetting) app.set('trust proxy', Number(trustProxySetting) || 1);
 // initDB deferred to server.listen callback
 
 // Security & Performance Middleware
+// gzip JSON/HTML/CSS/JS >1KB (skips already-compressed images/media; Vary added automatically)
+app.use(compression({ threshold: 1024 }));
 app.use(securityHeaders);
 
 // CORS configuration to allow credentials and specific origins
@@ -264,6 +267,23 @@ app.use((req, res) => {
 
 // Enhanced Error Handler
 app.use((err, req, res, next) => {
+    // CSRF failures answered first — this branch used to live in a handler
+    // registered AFTER this one, so it never ran (M1 tail)
+    if (err.code === 'EBADCSRFTOKEN') {
+        logger.error('❌ CSRF Validation Error:', {
+            url: req.url,
+            method: req.method,
+            ip: req.ip,
+            token_in_header: req.headers['x-csrf-token'] ? 'Present' : 'Missing',
+            token_in_body: req.body?._csrf ? 'Present' : 'Missing'
+        });
+        return res.status(403).json({
+            success: false,
+            message: 'Invalid security token (CSRF)',
+            error: 'invalid csrf token'
+        });
+    }
+
     // Log the full error carefully
     const errorMessage = err?.stack || err?.message || err || 'Unknown Error';
     console.error('❌ Server Error:', errorMessage);
@@ -296,32 +316,6 @@ app.use((err, req, res, next) => {
 // =============================================
 // SERVER STARTUP / EXPORTS
 // =============================================
-
-// Create HTTP server and attach Socket.IO
-// CSRF and General Error Handler
-app.use((err, req, res, next) => {
-    if (err.code === 'EBADCSRFTOKEN') {
-        logger.error('❌ CSRF Validation Error:', {
-            url: req.url,
-            method: req.method,
-            ip: req.ip,
-            token_in_header: req.headers['x-csrf-token'] ? 'Present' : 'Missing',
-            token_in_body: req.body?._csrf ? 'Present' : 'Missing'
-        });
-        return res.status(403).json({
-            success: false,
-            message: 'Invalid security token (CSRF)',
-            error: 'invalid csrf token'
-        });
-    }
-    
-    logger.error('🔥 Server Error:', err);
-    res.status(err.status || 500).json({
-        success: false,
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'production' ? null : err.message
-    });
-});
 
 const server = createServer(app);
 initializeSocket(server);

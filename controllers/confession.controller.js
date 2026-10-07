@@ -158,11 +158,26 @@ const getConfessionsByAffiliation = async (req, res) => {
     }
 };
 
+// Get a single confession by id (deep links / share URLs)
+const getConfessionById = async (req, res) => {
+    try {
+        const confession = await Confession.findById(req.params.id);
+        if (!confession) {
+            return res.status(404).json({ error: 'Confession not found' });
+        }
+        res.json({ status: 'success', data: confession });
+    } catch (error) {
+        logger.error('Get Confession By Id Error:', error);
+        res.status(500).json({ error: 'Failed to fetch confession' });
+    }
+};
+
 module.exports = {
     createConfession,
     reactToConfession,
     reportConfession,
     commentAnonymously,
     getComments,
-    getConfessionsByAffiliation
+    getConfessionsByAffiliation,
+    getConfessionById
 };

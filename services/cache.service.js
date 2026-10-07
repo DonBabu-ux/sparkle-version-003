@@ -9,6 +9,11 @@ const DISCOVER_TTL = parseInt(process.env.DISCOVER_CACHE_TTL, 10) || 60; // seco
 
 // ── In-memory fallback store ─────────────────────────────────────────────────
 const memStore = new Map();
+// Hard cap so the fallback store can't grow unbounded (mirrors L1 in redis.service)
+const MEM_MAX_ENTRIES = Math.min(Math.max(parseInt(process.env.MEM_CACHE_MAX_ENTRIES, 10) || 5000, 1), 50000);
+// Local re-hydration TTL after a Redis hit — bounds cross-instance staleness
+// for entries this process didn't write itself
+const MEM_HYDRATE_TTL = 5;
 
 function memGet(key) {
     const entry = memStore.get(key);
@@ -21,10 +26,26 @@ function memGet(key) {
 }
 
 function memSet(key, value, ttlSeconds) {
+    if (!memStore.has(key) && memStore.size >= MEM_MAX_ENTRIES) {
+        pruneMem();
+    }
     memStore.set(key, {
         value,
         expiry: Date.now() + (ttlSeconds * 1000)
     });
+}
+
+function pruneMem() {
+    const now = Date.now();
+    for (const [k, entry] of memStore) {
+        if (entry.expiry <= now) memStore.delete(k);
+    }
+    // Still at cap → evict oldest (Map preserves insertion order)
+    while (memStore.size >= MEM_MAX_ENTRIES) {
+        const oldest = memStore.keys().next().value;
+        if (oldest === undefined) break;
+        memStore.delete(oldest);
+    }
 }
 
 function memDel(key) {
@@ -121,6 +142,34 @@ async function get(key) {
 }
 
 /**
+ * Local-first get: process memory (0ms) → Redis → null.
+ * Redis hits hydrate the local store with a short TTL so repeat reads skip
+ * the network round-trip. Use for hot paths that keep their own hit flag
+ * (search, recommendations); loader-style callers should use getOrSet().
+ */
+async function getLocal(key) {
+    const local = memGet(key);
+    if (local !== null) return local;
+
+    const redis = getRedis();
+    if (redis && redis.isEnabled) {
+        try {
+            const cached = await redis.get(key);
+            if (cached !== null && cached !== undefined) {
+                const value = typeof cached === 'string' ? safeParse(cached) : cached;
+                if (value !== null && value !== undefined) {
+                    memSet(key, value, MEM_HYDRATE_TTL);
+                }
+                return value;
+            }
+        } catch (e) {
+            logger.warn(`[CacheService] Redis GET failed for ${key}: ${e.message}`);
+        }
+    }
+    return null;
+}
+
+/**
  * Invalidate a key in both layers.
  */
 async function del(key) {
@@ -140,6 +189,7 @@ function safeParse(val) {
 
 module.exports = {
     getOrSet,
+    getLocal,
     get,
     set,
     del,

@@ -10,9 +10,9 @@ const logger = require('../utils/logger');
  * 4. Smart Query Expansion (Synonyms)
  */
 
-// ⚡ 1. CACHING LAYER (Redis Polyfill)
-const SearchCache = new Map();
-const CACHE_TTL = 1000 * 60 * 5; // 5 minutes
+// ⚡ 1. CACHING LAYER (shared: local-first memory + Redis via cache.service)
+const cacheService = require('../services/cache.service');
+const CACHE_TTL = 300; // 5 minutes (seconds)
 
 // ⚡ 2. SMART QUERY EXPANSION
 const SYNONYMS = {
@@ -34,10 +34,10 @@ const search = async (req, res) => {
         let rawTerm = q.trim().toLowerCase();
         
         // --- ⚡ 3. CACHE CHECK ---
-        const cacheKey = `${currentUserId}:${rawTerm}:${type}:${limit}:${offset}:${campus||'global'}`;
-        const cached = SearchCache.get(cacheKey);
-        if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-            return res.json({ status: 'success', data: cached.data, cached: true });
+        const cacheKey = `search:${currentUserId}:${rawTerm}:${type}:${limit}:${offset}:${campus||'global'}`;
+        const cached = await cacheService.getLocal(cacheKey);
+        if (cached) {
+            return res.json({ status: 'success', data: cached, cached: true });
         }
 
         let targetType = type;
@@ -314,8 +314,8 @@ const search = async (req, res) => {
             intent: { intent, rawTerm, sortBy, targetType, filterUserId, filterUsername }
         };
 
-        // Save to cache
-        SearchCache.set(cacheKey, { timestamp: Date.now(), data: finalData });
+        // Save to cache (local memory + Redis when enabled)
+        await cacheService.set(cacheKey, finalData, CACHE_TTL);
 
         res.json({ status: 'success', data: finalData });
 

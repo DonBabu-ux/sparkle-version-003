@@ -7,6 +7,7 @@ const { upload } = require('../../middleware/upload.middleware');
 // Public — browse confessions (optionally by affiliation)
 router.get('/', confessionController.getConfessionsByAffiliation);                                   // affiliation filter via ?campus=X
 router.get('/community/:campus', confessionController.getConfessionsByAffiliation);                  // NEW — explicit affiliation filter
+router.get('/:id', confessionController.getConfessionById);                                          // single confession (deep links)
 
 // Protected
 router.post('/', authMiddleware, upload.single('image'), confessionController.createConfession);  // Post anonymous confession (image optional)

@@ -205,8 +205,8 @@ class Group {
         const [rows] = await pool.query(
             `SELECT p.*, p.media_url, 
                     u.username, u.avatar_url, g.name AS group_name, g.icon_url AS group_icon,
-                    (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as spark_count,
-                    (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id) as comment_count,
+                    COALESCE(p.spark_count, 0) as spark_count,
+                    COALESCE(p.comment_count, 0) as comment_count,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
                      FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
              FROM posts p

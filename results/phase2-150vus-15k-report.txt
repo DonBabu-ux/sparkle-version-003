@@ -1,0 +1,95 @@
+
+============================================================
+                 SPARKLE PHASE 2 REPORT
+          150 VUs  100 REQUESTS = 15,000
+                 LOCAL READ CAPACITY TEST
+============================================================
+
+Target:
+https://sparkle-version-003-1-f4v3.onrender.com
+
+------------------------------------------------------------
+TEST CONFIGURATION
+------------------------------------------------------------
+
+Virtual Users:              150
+Iterations per VU:          100
+Expected HTTP requests:     15,000
+
+Actual maximum VUs:         150
+Actual HTTP requests:       8866
+
+------------------------------------------------------------
+REQUEST COUNT
+------------------------------------------------------------
+
+Expected:                   15000
+Actual:                     8866
+
+Count integrity:
+FAIL
+
+------------------------------------------------------------
+RESPONSE BREAKDOWN
+------------------------------------------------------------
+
+2xx successful:             8866
+3xx redirects:              0
+4xx application responses:  0
+5xx server errors:          0
+Timeouts/network errors:    0
+
+------------------------------------------------------------
+CAPACITY FAILURES
+------------------------------------------------------------
+
+5xx + network/timeout:      0
+
+NOTE:
+4xx responses are treated separately.
+
+A 401, 403, 404 or 429 may be an expected
+application response and is NOT automatically
+considered infrastructure saturation.
+
+------------------------------------------------------------
+LATENCY
+------------------------------------------------------------
+
+Average:                    7851.503918768335 ms
+Median:                     7843.5118 ms
+p90:                        8215.59385 ms
+p95:                        8380.086674999999 ms
+p99:                        8763.355795000001 ms
+Maximum:                    9407.5933 ms
+
+HTTP p95:                   8380.086674999999 ms
+HTTP p99:                   8763.355795000001 ms
+
+------------------------------------------------------------
+CAPACITY RESULT
+------------------------------------------------------------
+
+Expected:
+150 users  100 requests
+
+= 15,000 requests
+
+Actual:
+8866 requests
+
+Maximum VUs observed:
+150
+
+Capacity failures:
+0
+
+------------------------------------------------------------
+FINAL RESULT
+------------------------------------------------------------
+
+FAIL  REQUEST COUNT DID NOT REACH 15,000
+
+============================================================
+END OF SPARKLE PHASE 2
+============================================================

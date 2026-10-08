@@ -12,26 +12,9 @@ const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
 const emailService = require('../services/email.service');
-const { respondTokenRefreshError } = require('../utils/authErrors');
 
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
-
-// A.4 #2 — httpOnly refresh cookie. The browser's refresh secret is never
-// readable by JS; the body-returned refreshToken survives ONLY as a fallback
-// for legacy sessions and multi-account switching (both keep it in
-// localStorage by design). Path-scoped so the cookie rides only auth calls.
-const REFRESH_COOKIE = 'sparkleRefresh';
-const REFRESH_COOKIE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // matches auth.service 30-day refresh expiry
-const refreshCookieBase = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
-    path: '/api/auth'
-};
-const setRefreshCookie = (res, token, maxAgeMs) =>
-    res.cookie(REFRESH_COOKIE, token, { ...refreshCookieBase, maxAge: maxAgeMs });
-const clearRefreshCookie = (res) => res.clearCookie(REFRESH_COOKIE, refreshCookieBase);
 
 // Validate JWT secret
 const validateJWTSecret = () => {
@@ -78,15 +61,23 @@ const login = async (req, res) => {
 
         validateJWTSecret();
 
-        const ip = req.ip || req.connection.remoteAddress;
+        const ip = req.headers['x-forwarded-for'] || req.ip || req.connection.remoteAddress;
         
         const { normalizeUsername } = require('../utils/validation/username');
         const normLoginId = normalizeUsername(loginId);
         const cleanEmail = String(loginId).trim().toLowerCase();
 
+        // UNION ALL lets MySQL/MariaDB use a separate index per column instead of
+        // doing a full table scan with OR across 3 columns (~8s → <10ms).
+        // Each branch MUST be wrapped in () for MariaDB LIMIT-per-branch syntax.
         const user = await queryOne(
-            'SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, is_hidden, token_version, password_hash FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
-            [cleanEmail, normLoginId, loginId]
+            `(SELECT * FROM users WHERE email = ? LIMIT 1)
+             UNION ALL
+             (SELECT * FROM users WHERE username_normalized = ? AND email != ? LIMIT 1)
+             UNION ALL
+             (SELECT * FROM users WHERE username = ? AND username_normalized != ? AND email != ? LIMIT 1)
+             LIMIT 1`,
+            [cleanEmail, normLoginId, cleanEmail, loginId, normLoginId, cleanEmail]
         );
 
         // Core security principle: Prevent account enumeration with constant-time dummy compare
@@ -253,10 +244,6 @@ const login = async (req, res) => {
             maxAge: cookieMaxAge,
             path: '/'
         });
-        // A.4 #2: refresh secret rides in its own httpOnly cookie, mirroring the
-        // refresh credential's 30-day DB lifetime (rememberMe gates only the
-        // short-lived access cookie, as before).
-        setRefreshCookie(res, refreshToken, REFRESH_COOKIE_TTL_MS);
 
         const isOnboarded = user.onboarding_step >= 6;
         res.json({
@@ -270,7 +257,6 @@ const login = async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
-                role: user.role || 'user',
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
@@ -311,7 +297,7 @@ const verify2FA = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'User ID and code are required' });
         }
 
-        const users = await query('SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, is_hidden, token_version, password_hash FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
@@ -417,9 +403,6 @@ const verify2FA = async (req, res) => {
             userId: user.user_id, 
             email: user.email, 
             username: user.username,
-            // P0 #22: 2FA logins must carry role like normal logins do
-            // (generateTokens) — otherwise admins never see the Admin nav.
-            role: user.role || 'user',
             tokenVersion: user.token_version || 0
         }, JWT_SECRET, { expiresIn: sessionDuration });
 
@@ -452,7 +435,6 @@ const verify2FA = async (req, res) => {
                 name: user.name,
                 username: user.username,
                 email: user.email,
-                role: user.role || 'user',
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
@@ -647,6 +629,14 @@ const verifyEmail = async (req, res) => {
             }).catch(e => logger.error('Welcome email failed:', e));
         }
 
+        // Qualify any pending referral
+        try {
+            const ReferralService = require('../services/referral.service');
+            await ReferralService.qualifyReferral(verification.user_id);
+        } catch (qualErr) {
+            logger.warn('[AuthController] Referral qualification warning:', qualErr.message);
+        }
+
         res.json({ status: 'success', message: 'Email verified successfully!' });
     } catch (error) {
         logger.error('Verify Email Error:', error);
@@ -696,7 +686,7 @@ const forgotPassword = async (req, res) => {
 
         await sendEmail({
             to: email,
-            subject: 'Reset Your Password - Sparkle ✨',
+            subject: 'Reset Your Password - SparkleApp',
             templateName: 'reset-password',
             templateData: {
                 name: user.name,
@@ -850,15 +840,11 @@ const resendVerification = async (req, res) => {
 
 const logout = async (req, res) => {
     try {
-        const { fcmToken, pushEndpoint } = req.body;
+        const { refreshToken, fcmToken, pushEndpoint } = req.body;
         const userId = req.user?.userId || req.user?.user_id;
-        // A.4 #2: cookie-mode sessions send no body token — revoke the secret
-        // the httpOnly cookie carries, so logout actually ends the refresh
-        // session. Existing userId fallback (wipe this device) unchanged.
-        const revokeToken = req.body.refreshToken || req.cookies?.[REFRESH_COOKIE];
 
-        if (revokeToken) {
-            await query('DELETE FROM refresh_tokens WHERE token = ?', [revokeToken]);
+        if (refreshToken) {
+            await query('DELETE FROM refresh_tokens WHERE token = ?', [refreshToken]);
         } else if (userId) {
             // Fallback: clear all tokens for this user on this device (optional)
             await query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
@@ -878,7 +864,6 @@ const logout = async (req, res) => {
             sameSite: 'strict',
             path: '/'
         });
-        clearRefreshCookie(res);
 
         res.json({ status: 'success', message: 'Logged out successfully' });
     } catch (error) {
@@ -899,7 +884,7 @@ const switchAccount = async (req, res) => {
         }
 
         const decoded = jwt.verify(token, JWT_SECRET);
-        const users = await query('SELECT user_id FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
+        const users = await query('SELECT * FROM users WHERE user_id = ? LIMIT 1', [decoded.userId]);
 
         if (users.length === 0) {
             return res.status(401).json({ status: 'error', message: 'User not found' });
@@ -922,20 +907,12 @@ const switchAccount = async (req, res) => {
 
 const refreshToken = async (req, res) => {
     try {
-        const { refreshToken: bodyToken } = req.body;
-        // A.4 #2 cookie-first: no body token → the httpOnly sparkleRefresh
-        // cookie carries the secret (single-account sessions never expose it
-        // to JS). A body token always wins when present — legacy sessions and
-        // multi-account switching must refresh exactly the account they name.
-        const oldToken = bodyToken || req.cookies?.[REFRESH_COOKIE];
+        const { refreshToken: oldToken } = req.body;
         if (!oldToken) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
 
         const { accessToken, refreshToken } = await authService.refreshAccessToken(oldToken);
-        // Rotation: keep the cookie in lockstep with the DB rotation so the
-        // cookie path stays usable for every subsequent refresh.
-        setRefreshCookie(res, refreshToken, REFRESH_COOKIE_TTL_MS);
 
         res.json({
             status: 'success',
@@ -943,10 +920,8 @@ const refreshToken = async (req, res) => {
             refreshToken: refreshToken
         });
     } catch (error) {
-        logger.error(`Token refresh failed: ${error.message || error}`);
-        // H23: 503 for DB/network trouble, 401 only for a dead refresh token —
-        // a blanket 401 logged every client out during DB blips.
-        respondTokenRefreshError(res, error);
+        logger.error('Token refresh failed:', error.message);
+        res.status(401).json({ status: 'error', message: error.message });
     }
 };
 
@@ -984,7 +959,7 @@ const checkUsername = async (req, res) => {
                     suggestions: []
                 });
             }
-            const suggestions = await authService.generateAvailableUsernames(normUsername, req.query.name);
+            const suggestions = await authService.generateAvailableUsernames(normUsername);
             return res.json({
                 success: true,
                 available: false,

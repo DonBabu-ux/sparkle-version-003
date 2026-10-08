@@ -34,8 +34,9 @@ const pool = mysql.createPool({
     // Keep-alive — sends a ping so the remote DB doesn't drop idle conns
     enableKeepAlive: true,
     keepAliveInitialDelay: 30000,
-    // Evict idle connections after 30s
-    idleTimeout: 30000,
+    // Evict idle connections after 90s (was 30s — too aggressive for remote DB,
+    // caused cold reconnects showing up as 4s+ "SELECT 1" in slow-query logs)
+    idleTimeout: 90000,
     // Timezone
     timezone: 'Z'
 });

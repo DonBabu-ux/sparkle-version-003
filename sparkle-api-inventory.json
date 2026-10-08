@@ -1,0 +1,4407 @@
+{
+  "generatedAt": "2026-10-05T16:52:41.620Z",
+  "count": 489,
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/admin/media/cleanup",
+      "routePath": "/cleanup",
+      "prefix": "/admin/media",
+      "file": "routes\\api\\media-admin.routes.js",
+      "line": 9,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/media/stats",
+      "routePath": "/stats",
+      "prefix": "/admin/media",
+      "file": "routes\\api\\media-admin.routes.js",
+      "line": 8,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/chat",
+      "routePath": "/sparkly/chat",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 14,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/chat/stream",
+      "routePath": "/sparkly/chat/stream",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 15,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations",
+      "routePath": "/sparkly/conversations",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/conversations",
+      "routePath": "/sparkly/conversations",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 19,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/sparkly/conversations/:id",
+      "routePath": "/sparkly/conversations/:id",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 21,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/conversations/:id/branch",
+      "routePath": "/sparkly/conversations/:id/branch",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 27,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations/:id/messages",
+      "routePath": "/sparkly/conversations/:id/messages",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations/search",
+      "routePath": "/sparkly/conversations/search",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/sparkly/memories",
+      "routePath": "/sparkly/memories",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 23,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/memories",
+      "routePath": "/sparkly/memories",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/sparkly/memories/:id",
+      "routePath": "/sparkly/memories/:id",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 24,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/ai/sparkly/messages/:id/feedback",
+      "routePath": "/sparkly/messages/:id/feedback",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 26,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/messages/:id/feedback",
+      "routePath": "/sparkly/messages/:id/feedback",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/stream",
+      "routePath": "/sparkly/stream",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/analytics/creator",
+      "routePath": "/creator",
+      "prefix": "/analytics",
+      "file": "routes\\api\\analytics.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audio/search",
+      "routePath": "/search",
+      "prefix": "/audio",
+      "file": "routes\\api\\audio.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/check-email",
+      "routePath": "/check-email",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 41,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/check-username",
+      "routePath": "/check-username",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 40,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/forgot-password",
+      "routePath": "/forgot-password",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 46,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/google/sync",
+      "routePath": "/google/sync",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 51,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "routePath": "/login",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 34,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "routePath": "/logout",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 39,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/otp/verify/sync",
+      "routePath": "/otp/verify/sync",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 52,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/refresh",
+      "routePath": "/refresh",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 35,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/request-2fa-recovery",
+      "routePath": "/request-2fa-recovery",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 38,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/resend-2fa",
+      "routePath": "/resend-2fa",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 37,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/resend-verification",
+      "routePath": "/resend-verification",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 48,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/reset-password",
+      "routePath": "/reset-password",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 47,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/signup",
+      "routePath": "/signup",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 33,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/switch-account",
+      "routePath": "/switch-account",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 56,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/validate",
+      "routePath": "/validate",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 55,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-2fa",
+      "routePath": "/verify-2fa",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 36,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-email",
+      "routePath": "/verify-email",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 44,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-sms",
+      "routePath": "/verify-sms",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 45,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/boost/activate",
+      "routePath": "/activate",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/boost/active",
+      "routePath": "/active",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/boost/calculate",
+      "routePath": "/calculate",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/boost/history",
+      "routePath": "/history",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/boost/renew",
+      "routePath": "/renew",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 17,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs",
+      "routePath": "/",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clubs",
+      "routePath": "/",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 9,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id",
+      "routePath": "/:id",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/clubs/:id",
+      "routePath": "/:id",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 12,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/announcements",
+      "routePath": "/:id/announcements",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clubs/:id/announcements",
+      "routePath": "/:id/announcements",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 20,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clubs/:id/events/:eventId/rsvp",
+      "routePath": "/:id/events/:eventId/rsvp",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 23,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clubs/:id/join",
+      "routePath": "/:id/join",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/leadership",
+      "routePath": "/:id/leadership",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/clubs/:id/leave",
+      "routePath": "/:id/leave",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 16,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/members",
+      "routePath": "/:id/members",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/category/:category",
+      "routePath": "/category/:category",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions",
+      "routePath": "/",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/confessions",
+      "routePath": "/",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 12,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/confessions/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/confessions/:id/react",
+      "routePath": "/:id/react",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/confessions/:id/report",
+      "routePath": "/:id/report",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions/community/:campus",
+      "routePath": "/community/:campus",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations",
+      "routePath": "/conversations",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 86,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/conversations",
+      "routePath": "/conversations",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/conversations/:id",
+      "routePath": "/conversations/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 429,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/:id",
+      "routePath": "/conversations/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 144,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/:id/status",
+      "routePath": "/conversations/:id/status",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 390,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/conversations/:id/toggle",
+      "routePath": "/conversations/:id/toggle",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 361,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/feed",
+      "routePath": "/feed",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/suggested-users",
+      "routePath": "/suggested-users",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 39,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/trending-creators",
+      "routePath": "/trending-creators",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 63,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events",
+      "routePath": "/events",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events",
+      "routePath": "/events",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 18,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/events/:id",
+      "routePath": "/events/:id",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 24,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/events/:id",
+      "routePath": "/events/:id",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 27,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/analytics",
+      "routePath": "/events/:id/analytics",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/attendees",
+      "routePath": "/events/:id/attendees",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events/:id/notify",
+      "routePath": "/events/:id/notify",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 29,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/qr",
+      "routePath": "/events/:id/qr",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events/:id/rsvp",
+      "routePath": "/events/:id/rsvp",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/share",
+      "routePath": "/events/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 21,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/events/:id/status",
+      "routePath": "/events/:id/status",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 25,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events/checkin",
+      "routePath": "/events/checkin",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 23,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/events/rsvp/approve",
+      "routePath": "/events/rsvp/approve",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 26,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/giphy/search",
+      "routePath": "/search",
+      "prefix": "/giphy",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/giphy/trending",
+      "routePath": "/trending",
+      "prefix": "/giphy",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat",
+      "routePath": "/",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groupChat",
+      "routePath": "/",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 8,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId",
+      "routePath": "/:chatId",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/groupChat/:chatId",
+      "routePath": "/:chatId",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 11,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId/channels",
+      "routePath": "/:chatId/channels",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groupChat/:chatId/channels",
+      "routePath": "/:chatId/channels",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 26,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/groupChat/:chatId/channels/:id",
+      "routePath": "/:chatId/channels/:id",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 28,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/groupChat/:chatId/channels/:id",
+      "routePath": "/:chatId/channels/:id",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 27,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groupChat/:chatId/leave",
+      "routePath": "/:chatId/leave",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 19,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groupChat/:chatId/members",
+      "routePath": "/:chatId/members",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 18,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/groupChat/:chatId/members/:userId",
+      "routePath": "/:chatId/members/:userId",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 20,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/groupChat/:chatId/members/:userId/role",
+      "routePath": "/:chatId/members/:userId/role",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId/messages",
+      "routePath": "/:chatId/messages",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groupChat/:chatId/messages",
+      "routePath": "/:chatId/messages",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups",
+      "routePath": "/",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups",
+      "routePath": "/",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 16,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/groups/:id",
+      "routePath": "/:id",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 34,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id",
+      "routePath": "/:id",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/invite",
+      "routePath": "/:id/invite",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 41,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/join",
+      "routePath": "/:id/join",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 32,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/leave",
+      "routePath": "/:id/leave",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 33,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/members",
+      "routePath": "/:id/members",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 36,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/pending-posts",
+      "routePath": "/:id/pending-posts",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 42,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/post",
+      "routePath": "/:id/post",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/posts",
+      "routePath": "/:id/posts",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/groups/:id/posts/:postId",
+      "routePath": "/:id/posts/:postId",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 40,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/requests",
+      "routePath": "/:id/requests",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/update",
+      "routePath": "/:id/update",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 35,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/ban",
+      "routePath": "/:id/users/:userId/ban",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 46,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/demote",
+      "routePath": "/:id/users/:userId/demote",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 39,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/mute",
+      "routePath": "/:id/users/:userId/mute",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 45,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/promote",
+      "routePath": "/:id/users/:userId/promote",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 38,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/remove",
+      "routePath": "/:id/users/:userId/remove",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 37,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/posts/:postId/approve",
+      "routePath": "/posts/:postId/approve",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 43,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/posts/:postId/reject",
+      "routePath": "/posts/:postId/reject",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 44,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/requests/:requestId/approve",
+      "routePath": "/requests/:requestId/approve",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 28,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/requests/:requestId/reject",
+      "routePath": "/requests/:requestId/reject",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 29,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "routePath": "/health",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/highlights",
+      "routePath": "/",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/highlights/:id",
+      "routePath": "/:id",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 22,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/highlights/:id",
+      "routePath": "/:id",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/highlights/:id",
+      "routePath": "/:id",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/highlights/:id/stories",
+      "routePath": "/:id/stories",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 25,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/highlights/:id/stories/:storyId",
+      "routePath": "/:id/stories/:storyId",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 26,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/highlights/archive",
+      "routePath": "/archive",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/knowledge",
+      "routePath": "/knowledge",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 79,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/knowledge/:id",
+      "routePath": "/knowledge/:id",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 134,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/knowledge/:id",
+      "routePath": "/knowledge/:id",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 93,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/knowledge/:id/publish",
+      "routePath": "/knowledge/:id/publish",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 108,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/knowledge/:id/unpublish",
+      "routePath": "/knowledge/:id/unpublish",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 121,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/knowledge/search",
+      "routePath": "/knowledge/search",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 54,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/link-preview",
+      "routePath": "/",
+      "prefix": "/link-preview",
+      "file": "routes\\api\\link-preview.routes.js",
+      "line": 59,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/location/live/:liveLocationId",
+      "routePath": "/live/:liveLocationId",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/live/start",
+      "routePath": "/live/start",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 11,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/live/stop",
+      "routePath": "/live/stop",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/live/stop/:liveLocationId",
+      "routePath": "/live/stop/:liveLocationId",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/live/update",
+      "routePath": "/live/update",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 12,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/resolve",
+      "routePath": "/resolve",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 7,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/resolve",
+      "routePath": "/location/resolve",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 65,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lost-found",
+      "routePath": "/",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/lost-found",
+      "routePath": "/",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 16,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/lost-found/:id",
+      "routePath": "/:id",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 26,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lost-found/:id",
+      "routePath": "/:id",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/lost-found/:id/claim",
+      "routePath": "/:id/claim",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/lost-found/:id/claim",
+      "routePath": "/:id/claim",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 20,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/lost-found/:id/status",
+      "routePath": "/:id/status",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 23,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/categories",
+      "routePath": "/marketplace/categories",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/chats",
+      "routePath": "/marketplace/chats",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 45,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/chats/:chatId/messages",
+      "routePath": "/marketplace/chats/:chatId/messages",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 47,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/chats/:id/messages",
+      "routePath": "/marketplace/chats/:id/messages",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 46,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/counts",
+      "routePath": "/marketplace/counts",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 63,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/favorites",
+      "routePath": "/marketplace/favorites",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 62,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings",
+      "routePath": "/marketplace/listings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings",
+      "routePath": "/marketplace/listings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 16,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/marketplace/listings/:id",
+      "routePath": "/marketplace/listings/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 18,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings/:id",
+      "routePath": "/marketplace/listings/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/marketplace/listings/:id",
+      "routePath": "/marketplace/listings/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 17,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/boost",
+      "routePath": "/marketplace/listings/:id/boost",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 28,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/contact",
+      "routePath": "/marketplace/listings/:id/contact",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/favorite",
+      "routePath": "/marketplace/listings/:id/favorite",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/relist",
+      "routePath": "/marketplace/listings/:id/relist",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 29,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/report",
+      "routePath": "/marketplace/listings/:id/report",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 27,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/share",
+      "routePath": "/marketplace/listings/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/marketplace/listings/:id/sold",
+      "routePath": "/marketplace/listings/:id/sold",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 22,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/view",
+      "routePath": "/marketplace/listings/:id/view",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/wishlist",
+      "routePath": "/marketplace/listings/:id/wishlist",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 24,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings/recommended",
+      "routePath": "/marketplace/listings/recommended",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/lost-found",
+      "routePath": "/marketplace/lost-found",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 56,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/lost-found",
+      "routePath": "/marketplace/lost-found",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 57,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/order",
+      "routePath": "/marketplace/order",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 38,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/orders",
+      "routePath": "/marketplace/orders",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 39,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/orders/:orderId",
+      "routePath": "/marketplace/orders/:orderId",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 40,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/orders/:orderId/confirm-meetup",
+      "routePath": "/marketplace/orders/:orderId/confirm-meetup",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 42,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/marketplace/orders/:orderId/status",
+      "routePath": "/marketplace/orders/:orderId/status",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 41,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/reviews",
+      "routePath": "/marketplace/reviews",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 52,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/safe-locations",
+      "routePath": "/marketplace/safe-locations",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 64,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/seller/favorite",
+      "routePath": "/marketplace/seller/favorite",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 32,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/sellers/:id",
+      "routePath": "/marketplace/sellers/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 35,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/sellers/:sellerId/alert",
+      "routePath": "/marketplace/sellers/:sellerId/alert",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 34,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/sellers/:sellerId/alert",
+      "routePath": "/marketplace/sellers/:sellerId/alert",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 33,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/skills",
+      "routePath": "/marketplace/skills",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 58,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/skills",
+      "routePath": "/marketplace/skills",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 59,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/trending",
+      "routePath": "/marketplace/trending",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/users/:id/block",
+      "routePath": "/marketplace/users/:id/block",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 50,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/users/:id/review",
+      "routePath": "/marketplace/users/:id/review",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 51,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/users/:id/reviews",
+      "routePath": "/marketplace/users/:id/reviews",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 53,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/wishlist",
+      "routePath": "/marketplace/wishlist",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/ack-download",
+      "routePath": "/ack-download",
+      "prefix": "/media",
+      "file": "routes\\api\\media.routes.js",
+      "line": 19,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/media/download-token/:mediaId",
+      "routePath": "/download-token/:mediaId",
+      "prefix": "/media",
+      "file": "routes\\api\\media.routes.js",
+      "line": 16,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/request-redelivery",
+      "routePath": "/request-redelivery",
+      "prefix": "/media",
+      "file": "routes\\api\\media.routes.js",
+      "line": 22,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/upload-complete",
+      "routePath": "/upload-complete",
+      "prefix": "/media",
+      "file": "routes\\api\\media.routes.js",
+      "line": 13,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/upload-init",
+      "routePath": "/upload-init",
+      "prefix": "/media",
+      "file": "routes\\api\\media.routes.js",
+      "line": 12,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages",
+      "routePath": "/",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 36,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:chatId",
+      "routePath": "/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 100,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:chatId/capture-attempt",
+      "routePath": "/:chatId/capture-attempt",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 83,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:chatId/messages/:messageId/copy",
+      "routePath": "/:chatId/messages/:messageId/copy",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 74,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:chatId/messages/:messageId/forward",
+      "routePath": "/:chatId/messages/:messageId/forward",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 75,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:chatId/privacy",
+      "routePath": "/:chatId/privacy",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 81,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/:chatId/privacy",
+      "routePath": "/:chatId/privacy",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 82,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:conversation_id",
+      "routePath": "/messages/:conversation_id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 196,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:message_id",
+      "routePath": "/messages/:message_id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 267,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/messages/:message_id",
+      "routePath": "/messages/:message_id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 252,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:message_id/react",
+      "routePath": "/messages/:message_id/react",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 292,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId",
+      "routePath": "/:messageId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 59,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/:messageId",
+      "routePath": "/:messageId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 62,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId/delete-for-all",
+      "routePath": "/:messageId/delete-for-all",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 61,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId/delete-for-me",
+      "routePath": "/:messageId/delete-for-me",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 60,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/messages/:messageId/edit",
+      "routePath": "/:messageId/edit",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 63,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/forward",
+      "routePath": "/:messageId/forward",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 71,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:messageId/info",
+      "routePath": "/:messageId/info",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 76,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:messageId/permissions",
+      "routePath": "/:messageId/permissions",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 80,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId/pin",
+      "routePath": "/:messageId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 70,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/pin",
+      "routePath": "/:messageId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 68,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId/react",
+      "routePath": "/:messageId/react",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 65,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/react",
+      "routePath": "/:messageId/react",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 64,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/:messageId/star",
+      "routePath": "/:messageId/star",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 67,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/star",
+      "routePath": "/:messageId/star",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 66,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/unpin",
+      "routePath": "/:messageId/unpin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 69,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/archived",
+      "routePath": "/archived",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat",
+      "routePath": "/chat",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 27,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/messages/chat/:chatId",
+      "routePath": "/chat/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 56,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId",
+      "routePath": "/chat/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 99,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/archive",
+      "routePath": "/chat/:chatId/archive",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 44,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/archive",
+      "routePath": "/chat/:chatId/archive",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 43,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/favorite",
+      "routePath": "/chat/:chatId/favorite",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 53,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/favorite",
+      "routePath": "/chat/:chatId/favorite",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 52,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/files",
+      "routePath": "/chat/:chatId/files",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 88,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/links",
+      "routePath": "/chat/:chatId/links",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 89,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/media",
+      "routePath": "/chat/:chatId/media",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 87,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/messages/:messageId/copy",
+      "routePath": "/chat/:chatId/messages/:messageId/copy",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 72,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/messages/:messageId/forward",
+      "routePath": "/chat/:chatId/messages/:messageId/forward",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 73,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/music",
+      "routePath": "/chat/:chatId/music",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 91,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/mute",
+      "routePath": "/chat/:chatId/mute",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 42,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/mute",
+      "routePath": "/chat/:chatId/mute",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 41,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/nickname",
+      "routePath": "/chat/:chatId/nickname",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 95,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/nickname-history",
+      "routePath": "/chat/:chatId/nickname-history",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 96,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/pin",
+      "routePath": "/chat/:chatId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 51,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/pin",
+      "routePath": "/chat/:chatId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 50,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/pinned",
+      "routePath": "/chat/:chatId/pinned",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 86,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/posts",
+      "routePath": "/chat/:chatId/posts",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 93,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/priority",
+      "routePath": "/chat/:chatId/priority",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 55,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/priority",
+      "routePath": "/chat/:chatId/priority",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 54,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/search",
+      "routePath": "/chat/:chatId/search",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/stats",
+      "routePath": "/chat/:chatId/stats",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 94,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/stories",
+      "routePath": "/chat/:chatId/stories",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 92,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/unarchive",
+      "routePath": "/chat/:chatId/unarchive",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 45,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/unread",
+      "routePath": "/chat/:chatId/unread",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 39,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/voice",
+      "routePath": "/chat/:chatId/voice",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 90,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/conversations",
+      "routePath": "/conversations",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/inbox",
+      "routePath": "/inbox",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/mute/:chatId",
+      "routePath": "/mute/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 40,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/mutual-groups/:partnerId",
+      "routePath": "/mutual-groups/:partnerId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/official-chat",
+      "routePath": "/official-chat",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/official-chat/complete-onboarding",
+      "routePath": "/official-chat/complete-onboarding",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 20,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/official-chat/replay",
+      "routePath": "/official-chat/replay",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 24,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/official-chat/status",
+      "routePath": "/official-chat/status",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/open",
+      "routePath": "/open",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 25,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/read/:chatId",
+      "routePath": "/read/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 37,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/search",
+      "routePath": "/search",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/send",
+      "routePath": "/send",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 35,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/start",
+      "routePath": "/start",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/sync/events",
+      "routePath": "/sync/events",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 77,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/unread/:chatId",
+      "routePath": "/unread/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 38,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/upload",
+      "routePath": "/messages/upload",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 282,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/welcome-cards",
+      "routePath": "/welcome-cards",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moderation/appeals",
+      "routePath": "/appeals",
+      "prefix": "/moderation",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 10,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moderation/appeals/:appeal_id/review",
+      "routePath": "/appeals/:appeal_id/review",
+      "prefix": "/moderation",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moderation/reports",
+      "routePath": "/reports",
+      "prefix": "/moderation",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 7,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments",
+      "routePath": "/",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id",
+      "routePath": "/:id",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 29,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/engagement",
+      "routePath": "/:id/engagement",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/save",
+      "routePath": "/:id/save",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 21,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 22,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id/share-data",
+      "routePath": "/:id/share-data",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/spark",
+      "routePath": "/:id/spark",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 20,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/view",
+      "routePath": "/:id/view",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/comment/:id/like",
+      "routePath": "/comment/:id/like",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 30,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/stream",
+      "routePath": "/stream",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/user/:userId/follow",
+      "routePath": "/user/:userId/follow",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 33,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/users/:userId/moments",
+      "routePath": "/users/:userId/moments",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 36,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/music/search",
+      "routePath": "/search",
+      "prefix": "/music",
+      "file": "routes\\api\\music.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "routePath": "/",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/read",
+      "routePath": "/:id/read",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 33,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/notifications/:notificationId",
+      "routePath": "/:notificationId",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 39,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/:notificationId/read",
+      "routePath": "/:notificationId/read",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 29,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/clear",
+      "routePath": "/clear",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 32,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/read-all",
+      "routePath": "/read-all",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/read-all",
+      "routePath": "/read-all",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/register-fcm-token",
+      "routePath": "/register-fcm-token",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 22,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/subscribe",
+      "routePath": "/subscribe",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/unread-count",
+      "routePath": "/unread-count",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/vapid-public-key",
+      "routePath": "/vapid-public-key",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/onboarding/complete",
+      "routePath": "/complete",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/onboarding/follow",
+      "routePath": "/follow",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/onboarding/interests",
+      "routePath": "/interests",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/popular-users",
+      "routePath": "/popular-users",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/recommendations",
+      "routePath": "/recommendations",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/status",
+      "routePath": "/status",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ota/deploy-ota",
+      "routePath": "/deploy-ota",
+      "prefix": "/ota",
+      "file": "routes\\api\\ota.routes.js",
+      "line": 82,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ota/version",
+      "routePath": "/version",
+      "prefix": "/ota",
+      "file": "routes\\api\\ota.routes.js",
+      "line": 23,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls",
+      "routePath": "/polls",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/polls",
+      "routePath": "/polls",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 8,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/polls/:id/interaction",
+      "routePath": "/polls/:id/interaction",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 14,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/polls/:id/invite",
+      "routePath": "/polls/:id/invite",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 11,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/polls/:id/predict",
+      "routePath": "/polls/:id/predict",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls/:id/results",
+      "routePath": "/polls/:id/results",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls/:id/share",
+      "routePath": "/polls/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/polls/:id/vote",
+      "routePath": "/polls/:id/vote",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 9,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts",
+      "routePath": "/",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 17,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/posts/:id",
+      "routePath": "/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 36,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id",
+      "routePath": "/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/posts/:id",
+      "routePath": "/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 35,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/action",
+      "routePath": "/:id/action",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 34,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 26,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 27,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/like",
+      "routePath": "/:id/like",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/report",
+      "routePath": "/:id/report",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 33,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/reshare",
+      "routePath": "/:id/reshare",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 29,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/posts/:id/reshare/comment",
+      "routePath": "/:id/reshare/comment",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 30,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/save",
+      "routePath": "/:id/save",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 28,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/spark",
+      "routePath": "/:id/spark",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id/translate",
+      "routePath": "/:id/translate",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/posts/comments/:id",
+      "routePath": "/comments/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 40,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/posts/comments/:id",
+      "routePath": "/comments/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 39,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/comments/:id/translate",
+      "routePath": "/comments/:id/translate",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/feed",
+      "routePath": "/feed",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/liked",
+      "routePath": "/liked",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/new",
+      "routePath": "/new",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/saved",
+      "routePath": "/saved",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/chat/:chatId/history",
+      "routePath": "/chat/:chatId/history",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/realtime/chat/:chatId/read-all",
+      "routePath": "/chat/:chatId/read-all",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/online-friends",
+      "routePath": "/online-friends",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/presence/:userId",
+      "routePath": "/presence/:userId",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms",
+      "routePath": "/",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms",
+      "routePath": "/",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 8,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/rooms/:roomId",
+      "routePath": "/:roomId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 12,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/:roomId",
+      "routePath": "/:roomId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/rooms/:roomId",
+      "routePath": "/:roomId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 11,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/:roomId/channels",
+      "routePath": "/:roomId/channels",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms/:roomId/channels",
+      "routePath": "/:roomId/channels",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 20,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/rooms/:roomId/channels/:channelId",
+      "routePath": "/:roomId/channels/:channelId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 22,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/rooms/:roomId/channels/:channelId",
+      "routePath": "/:roomId/channels/:channelId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms/:roomId/join",
+      "routePath": "/:roomId/join",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms/:roomId/leave",
+      "routePath": "/:roomId/leave",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 16,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/channels/:channelId/messages",
+      "routePath": "/channels/:channelId/messages",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/rooms/channels/:channelId/messages",
+      "routePath": "/channels/:channelId/messages",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 26,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search",
+      "routePath": "/",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/discovery",
+      "routePath": "/discovery",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/search/history",
+      "routePath": "/history",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 25,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/history",
+      "routePath": "/history",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 23,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/search/history",
+      "routePath": "/history",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/search/history/:id",
+      "routePath": "/history/:id",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 26,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/suggestions",
+      "routePath": "/suggestions",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/trending",
+      "routePath": "/trending",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/alternate-email/request",
+      "routePath": "/2fa/alternate-email/request",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 44,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/alternate-email/verify",
+      "routePath": "/2fa/alternate-email/verify",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 45,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/disable",
+      "routePath": "/2fa/disable",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 39,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/disable-all",
+      "routePath": "/2fa/disable-all",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 62,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/email/disable",
+      "routePath": "/2fa/email/disable",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 54,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/email/request",
+      "routePath": "/2fa/email/request",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 52,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/email/verify",
+      "routePath": "/2fa/email/verify",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 53,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/sms/disable",
+      "routePath": "/2fa/sms/disable",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 59,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/sms/request",
+      "routePath": "/2fa/sms/request",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 57,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/2fa/sms/verify",
+      "routePath": "/2fa/sms/verify",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 58,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/alerts/:eventId/acknowledge",
+      "routePath": "/alerts/:eventId/acknowledge",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 49,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/alerts/unacknowledged",
+      "routePath": "/alerts/unacknowledged",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 48,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/available-factors",
+      "routePath": "/available-factors",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/password/change",
+      "routePath": "/password/change",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 40,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/pin/reset-token",
+      "routePath": "/pin/reset-token",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 41,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/recovery-codes/generate",
+      "routePath": "/recovery-codes/generate",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 65,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/status",
+      "routePath": "/status",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/transaction/initiate",
+      "routePath": "/transaction/initiate",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 35,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/security/transaction/verify",
+      "routePath": "/transaction/verify",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 36,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "routePath": "/settings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 307,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/settings",
+      "routePath": "/settings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 334,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/share/:id",
+      "routePath": "/:id",
+      "prefix": "/share",
+      "file": "routes\\api\\share.routes.js",
+      "line": 33,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/share/track",
+      "routePath": "/track",
+      "prefix": "/share",
+      "file": "routes\\api\\share.routes.js",
+      "line": 7,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/skill-market/bookings/:id/rate",
+      "routePath": "/bookings/:id/rate",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 19,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/skill-market/bookings/:id/status",
+      "routePath": "/bookings/:id/status",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 18,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/bookings/client",
+      "routePath": "/bookings/client",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/bookings/provider",
+      "routePath": "/bookings/provider",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers",
+      "routePath": "/offers",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/skill-market/offers",
+      "routePath": "/offers",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 12,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/skill-market/offers/:id",
+      "routePath": "/offers/:id",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 14,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers/:id",
+      "routePath": "/offers/:id",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/skill-market/offers/:id",
+      "routePath": "/offers/:id",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 13,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/skill-market/offers/:id/book",
+      "routePath": "/offers/:id/book",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers/:id/reviews",
+      "routePath": "/offers/:id/reviews",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers",
+      "routePath": "/",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 7,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stickers/add-yours/:prompt_id",
+      "routePath": "/add-yours/:prompt_id",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers/add-yours/prompt",
+      "routePath": "/add-yours/prompt",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 11,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers/add-yours/respond",
+      "routePath": "/add-yours/respond",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 12,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers/poll/vote",
+      "routePath": "/poll/vote",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 15,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers/reaction",
+      "routePath": "/reaction",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories",
+      "routePath": "/",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 9,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/stories/:id",
+      "routePath": "/:id",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 22,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/archive",
+      "routePath": "/:id/archive",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 18,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/comments/toggle",
+      "routePath": "/:id/comments/toggle",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 17,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/like",
+      "routePath": "/:id/like",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 14,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/likes",
+      "routePath": "/:id/likes",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/stories/:id/settings",
+      "routePath": "/:id/settings",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 20,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 15,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/view",
+      "routePath": "/:id/view",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/viewers",
+      "routePath": "/:id/viewers",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/active",
+      "routePath": "/active",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/archive",
+      "routePath": "/archive",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/privacy/hide",
+      "routePath": "/privacy/hide",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/streams",
+      "routePath": "/streams",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams",
+      "routePath": "/streams",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 34,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/:id/end",
+      "routePath": "/streams/:id/end",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 39,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/:id/follow",
+      "routePath": "/streams/:id/follow",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 37,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/:id/join",
+      "routePath": "/streams/:id/join",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 38,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/:id/updates",
+      "routePath": "/streams/:id/updates",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 36,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/streams/active",
+      "routePath": "/streams/active",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 33,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/start",
+      "routePath": "/streams/start",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 35,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/support",
+      "routePath": "/",
+      "prefix": "/support",
+      "file": "routes\\api\\support.routes.js",
+      "line": 6,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/support/bot/ask",
+      "routePath": "/bot/ask",
+      "prefix": "/support",
+      "file": "routes\\api\\support.routes.js",
+      "line": 64,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/support/ticket",
+      "routePath": "/ticket",
+      "prefix": "/support",
+      "file": "routes\\api\\support.routes.js",
+      "line": 26,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload",
+      "routePath": "/",
+      "prefix": "/upload",
+      "file": "routes\\api\\upload.routes.js",
+      "line": 8,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/upload/message",
+      "routePath": "/message",
+      "prefix": "/upload",
+      "file": "routes\\api\\upload.routes.js",
+      "line": 9,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "routePath": "/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 71,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/block",
+      "routePath": "/:id/block",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 31,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/block",
+      "routePath": "/:id/block",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 30,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/follow",
+      "routePath": "/:id/follow",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 77,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/follow",
+      "routePath": "/:id/follow",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 76,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/followers",
+      "routePath": "/:id/followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 68,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/following",
+      "routePath": "/:id/following",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 69,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/highlights",
+      "routePath": "/:id/highlights",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 70,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/:id/mute",
+      "routePath": "/:id/mute",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 33,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/mute",
+      "routePath": "/:id/mute",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 32,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/poke",
+      "routePath": "/:id/poke",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 78,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/posts",
+      "routePath": "/:id/posts",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 67,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/report",
+      "routePath": "/:id/report",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 34,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/2fa/disable",
+      "routePath": "/2fa/disable",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 47,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/2fa/enable",
+      "routePath": "/2fa/enable",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 46,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/2fa/setup",
+      "routePath": "/2fa/setup",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 45,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/account/delete",
+      "routePath": "/account/delete",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 62,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/account/terminate",
+      "routePath": "/account/terminate",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 63,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/account/visibility",
+      "routePath": "/account/visibility",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 64,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/active-friends",
+      "routePath": "/active-friends",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/advanced-settings",
+      "routePath": "/advanced-settings",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 42,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/avatar",
+      "routePath": "/avatar",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 57,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/block/:id",
+      "routePath": "/block/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 27,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/block/:id",
+      "routePath": "/block/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 26,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/block/status/:id",
+      "routePath": "/block/status/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/blocks",
+      "routePath": "/blocks",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 24,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/contacts/match",
+      "routePath": "/contacts/match",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 21,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/export-data",
+      "routePath": "/export-data",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 44,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/follow-requests",
+      "routePath": "/follow-requests",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 37,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow-requests/:requestId/accept",
+      "routePath": "/follow-requests/:requestId/accept",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 39,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow-requests/:requestId/reject",
+      "routePath": "/follow-requests/:requestId/reject",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 40,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow-requests/respond",
+      "routePath": "/follow-requests/respond",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 38,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/follow/:id",
+      "routePath": "/follow/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 73,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow/:id",
+      "routePath": "/follow/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 72,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/followers",
+      "routePath": "/followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/following",
+      "routePath": "/following",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/me",
+      "routePath": "/me",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 59,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me",
+      "routePath": "/me",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/mutual-followers",
+      "routePath": "/mutual-followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/password",
+      "routePath": "/password",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 58,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/profile",
+      "routePath": "/profile",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 55,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/users/profile/note",
+      "routePath": "/profile/note",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 56,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/search",
+      "routePath": "/search",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/security/token",
+      "routePath": "/security/token",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 52,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/sessions",
+      "routePath": "/sessions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 50,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/users/sessions/:sessionId",
+      "routePath": "/sessions/:sessionId",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 51,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/sessions/logout-all",
+      "routePath": "/sessions/logout-all",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 53,
+      "classification": "DESTRUCTIVE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/users/settings",
+      "routePath": "/settings",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 43,
+      "classification": "WRITE_REQUIRES_REVIEW"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/suggestions",
+      "routePath": "/suggestions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/username-suggestions",
+      "routePath": "/username-suggestions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet",
+      "routePath": "/",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 10,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/auto-withdrawal",
+      "routePath": "/auto-withdrawal",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 17,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/auto-withdrawal",
+      "routePath": "/auto-withdrawal",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 18,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/banks",
+      "routePath": "/banks",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 15,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/deposit",
+      "routePath": "/deposit",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 12,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet/history",
+      "routePath": "/history",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 11,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/resolve-account",
+      "routePath": "/resolve-account",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 16,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/verify",
+      "routePath": "/verify",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 13,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/webhook/paystack",
+      "routePath": "/webhook/paystack",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 23,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/withdraw",
+      "routePath": "/withdraw",
+      "prefix": "/wallet",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 14,
+      "classification": "EXTERNAL_SIDE_EFFECT"
+    }
+  ]
+}

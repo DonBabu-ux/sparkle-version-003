@@ -1,4 +1,4 @@
-import { EventBus } from '../EventBus';
+import { EventBus, audioEventBus } from '../EventBus';
 import { SoundManager } from './SoundManager';
 import type { SoundKey } from './SoundManager';
 import { NotificationManager } from './NotificationManager';
@@ -31,9 +31,13 @@ export class AudioSessionManager {
   private startupTimeMs = 0;
 
   private constructor() {
-    this.eventBus = new EventBus();
+    this.eventBus = audioEventBus;
     this.themeController = new ThemeController();
     this.volumeController = new VolumeController();
+    this.storyAudioManager = StoryAudioManager.getInstance(null, this.eventBus);
+    this.callAudioManager = CallAudioManager.getInstance(null, this.eventBus);
+    this.hapticManager = new HapticManager(this.eventBus);
+    this.notificationManager = new NotificationManager(null, this.eventBus);
   }
 
   public static getInstance(): AudioSessionManager {
@@ -71,8 +75,8 @@ export class AudioSessionManager {
           this.volumeController
         );
         this.notificationManager = new NotificationManager(this.audioCtx, this.eventBus);
-        this.callAudioManager = new CallAudioManager(this.audioCtx, this.eventBus);
-        this.storyAudioManager = new StoryAudioManager(this.audioCtx, this.eventBus);
+        this.callAudioManager = CallAudioManager.getInstance(this.audioCtx, this.eventBus);
+        this.storyAudioManager = StoryAudioManager.getInstance(this.audioCtx, this.eventBus);
         this.hapticManager = new HapticManager(this.eventBus);
 
         // 4. Warm pools

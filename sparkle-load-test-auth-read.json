@@ -1,0 +1,816 @@
+{
+  "generatedAt": "2026-10-05T16:52:41.625Z",
+  "count": 90,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/analytics/creator",
+      "routePath": "/creator",
+      "prefix": "/analytics",
+      "file": "routes\\api\\analytics.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/boost/active",
+      "routePath": "/active",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/boost/history",
+      "routePath": "/history",
+      "prefix": "/boost",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat",
+      "routePath": "/",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId",
+      "routePath": "/:chatId",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId/channels",
+      "routePath": "/:chatId/channels",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groupChat/:chatId/messages",
+      "routePath": "/:chatId/messages",
+      "prefix": "/groupChat",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups",
+      "routePath": "/",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id",
+      "routePath": "/:id",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/members",
+      "routePath": "/:id/members",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 36,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/pending-posts",
+      "routePath": "/:id/pending-posts",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 42,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/posts",
+      "routePath": "/:id/posts",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/groups/:id/requests",
+      "routePath": "/:id/requests",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/categories",
+      "routePath": "/marketplace/categories",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/chats",
+      "routePath": "/marketplace/chats",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 45,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/chats/:id/messages",
+      "routePath": "/marketplace/chats/:id/messages",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 46,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/counts",
+      "routePath": "/marketplace/counts",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 63,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/favorites",
+      "routePath": "/marketplace/favorites",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 62,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings",
+      "routePath": "/marketplace/listings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings/:id",
+      "routePath": "/marketplace/listings/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/listings/recommended",
+      "routePath": "/marketplace/listings/recommended",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/lost-found",
+      "routePath": "/marketplace/lost-found",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 56,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/orders",
+      "routePath": "/marketplace/orders",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 39,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/orders/:orderId",
+      "routePath": "/marketplace/orders/:orderId",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 40,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/safe-locations",
+      "routePath": "/marketplace/safe-locations",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 64,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/sellers/:id",
+      "routePath": "/marketplace/sellers/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 35,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/sellers/:sellerId/alert",
+      "routePath": "/marketplace/sellers/:sellerId/alert",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 34,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/skills",
+      "routePath": "/marketplace/skills",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 58,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/trending",
+      "routePath": "/marketplace/trending",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/users/:id/reviews",
+      "routePath": "/marketplace/users/:id/reviews",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 53,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/marketplace/wishlist",
+      "routePath": "/marketplace/wishlist",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:chatId",
+      "routePath": "/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 100,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:chatId/privacy",
+      "routePath": "/:chatId/privacy",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 81,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:conversation_id",
+      "routePath": "/messages/:conversation_id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 196,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:messageId/info",
+      "routePath": "/:messageId/info",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 76,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/:messageId/permissions",
+      "routePath": "/:messageId/permissions",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 80,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/archived",
+      "routePath": "/archived",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId",
+      "routePath": "/chat/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 99,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/files",
+      "routePath": "/chat/:chatId/files",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 88,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/links",
+      "routePath": "/chat/:chatId/links",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 89,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/music",
+      "routePath": "/chat/:chatId/music",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 91,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/nickname-history",
+      "routePath": "/chat/:chatId/nickname-history",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 96,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/pinned",
+      "routePath": "/chat/:chatId/pinned",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 86,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/posts",
+      "routePath": "/chat/:chatId/posts",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 93,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/search",
+      "routePath": "/chat/:chatId/search",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/stats",
+      "routePath": "/chat/:chatId/stats",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 94,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/stories",
+      "routePath": "/chat/:chatId/stories",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 92,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/chat/:chatId/voice",
+      "routePath": "/chat/:chatId/voice",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 90,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/conversations",
+      "routePath": "/conversations",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/inbox",
+      "routePath": "/inbox",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/mutual-groups/:partnerId",
+      "routePath": "/mutual-groups/:partnerId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/official-chat",
+      "routePath": "/official-chat",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/search",
+      "routePath": "/search",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/sync/events",
+      "routePath": "/sync/events",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 77,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/messages/welcome-cards",
+      "routePath": "/welcome-cards",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications",
+      "routePath": "/",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/unread-count",
+      "routePath": "/unread-count",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/notifications/vapid-public-key",
+      "routePath": "/vapid-public-key",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/popular-users",
+      "routePath": "/popular-users",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/recommendations",
+      "routePath": "/recommendations",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/onboarding/status",
+      "routePath": "/status",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/chat/:chatId/history",
+      "routePath": "/chat/:chatId/history",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/online-friends",
+      "routePath": "/online-friends",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/realtime/presence/:userId",
+      "routePath": "/presence/:userId",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms",
+      "routePath": "/",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/:roomId",
+      "routePath": "/:roomId",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/:roomId/channels",
+      "routePath": "/:roomId/channels",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/rooms/channels/:channelId/messages",
+      "routePath": "/channels/:channelId/messages",
+      "prefix": "/rooms",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/alerts/unacknowledged",
+      "routePath": "/alerts/unacknowledged",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 48,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/available-factors",
+      "routePath": "/available-factors",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/security/status",
+      "routePath": "/status",
+      "prefix": "/security",
+      "file": "routes\\api\\security.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id",
+      "routePath": "/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 71,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/followers",
+      "routePath": "/:id/followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 68,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/following",
+      "routePath": "/:id/following",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 69,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/highlights",
+      "routePath": "/:id/highlights",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 70,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/:id/posts",
+      "routePath": "/:id/posts",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 67,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/active-friends",
+      "routePath": "/active-friends",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/advanced-settings",
+      "routePath": "/advanced-settings",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 42,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/block/status/:id",
+      "routePath": "/block/status/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/blocks",
+      "routePath": "/blocks",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 24,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/export-data",
+      "routePath": "/export-data",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 44,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/follow-requests",
+      "routePath": "/follow-requests",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 37,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/followers",
+      "routePath": "/followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/following",
+      "routePath": "/following",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/me",
+      "routePath": "/me",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/mutual-followers",
+      "routePath": "/mutual-followers",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/search",
+      "routePath": "/search",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/sessions",
+      "routePath": "/sessions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 50,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/suggestions",
+      "routePath": "/suggestions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/users/username-suggestions",
+      "routePath": "/username-suggestions",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    }
+  ]
+}

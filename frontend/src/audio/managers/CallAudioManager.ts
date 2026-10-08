@@ -1,12 +1,13 @@
-import { EventBus } from '../EventBus';
+import { EventBus, audioEventBus } from '../EventBus';
 
 export class CallAudioManager {
   private static instance: CallAudioManager | null = null;
   private activeCallStatus: 'idle' | 'ringing' | 'connecting' | 'busy' = 'idle';
   private eventBus: EventBus;
 
-  constructor(audioCtx: AudioContext | null, eventBus: EventBus) {
-    this.eventBus = eventBus;
+  constructor(audioCtx: AudioContext | null = null, eventBus?: EventBus) {
+    this.eventBus = eventBus || audioEventBus;
+    CallAudioManager.instance = this;
 
     // Listen to call commands
     this.eventBus.on('call_ringtone', () => this.playRingtone());
@@ -16,12 +17,9 @@ export class CallAudioManager {
     this.eventBus.on('call_stop', () => this.stopAll());
   }
 
-  public static getInstance(audioCtx?: AudioContext, eventBus?: EventBus): CallAudioManager {
+  public static getInstance(audioCtx?: AudioContext | null, eventBus?: EventBus): CallAudioManager {
     if (!CallAudioManager.instance) {
-      if (!eventBus) {
-        throw new Error('EventBus required to initialize CallAudioManager');
-      }
-      CallAudioManager.instance = new CallAudioManager(audioCtx || null, eventBus);
+      CallAudioManager.instance = new CallAudioManager(audioCtx || null, eventBus || audioEventBus);
     }
     return CallAudioManager.instance;
   }

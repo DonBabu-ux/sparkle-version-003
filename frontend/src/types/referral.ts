@@ -3,8 +3,14 @@ export interface ReferralStats {
   successfulSignups: number;
   pendingReferrals: number;
   rewardsEarned: number;
-  currentReferralTier: string;
-  currentXP: number;
+  totalEarnings?: number;
+  pendingRewards?: number;
+  weeklyInvites?: number;
+  weeklyActive?: number;
+  weeklyEarnings?: number;
+  inviteCode?: string;
+  currentReferralTier?: string;
+  currentXP?: number;
   nextTier?: string;
   nextTierXP?: number;
 }

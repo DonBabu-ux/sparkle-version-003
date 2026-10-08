@@ -3,7 +3,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import api from '../api/api';
+import MarketplaceModals from '../components/modals/MarketplaceModals';
 import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
+import SparklyMiniChat from '../components/marketplace/SparklyMiniChat';
 import { useModalStore } from '../store/modalStore';
 import { useUserStore } from '../store/userStore';
 import { useMarketplaceStore } from '../store/marketplaceStore';
@@ -13,8 +15,12 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
+<<<<<<< HEAD
 import ListingCard from '../components/marketplace/ListingCard';
 import { logger } from '../utils/logger';
+=======
+import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+>>>>>>> 2c63d82
 
 interface Listing {
   listing_id: string;
@@ -77,6 +83,8 @@ export default function Marketplace() {
   const [isSearching, setIsSearching] = useState(false);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const debouncedSearch = useDebounce(localSearch, 500);
+  const [sparklyOpen, setSparklyOpen] = useState(false);
+  const [sparklyInitialMsg, setSparklyInitialMsg] = useState<string | undefined>();
 
   useEffect(() => {
     setFilters({ searchQuery: debouncedSearch });
@@ -112,14 +120,14 @@ export default function Marketplace() {
       // Genius Fallback Logic:
       // 1. If local (short radius) is empty, try expanding to 1000km
       if (list.length === 0 && !isRetry && !isFallback && !searchQuery) {
-        logger.log('No local results, expanding radius...');
+        console.log('No local results, expanding radius...');
         fetchListings(true); 
         return;
       }
 
       // 2. If still empty after expansion, go Global
       if (list.length === 0 && (isRetry || isFallback) && !searchQuery) {
-        logger.log('No results in expanded radius, showing global feed...');
+        console.log('No results in expanded radius, showing global feed...');
         setIsFallback(true);
         const globalRes = await api.get(`/marketplace/listings?category=${currentCategory !== 'all' ? currentCategory : ''}&sort=${sortBy}`);
         setListings(globalRes.data.listings || []);
@@ -130,8 +138,12 @@ export default function Marketplace() {
       // Only reset fallback if we actually found items with the original filters
       if (!isRetry && list.length > 0) setIsFallback(false);
     } catch (err) {
+<<<<<<< HEAD
       logger.error('Failed to fetch marketplace:', err);
       setError(true);
+=======
+      console.error('Failed to fetch marketplace:', err);
+>>>>>>> 2c63d82
     } finally {
       if (!isRetry) setLoading(false);
     }
@@ -150,7 +162,11 @@ export default function Marketplace() {
         !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
 
+<<<<<<< HEAD
       <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white">
+=======
+      <div className="flex-1 lg:ml-72 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
+>>>>>>> 2c63d82
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">
@@ -193,18 +209,38 @@ export default function Marketplace() {
                       placeholder="Search marketplace..." 
                       value={localSearch}
                       onChange={(e) => setLocalSearch(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && localSearch.trim()) {
+                          setSparklyInitialMsg(`Find me "${localSearch.trim()}" on Sparkle Marketplace`);
+                          setSparklyOpen(true);
+                          setIsSearching(false);
+                        }
+                      }}
                       className="w-full bg-marketplace-bg rounded-full py-2 px-10 text-[15px] font-medium outline-none focus:bg-slate-200 transition-colors text-center"
                     />
-                    {localSearch && (
-                      <button 
-                        onClick={() => setLocalSearch('')}
-                        className="absolute inset-y-0 right-3 flex items-center text-marketplace-muted hover:text-marketplace-text"
-                      >
-                        <X size={18} />
-                      </button>
-                    )}
+                    {localSearch ? (
+                      <div className="absolute inset-y-0 right-2 flex items-center gap-1">
+                        <button
+                          onClick={() => {
+                            setSparklyInitialMsg(`Find me "${localSearch.trim()}" on Sparkle Marketplace`);
+                            setSparklyOpen(true);
+                            setIsSearching(false);
+                          }}
+                          className="flex items-center gap-1 text-[11px] font-bold text-purple-600 hover:text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors px-2 py-1 rounded-full"
+                        >
+                          <Sparkles size={11} /> AI
+                        </button>
+                        <button 
+                          onClick={() => setLocalSearch('')}
+                          className="flex items-center text-marketplace-muted hover:text-marketplace-text"
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    ) : null}
                   </div>
                 </motion.div>
+
               )}
             </AnimatePresence>
             
@@ -300,7 +336,10 @@ export default function Marketplace() {
                   <SlidersHorizontal size={14} /> Filters
                 </button>
                 <button 
-                  onClick={() => navigate('/sparkly-bot')}
+                  onClick={() => {
+                    setSparklyInitialMsg(undefined);
+                    setSparklyOpen(true);
+                  }}
                   className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded text-[13px] font-extrabold whitespace-nowrap flex-shrink-0 shadow-sm active:scale-95 transition-all"
                 >
                   <Sparkles size={14} className="animate-pulse" /> Sparkly AI
@@ -391,21 +430,37 @@ export default function Marketplace() {
       <motion.button
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        whileHover={{ scale: 1.04, translateY: -2 }}
-        whileTap={{ scale: 0.96 }}
-        onClick={() => navigate('/sparkly-bot', { state: { source: 'marketplace' } })}
-        className="fixed bottom-20 mb-safe right-4 sm:right-6 z-40 flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-xl shadow-purple-950/30 border border-purple-500/30 hover:border-purple-400/50 transition-all group cursor-pointer"
+        whileHover={{ scale: 1.06, translateY: -3 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => {
+          setSparklyInitialMsg(undefined);
+          setSparklyOpen(true);
+        }}
+        className="fixed bottom-20 mb-safe right-4 sm:right-6 z-40 cursor-pointer"
         title="Ask Sparkly AI Shopping Assistant"
       >
-        <div className="relative flex items-center justify-center w-6 h-6 rounded-full bg-purple-500/20 text-purple-300 group-hover:bg-purple-500/30 transition-colors">
-          <Sparkles size={15} className="text-purple-300" />
-          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-400 rounded-full border border-slate-900" />
-        </div>
-        <div className="flex flex-col text-left">
-          <span className="text-xs font-black tracking-wide text-white leading-tight">Sparkly AI</span>
-          <span className="text-[10px] text-purple-300/80 font-medium leading-none">Shopping Assistant</span>
+        {/* Pulsing ring */}
+        <span className="absolute inset-0 rounded-full animate-ping opacity-30 bg-purple-500" style={{ animationDuration: '2.5s' }} />
+        <div className="relative flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-xl shadow-purple-950/40 border border-purple-500/40 hover:border-purple-400/70 transition-all group">
+          <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
+            <Sparkles size={15} className="text-white" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900" />
+          </div>
+          <div className="flex flex-col text-left">
+            <span className="text-xs font-black tracking-wide text-white leading-tight">Sparkly AI</span>
+            <span className="text-[10px] text-purple-300/80 font-medium leading-none">Ask me anything</span>
+          </div>
         </div>
       </motion.button>
+
+      {/* Sparkly Mini Chat Panel */}
+      <SparklyMiniChat
+        isOpen={sparklyOpen}
+        onClose={() => setSparklyOpen(false)}
+        initialMessage={sparklyInitialMsg}
+      />
+
+      <MarketplaceModals />
     </div>
   );
 }

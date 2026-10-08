@@ -38,6 +38,7 @@ import PostOptionsModal from './modals/PostOptionsModal';
 import NoteEditorModal from './modals/NoteEditorModal';
 import FloatingAction from './FloatingAction';
 import FeelingActivitySelector from './modals/FeelingActivitySelector';
+import SparkleHub from './SparkleHub';
 
 import Sidebar from './Sidebar';
 import { logger } from '../utils/logger';
@@ -327,82 +328,9 @@ export default function Navbar() {
         );
       })()}
 
-      {/* Grid Mega Menu — Now a Full Page Hub */}
+      {/* Grid Mega Menu — Now Sparkle Hub */}
       {gridMenuOpen && (
-        <div className="fixed inset-0 z-[2000] bg-white/95 dark:bg-black/95 backdrop-blur-3xl animate-fade-in flex flex-col overflow-y-auto no-scrollbar" onClick={() => setGridMenuOpen(false)}>
-          <div 
-            className="w-full max-w-5xl mx-auto p-6 md:p-12 flex flex-col" 
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-8 px-4">
-                <div>
-                  <span className="text-3xl font-black text-black dark:text-white tracking-tight italic">Sparkle Hub</span>
-                  <p className="text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mt-1 italic">ALL FEATURES</p>
-                </div>
-                <button onClick={() => setGridMenuOpen(false)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/30 dark:text-white/30 hover:text-primary transition-colors">
-                  <X size={20} strokeWidth={3} />
-                </button>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 mb-8 overflow-y-auto no-scrollbar pr-1">
-                {[
-                { name: 'Marketplace', icon: ShoppingBag, color: 'text-amber-500', path: '/marketplace' },
-                { name: 'Groups', icon: Users, color: 'text-sky-500', path: '/groups' },
-                { name: 'Polls', icon: BarChart3, color: 'text-emerald-500', path: '/polls' },
-                { name: 'Messages', icon: MessageSquare, color: 'text-indigo-500', path: '/messages' },
-                { name: 'Shorts', icon: PlayCircle, color: 'text-sky-400', path: '/moments' },
-                { name: 'Anonymous', icon: SpyIcon, color: 'text-slate-500', path: '/confessions' },
-                { name: 'Services', icon: Zap, color: 'text-yellow-500', path: '/skill-market' },
-                { name: 'Live Video', icon: Activity, color: 'text-red-500', path: '/streams' },
-                { name: 'Search', icon: SearchIcon, color: 'text-black/40', path: '/search' },
-                { name: 'Find Friends', icon: UserPlus, color: 'text-primary', path: '/connect' },
-                { name: 'Archive', icon: History, color: 'text-indigo-400', path: '/memories' },
-                { name: 'Photos', icon: ImageIcon, color: 'text-pink-500', path: '/gallery' },
-                { name: 'Share App', icon: Send, color: 'text-teal-500', path: '/invite' },
-                { name: 'Get Verified', icon: CheckCircle2, color: 'text-blue-500', path: '/verified' },
-                { name: 'Professional Dashboard', icon: Briefcase, color: 'text-orange-600', path: '/professional-dashboard' },
-                { name: 'Chat Settings', icon: Settings, color: 'text-slate-400', path: '/messages/settings' },
-                { name: 'Support', icon: LifeBuoy, color: 'text-gray-400', path: '/help' },
-                ].map((item) => (
-                <button 
-                    key={item.name}
-                    onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                    className="flex flex-col items-center gap-3 p-4 rounded-3xl bg-black/[0.02] hover:bg-white hover:border-black/5 hover:shadow-xl hover:shadow-primary/5 transition-all group active:scale-95 border border-transparent"
-                >
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${item.color} transition-transform bg-white shadow-sm border border-black/5`}>
-                        <item.icon size={22} strokeWidth={2.5} />
-                    </div>
-                    <span className="font-bold text-black text-[11px] tracking-tight uppercase italic">{item.name}</span>
-                </button>
-                ))}
-            </div>
-
-            <div className="flex flex-col gap-2 pt-6 border-t border-black/5">
-                {[
-                  { name: 'Account Settings', icon: User, path: '/settings' },
-                  { name: 'Help Center', icon: HelpCircle, path: '/help' },
-                ].map((item) => (
-                  <button 
-                    key={item.name}
-                    onClick={() => { setGridMenuOpen(false); navigate(item.path); }}
-                    className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 rounded-2xl transition-all"
-                  >
-                    <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-black/30">
-                      <item.icon size={18} strokeWidth={2.5} />
-                    </div>
-                    <span className="font-bold text-black text-sm">{item.name}</span>
-                  </button>
-                ))}
-                
-                <button 
-                    onClick={() => { logout(); navigate('/login'); }}
-                    className="w-full p-4 mt-4 bg-primary/10 text-primary font-bold text-sm rounded-2xl flex items-center justify-center gap-3 shadow-sm hover:shadow-lg transition-all"
-                >
-                    <LogOut size={18} strokeWidth={2.5} /> Logout
-                </button>
-            </div>
-          </div>
-        </div>
+        <SparkleHub onClose={() => setGridMenuOpen(false)} />
       )}
 
       <FloatingAction />

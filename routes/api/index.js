@@ -62,7 +62,7 @@ router.use('/discover', discoverRoutes);
 router.use('/rooms', roomsRoutes);
 router.use('/location', require('./location.routes'));
 router.use('/ai', aiRoutes);
-router.use('/sparkly', require('./sparklyKnowledge.routes'));
+router.use('/sparkly', require('./sparkly.routes'));
 
 // Mount the AI router (SparkleAIScreen → /api/ai/*)
 router.use('/ai', aiRoutes);
@@ -99,5 +99,7 @@ router.use('/wallet', require('./wallet.routes'));
 router.use('/boost', require('./boost.routes'));
 router.use('/media', require('./media.routes'));
 router.use('/security', require('./security.routes'));
+router.use('/referral', require('./referral.routes'));
+router.use('/referrals', require('./referral.routes'));
 
 module.exports = router;

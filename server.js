@@ -98,6 +98,9 @@ app.use(sanitizeInput);
 app.use('/api', csrfProtection);
 
 // Health checks (unauthenticated, JSON) — ops monitors use these instead of raw mysql CLI
+app.get('/.well-known/assetlinks.json', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
+});
 app.get('/health', (req, res) => {
     res.json({ status: 'ok', service: 'sparkle-api', uptime_s: Math.round(process.uptime()), timestamp: new Date().toISOString() });
 });

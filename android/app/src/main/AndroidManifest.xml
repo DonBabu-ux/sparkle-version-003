@@ -23,6 +23,23 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- App Links: Canonical HTTPS referral invitations -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="sparkleapp.com" android:pathPrefix="/invite" />
+                <data android:scheme="https" android:host="sparklewebapp.vercel.app" android:pathPrefix="/invite" />
+            </intent-filter>
+
+            <!-- Custom Scheme deep link fallback -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="sparkle" android:host="invite" />
+            </intent-filter>
+
         </activity>
 
         <provider

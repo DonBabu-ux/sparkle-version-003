@@ -1,0 +1,564 @@
+{
+  "generatedAt": "2026-10-05T16:52:41.627Z",
+  "count": 62,
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/chat",
+      "routePath": "/sparkly/chat",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 14,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/chat/stream",
+      "routePath": "/sparkly/chat/stream",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 15,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/conversations",
+      "routePath": "/sparkly/conversations",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 19,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/conversations/:id/branch",
+      "routePath": "/sparkly/conversations/:id/branch",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 27,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/messages/:id/feedback",
+      "routePath": "/sparkly/messages/:id/feedback",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/sparkly/stream",
+      "routePath": "/sparkly/stream",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/confessions/:id/react",
+      "routePath": "/:id/react",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/groups/:id/users/:userId/mute",
+      "routePath": "/:id/users/:userId/mute",
+      "prefix": "/groups",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 45,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/location/live/start",
+      "routePath": "/live/start",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 11,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/favorite",
+      "routePath": "/marketplace/listings/:id/favorite",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/share",
+      "routePath": "/marketplace/listings/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/listings/:id/view",
+      "routePath": "/marketplace/listings/:id/view",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/marketplace/seller/favorite",
+      "routePath": "/marketplace/seller/favorite",
+      "prefix": "/",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 32,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:message_id/react",
+      "routePath": "/messages/:message_id/react",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 292,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/pin",
+      "routePath": "/:messageId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 68,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/react",
+      "routePath": "/:messageId/react",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 64,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/:messageId/star",
+      "routePath": "/:messageId/star",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 66,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/archive",
+      "routePath": "/chat/:chatId/archive",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 44,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/archive",
+      "routePath": "/chat/:chatId/archive",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 43,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/favorite",
+      "routePath": "/chat/:chatId/favorite",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 53,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/favorite",
+      "routePath": "/chat/:chatId/favorite",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 52,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/mute",
+      "routePath": "/chat/:chatId/mute",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 42,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/mute",
+      "routePath": "/chat/:chatId/mute",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 41,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/messages/chat/:chatId/pin",
+      "routePath": "/chat/:chatId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 51,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/pin",
+      "routePath": "/chat/:chatId/pin",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 50,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/chat/:chatId/unread",
+      "routePath": "/chat/:chatId/unread",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 39,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/mute/:chatId",
+      "routePath": "/mute/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 40,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/read/:chatId",
+      "routePath": "/read/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 37,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/start",
+      "routePath": "/start",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/messages/unread/:chatId",
+      "routePath": "/unread/:chatId",
+      "prefix": "/messages",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 38,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/engagement",
+      "routePath": "/:id/engagement",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/save",
+      "routePath": "/:id/save",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 21,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 22,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/spark",
+      "routePath": "/:id/spark",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 20,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/:id/view",
+      "routePath": "/:id/view",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/comment/:id/like",
+      "routePath": "/comment/:id/like",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 30,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/moments/user/:userId/follow",
+      "routePath": "/user/:userId/follow",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 33,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/:id/read",
+      "routePath": "/:id/read",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 33,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/:notificationId/read",
+      "routePath": "/:notificationId/read",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 29,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/notifications/read-all",
+      "routePath": "/read-all",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 26,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/notifications/read-all",
+      "routePath": "/read-all",
+      "prefix": "/notifications",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/onboarding/follow",
+      "routePath": "/follow",
+      "prefix": "/onboarding",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/action",
+      "routePath": "/:id/action",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 34,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/like",
+      "routePath": "/:id/like",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/save",
+      "routePath": "/:id/save",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 25,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 28,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/posts/:id/spark",
+      "routePath": "/:id/spark",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 23,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/realtime/chat/:chatId/read-all",
+      "routePath": "/chat/:chatId/read-all",
+      "prefix": "/realtime",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/search/history",
+      "routePath": "/history",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 24,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/share/track",
+      "routePath": "/track",
+      "prefix": "/share",
+      "file": "routes\\api\\share.routes.js",
+      "line": 7,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stickers/reaction",
+      "routePath": "/reaction",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/archive",
+      "routePath": "/:id/archive",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 16,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/like",
+      "routePath": "/:id/like",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 14,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/share",
+      "routePath": "/:id/share",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 15,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stories/:id/view",
+      "routePath": "/:id/view",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 13,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/:id/follow",
+      "routePath": "/streams/:id/follow",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 37,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/streams/start",
+      "routePath": "/streams/start",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 35,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/follow",
+      "routePath": "/:id/follow",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 76,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/:id/mute",
+      "routePath": "/:id/mute",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 32,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow-requests/:requestId/accept",
+      "routePath": "/follow-requests/:requestId/accept",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 39,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow-requests/respond",
+      "routePath": "/follow-requests/respond",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 38,
+      "classification": "CONTROLLED_WRITE"
+    },
+    {
+      "method": "POST",
+      "path": "/api/users/follow/:id",
+      "routePath": "/follow/:id",
+      "prefix": "/users",
+      "file": "routes\\api\\user.routes.js",
+      "line": 72,
+      "classification": "CONTROLLED_WRITE"
+    }
+  ]
+}

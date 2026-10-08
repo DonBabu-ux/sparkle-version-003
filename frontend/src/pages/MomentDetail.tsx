@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Heart, MessageSquare, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import clsx from 'clsx';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
@@ -76,14 +75,12 @@ export default function MomentDetail() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black font-sans overflow-x-hidden">
       
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      
 
-      <main className="flex-1 p-6 md:p-12 relative z-10 flex flex-col items-center pt-16 md:pt-12">
+      <main className="flex-1 p-6 md:p-12 relative z-10 flex flex-col items-center">
         <div className="w-full max-w-[550px]">
           <button 
             onClick={() => navigate('/moments')} 
@@ -222,10 +219,8 @@ export default function MomentDetail() {
       </main>
 
       <style>{`
-         @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+         @keyfra  .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
       `}</style>
     </div>
   );

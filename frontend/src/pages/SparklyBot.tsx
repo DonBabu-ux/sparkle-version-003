@@ -1,3 +1,4 @@
+import { showInfo } from '../utils/toast';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -372,7 +373,7 @@ export default function SparklyBot() {
 
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert('Voice input is not supported in this browser. Please type your message.');
+      showInfo('Voice input is not supported in this browser. Please type your message.');
       return;
     }
 
@@ -1117,7 +1118,7 @@ export default function SparklyBot() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="fixed inset-0 z-50 bg-[#111116] flex flex-col h-screen w-screen font-sans text-slate-100 overflow-hidden"
+              className="fixed inset-0 z-50 bg-[#111116] flex flex-col h-dvh w-screen font-sans text-slate-100 overflow-hidden"
             >
               {/* Full-Page Screen Navigation Header */}
               <div className="h-16 border-b border-white/10 bg-[#17171e] px-4 sm:px-8 flex items-center justify-between shrink-0">

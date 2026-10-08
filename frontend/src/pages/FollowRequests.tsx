@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserCheck, X, Clock } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { logger } from '../utils/logger';
 
@@ -22,7 +21,8 @@ export default function FollowRequests() {
     setLoading(true);
     try {
       const res = await api.get('/users/follow-requests');
-      setRequests(res.data.requests || res.data || []);
+      // Backend returns a bare array of follow_requests rows (`id`, username, name, avatar_url)
+      setRequests(Array.isArray(res.data) ? res.data : res.data?.requests || []);
     } catch (err) {
       logger.error('Failed to load follow requests:', err);
     } finally {
@@ -48,7 +48,6 @@ export default function FollowRequests() {
 
   return (
     <div className="page-wrapper">
-      <Navbar />
       <div className="fr-content">
         <main className="fr-container">
           <div className="fr-page-header">
@@ -124,7 +123,7 @@ export default function FollowRequests() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100vh; }
+        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100dvh; }
         .fr-content { flex: 1; padding: 30px 20px; }
         .fr-container { max-width: 620px; margin: 0 auto; }
 
@@ -159,7 +158,6 @@ export default function FollowRequests() {
         .frs-btns { display: flex; gap: 8px; }
         .frs-btn-box { width: 72px; height: 34px; border-radius: 10px; background: #f1f5f9; }
         .pulse { animation: pulseFr 1.5s ease-in-out infinite; }
-        @keyframes pulseFr { 0%,100%{opacity:1} 50%{opacity:0.5} }
 
         .fr-empty { text-align: center; padding: 80px 20px; background: white; border-radius: 24px; border: 1px solid rgba(0,0,0,0.05); }
         .fr-empty-icon { width: 90px; height: 90px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #cbd5e1; }

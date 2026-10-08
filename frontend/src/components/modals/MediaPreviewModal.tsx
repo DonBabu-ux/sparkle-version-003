@@ -3,10 +3,12 @@ import { X, MoreHorizontal, Bookmark, EyeOff, AlertTriangle, ChevronDown } from 
 import { useModalStore } from '../../store/modalStore';
 import type { Post } from '../../types/post';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 export default function MediaPreviewModal() {
   const { modalData, closeModal } = useModalStore();
   const [showMenu, setShowMenu] = useState(false);
+  const a11yRef = useModalA11y(!!modalData, closeModal);
 
   if (!modalData) return null;
 
@@ -50,7 +52,7 @@ export default function MediaPreviewModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[10000] bg-black flex flex-col items-center justify-center animate-fade-in overflow-hidden">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-toast) bg-black flex flex-col items-center justify-center animate-fade-in overflow-hidden">
       {/* Top Bar */}
       <div className="absolute top-0 inset-x-0 p-4 flex items-center justify-between z-50 bg-gradient-to-b from-black/60 to-transparent">
         <button 
@@ -135,10 +137,7 @@ export default function MediaPreviewModal() {
       )}
 
       <style>{`
-        @keyframes slide-up {
-          from { transform: translateY(100%); }
-          to { transform: translateY(0); }
-        }
+        
         .animate-slide-up { animation: slide-up 0.15s cubic-bezier(0.16, 1, 0.3, 1); }
       `}</style>
     </div>

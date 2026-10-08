@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
-// import FloatingAIButton from './components/FloatingAIButton';
 const SparkleAIScreen = lazy(() => import('./pages/ai/SparkleAIScreen'));
 // import StudyAssistantScreen from './pages/ai/StudyAssistantScreen';
 // import CaptionGeneratorScreen from './pages/ai/CaptionGeneratorScreen';
@@ -11,11 +10,13 @@ const SparkleAIScreen = lazy(() => import('./pages/ai/SparkleAIScreen'));
 const SearchSparkleScreen = lazy(() => import('./pages/ai/SearchSparkleScreen'));
 const FriendDiscoveryScreen = lazy(() => import('./pages/ai/FriendDiscoveryScreen'));
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
+import { MotionConfig } from 'framer-motion';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
 const LearnMorePage = lazy(() => import('./pages/LearnMorePage'));
 import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { DialogHost } from './components/ui/DialogHost';
 import { MockCallProvider } from './components/MockCallProvider';
 import { SocketProvider } from './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
@@ -71,7 +72,6 @@ import MarketplaceModals from './components/modals/MarketplaceModals';
 const MarketplaceChat = lazy(() => import('./pages/MarketplaceChat'));
 const MarketplaceSettings = lazy(() => import('./pages/MarketplaceSettings'));
 const SparklyBot = lazy(() => import('./pages/SparklyBot'));
-
 
 // Phase 2 — Social & Community
 const Clubs = lazy(() => import('./pages/Clubs'));
@@ -130,6 +130,7 @@ import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
+import PageShell from './components/PageShell';
 
 function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
@@ -349,7 +350,7 @@ function App() {
   // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
   if (!hydrated || showSplash) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#ffe6f2] transition-colors duration-500">
+      <div className="flex flex-col items-center justify-center min-h-dvh bg-[#ffe6f2] transition-colors duration-500">
         <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
           {/* Logo container with soft shadow and pulsing animations */}
           <div className="w-64 h-64 md:w-96 md:h-96 mb-6 rounded-3xl bg-[#ffe6f2] shadow-[0_12px_40px_rgba(255,20,147,0.15)] border border-pink-500/10 flex items-center justify-center p-6 transition-all duration-500 scale-100 animate-pulse-slow">
@@ -379,26 +380,15 @@ function App() {
           </div>
         </div>
         <style>{`
-          @keyframes pulse-slow {
-            0%, 100% { transform: scale(1); filter: brightness(1); }
-            50% { transform: scale(1.03); filter: brightness(1.05); }
-          }
-          .animate-pulse-slow {
+          @          .animate-pulse-slow {
             animation: pulse-slow 3s infinite ease-in-out;
           }
-          @keyframes shimmer {
-            0% { background-position: -200% center; }
-            100% { background-position: 200% center; }
-          }
-          .animate-shimmer {
+          @          .animate-shimmer {
             background-size: 200% auto;
             animation: shimmer 4s infinite linear;
           }
           /* Loading dot pulse: fade in/out */
-          @keyframes dotPulse {
-            0%, 100% { opacity: 0.3; }
-            50% { opacity: 1; }
-          }
+          
           .animate-dot-pulse {
             animation: dotPulse 1.2s infinite;
           }
@@ -409,10 +399,12 @@ function App() {
 
   return (
     <OTAUpdateProvider>
+      <MotionConfig reducedMotion="user">
       <SoundProvider>
       <CameraProvider>
         <NetworkStatusProvider>
           <OfflineIndicator />
+          <DialogHost />
           <GlobalThemeProvider>
             <MockCallProvider>
               <div className="app no-scrollbar">
@@ -441,12 +433,50 @@ function App() {
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
                     <Route path="/home" element={<Navigate to="/dashboard" replace />} />
-                    <Route path="/profile/:username" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
-                    <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
-                    <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
                     <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
                     <Route path="/messages/:targetId" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
                     <Route path="/messages/settings" element={isAuthenticated ? <MessagesSettings /> : <Navigate to="/login" />} />
+                    <Route path="/stories/:userId" element={isAuthenticated ? <StoryViewer /> : <Navigate to="/login" />} />
+
+
+                    {/* ── Phase 2: Social & Community ── */}
+
+                    {/* ── Phase 3: Content & Discovery ── */}
+                    <Route path="/moments" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
+                    <Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
+                    <Route path="/story/:storyId" element={isAuthenticated ? <StorySnapshot /> : <Navigate to="/login" />} />
+                    <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
+                    <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />
+                    <Route path="/streams" element={isAuthenticated ? <Streams /> : <Navigate to="/login" />} />
+                    {/* Convenience alias routes */}
+                    <Route path="/live" element={<Navigate to="/streams" replace />} />
+                    <Route path="/upload" element={<Navigate to="/moments/create" replace />} />
+                    <Route path="/shop" element={<Navigate to="/marketplace/my-shop" replace />} />
+
+                    {/* ── Phase 4: Utility & Features ── */}
+                    <Route path="/onboarding" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
+                    <Route path="/onboarding/about" element={<OnboardingSheet />} />
+                    <Route path="/onboarding/sheets" element={<OnboardingSheet />} />
+                    <Route path="/onboarding/sheet" element={<OnboardingSheet />} />
+                    <Route path="/onboarding-sheet" element={<OnboardingSheet />} />
+
+                    {/* ── Phase 5: Public & Static ── */}
+                    <Route path="/about" element={<About />} />
+                    <Route path="/legal" element={<LegalViewer />} />
+                    <Route path="/legal/:documentId" element={<LegalViewer />} />
+                    <Route path="/ai" element={<SparkleAIScreen />} />
+                    {/* <Route path="/ai/study" element={<StudyAssistantScreen />} /> */}
+                    {/* <Route path="/ai/caption" element={<CaptionGeneratorScreen />} /> */}
+                    {/* <Route path="/ai/bio" element={<BioGeneratorScreen />} /> */}
+                    <Route path="/ai/search" element={<SearchSparkleScreen />} />
+                    <Route path="/ai/friend" element={<FriendDiscoveryScreen />} />
+                    <Route path="*" element={<NotFound />} />
+
+                    {/* ── Shell-routed pages: PageShell owns Navbar/sidebar + header/rail offsets (S1 / §3 P2-1) ── */}
+                    <Route element={<PageShell />}>
+                    <Route path="/profile/:username" element={isAuthenticated ? <Profile /> : <Navigate to="/login" />} />
+                    <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
+                    <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
                     <Route path="/settings/security" element={isAuthenticated ? <SecurityCentre /> : <Navigate to="/login" />} />
                     <Route path="/settings/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" />} />
@@ -460,13 +490,11 @@ function App() {
                     <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
                     <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
-                    <Route path="/stories/:userId" element={isAuthenticated ? <StoryViewer /> : <Navigate to="/login" />} />
                     <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id/settings" element={isAuthenticated ? <GroupAdmin /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id" element={isAuthenticated ? <GroupDetail /> : <Navigate to="/login" />} />
                     <Route path="/confessions" element={isAuthenticated ? <Confessions /> : <Navigate to="/login" />} />
                     <Route path="/confessions/:id" element={isAuthenticated ? <Confessions /> : <Navigate to="/login" />} />
-
                     <Route path="/marketplace/category/:categoryId" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/inbox" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/sell" element={isAuthenticated ? <SellItem /> : <Navigate to="/login" />} />
@@ -491,11 +519,8 @@ function App() {
                     <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
                     <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />
                     <Route path="/skill-market/hub" element={isAuthenticated ? <SkillHub /> : <Navigate to="/login" />} />
-
-                    {/* ── Phase 2: Social & Community ── */}
                     <Route path="/clubs" element={isAuthenticated ? <Clubs /> : <Navigate to="/login" />} />
                     <Route path="/clubs/:id" element={isAuthenticated ? <ClubDetail /> : <Navigate to="/login" />} />
-                    {/* --- Custom Svg Components to match the exact elements in the image --- */}
                     <Route
                       path="/learn-more"
                       element={
@@ -518,30 +543,15 @@ function App() {
                     <Route path="/events/admin" element={isAuthenticated ? <EventsAdmin /> : <Navigate to="/login" />} />
                     <Route path="/connect" element={isAuthenticated ? <Connect /> : <Navigate to="/login" />} />
                     <Route path="/follow-requests" element={isAuthenticated ? <FollowRequests /> : <Navigate to="/login" />} />
-
-                    {/* ── Phase 3: Content & Discovery ── */}
                     <Route path="/polls" element={isAuthenticated ? <Polls /> : <Navigate to="/login" />} />
                     <Route path="/polls/:id" element={isAuthenticated ? <PollDetail /> : <Navigate to="/login" />} />
                     <Route path="/hashtag/:tag" element={isAuthenticated ? <Hashtag /> : <Navigate to="/login" />} />
                     <Route path="/explore" element={isAuthenticated ? <Explore /> : <Navigate to="/login" />} />
-                    <Route path="/moments" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
-                    <Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
-                    <Route path="/story/:storyId" element={isAuthenticated ? <StorySnapshot /> : <Navigate to="/login" />} />
-                    <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
-                    <Route path="/moments/create" element={isAuthenticated ? <CreateMoment /> : <Navigate to="/login" />} />
-                    <Route path="/streams" element={isAuthenticated ? <Streams /> : <Navigate to="/login" />} />
                     <Route path="/professional-dashboard" element={isAuthenticated ? <ProfessionalDashboard /> : <Navigate to="/login" />} />
                     <Route path="/ads" element={isAuthenticated ? <Ads /> : <Navigate to="/login" />} />
                     <Route path="/studio" element={isAuthenticated ? <CreatorStudio /> : <Navigate to="/login" />} />
                     <Route path="/analytics" element={isAuthenticated ? <CreatorAnalytics /> : <Navigate to="/login" />} />
                     <Route path="/wallet/history" element={isAuthenticated ? <WalletHistory /> : <Navigate to="/login" />} />
-                    {/* Convenience alias routes */}
-                    <Route path="/live" element={<Navigate to="/streams" replace />} />
-                    <Route path="/upload" element={<Navigate to="/moments/create" replace />} />
-                    <Route path="/shop" element={<Navigate to="/marketplace/my-shop" replace />} />
-                    <Route path="/explore" element={<Explore />} />
-
-                    {/* ── Phase 4: Utility & Features ── */}
                     <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />
                     <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
                     <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
@@ -552,32 +562,17 @@ function App() {
                     <Route path="/verified" element={isAuthenticated ? <Verified /> : <Navigate to="/login" />} />
                     <Route path="/invite" element={isAuthenticated ? <Invite /> : <Navigate to="/login" />} />
                     <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
-                    <Route path="/onboarding" element={isAuthenticated ? <Onboarding /> : <Navigate to="/login" />} />
-                    <Route path="/onboarding/about" element={<OnboardingSheet />} />
-                    <Route path="/onboarding/sheets" element={<OnboardingSheet />} />
-                    <Route path="/onboarding/sheet" element={<OnboardingSheet />} />
-                    <Route path="/onboarding-sheet" element={<OnboardingSheet />} />
+                    </Route>
 
-                    {/* ── Phase 5: Public & Static ── */}
-                    <Route path="/about" element={<About />} />
-                    <Route path="/legal" element={<LegalViewer />} />
-                    <Route path="/legal/:documentId" element={<LegalViewer />} />
-                    <Route path="/ai" element={<SparkleAIScreen />} />
-                    {/* <Route path="/ai/study" element={<StudyAssistantScreen />} /> */}
-                    {/* <Route path="/ai/caption" element={<CaptionGeneratorScreen />} /> */}
-                    {/* <Route path="/ai/bio" element={<BioGeneratorScreen />} /> */}
-                    <Route path="/ai/search" element={<SearchSparkleScreen />} />
-                    <Route path="/ai/friend" element={<FriendDiscoveryScreen />} />
-                    <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
-                  {/* <FloatingAIButton /> */}
                 </div>
             </MockCallProvider>
           </GlobalThemeProvider>
         </NetworkStatusProvider>
       </CameraProvider>
       </SoundProvider>
+    </MotionConfig>
     </OTAUpdateProvider>
 
   );

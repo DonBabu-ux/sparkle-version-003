@@ -24,7 +24,7 @@ export default function FloatingAction() {
   ];
 
   return (
-    <div className="fixed bottom-8 right-8 z-[9998] hidden md:flex flex-col items-end gap-3 translate-x-0 translate-y-0">
+    <div className="fixed bottom-8 right-8 z-(--z-fab) hidden md:flex flex-col items-end gap-3 translate-x-0 translate-y-0">
       {/* Action Menu (Only show if NOT in messages page or if trigger is clicked) */}
       <div className={`flex flex-col items-end gap-3 transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
         {actions.map((action, i) => (

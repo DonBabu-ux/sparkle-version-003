@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Search, Book, MessageSquare, Shield, AlertTriangle, ChevronRight, Mail } from 'lucide-react';
-import Navbar from '../components/Navbar';
 
 export default function Help() {
   const navigate = useNavigate();
@@ -17,7 +16,6 @@ export default function Help() {
 
   return (
     <div className="help-root">
-      <Navbar />
       <div className="help-content">
         <div className="help-container responsive-container">
           <header className="help-header">
@@ -115,9 +113,9 @@ export default function Help() {
       </div>
 
       <style>{`
-        .help-root { display: flex; background: #F8FAFC; min-height: 100vh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: background 0.3s; }
+        .help-root { display: flex; background: #F8FAFC; min-height: 100dvh; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; transition: background 0.3s; }
         .dark .help-root { background: #000000; }
-        .help-content { flex: 1; height: 100vh; overflow-y: auto; padding: 20px; }
+        .help-content { flex: 1; height: 100dvh; overflow-y: auto; padding: 20px; }
         .help-container { max-width: 700px; margin: 40px auto; padding-bottom: 100px; }
         .help-header { display: flex; gap: 20px; margin-bottom: 30px; align-items: flex-start; }
         .back-btn { background: white; border: none; width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #1e293b; shadow: 0 4px 12px rgba(0,0,0,0.05); cursor: pointer; }

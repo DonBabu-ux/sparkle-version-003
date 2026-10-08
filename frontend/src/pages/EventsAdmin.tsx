@@ -1,6 +1,7 @@
+import { showError, showInfo } from '../utils/toast';
+import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { 
@@ -82,12 +83,12 @@ export default function EventsAdmin() {
         is_public: true,
         event_type: 'campus_event'
       });
-      alert('Event is now Live!');
+      showInfo('Event is now Live!');
       setFormData({ title: '', location: '', event_date: '', capacity: '', requirements: '', campus: user?.campus || 'Main Campus' });
       setShowCreateForm(false);
       fetchManagedEvents();
     } catch {
-      alert('Failed to broadcast event.');
+      showError('Failed to broadcast event.');
     }
   };
 
@@ -96,17 +97,17 @@ export default function EventsAdmin() {
       await api.patch(`/events/${id}/status`, { is_public: !is_public });
       fetchManagedEvents();
     } catch {
-      alert('Failed to update event status');
+      showError('Failed to update event status');
     }
   };
 
   const deleteEvent = async (id: string) => {
-    if (!confirm('Permanently remove this event?')) return;
+    if (!await confirmDialog('Permanently remove this event?')) return;
     try {
       await api.delete(`/events/${id}`);
       fetchManagedEvents();
     } catch {
-      alert('Failed to delete event');
+      showError('Failed to delete event');
     }
   };
 
@@ -120,7 +121,7 @@ export default function EventsAdmin() {
       setAttendeesList(res.data || []);
       setActiveEventAttendees(id);
     } catch {
-      alert('Failed to load attendees');
+      showError('Failed to load attendees');
     }
   };
 
@@ -129,15 +130,14 @@ export default function EventsAdmin() {
       await api.patch(`/events/${eventId}/rsvp/${userId}`, { status });
       loadAttendees(eventId); 
     } catch {
-      alert('Failed to process RSVP');
+      showError('Failed to process RSVP');
     }
   };
 
   return (
-    <div className="flex bg-[#fafafa] min-h-screen text-black overflow-x-hidden font-sans pb-20">
-      <Navbar />
+    <div className="flex bg-[#fafafa] min-h-dvh text-black overflow-x-hidden font-sans pb-20">
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-4xl mx-auto w-full pt-16 md:pt-24">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-4xl mx-auto w-full">
         
         {/* Compact Header */}
         <header className="mb-6 animate-fade-in">
@@ -311,8 +311,7 @@ export default function EventsAdmin() {
       </main>
 
       <style>{`
-        @keyframes scanLine { 0% { transform: translateY(-100%); } 100% { transform: translateY(200%); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

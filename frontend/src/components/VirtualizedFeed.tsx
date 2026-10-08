@@ -1,3 +1,4 @@
+import { scrollTopTo } from './AppScreen';
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import api from "../api/api";
 import PostCard from "./PostCard";
@@ -335,7 +336,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
     const onFocus = () => fetchNewPosts();
     const onHidePost = (e: any) => handleDeleted(e.detail);
     const onRefreshRequest = () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTopTo(0, 'smooth');
       fetchFeed(true);
     };
 
@@ -387,20 +388,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
       {/* 1. Shimmer/Shimmering inline styling */}
       <style>{`
-        @keyframes shimmer {
-          0% { background-position: -200% 0; }
-          100% { background-position: 200% 0; }
-        }
-        .animate-shimmer {
-          background: linear-gradient(90deg, rgba(0,0,0,0.03) 25%, rgba(0,0,0,0.08) 50%, rgba(0,0,0,0.03) 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-        }
-        .dark .animate-shimmer {
-          background: linear-gradient(90deg, rgba(255,255,255,0.02) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.02) 75%);
-          background-size: 200% 100%;
-          animation: shimmer 1.5s infinite;
-        }
+        
       `}</style>
 
       {/* Render Virtualized Rows */}

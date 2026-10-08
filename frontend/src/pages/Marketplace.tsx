@@ -1,7 +1,7 @@
+import ErrorRetry from '../components/ui/ErrorRetry';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
 import { useModalStore } from '../store/modalStore';
@@ -13,7 +13,7 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
-import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import ListingCard from '../components/marketplace/ListingCard';
 import { logger } from '../utils/logger';
 
 interface Listing {
@@ -63,6 +63,7 @@ export default function Marketplace() {
   const [listings, setListings] = useState<Listing[]>([]);
   const filteredListings = listings.filter(item => !reportedListings.includes(item.listing_id));
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   // Sync route param with store category
   useEffect(() => {
@@ -85,6 +86,7 @@ export default function Marketplace() {
 
   const fetchListings = useCallback(async (isRetry = false) => {
     if (!isRetry) setLoading(true);
+    setError(false);
     try {
       const currentCategory = categoryId || 'all';
       const params = new URLSearchParams({
@@ -129,6 +131,7 @@ export default function Marketplace() {
       if (!isRetry && list.length > 0) setIsFallback(false);
     } catch (err) {
       logger.error('Failed to fetch marketplace:', err);
+      setError(true);
     } finally {
       if (!isRetry) setLoading(false);
     }
@@ -143,12 +146,11 @@ export default function Marketplace() {
 
   return (
     <div className={clsx(
-        "flex bg-white min-h-screen text-marketplace-text font-sans",
+        "flex bg-white min-h-dvh text-marketplace-text font-sans",
         !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
-      <Navbar />
 
-      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
+      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white">
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">
@@ -355,44 +357,19 @@ export default function Marketplace() {
                     <div key={i} className="aspect-square bg-marketplace-bg animate-pulse" />
                   ))}
                 </div>
+              ) : error ? (
+                <ErrorRetry onRetry={() => fetchListings()} />
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px]">
                   {filteredListings.length > 0 ? (
                     filteredListings.map((item) => (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        key={item.listing_id} 
-                        className="bg-white cursor-pointer flex flex-col pb-4" 
+                      <ListingCard
+                        key={item.listing_id}
+                        variant="grid"
+                        listing={item}
+                        isVehicle={categoryId === 'vehicles'}
                         onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
-                      >
-                        <MarketplaceImageSlider
-                          media={item.media}
-                          imageUrls={item.image_urls}
-                          fallbackUrl={item.image_url}
-                          alt={item.title}
-                          aspectRatio="aspect-[4/5]"
-                        />
-                        <div className="px-2 pt-2 flex flex-col">
-                          {categoryId === 'vehicles' ? (
-                            <>
-                              <p className="text-[15px] font-bold text-marketplace-text leading-tight">KES{parseFloat(item.price as string).toLocaleString()}</p>
-                              <p className="text-[13px] text-marketplace-text line-clamp-1 mt-0.5">{item.title}</p>
-                              <p className="text-[12px] text-marketplace-muted mt-1">{item.condition || 'Used'}</p>
-                              <p className="text-[12px] text-marketplace-muted">{item.location_name || item.campus || 'Sparkle Network'}</p>
-                            </>
-                          ) : (
-                            <p className="text-[15px] text-marketplace-text leading-tight line-clamp-1">
-                              <span className="font-semibold">KES{parseFloat(item.price as string).toLocaleString()}</span> <span className="mx-0.5">·</span> {item.title}
-                            </p>
-                          )}
-                          {item.distance_km !== undefined && item.distance_km !== null && (
-                            <p className="text-[12px] text-marketplace-muted mt-1 flex items-center gap-1">
-                              <MapPin size={10} /> {item.distance_km < 1 ? 'Less than 1 km' : `${item.distance_km.toFixed(1)} km`} away
-                            </p>
-                          )}
-                        </div>
-                      </motion.div>
+                      />
                     ))
                   ) : (
                     <div className="col-span-full py-20 flex flex-col items-center text-center">

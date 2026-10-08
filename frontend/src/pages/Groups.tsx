@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock, ArrowLeft } from 'lucide-react';
 import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
@@ -36,17 +35,16 @@ export default function Groups() {
   ) ?? [];
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-screen text-[#1a1a2e] dark:text-white font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#1a1a2e] dark:text-white font-sans">
 
       {/* Decorative blobs */}
       <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
       <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
-      <main className="flex-1 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pt-[calc(5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
 
         {/* Header */}
-        <header className="mb-10" style={{ animation: 'slideUp 0.6s ease both' }}>
+        <header className="mb-10" style={{ animation: 'grpSlideUp 0.6s ease both' }}>
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               {/* Back Button & Badge Row */}
@@ -88,7 +86,7 @@ export default function Groups() {
         </header>
 
         {/* Search & Filters */}
-        <section className="mb-8" style={{ animation: 'slideUp 0.7s 0.1s ease both' }}>
+        <section className="mb-8" style={{ animation: 'grpSlideUp 0.7s 0.1s ease both' }}>
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
             {/* Search */}
             <div className="relative flex-1">
@@ -158,7 +156,7 @@ export default function Groups() {
                 onClick={() => navigate(`/groups/${group.group_id}`)}
                 className="cursor-pointer flex flex-col relative overflow-hidden bg-white dark:bg-[#101217] border border-primary/10 dark:border-white/10 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300"
                 style={{
-                  animation: `slideUp 0.5s ${idx * 0.05}s ease both`,
+                  animation: `grpSlideUp 0.5s ${idx * 0.05}s ease both`,
                 }}
               >
                 {/* Pink accent top line */}
@@ -232,10 +230,7 @@ export default function Groups() {
       </main>
 
       <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(18px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
+        
         input::placeholder { color: #94a3b8; font-style: normal; }
       `}</style>
     </div>

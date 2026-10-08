@@ -41,7 +41,7 @@ export const LocalPreview: React.FC<{ isCameraOn: boolean }> = ({ isCameraOn }) 
             </span>
             <button
               onClick={switchCamera}
-              className="p-1 bg-white/20 hover:bg-white/30 active:scale-90 rounded-full transition-all"
+              className="tap-target p-2 bg-white/20 hover:bg-white/30 active:scale-90 rounded-full transition-all flex items-center justify-center"
               title="Switch camera"
             >
               <RefreshCw size={12} className="text-white" />

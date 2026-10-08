@@ -3,6 +3,7 @@ import { X, Search, Check, Loader2, UserPlus } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface GroupInviteModalProps {
   groupId: string;
@@ -24,6 +25,8 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [sending, setSending] = useState(false);
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -69,7 +72,11 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      ref={a11yRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      className="fixed inset-0 z-(--z-top) flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

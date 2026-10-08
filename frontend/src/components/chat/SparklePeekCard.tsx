@@ -35,7 +35,7 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[450] bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
+        className="fixed inset-0 z-(--z-modal) bg-black/75 backdrop-blur-md flex items-center justify-center p-4"
         onClick={onClose}
       >
         <motion.div

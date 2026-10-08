@@ -30,10 +30,23 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
   const [pullY, setPullY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
+  // S9: the REAL scroller is AppScreen's inner wrapper; this outer container
+  // only ever scrolls on pages that don't render AppScreen. Falling back to it
+  // keeps raw min-h-dvh pages working.
+  const getScroller = (): HTMLElement | null => {
+    const root = containerRef.current;
+    if (!root) return null;
+    return root.querySelector<HTMLElement>('.sparkle-screen-content-wrapper') ?? root;
+  };
+  const isAtTop = (): boolean => {
+    const scroller = getScroller();
+    return !!scroller && scroller.scrollTop === 0;
+  };
+
   useGesture(
     {
       onDrag: ({ down, movement: [, my] }) => {
-        if (containerRef.current && containerRef.current.scrollTop === 0 && my > 0) {
+        if (isAtTop() && my > 0) {
           setIsDragging(true);
           // Apply native-feeling logarithmic resistance formula
           const resistance = Math.min(my * 0.4, 90);
@@ -45,7 +58,7 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
       },
       onDragEnd: ({ movement: [, my] }) => {
         setIsDragging(false);
-        if (containerRef.current && containerRef.current.scrollTop === 0 && my > 70) {
+        if (isAtTop() && my > 70) {
           window.dispatchEvent(new CustomEvent('pull-to-refresh-trigger'));
         }
         setPullY(0);
@@ -64,47 +77,56 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
         className="no-scrollbar relative w-full select-none" 
         style={{ 
           overflowY: 'auto', 
-          height: '100vh', 
+          height: '100dvh', 
           WebkitOverflowScrolling: 'touch',
           touchAction: 'pan-y'
         }}
       >
-        {/* Animated Refresh Indicator Container */}
+        {/* S9: the pill is position:fixed (viewport top, above app chrome) so the
+            navbar can never cover it; it is NOT an ancestor-transformed layer. */}
         <AnimatePresence>
           {(pullY > 10 || isAnyRefreshing) && (
             <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ 
-                height: isAnyRefreshing ? 60 : Math.max(0, pullY), 
-                opacity: 1 
-              }}
-              exit={{ height: 0, opacity: 0 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-              className="w-full flex items-center justify-center overflow-hidden shrink-0 z-50 bg-transparent"
+              role="status" aria-live="polite"
+              className="fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top,0px)+8px)] z-(--z-sheet) flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg pointer-events-none"
             >
-              <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg">
-                <RefreshCw 
-                  size={16} 
-                  className={`text-primary ${isAnyRefreshing ? 'animate-spin' : ''}`}
-                  style={{
-                    transform: !isAnyRefreshing ? `rotate(${pullY * 4}deg)` : undefined
-                  }}
-                />
-                <span className="text-[10px] font-black uppercase tracking-widest text-black/50 dark:text-white/50">
-                  {isAnyRefreshing ? 'Updating...' : pullY > 60 ? 'Release to refresh' : 'Pull down to update'}
-                </span>
-              </div>
+              <RefreshCw 
+                size={16}
+                className={`text-primary ${isAnyRefreshing ? 'animate-spin' : ''}`}
+                style={{
+                  transform: !isAnyRefreshing ? `rotate(${pullY * 4}deg)` : undefined
+                }}
+              />
+              <span className="text-[10px] font-black uppercase tracking-widest text-black/50 dark:text-white/50">
+                {isAnyRefreshing ? 'Updating...' : pullY > 60 ? 'Release to refresh' : 'Pull down to update'}
+              </span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        <motion.div
-          animate={{ y: isAnyRefreshing ? 0 : pullY * 0.5 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-          className="w-full min-h-full"
-        >
-          {children}
-        </motion.div>
+        {/* S9: in-flow spacer provides the pull push (moves static content only —
+            position:fixed chrome is unaffected; the old y:pullY*0.5 content
+            transform that dragged the navbar/tab bar is gone). */}
+        <AnimatePresence>
+          {(pullY > 0 || isAnyRefreshing) && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{
+                height: isAnyRefreshing ? 60 : Math.max(0, pullY),
+                opacity: 1
+              }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 350 }}
+              className="w-full overflow-hidden shrink-0"
+            />
+          )}
+        </AnimatePresence>
+
+        {children}
       </div>
     </PullToRefreshContext.Provider>
   );

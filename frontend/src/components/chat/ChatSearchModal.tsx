@@ -6,6 +6,7 @@ import {
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ChatSearchModalProps {
   chatId: string;
@@ -68,6 +69,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
   const currentTheme = getThemeForChat(chatId);
   const primaryColor = currentTheme?.colors?.primary || '#ff1493';
   const chatBubbleSent = currentTheme?.colors?.chatBubbleSent || primaryColor;
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && chatId) {
@@ -115,7 +117,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
       
       {/* Top Search & Filter Bar with Back Button */}
       <header className="p-4 border-b border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl flex flex-col gap-3 sticky top-0 z-30">

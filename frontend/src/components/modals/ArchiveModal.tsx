@@ -1,8 +1,11 @@
+import { confirmDialog } from '../../store/dialogStore';
+import { lockScroll, unlockScroll } from '../AppScreen';
 import React, { useState, useEffect } from 'react';
 import { X, Orbit, Trash2, ExternalLink, ArrowLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface Story {
   id: string;
@@ -20,15 +23,17 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
   const [stories, setStories] = useState<Story[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
+  const a11yRef = useModalA11y(isOpen && selectedStory === null, onClose);
+  const storyPreviewRef = useModalA11y(selectedStory !== null, () => setSelectedStory(null));
 
   useEffect(() => {
     if (isOpen) {
       fetchArchive();
-      document.body.style.overflow = 'hidden';
+      lockScroll();
     } else {
-      document.body.style.overflow = 'unset';
+      unlockScroll();
     }
-    return () => { document.body.style.overflow = 'unset'; };
+    return () => { unlockScroll(); };
   }, [isOpen]);
 
   const fetchArchive = async () => {
@@ -44,7 +49,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
   };
 
   const handleDelete = async (storyId: string) => {
-    if (!window.confirm('Delete this story from your archive forever?')) return;
+    if (!await confirmDialog('Delete this story from your archive forever?')) return;
     try {
       await api.delete(`/stories/${storyId}`);
       setStories(stories.filter(s => s.id !== storyId));
@@ -57,7 +62,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10001] bg-[#0a0a0a] flex flex-col animate-fade-in">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[10001] bg-[#0a0a0a] flex flex-col animate-fade-in">
       {/* Full Page Header */}
       <div className="flex items-center justify-between p-6 border-b border-white/5 bg-black/40 backdrop-blur-xl shrink-0">
         <div className="flex items-center gap-4">
@@ -150,7 +155,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
 
       {/* Story Preview Overlay (Full Screen) */}
       {selectedStory && (
-        <div className="fixed inset-0 z-[10002] bg-black flex flex-col animate-scale-in">
+        <div ref={storyPreviewRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[10002] bg-black flex flex-col animate-scale-in">
           <div className="absolute top-0 inset-x-0 p-6 flex justify-between items-center z-20 bg-gradient-to-b from-black/80 to-transparent">
             <button 
               onClick={() => setSelectedStory(null)} 
@@ -181,14 +186,14 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
               <video 
                 src={selectedStory.media_url} 
                 controls 
-                className="max-w-full max-h-screen sm:rounded-2xl shadow-2xl" 
+                className="max-w-full max-h-dvh sm:rounded-2xl shadow-2xl" 
                 autoPlay 
               />
             ) : (
               <img 
                 src={selectedStory.media_url} 
                 alt="" 
-                className="max-w-full max-h-screen sm:rounded-2xl shadow-2xl object-contain" 
+                className="max-w-full max-h-dvh sm:rounded-2xl shadow-2xl object-contain" 
               />
             )}
           </div>
@@ -211,9 +216,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .animate-fade-in { animation: fadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
         .animate-scale-in { animation: scaleIn 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>

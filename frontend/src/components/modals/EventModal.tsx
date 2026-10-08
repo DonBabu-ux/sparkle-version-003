@@ -1,8 +1,10 @@
+import { showError } from '../../utils/toast';
 import { useState } from 'react';
 import { X, Calendar, MapPin, Users, Clock, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface EventModalProps {
   onClose: () => void;
@@ -16,10 +18,12 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
   const [location, setLocation] = useState('');
   const [capacity, setCapacity] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const handleSubmit = async () => {
     if (!title.trim() || !start) {
-      alert('Title and start time are required');
+      showError('Title and start time are required');
       return;
     }
 
@@ -39,14 +43,14 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
       onClose();
     } catch (err) {
       logger.error('Event creation failed:', err);
-      alert('Failed to publish event.');
+      showError('Failed to publish event.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="flex flex-col bg-white rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
       <div className="absolute top-0 right-0 p-12 text-black/[0.01] pointer-events-none">
           <Orbit size={240} strokeWidth={1} className="animate-spin-slow" />
       </div>
@@ -163,8 +167,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 45s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
       `}</style>
     </div>
   );

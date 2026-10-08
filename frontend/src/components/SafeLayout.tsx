@@ -114,8 +114,8 @@ export const KeyboardSafeContainer: React.FC<{
 }> = ({ children, className = '', style }) => {
   // Use static full viewport height to allow browser to handle keyboard overlays.
   const containerStyle: React.CSSProperties = {
-    height: '100vh',
-    maxHeight: '100vh',
+    height: '100dvh',
+    maxHeight: '100dvh',
     overflow: 'hidden',
     position: 'relative',
     ...style,

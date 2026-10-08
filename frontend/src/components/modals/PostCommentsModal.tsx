@@ -1,3 +1,6 @@
+import { showInfo, showSuccess } from '../../utils/toast';
+import { confirmDialog } from '../../store/dialogStore';
+import { lockScroll, unlockScroll } from '../AppScreen';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { X, Heart, Loader2, ChevronDown, Check, Smile, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,6 +14,7 @@ import { formatCount } from '../../utils/format';
 import { emitHeart } from '../TikTokHearts';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface Comment {
   comment_id: string;
@@ -171,9 +175,9 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   };
 
   useEffect(() => {
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     return () => {
-      document.body.style.overflow = 'unset';
+      unlockScroll();
     };
   }, []);
 
@@ -182,6 +186,9 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
   const GIPHY_API_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
+  // Conditionally mounted by its parent; suspend while the nested sort sheet is open.
+  const a11yRef = useModalA11y(!showSortModal, onClose);
+  const sortSheetRef = useModalA11y(showSortModal, () => setShowSortModal(false));
 
   useEffect(() => {
     if (showStickers) {
@@ -206,7 +213,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   }, [showStickers, giphySearch]);
 
   return (
-    <div className="flex flex-col h-[85vh] md:h-[600px] w-full max-w-full bg-white dark:bg-[#101217] overflow-hidden relative border-x border-t border-black/5 dark:border-white/10 rounded-t-[12px] shadow-2xl mx-auto">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col h-[85vh] md:h-[600px] w-full max-w-full bg-white dark:bg-[#101217] overflow-hidden relative border-x border-t border-black/5 dark:border-white/10 rounded-t-[12px] shadow-2xl mx-auto">
       {/* Sticker Picker Overlay */}
       <AnimatePresence>
         {showStickers && (
@@ -324,8 +331,8 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                 post={post}
                 onReply={(c) => setReplyingTo(c)} 
                 onLike={(id) => handleLike(id)} 
-                onDelete={(id) => {
-                   if (!window.confirm('Delete this comment?')) return;
+                onDelete={async (id) => {
+                   if (!await confirmDialog('Delete this comment?')) return;
                    api.delete(`/posts/comments/${id}`).then(() => {
                       setComments(prev => prev.filter(c => c.comment_id !== id));
                    });
@@ -435,6 +442,10 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[2000]"
             />
             <motion.div 
+              ref={sortSheetRef}
+              role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -609,6 +620,15 @@ function CommentItem({
                 <MentionText content={comment.content} className={clsx(comment.content.length > 200 && !isExpanded && "line-clamp-6")} />
               )
             )}
+            {comment.content.length > 200 && (
+              <button
+                type="button"
+                onClick={() => setIsExpanded(!isExpanded)}
+                className="mt-1 text-[12px] font-bold text-black/40 dark:text-white/40 hover:text-primary transition-colors"
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </button>
+            )}
           </div>
         </div>
 
@@ -622,9 +642,9 @@ function CommentItem({
             {showMenu && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#101217] rounded-lg shadow-xl border border-black/5 dark:border-white/10 py-1 z-50 animate-scale-in">
                 {!isAuthor && (
-                  <button onClick={() => { setShowMenu(false); alert('Comment reported.'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Report</button>
+                  <button onClick={() => { setShowMenu(false); showInfo('Comment reported.'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Report</button>
                 )}
-                <button onClick={() => { setShowMenu(false); navigator.clipboard.writeText(comment.content); alert('Copied!'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Copy</button>
+                <button onClick={() => { setShowMenu(false); navigator.clipboard.writeText(comment.content); showSuccess('Copied!'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Copy</button>
                 {isAuthor && (
                   <button onClick={() => { setShowMenu(false); setIsEditing(true); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Edit</button>
                 )}

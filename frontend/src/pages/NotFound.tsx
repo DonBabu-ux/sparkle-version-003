@@ -4,7 +4,7 @@ import { Home, Search, ArrowLeft } from 'lucide-react';
 export default function NotFound() {
   return (
     <div style={{
-      minHeight: '100vh',
+      minHeight: '100dvh',
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Database, HardDrive, Trash2, Shield, Activity, RefreshCw } from 'lucide-react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { logger } from '../utils/logger';
 
 interface StorageStats {
@@ -54,47 +53,46 @@ export default function StorageIntelligencePanel() {
     };
 
     return (
-        <div className="flex bg-[#0f0f0f] min-h-screen text-white font-sans">
-            <Navbar />
+        <div className="flex bg-[#fafafa] min-h-dvh text-black font-sans dark:bg-[#0f0f0f] dark:text-white">
             <main className="flex-1 p-6 lg:p-10">
                 <div className="flex items-center justify-between mb-8">
                     <div>
                         <h1 className="text-3xl font-black mb-2 flex items-center gap-3">
                             <Database className="text-primary" /> Storage Intelligence
                         </h1>
-                        <p className="text-white/50 text-sm">Centralized view of Cloudinary media lifecycle and optimizations.</p>
+                        <p className="text-black/50 text-sm dark:text-white/50">Centralized view of Cloudinary media lifecycle and optimizations.</p>
                     </div>
-                    <button onClick={fetchStats} className="bg-white/10 p-3 rounded-full hover:bg-white/20 transition-all">
+                    <button onClick={fetchStats} className="bg-black/5 p-3 rounded-full hover:bg-black/10 transition-all dark:bg-white/10 dark:hover:bg-white/20">
                         <RefreshCw size={20} className={loading ? 'animate-spin' : ''} />
                     </button>
                 </div>
 
                 {loading && !stats ? (
                     <div className="animate-pulse space-y-4">
-                        <div className="h-32 bg-white/5 rounded-2xl w-full" />
-                        <div className="grid grid-cols-2 gap-4"><div className="h-48 bg-white/5 rounded-2xl" /><div className="h-48 bg-white/5 rounded-2xl" /></div>
+                        <div className="h-32 bg-black/5 rounded-2xl w-full dark:bg-white/5" />
+                        <div className="grid grid-cols-2 gap-4"><div className="h-48 bg-black/5 rounded-2xl dark:bg-white/5" /><div className="h-48 bg-black/5 rounded-2xl dark:bg-white/5" /></div>
                     </div>
                 ) : stats ? (
                     <div className="space-y-6">
                         {/* High Level Stats */}
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center gap-6">
+                            <div className="bg-black/5 border-black/10 p-6 dark:bg-white/5 dark:border-white/10 rounded-3xl flex items-center gap-6">
                                 <div className="w-16 h-16 rounded-full bg-blue-500/20 flex items-center justify-center">
                                     <HardDrive size={32} className="text-blue-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white/40 text-sm font-bold uppercase tracking-widest mb-1">Total Payload</p>
+                                    <p className="text-black/50 text-sm font-bold uppercase tracking-widest mb-1 dark:text-white/40">Total Payload</p>
                                     <h2 className="text-4xl font-black">{formatBytes(stats.total_bytes)}</h2>
-                                    <p className="text-white/60 text-sm mt-1">{stats.total_assets} Indexed Assets</p>
+                                    <p className="text-black/60 text-sm mt-1 dark:text-white/60">{stats.total_assets} Indexed Assets</p>
                                 </div>
                             </div>
 
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-3xl flex items-center gap-6">
+                            <div className="bg-black/5 border-black/10 p-6 dark:bg-white/5 dark:border-white/10 rounded-3xl flex items-center gap-6">
                                 <div className="w-16 h-16 rounded-full bg-rose-500/20 flex items-center justify-center">
                                     <Trash2 size={32} className="text-rose-500" />
                                 </div>
                                 <div>
-                                    <p className="text-white/40 text-sm font-bold uppercase tracking-widest mb-1">Pending Cleanup</p>
+                                    <p className="text-black/50 text-sm font-bold uppercase tracking-widest mb-1 dark:text-white/40">Pending Cleanup</p>
                                     <h2 className="text-4xl font-black">
                                         {stats.lifecycles.find(l => l.lifecycle_state === 'pending_cleanup')?.count || 0}
                                     </h2>
@@ -111,42 +109,42 @@ export default function StorageIntelligencePanel() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Categories */}
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
+                            <div className="bg-black/5 border-black/10 p-6 dark:bg-white/5 dark:border-white/10 rounded-3xl">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Activity size={18} /> Storage by Category</h3>
                                 <div className="space-y-4">
                                     {stats.categories.map(cat => (
                                         <div key={cat.category} className="flex items-center justify-between">
                                             <div className="flex flex-col">
-                                                <span className="text-white capitalize font-medium">{cat.category}</span>
-                                                <span className="text-white/40 text-xs">{cat.count} files</span>
+                                                <span className="text-black capitalize font-medium dark:text-white">{cat.category}</span>
+                                                <span className="text-black/50 text-xs dark:text-white/40">{cat.count} files</span>
                                             </div>
                                             <span className="font-bold">{formatBytes(cat.bytes)}</span>
                                         </div>
                                     ))}
-                                    {stats.categories.length === 0 && <p className="text-white/30 text-sm">No data</p>}
+                                    {stats.categories.length === 0 && <p className="text-black/40 text-sm dark:text-white/30">No data</p>}
                                 </div>
                             </div>
 
                             {/* Lifecycle & Intelligence */}
-                            <div className="bg-white/5 border border-white/10 p-6 rounded-3xl">
+                            <div className="bg-black/5 border-black/10 p-6 dark:bg-white/5 dark:border-white/10 rounded-3xl">
                                 <h3 className="text-lg font-bold mb-4 flex items-center gap-2"><Shield size={18} /> Lifecycle Intelligence</h3>
                                 <div className="space-y-4">
                                     {stats.lifecycles.map(life => (
                                         <div key={life.lifecycle_state} className="flex items-center justify-between">
-                                            <span className="text-white capitalize font-medium flex items-center gap-2">
+                                            <span className="text-black capitalize font-medium flex items-center gap-2 dark:text-white">
                                                 <div className={`w-2 h-2 rounded-full ${life.lifecycle_state === 'active' ? 'bg-green-500' : life.lifecycle_state === 'reusable' ? 'bg-blue-500' : 'bg-orange-500'}`} />
                                                 {life.lifecycle_state.replace('_', ' ')}
                                             </span>
-                                            <span className="font-bold text-white/80">{life.count}</span>
+                                            <span className="font-bold text-black/80 dark:text-white/80">{life.count}</span>
                                         </div>
                                     ))}
-                                    {stats.lifecycles.length === 0 && <p className="text-white/30 text-sm">No data</p>}
+                                    {stats.lifecycles.length === 0 && <p className="text-black/40 text-sm dark:text-white/30">No data</p>}
                                 </div>
                             </div>
                         </div>
                     </div>
                 ) : (
-                    <div className="text-center text-white/30 py-20">Failed to load intel.</div>
+                    <div className="text-center text-black/40 py-20 dark:text-white/30">Failed to load intel.</div>
                 )}
             </main>
         </div>

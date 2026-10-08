@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Orbit, Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
-import Navbar from '../components/Navbar';
+import ErrorRetry from '../components/ui/ErrorRetry';
 import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
@@ -72,25 +71,29 @@ function LazyMediaCard({ m, idx, onClick }: { m: Post; idx: number; onClick: () 
 export default function Gallery() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [media, setMedia] = useState<Post[]>([]);
   const [filter, setFilter] = useState<'all' | 'photos' | 'videos'>('all');
 
-  useEffect(() => {
-    const fetchMedia = async () => {
-      setLoading(true);
-      try {
-        const res = await api.get('/posts/feed?limit=40');
-        const items = res.data.posts || res.data || [];
-        // Filter out posts without media
-        setMedia(items.filter((i: Post) => i.media_url && i.media_url !== '/uploads/defaults/no-image.png'));
-      } catch (err) {
-        logger.error('Failed to fetch gallery:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchMedia();
+  const fetchMedia = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await api.get('/posts/feed?limit=40');
+      const items = res.data.posts || res.data || [];
+      // Filter out posts without media
+      setMedia(items.filter((i: Post) => i.media_url && i.media_url !== '/uploads/defaults/no-image.png'));
+    } catch (err) {
+      logger.error('Failed to fetch gallery:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchMedia();
+  }, [fetchMedia]);
 
   const filteredMedia = media.filter(m => {
     if (filter === 'all') return true;
@@ -101,8 +104,7 @@ export default function Gallery() {
   });
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden pt-20 lg:pt-0">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden">
       <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
         {/* Subtle ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
@@ -146,12 +148,11 @@ export default function Gallery() {
                 <div key={i} className="aspect-square bg-black/[0.02] border border-black/5 rounded-[32px] md:rounded-[48px] animate-pulse" />
               ))}
             </div>
+          ) : error ? (
+            <ErrorRetry onRetry={fetchMedia} />
           ) : filteredMedia.length === 0 ? (
             <div className="py-32 md:py-64 flex flex-col items-center justify-center gap-8 md:gap-12 text-center animate-fade-in bg-black/[0.01] border-[8px] md:border-[12px] border-dashed border-black/5 rounded-[48px] md:rounded-[96px] shadow-inner px-4">
-               <div className="relative">
-                  <Spinner size="large" color="text-primary" />
-                  <Layers size={40} strokeWidth={1} className="absolute inset-0 m-auto text-black/10 md:w-[60px] md:h-[60px]" />
-               </div>
+               <Layers size={40} strokeWidth={1} className="text-black/10 md:w-[60px] md:h-[60px]" />
                <div className="space-y-4 md:space-y-6">
                  <h3 className="font-heading font-black text-3xl md:text-5xl text-black/10 italic uppercase tracking-tighter">Archive Empty.</h3>
                  <p className="text-[10px] md:text-sm font-medium text-black/20 uppercase tracking-[0.2em] max-w-xs mx-auto">You haven't shared any {filter !== 'all' ? filter : 'media'} yet.</p>
@@ -169,12 +170,8 @@ export default function Gallery() {
       </div>
 
       <style>{`
-        .animate-fade-in { animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
-        .animate-spin-slow { animation: spin 40s linear infinite; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

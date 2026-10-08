@@ -52,7 +52,7 @@ export default function StorySnapshot() {
 
     if (loading) {
         return (
-            <div className="h-screen bg-black flex items-center justify-center">
+            <div className="h-dvh bg-black flex items-center justify-center">
                 <Spinner size="medium" color="text-primary" />
             </div>
         );
@@ -60,7 +60,7 @@ export default function StorySnapshot() {
 
     if (error || !story) {
         return (
-            <div className="h-screen bg-black flex flex-col items-center justify-center p-6">
+            <div className="h-dvh bg-black flex flex-col items-center justify-center p-6">
                 <div className="w-16 h-16 bg-white/10 rounded-full flex items-center justify-center mb-4">
                     <EyeOff size={32} className="text-white/50" />
                 </div>
@@ -79,7 +79,7 @@ export default function StorySnapshot() {
     }
 
     return (
-        <div className="h-screen bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
+        <div className="h-dvh bg-black flex flex-col items-center justify-center p-6 relative overflow-hidden">
             {/* Background Blur */}
             <div 
                 className="absolute inset-0 opacity-20 blur-3xl transform scale-110"

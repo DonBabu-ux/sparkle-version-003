@@ -66,7 +66,7 @@ export const SparkleSelectionMenu: React.FC<SparkleSelectionMenuProps> = ({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-[2px]"
+        className="fixed inset-0 z-(--z-modal) bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
       >
         <motion.div

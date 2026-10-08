@@ -12,6 +12,7 @@ import api from '../../api/api';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface SelectionItem {
   name: string;
@@ -101,6 +102,9 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
   
   const [friends, setFriends] = useState<TaggedUser[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(false);
+  const a11yRef = useModalA11y(view === 'main', onClose);
+  const suboptionsRef = useModalA11y(view === 'suboptions', onClose);
+  const customRef = useModalA11y(view === 'custom', onClose);
 
   useEffect(() => {
     if (activeTab === 'tag') {
@@ -173,7 +177,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
 
   if (view === 'suboptions') {
     return (
-      <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div ref={suboptionsRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100dvh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-zinc-950 z-10">
           <button onClick={() => setView('main')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
             <ArrowLeft size={22} className="text-gray-900 dark:text-white" strokeWidth={2.5} />
@@ -200,7 +204,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
 
   if (view === 'custom') {
     return (
-      <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+      <div ref={customRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100dvh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
         <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 sticky top-0 bg-white dark:bg-zinc-950 z-10">
           <button onClick={() => setView('suboptions')} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 transition-colors">
             <ArrowLeft size={22} className="text-gray-900 dark:text-white" strokeWidth={2.5} />
@@ -232,7 +236,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
   }
 
   return (
-    <div className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100vh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100dvh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 bg-white dark:bg-zinc-950 sticky top-0 z-10">
         <button 

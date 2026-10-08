@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, UserPlus, Users, UserCheck, Sparkles, Orbit, Compass, Zap, CheckCircle2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
@@ -105,10 +104,9 @@ export default function Connect() {
   const SKELETON_COUNT = 6;
 
   return (
-    <div className="flex bg-app min-h-screen text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
-      <Navbar />
+    <div className="flex bg-app min-h-dvh text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(6rem+env(safe-area-inset-top))] md:pt-12">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full">
         
         {/* ── Header ── */}
         <header className="mb-10 animate-fade-in flex items-end justify-between">
@@ -211,10 +209,8 @@ export default function Connect() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

@@ -20,6 +20,7 @@ import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 export interface PeopleHubUser {
   user_id: string;
@@ -75,6 +76,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
   actionLabel
 }) => {
   const currentUser = useUserStore((state) => state.user);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   // Active Tab: 'sparkle' (Mutual connections) | 'contacts' (Device contacts)
   const [activeTab, setActiveTab] = useState<'sparkle' | 'contacts'>('sparkle');
@@ -287,11 +289,13 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
   return (
     <AnimatePresence>
       <motion.div
+        ref={a11yRef}
+        role="dialog" aria-modal="true" tabIndex={-1}
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 30 }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="fixed inset-0 z-[120] bg-[#0b141a] text-white flex flex-col overflow-hidden select-none"
+        className="fixed inset-0 z-(--z-modal) bg-[#0b141a] text-white flex flex-col overflow-hidden select-none"
       >
         {/* --- HEADER BAR --- */}
         <div className="h-16 px-4 border-b border-white/10 bg-[#13131a]/90 backdrop-blur-xl flex items-center justify-between shrink-0">

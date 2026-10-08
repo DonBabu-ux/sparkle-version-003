@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface AutoWithdrawalConfig {
   config_id?: string;
@@ -51,6 +52,7 @@ export function AutoWithdrawalModal({
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   // Fetch current config on open
   useEffect(() => {
@@ -147,7 +149,7 @@ export function AutoWithdrawalModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

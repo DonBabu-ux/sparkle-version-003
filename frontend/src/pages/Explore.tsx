@@ -1,7 +1,7 @@
+import Skeleton from '../components/ui/Skeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, MessageCircle, Heart, Search, Filter } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -142,8 +142,7 @@ export default function Explore() {
   }, [loading, loadingMore, hasMore, page]);
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
-      <Navbar />
+    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
 
       {/* Main Content Area */}
       <div className="flex-1 w-full">
@@ -190,7 +189,7 @@ export default function Explore() {
           {loading && page === 1 && mediaItems.length === 0 ? (
             <div className="grid grid-cols-3 gap-1 md:gap-6">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl animate-pulse" />
+                <Skeleton key={i} className="aspect-square border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl" />
               ))}
             </div>
           ) : mediaItems.length === 0 ? (

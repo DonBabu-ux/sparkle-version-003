@@ -2,7 +2,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
 import api from '../../api/api';
 import ProfileIdentityPreview from './ProfileIdentityPreview';
-import BioMentionRail, { type MentionUser } from './BioMentionRail';
+import MentionAutocomplete, { type MentionOption } from '../MentionAutocomplete';
+import { useMentionSearch } from '../../hooks/useMentionSearch';
+import { VerifiedBadge } from '../common/VerifiedBadge';
 import {
   ArrowLeft,
   Camera,
@@ -25,6 +27,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import type { User } from '../../types/user';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -123,6 +126,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   // Modal dialog states
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
+  // Suspend the main dialog while a confirmation sheet is stacked on top.
+  const a11yRef = useModalA11y(
+    isOpen && !showDiscardConfirm && !showUsernameConfirm,
+    onClose,
+  );
+  const discardRef = useModalA11y(isOpen && showDiscardConfirm, () => setShowDiscardConfirm(false));
+  const usernameRef = useModalA11y(isOpen && showUsernameConfirm, () => setShowUsernameConfirm(false));
 
   // Status & feedback
   const [saving, setSaving] = useState(false);
@@ -149,6 +159,13 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const [cursorPos, setCursorPos] = useState(0);
   const [mentionQuery, setMentionQuery] = useState<string | null>(null);
   const bioTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const { options: mentionOptions, loading: mentionLoading } = useMentionSearch(mentionQuery ?? '', {
+    enabled: mentionQuery !== null,
+    minLength: 0,
+    debounceMs: 250,
+    eagerLoading: true,
+    limit: 8,
+  });
 
   // Search queries for selectors
   const [campusSearch, setCampusSearch] = useState('');
@@ -337,7 +354,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   };
 
   // Insert mention into biography at cursor
-  const handleInsertMention = (selectedUser: MentionUser) => {
+  const handleInsertMention = (selectedUser: MentionOption) => {
     const username = selectedUser.username.replace(/^@/, '');
     const textBeforeCursor = tempBio.slice(0, cursorPos);
     const textAfterCursor = tempBio.slice(cursorPos);
@@ -521,7 +538,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1200] flex items-center justify-center p-0 md:p-4 bg-black/75 backdrop-blur-xl animate-fade-in font-sans">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[1200] flex items-center justify-center p-0 md:p-4 bg-black/75 backdrop-blur-xl animate-fade-in font-sans">
       {/* Hidden file inputs for camera and gallery */}
       <input
         type="file"
@@ -1113,10 +1130,76 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
 
                 {/* Inline @ Mention Rail when query is active */}
                 {mentionQuery !== null && (
-                  <BioMentionRail
-                    query={mentionQuery}
-                    onSelectUser={handleInsertMention}
-                    className="mt-2"
+                  <MentionAutocomplete
+                    options={mentionOptions}
+                    loading={mentionLoading && mentionOptions.length === 0}
+                    onSelect={handleInsertMention}
+                    onClose={() => setMentionQuery(null)}
+                    className="mt-2 w-full overflow-hidden rounded-2xl bg-white dark:bg-zinc-900 border border-black/10 dark:border-white/10 shadow-2xl backdrop-blur-2xl transition-all"
+                    header={
+                      <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] font-bold text-black/40 dark:text-white/40 uppercase tracking-wider">
+                        <span>Mention User</span>
+                        {mentionLoading && <Loader2 size={12} className="animate-spin text-pink-500" />}
+                      </div>
+                    }
+                    scrollClassName="max-h-48 overflow-y-auto divide-y divide-black/[0.03] dark:divide-white/[0.03]"
+                    loadingContent={
+                      <div className="py-4 text-center text-xs text-black/40 dark:text-white/40">
+                        Searching Sparkle users...
+                      </div>
+                    }
+                    emptyContent={
+                      <div className="py-4 text-center text-xs text-black/40 dark:text-white/40">
+                        No matching users found
+                      </div>
+                    }
+                    renderOption={(user, { active, optionProps }) => {
+                      const displayName = user.name || user.username;
+                      const avatarUrl = user.avatar_url || user.avatar;
+
+                      return (
+                        <button
+                          type="button"
+                          {...optionProps}
+                          className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
+                            active
+                              ? 'bg-pink-500/10 text-pink-600 dark:text-pink-400'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5 text-black dark:text-white'
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-black/5 dark:bg-white/10 flex items-center justify-center border border-black/5 dark:border-white/10">
+                            {avatarUrl ? (
+                              <img
+                                src={avatarUrl}
+                                alt={displayName}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`;
+                                }}
+                              />
+                            ) : (
+                              <UserIcon size={14} className="text-black/40 dark:text-white/40" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1">
+                              <span className="text-xs font-bold truncate">{displayName}</span>
+                              {user.is_verified && (
+                                <VerifiedBadge
+                                  accountType={user.account_type || 'user'}
+                                  isVerified={true}
+                                  size="xs"
+                                />
+                              )}
+                            </div>
+                            <div className="text-[11px] text-black/40 dark:text-white/40 font-mono truncate">
+                              @{user.username}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }}
                   />
                 )}
 
@@ -1379,7 +1462,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       {/* MODAL: UNSAVED CHANGES CONFIRMATION */}
       {/* ======================================================== */}
       {showDiscardConfirm && (
-        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-scale-in">
+        <div ref={discardRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[1300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-scale-in">
           <div className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-2xl space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-500 flex items-center justify-center mx-auto">
               <AlertCircle size={24} />
@@ -1414,7 +1497,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       {/* MODAL: USERNAME CHANGE IMPACT CONFIRMATION */}
       {/* ======================================================== */}
       {showUsernameConfirm && (
-        <div className="fixed inset-0 z-[1300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-scale-in">
+        <div ref={usernameRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[1300] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-scale-in">
           <div className="w-full max-w-sm bg-white dark:bg-neutral-900 rounded-2xl p-6 border border-neutral-200 dark:border-neutral-800 shadow-2xl space-y-4 text-center">
             <div className="w-12 h-12 rounded-full bg-pink-500/10 text-pink-500 flex items-center justify-center mx-auto">
               <Sparkles size={24} />

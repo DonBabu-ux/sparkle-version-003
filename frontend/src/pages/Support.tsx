@@ -1,7 +1,7 @@
+import { showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { LifeBuoy, MessageSquare, Mail, BookOpen, ChevronRight, HelpCircle, Plus, Clock, CheckCircle, MessageCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { logger } from '../utils/logger';
 
@@ -65,7 +65,7 @@ export default function Support() {
         // navigate(`/support/ticket/${res.data.ticketId}`);
       }
     } catch (err) {
-      alert('Failed to submit ticket. Please try again.');
+      showError('Failed to submit ticket. Please try again.');
     } finally {
       setFormLoading(false);
     }
@@ -83,7 +83,6 @@ export default function Support() {
 
   return (
     <div className="page-wrapper">
-      <Navbar />
       <div className="sup-content">
         <main className="sup-container">
           {/* Hero */}
@@ -189,7 +188,7 @@ export default function Support() {
 
           {/* Contact Form / Modal Style */}
           {showForm && (
-            <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div className="fixed inset-0 z-(--z-sheet) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                 <div className="bg-white rounded-[32px] w-full max-w-xl p-8 shadow-2xl relative animate-scale-in">
                     <button 
                         onClick={() => setShowForm(false)}
@@ -268,7 +267,7 @@ export default function Support() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f0f2f5); min-height: 100vh; }
+        .page-wrapper { display: flex; background: var(--bg-main, #f0f2f5); min-height: 100dvh; }
         .sup-content { flex: 1; overflow-y: auto; }
         .sup-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
 
@@ -309,7 +308,6 @@ export default function Support() {
         .sup-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(255,61,109,0.4); }
         .sup-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
-        @keyframes scaleIn { from { transform: scale(0.95); opacity: 0; } to { transform: scale(1); opacity: 1; } }
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         @media (max-width: 600px) {

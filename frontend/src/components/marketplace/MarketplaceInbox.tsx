@@ -1,3 +1,4 @@
+import { confirmDialog } from '../../store/dialogStore';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -124,7 +125,7 @@ export default function MarketplaceInbox() {
   };
 
   const handleDeleteChat = async (chatId: string) => {
-    if (!confirm('Are you sure you want to delete this conversation?')) return;
+    if (!await confirmDialog('Are you sure you want to delete this conversation?')) return;
     try {
       await api.delete(`/marketplace/conversations/${chatId}`);
       setChats(prev => prev.filter(c => c.id !== chatId));
@@ -142,7 +143,7 @@ export default function MarketplaceInbox() {
   }, [openMenuId]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-60px)] bg-white overflow-hidden w-full relative">
+    <div className="flex flex-col h-[calc(100dvh-60px)] bg-white overflow-hidden w-full relative">
       {/* Header Bar */}
       <div className="px-4 py-3 border-b border-marketplace-border flex items-center justify-between bg-white sticky top-0 z-20">
         <h2 className="text-xl font-bold text-marketplace-text">Messages</h2>
@@ -269,7 +270,7 @@ export default function MarketplaceInbox() {
                             <button 
                               onClick={async (e) => { 
                                 e.stopPropagation(); 
-                                if (confirm(`Block ${chat.partner.name}?`)) {
+                                if (await confirmDialog(`Block ${chat.partner.name}?`)) {
                                   try {
                                     await api.post(`/users/block/${chat.partner.id}`);
                                     setChats(prev => prev.map(c => c.id === chat.id ? { ...c, is_archived: true } : c));

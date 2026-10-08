@@ -1,3 +1,4 @@
+import { showInfo } from '../utils/toast';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -22,7 +23,6 @@ import {
   Wifi,
   Activity
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import api from '../api/api';
@@ -156,8 +156,7 @@ export default function AdvancedSettingsDetail() {
   const SectionIcon = currentMeta.icon;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
-      <Navbar />
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
 
       <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6">
         {/* Navigation Header */}
@@ -431,7 +430,7 @@ export default function AdvancedSettingsDetail() {
                 title="Personalization Summary"
                 description="View categories of data used to personalize your Sparkle feed"
                 rightElement="chevron"
-                onClick={() => alert('Sparkle collects interest topics and interaction velocity to rank feeds. No third-party ad brokers are used.')}
+                onClick={() => showInfo('Sparkle collects interest topics and interaction velocity to rank feeds. No third-party ad brokers are used.')}
               />
               <SettingRow
                 icon={Database}

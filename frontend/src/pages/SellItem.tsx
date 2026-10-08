@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -89,9 +90,9 @@ export default function SellItem() {
       logger.error('Failed to create listing:', err);
       // Fallback for 401: if unauthorized, maybe token expired
       if (err.response?.status === 401) {
-        alert('Your session has expired. Please log in again.');
+        showError('Your session has expired. Please log in again.');
       } else {
-        alert('Failed to create listing. Please check all fields.');
+        showError('Failed to create listing. Please check all fields.');
       }
     } finally {
       setLoading(false);
@@ -99,7 +100,7 @@ export default function SellItem() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-marketplace-text font-sans pb-10">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -262,7 +263,7 @@ export default function SellItem() {
       {/* Category Selection Modal */}
       <AnimatePresence>
         {isCategoryModalOpen && (
-          <div className="fixed inset-0 z-[1500] flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="fixed inset-0 z-(--z-sheet) flex items-end sm:items-center justify-center p-0 sm:p-4">
             <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}

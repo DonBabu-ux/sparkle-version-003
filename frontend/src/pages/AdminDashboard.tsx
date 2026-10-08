@@ -1,6 +1,7 @@
+import { showError, showInfo, showSuccess } from '../utils/toast';
+import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect } from 'react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { 
   Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, 
   Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database
@@ -61,15 +62,15 @@ export default function AdminDashboard() {
   };
 
   const handleAdminAction = async (id: string, action: string) => {
-    if (!confirm(`Are you sure you want to ${action} this item?`)) return;
+    if (!await confirmDialog(`Are you sure you want to ${action} this item?`)) return;
     try {
       await api.post(`/admin/actions`, { id, action, type: activeTab });
-      alert(`Action ${action} successful`);
+      showSuccess(`Action ${action} successful`);
       const response = await api.get(`/admin/${activeTab}`);
       if (activeTab === 'users') setContent(response.data.users || []);
       else if (activeTab === 'reports') setContent(response.data.reports || []);
     } catch {
-      alert(`Failed to perform ${action}`);
+      showError(`Failed to perform ${action}`);
     }
   };
 
@@ -77,10 +78,10 @@ export default function AdminDashboard() {
     if (!announcement.trim()) return;
     try {
       await api.post('/admin/announcements', { message: announcement });
-      alert('Announcement broadcasted!');
+      showInfo('Announcement broadcasted!');
       setAnnouncement('');
     } catch {
-      alert('Failed to broadcast announcement');
+      showError('Failed to broadcast announcement');
     }
   };
 
@@ -107,10 +108,9 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans pb-20">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans pb-20">
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full pt-16 md:pt-24">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full">
         
         {/* Compact Header */}
         <header className="mb-8 animate-fade-in">
@@ -315,8 +315,7 @@ export default function AdminDashboard() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>

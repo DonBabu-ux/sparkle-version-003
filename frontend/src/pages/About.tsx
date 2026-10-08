@@ -23,7 +23,7 @@ const VALUES = [
 
 export default function About() {
   return (
-    <div style={{ minHeight: '100vh', background: 'white', fontFamily: "'Outfit', sans-serif" }}>
+    <div style={{ minHeight: '100dvh', background: 'white', fontFamily: "'Outfit', sans-serif" }}>
       <style>{`
         .about-btn { display: inline-flex; align-items: center; gap: 8px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; text-decoration: none; padding: 14px 28px; border-radius: 16px; font-weight: 800; font-size: 0.95rem; box-shadow: 0 8px 24px rgba(255,61,109,0.25); transition: 0.2s; }
         .about-btn:hover { opacity: 0.9; transform: translateY(-2px); }

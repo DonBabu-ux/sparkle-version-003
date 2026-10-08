@@ -1,7 +1,7 @@
+import { showError } from '../../utils/toast';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Send, CheckCircle, Clock, AlertCircle, ShieldCheck, MessageCircle, Bot } from 'lucide-react';
-import Navbar from '../../components/Navbar';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 
@@ -70,18 +70,17 @@ export default function TicketDetail() {
                 fetchTicket();
             }
         } catch (err) {
-            alert('Failed to send message');
+            showError('Failed to send message');
         } finally {
             setSending(false);
         }
     };
 
-    if (loading) return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
-    if (!ticket) return <div className="flex items-center justify-center min-h-screen">Ticket not found</div>;
+    if (loading) return <div className="flex items-center justify-center min-h-dvh">Loading...</div>;
+    if (!ticket) return <div className="flex items-center justify-center min-h-dvh">Ticket not found</div>;
 
     return (
         <div className="page-wrapper">
-            <Navbar />
             <div className="ticket-content">
                 <main className="ticket-container">
                     <header className="ticket-header">
@@ -145,8 +144,8 @@ export default function TicketDetail() {
             </div>
 
             <style>{`
-                .page-wrapper { display: flex; background: #f0f2f5; min-h-screen; }
-                .ticket-content { flex: 1; display: flex; flex-direction: column; height: 100vh; pt: 70px; }
+                .page-wrapper { display: flex; background: #f0f2f5; min-h-dvh; }
+                .ticket-content { flex: 1; display: flex; flex-direction: column; height: 100dvh; padding-top: 70px; }
                 .ticket-container { max-width: 800px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; background: white; height: 100%; box-shadow: 0 0 40px rgba(0,0,0,0.05); }
 
                 .ticket-header { padding: 24px; border-bottom: 1px solid #f0f2f5; display: flex; align-items: center; gap: 16px; }

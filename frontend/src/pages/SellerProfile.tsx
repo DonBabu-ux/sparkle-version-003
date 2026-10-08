@@ -1,3 +1,5 @@
+import { showError, showInfo } from '../utils/toast';
+import { promptDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
@@ -10,9 +12,7 @@ import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileShareModal from '../components/modals/ProfileShareModal';
-import MarketplaceSettingsModal from '../components/modals/MarketplaceSettingsModal';
-import IdentityVerificationModal from '../components/modals/IdentityVerificationModal';
-import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import ListingCard from '../components/marketplace/ListingCard';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -41,8 +41,6 @@ export default function SellerProfile() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('shop');
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
-  const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isAlerted, setIsAlerted] = useState(false);
 
   // If no :id in URL (my-shop route), use the logged-in user's id
@@ -64,7 +62,7 @@ export default function SellerProfile() {
       const res = await api.post(`/marketplace/sellers/${seller.user_id}/alert`);
       if (res.data.success) {
         setIsAlerted(res.data.alerted);
-        alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+        showInfo(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
       logger.error('Alert toggle error:', err);
@@ -103,7 +101,7 @@ export default function SellerProfile() {
       });
     } catch (err) {
       logger.error('Reply error:', err);
-      alert('Failed to post reply');
+      showError('Failed to post reply');
     }
   };
 
@@ -134,13 +132,13 @@ export default function SellerProfile() {
   }, [fetchSeller]);
 
   if (loading) return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center">
+    <div className="min-h-dvh bg-white flex flex-col items-center justify-center">
        <Spinner size="large" color="text-primary" />
     </div>
   );
 
   if (!seller) return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-dvh bg-white flex flex-col">
        <div className="flex-1 flex items-center justify-center text-marketplace-muted font-bold flex-col gap-4">
          <AlertCircle size={48} className="text-marketplace-muted/30" />
          <p className="text-lg">Seller not found</p>
@@ -154,7 +152,7 @@ export default function SellerProfile() {
   const isOwner = user?.id === seller.user_id || user?.user_id === seller.user_id;
 
   return (
-    <div className="min-h-screen bg-white text-marketplace-text font-sans pb-20">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-20">
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -171,7 +169,7 @@ export default function SellerProfile() {
             <Share2 size={20} />
           </button>
           <button 
-            onClick={() => setIsSettingsModalOpen(true)}
+            onClick={() => navigate('/marketplace/settings')}
             className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
           >
             <MoreHorizontal size={20} />
@@ -316,29 +314,12 @@ export default function SellerProfile() {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
               {seller.listings && seller.listings.length > 0 ? (
                 seller.listings.map((listing) => (
-                  <div 
-                    key={listing.listing_id} 
-                    onClick={() => navigate(`/marketplace/listings/${listing.listing_id}`)} 
-                    className="group cursor-pointer"
-                  >
-                    <div className="aspect-square rounded-3xl overflow-hidden bg-marketplace-bg border border-marketplace-border relative mb-3">
-                      <MarketplaceImageSlider
-                        media={listing.media}
-                        imageUrls={listing.image_urls}
-                        fallbackUrl={listing.image_url}
-                        alt={listing.title}
-                        aspectRatio="aspect-square"
-                      />
-                      <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm pointer-events-none z-10">
-                        <span className="text-[12px] font-black">KES {parseFloat(listing.price).toLocaleString()}</span>
-                      </div>
-                    </div>
-                    <h4 className="font-bold text-[15px] line-clamp-1 mb-1">{listing.title}</h4>
-                    <div className="flex items-center gap-1.5 text-marketplace-muted text-[11px] font-bold uppercase tracking-wider">
-                      <MapPin size={10} />
-                      {listing.campus || 'Main Campus'}
-                    </div>
-                  </div>
+                  <ListingCard
+                    key={listing.listing_id}
+                    variant="shop"
+                    listing={listing}
+                    onClick={() => navigate(`/marketplace/listings/${listing.listing_id}`)}
+                  />
                 ))
               ) : (
                 <div className="col-span-full py-20 flex flex-col items-center justify-center bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-marketplace-muted">
@@ -384,8 +365,8 @@ export default function SellerProfile() {
 
                     {isOwner && !rv.reply && (
                       <button 
-                        onClick={() => {
-                          const reply = window.prompt('Enter your response:');
+                        onClick={async () => {
+                          const reply = await promptDialog('Enter your response:');
                           if (reply) handleReply(rv.id || rv.review_id, reply);
                         }}
                         className="mt-4 px-4 py-2 bg-marketplace-bg text-marketplace-text rounded-xl font-black text-[11px] uppercase tracking-wider hover:bg-slate-200 transition-all flex items-center gap-2"
@@ -455,26 +436,6 @@ export default function SellerProfile() {
         onClose={() => setIsShareModalOpen(false)}
         username={seller.username}
         name={seller.name || seller.username}
-      />
-
-      {/* Settings Modal */}
-      <MarketplaceSettingsModal 
-        isOpen={isSettingsModalOpen}
-        onClose={() => setIsSettingsModalOpen(false)}
-        onOpenVerification={() => {
-          setIsSettingsModalOpen(false);
-          setIsVerificationModalOpen(true);
-        }}
-      />
-
-      {/* Verification Modal */}
-      <IdentityVerificationModal 
-        isOpen={isVerificationModalOpen}
-        onClose={() => setIsVerificationModalOpen(false)}
-        onComplete={(data) => {
-          logger.log('Verification completed:', data);
-          setIsVerificationModalOpen(false);
-        }}
       />
     </div>
   );

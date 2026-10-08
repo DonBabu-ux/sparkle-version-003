@@ -345,12 +345,13 @@ export default function Signup() {
                   
                   {!checkingUsername && usernameAvailable === false && usernameSuggestions.length > 0 && (
                     <div style={{ marginTop: '-0.4rem', marginBottom: '0.2rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                      <span style={{ fontSize: '0.72rem', color: '#78716c' }}>Suggestions:</span>
+                      <span className="su-muted" style={{ fontSize: '0.72rem', color: '#78716c' }}>Suggestions:</span>
                       {usernameSuggestions.map((sug) => (
                         <button
                           key={sug}
                           type="button"
                           onClick={() => { update('username', sug); setUsernameAvailable(true); }}
+                          className="su-suggest"
                           style={{
                             padding: '0.15rem 0.45rem',
                             borderRadius: '6px',
@@ -410,7 +411,7 @@ export default function Signup() {
 
                     {form.password && (
                       <div style={{ marginTop: '0.4rem' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#78716c', marginBottom: '0.2rem' }}>
+                        <div className="su-muted" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#78716c', marginBottom: '0.2rem' }}>
                           <span>Strength:</span>
                           <span style={{
                             color: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
@@ -510,7 +511,7 @@ export default function Signup() {
                     </div>
                   </div>
 
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '0.75rem 0 1rem 0', lineHeight: 1.5 }}>
+                  <p className="su-muted" style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '0.75rem 0 1rem 0', lineHeight: 1.5 }}>
                     By creating an account, you agree to Sparkle's{' '}
                     <Link to="/legal/terms" target="_blank" style={{ color: '#ec4899', textDecoration: 'underline', fontWeight: 600 }}>
                       Terms &amp; Conditions
@@ -586,7 +587,7 @@ export default function Signup() {
 
       <style>{`
         .su-page {
-          min-height: 100vh;
+          min-height: 100dvh;
           display: flex;
           align-items: center;
           justify-content: center;
@@ -616,10 +617,6 @@ export default function Signup() {
           background: radial-gradient(circle, #fbcfe8, transparent 70%);
           bottom: -8%; left: -4%;
           animation: su-drift 24s ease-in-out infinite reverse;
-        }
-        @keyframes su-drift {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(20px, -15px); }
         }
 
         .su-container {
@@ -902,13 +899,108 @@ export default function Signup() {
           border-top-color: #fff; border-radius: 50%;
           animation: su-spin 0.6s linear infinite;
         }
-        @keyframes su-spin { to { transform: rotate(360deg); } }
 
         @media (prefers-reduced-motion: reduce) {
           .su-orb { animation: none; }
           .su-container { transition: none; }
           .su-feat { transition: none; opacity: 1; transform: none; }
           .su-card { transition: none; }
+        }
+
+        /* ============================================================
+           DARK THEME (UI_AUDIT S3 P2-4)
+           Base rules above are the light look and stay untouched; this
+           block is the dark: twin for every hardcoded light surface.
+           ============================================================ */
+        .dark .su-page { background: #000000; }
+
+        .dark .su-logo { color: #f43f5e; }
+        .dark .su-tagline { color: #a8a29e; }
+        .dark .su-feat__icon { background: rgba(255,255,255,0.08); color: #fb7185; }
+        .dark .su-feat__text { color: #d6d3d1; }
+
+        .dark .su-card {
+          background: rgba(16,18,23,0.92);
+          border-color: rgba(255,255,255,0.08);
+        }
+        .dark .su-card__title { color: #fafafa; }
+
+        .dark .su-progress__dot { background: rgba(255,255,255,0.2); }
+        .dark .su-progress__dot--active { background: #fb7185; }
+
+        .dark .su-toast--err {
+          background: rgba(225,29,72,0.14);
+          border-color: rgba(251,113,133,0.35);
+          color: #fda4af;
+        }
+        .dark .su-toast--ok {
+          background: rgba(16,185,129,0.14);
+          border-color: rgba(52,211,153,0.35);
+          color: #6ee7b7;
+        }
+
+        .dark .su-label { color: #a8a29e; }
+
+        .dark .su-input {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.12);
+          color: #fafafa;
+        }
+        .dark .su-input::placeholder { color: #a1a1aa; }
+        .dark .su-input:focus {
+          border-color: #fb7185;
+          background: rgba(255,255,255,0.06);
+          box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
+        }
+
+        .dark .su-affil {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.15);
+          color: #a1a1aa;
+        }
+
+        .dark .su-review {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.1);
+        }
+        .dark .su-review__name { color: #fafafa; }
+        .dark .su-review__detail { border-color: rgba(255,255,255,0.1); }
+        .dark .su-review__value { color: #e7e5e4; }
+
+        .dark .su-nav-back {
+          background: rgba(255,255,255,0.05);
+          border-color: rgba(255,255,255,0.15);
+          color: #a1a1aa;
+        }
+        .dark .su-nav-back:hover { color: #fb7185; }
+
+        .dark .su-link-row { color: #a8a29e; }
+        .dark .su-link { color: #fb7185; }
+
+        .dark .su-back-text:hover { color: #fb7185; }
+
+        .dark .su-otp-icon {
+          background: rgba(255,255,255,0.06);
+          color: #fb7185;
+        }
+        .dark .su-otp-input {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.15);
+          color: #fb7185;
+        }
+        .dark .su-otp-input:focus {
+          border-color: #fb7185;
+          background: rgba(255,255,255,0.06);
+        }
+        .dark .su-otp-input::placeholder { color: #a1a1aa; }
+
+        /* Inline-styled hint text + suggestion chips (see JSX): !important
+           beats the inline light values they carry. */
+        .dark .su-muted { color: #a1a1aa !important; }
+        .dark .su-suggest {
+          background: rgba(255,255,255,0.06) !important;
+          border-color: rgba(255,255,255,0.15) !important;
+          color: #fb7185 !important;
         }
       `}</style>
     </div>

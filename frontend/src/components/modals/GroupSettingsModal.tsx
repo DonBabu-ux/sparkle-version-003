@@ -1,3 +1,5 @@
+import { showError, showSuccess } from '../../utils/toast';
+import { confirmDialog } from '../../store/dialogStore';
 import { useState, useEffect, useRef } from 'react';
 import { 
   X, Settings, Users, UserCheck, Shield, ChevronRight, Check, Loader2, 
@@ -10,6 +12,7 @@ import { getAvatarUrl, getMediaUrl } from '../../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface GroupSettingsModalProps {
   groupId: string;
@@ -50,6 +53,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
 
   const iconInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (activeTab === 'members') fetchMembers();
@@ -104,10 +108,10 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       });
       
       onUpdate();
-      alert('Circle settings updated successfully!');
+      showSuccess('Circle settings updated successfully!');
     } catch (err) {
       logger.error(err);
-      alert('Failed to update settings.');
+      showError('Failed to update settings.');
     } finally {
       setSaving(false);
     }
@@ -132,7 +136,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       setPendingPosts(prev => prev.filter(p => p.post_id !== postId));
     } catch (err) {
       logger.error(err);
-      alert('Failed to process post.');
+      showError('Failed to process post.');
     }
   };
 
@@ -145,12 +149,12 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
       }
     } catch (err) {
       logger.error(err);
-      alert('Failed to process request.');
+      showError('Failed to process request.');
     }
   };
 
   const handleLeaveCircle = async () => {
-    if (!window.confirm('Are you sure you want to leave this circle?')) return;
+    if (!await confirmDialog('Are you sure you want to leave this circle?')) return;
     try {
       await api.post(`/groups/${groupId}/leave`);
       onClose();
@@ -188,7 +192,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-xl p-0 sm:p-4" onClick={onClose}>
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-top) flex items-center justify-center bg-black/40 backdrop-blur-xl p-0 sm:p-4" onClick={onClose}>
       <motion.div 
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}

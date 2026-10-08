@@ -1,3 +1,4 @@
+import { showInfo } from '../utils/toast';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -63,7 +64,7 @@ export default function Streams() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#090514] via-[#0e0720] to-[#04020a] flex flex-col items-center justify-center text-white">
+      <div className="min-h-dvh bg-gradient-to-b from-[#090514] via-[#0e0720] to-[#04020a] flex flex-col items-center justify-center text-white">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black uppercase tracking-widest text-[#ff4db8] mt-4 animate-pulse">
           Tuning frequencies...
@@ -78,7 +79,7 @@ export default function Streams() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#090514] via-[#0e0720] to-[#04020a] text-white overflow-hidden relative pb-24 font-sans selection:bg-[#ff008a]/20">
+    <div className="min-h-dvh bg-gradient-to-b from-[#090514] via-[#0e0720] to-[#04020a] text-white overflow-hidden relative pb-24 font-sans selection:bg-[#ff008a]/20">
       
       {/* Background Ambient Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-[#ff008a] opacity-15 blur-[120px] pointer-events-none" />
@@ -134,7 +135,7 @@ export default function Streams() {
         </div>
 
         <button 
-          onClick={() => alert('Starting Stream Broadcaster Console...')}
+          onClick={() => showInfo('Starting Stream Broadcaster Console...')}
           className="bg-gradient-to-r from-[#ff008a] to-[#ff4db8] hover:from-[#ff4db8] hover:to-[#ff66c4] text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#ff008a]/20 hover:shadow-[#ff008a]/40 hover:scale-[1.02] active:scale-95 transition-all"
         >
           <Video size={14} />
@@ -174,7 +175,7 @@ export default function Streams() {
                 key={stream.id} 
                 whileHover={{ y: -4 }}
                 className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden flex flex-col hover:border-[#ff008a]/20 transition-all duration-300 cursor-pointer"
-                onClick={() => alert(`Connecting to ${stream.streamer_name}'s live channel...`)}
+                onClick={() => showInfo(`Connecting to ${stream.streamer_name}'s live channel...`)}
               >
                 
                 {/* Thumbnail Area */}

@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, History, Calendar, Sparkles, ChevronRight, Share2, X } from 'lucide-react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
 
@@ -29,10 +28,10 @@ export default function Memories() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden pt-safe">
+    <div className="bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden">
       {/* Removed Sidebar for Full Page Experience */}
       
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-10 lg:pt-12">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full">
         <div className="max-w-[700px] mx-auto pb-24">
           <header className="flex gap-5 mb-10 items-start">
             <button 
@@ -141,7 +140,7 @@ export default function Memories() {
 
       {/* Image Preview Modal */}
       {previewImage && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10 animate-fade-in" onClick={() => setPreviewImage(null)}>
+        <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 md:p-10 animate-fade-in" onClick={() => setPreviewImage(null)}>
           <div className="absolute inset-0 bg-black/95 backdrop-blur-2xl"></div>
           
           <button 
@@ -169,9 +168,8 @@ export default function Memories() {
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        
         .animate-scale-in { animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>

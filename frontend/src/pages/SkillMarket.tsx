@@ -6,7 +6,6 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useModalStore } from '../store/modalStore';
 import clsx from 'clsx';
@@ -71,7 +70,6 @@ export default function SkillMarket() {
 
   return (
     <div className="skm-page">
-      <Navbar />
 
       {/* Soft background blobs */}
       <div className="skm-blob skm-blob--tr" />
@@ -257,12 +255,11 @@ export default function SkillMarket() {
 
       <style>{`
         /* ─── Font ─────────────────────────────────────────── */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         /* ─── Page shell ───────────────────────────────────── */
         .skm-page {
           display: flex;
-          min-height: 100vh;
+          min-height: 100dvh;
           background: #f7f8ff;
           font-family: 'Inter', system-ui, -apple-system, sans-serif;
           overflow-x: hidden;
@@ -506,7 +503,7 @@ export default function SkillMarket() {
           border-radius: 50%;
           animation: skm-spin 0.75s linear infinite;
         }
-        @keyframes skm-spin { to { transform: rotate(360deg); } }
+        
         .skm-loading__text {
           font-size: 12px;
           font-weight: 500;

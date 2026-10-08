@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ActiveBoostData {
   boostId: string;
@@ -69,6 +70,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
   // Status feedback
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [successMsg, setSuccessMsg] = useState<string>('');
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   // ── Fetch Wallet & Active Boost Status ────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -224,10 +226,14 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
   return (
     <AnimatePresence>
       <motion.div
+        ref={a11yRef}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto"
+        className="fixed inset-0 z-(--z-modal) bg-black/85 backdrop-blur-md flex items-center justify-center p-3 md:p-6 overflow-y-auto"
         onClick={(e) => e.target === e.currentTarget && onClose()}
       >
         <motion.div

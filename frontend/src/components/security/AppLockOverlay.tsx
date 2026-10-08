@@ -215,7 +215,7 @@ export const AppLockOverlay: React.FC = () => {
   if (!isLocked) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-slate-900/95 dark:bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-6 select-none transition-all duration-300">
+    <div className="fixed inset-0 z-(--z-top) bg-slate-900/95 dark:bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-6 select-none transition-all duration-300">
       {/* Top Branding */}
       <div className="flex flex-col items-center mt-12">
         <div className="w-16 h-16 rounded-3xl bg-pink-500/10 border border-pink-500/20 flex items-center justify-center mb-4 shadow-lg shadow-pink-500/10">
@@ -303,7 +303,7 @@ export const AppLockOverlay: React.FC = () => {
 
       {/* Half-Page Modal: Reset App Lock */}
       {showResetModal && (
-        <div className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-(--z-toast) flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-md p-0 sm:p-4 animate-in fade-in duration-200">
           <div className="w-full sm:max-w-md bg-zinc-900 border border-zinc-800 rounded-t-3xl sm:rounded-3xl p-6 shadow-2xl flex flex-col max-h-[90vh] overflow-y-auto">
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-zinc-800">

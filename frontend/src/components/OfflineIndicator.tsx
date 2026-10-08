@@ -32,7 +32,8 @@ export const OfflineIndicator: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -50 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="fixed top-[calc(4rem+env(safe-area-inset-top))] sm:top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center justify-between shadow-2xl"
+          role="status" aria-live="polite"
+          className="fixed top-[calc(4rem+env(safe-area-inset-top))] sm:top-4 left-1/2 -translate-x-1/2 z-(--z-top) w-[90%] max-w-md bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center justify-between shadow-2xl"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
@@ -56,7 +57,7 @@ export const OfflineIndicator: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -50 }}
           transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-          className="fixed top-[calc(4rem+env(safe-area-inset-top))] sm:top-4 left-1/2 -translate-x-1/2 z-[9999] w-[90%] max-w-md bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center justify-between shadow-2xl"
+          className="fixed top-[calc(4rem+env(safe-area-inset-top))] sm:top-4 left-1/2 -translate-x-1/2 z-(--z-top) w-[90%] max-w-md bg-black/80 backdrop-blur-md border border-white/10 rounded-2xl p-3 flex items-center justify-between shadow-2xl"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">

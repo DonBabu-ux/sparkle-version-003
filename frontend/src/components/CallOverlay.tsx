@@ -98,7 +98,7 @@ export const CallOverlay = () => {
     return (
       <div 
         onClick={() => setMinimized(false)}
-        className="fixed bottom-24 right-6 z-[99999] hover:scale-105 active:scale-98 transition-all duration-300 pointer-events-auto flex items-center gap-3 p-2 pl-3 pr-2 bg-[#0E1016]/90 backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65)] cursor-pointer group animate-fade-in"
+        className="fixed bottom-24 right-6 z-(--z-max) hover:scale-105 active:scale-98 transition-all duration-300 pointer-events-auto flex items-center gap-3 p-2 pl-3 pr-2 bg-[#0E1016]/90 backdrop-blur-2xl rounded-full border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.65)] cursor-pointer group animate-fade-in"
       >
         {/* Pulsing indicator & avatar */}
         <div className="relative flex items-center justify-center shrink-0">
@@ -143,24 +143,7 @@ export const CallOverlay = () => {
     <>
       {/* Styles injected to ensure isolated, ultra-smooth premium animations */}
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes pulse-wave {
-          0% { transform: scale(0.95); opacity: 0.8; }
-          50% { transform: scale(1.15); opacity: 0.3; }
-          100% { transform: scale(1.35); opacity: 0; }
-        }
-        @keyframes rotate-slow {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        @keyframes glow-incoming {
-          0%, 100% { box-shadow: 0 0 20px rgba(16, 185, 129, 0.4); }
-          50% { box-shadow: 0 0 40px rgba(16, 185, 129, 0.8); }
-        }
-        @keyframes shake-fail {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-6px); }
-          40%, 80% { transform: translateX(6px); }
-        }
+
         .animate-pulse-wave-1 { animation: pulse-wave 2.5s infinite ease-out; }
         .animate-pulse-wave-2 { animation: pulse-wave 2.5s infinite ease-out 1.25s; }
         .animate-rotate-slow { animation: rotate-slow 10s infinite linear; }
@@ -173,7 +156,7 @@ export const CallOverlay = () => {
       `}} />
 
       {/* Main Full-Screen Calling Portal */}
-      <div className={`fixed inset-0 z-[9999] flex flex-col justify-between overflow-hidden bg-[#0A0B10] text-white font-sans ${state === 'failed' ? 'animate-shake-fail' : ''}`}>
+      <div className={`fixed inset-0 z-(--z-top) flex flex-col justify-between overflow-hidden bg-[#0A0B10] text-white font-sans ${state === 'failed' ? 'animate-shake-fail' : ''}`}>
         
         {/* Background Layer: Glassy Blurred Mesh or Video Canvas */}
         <div className="absolute inset-0 z-0">
@@ -206,7 +189,7 @@ export const CallOverlay = () => {
         </div>
 
         {/* TOP META BAR (Signal, Encryption, Timer, Cancel) */}
-        <div className="relative z-10 flex items-center justify-between px-6 pt-12 pb-4 bg-gradient-to-b from-black/40 to-transparent">
+        <div className="relative z-10 flex items-center justify-between px-6 pt-[calc(3rem+env(safe-area-inset-top))] pb-4 bg-gradient-to-b from-black/40 to-transparent">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => setMinimized(true)}
@@ -287,7 +270,7 @@ export const CallOverlay = () => {
         )}
 
         {/* BOTTOM ACTION BAR (Mute, Speaker, Bluetooth, Decline, Accept buttons) */}
-        <div className="relative z-10 px-8 pb-16 pt-8 bg-gradient-to-t from-black/80 to-transparent flex flex-col gap-8">
+        <div className="relative z-10 px-8 pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent flex flex-col gap-8">
           
           {/* Incoming Call Layout (Big Green Accept / Red Decline) */}
           {showIncomingOverlay ? (

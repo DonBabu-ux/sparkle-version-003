@@ -1,8 +1,10 @@
+import { showInfo } from '../../utils/toast';
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import { SparkleInspectorService } from '../../services/SparkleInspectorService';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import {
   ShieldAlert,
   MessageSquare,
@@ -31,6 +33,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
   const [email, setEmail] = useState<string>('');
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [ticketResult, setTicketResult] = useState<{ ticketId: string; message: string } | null>(null);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   const categories = [
     'Security',
@@ -76,7 +79,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[300] bg-black/75 backdrop-blur-md flex justify-center items-end sm:items-center p-0 sm:p-4">
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) bg-black/75 backdrop-blur-md flex justify-center items-end sm:items-center p-0 sm:p-4">
         <motion.div
           initial={{ y: '100%', opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -216,7 +219,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                     onClick={async () => {
                       const { report, repairSummary } = await SparkleInspectorService.runSelfHealing();
                       const lines = report.checks.map(c => `${c.category.padEnd(22, '.')} ${c.status}`);
-                      alert(`Sparkle Enterprise Health Report\nStatus: ${report.overallStatus}\n\n${lines.join('\n')}\n\n${repairSummary}`);
+                      showInfo(`Sparkle Enterprise Health Report\nStatus: ${report.overallStatus}\n\n${lines.join('\n')}\n\n${repairSummary}`);
                     }}
                     className="p-4 rounded-2xl bg-slate-900/80 hover:bg-indigo-950/40 border border-slate-800 hover:border-indigo-500/50 flex items-center justify-between text-left transition-all group"
                   >

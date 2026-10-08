@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, ArrowLeft, ArrowRight, Sparkles } from 'lucide-react';
@@ -9,7 +10,6 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
@@ -18,15 +18,18 @@ export default function ForgotPassword() {
     e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
     setEmail(cleanEmail);
-    if (!cleanEmail) return setError('Please enter your email address.');
+    if (!cleanEmail) {
+      showError('Please enter your email address.');
+      return;
+    }
     setLoading(true);
-    setError('');
+    
     try {
       await api.post('/auth/forgot-password', { email: cleanEmail });
       setSent(true);
     } catch (err) {
       const e = err as { response?: { data?: { message?: string } } };
-      setError(e.response?.data?.message || 'Failed to send. Please try again.');
+      showError(e.response?.data?.message || 'Failed to send. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -64,12 +67,6 @@ export default function ForgotPassword() {
         {/* RIGHT */}
         <div className="fp-card-wrap">
           <div className="fp-card">
-            {error && (
-              <div className="fp-toast">
-                <span className="fp-toast__dot" />
-                {error}
-              </div>
-            )}
 
             {!sent ? (
               <>
@@ -88,7 +85,7 @@ export default function ForgotPassword() {
                       id="fp-email"
                       type="email"
                       value={email}
-                      onChange={(e) => { setEmail(e.target.value); setError(''); }}
+                      onChange={(e) => { setEmail(e.target.value);  }}
                       className="fp-input"
                       placeholder="you@university.edu"
                       autoFocus
@@ -134,7 +131,7 @@ export default function ForgotPassword() {
 
       <style>{`
         .fp-page {
-          min-height: 100vh; display: flex; align-items: center; justify-content: center;
+          min-height: 100dvh; display: flex; align-items: center; justify-content: center;
           padding: 1.5rem; background: #fdf2f4; position: relative; overflow: hidden;
           font-family: 'Nunito Sans', system-ui, sans-serif;
         }
@@ -153,10 +150,6 @@ export default function ForgotPassword() {
           background: radial-gradient(circle, #fbcfe8, transparent 70%);
           bottom: -8%; right: -4%;
           animation: fp-drift 24s ease-in-out infinite reverse;
-        }
-        @keyframes fp-drift {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(20px, -15px); }
         }
 
         .fp-container {
@@ -235,17 +228,6 @@ export default function ForgotPassword() {
         }
         .fp-card__sub { font-size: 0.85rem; color: #a8a29e; text-transform: none; font-style: normal; }
 
-        .fp-toast {
-          display: flex; align-items: center; gap: 0.5rem;
-          padding: 0.65rem 0.9rem; border-radius: 11px;
-          font-size: 0.82rem; font-weight: 600; margin-bottom: 1rem;
-          background: #fff1f2; border: 1px solid #fecdd3; color: #be123c;
-          text-transform: none; font-style: normal;
-        }
-        .fp-toast__dot {
-          width: 5px; height: 5px; border-radius: 50%; background: #e11d48; flex-shrink: 0;
-        }
-
         .fp-form { display: flex; flex-direction: column; gap: 1.1rem; }
         .fp-field { display: flex; flex-direction: column; gap: 0.35rem; }
         .fp-label {
@@ -315,12 +297,48 @@ export default function ForgotPassword() {
           border-top-color: #fff; border-radius: 50%;
           animation: fp-spin 0.6s linear infinite;
         }
-        @keyframes fp-spin { to { transform: rotate(360deg); } }
 
         @media (prefers-reduced-motion: reduce) {
           .fp-orb { animation: none; }
           .fp-container { transition: none; }
           .fp-card { transition: none; }
+        }
+
+        /* ============================================================
+           DARK THEME (UI_AUDIT S3 P2-4)
+           Base rules above are the light look and stay untouched; this
+           block is the dark: twin for every hardcoded light surface.
+           ============================================================ */
+        .dark .fp-page { background: #000000; }
+        .dark .fp-logo { color: #f43f5e; }
+        .dark .fp-tagline { color: #a8a29e; }
+
+        .dark .fp-card {
+          background: rgba(16,18,23,0.92);
+          border-color: rgba(255,255,255,0.08);
+        }
+        .dark .fp-card__title { color: #fafafa; }
+
+        .dark .fp-label { color: #a8a29e; }
+
+        .dark .fp-input {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.12);
+          color: #fafafa;
+        }
+        .dark .fp-input::placeholder { color: #a1a1aa; }
+        .dark .fp-input:focus {
+          border-color: #fb7185;
+          background: rgba(255,255,255,0.06);
+          box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
+        }
+
+        .dark .fp-back:hover { color: #fb7185; }
+        .dark .fp-back-text:hover { color: #fb7185; }
+
+        .dark .fp-success__icon {
+          background: rgba(255,255,255,0.06);
+          color: #fb7185;
         }
       `}</style>
     </div>

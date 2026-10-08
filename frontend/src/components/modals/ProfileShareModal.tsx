@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Copy, Check, Share2 } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ProfileShareModalProps {
   isOpen: boolean;
@@ -37,6 +38,7 @@ const QRLogo = () => (
 export default function ProfileShareModal({ isOpen, onClose, username, name }: ProfileShareModalProps) {
   const [copied, setCopied] = useState(false);
   const [showQR, setShowQR] = useState(false);
+  const a11yRef = useModalA11y(isOpen, onClose);
   
   const profileUrl = `${window.location.origin}/profile/${username}`;
   
@@ -80,9 +82,13 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
             exit={{ opacity: 0 }}
             transition={{ duration: 0.1 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[1500]"
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-(--z-sheet)"
           />
           <motion.div
+            ref={a11yRef}
+            role="dialog"
+            aria-modal="true"
+            tabIndex={-1}
             initial={{ y: "100%" }}
             animate={{ y: 0 }}
             exit={{ y: "100%" }}

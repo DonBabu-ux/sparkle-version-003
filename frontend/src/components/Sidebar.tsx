@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { scrollTopTo } from './AppScreen';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -63,7 +64,7 @@ export default function Sidebar() {
       animate={{ width: isHovered ? 240 : 72 }}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="fixed left-0 top-0 h-screen bg-[#f8fafc] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col py-6 z-[1000] overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
+      className="fixed left-0 top-0 h-dvh bg-[#f8fafc] dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 border-r border-slate-200 dark:border-zinc-800 flex flex-col py-6 z-(--z-chrome) overflow-hidden transition-all duration-300 shadow-[2px_0_12px_rgba(0,0,0,0.03)]"
     >
       {/* Logo Section */}
       <div 
@@ -109,7 +110,7 @@ export default function Sidebar() {
                 }
                 if (item.path === '/dashboard' && isActive('/dashboard')) {
                   e.preventDefault();
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                  scrollTopTo(0, 'smooth');
                   window.dispatchEvent(new CustomEvent('refreshFeed'));
                 }
               }}
@@ -180,7 +181,7 @@ export default function Sidebar() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 15, scale: 0.95 }}
               transition={{ duration: 0.15, ease: 'easeOut' }}
-              className="absolute bottom-20 left-4 w-60 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-xl z-[1100] flex flex-col gap-0.5 text-slate-800 dark:text-zinc-100"
+              className="absolute bottom-20 left-4 w-60 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-white/10 backdrop-blur-2xl rounded-2xl p-2 shadow-xl z-(--z-header) flex flex-col gap-0.5 text-slate-800 dark:text-zinc-100"
             >
               <Link 
                 to="/groups" 

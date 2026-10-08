@@ -39,6 +39,8 @@ export interface Post {
   likes_count?: number;
   comments_count?: number;
   comments?: number | unknown[];
+  share_count?: number;
+  top_liker_name?: string;
   media_files?: { url: string; type: string }[];
   group_id?: string;
   feeling?: string;

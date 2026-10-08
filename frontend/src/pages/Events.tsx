@@ -13,7 +13,6 @@ import {
   X, 
   Orbit
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
@@ -100,13 +99,12 @@ export default function Events() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black font-sans overflow-x-hidden">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black font-sans overflow-x-hidden">
       
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
         {/* Header */}
         <header className="mb-24 animate-fade-in px-4">
            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
@@ -317,13 +315,11 @@ export default function Events() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        
         .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
       `}</style>
     </div>
   );

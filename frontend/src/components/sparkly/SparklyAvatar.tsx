@@ -85,10 +85,7 @@ export const SparklyTypingDots: React.FC<{ className?: string }> = ({ className 
       />
     ))}
     <style>{`
-      @keyframes sparklyDot {
-        0%, 80%, 100% { opacity: 0.2; transform: scale(0.85); }
-        40% { opacity: 1; transform: scale(1); }
-      }
+      
     `}</style>
   </span>
 );

@@ -1,3 +1,6 @@
+import Skeleton from '../ui/Skeleton';
+import ErrorRetry from '../ui/ErrorRetry';
+import { showError } from '../../utils/toast';
 import React, { useState, useEffect } from 'react';
 import {
   X, Star, ShieldCheck, MessageCircle, Calendar,
@@ -7,6 +10,7 @@ import api from '../../api/api';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface SkillOfferDetail {
   offer_id: string;
@@ -42,6 +46,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
   const [offer, setOffer] = useState<SkillOfferDetail | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
+  const [reloadKey, setReloadKey] = useState(0);
   const [tab, setTab] = useState<'book' | 'reviews'>('book');
   const [isBooking, setIsBooking] = useState(false);
   const [booked, setBooked] = useState(false);
@@ -50,6 +55,8 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
     duration_minutes: 60,
     notes: '',
   });
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   useEffect(() => {
     Promise.all([
@@ -60,7 +67,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
         .then(r => setReviews(r.data.reviews || r.data || []))
         .catch(() => {}),
     ]).finally(() => setLoading(false));
-  }, [offerId]);
+  }, [offerId, reloadKey]);
 
   const handleBook = async () => {
     setIsBooking(true);
@@ -69,7 +76,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
       setBooked(true);
     } catch (err) {
       logger.error('Booking failed:', err);
-      alert('Booking failed — please try again.');
+      showError('Booking failed — please try again.');
     } finally {
       setIsBooking(false);
     }
@@ -93,17 +100,36 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
   };
 
   /* ── Render states ─────────────────────────────── */
-  if (loading) return null;
-  if (!offer) return null;
+  if (loading)
+    return (
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="sdm-overlay">
+        <div className="sdm-backdrop" onClick={onClose} />
+        <div className="sdm-sheet p-6 flex flex-col gap-4">
+          <Skeleton className="h-8 w-2/3" />
+          <Skeleton className="h-4 w-1/3" />
+          <Skeleton className="h-40 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+        </div>
+      </div>
+    );
+  if (!offer)
+    return (
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="sdm-overlay">
+        <div className="sdm-backdrop" onClick={onClose} />
+        <div className="sdm-sheet">
+          <ErrorRetry onRetry={() => setReloadKey(k => k + 1)} />
+        </div>
+      </div>
+    );
 
   const ratingNum = typeof offer.average_rating === 'number' ? offer.average_rating.toFixed(1) : '5.0';
 
   return (
-    <div className="sdm-overlay">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="sdm-overlay">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
         className="sdm-backdrop"
         onClick={onClose}
       />
@@ -111,7 +137,6 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
       <motion.div
         initial={{ opacity: 0, y: 80 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: 80 }}
         transition={{ type: 'tween', duration: 0.15, ease: 'easeOut' }}
         className="sdm-sheet"
         onClick={e => e.stopPropagation()}
@@ -309,7 +334,6 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
       </motion.div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         .sdm-overlay {
           position: fixed; inset: 0; z-index: 10000;
@@ -496,7 +520,6 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           border-radius: 50%;
           animation: sdm-spin 0.65s linear infinite;
         }
-        @keyframes sdm-spin { to { transform: rotate(360deg); } }
 
         /* Booked success */
         .sdm-booked {

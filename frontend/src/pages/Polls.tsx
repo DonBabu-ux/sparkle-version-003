@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, Plus, ChevronRight, Hash, Calendar, MapPin, Orbit, Sparkles, Zap, Users } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
@@ -120,14 +119,12 @@ export default function Polls() {
   ];
 
   return (
-    <div className="flex bg-transparent min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-transparent min-h-dvh text-black overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(5rem+env(safe-area-inset-top))] pb-[calc(6rem+env(safe-area-inset-bottom))] md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-[1400px] mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
         
         {/* ── Header ── */}
         <header className="flex flex-col xl:flex-row items-center justify-between gap-6 mb-8 animate-fade-in px-4">
@@ -307,12 +304,9 @@ export default function Polls() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        @keyfra  .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyfra  .no-scrollbar::-webkit-scrollbar { display: none; }
+        
         .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
       `}</style>
     </div>

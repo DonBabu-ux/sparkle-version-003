@@ -388,7 +388,7 @@ export default function ResetPassword() {
 
       <style>{`
         .security-page-bg {
-          min-height: 100vh;
+          min-height: 100dvh;
           background-color: #fdf2f4;
           background-image: radial-gradient(circle at 10% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 45%),
                             radial-gradient(circle at 90% 80%, rgba(219, 39, 119, 0.08) 0%, transparent 45%);
@@ -437,13 +437,8 @@ export default function ResetPassword() {
           overflow: hidden;
         }
 
-        @keyframes float {
-          0% { transform: translateY(0px); }
-          50% { transform: translateY(-5px); }
-          100% { transform: translateY(0px); }
-        }
         .animate-float-shield {
-          animation: float 4s ease-in-out infinite;
+          animation: resetFloat 4s ease-in-out infinite;
         }
 
         .input-otp-box {
@@ -559,11 +554,6 @@ export default function ResetPassword() {
           animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
         }
 
-        @keyframes fadeInOverlay {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-
         .spinner {
           border: 2px solid rgba(255, 255, 255, 0.15);
           border-top-color: #fff;
@@ -573,17 +563,6 @@ export default function ResetPassword() {
           animation: spin 0.8s linear infinite;
         }
 
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(8px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        .animate-fade-in {
-          animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
 
         @media (max-width: 640px) {
           .security-page-bg {

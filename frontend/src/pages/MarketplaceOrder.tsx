@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -94,14 +95,14 @@ export default function MarketplaceOrder() {
         setTimeout(() => navigate('/marketplace/orders'), 2000);
       }
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to place order');
+      showError(err.response?.data?.message || 'Failed to place order');
     } finally {
       setPlacing(false);
     }
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-white flex items-center justify-center">
+    <div className="min-h-dvh bg-white flex items-center justify-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
@@ -109,7 +110,7 @@ export default function MarketplaceOrder() {
   if (!listing) return null;
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-10">
+    <div className="min-h-dvh bg-slate-50 pb-10">
       {/* Header */}
       <div className="bg-white sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors">

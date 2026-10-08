@@ -1,3 +1,4 @@
+import { showError } from '../../utils/toast';
 import { useState, useRef } from 'react';
 import {
   X, Image as ImageIcon, MapPin, Globe, Ghost, Lock,
@@ -12,6 +13,7 @@ import FeelingActivitySelector from './FeelingActivitySelector';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface PostModalProps {
   onClose: () => void;
@@ -79,6 +81,8 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
   );
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Conditionally mounted by its parent; suspend while the nested selector sheet is open.
+  const a11yRef = useModalA11y(!showSelector, onClose);
 
   const selectedType = POST_TYPES.find(t => t.value === postType) || POST_TYPES[0];
   const TypeIcon = selectedType.icon;
@@ -124,7 +128,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
       onClose();
     } catch (err) {
       logger.error('Post operation failed:', err);
-      alert('Failed to save post.');
+      showError('Failed to save post.');
     } finally {
       setUploading(false);
     }
@@ -134,7 +138,11 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
   return (
     <div
-      className="fixed inset-0 z-[99999] bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col overflow-hidden safe-area-top safe-area-bottom animate-in slide-in-from-bottom duration-300"
+      ref={a11yRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col overflow-hidden safe-area-top safe-area-bottom animate-in slide-in-from-bottom duration-300"
     >
         {showSelector && (
           <FeelingActivitySelector 

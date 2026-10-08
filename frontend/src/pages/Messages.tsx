@@ -1,3 +1,4 @@
+import { showError, showInfo, showSuccess } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { registerPlugin } from '@capacitor/core';
 
@@ -393,7 +394,7 @@ const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
             animationDelay: `${Math.random() * 2}s`
           }} />
         ))}
-        <style>{`@keyframes snow { 0% { transform: translateY(-10px); } 100% { transform: translateY(100vh); } } .animate-snow { animation: snow linear infinite; }`}</style>
+        <style>{` .animate-snow { animation: snow linear infinite; }`}</style>
       </div>
     );
   }
@@ -410,7 +411,7 @@ const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
             animationDelay: `${Math.random() * 1}s`
           }} />
         ))}
-        <style>{`@keyframes rain { 0% { transform: translateY(-20px) rotate(15deg); } 100% { transform: translateY(100vh) rotate(15deg); } } .animate-rain { animation: rain linear infinite; }`}</style>
+        <style>{` .animate-rain { animation: rain linear infinite; }`}</style>
       </div>
     );
   }
@@ -642,7 +643,7 @@ const ChatInput = memo(({
       logger.error('[ChatInput] Microphone access failed:', err);
       if (voiceRecordingService.getCurrentSessionId() === sessionId) {
         setRecordingSessionId(null);
-        alert('Microphone access is required to record voice notes.');
+        showError('Microphone access is required to record voice notes.');
       }
     });
   }, [recordingSessionId]);
@@ -1372,7 +1373,6 @@ export default function Messages() {
       });
     });
   };
-
 
   const handleBatchMarkUnread = () => {
     const idsToMark = [...selectedChatIds];
@@ -2111,7 +2111,6 @@ export default function Messages() {
       }
     };
   }, [selectedChat?.chat_id]);
-
 
   // --- Handlers ---
   const fetchInbox = async () => {
@@ -2871,7 +2870,7 @@ export default function Messages() {
         content
       }, (response: { success: boolean, error?: string }) => {
         if (!response.success) {
-          alert(response.error || 'Failed to edit message');
+          showError(response.error || 'Failed to edit message');
         }
       });
       useChatStore.getState().finishEdit(selectedChat.chat_id);
@@ -3312,7 +3311,7 @@ export default function Messages() {
 
   const handleAction = (label: string) => {
     if (label === 'Customize themes') setActiveSettingView('customize');
-    else alert(`Action: ${label}`);
+    else showInfo(`Action: ${label}`);
   };
 
   const handleApplyTheme = () => {
@@ -3422,7 +3421,6 @@ export default function Messages() {
       return bTime - aTime;
     });
   }, [conversations, activeFilter, customLists, messageSearch]);
-
 
   const visibleTabs = useMemo(() => {
     const presetLabels: Record<string, string> = {
@@ -4713,7 +4711,7 @@ export default function Messages() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 20, opacity: 0 }}
                   transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className="shrink-0 border-t border-white/5 px-4 py-3 flex items-center justify-between gap-3 z-30"
+                  className="shrink-0 border-t border-white/5 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 z-30"
                   style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#0a0a12' }}
                 >
                   <button
@@ -4800,7 +4798,7 @@ export default function Messages() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="fixed inset-0 z-[9999] bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center select-none"
+                className="fixed inset-0 z-(--z-top) bg-black/95 backdrop-blur-2xl flex flex-col items-center justify-center p-6 text-center select-none"
               >
                 <div className="w-20 h-20 rounded-full bg-[#ff1493]/20 border border-[#ff1493]/40 flex items-center justify-center mb-4 text-[#ff1493] animate-pulse">
                   <Shield size={40} />
@@ -4834,7 +4832,7 @@ export default function Messages() {
       {/* MODALS */}
       <AnimatePresence>
         {showDeleteConfirm && messageToDelete && (
-          <div className="fixed inset-0 z-[200] bg-black/60 flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-(--z-modal) bg-black/60 flex items-center justify-center p-4">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
@@ -5016,7 +5014,7 @@ export default function Messages() {
           setActiveMessageMenu(null);
         }}
         onReport={() => {
-          alert('Thank you for reporting. Our moderation team will review this message shortly.');
+          showInfo('Thank you for reporting. Our moderation team will review this message shortly.');
           setActiveMessageMenu(null);
         }}
         permissions={effectiveMessagePermissions}
@@ -5074,7 +5072,7 @@ export default function Messages() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
             transition={{ type: 'tween', duration: 0.25 }}
-            className="fixed inset-0 bg-[#0b141a] text-white z-[200] flex flex-col"
+            className="fixed inset-0 bg-[#0b141a] text-white z-(--z-modal) flex flex-col"
           >
             {/* Header */}
             <div className="flex items-center px-4 h-16 bg-[#0b141a] border-b border-gray-800 shrink-0 gap-3">
@@ -5271,7 +5269,7 @@ export default function Messages() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black z-[200] flex flex-col"
+            className="fixed inset-0 bg-black z-(--z-modal) flex flex-col"
           >
             {/* Top Bar */}
             <div className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4">
@@ -5423,7 +5421,7 @@ export default function Messages() {
                     initial={{ y: -100, opacity: 0 }}
                     animate={{ y: 20, opacity: 1 }}
                     exit={{ y: -100, opacity: 0 }}
-                    className="fixed top-0 left-4 right-4 z-[300] bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-2xl"
+                    className="fixed top-0 left-4 right-4 z-(--z-modal) bg-white/10 backdrop-blur-2xl border border-white/20 rounded-2xl p-4 flex items-center gap-4 shadow-2xl"
                   >
                     <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 border-2 border-[#ff1493]">
                       <img src={getAvatarUrl(viewingNote.avatar_url, viewingNote.username)} className="w-full h-full object-cover" alt="" />
@@ -5479,7 +5477,7 @@ export default function Messages() {
                   {/* Mobile-Friendly Emoji Picker Bottom Sheet for Notes */}
                   <AnimatePresence>
                     {showNoteEmojiPicker && (
-                      <div className="fixed inset-0 z-[500] flex items-end justify-center">
+                      <div className="fixed inset-0 z-(--z-modal) flex items-end justify-center">
                         <motion.div
                           initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                           className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -5533,7 +5531,7 @@ export default function Messages() {
       {/* ── 1. FLOATING ATTACHMENT BOTTOM SHEET ── */}
       <AnimatePresence>
         {showAttachmentSheet && (
-          <div className="fixed inset-0 z-[200] flex items-end justify-center select-none">
+          <div className="fixed inset-0 z-(--z-modal) flex items-end justify-center select-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -5622,7 +5620,7 @@ export default function Messages() {
                           const file = e.target.files?.[0];
                           if (file) {
                             if (file.size > 25 * 1024 * 1024) {
-                              alert('Audio file is too large (maximum size is 25MB).');
+                              showInfo('Audio file is too large (maximum size is 25MB).');
                               return;
                             }
                             setShowAttachmentSheet(false);
@@ -5823,7 +5821,7 @@ export default function Messages() {
       {/* ── 2. MULTIPLE SELECTION MEDIA COMPOSER ── */}
       <AnimatePresence>
         {showMediaComposer && (
-          <div className="fixed inset-0 z-[300] bg-[#0c0c0c] flex flex-col select-none">
+          <div className="fixed inset-0 z-(--z-modal) bg-[#0c0c0c] flex flex-col select-none">
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex justify-between items-center backdrop-blur-md bg-black/20 shrink-0">
               <span className="text-[11px] font-black uppercase tracking-widest text-white/50">Media Composer</span>
@@ -5987,7 +5985,7 @@ export default function Messages() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="fixed bottom-24 left-6 z-[250] p-4 bg-[#121212]/95 border border-white/10 rounded-3xl w-[280px] backdrop-blur-xl shadow-2xl flex flex-col gap-3"
+            className="fixed bottom-24 left-6 z-(--z-modal) p-4 bg-[#121212]/95 border border-white/10 rounded-3xl w-[280px] backdrop-blur-xl shadow-2xl flex flex-col gap-3"
           >
             <div className="flex justify-between items-center border-b border-white/5 pb-2">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#ff1493]">
@@ -6032,7 +6030,7 @@ export default function Messages() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[300] bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
           >
             <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-white/[0.07]">
               <button onClick={() => { setShowNewListFlow('none'); setNewListName(''); setEditingListId(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.07] text-white/70 transition-all">
@@ -6094,7 +6092,7 @@ export default function Messages() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 40 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[300] bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
           >
             <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/[0.07]">
               <button onClick={() => setShowNewListFlow('name')} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.07] text-white/70 transition-all">
@@ -6162,7 +6160,7 @@ export default function Messages() {
 
       {/* ── TAB DROPDOWN CONTEXT MENU ── */}
       {tabDropdown && (
-        <div className="fixed inset-0 z-[1000]" onClick={() => setTabDropdown(null)} onContextMenu={(e) => { e.preventDefault(); setTabDropdown(null); }}>
+        <div className="fixed inset-0 z-(--z-chrome)" onClick={() => setTabDropdown(null)} onContextMenu={(e) => { e.preventDefault(); setTabDropdown(null); }}>
           <div
             className="absolute bg-[#1b1b24] border border-white/[0.08] rounded-xl py-1 w-44 shadow-[0_8px_32px_rgba(0,0,0,0.5)] z-[1010]"
             style={{ top: tabDropdown.y, left: Math.min(tabDropdown.x, window.innerWidth - 180) }}
@@ -6253,7 +6251,7 @@ export default function Messages() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-[300] bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
           >
             <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-white/[0.07]">
               <button
@@ -6408,7 +6406,7 @@ export default function Messages() {
       {/* ── 4. LIGHTBOX IMAGE VIEW OVERLAY ── */}
       <AnimatePresence>
         {lightboxUrl && (
-          <div className="fixed inset-0 z-[1000] flex items-center justify-center select-none bg-black/95 backdrop-blur-md">
+          <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center select-none bg-black/95 backdrop-blur-md">
             <motion.div
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               className="absolute inset-0 cursor-pointer"
@@ -6441,14 +6439,14 @@ export default function Messages() {
           const target = peekChat?.partner_username || user?.username || user?.user_id;
           if (target) navigate(`/profile/${target}`);
         }}
-        onMarkUnread={() => alert('Marked as Unread')}
+        onMarkUnread={() => showInfo('Marked as Unread')}
         onFavorite={handleBatchFavorite}
         onPin={handleBatchPin}
-        onMute={() => alert('Muted Notifications')}
-        onClearChat={() => alert('Chat Cleared')}
-        onExportChat={() => alert('Exporting Chat...')}
-        onBlockUser={() => alert('User Blocked')}
-        onReportUser={() => alert('User Reported')}
+        onMute={() => showInfo('Muted Notifications')}
+        onClearChat={() => showSuccess('Chat Cleared')}
+        onExportChat={() => showInfo('Exporting Chat...')}
+        onBlockUser={() => showError('User Blocked')}
+        onReportUser={() => showInfo('User Reported')}
         onMessageSettings={() => navigate('/messages/settings')}
         isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
         isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
@@ -6462,9 +6460,9 @@ export default function Messages() {
           { id: 'profile', label: 'View Profile', icon: <User size={18} />, onClick: () => navigate(`/profile/${user?.username || user?.user_id}`) },
           { id: 'fav', label: 'Favorite Chat', icon: <Star size={18} className="text-amber-400 fill-amber-400" />, onClick: handleBatchFavorite },
           { id: 'pin', label: 'Pin Chat', icon: <Pin size={18} className="text-[#FF008A] fill-[#FF008A]" />, onClick: handleBatchPin },
-          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: () => alert('Chat Cleared') },
-          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: () => alert('User Blocked') },
-          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: () => alert('Chat Exported') },
+          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: () => showSuccess('Chat Cleared') },
+          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: () => showError('User Blocked') },
+          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: () => showInfo('Chat Exported') },
         ]}
       />
 
@@ -6523,12 +6521,11 @@ export default function Messages() {
         }}
       />
 
-
       {/* Delete Confirmation Modal */}
       <AnimatePresence>
         {deleteConfirmCount !== null && (
           <div
-            className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
+            className="fixed inset-0 z-(--z-top) bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none"
             onClick={() => setDeleteConfirmCount(null)}
           >
             <motion.div
@@ -6665,7 +6662,7 @@ export default function Messages() {
                   type="button"
                   onClick={() => {
                     setFailedResendModalMsg(null);
-                    alert("Problem report submitted to Sparkle Support.");
+                    showSuccess("Problem report submitted to Sparkle Support.");
                   }}
                   className="w-full flex items-center justify-center gap-2 py-3 px-4 rounded-2xl bg-white/5 hover:bg-white/10 text-white/70 font-semibold text-sm transition-all active:scale-98"
                 >
@@ -6689,10 +6686,8 @@ export default function Messages() {
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
         .note-modal-open nav.lg\\:hidden { display: none !important; }
         body.list-modal-open nav { display: none !important; }
 

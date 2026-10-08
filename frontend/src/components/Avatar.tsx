@@ -5,12 +5,16 @@ import defaultAvatar from '../assets/avatar.png';
 interface AvatarProps {
   src?: string | null;
   name?: string;
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
+  size?: 'xs' | 'nav' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'xxl';
   className?: string;
 }
 
 const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '' }) => {
   const [error, setError] = React.useState(false);
+
+  const SIZE_PX: Record<AvatarProps['size'], number> = {
+    xs: 24, nav: 28, sm: 32, md: 40, lg: 48, xl: 64, '2xl': 96, xxl: 128,
+  };
 
   const sizeClasses = {
     'xs': 'w-6 h-6 text-[10px]',
@@ -57,6 +61,9 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '' 
       <img 
         src={avatarUrl} 
         alt={name || 'User'} 
+        width={SIZE_PX[size]}
+        height={SIZE_PX[size]}
+        loading="lazy"
         className={`${sizeClasses[size]} rounded-full object-cover shrink-0 ${className}`}
         onError={() => setError(true)}
       />

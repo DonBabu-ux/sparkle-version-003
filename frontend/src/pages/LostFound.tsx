@@ -1,6 +1,7 @@
+import { showError, showSuccess } from '../utils/toast';
+import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X, Sparkles, Orbit, ChevronRight, Share2 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
@@ -62,33 +63,32 @@ export default function LostFound() {
   };
 
   const handleResolve = async (id: string) => {
-    if (!confirm('Mark this item as resolved? It will be removed from the list.')) return;
+    if (!await confirmDialog('Mark this item as resolved? It will be removed from the list.')) return;
     try {
       await api.delete(`/lost-found/${id}`);
       fetchItems();
     } catch {
-      alert('Failed to resolve item');
+      showError('Failed to resolve item');
     }
   };
 
   const handleClaim = async (item: LFItem) => {
     try {
       await api.post(`/lost-found/${item.id}/claim`);
-      alert(`Claim request sent to ${item.reporter_username}! They will be notified.`);
+      showSuccess(`Claim request sent to ${item.reporter_username}! They will be notified.`);
     } catch {
-      alert('Failed to send claim request');
+      showError('Failed to send claim request');
     }
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
           
           {/* Editorial Header */}
           <header className="mb-24 animate-fade-in px-4">
@@ -251,11 +251,10 @@ export default function LostFound() {
           )}
           </div>
         </main>
-      
 
       {/* High-Fidelity Report Step Modal */}
       {showReport && (
-        <div className="fixed inset-0 z-[1000] flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
+        <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
           <div className="bg-white/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
              
              {/* Progress Bar Top */}
@@ -399,13 +398,10 @@ export default function LostFound() {
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyfra  .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyfra  .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 25s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
       `}</style>
     </div>
   );

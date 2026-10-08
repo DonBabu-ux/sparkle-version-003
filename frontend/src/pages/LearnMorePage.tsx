@@ -10,7 +10,7 @@ export default function LearnMorePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-[#09050B] text-white overflow-hidden font-sans selection:bg-[#ff008a]/20 relative pb-24">
+    <div className="min-h-dvh bg-[#09050B] text-white overflow-hidden font-sans selection:bg-[#ff008a]/20 relative pb-24">
       {/* Ambient background orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-[#ff008a] opacity-15 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[20%] right-[-10%] w-[400px] h-[400px] rounded-full bg-[#ff4db8] opacity-10 blur-[130px] pointer-events-none" />

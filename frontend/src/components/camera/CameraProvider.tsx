@@ -7,6 +7,8 @@ interface CameraContextType {
   hasPermission: boolean | null;
   facingMode: 'user' | 'environment';
   flash: boolean;
+  /** True only when the current video track reports a usable torch capability. */
+  torchSupported: boolean;
   zoomLevel: number;
   isRecording: boolean;
   recordingSeconds: number;
@@ -26,11 +28,24 @@ interface CameraContextType {
 
 const CameraContext = createContext<CameraContextType | undefined>(undefined);
 
+// Torch (torchlight) is exposed by Android/Chrome camera tracks; desktop and iOS
+// Safari never report it — detect per-track so the UI never offers a dead control.
+const isTorchCapable = (track: MediaStreamTrack | null): track is MediaStreamTrack => {
+  if (!track || typeof track.getCapabilities !== 'function') return false;
+  try {
+    const caps = track.getCapabilities() as MediaTrackCapabilities & { torch?: boolean };
+    return 'torch' in caps && caps.torch !== false;
+  } catch {
+    return false;
+  }
+};
+
 export function CameraProvider({ children }: { children: React.ReactNode }) {
   const [stream, setStream]               = useState<MediaStream | null>(null);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [facingMode, setFacingMode]       = useState<'user' | 'environment'>('environment');
   const [flash, setFlash]                 = useState(false);
+  const [torchSupported, setTorchSupported] = useState(false);
   const [zoomLevel, setZoomLevel]         = useState(1);
   const [isRecording, setIsRecording]     = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
@@ -45,6 +60,14 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
 
   // Keep facingModeRef in sync with state (set by toggleFacingMode)
   useEffect(() => { facingModeRef.current = facingMode; }, [facingMode]);
+
+  // Torch capability tracks the live stream — recomputed on every new stream
+  // (start / restart / facing flip). Flash is forced OFF when unsupported.
+  useEffect(() => {
+    const supported = isTorchCapable(stream?.getVideoTracks()[0] ?? null);
+    setTorchSupported(supported);
+    if (!supported) setFlash(false);
+  }, [stream]);
 
   // ── stopCamera ──────────────────────────────────────────────────────────────
   // Stable — no state in deps; uses refs only.
@@ -119,7 +142,19 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
   }, [startCamera]);
 
   // ── toggleFlash ─────────────────────────────────────────────────────────────
-  const toggleFlash = useCallback(() => setFlash(p => !p), []);
+  // Applies the real torch constraint to the live track; UI state only flips
+  // once the device accepted it (no-op when the track has no torch).
+  const toggleFlash = useCallback(() => {
+    const track = streamRef.current?.getVideoTracks()[0] ?? null;
+    if (!isTorchCapable(track)) return;
+    const next = !flash;
+    // `torch` is Chrome/Android-specific and absent from TS lib.dom types.
+    const constraints = { advanced: [{ torch: next }] } as unknown as MediaTrackConstraints;
+    track
+      .applyConstraints(constraints)
+      .then(() => setFlash(next))
+      .catch(err => logger.warn('[CameraProvider] torch applyConstraints rejected:', err));
+  }, [flash]);
 
   // ── Background / Foreground lifecycle ───────────────────────────────────────
   // Release camera when the app moves to background so Android doesn't block
@@ -234,7 +269,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <CameraContext.Provider value={{
-      stream, hasPermission, facingMode, flash, zoomLevel,
+      stream, hasPermission, facingMode, flash, torchSupported, zoomLevel,
       isRecording, recordingSeconds,
       requestPermission, toggleFacingMode, toggleFlash, setZoomLevel,
       startCamera, stopCamera,

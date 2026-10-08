@@ -1,3 +1,4 @@
+import { showInfo } from '../../utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User as UserIcon, ChevronRight } from 'lucide-react';
 import type { User } from '../../types/user';
@@ -5,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const MessengerIcon = ({ size = 20, className = "" }: { size?: number, className?: string }) => (
     <svg 
@@ -26,13 +28,14 @@ interface Props {
 export default function UserActionModal({ user, onClose }: Props) {
     const navigate = useNavigate();
     const [poking, setPoking] = useState(false);
+    const a11yRef = useModalA11y(!!user, onClose);
 
     const handlePoke = async () => {
         if (poking) return;
         setPoking(true);
         try {
             await api.post(`/users/${user.user_id || user.id}/poke`);
-            alert(`You poked ${user.name || user.username}! 👋`);
+            showInfo(`You poked ${user.name || user.username}! 👋`);
             onClose();
         } catch (err) {
             logger.error('Poke failed:', err);
@@ -52,7 +55,7 @@ export default function UserActionModal({ user, onClose }: Props) {
                     onClick={onClose}
                     className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[5000]"
                 />
-                <div className="fixed inset-0 z-[5001] flex items-center justify-center p-4 pointer-events-none">
+                <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[5001] flex items-center justify-center p-4 pointer-events-none">
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9, y: 5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 5 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}

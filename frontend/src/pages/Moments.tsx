@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -586,11 +587,6 @@ export default function Moments() {
   const interactionStore = useInteractionStore.getState();
 
   // Local Toast alert state
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-    setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
 
   // Fetch Giphy Stickers
   useEffect(() => {
@@ -743,7 +739,6 @@ export default function Moments() {
     }
   };
 
-
   const handleSearch = async (query: string, type: string = activeSearchTab, force: boolean = false) => {
     if (!query || !query.trim()) return;
     
@@ -792,7 +787,6 @@ export default function Moments() {
         isFallback: data.isFallback || false,
         timestamp: now
       };
-
 
       // Ensure unique search results
       const uniqueResults = [];
@@ -925,7 +919,7 @@ export default function Moments() {
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_liked: wasLiked, like_count: (item.like_count || 0) + (wasLiked ? 1 : -1)
       } : item));
-      showToast('Unable to update like. Please try again.', 'error');
+      showError('Unable to update like. Please try again.');
     } finally {
       useInteractionStore.getState().setPending('pendingLikes', momentId, false);
     }
@@ -960,7 +954,7 @@ export default function Moments() {
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_saved: wasSaved
       } : item));
-      showToast('Unable to update bookmark. Please try again.', 'error');
+      showError('Unable to update bookmark. Please try again.');
     } finally {
       useInteractionStore.getState().setPending('pendingBookmarks', momentId, false);
     }
@@ -1067,20 +1061,7 @@ export default function Moments() {
     <div className="fixed inset-0 bg-black flex flex-col font-sans overflow-hidden">
       <Navbar />
 
-      {/* Minimal Toast */}
-      {toast && (
-        <div 
-          className={clsx(
-            "fixed bottom-24 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-2xl shadow-2xl z-[9999] font-black text-[10px] uppercase tracking-widest transition-all duration-300 animate-fade-in",
-            toast.type === 'success' ? 'bg-black text-white' : 'bg-red-500 text-white'
-          )}
-        >
-          {toast.type === 'success' ? <Sparkles size={16} className="text-primary" strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
-          {toast.message}
-        </div>
-      )}
-
-      {/* Pull to Refresh Spinner */}
+      {/* Minimal Toast */}      {/* Pull to Refresh Spinner */}
       {(pullOffset > 0 || isRefreshing) && (
         <div 
           className="fixed top-20 left-1/2 -translate-x-1/2 z-[2000] pointer-events-none transition-all"
@@ -1100,7 +1081,7 @@ export default function Moments() {
 
       {/* Top Navigation Bar Overlay (Minimalist) */}
       {!isSearchOpen && (
-        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-[1100] pointer-events-none md:ml-[72px]">
+        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-(--z-header) pointer-events-none md:ml-(--rail-w)">
           <div className="flex items-center gap-3">
             <button 
               onClick={() => navigate(-1)}
@@ -1127,7 +1108,6 @@ export default function Moments() {
         </div>
       )}
 
-
       {/* Moments Specific Search Overlay */}
       <AnimatePresence>
         {isSearchOpen && (
@@ -1135,7 +1115,7 @@ export default function Moments() {
             initial={{ opacity: 0, x: '100%' }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: '100%' }}
-            className="fixed inset-0 bg-black z-[2000] flex flex-col md:ml-[72px]"
+            className="fixed inset-0 bg-black z-[2000] flex flex-col md:ml-(--rail-w)"
           >
             {/* Search Header */}
             <div className="p-4 flex items-center gap-3 border-b border-white/5">
@@ -1344,14 +1324,14 @@ export default function Moments() {
         onTouchEnd={handleTouchEnd}
       >
         {loading ? (
-             <div className="h-screen flex flex-col items-center justify-center">
+             <div className="h-dvh flex flex-col items-center justify-center">
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
                 <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
              </div>
         ) : moments.length === 0 && !loading ? (
-            <div className="h-full flex items-center justify-center p-6 md:ml-[72px]">
+            <div className="h-full flex items-center justify-center p-6 md:ml-(--rail-w)">
                 <ModernOfflineState 
                     type={isFallback ? "error" : "empty"}
                     title={isFallback ? "Network Hiccup" : "Fresh Feed Incoming"}
@@ -1364,7 +1344,7 @@ export default function Moments() {
             </div>
         ) : (
             moments.map((m, idx) => (
-              <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center md:pl-[72px] relative overflow-hidden">
+              <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center md:pl-(--rail-w) relative overflow-hidden">
                 <ReelItem 
                    active={idx === activeIndex}
                    isNearActive={Math.abs(idx - activeIndex) <= 1}
@@ -1385,7 +1365,7 @@ export default function Moments() {
             ))
         )}
         {fetchingMore && (
-          <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 md:ml-[72px] transition-all overflow-hidden relative">
+          <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 md:ml-(--rail-w) transition-all overflow-hidden relative">
             <div className="flex flex-col items-center gap-6">
               <TikTokLoader />
               <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Syncing Stream</p>
@@ -1410,7 +1390,7 @@ export default function Moments() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-[1000] bg-black/40 backdrop-blur-md"
+              className="fixed inset-0 z-(--z-chrome) bg-black/40 backdrop-blur-md"
               onClick={() => setShowComments(false)}
             />
             <motion.div 
@@ -1560,19 +1540,9 @@ export default function Moments() {
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 12s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @ke      @ke      .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         
-        @keyframes tiktok-dot-1 {
-          0%, 100% { transform: translate(-12px, -50%) scale(1); z-index: 20; }
-          50% { transform: translate(12px, -50%) scale(0.8); z-index: 10; }
-        }
-        @keyframes tiktok-dot-2 {
-          0%, 100% { transform: translate(12px, -50%) scale(0.8); z-index: 10; }
-          50% { transform: translate(-12px, -50%) scale(1); z-index: 20; }
-        }
+        @ke      
         .animate-tiktok-dot-1 { animation: tiktok-dot-1 0.6s infinite ease-in-out; }
         .animate-tiktok-dot-2 { animation: tiktok-dot-2 0.6s infinite ease-in-out; }
       `}</style>

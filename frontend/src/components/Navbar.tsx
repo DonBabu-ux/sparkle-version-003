@@ -1,3 +1,4 @@
+import { scrollTopTo } from './AppScreen';
 import { useState, useEffect } from 'react';
 import api from '../api/api';
 import { motion } from 'framer-motion';
@@ -23,7 +24,6 @@ import PollModal from './modals/PollModal';
 import EventModal from './modals/EventModal';
 import ListingModal from './modals/ListingModal';
 import ConfessionModal from './modals/ConfessionModal';
-import SettingsModal from './modals/SettingsModal';
 import ShareModal from './modals/ShareModal';
 import ReshareModal from './modals/ReshareModal';
 import PostCommentsModal from './modals/PostCommentsModal';
@@ -62,6 +62,9 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
   </svg>
 );
 
+
+/** Paths where Navbar hides its mobile top header (shared with PageShell — S1/§3 P2-1). */
+export const MOBILE_HEADERLESS_PREFIXES = ['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile', '/messages'];
 export default function Navbar() {
   const { user, logout } = useUserStore();
   const { activeModal, setActiveModal, modalData, triggerSuccess } = useModalStore();
@@ -83,20 +86,22 @@ export default function Navbar() {
       </div>
 
       {/* Mobile Top Navigation Bar — Glass Header */}
-      {!['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile', '/messages'].some(path => location.pathname.startsWith(path)) && (
-        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-[1100] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+      {!MOBILE_HEADERLESS_PREFIXES.some(path => location.pathname.startsWith(path)) && (
+        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
           </Link>
           
           <div className="flex-1 mx-4">
-            <div 
-              className="bg-black/5 dark:bg-white/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 dark:text-white/30 border border-black/5 dark:border-white/5 transition-all active:bg-white dark:active:bg-white/10"
+            <button
+              type="button"
+              aria-label="Search"
+              className="bg-black/5 dark:bg-white/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 dark:text-white/30 border border-black/5 dark:border-white/5 transition-all active:bg-white dark:active:bg-white/10 w-full min-w-0"
               onClick={() => navigate('/search')}
             >
               <SearchIcon size={16} />
               <span className="text-[12px] font-bold">Search...</span>
-            </div>
+            </button>
           </div>
           
           <div className="flex items-center gap-3">
@@ -115,8 +120,9 @@ export default function Navbar() {
       {/* Mobile Bottom Navigation - Only show on main chat list, hide on chats/settings/other subpages */}
       {!showMobileCreate && !(location.pathname.startsWith('/messages') && location.pathname !== '/messages') && !(location.pathname === '/messages' && new URLSearchParams(location.search).has('chat')) && !location.pathname.includes('/create') && (
       <nav
+        aria-label="Primary"
         className={clsx(
-          "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-[1000] transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
+          "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-(--z-chrome) transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
           isDarkBase 
             ? "bg-black border-t border-white/10" 
             : "bg-white/50 dark:bg-black/80 backdrop-blur-3xl border-t border-black/5 dark:border-white/5"
@@ -125,11 +131,13 @@ export default function Navbar() {
         {/* Col 1 — Home */}
         <Link 
           to="/dashboard" 
+          aria-label="Home"
+          aria-current={isActive('/dashboard') ? 'page' : undefined}
           className="relative flex items-center justify-center h-full"
           onClick={(e) => {
             if (isActive('/dashboard')) {
               e.preventDefault();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
+              scrollTopTo(0, 'smooth');
               window.dispatchEvent(new CustomEvent('refreshFeed'));
             }
           }}
@@ -139,32 +147,32 @@ export default function Navbar() {
         </Link>
 
         {/* Col 2 — Connect */}
-        <Link to="/connect" className="relative flex items-center justify-center h-full">
+        <Link to="/connect" aria-label="Connect" aria-current={isActive('/connect') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Users size={22} strokeWidth={isDarkBase ? 3 : (isActive('/connect') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/connect') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 3 — Moments */}
-        <Link to="/moments" className="relative flex items-center justify-center h-full">
+        <Link to="/moments" aria-label="Moments" aria-current={isActive('/moments') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <PlayCircle size={22} strokeWidth={isDarkBase ? 3 : (isActive('/moments') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/moments') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 4 — Plus (column 4 of 7 = exact center) */}
-        <div className="flex items-center justify-center h-full cursor-pointer" onClick={() => setShowMobileCreate(!showMobileCreate)}>
+        <button type="button" aria-label="Create" aria-expanded={showMobileCreate} className="flex items-center justify-center h-full cursor-pointer" onClick={() => setShowMobileCreate(!showMobileCreate)}>
           <div className={clsx("w-11 h-11 bg-gradient-to-br from-[#ff1493] to-[#fb7185] rounded-2xl flex items-center justify-center shadow-lg transition-all duration-300", isDarkBase ? "shadow-pink-500/40 border-2 border-white" : "shadow-primary/30", showMobileCreate ? 'rotate-45 scale-90' : 'active:scale-90')}>
             <Plus size={22} color="white" strokeWidth={3} />
           </div>
-        </div>
+        </button>
 
         {/* Col 5 — Explore */}
-        <Link to="/explore" className="relative flex items-center justify-center h-full">
+        <Link to="/explore" aria-label="Explore" aria-current={isActive('/explore') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Compass size={22} strokeWidth={isDarkBase ? 3 : (isActive('/explore') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/explore') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 6 — Messages */}
-        <Link to="/messages" className="relative flex items-center justify-center h-full">
+        <Link to="/messages" aria-label="Messages" aria-current={isActive('/messages') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isDarkBase ? 'text-white' : (isActive('/messages') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}}>
             <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.404 5.5 3.6 7.22V22l3.193-1.755A10.86 10.86 0 0 0 12 20.486c5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2Z"
@@ -174,7 +182,7 @@ export default function Navbar() {
         </Link>
 
         {/* Col 7 — Profile */}
-        <Link to={`/profile/${user?.username}`} className="relative flex items-center justify-center h-full">
+        <Link to={`/profile/${user?.username}`} aria-label="Profile" aria-current={isActive(`/profile/${user?.username}`) ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Avatar 
             src={user?.avatar_url} 
@@ -234,8 +242,8 @@ export default function Navbar() {
         if (activeModal === 'post_options') return <PostOptionsModal post={(modalData as any)?.post} onClose={() => setActiveModal(null)} />;
 
         const handledModals = [
-          'feeling', 'poll', 'event', 'listing', 'confession', 'settings', 
-          'share', 'reshare', 'post_comments', 'creation_hub', 
+          'feeling', 'poll', 'event', 'listing', 'confession',
+          'share', 'reshare', 'post_comments', 'creation_hub',
           'skill_offer', 'skill_detail',
           'highlight', 'highlight_player', 'archive', 'note_editor'
         ];
@@ -277,13 +285,12 @@ export default function Navbar() {
         }
 
         return (
-          <div className="fixed inset-0 z-[9999] flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-black/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+          <div className="fixed inset-0 z-(--z-top) flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-black/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
             <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
               {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'listing' && <ListingModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'confession' && <ConfessionModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
-              {activeModal === 'settings' && <SettingsModal onClose={() => setActiveModal(null)} />}
               {activeModal === 'share' && <ShareModal onClose={() => setActiveModal(null)} />}
               {activeModal === 'reshare' && <ReshareModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'post_comments' && <PostCommentsModal post={modalData?.post} onClose={() => setActiveModal(null)} />}

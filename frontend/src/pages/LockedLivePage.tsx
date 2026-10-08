@@ -142,7 +142,7 @@ export default function LockedLivePage() {
 
 
   return (
-    <div className="min-h-screen bg-[#07020d] text-white overflow-hidden relative pb-24 font-sans selection:bg-[#ff008a]/20">
+    <div className="min-h-dvh bg-[#07020d] text-white overflow-hidden relative pb-24 font-sans selection:bg-[#ff008a]/20">
       
       {/* Background Ambient Orbs */}
       <div className="absolute top-[-10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-[#ff008a] opacity-15 blur-[120px] pointer-events-none" />
@@ -579,7 +579,7 @@ export default function LockedLivePage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+            className="fixed inset-0 z-(--z-modal) bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
           >
             <motion.div 
               initial={{ scale: 0.9, y: 20 }}

@@ -108,6 +108,8 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                 {/* Micro-Interaction Overlay: Loading reload state (Instagram/Telegram premium design style) */}
                 {isReloading && (
                     <div
+                        role="status"
+                        aria-live="polite"
                         style={{
                             position: 'fixed',
                             top: 0,
@@ -147,10 +149,7 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                             Syncing Sparkle Update...
                         </p>
                         <style>{`
-                            @keyframes ota-spin {
-                                0% { transform: rotate(0deg); }
-                                100% { transform: rotate(360deg); }
-                            }
+                            
                         `}</style>
                     </div>
                 )}

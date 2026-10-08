@@ -1,8 +1,8 @@
+import { showError, showInfo, showSuccess } from '../utils/toast';
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Inbox, ClipboardList, Star, CheckCircle, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../utils/logger';
 
@@ -46,23 +46,23 @@ export default function SkillHub() {
       setServices(prev => prev.map(b => b.booking_id === bookingId ? { ...b, status } : b));
     } catch (err) {
       logger.error('Failed to update status', err);
-      alert('Failed to update. Try again.');
+      showError('Failed to update. Try again.');
     }
   };
 
   const submitReview = async () => {
-    if (!rating) return alert('Please select a rating (1-5 stars).');
+    if (!rating) return showInfo('Please select a rating (1-5 stars).');
     setSubmittingReview(true);
     try {
       await api.post(`/skill-market/bookings/${reviewing.booking_id}/rate`, { rating, review: reviewText });
-      alert('Review submitted successfully!');
+      showSuccess('Review submitted successfully!');
       setReviewing(null);
       setRating(0);
       setReviewText('');
       fetchData(); // refresh to show rating
     } catch (err) {
       logger.error('Failed to submit review', err);
-      alert('Failed to submit review. Try again.');
+      showError('Failed to submit review. Try again.');
     } finally {
       setSubmittingReview(false);
     }
@@ -80,7 +80,6 @@ export default function SkillHub() {
 
   return (
     <div className="sh-layout">
-      <Navbar />
 
       <main className="sh-main">
         <header className="sh-header">
@@ -243,7 +242,7 @@ export default function SkillHub() {
       </AnimatePresence>
 
       <style>{`
-        .sh-layout { min-height: 100vh; background: #fff; padding-top: 70px; padding-bottom: 80px; font-family: 'Inter', sans-serif; }
+        .sh-layout { min-height: 100dvh; background: #fff; padding-top: 70px; padding-bottom: 80px; font-family: 'Inter', sans-serif; }
         .sh-main { max-width: 600px; margin: 0 auto; }
         
         .sh-header { display: flex; align-items: center; gap: 16px; padding: 20px; border-bottom: 1px solid #f3f4f6; }

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useModalStore } from '../../store/modalStore';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { 
   Pen, 
   PlayCircle, 
@@ -43,9 +44,11 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 export default function CreationHubModal({ onClose }: CreationHubModalProps) {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   return (
-    <div className="fixed inset-0 z-[10000] flex items-center justify-center p-6 lowercase">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-toast) flex items-center justify-center p-6 lowercase">
       {/* Backdrop */}
       <div 
         className="absolute inset-0 bg-black/20 dark:bg-[#101217]/60 backdrop-blur-3xl animate-fade-in" 
@@ -134,11 +137,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
       </div>
       
       <style>{`
-        .animate-spin-slow { animation: spin 30s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes scale-in { from { opacity: 0; transform: scale(0.9) translateY(40px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-        .animate-fade-in { animation: fade-in 0.15s ease-out forwards; }
+
         .animate-scale-in { animation: scale-in 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>

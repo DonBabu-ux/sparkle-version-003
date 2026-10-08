@@ -13,7 +13,6 @@ import {
   Shield
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
-import Navbar from '../components/Navbar';
 
 export default function AccountsCenter() {
   const navigate = useNavigate();
@@ -45,14 +44,13 @@ export default function AccountsCenter() {
   ];
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full">
         <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
           <div className="max-w-2xl space-y-8 text-center xl:text-left">
             <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5 mx-auto xl:mx-0">
@@ -173,8 +171,7 @@ export default function AccountsCenter() {
       </main>
 
       <style>{`
-        .animate-fade-in { animation: fadeIn 1s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        
       `}</style>
     </div>
   );

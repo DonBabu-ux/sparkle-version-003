@@ -1,8 +1,8 @@
+import { showError, showInfo, showSuccess } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { getAvatarUrl } from '../utils/imageUtils';
-import Navbar from '../components/Navbar';
 import { User, Zap, MessageSquare, Users, ShoppingBag, Bell, Hand, ArrowLeft, CheckCircle2, Search, MoreHorizontal, X, BellOff, AlertOctagon, AtSign } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -216,10 +216,10 @@ export default function Notifications() {
     if (!userId) return;
     try {
       await api.post(`/users/${userId}/poke`);
-      alert(`You poked ${name || 'them'} back! 👋`);
+      showInfo(`You poked ${name || 'them'} back! 👋`);
     } catch (err) {
       logger.error('Poke back failed:', err);
-      alert('Failed to send poke. Try again later.');
+      showError('Failed to send poke. Try again later.');
     }
   };
 
@@ -471,10 +471,9 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex bg-app min-h-screen text-black font-sans">
-      <Navbar />
+    <div className="flex bg-app min-h-dvh text-black font-sans">
 
-      <main className="flex-1 pt-20 pb-24 max-w-2xl mx-auto w-full">
+      <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
         {/* Sticky Header */}
         <header className="sticky top-[70px] z-30 bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
           <div className="flex items-center justify-between">
@@ -561,7 +560,7 @@ export default function Notifications() {
       {/* Bottom Sheet — Notification Options */}
       {selectedNotif && (
         <div
-          className="fixed inset-0 z-[1500] flex items-end justify-center bg-black/50 backdrop-blur-sm"
+          className="fixed inset-0 z-(--z-sheet) flex items-end justify-center bg-black/50 backdrop-blur-sm"
           style={{ animation: 'fadeIn 0.18s ease forwards' }}
           onClick={() => setSelectedNotif(null)}
         >
@@ -607,7 +606,7 @@ export default function Notifications() {
               </button>
 
               <button
-                onClick={() => { alert('Notifications turned off.'); setSelectedNotif(null); }}
+                onClick={() => { showInfo('Notifications turned off.'); setSelectedNotif(null); }}
                 className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
               >
                 <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/8 flex items-center justify-center shrink-0">
@@ -620,7 +619,7 @@ export default function Notifications() {
               </button>
 
               <button
-                onClick={() => { alert('Report sent to the team.'); setSelectedNotif(null); }}
+                onClick={() => { showSuccess('Report sent to the team.'); setSelectedNotif(null); }}
                 className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
               >
                 <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/8 flex items-center justify-center shrink-0">
@@ -646,9 +645,7 @@ export default function Notifications() {
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.2s ease forwards; }
+
       `}</style>
     </div>
   );

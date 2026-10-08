@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import axios from 'axios';
 import { Compass, Sparkles, Globe, Layers, Eye, EyeOff, ArrowLeft, ArrowRight, Shield } from 'lucide-react';
@@ -42,8 +41,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="min-h-screen font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%)' }}>
-      <Navbar />
+    <div className="min-h-dvh font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%)' }}>
       <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
       <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
@@ -205,18 +203,13 @@ export default function CreateGroup() {
       </main>
 
       <style>{`
-        @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slide-in-from-bottom { from { transform: translateY(20px); } to { transform: translateY(0); } }
+
         .animate-in { animation-duration: 500ms; animation-fill-mode: both; }
         .fade-in { animation-name: fade-in; }
         .slide-in-from-bottom-4 { animation-name: slide-in-from-bottom; }
         .slide-in-from-bottom-6 { animation-name: slide-in-from-bottom; }
         .delay-200 { animation-delay: 200ms; }
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-4px); }
-          75% { transform: translateX(4px); }
-        }
+        
         .animate-shake { animation: shake 0.2s ease-in-out 0s 2; }
       `}</style>
     </div>

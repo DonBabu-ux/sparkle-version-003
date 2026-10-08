@@ -1,8 +1,10 @@
+import { showError, showInfo } from '../../utils/toast';
 import React, { useState } from 'react';
 import { X, Zap, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check, ArrowRight, DollarSign } from 'lucide-react';
 import api from '../../api/api';
 import { motion } from 'framer-motion';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 const CATEGORIES = [
   { id: 'tutoring',  name: 'Tutoring',     icon: GraduationCap },
@@ -41,6 +43,8 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
     price: '',
     is_free: false,
   });
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const update = (patch: Partial<FormData>) => setFormData(p => ({ ...p, ...patch }));
 
@@ -55,7 +59,7 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
  const handleSubmit = async () => {
     if (formData.title.trim().length < 2) {
       setStep(1);
-      alert('Please provide a service title (at least 2 characters) before publishing.');
+      showInfo('Please provide a service title (at least 2 characters) before publishing.');
       return;
     }
     setLoading(true);
@@ -68,14 +72,14 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
       }, 1800);
     } catch (err) {
       logger.error('Failed to create skill offer:', err);
-      alert('Could not create listing. Please try again.');
+      showError('Could not create listing. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="sof-overlay">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="sof-overlay">
       <div className="sof-backdrop" onClick={onClose} />
 
       <motion.div
@@ -289,7 +293,6 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
       </motion.div>
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
         /* Overlay */
         .sof-overlay {
@@ -435,7 +438,6 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         .sof-wc-count--ok   { color: #10b981; }
         .sof-wc-count--over { color: #f97316; }
 
-
         .sof-types { display: flex; flex-direction: column; gap: 8px; }
         .sof-type {
           display: flex; align-items: center; justify-content: space-between;
@@ -532,7 +534,6 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           animation: sof-spin 0.65s linear infinite;
         }
         .dark .sof-spinner { border-top-color: #000; }
-        @keyframes sof-spin { to { transform: rotate(360deg); } }
 
         /* Success */
         .sof-success {

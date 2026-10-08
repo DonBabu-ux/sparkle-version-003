@@ -44,7 +44,7 @@ export const SparkleUndoToast: React.FC<UndoToastProps> = ({ toast, onDismiss })
         animate={{ y: 0, opacity: 1, scale: 1 }}
         exit={{ y: 30, opacity: 0, scale: 0.9 }}
         transition={{ type: 'spring', damping: 22, stiffness: 320 }}
-        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-[400] bg-[#1a1a24]/95 border border-white/15 backdrop-blur-xl px-5 py-3 rounded-full shadow-2xl flex items-center gap-4 text-white text-xs font-semibold"
+        className="fixed bottom-20 left-1/2 -translate-x-1/2 z-(--z-toast) bg-[#1a1a24]/95 border border-white/15 backdrop-blur-xl px-5 py-3 rounded-full shadow-2xl flex items-center gap-4 text-white text-xs font-semibold"
       >
         <div className="flex items-center gap-2">
           <CheckCircle2 size={16} className="text-[#ff1493]" />

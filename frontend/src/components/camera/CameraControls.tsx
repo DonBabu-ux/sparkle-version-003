@@ -7,9 +7,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CameraControlsProps {
-  mode: 'post' | 'story' | 'reel' | 'live';
-  onModeChange: (mode: 'post' | 'story' | 'reel' | 'live') => void;
+  mode: 'post' | 'story' | 'reel';
+  onModeChange: (mode: 'post' | 'story' | 'reel') => void;
   flash: boolean;
+  /** Render the flash button only when the track actually exposes a torch. */
+  torchSupported: boolean;
   onFlashToggle: () => void;
   cameraType: 'user' | 'environment';
   onCameraTypeToggle: () => void;
@@ -43,6 +45,7 @@ export default function CameraControls({
   mode,
   onModeChange,
   flash,
+  torchSupported,
   onFlashToggle,
   cameraType,
   onCameraTypeToggle,
@@ -98,12 +101,17 @@ export default function CameraControls({
           </motion.div>
         )}
 
-        <button 
-          onClick={onFlashToggle} 
-          className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border border-white/10 ${flash ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-black/30 text-white'}`}
-        >
-          <Zap size={18} fill={flash ? "currentColor" : "none"} strokeWidth={2.5} />
-        </button>
+        {torchSupported ? (
+          <button 
+            onClick={onFlashToggle} 
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border border-white/10 ${flash ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-black/30 text-white'}`}
+          >
+            <Zap size={18} fill={flash ? "currentColor" : "none"} strokeWidth={2.5} />
+          </button>
+        ) : (
+          // No torch on this device — keep the header's 3-slot layout, show no dead control
+          <div className="w-12 h-12 shrink-0" />
+        )}
       </div>
 
       {/* 2. LEFT FLT ACTIONS TOOLBAR */}
@@ -260,7 +268,7 @@ export default function CameraControls({
 
         {/* Scrollable Camera Modes Row */}
         <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-2 px-24 mask-fade-edges relative max-w-xs sm:max-w-md w-full justify-center">
-          {['post', 'story', 'reel', 'live'].map((m) => (
+          {['post', 'story', 'reel'].map((m) => (
             <button 
               key={m} 
               onClick={() => onModeChange(m as any)} 

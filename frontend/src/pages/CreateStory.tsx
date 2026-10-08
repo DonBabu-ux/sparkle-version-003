@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { 
@@ -31,7 +32,7 @@ import { UploadManager } from '../services/UploadManager';
 import { logger } from '../utils/logger';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
-type Mode = 'post' | 'story' | 'reel' | 'live';
+type Mode = 'post' | 'story' | 'reel';
 
 const PALETTES = [
   { name: 'Sunset Sparkle', bg: 'linear-gradient(135deg, #FF512F 0%, #DD2476 100%)', text: '#FFFFFF' },
@@ -71,7 +72,7 @@ const MOCK_PROMPTS = [
   { id: 4, prompt: 'Current mood in 1 pic', count: '+220K' },
 ];
 
-const MODES: Mode[] = ['post', 'story', 'reel', 'live'];
+const MODES: Mode[] = ['post', 'story', 'reel'];
 
 const FILTERS = [
   { id: 'normal', name: 'Normal', css: 'none' },
@@ -94,6 +95,7 @@ export default function CreateStory() {
     hasPermission,
     facingMode,
     flash,
+    torchSupported,
     zoomLevel,
     isRecording,
     recordingSeconds,
@@ -710,12 +712,10 @@ export default function CreateStory() {
               formData.append('caption', editorText || textStoryContent || '');
               await api.post('/moments', formData);
               navigate('/moments');
-          } else if (mode === 'live') {
-              alert('Live streaming is coming soon to Sparkle Matrix! 🚀');
           }
       } catch (e) {
           logger.error('Upload failed', e);
-          alert('Upload failed. Please check your connection.');
+          showError('Upload failed. Please check your connection.');
       } finally {
           setUploading(false);
       }
@@ -871,6 +871,7 @@ export default function CreateStory() {
                               mode={mode}
                               onModeChange={setMode}
                               flash={flash}
+                              torchSupported={torchSupported}
                               onFlashToggle={toggleFlash}
                               cameraType={facingMode}
                               onCameraTypeToggle={toggleFacingMode}
@@ -1089,7 +1090,7 @@ export default function CreateStory() {
 
           {/* 5. EDITOR PHASE (Requirement: Functional Side Icons) */}
           {phase === 'editor' && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-[9999] bg-black">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-(--z-top) bg-black">
                   {/* The Media Content */}
                   {!previewUrl ? (
                     <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/20">Loading Preview...</div>
@@ -1183,7 +1184,7 @@ export default function CreateStory() {
                           {uploading ? <Spinner size="medium" color="text-primary" /> : (
                             <>
                               <span className="text-[15px]">
-                                {mode === 'story' ? 'Push to Story' : mode === 'post' ? 'Post to Feed' : mode === 'reel' ? 'Share Reel' : 'Go Live'}
+                                {mode === 'story' ? 'Push to Story' : mode === 'post' ? 'Post to Feed' : 'Share Reel'}
                               </span>
                               <Send size={18} strokeWidth={3} />
                             </>

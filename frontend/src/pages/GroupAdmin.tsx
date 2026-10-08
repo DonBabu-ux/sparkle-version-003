@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import type { Group } from '../types/group';
 import { Shield, ArrowLeft, Check, X, Users, Sparkles, AlertCircle } from 'lucide-react';
@@ -61,8 +60,7 @@ export default function GroupAdmin() {
   };
 
   if (loading) return (
-    <div className="flex min-h-screen bg-[#fafafa]">
-      <Navbar />
+    <div className="flex min-h-dvh bg-[#fafafa]">
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Decrypting...</p>
@@ -71,10 +69,9 @@ export default function GroupAdmin() {
   );
 
   return (
-    <div className="flex min-h-screen bg-[#fafafa] text-black font-sans pb-20">
-      <Navbar />
+    <div className="flex min-h-dvh bg-[#fafafa] text-black font-sans pb-20">
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full pt-16 md:pt-24">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full">
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link 
@@ -167,8 +164,7 @@ export default function GroupAdmin() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out forwards; }
+        
       `}</style>
     </div>
   );

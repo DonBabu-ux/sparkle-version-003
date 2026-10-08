@@ -1,3 +1,4 @@
+import { showInfo } from '../utils/toast';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
@@ -15,7 +16,6 @@ import {
   MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Bookmark, Heart, Send
 } from 'lucide-react';
 import { logger } from '../utils/logger';
-
 
 const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={active ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -250,12 +250,12 @@ export default function Confessions() {
   };
 
   return (
-    <div className="flex bg-[#FBFBFD] dark:bg-[#101217] min-h-screen text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
+    <div className="flex bg-[#FBFBFD] dark:bg-[#101217] min-h-dvh text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
       {/* Background blobs */}
       <div className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
 
-      <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-screen flex flex-col pb-28">
+      <main className="flex-1 relative z-10 w-full max-w-[680px] mx-auto min-h-dvh flex flex-col pb-28">
 
         {/* ── Sticky Header ── */}
         <div className="sticky top-0 z-50 bg-[#FBFBFD]/40 dark:bg-[#101217]/80 backdrop-blur-3xl transition-all border-b border-black/5 dark:border-white/10">
@@ -614,7 +614,7 @@ export default function Confessions() {
       {/* Local ConfessionModal overlay — no Navbar on this page */}
       {showComposeModal && (
         <div
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 md:p-6 bg-black/20 backdrop-blur-xl animate-fade-in"
+          className="fixed inset-0 z-(--z-top) flex items-center justify-center p-4 md:p-6 bg-black/20 backdrop-blur-xl animate-fade-in"
           onClick={() => setShowComposeModal(false)}
         >
           <div className="w-full max-w-lg animate-scale-in" onClick={e => e.stopPropagation()}>
@@ -631,14 +631,14 @@ export default function Confessions() {
 
       {/* ── Global Modals for this isolated view ── */}
       {activeModal === 'share' && (
-        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
+        <div className="fixed inset-0 z-(--z-toast) flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in p-4">
           <ShareModal onClose={() => setActiveModal(null)} />
         </div>
       )}
 
       {/* ── In-App Image Previewer ── */}
       {previewImage && (
-        <div className="fixed inset-0 z-[10000] flex flex-col bg-black/95 animate-fade-in backdrop-blur-xl">
+        <div className="fixed inset-0 z-(--z-toast) flex flex-col bg-black/95 animate-fade-in backdrop-blur-xl">
           {/* Top Bar */}
           <div className="flex items-center justify-between p-4 px-5 safe-pt">
             <button 
@@ -669,7 +669,7 @@ export default function Confessions() {
                     <span className="text-[13px] font-bold">Save Image</span>
                   </button>
                   <button 
-                    onClick={() => { alert('Reported'); setPreviewOptionsOpen(false); }}
+                    onClick={() => { showInfo('Reported'); setPreviewOptionsOpen(false); }}
                     className="w-full flex items-center gap-3 px-3 py-3 text-left text-rose-400 hover:bg-white/10 rounded-xl transition-colors mt-1"
                   >
                     <Flag size={16} />
@@ -701,7 +701,7 @@ export default function Confessions() {
 
       {/* ── Confession Comments Modal ── */}
       {activeCommentsModal && (
-        <div className="fixed inset-0 z-[9999] flex justify-center items-end sm:items-center bg-black/40 backdrop-blur-sm animate-fade-in">
+        <div className="fixed inset-0 z-(--z-top) flex justify-center items-end sm:items-center bg-black/40 backdrop-blur-sm animate-fade-in">
           <div className="w-full max-w-lg bg-white dark:bg-[#101217] sm:rounded-[32px] rounded-t-[32px] h-[85vh] sm:h-[80vh] flex flex-col shadow-2xl animate-slide-up sm:animate-scale-in border-t sm:border border-black/5 dark:border-white/10">
             {/* Header */}
             <div className="flex items-center justify-between p-5 border-b border-black/5 dark:border-white/10">
@@ -860,14 +860,10 @@ export default function Confessions() {
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 8s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        @        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+        @        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
+        
       `}</style>
     </div>
   );

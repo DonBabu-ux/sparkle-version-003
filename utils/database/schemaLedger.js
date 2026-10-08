@@ -11,7 +11,8 @@ const MIGRATIONS_DIR = path.join(__dirname, '../../migrations');
 // `verify`: tables that must exist after the run (some .js migrations swallow errors).
 const MIGRATION_RUN = [
     { file: '20260801_create_rooms_schema.sql', verify: ['rooms', 'room_members', 'channel_messages'] },
-    { file: '20260822_create_legal_consents.js', verify: ['user_legal_consents'] }
+    { file: '20260822_create_legal_consents.js', verify: ['user_legal_consents'] },
+    { file: '20261008_add_users_is_hidden.sql', verify: [] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

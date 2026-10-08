@@ -1,31 +1,37 @@
+import { showError } from '../utils/toast';
+import ErrorRetry from '../components/ui/ErrorRetry';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Heart, Trash2, ShoppingBag, ExternalLink, MapPin } from 'lucide-react';
+import { ChevronLeft, Heart, ShoppingBag } from 'lucide-react';
 import api from '../api/api';
 import type { Listing } from '../types/listing';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
+import ListingCard from '../components/marketplace/ListingCard';
 import Spinner from '../components/ui/Spinner';
-import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
 import { logger } from '../utils/logger';
 
 export default function Wishlist() {
   const navigate = useNavigate();
   const [items, setItems] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  const fetchWishlist = async () => {
+    setError(false);
+    try {
+      const response = await api.get('/marketplace/wishlist');
+      if (response.data.success) {
+        setItems(response.data.listings || []);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch wishlist:', err);
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchWishlist = async () => {
-      try {
-        const response = await api.get('/marketplace/wishlist');
-        if (response.data.success) {
-          setItems(response.data.listings || []);
-        }
-      } catch (err) {
-        logger.error('Failed to fetch wishlist:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchWishlist();
   }, []);
 
@@ -35,11 +41,12 @@ export default function Wishlist() {
       setItems(prev => prev.filter(item => item.listing_id !== id));
     } catch (err) {
       logger.error('Failed to remove item:', err);
+      showError('Failed to remove item.');
     }
   };
 
   return (
-    <div className="min-h-screen bg-white text-marketplace-text font-sans pb-20">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-20">
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -66,45 +73,19 @@ export default function Wishlist() {
             <Spinner size="large" color="text-primary" />
             <p className="text-marketplace-muted font-bold animate-pulse">Opening vault...</p>
           </div>
+        ) : error ? (
+          <ErrorRetry onRetry={fetchWishlist} />
         ) : items.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
             <AnimatePresence>
               {items.map(item => (
-                <motion.div 
-                  layout
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  key={item.listing_id} 
-                  className="group relative"
-                >
-                  <div className="aspect-square rounded-[32px] overflow-hidden bg-marketplace-bg border border-marketplace-border relative mb-3 cursor-pointer" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
-                    <MarketplaceImageSlider
-                      media={item.media}
-                      imageUrls={item.image_urls}
-                      fallbackUrl={item.image_url}
-                      alt={item.title}
-                      aspectRatio="aspect-square"
-                    />
-                    <button 
-                      onClick={() => removeItem(item.listing_id)}
-                      className="absolute top-3 right-3 w-10 h-10 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center text-rose-500 shadow-lg hover:bg-rose-500 hover:text-white transition-all transform hover:scale-110"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                    <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full border border-white/20 shadow-sm">
-                      <span className="text-[12px] font-black">KES {parseFloat(item.price as string).toLocaleString()}</span>
-                    </div>
-                  </div>
-                  
-                  <div className="px-1" onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}>
-                    <h3 className="font-bold text-[15px] text-marketplace-text truncate mb-1 cursor-pointer hover:text-blue-600 transition-colors">{item.title}</h3>
-                    <div className="flex items-center gap-1.5 text-marketplace-muted text-[11px] font-bold uppercase tracking-wider">
-                      <MapPin size={10} />
-                      {item.campus || 'Main Campus'}
-                    </div>
-                  </div>
-                </motion.div>
+                <ListingCard
+                  key={item.listing_id}
+                  variant="saved"
+                  listing={item}
+                  onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
+                  onRemove={() => removeItem(item.listing_id)}
+                />
               ))}
             </AnimatePresence>
           </div>

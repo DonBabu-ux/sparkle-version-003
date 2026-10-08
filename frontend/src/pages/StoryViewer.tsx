@@ -367,7 +367,7 @@ export default function StoryViewer() {
   }, [currentIndex, userStories]);
 
   if (loading && !userStories) return (
-    <div className="h-screen bg-black flex flex-col items-center justify-center gap-6">
+    <div className="h-dvh bg-black flex flex-col items-center justify-center gap-6">
        <Spinner size="large" color="text-primary" />
        <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Harmonizing Frequency...</p>
     </div>
@@ -447,7 +447,7 @@ export default function StoryViewer() {
   };
 
   return (
-    <div className="h-screen bg-black flex flex-col relative overflow-hidden safe-area-inset">
+    <div className="h-dvh bg-black flex flex-col relative overflow-hidden pt-safe pb-safe">
       
       {/* Media View (Cinematic Pip) */}
       <motion.div 
@@ -660,7 +660,7 @@ export default function StoryViewer() {
           <div className="absolute inset-y-0 right-0 w-[30%] z-20" onClick={() => { if (currentIndex < userStories.stories.length - 1) { setCurrentIndex(currentIndex + 1); setProgress(0); } else { navigate('/dashboard'); } }} />
 
           {/* Interaction Bar (FIXED: All icons now 100% responsive) */}
-          <div className="absolute bottom-10 left-0 right-0 px-6 z-[100] flex items-end justify-between pointer-events-none">
+          <div className="absolute bottom-10 left-0 right-0 px-6 z-(--z-scrim) flex items-end justify-between pointer-events-none">
              {isOwner ? (
                <div className="flex items-end justify-between w-full pointer-events-auto">
                   <div className="flex flex-col items-start">
@@ -739,7 +739,7 @@ export default function StoryViewer() {
       {/* Viewers Sheet */}
       <AnimatePresence>
         {showViewersSheet && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-end justify-center bg-black/40" onClick={() => setShowViewersSheet(false)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-scrim) flex items-end justify-center bg-black/40" onClick={() => setShowViewersSheet(false)}>
             <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} transition={{ type: 'spring', damping: 25, stiffness: 200 }} onClick={(e) => e.stopPropagation()} className="w-full max-w-[500px] bg-[#0F0F0F] rounded-t-[40px] p-8 flex flex-col h-[75vh] shadow-2xl border-t border-white/10 overflow-hidden relative">
                
                {/* POINTING ARROW */}
@@ -805,7 +805,7 @@ export default function StoryViewer() {
 
       <AnimatePresence>
         {showStorySettings && (
-          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-0 z-[600] bg-[#0A0A0A] flex flex-col">
+          <motion.div initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }} className="fixed inset-0 z-(--z-modal) bg-[#0A0A0A] flex flex-col">
              <div className="p-5 border-b border-white/5 flex items-center gap-3">
                 <button onClick={() => setShowStorySettings(false)} className="text-white"><ChevronLeft size={24} /></button>
                 <h2 className="text-white font-bold text-[16px]">Story Settings</h2>
@@ -932,7 +932,7 @@ export default function StoryViewer() {
       {/* Share Modal with Complete Footer Card */}
       <AnimatePresence>
         {showShareModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[600] bg-black/90 backdrop-blur-2xl flex items-end justify-center" onClick={() => setShowShareModal(false)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal) bg-black/90 backdrop-blur-2xl flex items-end justify-center" onClick={() => setShowShareModal(false)}>
              <motion.div initial={{ y: "100%" }} animate={{ y: 0 }} exit={{ y: "100%" }} onClick={(e) => e.stopPropagation()} className="w-full max-w-[500px] bg-[#0A0A0A] rounded-t-[48px] p-8 h-[85vh] flex flex-col border-t border-white/10">
                 <div className="w-10 h-1 bg-white/20 rounded-full mx-auto mb-5" />
                 <div className="flex items-center justify-between mb-4">
@@ -989,7 +989,7 @@ export default function StoryViewer() {
       {/* Hide Story From Modal */}
       <AnimatePresence>
         {showHideFromModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/70 flex items-end justify-center" onClick={() => setShowHideFromModal(false)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/70 flex items-end justify-center" onClick={() => setShowHideFromModal(false)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[36px] p-6 h-[70vh] flex flex-col border-t border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -1047,7 +1047,7 @@ export default function StoryViewer() {
       {/* Viewer 3-dot Options Sheet */}
       <AnimatePresence>
         {showViewerOptions && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[800] bg-black/70 flex items-end justify-center" onClick={() => setShowViewerOptions(null)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-top) bg-black/70 flex items-end justify-center" onClick={() => setShowViewerOptions(null)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#111] rounded-t-[40px] p-8 border-t border-white/10">
               <div className="flex items-center gap-4 mb-8 pb-6 border-b border-white/5">
                 <img src={getAvatarUrl(showViewerOptions.avatar_url, showViewerOptions.username)} className="w-16 h-16 flex-shrink-0 rounded-full border-2 border-white/10 object-cover" alt="" />
@@ -1079,7 +1079,7 @@ export default function StoryViewer() {
       {/* @ Mention Modal */}
       <AnimatePresence>
         {showMentionModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/80 backdrop-blur-md flex items-end justify-center" onClick={() => setShowMentionModal(false)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/80 backdrop-blur-md flex items-end justify-center" onClick={() => setShowMentionModal(false)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[40px] p-8 h-[55vh] flex flex-col border-t border-white/10">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-bold text-[15px]">Mention someone</h3>
@@ -1134,7 +1134,7 @@ export default function StoryViewer() {
       {/* Owner Options Sheet (3 dots / More) */}
       <AnimatePresence>
         {showOptionsSheet && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/70 flex items-end justify-center" onClick={() => setShowOptionsSheet(false)}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/70 flex items-end justify-center" onClick={() => setShowOptionsSheet(false)}>
             <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#111] rounded-t-[40px] p-8 border-t border-white/10">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-white font-bold text-[15px]">More options</h3>
@@ -1161,7 +1161,7 @@ export default function StoryViewer() {
       {/* Say Something Comment Modal */}
       <AnimatePresence>
         {showCommentModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[700] bg-black/80 flex items-center justify-center p-6 backdrop-blur-md">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/80 flex items-center justify-center p-6 backdrop-blur-md">
              <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} className="w-full max-w-[340px] bg-[#111] rounded-[32px] p-6 border border-white/10 shadow-2xl">
                 <div className="flex items-center justify-between mb-4">
                    <h3 className="text-white font-black uppercase text-[12px] italic tracking-widest">Say something...</h3>

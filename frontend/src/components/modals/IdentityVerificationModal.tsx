@@ -1,3 +1,4 @@
+import { showError } from '../../utils/toast';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // InAppCaptureModal
@@ -94,9 +96,14 @@ function InAppCaptureModal({ mode, onCapture, onClose }: InAppCaptureModalProps)
     streamRef.current?.getTracks().forEach(t => t.stop());
     onClose();
   };
+  const camA11yRef = useModalA11y(true, handleClose);
 
   return (
     <motion.div
+      ref={camA11yRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -214,6 +221,7 @@ export default function IdentityVerificationModal({
   const [isProcessing, setIsProcessing] = useState(false);
   // Which in-app camera view is active: null = none, 'id' | 'selfie' = open
   const [activeCam, setActiveCam] = useState<'id' | 'selfie' | null>(null);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   const startProcessing = async () => {
     setStep('processing');
@@ -229,7 +237,7 @@ export default function IdentityVerificationModal({
       }, 2500);
     } catch (err) {
       logger.error('Verification failed:', err);
-      alert('Verification failed. Please try again.');
+      showError('Verification failed. Please try again.');
       setStep('intro');
       setIsProcessing(false);
     }
@@ -413,9 +421,13 @@ export default function IdentityVerificationModal({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onClose}
-              className="fixed inset-0 bg-black/40 backdrop-blur-md z-[1500]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-(--z-sheet)"
             />
             <motion.div
+              ref={a11yRef}
+              role="dialog"
+              aria-modal="true"
+              tabIndex={-1}
               initial={{ y: '100%' }}
               animate={{ y: 0 }}
               exit={{ y: '100%' }}

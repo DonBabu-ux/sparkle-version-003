@@ -1,3 +1,4 @@
+import { showInfo, showSuccess } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
@@ -95,7 +96,7 @@ export default function ListingDetail() {
       const res = await api.post(`/marketplace/sellers/${listing.seller_id}/alert`);
       if (res.data.success) {
         setIsAlerted(res.data.alerted);
-        alert(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
+        showInfo(res.data.alerted ? "🔔 Alert enabled! You will be notified when this seller posts new listings." : "🔕 Alert disabled for this seller.");
       }
     } catch (err) {
       logger.error("Alert toggle failed:", err);
@@ -114,11 +115,11 @@ export default function ListingDetail() {
         });
       } catch (err) {
         navigator.clipboard.writeText(shareUrl);
-        alert('Listing link copied to clipboard!');
+        showSuccess('Listing link copied to clipboard!');
       }
     } else {
       navigator.clipboard.writeText(shareUrl);
-      alert('Listing link copied to clipboard!');
+      showSuccess('Listing link copied to clipboard!');
     }
   };
 
@@ -156,7 +157,7 @@ export default function ListingDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-white min-h-screen text-slate-900 justify-center items-center">
+    <div className="flex bg-white min-h-dvh text-slate-900 justify-center items-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
@@ -168,7 +169,7 @@ export default function ListingDetail() {
   const timeString = timeAgo(listing.created_at) || 'an hour ago';
 
   return (
-    <div className="flex flex-col bg-white min-h-screen text-marketplace-text font-sans pb-20 max-w-screen-md mx-auto shadow-sm">
+    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-20 max-w-screen-md mx-auto shadow-sm">
       
       {/* 1. Header */}
       <header className="sticky top-0 z-40 bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">

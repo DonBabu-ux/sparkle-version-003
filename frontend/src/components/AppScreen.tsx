@@ -21,6 +21,50 @@ interface AppScreenProps {
     scrollable?: boolean;
 }
 
+/** The element that actually scrolls inside an AppScreen (S9). */
+function getContentScroller(): HTMLElement | null {
+    return document.querySelector<HTMLElement>('.sparkle-screen-content-wrapper');
+}
+
+/**
+ * Scroll the real scroller to `top`. AppScreen owns the scroll container, so
+ * `window.scrollTo()` is a no-op on every screen that renders one (S9).
+ */
+export function scrollTopTo(top = 0, behavior: ScrollBehavior = 'smooth'): void {
+    const el = getContentScroller();
+    if (el) el.scrollTo({ top, behavior });
+    else window.scrollTo({ top, behavior });
+}
+
+/**
+ * Ref-counted body+scroller scroll lock (S9). `document.body.style.overflow`
+ * alone is a no-op when AppScreen's inner wrapper is the scroller, so modal
+ * locks must target BOTH. Nested modals share one lock.
+ */
+let scrollLockCount = 0;
+let prevBodyOverflow = '';
+let prevScrollerOverflow = '';
+
+export function lockScroll(): void {
+    scrollLockCount += 1;
+    if (scrollLockCount > 1) return;
+    prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const el = getContentScroller();
+    if (el) {
+        prevScrollerOverflow = el.style.overflow;
+        el.style.overflow = 'hidden';
+    }
+}
+
+export function unlockScroll(): void {
+    scrollLockCount = Math.max(0, scrollLockCount - 1);
+    if (scrollLockCount > 0) return;
+    document.body.style.overflow = prevBodyOverflow;
+    const el = getContentScroller();
+    if (el) el.style.overflow = prevScrollerOverflow;
+}
+
 export const AppScreen: React.FC<AppScreenProps> = ({
     children,
     statusBarStyle,
@@ -46,7 +90,7 @@ export const AppScreen: React.FC<AppScreenProps> = ({
                 display: 'flex',
                 flexDirection: 'column',
                 width: '100%',
-                height: '100vh',
+                height: '100dvh',
                 position: 'relative',
                 overflow: 'hidden',
                 // Avoid visual shifting by setting up edge-to-edge containers

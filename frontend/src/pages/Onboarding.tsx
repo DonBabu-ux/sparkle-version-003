@@ -51,7 +51,7 @@ export default function Onboarding() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#0b0712] gap-3">
+      <div className="flex flex-col items-center justify-center min-h-dvh bg-[#0b0712] gap-3">
         <Loader2 className="animate-spin text-[#ff2d87]" size={36} />
         <span className="text-sm font-bold text-[#b9a8cc]">Loading Sparkle experience...</span>
       </div>
@@ -83,7 +83,7 @@ export default function Onboarding() {
   const progressPercent = ((currentSlide - 1) / (totalSlides - 1)) * 100;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0e0d13] text-slate-900 dark:text-[#f4f2f7] flex flex-col justify-center items-center p-4 sm:p-6 relative font-sans selection:bg-[#ff2d87] selection:text-white">
+    <div className="min-h-dvh bg-slate-50 dark:bg-[#0e0d13] text-slate-900 dark:text-[#f4f2f7] flex flex-col justify-center items-center p-4 sm:p-6 relative font-sans selection:bg-[#ff2d87] selection:text-white">
       {/* Top Bar with Onboarding Sheet Trigger */}
       <div className="w-full max-w-xl flex justify-between items-center mb-5 z-20 px-2">
         <button

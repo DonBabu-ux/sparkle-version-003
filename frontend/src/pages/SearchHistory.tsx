@@ -1,3 +1,5 @@
+import { showError, showSuccess } from '../utils/toast';
+import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -5,7 +7,6 @@ import {
   ArrowLeft, Clock, Trash2, RotateCw, Lock, Sparkles, X
 } from 'lucide-react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -13,12 +14,6 @@ export default function SearchHistory() {
   const navigate = useNavigate();
   const [history, setHistory] = useState<{ id: string; query: string; searched_at: string }[]>([]);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-      setToast({ message, type });
-      setTimeout(() => setToast(null), 3000);
-  };
 
   const fetchHistory = useCallback(async () => {
     setLoading(true);
@@ -36,22 +31,22 @@ export default function SearchHistory() {
     try {
       await api.delete(`/search/history/${id}`);
       setHistory(prev => prev.filter(item => item.id !== id));
-      showToast('Search deleted.');
+      showSuccess('Search deleted.');
     } catch (err) {
       logger.error('Delete item failed:', err);
-      showToast('Failed to delete.', 'error');
+      showError('Failed to delete.');
     }
   };
 
   const clearAll = async () => {
-    if (!window.confirm("Delete all search history? This cannot be undone.")) return;
+    if (!await confirmDialog("Delete all search history? This cannot be undone.")) return;
     try {
       await api.delete('/search/history');
       setHistory([]);
-      showToast('History cleared.');
+      showSuccess('History cleared.');
     } catch (err) {
       logger.error('Clear all failed:', err);
-      showToast('Failed to clear history.', 'error');
+      showError('Failed to clear history.');
     }
   };
 
@@ -75,8 +70,7 @@ export default function SearchHistory() {
   };
 
   return (
-    <div className="flex bg-white min-h-screen text-black font-sans overflow-x-hidden selection:bg-primary/10">
-      <Navbar />
+    <div className="flex bg-white min-h-dvh text-black font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -94,7 +88,7 @@ export default function SearchHistory() {
                 onClick={() => navigate(-1)} 
                 className="w-10 h-10 md:w-12 md:h-12 shrink-0 flex items-center justify-center bg-black/5 hover:bg-black hover:text-white rounded-xl md:rounded-2xl transition-all active:scale-95 group shadow-sm"
               >
-                  <ArrowLeft size={16} md:size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
+                  <ArrowLeft size={16} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               <div className="min-w-0">
                 <h1 className="text-lg md:text-xl font-black text-black uppercase tracking-tight italic leading-none truncate">History</h1>
@@ -183,19 +177,7 @@ export default function SearchHistory() {
       </main>
 
       {/* Minimal Toast */}
-      <AnimatePresence>
-          {toast && (
-              <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className={`fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-2xl shadow-2xl z-[9999] font-black text-[10px] uppercase tracking-widest ${toast.type === 'success' ? 'bg-black text-white' : 'bg-red-500 text-white'}`}
-              >
-                  {toast.type === 'success' ? <Sparkles size={16} className="text-primary" strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
-                  {toast.message}
-              </motion.div>
-          )}
-      </AnimatePresence>
+      <AnimatePresence>      </AnimatePresence>
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

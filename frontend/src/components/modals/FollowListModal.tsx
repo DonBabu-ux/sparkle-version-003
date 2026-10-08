@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface FollowUser {
   id: string;
@@ -27,6 +28,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
   const [searchQuery, setSearchQuery] = useState('');
   const { user: currentUser } = useUserStore();
   const navigate = useNavigate();
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +73,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-sheet) flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
         onClick={onClose}

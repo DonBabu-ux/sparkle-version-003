@@ -1,7 +1,7 @@
+import { confirmDialog } from '../store/dialogStore';
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserX, Shield, Search } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
@@ -36,7 +36,7 @@ export default function BlockedUsers() {
   };
 
   const handleUnblock = async (userId: string) => {
-    if (window.confirm('Are you sure you want to unblock this user?')) {
+    if (await confirmDialog('Are you sure you want to unblock this user?')) {
       try {
         await api.delete(`/users/block/${userId}`);
         setBlockedUsers(blockedUsers.filter(u => u.user_id !== userId));
@@ -52,10 +52,9 @@ export default function BlockedUsers() {
   );
 
   return (
-    <div className="min-h-screen pb-20 lg:pb-0">
-      <Navbar />
+    <div className="min-h-dvh pb-20 lg:pb-0">
       
-      <div className="max-w-3xl mx-auto pt-20 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
           <button 

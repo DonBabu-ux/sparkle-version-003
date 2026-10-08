@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, ArrowLeft, Check, X, Forward } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ForwardContact {
   id: string;
@@ -55,6 +56,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, con
     setSearch('');
     onClose();
   };
+  const a11yRef = useModalA11y(isOpen, handleClose);
 
   const getAvatar = (c: ForwardContact) =>
     c.avatar_url && c.avatar_url.startsWith('http')
@@ -70,17 +72,19 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, con
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 z-[190]"
+            className="fixed inset-0 bg-black/70 z-(--z-scrim)"
             onClick={handleClose}
           />
 
           {/* Bottom Sheet */}
           <motion.div
+            ref={a11yRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 240 }}
-            className="fixed bottom-0 left-0 right-0 z-[200] flex flex-col bg-[#0b141a] rounded-t-[24px] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 z-(--z-modal) flex flex-col bg-[#0b141a] rounded-t-[24px] overflow-hidden"
             style={{ maxHeight: '90vh' }}
           >
             {/* Handle */}

@@ -85,7 +85,7 @@ const login = async (req, res) => {
         const cleanEmail = String(loginId).trim().toLowerCase();
 
         const user = await queryOne(
-            'SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, token_version, password_hash FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
+            'SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, is_hidden, token_version, password_hash FROM users WHERE email = ? OR username_normalized = ? OR username = ? LIMIT 1',
             [cleanEmail, normLoginId, loginId]
         );
 
@@ -275,6 +275,8 @@ const login = async (req, res) => {
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
                 onboarding_step: user.onboarding_step ?? 0,
+                // C1 Ghost Mode: expose initial visibility so Settings seeds correctly
+                is_hidden: user.is_hidden === 1,
                 loggedIn: true,
                 isNewDevice // Frontend can use this to show a "New device detected" message
             },
@@ -309,7 +311,7 @@ const verify2FA = async (req, res) => {
             return res.status(400).json({ status: 'error', message: 'User ID and code are required' });
         }
 
-        const users = await query('SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, token_version, password_hash FROM users WHERE user_id = ? LIMIT 1', [userId]);
+        const users = await query('SELECT user_id, username, email, name, avatar_url, role, account_status, email_verified, phone_number, phone_verified, email_2fa_enabled, sms_2fa_enabled, two_factor_enabled, two_factor_secret, two_factor_backup_codes, security_recovery_email, onboarding_step, is_hidden, token_version, password_hash FROM users WHERE user_id = ? LIMIT 1', [userId]);
         if (users.length === 0) {
             return res.status(404).json({ status: 'error', message: 'User not found' });
         }
@@ -454,6 +456,8 @@ const verify2FA = async (req, res) => {
                 email_verified: user.email_verified === 1,
                 phone_verified: user.phone_verified === 1,
                 avatar_url: getSafeAvatarUrl(user.avatar_url),
+                // C1 Ghost Mode: expose initial visibility so Settings seeds correctly
+                is_hidden: user.is_hidden === 1,
                 loggedIn: true
             }
         });

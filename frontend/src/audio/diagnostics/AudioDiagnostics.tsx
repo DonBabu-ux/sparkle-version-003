@@ -19,7 +19,7 @@ export const AudioDiagnostics: React.FC = () => {
 
   if (!stats) {
     return (
-      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center">
+      <div className="min-h-dvh bg-slate-950 text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
       </div>
     );
@@ -35,7 +35,7 @@ export const AudioDiagnostics: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-[#1e1026] text-white p-4 md:p-8 font-sans">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-950 via-slate-900 to-[#1e1026] text-white p-4 md:p-8 font-sans">
       <div className="max-w-4xl mx-auto space-y-6">
         
         {/* Header */}

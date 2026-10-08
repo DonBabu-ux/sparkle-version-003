@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface MessageInfoModalProps {
   messageId: string | null;
@@ -19,6 +20,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
 }) => {
   const [info, setInfo] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen && messageId) {
@@ -43,7 +45,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
       <div className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-md max-h-[85vh] flex flex-col shadow-2xl overflow-hidden text-slate-100">
         
         {/* Header */}

@@ -6,6 +6,7 @@ import clsx from 'clsx';
 import { motion } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
+import ErrorRetry from '../components/ui/ErrorRetry';
 
 interface Order {
   order_id: string;
@@ -21,6 +22,7 @@ export default function Orders() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -28,18 +30,20 @@ export default function Orders() {
 
   const fetchOrders = async () => {
     setLoading(true);
+    setError(false);
     try {
       const response = await api.get('/marketplace/orders');
       setOrders(response.data.orders || []);
     } catch (err) {
       logger.error('Failed to fetch orders:', err);
+      setError(true);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white text-marketplace-text font-sans pb-20">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-20">
       {/* Sticky Header */}
       <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -56,6 +60,8 @@ export default function Orders() {
             <Spinner size="large" color="text-primary" />
             <p className="text-marketplace-muted font-bold animate-pulse">Reading ledgers...</p>
           </div>
+        ) : error ? (
+          <ErrorRetry onRetry={fetchOrders} />
         ) : orders.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-center">
             <ShoppingCart size={64} className="text-marketplace-muted/30 mb-6" />

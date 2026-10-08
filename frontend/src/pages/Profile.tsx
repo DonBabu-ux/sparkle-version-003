@@ -1,8 +1,8 @@
+import { showError } from '../utils/toast';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
@@ -81,7 +81,7 @@ export default function Profile() {
       }
     } catch (err) {
       logger.error('Failed to open conversation:', err);
-      alert('Could not open conversation. Please check your connection and try again.');
+      showError('Could not open conversation. Please check your connection and try again.');
     } finally {
       setIsOpeningChat(false);
     }
@@ -202,12 +202,9 @@ export default function Profile() {
     }
   };
 
-
-
   if (loading) {
     return (
-      <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
-        <Navbar />
+      <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
         <div className="flex-1 flex flex-col items-center justify-center transition-all text-black dark:text-white">
           <div className="relative mb-20"> {/* Increased margin */}
             <Spinner size="xl" color="text-primary" />
@@ -246,8 +243,7 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans">
-        <Navbar />
+      <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState 
              type="error"
@@ -267,9 +263,7 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-screen text-black dark:text-white overflow-x-hidden font-sans">
-      <Navbar />
-      
+    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
 
       {/* Main Header Wrapper */}
 
@@ -349,7 +343,7 @@ export default function Profile() {
         </div>
       </div>
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pt-[calc(5rem+env(safe-area-inset-top))] lg:pt-24 pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-4xl mx-auto">
           <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
             {/* Main Header Row: Avatar + Basic Info */}
@@ -391,7 +385,7 @@ export default function Profile() {
                 <AnimatePresence>
                   {showAvatarMenu && (
                     <>
-                      <div className="fixed inset-0 z-[1000]" onClick={() => setShowAvatarMenu(false)} />
+                      <div className="fixed inset-0 z-(--z-chrome)" onClick={() => setShowAvatarMenu(false)} />
                       <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -680,7 +674,7 @@ export default function Profile() {
                 >
                   <div className="w-full h-full relative">
                     {post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) ? (
-                      <video src={post.media_url} className="w-full h-full object-cover" />
+                      <video src={post.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                     ) : (post.media_url || post.image_url) ? (
                       <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt="" />
                     ) : (
@@ -740,7 +734,6 @@ export default function Profile() {
         </div>
       </main>
 
-
       {/* Local Note Editor Modal Removed */}
 
       {modalType && (
@@ -761,19 +754,12 @@ export default function Profile() {
       />
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
-        @keyframes fadeInRight { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
         .animate-fade-in-right { animation: fadeInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        
+
         @media (max-width: 768px) {
            .aspect-square { aspect-ratio: 1/1; }
         }

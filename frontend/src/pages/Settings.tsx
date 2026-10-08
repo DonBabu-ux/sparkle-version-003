@@ -1,9 +1,9 @@
+import { lockScroll, unlockScroll } from '../components/AppScreen';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 import api, { authApi } from '../api/api';
-import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
 import type { User } from '../types/user';
 import {
@@ -66,6 +66,12 @@ export default function Settings() {
 
   const openAccountControl = (tab: AcTab = 'menu') => {
     setAcTab(tab);
+    // C1 Ghost Mode: the login/2FA payload historically omitted is_hidden —
+    // seed from GET /users/me so the toggle shows the true server state.
+    api.get('/users/me').then((r) => {
+      if (typeof r.data?.is_hidden === 'boolean') setIsHidden(r.data.is_hidden);
+      else if (typeof r.data?.is_hidden === 'number') setIsHidden(r.data.is_hidden === 1);
+    }).catch(() => { /* keep optimistic seed */ });
     setAcPassword('');
     setAcReason('');
     setAcConfirmText('');
@@ -81,10 +87,10 @@ export default function Settings() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setShowAccountControl(false);
     };
-    document.body.style.overflow = 'hidden';
+    lockScroll();
     window.addEventListener('keydown', handleKeyDown);
     return () => {
-      document.body.style.overflow = '';
+      unlockScroll();
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [showAccountControl]);
@@ -209,8 +215,7 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
-      <Navbar />
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
 
       <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6">
         {/* Navigation Header */}
@@ -383,7 +388,7 @@ export default function Settings() {
       {/* Swipable Side Slide Modal: Account Control */}
       <AnimatePresence>
         {showAccountControl && (
-          <div className="fixed inset-0 z-[1500] overflow-hidden">
+          <div className="fixed inset-0 z-(--z-sheet) overflow-hidden">
             {/* Backdrop */}
             <motion.div
               key="ac-backdrop"
@@ -396,7 +401,7 @@ export default function Settings() {
             />
 
             {/* Side Drawer Container */}
-            <div className="fixed inset-y-0 right-0 z-[1500] flex max-w-full pointer-events-none">
+            <div className="fixed inset-y-0 right-0 z-(--z-sheet) flex max-w-full pointer-events-none">
               <motion.div
                 key="ac-drawer"
                 drag="x"
@@ -789,7 +794,7 @@ export default function Settings() {
 
       {/* MODAL 3: Legal & Privacy Policies */}
       {showLegalModal && (
-        <div className="fixed inset-0 z-[1500] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-(--z-sheet) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white dark:bg-zinc-900 rounded-3xl p-6 border border-slate-200 dark:border-zinc-800 shadow-2xl max-h-[80vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-3 text-slate-900 dark:text-zinc-100">Legal & Privacy Policies</h2>
             <div className="space-y-3">

@@ -51,7 +51,7 @@ export const ThemeProvider: React.FC<Props> = ({ children }) => {
         style={{
           backgroundColor: theme.colors.background,
           color: theme.colors.textPrimary,
-          minHeight: '100vh',
+          minHeight: '100dvh',
           fontFamily: theme.typography.fontFamily,
         }}
       >

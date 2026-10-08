@@ -133,9 +133,8 @@ export default function OnboardingSheet({
   ];
 
   return (
-    <div className="sparkle-onboarding-sheet-root text-[#f6eefc] min-h-screen bg-[#0b0712] relative overflow-x-hidden selection:bg-[#ff2d87] selection:text-white">
+    <div className="sparkle-onboarding-sheet-root text-[#f6eefc] min-h-dvh bg-[#0b0712] relative overflow-x-hidden selection:bg-[#ff2d87] selection:text-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;500;700&display=swap');
 
         .sparkle-onboarding-sheet-root {
           --bg: #0b0712;
@@ -168,10 +167,6 @@ export default function OnboardingSheet({
         .o1 { width: 520px; height: 520px; background: #ff2d87; top: -140px; left: -120px; }
         .o2 { width: 560px; height: 560px; background: #8134af; right: -180px; top: 30vh; animation-delay: -8s; }
         .o3 { width: 420px; height: 420px; background: #6d5dfc; left: 25vw; bottom: -200px; animation-delay: -14s; }
-
-        @keyframes driftOrb {
-          to { transform: translate(70px, 50px) scale(1.15); }
-        }
 
         .glass-sheet {
           background: linear-gradient(160deg, rgba(255,255,255,.13), rgba(255,255,255,.03));
@@ -299,10 +294,6 @@ export default function OnboardingSheet({
           background-image: radial-gradient(circle at 35% 30%, #ff9dc6, #8134af);
         }
 
-        @keyframes spinRing {
-          to { filter: hue-rotate(40deg); transform: rotate(360deg); }
-        }
-
         .float-badge {
           position: absolute;
           padding: 12px 16px;
@@ -314,22 +305,12 @@ export default function OnboardingSheet({
         .float-f1 { left: -4%; top: 22%; }
         .float-f2 { right: -2%; bottom: 20%; animation-delay: .8s, 2s; }
 
-        @keyframes riseMockup {
-          from { opacity: 0; transform: translateY(60px) scale(.94); }
-        }
-        @keyframes bobBadge {
-          50% { transform: translateY(-12px); }
-        }
-
         .flow-path {
           fill: none;
           stroke: #ff2d87;
           stroke-width: 2;
           stroke-dasharray: 6 8;
           animation: dashFlow 1.4s linear infinite;
-        }
-        @keyframes dashFlow {
-          to { stroke-dashoffset: -28; }
         }
 
         .live-dot {
@@ -340,9 +321,6 @@ export default function OnboardingSheet({
           box-shadow: 0 0 12px #46e6a0;
           animation: pulseLive 2s infinite;
         }
-        @keyframes pulseLive {
-          50% { opacity: .4; }
-        }
 
         .chat-bubble {
           max-width: 80%;
@@ -351,9 +329,7 @@ export default function OnboardingSheet({
           font-size: 15px;
           animation: popBubble .35s cubic-bezier(.3,1.4,.5,1) both;
         }
-        @keyframes popBubble {
-          from { opacity: 0; transform: translateY(14px) scale(.9); }
-        }
+        
       `}</style>
 
       {/* Glowing Ambient Background Orbs */}

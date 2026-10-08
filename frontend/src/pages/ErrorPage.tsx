@@ -8,7 +8,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
   return (
     <>
       <div className="mesh-bg fixed top-0 left-0 w-full h-full -z-10" />
-      <div className="error-container h-screen flex items-center justify-center p-5">
+      <div className="error-container h-dvh flex items-center justify-center p-5">
         <div className="error-card bg-white/70 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[32px] p-10 md:p-[60px_40px] max-w-[500px] w-full text-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] animate-[cardFloat_1s_ease-out]">
           <div className="error-icon text-[80px] mb-[30px] inline-block animate-[errPulse_2s_infinite]">
             <Sparkles size={80} className="text-[#FF3D6D] drop-shadow-lg" />
@@ -42,16 +42,6 @@ export default function ErrorPage({ error }: ErrorPageProps) {
           filter: blur(80px);
         }
 
-        @keyframes cardFloat {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes errPulse {
-          0% { transform: scale(1); opacity: 1; }
-          50% { transform: scale(1.05); opacity: 0.8; }
-          100% { transform: scale(1); opacity: 1; }
-        }
       `}</style>
     </>
   );

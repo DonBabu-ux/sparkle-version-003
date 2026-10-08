@@ -1,3 +1,4 @@
+import { showError, showSuccess } from '../../utils/toast';
 import { useState, useEffect } from 'react';
 import { X, MapPin, Navigation, Compass, ChevronRight, MessageCircle, ChevronDown, ChevronLeft, FileWarning, UserPlus, Plus } from 'lucide-react';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
@@ -8,6 +9,7 @@ import { useSocket } from '../../hooks/useSocket';
 import api from '../../api/api';
 import clsx from 'clsx';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 export default function MarketplaceModals() {
   const navigate = useNavigate();
@@ -25,6 +27,7 @@ export default function MarketplaceModals() {
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [lastSequence, setLastSequence] = useState<number>(0);
   const [loadState, setLoadState] = useState<'NORMAL' | 'DEGRADED' | 'CRITICAL'>('NORMAL');
+  const a11yRef = useModalA11y(!!activeModal, () => setActiveModal(null));
 
   useEffect(() => {
     setLocalMin(storeMin?.toString() || '');
@@ -72,7 +75,7 @@ export default function MarketplaceModals() {
           }, 1500);
         }
         if (data.status === 'FAILED') {
-          alert(`Offer error: ${data.error || 'System backlog'}`);
+          showError(`Offer error: ${data.error || 'System backlog'}`);
           setJobStatus('IDLE');
           setLastSequence(0);
           setIsSending(false);
@@ -99,9 +102,9 @@ export default function MarketplaceModals() {
       }
     } catch (err: any) {
       if (err.response?.status === 530) {
-        alert("SYSTEM PEAK: Sparkle is serving too many people right now. Please try in 30 seconds.");
+        showError("SYSTEM PEAK: Sparkle is serving too many people right now. Please try in 30 seconds.");
       } else {
-        alert('Failed to submit offer. Please try again.');
+        showError('Failed to submit offer. Please try again.');
       }
       setIsSending(false);
       setJobStatus('IDLE');
@@ -126,13 +129,13 @@ export default function MarketplaceModals() {
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(window.location.origin + `/marketplace/listings/${selectedListing?.listing_id}`);
-    alert('Link copied to clipboard!');
+    showSuccess('Link copied to clipboard!');
   };
 
   return (
     <AnimatePresence>
       {activeModal && (
-        <div className="fixed inset-0 z-[9999] flex flex-col justify-end lg:items-center lg:justify-center bg-black/40 backdrop-blur-sm">
+        <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-top) flex flex-col justify-end lg:items-center lg:justify-center bg-black/40 backdrop-blur-sm">
           {/* Overlay click to close */}
           <motion.div 
             initial={{ opacity: 0 }}

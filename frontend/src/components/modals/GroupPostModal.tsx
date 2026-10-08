@@ -1,3 +1,4 @@
+import { showSuccess } from '../../utils/toast';
 import { useState, useRef } from 'react';
 import {
   X, Image as ImageIcon,
@@ -10,6 +11,7 @@ import { getAvatarUrl } from '../../utils/imageUtils';
 import FeelingActivitySelector from './FeelingActivitySelector';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface GroupPostModalProps {
   groupId: string;
@@ -35,6 +37,8 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
   const [previews, setPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Conditionally mounted by its parent; suspend while the nested selector sheet is open.
+  const a11yRef = useModalA11y(!showSelector, onClose);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -75,7 +79,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
       const res = await api.post(`/groups/${groupId}/post`, fd, { headers: { 'Content-Type': 'multipart/form-data' } });
       
       if (res.data.status === 'pending') {
-        alert('Your post has been submitted and is waiting for admin approval.');
+        showSuccess('Your post has been submitted and is waiting for admin approval.');
       }
 
       onSuccess();
@@ -91,7 +95,11 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+      ref={a11yRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
+      className="fixed inset-0 z-(--z-top) flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
       onClick={onClose}
     >
       <div

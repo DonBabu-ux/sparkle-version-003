@@ -1,3 +1,4 @@
+import { showError } from '../../utils/toast';
 import { useState, useRef } from 'react';
 import { X, Flame, Snowflake, Sparkles, ArrowRight, Image as ImageIcon, AlertTriangle, ShieldOff, Trash2 } from 'lucide-react';
 
@@ -24,6 +25,7 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ConfessionModalProps {
   onClose: () => void;
@@ -40,6 +42,8 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [showImageWarning, setShowImageWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -67,7 +71,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
       onClose();
     } catch (err) {
       logger.error('Confession failed:', err);
-      alert('Failed to share confession.');
+      showError('Failed to share confession.');
     } finally {
       setSubmitting(false);
     }
@@ -104,7 +108,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   };
 
   return (
-    <div className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 flex-shrink-0">

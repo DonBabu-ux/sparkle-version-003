@@ -1,3 +1,4 @@
+import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
@@ -106,7 +107,7 @@ export default function GroupDetail() {
 
   const handleJoinLeave = async () => {
     if (isMember) {
-      if (!window.confirm('Leave this circle?')) return;
+      if (!await confirmDialog('Leave this circle?')) return;
       try {
         await api.delete(`/groups/${id}/leave`);
         setIsMember(false);
@@ -139,20 +140,20 @@ export default function GroupDetail() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-screen bg-[#fafafa]">
+    <div className="flex items-center justify-center min-h-dvh bg-[#fafafa]">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
 
   if (!group) return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+    <div className="flex flex-col items-center justify-center min-h-dvh gap-4">
       <h2 className="text-2xl font-black text-gray-900 italic tracking-tighter uppercase">Circle not found</h2>
       <button onClick={() => navigate('/groups')} className="px-6 py-2 bg-primary text-white rounded-xl font-black text-sm uppercase">Go Back</button>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-[#fafafa] pb-20">
+    <div className="min-h-dvh bg-[#fafafa] pb-20">
       {/* HEADER SECTION */}
       <div className="bg-white shadow-sm overflow-hidden border-b border-gray-100">
         <div className="relative h-36 sm:h-64 w-full bg-gray-100 overflow-hidden">

@@ -113,7 +113,7 @@ export default function CreateMoment() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: #0a0a0f; min-height: 100vh; }
+        .page-wrapper { display: flex; background: #0a0a0f; min-height: 100dvh; }
         .cm-content { flex: 1; overflow-y: auto; }
         .cm-container { max-width: 600px; margin: 0 auto; padding: 28px 20px 80px; }
         .cm-back-btn { display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); padding: 10px 18px; border-radius: 12px; font-weight: 700; font-size: 14px; color: rgba(255,255,255,0.7); cursor: pointer; margin-bottom: 20px; transition: 0.2s; }
@@ -151,6 +151,40 @@ export default function CreateMoment() {
         .cm-submit-btn { flex: 2; padding: 15px; border-radius: 16px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; border: none; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 6px 20px rgba(255,61,109,0.35); }
         .cm-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .cm-submit-btn:not(:disabled):hover { opacity: 0.9; transform: translateY(-2px); }
+
+        /* ============================================================
+           LIGHT THEME (UI_AUDIT §3 P2-4)
+           Base rules above are the dark look and stay untouched; this
+           block is the light: twin for everything that is invisible
+           against a light backdrop. Capture chrome that is dark on
+           purpose (media letterbox + its remove affordance) keeps its
+           dark values in both themes.
+           ============================================================ */
+        html:not(.dark) .page-wrapper { background: transparent; }
+
+        html:not(.dark) .cm-back-btn { background: rgba(0,0,0,0.04); border-color: rgba(0,0,0,0.1); color: rgba(0,0,0,0.7); }
+        html:not(.dark) .cm-back-btn:hover { background: rgba(0,0,0,0.08); color: #111827; }
+
+        html:not(.dark) .cm-card { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.06); }
+        html:not(.dark) .cm-header h1 { color: #111827; }
+        html:not(.dark) .cm-header p { color: rgba(0,0,0,0.55); }
+        html:not(.dark) .cm-header-icon { color: #e11d48; }
+
+        html:not(.dark) .cm-upload-zone { border-color: rgba(0,0,0,0.15); }
+        html:not(.dark) .cm-upload-zone:hover { border-color: #e11d48; background: rgba(225,29,72,0.05); }
+        html:not(.dark) .cm-upload-icons { color: rgba(0,0,0,0.45); }
+        html:not(.dark) .cm-upload-title { color: #111827; }
+        html:not(.dark) .cm-upload-sub { color: rgba(0,0,0,0.55); }
+        html:not(.dark) .cm-upload-btn { background: rgba(0,0,0,0.05); color: #1f2937; }
+        html:not(.dark) .cm-upload-btn:hover { background: rgba(0,0,0,0.1); }
+
+        html:not(.dark) .cm-field label { color: rgba(0,0,0,0.7); }
+        html:not(.dark) .cm-field textarea { border-color: rgba(0,0,0,0.1); color: #111827; background: rgba(255,255,255,0.75); }
+        html:not(.dark) .cm-field textarea:focus { border-color: #e11d48; background: #ffffff; }
+        html:not(.dark) .cm-char-count { color: rgba(0,0,0,0.45); }
+
+        html:not(.dark) .cm-cancel-btn { background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.65); }
+        html:not(.dark) .cm-cancel-btn:hover { background: rgba(0,0,0,0.1); }
       `}</style>
     </div>
   );

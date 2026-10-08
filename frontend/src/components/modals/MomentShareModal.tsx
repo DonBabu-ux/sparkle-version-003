@@ -5,6 +5,7 @@ import api from '../../api/api';
 import type { User } from '../../types/user';
 import type { Moment } from '../../types/moment';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface MomentShareModalProps {
   moment: Moment;
@@ -23,6 +24,8 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [storyCaption, setStoryCaption] = useState('');
   const [sharingStory, setSharingStory] = useState(false);
+  const a11yRef = useModalA11y(!showStoryComposer, onClose);
+  const storyComposerRef = useModalA11y(showStoryComposer, onClose);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -124,7 +127,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
 
   if (showStoryComposer) {
     return (
-      <div className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div ref={storyComposerRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
         
         <div className="relative bg-white w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
@@ -165,7 +168,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
   }
 
   return (
-    <div className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative bg-white w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">

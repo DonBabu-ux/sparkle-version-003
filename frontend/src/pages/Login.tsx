@@ -1,3 +1,4 @@
+import { showSuccess } from '../utils/toast';
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
@@ -64,7 +65,7 @@ export default function Login() {
     setTimeout(() => setIsShaking(false), 450);
   }, []);
 
-  const showSuccess = (msg: string) => { setSuccess(msg); setAuthError(null); };
+  const setSuccessView = (msg: string) => { setSuccess(msg); setAuthError(null); };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,7 +122,7 @@ export default function Login() {
       }
 
       if ((data?.status === 'success' || data?.success) && data?.token) {
-        showSuccess('Welcome back!');
+        setSuccessView('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
         const targetRoute = data.next?.route === '/onboarding'
           ? '/onboarding'
@@ -262,7 +263,7 @@ export default function Login() {
       );
       const data = res.data;
       if ((data?.status === 'success' || data?.success) && data?.token) {
-        showSuccess('Verification successful!');
+        setSuccessView('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
         setTimeout(() => navigate(getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token))), 1200);
       }
@@ -414,7 +415,7 @@ export default function Login() {
                       <button
                         type="button"
                         onClick={() => setShowPassword((prev) => !prev)}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -479,13 +480,6 @@ export default function Login() {
                     handleVerify2FA();
                   }}
                 />
-
-                {success && (
-                  <div className="login-toast login-toast--ok" style={{ width: '100%', justifyContent: 'center' }}>
-                    <span className="login-toast__dot" />
-                    {success}
-                  </div>
-                )}
 
                 {!useRecoveryCode && (
                   <>
@@ -651,10 +645,6 @@ export default function Login() {
           background: radial-gradient(circle, #fbcfe8, transparent 70%);
           bottom: -8%; right: -4%;
           animation: orb-float 25s ease-in-out infinite reverse;
-        }
-        @keyframes orb-float {
-          0%, 100% { transform: translate(0, 0); }
-          50% { transform: translate(25px, -18px); }
         }
 
         /* Container */
@@ -862,37 +852,6 @@ export default function Login() {
           font-style: normal;
         }
 
-        /* Toasts */
-        .login-toast {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.65rem 0.9rem;
-          border-radius: 11px;
-          font-size: 0.82rem;
-          font-weight: 600;
-          margin-bottom: 1rem;
-          text-transform: none;
-          font-style: normal;
-        }
-        .login-toast--err {
-          background: #fff1f2;
-          border: 1px solid #fecdd3;
-          color: #be123c;
-        }
-        .login-toast--ok {
-          background: #ecfdf5;
-          border: 1px solid #a7f3d0;
-          color: #047857;
-        }
-        .login-toast__dot {
-          width: 5px; height: 5px;
-          border-radius: 50%;
-          flex-shrink: 0;
-        }
-        .login-toast--err .login-toast__dot { background: #e11d48; }
-        .login-toast--ok .login-toast__dot { background: #10b981; }
-
         /* Form */
         .login-form {
           display: flex;
@@ -1030,7 +989,6 @@ export default function Login() {
           border-radius: 50%;
           animation: spin 0.6s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
         /* 2FA */
         .login-2fa {
@@ -1096,14 +1054,77 @@ export default function Login() {
         }
 
         /* Subtle horizontal card shake on credentials error */
-        @keyframes gentleShake {
-          0%, 100% { transform: translateX(0); }
-          20%, 60% { transform: translateX(-6px); }
-          40%, 80% { transform: translateX(6px); }
-        }
+        
         .shake-card {
           animation: gentleShake 0.4s ease-in-out !important;
         }
+
+        /* ============================================================
+           DARK THEME (UI_AUDIT S3 P2-4)
+           Base rules above are the light look and stay untouched; this
+           block is the dark: twin for every hardcoded light surface.
+           ============================================================ */
+        .dark .login-page { background: #000000; }
+
+        .dark .login-feat__icon { background: rgba(255,255,255,0.08); color: #fb7185; }
+        .dark .login-feat__text { color: #d6d3d1; }
+
+        .dark .login-left__logo { color: #f43f5e; }
+        .dark .login-left__tagline { color: #a8a29e; }
+
+        .dark .login-card {
+          background: rgba(16,18,23,0.92);
+          border-color: rgba(255,255,255,0.08);
+        }
+        .dark .login-card__title { color: #fafafa; }
+
+        .dark .login-label { color: #a8a29e; }
+
+        .dark .login-input {
+          background: rgba(255,255,255,0.04);
+          border-color: rgba(255,255,255,0.12);
+          color: #fafafa;
+        }
+        .dark .login-input::placeholder { color: #a1a1aa; }
+        .dark .login-input:focus {
+          border-color: #fb7185;
+          background: rgba(255,255,255,0.06);
+          box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
+        }
+
+        .dark .login-remember { color: #a8a29e !important; }
+
+        .dark .login-forgot { color: #fb7185; }
+        .dark .login-forgot:hover { color: #fda4af; }
+
+        .dark .login-btn--alt {
+          color: #fb7185;
+          border-color: rgba(255,255,255,0.15);
+        }
+        .dark .login-btn--alt:hover {
+          background: rgba(255,255,255,0.06);
+          border-color: #fda4af;
+        }
+
+        .dark .login-sep::before,
+        .dark .login-sep::after { background: rgba(255,255,255,0.12); }
+
+        .dark .login-2fa__badge {
+          background: rgba(255,255,255,0.06);
+          color: #fb7185;
+        }
+
+        /* !important: the 2FA recovery-code field carries an inline
+           white background/border that would otherwise stay light. */
+        .dark .login-pin {
+          background: rgba(255,255,255,0.05) !important;
+          border-color: rgba(255,255,255,0.15) !important;
+          color: #fb7185 !important;
+        }
+        .dark .login-pin:focus { border-color: #fb7185 !important; }
+        .dark .login-pin + p { color: #a1a1aa !important; }
+
+        .dark .login-back:hover { color: #fb7185; }
       `}</style>
     </div>
   );

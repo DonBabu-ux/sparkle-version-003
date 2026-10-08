@@ -1,3 +1,5 @@
+import { showError, showInfo, showSuccess } from '../utils/toast';
+import { confirmDialog, promptDialog } from '../store/dialogStore';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { 
   MoreHorizontal, Share2, MessageCircle, Heart, Bookmark, X, 
@@ -5,7 +7,7 @@ import {
   Trash2, Bell, Info, Link as LinkIcon, UserPlus, UserMinus,
   Sparkles, Zap, ChevronDown, Check, Send
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createPortal } from 'react-dom';
@@ -18,6 +20,7 @@ import { useFeedStore } from '../store/feedStore';
 import { formatCount } from '../utils/format';
 import MentionText from './MentionText';
 import Avatar from './Avatar';
+import PostHeader from './PostHeader';
 import { ProgressiveImage } from './ProgressiveImage';
 import { VideoPlayer } from './VideoPlayer';
 import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
@@ -126,6 +129,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
   const sparkCount = storePost.spark_count || 0;
   const isSaved = storePost.is_saved;
 
+  // The stats row owns every visible count label; both rows derive these from
+  // storePost (the unified source of truth above) so they can never disagree.
+  const commentCount =
+    storePost.comment_count ||
+    storePost.comments_count ||
+    (typeof storePost.comments === 'number'
+      ? storePost.comments
+      : Array.isArray(storePost.comments)
+      ? storePost.comments.length
+      : 0);
+  const shareCount = storePost.reshare_count || storePost.share_count || 0;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [isFollowed, setIsFollowed] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -188,7 +203,7 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
   };
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this post?')) return;
+    if (!await confirmDialog('Delete this post?')) return;
     setDeleting(true);
     setMenuOpen(false);
     try {
@@ -201,32 +216,32 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
       triggerRefresh();
     } catch (err) {
       setDeleting(false);
-      alert('Failed to delete post');
+      showError('Failed to delete post');
     }
   };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${post.post_id}`);
-    alert('Link copied to clipboard!');
+    showSuccess('Link copied to clipboard!');
     setMenuOpen(false);
   };
 
-  const handleReport = () => {
-    const reason = window.prompt('Why are you reporting this post?', 'Inappropriate content');
+  const handleReport = async () => {
+    const reason = await promptDialog('Why are you reporting this post?', { defaultValue: 'Inappropriate content' });
     if (!reason) return;
     api.post('/moderation/reports', { post_id: post.post_id, reason })
-      .then(() => alert('Post reported.'))
-      .catch(() => alert('Failed to report.'));
+      .then(() => showInfo('Post reported.'))
+      .catch(() => showError('Failed to report.'));
     setMenuOpen(false);
   };
 
   const handleSnooze = () => {
-    alert(`Snoozed ${post.name || post.username} for 30 days.`);
+    showInfo(`Snoozed ${post.name || post.username} for 30 days.`);
     setMenuOpen(false);
   };
 
   const handleHideAll = () => {
-    alert(`Hiding all posts from ${post.name || post.username}.`);
+    showInfo(`Hiding all posts from ${post.name || post.username}.`);
     setMenuOpen(false);
   };
 
@@ -238,18 +253,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
     } else if (post.category && post.category !== 'General') {
       reason = `You're seeing this because you've shown interest in ${post.category} content.`;
     }
-    alert(reason);
+    showInfo(reason);
   };
 
   const handleToggleNotifications = () => {
     setMenuOpen(false);
-    alert('Notifications turned on for this post! You will be alerted of new activity.');
+    showInfo('Notifications turned on for this post! You will be alerted of new activity.');
   };
 
   const handleNotInterested = () => {
     setMenuOpen(false);
     window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
-    alert('Post hidden. We\'ll show you less of this.');
+    showInfo('Post hidden. We\'ll show you less of this.');
   };
 
   const isVideo = 
@@ -293,64 +308,47 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
     >
       {/* Header */}
       <div className="flex items-start gap-2 p-2.5 pb-1.5">
-        <Link to={`/profile/${post.username}`} className="shrink-0 mt-0.5">
-          <Avatar 
-            src={post.avatar_url} 
-            name={post.name || post.username} 
-            size="sm" 
-          />
-        </Link>
-
-        <div className="flex-1 min-w-0 flex flex-col justify-center">
-          <div className="flex items-center gap-1 flex-wrap leading-tight">
-            <Link 
-              to={`/profile/${post.username}`} 
-              className="font-bold text-[15px] text-black dark:text-white hover:underline tracking-tighter"
-            >
-              {post.name || post.username}
-            </Link>
-
-            {(post.feeling || post.activity) && (
-               <div className="flex items-center gap-1 text-[12px] text-black/40 dark:text-white/40 font-medium flex-wrap">
-                {post.feeling && (
-                  <>
-                    <span>is feeling</span>
-                    <span className="font-bold text-black dark:text-white capitalize flex items-center gap-1">
-                      {post.feeling}
-                      {(() => { const Icon = getFeelingIcon(post.feeling); return Icon ? <Icon size={14} className="text-primary" /> : null; })()}
-                    </span>
-                  </>
-                )}
-                {post.feeling && post.activity && <span>and</span>}
-                {post.activity && (
-                  <>
-                    <span>is</span>
-                    <span className="font-bold text-black dark:text-white capitalize">{post.activity}</span>
-                  </>
-                )}
-              </div>
-            )}
-
-            {!isOwner && !isFollowed && (
-              <button 
-                onClick={async (e) => {
-                  e.stopPropagation();
-                  setIsFollowed(true);
-                  try {
-                    await api.post(`/users/${post.user_id}/follow`);
-                    window.dispatchEvent(new CustomEvent('userFollowed', { detail: post.user_id }));
-                  } catch (err) {
-                    logger.error('Follow failed', err);
-                    setIsFollowed(false);
-                  }
-                }}
-                className="ml-0.5 text-[13px] font-bold text-blue-600 hover:text-blue-700 transition-colors"
-              >
-                · Follow
-              </button>
-            )}
-          </div>
-          <div className="flex items-center gap-1 text-[11px] text-black/40 dark:text-white/40 leading-tight mt-0.5">
+        <PostHeader
+          username={post.username}
+          name={post.name || post.username}
+          avatar={<Avatar src={post.avatar_url} name={post.name || post.username} size="sm" />}
+          avatarClassName="shrink-0 mt-0.5"
+          bodyClassName="flex-1 min-w-0 flex flex-col justify-center"
+          titleRow
+          nameClassName="font-bold text-[15px] text-black dark:text-white hover:underline tracking-tighter"
+          extras={(post.feeling || post.activity) && (
+             <div className="flex items-center gap-1 text-[12px] text-black/40 dark:text-white/40 font-medium flex-wrap">
+              {post.feeling && (
+                <>
+                  <span>is feeling</span>
+                  <span className="font-bold text-black dark:text-white capitalize flex items-center gap-1">
+                    {post.feeling}
+                    {(() => { const Icon = getFeelingIcon(post.feeling); return Icon ? <Icon size={14} className="text-primary" /> : null; })()}
+                  </span>
+                </>
+              )}
+              {post.feeling && post.activity && <span>and</span>}
+              {post.activity && (
+                <>
+                  <span>is</span>
+                  <span className="font-bold text-black dark:text-white capitalize">{post.activity}</span>
+                </>
+              )}
+            </div>
+          )}
+          canFollow={!isOwner && !isFollowed}
+          onFollow={async (e) => {
+            e.stopPropagation();
+            setIsFollowed(true);
+            try {
+              await api.post(`/users/${post.user_id}/follow`);
+              window.dispatchEvent(new CustomEvent('userFollowed', { detail: post.user_id }));
+            } catch (err) {
+              logger.error('Follow failed', err);
+              setIsFollowed(false);
+            }
+          }}
+          meta={<div className="flex items-center gap-1 text-[11px] text-black/40 dark:text-white/40 leading-tight mt-0.5">
             <span className="hover:underline cursor-pointer">{timeAgo.replace('about ', '').replace('less than a minute ago', 'Just now')}</span>
             <span>·</span>
             {post.post_type === 'public' ? (
@@ -360,8 +358,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
             ) : (
               <IncognitoIcon size={11} className="text-black/40 dark:text-white/40" />
             )}
-          </div>
-        </div>
+          </div>}
+        />
 
         {/* 3-dot and X menu Trigger */}
         <div className="flex items-center gap-2">
@@ -605,14 +603,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
         </div>
       )}
 
-      {/* Stats */}
-      <div 
-        className="px-3 py-2 flex items-center justify-between cursor-pointer active:bg-black/5 dark:active:bg-white/5 transition-colors"
-        onClick={(e) => {
-          spawnTikTokHeart(e.clientX, e.clientY);
-          handleSpark(e, true);
-        }}
-      >
+      {/* Stats — owns every visible count label; not a like target */}
+      <div className="px-3 py-2 flex items-center justify-between">
         <div className="flex items-center hover:underline">
           <div className="w-[16px] h-[16px] rounded-full bg-primary flex items-center justify-center ring-2 ring-white dark:ring-black z-30 shadow-sm mr-2">
             <HeartIcon size={10} active={true} className="text-white" />
@@ -621,9 +613,9 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           <div className="ml-2 flex items-center leading-tight">
             {sparkCount > 0 && (
               <span className="text-[12px] text-black/40 dark:text-white/40 font-medium">
-                {post.top_liker_name ? (
+                {storePost.top_liker_name ? (
                   <>
-                    Liked by <span className="font-bold text-black dark:text-white">{post.top_liker_name}</span>
+                    Liked by <span className="font-bold text-black dark:text-white">{storePost.top_liker_name}</span>
                     {sparkCount > 1 && (
                       <> and <span className="font-bold text-black dark:text-white">{formatCount(sparkCount - 1)} others</span></>
                     )}
@@ -636,30 +628,18 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           </div>
         </div>
         <div className="text-[12px] text-black/40 dark:text-white/40 flex gap-2.5 font-bold">
-          {(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0)) ? <span onClick={(e) => e.stopPropagation()} className="hover:underline cursor-pointer">{formatCount(post.comment_count || post.comments_count || (typeof post.comments === 'number' ? post.comments : 0))} comments</span> : null}
-          {(post.reshare_count || post.share_count) ? <span onClick={(e) => e.stopPropagation()} className="hover:underline cursor-pointer">{formatCount(post.reshare_count || post.share_count)} shares</span> : null}
+          {commentCount ? <span className="hover:underline cursor-pointer">{formatCount(commentCount)} comments</span> : null}
+          {shareCount ? <span className="hover:underline cursor-pointer">{formatCount(shareCount)} shares</span> : null}
         </div>
       </div>
 
-      {/* Actions Row - Integrated for a unified look */}
-      <div 
-        className="flex items-center justify-between px-4 pb-2.5 pt-0.5 cursor-pointer"
-        onClick={(e) => {
-          spawnTikTokHeart(e.clientX, e.clientY);
-          handleSpark(e, true);
-        }}
-      >
+      {/* Actions Row — buttons own their own clicks; no row-level like */}
+      <div className="flex items-center justify-between px-4 pb-2.5 pt-0.5">
         <div className="flex items-center gap-6">
           {/* Spark (Like) */}
           <div className="flex flex-col items-center">
-            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter">
-              {formatCount(
-                post.spark_count || 
-                post.likes_count || 
-                (typeof post.sparks === 'number' ? post.sparks : 0) || 
-                (Array.isArray(post.sparks) ? post.sparks.length : 0) || 
-                0
-              )}
+            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter invisible">
+              {formatCount(sparkCount)}
             </span>
             <button
               onClick={(e) => {
@@ -680,17 +660,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
           
           {/* Comment */}
           <div className="flex flex-col items-center">
-            <span
-              onClick={(e) => e.stopPropagation()}
-              className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter"
-            >
-              {formatCount(
-                post.comment_count || 
-                post.comments_count || 
-                (typeof post.comments === 'number' ? post.comments : 0) || 
-                (Array.isArray(post.comments) ? post.comments.length : 0) || 
-                0
-              )}
+            <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter invisible">
+              {formatCount(commentCount)}
             </span>
             <button
               onClick={(e) => {
@@ -722,14 +693,8 @@ const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
 
         {/* Bookmark / Save */}
         <div className="flex flex-col items-center">
-          <span 
-            onClick={(e) => {
-              e.stopPropagation();
-              setActiveModal('post_comments', null, { post });
-            }}
-            className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter cursor-pointer hover:text-primary"
-          >
-            {formatCount(post.comment_count || post.comments_count || 0)}
+          <span className="text-[11px] font-black text-black/40 dark:text-white/40 mb-0.5 tracking-tighter invisible">
+            {formatCount(commentCount)}
           </span>
           <button
             onClick={(e) => {

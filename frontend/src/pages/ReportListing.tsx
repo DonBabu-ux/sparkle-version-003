@@ -1,3 +1,4 @@
+import { showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShieldAlert, CheckCircle2, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
@@ -62,14 +63,14 @@ export default function ReportListing() {
       }, 3500);
     } catch (err) {
       logger.error(err);
-      alert('Failed to submit report. Please try again.');
+      showError('Failed to submit report. Please try again.');
     }
   };
 
   if (loading) return null;
 
   return (
-    <div className="min-h-screen bg-white text-marketplace-text font-sans">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans">
       <header className="sticky top-0 z-50 bg-white border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
           <ChevronLeft size={24} strokeWidth={2.5} />

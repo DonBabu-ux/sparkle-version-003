@@ -25,6 +25,7 @@ import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { LiveLocationIntroModal } from './LiveLocationIntroModal';
 import { LiveLocationConfigPanel, type LiveDuration } from './LiveLocationConfigPanel';
+import { useModalA11y } from '../../hooks/useModalA11y';
 import { liveLocationService } from '../../services/liveLocationService';
 import { logger } from '../../utils/logger';
 
@@ -86,6 +87,8 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [showIntroModal, setShowIntroModal] = useState<boolean>(false);
   const [isLiveConfigMode, setIsLiveConfigMode] = useState<boolean>(false);
   const [isStartingLive, setIsStartingLive] = useState<boolean>(false);
+  // Suspend while the nested live-location intro modal is open.
+  const a11yRef = useModalA11y(isOpen && !showIntroModal, onClose);
 
   // Map Refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -392,7 +395,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[80] bg-[#13131a] flex flex-col overflow-hidden animate-fade-in text-white">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) bg-[#13131a] flex flex-col overflow-hidden animate-fade-in text-white">
       {/* ========================================================
           1. TOP BAR
           ======================================================== */}

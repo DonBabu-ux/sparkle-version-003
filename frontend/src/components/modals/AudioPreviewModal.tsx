@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Pause, Music, X, Send, AlertTriangle } from 'lucide-react';
 import AudioSessionManager from '../../audio/managers/AudioSessionManager';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface AudioPreviewModalProps {
   file: File | null;
@@ -22,6 +23,7 @@ export const AudioPreviewModal: React.FC<AudioPreviewModalProps> = ({
   const [duration, setDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const a11yRef = useModalA11y(isOpen, () => { audioRef.current?.pause(); onClose(); });
 
   useEffect(() => {
     if (file && isOpen) {
@@ -97,7 +99,7 @@ export const AudioPreviewModal: React.FC<AudioPreviewModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 select-none">
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 select-none">
         {/* Backdrop */}
         <motion.div
           initial={{ opacity: 0 }}

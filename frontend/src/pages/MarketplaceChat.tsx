@@ -1,3 +1,5 @@
+import ErrorRetry from '../components/ui/ErrorRetry';
+import { confirmDialog } from '../store/dialogStore';
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import data from '@emoji-mart/data';
@@ -67,6 +69,8 @@ const MarketplaceChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputText, setInputText] = useState('');
   const [conversation, setConversation] = useState<ConversationInfo | null>(null);
+  const [convFailed, setConvFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [isOpponentOnline, setIsOpponentOnline] = useState(false);
   const [opponentTyping, setOpponentTyping] = useState(false);
   
@@ -156,6 +160,7 @@ const MarketplaceChat = () => {
     if (!conversationId || !user) return;
 
     const fetchHistory = async () => {
+      setConvFailed(false);
       try {
         const convRes = await api.get(`/marketplace/conversations`);
         const allConvs = Array.isArray(convRes.data) ? convRes.data : [];
@@ -174,16 +179,19 @@ const MarketplaceChat = () => {
           const statusRes = await api.get(`/marketplace/conversations/${conversationId}/status`).catch(() => ({ data: { isBlockedByMe: false, amIBlocked: false } }));
           setIsBlockedByMe(statusRes.data.isBlockedByMe);
           setAmIBlocked(statusRes.data.amIBlocked);
+        } else {
+          setConvFailed(true);
         }
 
         const msgRes = await api.get(`/marketplace/messages/${conversationId}`);
         setMessages(msgRes.data);
       } catch (err) {
         logger.error("Error fetching chat history:", err);
+        setConvFailed(true);
       }
     };
     fetchHistory();
-  }, [conversationId, user]);
+  }, [conversationId, user, reloadKey]);
 
   useEffect(() => {
     if (!socket || !conversationId) return;
@@ -435,7 +443,14 @@ const MarketplaceChat = () => {
     }, 1500);
   };
 
-  if (!conversation) return <div className="flex justify-center items-center h-screen">Loading...</div>;
+  if (!conversation)
+    return convFailed ? (
+      <div className="flex justify-center items-center h-dvh">
+        <ErrorRetry onRetry={() => setReloadKey(k => k + 1)} />
+      </div>
+    ) : (
+      <div className="flex justify-center items-center h-dvh">Loading...</div>
+    );
 
   const isBuyer = user?.user_id === conversation.buyer_id;
   const opponentName = amIBlocked ? 'Sparkle User' : (isBuyer ? conversation.seller_name : conversation.buyer_name);
@@ -443,7 +458,7 @@ const MarketplaceChat = () => {
   const opponentUsername = amIBlocked ? 'sparkle_user' : (isBuyer ? conversation.seller_username : 'buyer');
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100 max-w-2xl mx-auto shadow-xl relative">
+    <div className="flex flex-col h-dvh bg-gray-100 max-w-2xl mx-auto shadow-xl relative">
       <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -553,7 +568,7 @@ const MarketplaceChat = () => {
               {(isBuyer ? conversation.seller_id : conversation.buyer_id) !== user?.user_id && (
                 <button 
                   onClick={async () => {
-                    if (confirm(`Block ${opponentName}? This will prevent them from messaging you again.`)) {
+                    if (await confirmDialog(`Block ${opponentName}? This will prevent them from messaging you again.`)) {
                       setShowMenu(false);
                       try {
                         await api.post(`/users/block/${isBuyer ? conversation.seller_id : conversation.buyer_id}`);
@@ -574,7 +589,7 @@ const MarketplaceChat = () => {
 
               <button 
                 onClick={async () => {
-                  if (confirm('Permanently delete this chat?')) {
+                  if (await confirmDialog('Permanently delete this chat?')) {
                     setShowMenu(false);
                     try {
                       await api.delete(`/marketplace/conversations/${conversationId}`);
@@ -847,7 +862,7 @@ const MarketplaceChat = () => {
                  <div className="grid grid-cols-2 gap-3">
                     <button 
                       onClick={async () => {
-                        if (confirm('Permanently delete this chat?')) {
+                        if (await confirmDialog('Permanently delete this chat?')) {
                           try {
                             await api.delete(`/marketplace/conversations/${conversationId}`);
                             navigate('/marketplace/inbox');
@@ -1003,7 +1018,7 @@ const MarketplaceChat = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex items-end gap-3 px-4 py-3 bg-white">
+          <div className="flex items-end gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-white">
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()}

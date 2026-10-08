@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../../api/api';
 import ThreeStateToggle, { type TriState } from '../common/ThreeStateToggle';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface PrivacySettingsModalProps {
   chatId: string; // chat identifier
@@ -26,6 +27,8 @@ export default function PrivacySettingsModal({ chatId, onClose }: PrivacySetting
     allowCopy: true,
     notifyScreenshotAttempts: true,
   });
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   // Load settings on mount
   useEffect(() => {
@@ -74,11 +77,13 @@ export default function PrivacySettingsModal({ chatId, onClose }: PrivacySetting
   return (
     <AnimatePresence>
       <motion.div
+        ref={a11yRef}
+        role="dialog" aria-modal="true" tabIndex={-1}
         key="privacy-modal"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[250] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+        className="fixed inset-0 z-(--z-modal) flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       >
         <motion.div
           initial={{ scale: 0.95, y: 20 }}

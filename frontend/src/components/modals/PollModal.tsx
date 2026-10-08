@@ -16,6 +16,7 @@ import {
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface PollModalProps {
   onClose: () => void;
@@ -29,6 +30,8 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
   const [expiresIn, setExpiresIn] = useState('24h');
   const [allowInvites, setAllowInvites] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const addOption = () => {
     if (options.length < 5) {
@@ -75,6 +78,8 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
 
   return (
     <motion.div 
+      ref={a11yRef}
+      role="dialog" aria-modal="true" tabIndex={-1}
       initial={{ opacity: 0, scale: 0.9, y: 20 }}
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: 10 }}

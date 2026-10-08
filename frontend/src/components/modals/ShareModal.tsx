@@ -7,6 +7,7 @@ import { useModalStore } from '../../store/modalStore';
 import type { User } from '../../types/user';
 import type { Post } from '../../types/post';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ShareModalProps {
   onClose: () => void;
@@ -27,6 +28,8 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   useEffect(() => {
     const fetchFriends = async () => {
@@ -101,7 +104,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   );
 
   return (
-    <div className="bg-white dark:bg-[#101217] rounded-xl w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in border border-black/5 dark:border-white/10">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="bg-white dark:bg-[#101217] rounded-xl w-full max-w-[450px] overflow-hidden shadow-2xl animate-scale-in border border-black/5 dark:border-white/10">
       <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between relative bg-white dark:bg-[#101217]">
         <h3 className="text-[17px] font-bold text-black dark:text-white mx-auto">Share</h3>
         <button onClick={onClose} className="absolute right-4 p-2 bg-black/5 dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 rounded-full transition-colors text-black/40 dark:text-white/40">

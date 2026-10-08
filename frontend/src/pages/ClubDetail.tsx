@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Users, MapPin, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
-import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -79,8 +78,7 @@ export default function ClubDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Syncing Circle Node...</p>
@@ -89,8 +87,7 @@ export default function ClubDetail() {
   );
 
   if (!club) return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-10">
         <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center border-4 border-dashed border-black/10">
            <Users size={40} className="text-black opacity-10" />
@@ -105,13 +102,12 @@ export default function ClubDetail() {
   );
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
       
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full pt-16 md:pt-12">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
         <button 
           onClick={() => navigate('/clubs')}
           className="mb-12 w-16 h-16 rounded-[24px] bg-white border border-white shadow-2xl flex items-center justify-center text-black hover:scale-110 active:scale-95 transition-all group"
@@ -259,10 +255,8 @@ export default function ClubDetail() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

@@ -1,42 +1,24 @@
-import { useState, useEffect, useRef } from 'react';
+import { showError } from '../../utils/toast';
+import { useState, useRef } from 'react';
 import { X, Repeat2, Loader2, AtSign } from 'lucide-react';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
-
-interface User {
-  user_id: string;
-  username: string;
-  avatar_url: string;
-  name: string;
-}
+import { useModalA11y } from '../../hooks/useModalA11y';
+import MentionAutocomplete from '../MentionAutocomplete';
+import { useMentionSearch } from '../../hooks/useMentionSearch';
 
 export default function ReshareModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: () => void }) {
   const { modalData: originalPost } = useModalStore();
   const [comment, setComment] = useState('');
   const [resharing, setResharing] = useState(false);
-  const [suggestions, setSuggestions] = useState<User[]>([]);
   const [mentionQuery, setMentionQuery] = useState('');
   const [cursorPos, setCursorPos] = useState(0);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    const handleMentionSearch = async () => {
-      if (!mentionQuery || mentionQuery.length < 2) {
-        setSuggestions([]);
-        return;
-      }
-      try {
-        const res = await api.get(`/users/search?q=${mentionQuery.replace('@', '')}`);
-        setSuggestions(res.data.users || []);
-      } catch (err) {
-        logger.error('Mention search failed:', err);
-      }
-    };
-    const timer = setTimeout(handleMentionSearch, 300);
-    return () => clearTimeout(timer);
-  }, [mentionQuery]);
+  const { options: suggestions, loading } = useMentionSearch(mentionQuery, { minLength: 2 });
+  // Store-driven modal: rendered only once the post payload has loaded.
+  const a11yRef = useModalA11y(!!originalPost, onClose);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
@@ -51,7 +33,6 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
       setMentionQuery(mentionMatch[0]);
     } else {
       setMentionQuery('');
-      setSuggestions([]);
     }
   };
 
@@ -61,7 +42,6 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
     const newComment = `${beforeMention}@${username} ${afterMention}`;
     setComment(newComment);
     setMentionQuery('');
-    setSuggestions([]);
     if (inputRef.current) inputRef.current.focus();
   };
 
@@ -74,7 +54,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
       onClose();
     } catch (err) {
       logger.error('Reshare failed:', err);
-      alert('Failed to reshare post.');
+      showError('Failed to reshare post.');
     } finally {
       setResharing(false);
     }
@@ -83,7 +63,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
   if (!originalPost) return null;
 
   return (
-    <div className="modal-inner">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="modal-inner">
       <div className="modal-header border-none">
         <div className="modal-title text-slate-900 font-black">
           <div className="p-2 bg-indigo-50 rounded-lg">
@@ -105,23 +85,12 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
             autoFocus
           />
           
-          {suggestions.length > 0 && (
-            <div className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2">
-              {suggestions.map((u) => (
-                <button
-                  key={u.user_id}
-                  className="w-full px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-none"
-                  onClick={() => selectMention(u.username)}
-                >
-                  <img src={u.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full" alt="" />
-                  <div className="text-left">
-                    <p className="font-bold text-slate-800 text-sm">@{u.username}</p>
-                    <p className="text-xs text-slate-500">{u.name}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          )}
+          <MentionAutocomplete
+            options={suggestions}
+            loading={loading}
+            onSelect={(u) => selectMention(u.username)}
+            className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
+          />
         </div>
 
         <div className="original-post-preview group hover:border-indigo-200 transition-colors">

@@ -22,13 +22,12 @@ const carouselVariants = {
 
 export default function RewardCarousel() {
   return (
-    <div className="w-full overflow-hidden py-8">
+    <div className="w-full py-8">
       <motion.div
-        className="flex gap-6"
+        className="flex flex-wrap justify-center gap-6"
         variants={carouselVariants}
         initial="enter"
         animate="center"
-        exit="exit"
       >
         {rewards.map((r, i) => (
           <div

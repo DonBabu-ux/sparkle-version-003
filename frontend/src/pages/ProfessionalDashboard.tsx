@@ -240,7 +240,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-(--z-modal) bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
@@ -440,7 +440,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-(--z-modal) bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
@@ -685,10 +685,8 @@ export default function ProfessionalDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#fafafd] text-slate-800 font-sans pb-16 overflow-x-hidden relative">
+    <div className="min-h-dvh bg-[#fafafd] text-slate-800 font-sans pb-16 overflow-x-hidden relative">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        .font-sans { font-family: 'Inter', -apple-system, sans-serif; }
         .glass { background: rgba(255, 31, 109, 0.02); border: 1px solid rgba(255, 31, 109, 0.12); backdrop-filter: blur(20px); }
         .glass-strong { background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 31, 109, 0.18); backdrop-filter: blur(24px); }
         .gradient-card { background: linear-gradient(135deg, rgba(255,31,109,0.12) 0%, rgba(255,255,255,0.9) 100%); }

@@ -124,6 +124,7 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
       {/* 2. Optimized Image (Loads compressed medium first, then silent HD swap on success) */}
       {!error && (
         <img
+          loading="lazy"
           {...props}
           src={`${currentSrc}${retryCount > 0 ? `?retry=${retryCount}` : ''}`}
           alt={alt}
@@ -136,7 +137,6 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
             maxHeight: 'inherit',
             ...props.style
           }}
-          loading="eager"
         />
       )}
 
@@ -156,32 +156,7 @@ export const ProgressiveImage: React.FC<ProgressiveImageProps> = ({
 
       {/* Local Shimmer Keyframes */}
       <style>{`
-        @keyframes shimmer {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
-        }
-        .animate-shimmer {
-          background-image: linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.08) 20%,
-            rgba(255, 255, 255, 0.15) 60%,
-            rgba(255, 255, 255, 0) 100%
-          );
-        }
-        .dark .animate-shimmer {
-          background-image: linear-gradient(
-            90deg,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.02) 20%,
-            rgba(255, 255, 255, 0.05) 60%,
-            rgba(255, 255, 255, 0) 100%
-          );
-        }
+        
       `}</style>
     </div>
   );

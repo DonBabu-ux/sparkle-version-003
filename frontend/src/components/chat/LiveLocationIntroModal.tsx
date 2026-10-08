@@ -1,5 +1,6 @@
 import React from 'react';
 import { MapPin, Shield, Clock, X } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface LiveLocationIntroModalProps {
   isOpen: boolean;
@@ -12,10 +13,12 @@ export const LiveLocationIntroModal: React.FC<LiveLocationIntroModalProps> = ({
   onClose,
   onContinue
 }) => {
+  const a11yRef = useModalA11y(isOpen, onClose);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
       <div className="relative w-full max-w-sm overflow-hidden bg-[#13131a] border border-white/10 rounded-3xl shadow-2xl p-6 text-white text-center">
         {/* Close Button */}
         <button

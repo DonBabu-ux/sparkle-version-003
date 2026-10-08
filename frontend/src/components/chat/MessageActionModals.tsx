@@ -4,6 +4,7 @@ import { Reply, Copy, Trash2, MoreHorizontal, Pin, Edit2, Forward, Info, Plus, A
 import type { MessagePermissions } from '../../types/messagePermissions';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 // Extended quick reactions for horizontal scrolling
 const QUICK_REACTIONS = ['❤️', '😂', '😮', '😢', '😡', '👍', '🔥', '💯', '✨', '🥺', '💀', '🙏', '🥰', '🎉', '🤡', '😭'];
@@ -26,6 +27,7 @@ interface ActionSheetProps {
 export const MessageActionSheet: React.FC<ActionSheetProps> = ({
   isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493", onForward, permissions
 }) => {
+  const a11yRef = useModalA11y(isOpen, onClose);
   return (
     <AnimatePresence>
       {isOpen && (
@@ -33,15 +35,17 @@ export const MessageActionSheet: React.FC<ActionSheetProps> = ({
           {/* Backdrop */}
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[100]" 
+            className="fixed inset-0 bg-black/60 z-(--z-scrim)" 
             onClick={onClose} 
           />
           
           {/* Bottom Sheet */}
           <motion.div 
+            ref={a11yRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed left-4 right-4 z-[101] flex flex-col items-center pb-4"
+            className="fixed left-4 right-4 z-(--z-modal) flex flex-col items-center pb-4"
             style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}
           >
             {/* Quick Reactions Pill */}
@@ -108,6 +112,7 @@ interface MoreModalProps {
 export const MessageMoreModal: React.FC<MoreModalProps> = ({
   isOpen, onClose, onPin, onEdit, onForward, onDetails, isPinned = false, isMe = false, onReport, permissions
 }) => {
+  const a11yRef = useModalA11y(isOpen, onClose);
   return (
     <AnimatePresence>
       {isOpen && (
@@ -116,15 +121,17 @@ export const MessageMoreModal: React.FC<MoreModalProps> = ({
             initial={{ opacity: 0 }} 
             animate={{ opacity: 1 }} 
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 z-[110]" 
+            className="fixed inset-0 bg-black/70 z-(--z-scrim)" 
             onClick={onClose} 
           />
           <motion.div 
+            ref={a11yRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ opacity: 0, scale: 0.9 }} 
             animate={{ opacity: 1, scale: 1 }} 
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ type: 'spring', damping: 25, stiffness: 350 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-[111] overflow-hidden border border-white/[0.08]"
+            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] bg-[#121b22]/95 backdrop-blur-xl rounded-2xl shadow-2xl z-(--z-modal) overflow-hidden border border-white/[0.08]"
           >
             <div className="flex flex-col py-1.5">
               {isMe ? (
@@ -175,19 +182,22 @@ export const FullEmojiPickerModal: React.FC<{
   onClose: () => void;
   onSelect: (emoji: string) => void;
 }> = ({ isOpen, onClose, onSelect }) => {
+  const a11yRef = useModalA11y(isOpen, onClose);
   return (
     <AnimatePresence>
       {isOpen && (
         <>
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[120]" 
+            className="fixed inset-0 bg-black/60 z-(--z-scrim)" 
             onClick={onClose} 
           />
           <motion.div 
+            ref={a11yRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-[121] overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
+            className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-(--z-modal) overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
           >
             <div className="w-10 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
             <div className="flex-1 w-full relative bg-black flex justify-center">
@@ -283,6 +293,8 @@ export const ReactionDetailsSheet: React.FC<ReactionDetailsSheetProps> = ({
   themeColor = '#ff1493'
 }) => {
   const [showPicker, setShowPicker] = useState(false);
+  // The inline picker renders inside the sheet, so it stays within this trap.
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   const grouped = reactions.reduce((acc, r) => {
     acc[r.emoji] = (acc[r.emoji] || 0) + 1;
@@ -299,15 +311,17 @@ export const ReactionDetailsSheet: React.FC<ReactionDetailsSheetProps> = ({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-[110] backdrop-blur-xs"
+            className="fixed inset-0 bg-black/60 z-(--z-scrim) backdrop-blur-xs"
             onClick={onClose}
           />
           <motion.div
+            ref={a11yRef}
+            role="dialog" aria-modal="true" tabIndex={-1}
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-0 right-0 z-[111] bg-[#1a1a2e] rounded-t-[24px] px-5 pt-4 pb-8 border-t border-white/10 shadow-2xl max-w-md mx-auto"
+            className="fixed left-0 right-0 z-(--z-modal) bg-[#1a1a2e] rounded-t-[24px] px-5 pt-4 pb-8 border-t border-white/10 shadow-2xl max-w-md mx-auto"
             style={{ bottom: 0 }}
           >
             <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />

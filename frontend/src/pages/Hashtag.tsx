@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Hash, ArrowLeft, Orbit } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -40,14 +39,13 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="flex bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
-      <Navbar />
+    <div className="flex bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pt-20 md:pt-32">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full">
         
         <button 
           onClick={() => navigate(-1)}
@@ -98,10 +96,8 @@ export default function Hashtag() {
       </main>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        .animate-spin-slow { animation: spin 20s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        
       `}</style>
     </div>
   );

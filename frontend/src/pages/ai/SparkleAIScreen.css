@@ -3,7 +3,7 @@
 .sparkle-ai-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  min-height: 100dvh;
   background: linear-gradient(135deg, #111 0%, #1a1a2e 100%);
   color: #f0f0f0;
   font-family: 'Inter', sans-serif;

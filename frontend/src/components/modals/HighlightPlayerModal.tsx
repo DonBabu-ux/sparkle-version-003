@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight, Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface Story {
   id: string;
@@ -35,6 +36,7 @@ export default function HighlightPlayerModal({
   const [muted, setMuted] = useState(true);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   const currentStory = stories[currentIndex];
   const isVideo = currentStory?.media_type === 'video' ||
@@ -132,7 +134,7 @@ export default function HighlightPlayerModal({
   if (!isOpen || !stories.length) return null;
 
   return (
-    <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/90">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/90">
       {/* Backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 

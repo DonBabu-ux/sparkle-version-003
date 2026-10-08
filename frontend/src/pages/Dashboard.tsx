@@ -4,7 +4,7 @@ import api from '../api/api';
 import PostCard from '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import AppScreen from '../components/AppScreen';
+import AppScreen, { scrollTopTo } from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
 import { storyCache } from '../utils/storyCache';
@@ -226,7 +226,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
     window.addEventListener('focus', handleFocus);
 
     const handleScrollToTop = () => {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTopTo(0, 'smooth');
       fetchDashboardData(true, true);
       fetchStoriesData();
     };
@@ -258,7 +258,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
   
   return (
     <>
-    <AppScreen immersive={true} className="flex min-h-screen font-sans overflow-x-hidden transition-colors duration-300">
+    <AppScreen immersive={true} className="flex min-h-dvh font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
       <main className="flex-1 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
@@ -515,7 +515,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[9998] bg-black/50 backdrop-blur-sm"
+                  className="fixed inset-0 z-(--z-fab) bg-black/50 backdrop-blur-sm"
                   onClick={() => setShowUploadSheet(false)}
                 >
                   <motion.div
@@ -670,12 +670,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes bounce-slow { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-20px); } }
+        
+        
         .animate-bounce-slow { animation: bounce-slow 4s infinite ease-in-out; }
-        .animate-spin-slow { animation: spin 15s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
       `}</style>
     </AppScreen>
     </>

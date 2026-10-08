@@ -33,7 +33,7 @@ function DepositPrompt({ onClose }: { onClose: () => void }) {
   const navigate = useNavigate();
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
+      className="fixed inset-0 z-(--z-modal) bg-black/60 backdrop-blur-md flex items-center justify-center p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
         className="bg-white rounded-3xl p-8 max-w-sm w-full shadow-2xl border border-[#FF1F6D]/20">
@@ -129,10 +129,8 @@ export default function Ads() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafd] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#fafafd] text-slate-800 font-sans pb-16 relative">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        .font-sans { font-family: 'Inter', -apple-system, sans-serif; }
         .glass-card { background: #ffffff; border: 1px solid rgba(255, 31, 109, 0.12); }
       `}</style>
 

@@ -1,3 +1,4 @@
+import { showError, showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,9 +9,9 @@ import {
   TrendingUp, Compass
 } from 'lucide-react';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
+import ListingCard from '../components/marketplace/ListingCard';
 import { useUserStore } from '../store/userStore';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
@@ -53,13 +54,7 @@ export default function Search() {
   const [poking, setPoking] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [toast, setToast] = useState<{ message: string, type: 'success' | 'error' } | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
-
-  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
-      setToast({ message, type });
-      setTimeout(() => setToast(null), 3000);
-  };
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -84,11 +79,11 @@ export default function Search() {
     setPoking(true);
     try {
         await api.post(`/users/${userId}/poke`);
-        showToast(`You poked ${name}! 👋`);
+        showSuccess(`You poked ${name}! 👋`);
         setActionItem(null);
     } catch (err) {
         logger.error('Poke failed:', err);
-        showToast('Failed to send poke.', 'error');
+        showError('Failed to send poke.');
     } finally {
         setPoking(false);
     }
@@ -99,10 +94,10 @@ export default function Search() {
         await api.delete(`/search/history/${id}`);
         setHistory(prev => prev.filter(item => item.id !== id));
         setActionItem(null);
-        showToast('Search deleted.');
+        showSuccess('Search deleted.');
     } catch (err) {
         logger.error('Delete history failed:', err);
-        showToast('Failed to delete.', 'error');
+        showError('Failed to delete.');
     }
   };
 
@@ -166,8 +161,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="block lg:flex bg-white dark:bg-[#101217] min-h-screen text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
-      <Navbar />
+    <div className="block lg:flex bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -366,21 +360,12 @@ export default function Search() {
                                         </div>
                                     ))}
                                     {type === 'marketplace' && Array.isArray(items) && items.map((item, j) => (
-                                        <div 
-                                          key={`res-m-${item.id || j}`} 
-                                          onClick={() => navigate(`/marketplace/listings/${item.id}`)} 
-                                          className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
-                                        >
-                                            <img src={item.image || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
-                                            <div className="flex-1 min-w-0">
-                                                <div className="text-lg font-bold text-gray-900 leading-none mb-2 italic uppercase tracking-tight truncate">{item.title}</div>
-                                                <div className="flex items-center gap-3">
-                                                    <span className="text-lg font-black text-primary tracking-tighter">KSh {item.subtitle}</span>
-                                                    <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">Market</span>
-                                                </div>
-                                            </div>
-                                            <ChevronRight size={18} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
-                                        </div>
+                                        <ListingCard
+                                          key={`res-m-${item.id || j}`}
+                                          variant="compact"
+                                          listing={item}
+                                          onClick={() => navigate(`/marketplace/listings/${item.id}`)}
+                                        />
                                     ))}
                                     {Array.isArray(items) && items.length === 0 && (
                                         <div className="text-center py-8 md:py-16 bg-black/[0.01] rounded-[24px] md:rounded-[32px] border border-dashed border-black/5 px-6 mx-2">
@@ -405,7 +390,7 @@ export default function Search() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setActionItem(null)}
-              className="fixed inset-0 z-[1000] bg-black/60 backdrop-blur-sm"
+              className="fixed inset-0 z-(--z-chrome) bg-black/60 backdrop-blur-sm"
             />
             
             <motion.div 
@@ -502,19 +487,7 @@ export default function Search() {
       </AnimatePresence>
 
       {/* Minimal Toast */}
-      <AnimatePresence>
-          {toast && (
-              <motion.div 
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.9 }}
-                  className={`fixed bottom-10 left-1/2 -translate-x-1/2 flex items-center gap-3 px-8 py-4 rounded-2xl shadow-2xl z-[9999] font-black text-[10px] uppercase tracking-widest ${toast.type === 'success' ? 'bg-black text-white' : 'bg-red-500 text-white'}`}
-              >
-                  {toast.type === 'success' ? <Sparkles size={16} className="text-primary" strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
-                  {toast.message}
-              </motion.div>
-          )}
-      </AnimatePresence>
+      <AnimatePresence>      </AnimatePresence>
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

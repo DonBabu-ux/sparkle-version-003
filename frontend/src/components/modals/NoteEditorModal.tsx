@@ -5,6 +5,7 @@ import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface NoteEditorModalProps {
   initialNote?: string;
@@ -41,6 +42,11 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   const [gifSearch, setGifSearch] = useState('');
   const [loadingGifs, setLoadingGifs] = useState(false);
   const maxLength = 60;
+  // Each screen/dialog is its own modal layer; suspend the editor's a11y while the music dialog is on top.
+  const a11yRef = useModalA11y(screen === 'editor' && panel !== 'music_error', onClose);
+  const settingsRef = useModalA11y(screen === 'settings', onClose);
+  const peopleRef = useModalA11y(screen === 'choose_people', onClose);
+  const musicErrorRef = useModalA11y(panel === 'music_error', () => setPanel('none'));
 
   // Hide bottom nav while open via CSS class
   useEffect(() => {
@@ -120,7 +126,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   // ─────────────────────────────────────────────
   if (screen === 'choose_people') {
     return (
-      <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
+      <motion.div ref={peopleRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
         className="fixed inset-0 z-[10001] bg-black flex flex-col"
       >
         <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3 shrink-0">
@@ -200,7 +206,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   // ─────────────────────────────────────────────
   if (screen === 'settings') {
     return (
-      <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
+      <motion.div ref={settingsRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }} transition={{ type: 'tween', duration: 0.22 }}
         className="fixed inset-0 z-[10001] bg-black flex flex-col"
       >
         <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3 shrink-0">
@@ -295,10 +301,14 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   // ─────────────────────────────────────────────
   return (
     <motion.div
+      ref={a11yRef}
+      role="dialog"
+      aria-modal="true"
+      tabIndex={-1}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[10000] bg-black flex flex-col"
+      className="fixed inset-0 z-(--z-toast) bg-black flex flex-col"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       {/* Top Bar */}
@@ -425,7 +435,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
       {/* Music Error Modal — sharp edges */}
       <AnimatePresence>
         {panel === 'music_error' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <motion.div ref={musicErrorRef} role="dialog" aria-modal="true" tabIndex={-1} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[10001] flex items-center justify-center bg-black/60"
             onClick={() => setPanel('none')}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}

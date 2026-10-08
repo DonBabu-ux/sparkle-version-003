@@ -1,3 +1,5 @@
+import { showError, showInfo, showSuccess } from '../../utils/toast';
+import { confirmDialog, promptDialog } from '../../store/dialogStore';
 import React from 'react';
 import { X, Bookmark, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -6,6 +8,7 @@ import { useModalStore } from '../../store/modalStore';
 import { useUserStore } from '../../store/userStore';
 import type { Post } from '../../types/post';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface PostOptionsModalProps {
   post: Post;
@@ -15,13 +18,15 @@ interface PostOptionsModalProps {
 const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) => {
   const { setActiveModal, triggerRefresh } = useModalStore();
   const { user: currentUser } = useUserStore();
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const isOwner = currentUser?.user_id === post.user_id || currentUser?.username === post.username;
   const isGroupAdmin = post.group_id && (post.user_role === 'admin' || post.user_role === 'owner' || post.user_role === 'moderator');
   const canDelete = isOwner || isGroupAdmin || currentUser?.role === 'admin';
 
   const handleDelete = async () => {
-    if (!window.confirm('Delete this post? This cannot be undone.')) return;
+    if (!await confirmDialog('Delete this post? This cannot be undone.')) return;
     try {
       if (post.group_id) {
         await api.delete(`/groups/${post.group_id}/posts/${post.post_id}`);
@@ -32,30 +37,30 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
       triggerRefresh();
     } catch (err) {
       logger.error('Failed to delete post:', err);
-      alert('Failed to delete post.');
+      showError('Failed to delete post.');
     }
   };
 
   const handleReport = async () => {
-    const reason = window.prompt('Why are you reporting this post?', 'Inappropriate content');
+    const reason = await promptDialog('Why are you reporting this post?', { defaultValue: 'Inappropriate content' });
     if (!reason) return;
     try {
       await api.post('/moderation/reports', { post_id: post.post_id, reason });
-      alert('Post reported.');
+      showInfo('Post reported.');
       onClose();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to report post.');
+      showError(err.response?.data?.message || 'Failed to report post.');
     }
   };
 
   const handleCopyLink = () => {
     navigator.clipboard.writeText(`${window.location.origin}/post/${post.post_id}`);
-    alert('Link copied!');
+    showSuccess('Link copied!');
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex flex-col justify-end sm:justify-center sm:items-center overflow-hidden">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-top) flex flex-col justify-end sm:justify-center sm:items-center overflow-hidden">
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -88,11 +93,11 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
             onClick={async () => { 
               try {
                 await api.post(`/posts/${post.post_id}/save`);
-                alert('Saved to bookmarks');
+                showSuccess('Saved to bookmarks');
                 onClose();
               } catch (err) {
                 logger.error('Failed to save post', err);
-                alert('Failed to save');
+                showError('Failed to save');
               }
             }}
             className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
@@ -127,7 +132,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                   if (currentUser) {
                     try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'click' }); } catch(e){}
                   }
-                  alert('Noted! We will show more like this.'); 
+                  showInfo('Noted! We will show more like this.'); 
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
               >
@@ -147,7 +152,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                     try { await api.post(`/posts/${post.post_id}/action`, { action_type: 'dislike' }); } catch(e){}
                   }
                   window.dispatchEvent(new CustomEvent('hidePost', { detail: post.post_id }));
-                  alert('Hidden. We will show less of this.'); 
+                  showInfo('Hidden. We will show less of this.'); 
                 }}
                 className="w-full flex items-center gap-3.5 px-4 py-2.5 hover:bg-black/5 dark:hover:bg-white/5 active:bg-black/10 dark:active:bg-white/10 transition-colors rounded-xl group"
               >

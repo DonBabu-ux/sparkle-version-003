@@ -1,7 +1,7 @@
+import { showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart2, CheckCircle2, ChevronRight, Users, X, UserPlus, UserCheck, Sparkles, Orbit } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import Spinner from '../components/ui/Spinner';
@@ -48,7 +48,6 @@ const getSafeAvatarUrl = (url: string | undefined) => {
   if (url.startsWith('http')) return url;
   return url.startsWith('/') ? url : `/${url}`;
 };
-
 
 export default function PollDetail() {
   const { id } = useParams();
@@ -141,13 +140,13 @@ export default function PollDetail() {
   };
 
   if (loading) return (
-    <div className="bg-[#fdf2f4] min-h-screen flex items-center justify-center">
+    <div className="bg-[#fdf2f4] min-h-dvh flex items-center justify-center">
        <Spinner size="large" color="text-primary" />
     </div>
   );
 
   if (!poll) return (
-    <div className="bg-[#fdf2f4] min-h-screen flex items-center justify-center flex-col gap-4">
+    <div className="bg-[#fdf2f4] min-h-dvh flex items-center justify-center flex-col gap-4">
        <p className="text-gray-400 font-bold uppercase tracking-widest">Poll not found</p>
        <button onClick={() => navigate('/polls')} className="text-primary font-black uppercase text-xs">Return Home</button>
     </div>
@@ -157,8 +156,8 @@ export default function PollDetail() {
   const isExpired = poll.is_expired;
 
   return (
-    <div className="bg-transparent min-h-screen text-black overflow-x-hidden font-sans pb-20">
-      <main className="relative z-10 max-w-xl mx-auto w-full p-4 md:p-8 pt-10">
+    <div className="bg-transparent min-h-dvh text-black overflow-x-hidden font-sans pb-20">
+      <main className="relative z-10 max-w-xl mx-auto w-full p-4 md:p-8">
         <button 
           onClick={() => navigate('/polls')}
           className="mb-8 w-12 h-12 rounded-2xl bg-white border border-gray-100 shadow-sm flex items-center justify-center text-gray-400 hover:text-primary transition-all hover:scale-105 active:scale-95"
@@ -283,7 +282,7 @@ export default function PollDetail() {
                    <UserPlus size={14} /> Invite
                  </button>
                  <button 
-                  onClick={() => { navigator.clipboard.writeText(window.location.href); alert('Link copied!'); }}
+                  onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess('Link copied!'); }}
                   className="flex-1 h-12 bg-gray-50 text-gray-500 rounded-xl font-bold uppercase tracking-wider text-[10px] hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                  >
                    <ArrowLeft size={14} className="rotate-180" /> Share
@@ -308,7 +307,7 @@ export default function PollDetail() {
 
       {/* Participants Sheet */}
       {showVotersSheet && poll && (
-        <div className="fixed inset-0 z-[1500] flex items-end justify-center animate-fade-in">
+        <div className="fixed inset-0 z-(--z-sheet) flex items-end justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowVotersSheet(false)} />
           <div className="relative w-full max-w-xl bg-white rounded-t-[32px] max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
@@ -402,13 +401,10 @@ export default function PollDetail() {
       )}
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .animate-spin-slow { animation: spin 8s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
       `}</style>
     </div>
   );

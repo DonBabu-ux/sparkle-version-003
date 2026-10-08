@@ -64,7 +64,7 @@ export const TikTokHearts = () => {
   }, [spawnHeart]);
 
   return (
-    <div className="fixed inset-0 pointer-events-none z-[99999] overflow-hidden">
+    <div className="fixed inset-0 pointer-events-none z-(--z-max) overflow-hidden">
       <svg width="0" height="0" className="absolute">
         <defs>
           {GRADIENTS.map(grad => (

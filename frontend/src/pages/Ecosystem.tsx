@@ -14,7 +14,6 @@ import {
   Copy,
   ChevronRight
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 
 interface AppItem {
   name: string;
@@ -79,7 +78,6 @@ export default function Ecosystem() {
 
   return (
     <div className="page-wrapper">
-      <Navbar />
       <div className="eco-content">
         <main className="eco-container">
           
@@ -311,7 +309,7 @@ export default function Ecosystem() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f0f2f5); min-height: 100vh; }
+        .page-wrapper { display: flex; background: var(--bg-main, #f0f2f5); min-height: 100dvh; }
         .eco-content { flex: 1; overflow-y: auto; }
         .eco-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
 

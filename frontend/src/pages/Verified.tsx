@@ -4,7 +4,6 @@ import {
   ArrowLeft, BadgeCheck, ShieldCheck, Star, FileText, Upload, Send, 
   CheckCircle2, ChevronDown, Lock, TrendingUp, Users, Zap, Shield, Target
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
@@ -57,27 +56,25 @@ export default function Verified() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-white dark:bg-[#101217] flex items-center justify-center">
+    <div className="min-h-dvh bg-white dark:bg-[#101217] flex items-center justify-center">
       <Spinner size="large" color="text-primary" />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#101217] text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden pt-12 md:pt-20 relative transition-colors duration-300">
-      <Navbar />
+    <div className="min-h-dvh bg-white dark:bg-[#101217] text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden relative transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-red-200/20 rounded-full blur-[80px] md:blur-[140px] pointer-events-none z-0" />
-      
 
-      <div className="max-w-2xl mx-auto pt-10 md:pt-16 px-4 md:px-6 relative z-10 pb-20">
+      <div className="max-w-2xl mx-auto px-4 md:px-6 relative z-10 pb-20">
         {/* Header */}
         <header className="flex items-center gap-5 md:gap-8 mb-10 md:mb-12 animate-fade-in">
           <button 
             onClick={() => navigate(-1)} 
             className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-[#101217]/50 backdrop-blur-3xl flex items-center justify-center text-black dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
-            <ArrowLeft size={22} md:size={26} strokeWidth={3} />
+            <ArrowLeft size={22} strokeWidth={3} />
           </button>
           <div>
             <h1 className="text-2xl md:text-4xl font-black text-black dark:text-white tracking-tight italic leading-none uppercase">Trust Node</h1>
@@ -305,7 +302,7 @@ export default function Verified() {
           {step === 3 && (
             <div className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-10 md:p-14 text-center transition-all animate-scale-in">
               <div className="w-24 h-24 md:w-32 md:h-32 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-emerald-100 dark:border-emerald-500/20">
-                <CheckCircle2 size={56} md:size={80} strokeWidth={2} />
+                <CheckCircle2 size={56} strokeWidth={2} />
               </div>
               <h2 className="text-2xl md:text-3xl font-black text-black dark:text-white tracking-tight italic mb-3 uppercase">Signal Transmitted</h2>
               <p className="text-sm md:text-base text-black/50 dark:text-white/40 leading-relaxed font-medium mb-10 max-w-sm mx-auto italic uppercase">
@@ -346,9 +343,7 @@ export default function Verified() {
       </div>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyfra  
         .animate-scale-in { animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>

@@ -1,8 +1,10 @@
+import { showError } from '../../utils/toast';
 import { useState, useRef } from 'react';
 import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus, ChevronLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ListingModalProps {
   onClose: () => void;
@@ -18,6 +20,8 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
   const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  // Conditionally mounted by its parent: open whenever rendered.
+  const a11yRef = useModalA11y(true, onClose);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
@@ -33,7 +37,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
 
   const handleSubmit = async () => {
     if (!title || !price) {
-      alert('Title and price are required');
+      showError('Title and price are required');
       return;
     }
 
@@ -53,14 +57,14 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       onClose();
     } catch (err) {
       logger.error('Marketplace listing failed:', err);
-      alert('Failed to publish item.');
+      showError('Failed to publish item.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div className="modal-inner">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="modal-inner">
       <div className="modal-header">
         <div className="flex items-center gap-2">
           <button 

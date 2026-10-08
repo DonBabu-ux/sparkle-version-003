@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import Navbar from '../components/Navbar';
 import { getOptimizedMediaUrl } from '../utils/imageUtils';
 import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
 import type { Post } from '../types/post';
+import PostHeader from '../components/PostHeader';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -95,8 +95,7 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-        <Navbar />
+      <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center">
           <Spinner size="large" color="text-primary" />
         </div>
@@ -106,8 +105,7 @@ export default function PostDetail() {
 
   if (!post) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-        <Navbar />
+      <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
             <Orbit size={120} strokeWidth={1} className="text-black/5" />
             <h2 className="text-4xl font-black text-black mt-8 mb-4 tracking-tight italic">Signal Lost.</h2>
@@ -119,8 +117,7 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-screen text-black overflow-x-hidden font-sans">
-      <Navbar />
+    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
       
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
@@ -133,13 +130,14 @@ export default function PostDetail() {
         <div className="bg-white/80 backdrop-blur-3xl rounded-[48px] border border-white/65 shadow-xl shadow-primary/5 p-8 md:p-12 mb-12 animate-fade-in">
            <div className="flex items-center justify-between mb-8">
               <div className="flex items-center gap-4">
-                <Link to={`/profile/${post.username}`}>
-                  <img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-[24px] object-cover border border-white/65 shadow-sm" alt="" />
-                </Link>
-                <div>
-                   <h3 className="text-xl font-bold text-black leading-tight">{post.name}</h3>
-                   <p className="text-[11px] font-bold text-primary uppercase tracking-widest">@{post.username} • {new Date(post.created_at).toLocaleDateString()}</p>
-                </div>
+                <PostHeader
+                  heading
+                  username={post.username}
+                  name={post.name}
+                  avatar={<img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-[24px] object-cover border border-white/65 shadow-sm" alt="" />}
+                  nameClassName="text-xl font-bold text-black leading-tight"
+                  meta={<p className="text-[11px] font-bold text-primary uppercase tracking-widest">@{post.username} • {new Date(post.created_at).toLocaleDateString()}</p>}
+                />
               </div>
            </div>
 
@@ -148,7 +146,7 @@ export default function PostDetail() {
            {post.media?.length > 0 && (
              <div className="grid grid-cols-1 gap-6 mb-10 rounded-[32px] overflow-hidden">
                {post.media.map((m: { url: string }, i: number) => (
-                 <img key={i} src={getOptimizedMediaUrl(m.url, 'hd', 1200)} className="w-full object-cover max-h-[800px] rounded-[32px] border border-white shadow-xl shadow-primary/5" alt="" />
+                 <img key={i} src={getOptimizedMediaUrl(m.url, 'hd', 1200)} className="w-full min-h-[320px] max-h-[800px] bg-black/[0.03] dark:bg-white/[0.03] object-cover rounded-[32px] border border-white shadow-xl shadow-primary/5" alt="" />
                ))}
              </div>
            )}
@@ -251,7 +249,7 @@ export default function PostDetail() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setShowSortModal(false)}
-              className="fixed inset-0 bg-black/40 backdrop-blur-md z-[1000]"
+              className="fixed inset-0 bg-black/40 backdrop-blur-md z-(--z-chrome)"
             />
             <motion.div 
               initial={{ y: "100%" }}
@@ -305,8 +303,7 @@ export default function PostDetail() {
       </AnimatePresence>
 
       <style>{`
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        
         .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>

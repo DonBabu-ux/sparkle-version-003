@@ -16,7 +16,6 @@ import {
   Sparkles,
   Lock
 } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import api from '../api/api';
 
 interface AvailableFactors {
@@ -229,8 +228,7 @@ export const ChangePassword: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
-      <Navbar />
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
 
       <main className="max-w-xl mx-auto px-4 pt-6 animate-in slide-in-from-right duration-300">
         {/* Navigation Header */}

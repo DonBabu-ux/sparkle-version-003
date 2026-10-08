@@ -1,3 +1,5 @@
+import { showError, showSuccess } from '../utils/toast';
+import { scrollTopTo } from '../components/AppScreen';
 import React, {
   useState,
   useEffect,
@@ -244,7 +246,7 @@ interface SideSheetProps {
 
 const SideSheet: React.FC<SideSheetProps> = ({ open, onClose, title, children }) => (
   <div
-    className={`fixed inset-0 z-[200] flex justify-end transition-all duration-300 ${
+    className={`fixed inset-0 z-(--z-modal) flex justify-end transition-all duration-300 ${
       open ? 'pointer-events-auto' : 'pointer-events-none'
     }`}
   >
@@ -313,11 +315,6 @@ const SectionHeader: React.FC<{ title: string; description?: string }> = ({ titl
 
 const Divider = () => <div className="h-px bg-gray-100 mx-4" />;
 
-interface ToastState {
-  message: string;
-  type: 'success' | 'error';
-}
-
 interface ConfirmModalProps {
   open: boolean;
   title: string;
@@ -339,7 +336,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <h3 className="text-base font-bold text-gray-900">{title}</h3>
         <div className="text-sm text-gray-500 mt-2 leading-relaxed">{message}</div>
@@ -481,28 +478,20 @@ export default function MessagesSettings() {
   const [unarchiveChatId, setUnarchiveChatId] = useState<string | null>(null);
 
   // Toast
-  const [toast, setToast] = useState<ToastState | null>(null);
-  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Global Chat Theme
   const [globalChatThemeId, setGlobalChatThemeId] = useState<string>(
     user?.chat_theme || 'whatsapp_v5'
   );
 
-  const showToast = useCallback((message: string, type: 'success' | 'error' = 'success') => {
-    if (toastTimer.current) clearTimeout(toastTimer.current);
-    setToast({ message, type });
-    toastTimer.current = setTimeout(() => setToast(null), 2500);
-  }, []);
-
   const updateSetting = useCallback(
     async (key: string, value: string | number | boolean) => {
       try {
         await api.put('/users/settings', { [key]: value });
         if (user) setUser({ ...user, [key]: value });
-        showToast('Saved');
+        showSuccess('Saved');
       } catch {
-        showToast("Couldn't save. Try again.", 'error');
+        showError("Couldn't save. Try again.");
       }
     },
     [user, setUser, showToast]
@@ -512,9 +501,9 @@ export default function MessagesSettings() {
     async (key: string, value: boolean) => {
       try {
         await api.put('/users/advanced-settings', { [key]: value ? 1 : 0 });
-        showToast('Saved');
+        showSuccess('Saved');
       } catch {
-        showToast("Couldn't save. Try again.", 'error');
+        showError("Couldn't save. Try again.");
       }
     },
     [showToast]
@@ -609,7 +598,7 @@ export default function MessagesSettings() {
       if (v === 'archived-chats') fetchArchivedChats();
       if (v === 'blocked-contacts') fetchBlockedUsers();
       setView(v);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      scrollTopTo(0, 'smooth');
     },
     [fetchArchivedChats, fetchBlockedUsers]
   );
@@ -620,7 +609,7 @@ export default function MessagesSettings() {
       return;
     }
     setView('home');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    scrollTopTo(0, 'smooth');
   }, [learnMorePage]);
 
   const handleSelectChat = (chatId: string) => {
@@ -647,13 +636,13 @@ export default function MessagesSettings() {
       await api.post(`/messages/chat/${targetChatId}/mute`, { muted: newVal });
       const chat = conversations.find(c => c.chat_id === targetChatId);
       const name = chat ? sanitizePartnerName(chat.partner_name, chat.partner_username) : 'Chat';
-      showToast(newVal ? `Muted ${name}` : `Unmuted ${name}`);
+      showSuccess(newVal ? `Muted ${name}` : `Unmuted ${name}`);
     } catch {
       setChatMuteState(!newVal);
       setConversations(prev =>
         prev.map(c => (c.chat_id === targetChatId ? { ...c, is_muted: !newVal } : c))
       );
-      showToast('Failed to update', 'error');
+      showError('Failed to update');
     }
   };
 
@@ -665,7 +654,7 @@ export default function MessagesSettings() {
       AVAILABLE_NOTIFICATION_SOUNDS.find(s => s.key === soundKey)?.soundKey || 'outchat';
     AudioSessionManager.playSound(tone);
     setChatSoundSheet(false);
-    showToast('Chat tone updated');
+    showSuccess('Chat tone updated');
   };
 
   const handleThemeChange = async (theme: SoundTheme) => {
@@ -674,7 +663,7 @@ export default function MessagesSettings() {
     setAudioToggles(AudioSessionManager.getSettings() as Record<string, boolean>);
     AudioSessionManager.playSound('send');
     setSoundThemeSheet(false);
-    showToast(`Theme: ${theme}`);
+    showSuccess(`Theme: ${theme}`);
   };
 
   const handleGlobalNotificationSoundChange = (soundKey: string) => {
@@ -686,7 +675,7 @@ export default function MessagesSettings() {
       AVAILABLE_NOTIFICATION_SOUNDS.find(s => s.key === soundKey)?.soundKey || 'outchat';
     AudioSessionManager.playSound(tone);
     setNotifSoundSheet(false);
-    showToast('Default tone updated');
+    showSuccess('Default tone updated');
   };
 
   const handleVolumeChange = (
@@ -700,7 +689,7 @@ export default function MessagesSettings() {
   const handleAudioToggle = (key: string, val: boolean) => {
     AudioSessionManager.updateSettings({ [key]: val });
     setAudioToggles(AudioSessionManager.getSettings() as Record<string, boolean>);
-    showToast(val ? 'Enabled' : 'Disabled');
+    showSuccess(val ? 'Enabled' : 'Disabled');
   };
 
   const handleResetAudio = () => {
@@ -714,7 +703,7 @@ export default function MessagesSettings() {
     } catch {}
     setResetAudioModal(false);
     AudioSessionManager.playSound('send');
-    showToast('Audio settings restored');
+    showSuccess('Audio settings restored');
   };
 
   const handleTestPreview = (type: 'send' | 'receive' | 'notification') => {
@@ -770,7 +759,7 @@ export default function MessagesSettings() {
       setShowPinSetup(false);
       setNewPinValue('');
       setPinError('');
-      showToast('PIN saved locally');
+      showSuccess('PIN saved locally');
     } catch {
       setPinError('Could not save PIN');
     }
@@ -784,7 +773,7 @@ export default function MessagesSettings() {
       setPinSet(false);
       setLockedChats([]);
       setHiddenLockedChats(false);
-      showToast('Chat lock removed');
+      showSuccess('Chat lock removed');
     } catch {}
   };
 
@@ -792,9 +781,9 @@ export default function MessagesSettings() {
     try {
       await api.post(`/messages/chat/${chatId}/unarchive`);
       setArchivedChats(prev => prev.filter(c => c.chat_id !== chatId));
-      showToast('Chat unarchived');
+      showSuccess('Chat unarchived');
     } catch {
-      showToast('Failed to unarchive', 'error');
+      showError('Failed to unarchive');
     }
     setUnarchiveChatId(null);
   };
@@ -803,9 +792,9 @@ export default function MessagesSettings() {
     try {
       await api.delete(`/users/block/${userId}`);
       setBlockedUsers(prev => prev.filter(u => u.user_id !== userId));
-      showToast('User unblocked');
+      showSuccess('User unblocked');
     } catch {
-      showToast('Failed to unblock', 'error');
+      showError('Failed to unblock');
     }
     setUnblockUserId(null);
   };
@@ -814,7 +803,7 @@ export default function MessagesSettings() {
     setGlobalChatThemeId(theme.id);
     updateSetting('chat_theme', theme.id);
     setChatThemeGlobalSheet(false);
-    showToast(`Global theme: ${theme.name}`);
+    showSuccess(`Global theme: ${theme.name}`);
   };
 
   const selectedConversation = conversations.find(c => c.chat_id === selectedChatId);
@@ -1842,7 +1831,7 @@ export default function MessagesSettings() {
       </div>
 
       {showPinSetup && (
-        <div className="fixed inset-0 z-[300] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+        <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-xs w-full p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center mx-auto mb-4">
               <Lock size={22} className="text-[#ff1493]" />
@@ -2240,8 +2229,8 @@ export default function MessagesSettings() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
-      <div className="min-h-screen max-w-lg mx-auto bg-gray-50 relative shadow-xl border-x border-gray-100">
+    <div className="min-h-dvh bg-gray-50 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
+      <div className="min-h-dvh max-w-lg mx-auto bg-gray-50 relative shadow-xl border-x border-gray-100">
         {renderView()}
       </div>
 
@@ -2548,7 +2537,7 @@ export default function MessagesSettings() {
         confirmDanger
         onConfirm={() => {
           setClearHistoryModal(false);
-          showToast('Message cache cleared');
+          showSuccess('Message cache cleared');
         }}
         onCancel={() => setClearHistoryModal(false)}
       />
@@ -2569,23 +2558,6 @@ export default function MessagesSettings() {
         confirmLabel="Unarchive"
         onConfirm={() => unarchiveChatId && handleUnarchive(unarchiveChatId)}
         onCancel={() => setUnarchiveChatId(null)}
-      />
-
-      {/* Toast Feedback */}
-      {toast && (
-        <div
-          className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-2 px-4 py-2.5 rounded-2xl shadow-lg text-sm font-semibold transition-all ${
-            toast.type === 'error' ? 'bg-red-600 text-white' : 'bg-gray-900 text-white'
-          }`}
-        >
-          {toast.type === 'error' ? (
-            <AlertCircle size={15} />
-          ) : (
-            <CheckCircle2 size={15} className="text-green-400" />
-          )}
-          {toast.message}
-        </div>
-      )}
-    </div>
+      />    </div>
   );
 }

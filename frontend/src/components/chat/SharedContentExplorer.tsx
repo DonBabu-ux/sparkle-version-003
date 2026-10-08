@@ -114,7 +114,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
+    <div className="fixed inset-0 z-(--z-modal) bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
       
       {/* Top Header Bar with Back Button */}
       <header className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#0a0a0a]/90 backdrop-blur-xl sticky top-0 z-30">
@@ -554,7 +554,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
       {/* Lightbox for Fullscreen Media View */}
       {selectedMedia && (
         <div 
-          className="fixed inset-0 z-[300] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4"
+          className="fixed inset-0 z-(--z-modal) bg-black/95 backdrop-blur-xl flex flex-col items-center justify-between p-4"
           onClick={() => setSelectedMedia(null)}
         >
           <div className="w-full flex items-center justify-between text-white z-10">

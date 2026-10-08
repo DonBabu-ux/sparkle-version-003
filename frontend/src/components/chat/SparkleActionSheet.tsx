@@ -156,7 +156,7 @@ export const SparkleActionSheet: React.FC<SparkleActionSheetProps> = ({
   return (
     <AnimatePresence>
       <div
-        className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 pb-16 sm:pb-4 select-none"
+        className="fixed inset-0 z-(--z-top) bg-black/80 backdrop-blur-md flex items-center justify-center p-4 pb-16 sm:pb-4 select-none"
         onClick={onClose}
       >
         <motion.div

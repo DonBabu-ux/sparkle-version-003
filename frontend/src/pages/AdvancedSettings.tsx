@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
-import Navbar from '../components/Navbar';
 import { useUserStore } from '../store/userStore';
 
 export default function AdvancedSettings() {
@@ -132,8 +131,7 @@ export default function AdvancedSettings() {
   const categories = Array.from(new Set(filteredSections.map((s) => s.category)));
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
-      <Navbar />
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
 
       <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6">
         {/* Header Navigation */}

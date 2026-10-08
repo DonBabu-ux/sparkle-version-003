@@ -1,3 +1,5 @@
+import { showError, showInfo, showSuccess } from '../../utils/toast';
+import { confirmDialog, promptDialog } from '../../store/dialogStore';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +23,7 @@ import { SharedContentExplorer } from './SharedContentExplorer';
 import { PinnedMessagesView } from './PinnedMessagesView';
 import { ChatSearchModal } from './ChatSearchModal';
 import PrivacySettingsModal from './PrivacySettingsModal';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ChatSettingsModalProps {
   chat: any;
@@ -136,7 +139,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
     } catch (err) {
       logger.error('Failed to share contact to chat:', err);
       setSharingStates(prev => ({ ...prev, [partnerId]: 'idle' }));
-      alert('Failed to send contact in chat.');
+      showError('Failed to send contact in chat.');
     }
   };
 
@@ -191,6 +194,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   const [rawPrivacyOverrides, setRawPrivacyOverrides] = useState<Record<string, boolean | null>>({});
   const [searchQuery, setSearchQuery] = useState('');
   const [emojiSearch, setEmojiSearch] = useState('');
+  // Suspend while a nested layer (privacy settings, nickname history, chat
+  // search) handles its own Escape; conditionally mounted when rendered.
+  const a11yRef = useModalA11y(
+    !showNicknameHistory && !showPrivacyModal && view !== 'search_chat',
+    onClose,
+  );
+  const historyRef = useModalA11y(showNicknameHistory, () => setShowNicknameHistory(false));
 
   // Helper to format disappearing duration label
   const formatDisappearingLabel = (sec: number) => {
@@ -364,7 +374,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
   if (chat?.account_type === 'system' || chat?.is_system_account || chat?.is_system) {
     return (
-      <div className="fixed inset-0 bg-[#000000] z-[1500] flex justify-center animate-fade-in">
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-[#000000] z-(--z-sheet) flex justify-center animate-fade-in">
         <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative select-none">
           <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
             <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors">
@@ -504,7 +514,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
   }
 
   return (
-    <div className="fixed inset-0 bg-[#000000] z-[1500] flex justify-center animate-fade-in">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-[#000000] z-(--z-sheet) flex justify-center animate-fade-in">
       <div 
         className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative" 
         onClick={e => e.stopPropagation()}
@@ -743,32 +753,32 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     label="Block" 
                     primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
-                      if (window.confirm(`Are you sure you want to block ${displayPartnerName}?`)) {
+                      if (await confirmDialog(`Are you sure you want to block ${displayPartnerName}?`)) {
                         try {
                           await api.post(`/users/block/${chat.partner_id}`);
-                          alert('User blocked');
+                          showError('User blocked');
                         } catch (err) {
                           logger.error('Failed to block', err);
-                          alert('Failed to block user');
+                          showError('Failed to block user');
                         }
                       }
                     }} 
                   />
-                  <ActionItem icon={ShieldAlert} label="Restrict" onClick={() => alert('User restricted')} primaryColor={currentTheme?.colors.primary} />
+                  <ActionItem icon={ShieldAlert} label="Restrict" onClick={() => showInfo('User restricted')} primaryColor={currentTheme?.colors.primary} />
                   <ActionItem 
                     icon={AlertTriangle} 
                     label="Report" 
                     subtext="Give feedback and report conversation" 
                     primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
-                      const reason = window.prompt('Please provide a reason for reporting:');
+                      const reason = await promptDialog('Please provide a reason for reporting:');
                       if (reason) {
                         try {
                           await api.post(`/users/${chat.partner_id}/report`, { reason });
-                          alert('Report submitted');
+                          showSuccess('Report submitted');
                         } catch (err) {
                           logger.error('Failed to report', err);
-                          alert('Failed to submit report');
+                          showError('Failed to submit report');
                         }
                       }
                     }} 
@@ -779,13 +789,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     danger 
                     primaryColor={currentTheme?.colors.primary}
                     onClick={async () => {
-                      if (window.confirm('Are you sure you want to delete this chat? This cannot be undone.')) {
+                      if (await confirmDialog('Are you sure you want to delete this chat? This cannot be undone.')) {
                         try {
                           await api.delete(`/messages/chat/${chat.chat_id || chat.id}`);
                           window.location.href = '/messages';
                         } catch (err) {
                           logger.error('Failed to delete', err);
-                          alert('Failed to delete chat');
+                          showError('Failed to delete chat');
                         }
                       }
                     }} 
@@ -972,7 +982,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       </div>
                       <h3 className="text-2xl font-black text-white mb-4 tracking-tight">Add effects to your chat</h3>
                       <p className="text-sm text-white/60 mb-8 leading-relaxed text-center max-w-sm">
-                        Pair words that have special meaning with fun effects. Everyone will see an animation whenever these words are used. <span className="text-blue-400 font-bold cursor-pointer hover:underline" onClick={() => alert('Word effects are synced across all your devices. Add up to 5 triggers per chat.')}>Learn more</span>
+                        Pair words that have special meaning with fun effects. Everyone will see an animation whenever these words are used. <span className="text-blue-400 font-bold cursor-pointer hover:underline" onClick={() => showSuccess('Word effects are synced across all your devices. Add up to 5 triggers per chat.')}>Learn more</span>
                       </p>
                       
                       <div className="w-full max-w-sm flex flex-col gap-3">
@@ -1932,7 +1942,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
         {/* Nickname History Records Modal */}
         <AnimatePresence>
           {showNicknameHistory && (
-            <div className="fixed inset-0 z-[1500] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
+            <div ref={historyRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-sheet) bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200">
               <motion.div 
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}

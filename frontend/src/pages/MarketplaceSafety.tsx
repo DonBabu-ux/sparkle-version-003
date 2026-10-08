@@ -82,7 +82,7 @@ export default function MarketplaceSafety() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A] text-white flex flex-col font-sans selection:bg-[#1877F2]/30">
+    <div className="min-h-dvh bg-[#0A0A0A] text-white flex flex-col font-sans selection:bg-[#1877F2]/30">
       {/* Ultra-Minimal Header */}
       <header className="px-6 h-20 flex items-center justify-between sticky top-0 z-50 bg-[#0A0A0A]/50 backdrop-blur-xl border-b border-white/5">
         <button 

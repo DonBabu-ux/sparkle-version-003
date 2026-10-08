@@ -128,7 +128,7 @@ export default function UploadNotificationCenter() {
 
   return (
     <div
-      className="fixed top-4 left-4 right-4 md:left-auto md:right-8 md:w-[380px] z-[9999] pointer-events-none"
+      className="fixed top-4 left-4 right-4 md:left-auto md:right-8 md:w-[380px] z-(--z-top) pointer-events-none"
       onMouseEnter={handleBannerInteraction}
       onTouchStart={handleBannerInteraction}
     >

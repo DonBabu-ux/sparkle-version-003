@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface CameraModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   const startCamera = useCallback(async () => {
     if (stream) {
@@ -106,7 +108,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed inset-0 z-[200] flex flex-col overflow-hidden ${isDark ? 'bg-black text-white' : 'bg-white text-black'}`}>
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className={`fixed inset-0 z-(--z-modal) flex flex-col overflow-hidden ${isDark ? 'bg-black text-white' : 'bg-white text-black'}`}>
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/50 to-transparent">
         <button onClick={() => { setCapturedMedia(null); onClose(); }} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors">
@@ -141,7 +143,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
           )}
 
           {/* Bottom Controls */}
-          <div className="absolute bottom-0 left-0 right-0 p-8 pt-24 bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center">
+          <div className="absolute bottom-0 left-0 right-0 px-8 pt-24 pb-[calc(2rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 via-black/40 to-transparent flex flex-col items-center">
             
             {/* Modes row */}
             <div className="flex gap-5 md:gap-6 overflow-x-auto no-scrollbar mb-8 w-full justify-start sm:justify-center px-4 snap-x">
@@ -247,7 +249,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
           )}
 
           {/* Bottom Send Bar */}
-          <div className="absolute bottom-0 left-0 right-0 p-6 pt-10 bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between pointer-events-auto">
+          <div className="absolute bottom-0 left-0 right-0 px-6 pt-10 pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between pointer-events-auto">
             <div className="flex flex-col gap-3">
               <button 
                 onClick={() => {

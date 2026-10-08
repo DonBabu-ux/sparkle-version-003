@@ -3,6 +3,7 @@ import { X, Plus, Check, Orbit } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
+import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ArchivedStory {
   id: string;
@@ -25,6 +26,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
   const [title, setTitle] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const a11yRef = useModalA11y(isOpen, onClose);
 
   useEffect(() => {
     if (isOpen) {
@@ -81,7 +83,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[10001] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       <div className="relative bg-[#1a1a1a] w-full h-auto max-h-[85vh] rounded-t-[2.5rem] sm:rounded-2xl sm:max-w-md flex flex-col overflow-hidden animate-slide-up shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
@@ -214,7 +216,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
       </div>
 
       <style>{`
-        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        
         .animate-slide-up { animation: slideUp 0.15s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
       `}</style>
     </div>

@@ -1,0 +1,3212 @@
+{
+  "generatedAt": "2026-10-05T16:49:49.804Z",
+  "routesDirectory": "C:\\Users\\user\\Desktop\\BABU DON\\SPARKLE\\SPARKLE 2\\sparkle-version-003\\routes",
+  "filesScanned": 43,
+  "endpointCount": 534,
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/sparkly/chat",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/sparkly/chat/stream",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/sparkly/stream",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/sparkly/conversations",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 17
+    },
+    {
+      "method": "GET",
+      "path": "/sparkly/conversations/search",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/sparkly/conversations",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/sparkly/conversations/:id/messages",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 20
+    },
+    {
+      "method": "DELETE",
+      "path": "/sparkly/conversations/:id",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 21
+    },
+    {
+      "method": "GET",
+      "path": "/sparkly/memories",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 22
+    },
+    {
+      "method": "DELETE",
+      "path": "/sparkly/memories",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 23
+    },
+    {
+      "method": "DELETE",
+      "path": "/sparkly/memories/:id",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 24
+    },
+    {
+      "method": "POST",
+      "path": "/sparkly/messages/:id/feedback",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 25
+    },
+    {
+      "method": "DELETE",
+      "path": "/sparkly/messages/:id/feedback",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 26
+    },
+    {
+      "method": "POST",
+      "path": "/sparkly/conversations/:id/branch",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 27
+    },
+    {
+      "method": "GET",
+      "path": "/creator",
+      "file": "routes\\api\\analytics.routes.js",
+      "line": 6
+    },
+    {
+      "method": "GET",
+      "path": "/search",
+      "file": "routes\\api\\audio.routes.js",
+      "line": 6
+    },
+    {
+      "method": "POST",
+      "path": "/signup",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 33
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 34
+    },
+    {
+      "method": "POST",
+      "path": "/refresh",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 35
+    },
+    {
+      "method": "POST",
+      "path": "/verify-2fa",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 36
+    },
+    {
+      "method": "POST",
+      "path": "/resend-2fa",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 37
+    },
+    {
+      "method": "POST",
+      "path": "/request-2fa-recovery",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/logout",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/check-username",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 40
+    },
+    {
+      "method": "GET",
+      "path": "/check-email",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 41
+    },
+    {
+      "method": "POST",
+      "path": "/verify-email",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 44
+    },
+    {
+      "method": "POST",
+      "path": "/verify-sms",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 45
+    },
+    {
+      "method": "POST",
+      "path": "/forgot-password",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 46
+    },
+    {
+      "method": "POST",
+      "path": "/reset-password",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 47
+    },
+    {
+      "method": "POST",
+      "path": "/resend-verification",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 48
+    },
+    {
+      "method": "POST",
+      "path": "/google/sync",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 51
+    },
+    {
+      "method": "POST",
+      "path": "/otp/verify/sync",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 52
+    },
+    {
+      "method": "GET",
+      "path": "/validate",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 55
+    },
+    {
+      "method": "POST",
+      "path": "/switch-account",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 56
+    },
+    {
+      "method": "POST",
+      "path": "/calculate",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/activate",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/active",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/history",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/renew",
+      "file": "routes\\api\\boost.routes.js",
+      "line": 17
+    },
+    {
+      "method": "GET",
+      "path": "/polls",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 7
+    },
+    {
+      "method": "POST",
+      "path": "/polls",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 8
+    },
+    {
+      "method": "POST",
+      "path": "/polls/:id/vote",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/polls/:id/results",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 10
+    },
+    {
+      "method": "POST",
+      "path": "/polls/:id/invite",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 11
+    },
+    {
+      "method": "GET",
+      "path": "/polls/:id/share",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/polls/:id/predict",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/polls/:id/interaction",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/events",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 17
+    },
+    {
+      "method": "POST",
+      "path": "/events",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/events/:id/rsvp",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/events/:id/attendees",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 20
+    },
+    {
+      "method": "GET",
+      "path": "/events/:id/share",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 21
+    },
+    {
+      "method": "GET",
+      "path": "/events/:id/qr",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 22
+    },
+    {
+      "method": "POST",
+      "path": "/events/checkin",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 23
+    },
+    {
+      "method": "DELETE",
+      "path": "/events/:id",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 24
+    },
+    {
+      "method": "PATCH",
+      "path": "/events/:id/status",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/events/rsvp/approve",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 26
+    },
+    {
+      "method": "PATCH",
+      "path": "/events/:id",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 27
+    },
+    {
+      "method": "GET",
+      "path": "/events/:id/analytics",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 28
+    },
+    {
+      "method": "POST",
+      "path": "/events/:id/notify",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 29
+    },
+    {
+      "method": "GET",
+      "path": "/streams",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 32
+    },
+    {
+      "method": "GET",
+      "path": "/streams/active",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 33
+    },
+    {
+      "method": "POST",
+      "path": "/streams",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 34
+    },
+    {
+      "method": "POST",
+      "path": "/streams/start",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 35
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/updates",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 36
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/follow",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 37
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/join",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/end",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 8
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/category/:category",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 11
+    },
+    {
+      "method": "PUT",
+      "path": "/:id",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 12
+    },
+    {
+      "method": "GET",
+      "path": "/:id/members",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/:id/leadership",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/:id/join",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/:id/leave",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/:id/announcements",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 19
+    },
+    {
+      "method": "POST",
+      "path": "/:id/announcements",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/:id/events/:eventId/rsvp",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 23
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/community/:campus",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 9
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/:id/react",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/:id/report",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/:id/comments",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/:id/comments",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/feed",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/suggested-users",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/trending-creators",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 63
+    },
+    {
+      "method": "GET",
+      "path": "/trending",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/search",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/:chatId",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 10
+    },
+    {
+      "method": "PUT",
+      "path": "/:chatId",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 11
+    },
+    {
+      "method": "GET",
+      "path": "/:chatId/messages",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/messages",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/members",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/leave",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 19
+    },
+    {
+      "method": "DELETE",
+      "path": "/:chatId/members/:userId",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 20
+    },
+    {
+      "method": "PATCH",
+      "path": "/:chatId/members/:userId/role",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 21
+    },
+    {
+      "method": "GET",
+      "path": "/:chatId/channels",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/channels",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 26
+    },
+    {
+      "method": "PATCH",
+      "path": "/:chatId/channels/:id",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 27
+    },
+    {
+      "method": "DELETE",
+      "path": "/:chatId/channels/:id",
+      "file": "routes\\api\\groupChat.routes.js",
+      "line": 28
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 12
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/:id/post",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/:id/posts",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 22
+    },
+    {
+      "method": "GET",
+      "path": "/:id/requests",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/requests/:requestId/approve",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 28
+    },
+    {
+      "method": "POST",
+      "path": "/requests/:requestId/reject",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 29
+    },
+    {
+      "method": "POST",
+      "path": "/:id/join",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/:id/leave",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 33
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 34
+    },
+    {
+      "method": "POST",
+      "path": "/:id/update",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 35
+    },
+    {
+      "method": "GET",
+      "path": "/:id/members",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 36
+    },
+    {
+      "method": "POST",
+      "path": "/:id/users/:userId/remove",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 37
+    },
+    {
+      "method": "POST",
+      "path": "/:id/users/:userId/promote",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/:id/users/:userId/demote",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 39
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/posts/:postId",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 40
+    },
+    {
+      "method": "POST",
+      "path": "/:id/invite",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 41
+    },
+    {
+      "method": "GET",
+      "path": "/:id/pending-posts",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 42
+    },
+    {
+      "method": "POST",
+      "path": "/posts/:postId/approve",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 43
+    },
+    {
+      "method": "POST",
+      "path": "/posts/:postId/reject",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 44
+    },
+    {
+      "method": "POST",
+      "path": "/:id/users/:userId/mute",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 45
+    },
+    {
+      "method": "POST",
+      "path": "/:id/users/:userId/ban",
+      "file": "routes\\api\\groups.routes.js",
+      "line": 46
+    },
+    {
+      "method": "GET",
+      "path": "/archive",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 20
+    },
+    {
+      "method": "PUT",
+      "path": "/:id",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 21
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 22
+    },
+    {
+      "method": "POST",
+      "path": "/:id/stories",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 25
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/stories/:storyId",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 26
+    },
+    {
+      "method": "USE",
+      "path": "/auth",
+      "file": "routes\\api\\index.js",
+      "line": 32
+    },
+    {
+      "method": "GET",
+      "path": "/csrf-token",
+      "file": "routes\\api\\index.js",
+      "line": 35
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "file": "routes\\api\\index.js",
+      "line": 40
+    },
+    {
+      "method": "USE",
+      "path": "/users",
+      "file": "routes\\api\\index.js",
+      "line": 50
+    },
+    {
+      "method": "USE",
+      "path": "/messages",
+      "file": "routes\\api\\index.js",
+      "line": 51
+    },
+    {
+      "method": "USE",
+      "path": "/groupChat",
+      "file": "routes\\api\\index.js",
+      "line": 52
+    },
+    {
+      "method": "USE",
+      "path": "/posts",
+      "file": "routes\\api\\index.js",
+      "line": 53
+    },
+    {
+      "method": "USE",
+      "path": "/stories",
+      "file": "routes\\api\\index.js",
+      "line": 54
+    },
+    {
+      "method": "USE",
+      "path": "/moments",
+      "file": "routes\\api\\index.js",
+      "line": 55
+    },
+    {
+      "method": "USE",
+      "path": "/upload",
+      "file": "routes\\api\\index.js",
+      "line": 56
+    },
+    {
+      "method": "USE",
+      "path": "/share",
+      "file": "routes\\api\\index.js",
+      "line": 57
+    },
+    {
+      "method": "USE",
+      "path": "/notifications",
+      "file": "routes\\api\\index.js",
+      "line": 58
+    },
+    {
+      "method": "USE",
+      "path": "/onboarding",
+      "file": "routes\\api\\index.js",
+      "line": 59
+    },
+    {
+      "method": "USE",
+      "path": "/discover",
+      "file": "routes\\api\\index.js",
+      "line": 60
+    },
+    {
+      "method": "USE",
+      "path": "/rooms",
+      "file": "routes\\api\\index.js",
+      "line": 61
+    },
+    {
+      "method": "USE",
+      "path": "/location",
+      "file": "routes\\api\\index.js",
+      "line": 62
+    },
+    {
+      "method": "USE",
+      "path": "/ai",
+      "file": "routes\\api\\index.js",
+      "line": 63
+    },
+    {
+      "method": "USE",
+      "path": "/sparkly",
+      "file": "routes\\api\\index.js",
+      "line": 64
+    },
+    {
+      "method": "USE",
+      "path": "/ai",
+      "file": "routes\\api\\index.js",
+      "line": 67
+    },
+    {
+      "method": "POST",
+      "path": "/comments/:id/like",
+      "file": "routes\\api\\index.js",
+      "line": 72
+    },
+    {
+      "method": "USE",
+      "path": "/",
+      "file": "routes\\api\\index.js",
+      "line": 75
+    },
+    {
+      "method": "USE",
+      "path": "/",
+      "file": "routes\\api\\index.js",
+      "line": 76
+    },
+    {
+      "method": "USE",
+      "path": "/marketplace",
+      "file": "routes\\api\\index.js",
+      "line": 77
+    },
+    {
+      "method": "USE",
+      "path": "/groups",
+      "file": "routes\\api\\index.js",
+      "line": 78
+    },
+    {
+      "method": "USE",
+      "path": "/confessions",
+      "file": "routes\\api\\index.js",
+      "line": 79
+    },
+    {
+      "method": "USE",
+      "path": "/skill-market",
+      "file": "routes\\api\\index.js",
+      "line": 80
+    },
+    {
+      "method": "USE",
+      "path": "/search",
+      "file": "routes\\api\\index.js",
+      "line": 81
+    },
+    {
+      "method": "USE",
+      "path": "/realtime",
+      "file": "routes\\api\\index.js",
+      "line": 82
+    },
+    {
+      "method": "USE",
+      "path": "/support",
+      "file": "routes\\api\\index.js",
+      "line": 83
+    },
+    {
+      "method": "USE",
+      "path": "/link-preview",
+      "file": "routes\\api\\index.js",
+      "line": 84
+    },
+    {
+      "method": "USE",
+      "path": "/clubs",
+      "file": "routes\\api\\index.js",
+      "line": 85
+    },
+    {
+      "method": "USE",
+      "path": "/lost-found",
+      "file": "routes\\api\\index.js",
+      "line": 86
+    },
+    {
+      "method": "USE",
+      "path": "/analytics",
+      "file": "routes\\api\\index.js",
+      "line": 87
+    },
+    {
+      "method": "USE",
+      "path": "/highlights",
+      "file": "routes\\api\\index.js",
+      "line": 88
+    },
+    {
+      "method": "USE",
+      "path": "/stickers",
+      "file": "routes\\api\\index.js",
+      "line": 89
+    },
+    {
+      "method": "USE",
+      "path": "/giphy",
+      "file": "routes\\api\\index.js",
+      "line": 90
+    },
+    {
+      "method": "USE",
+      "path": "/music",
+      "file": "routes\\api\\index.js",
+      "line": 91
+    },
+    {
+      "method": "USE",
+      "path": "/audio",
+      "file": "routes\\api\\index.js",
+      "line": 92
+    },
+    {
+      "method": "USE",
+      "path": "/moderation",
+      "file": "routes\\api\\index.js",
+      "line": 93
+    },
+    {
+      "method": "USE",
+      "path": "/admin/media",
+      "file": "routes\\api\\index.js",
+      "line": 94
+    },
+    {
+      "method": "USE",
+      "path": "/ota",
+      "file": "routes\\api\\index.js",
+      "line": 95
+    },
+    {
+      "method": "USE",
+      "path": "/wallet",
+      "file": "routes\\api\\index.js",
+      "line": 96
+    },
+    {
+      "method": "USE",
+      "path": "/boost",
+      "file": "routes\\api\\index.js",
+      "line": 97
+    },
+    {
+      "method": "USE",
+      "path": "/media",
+      "file": "routes\\api\\index.js",
+      "line": 98
+    },
+    {
+      "method": "USE",
+      "path": "/security",
+      "file": "routes\\api\\index.js",
+      "line": 99
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\link-preview.routes.js",
+      "line": 59
+    },
+    {
+      "method": "POST",
+      "path": "/resolve",
+      "file": "routes\\api\\location.routes.js",
+      "line": 7
+    },
+    {
+      "method": "POST",
+      "path": "/live/start",
+      "file": "routes\\api\\location.routes.js",
+      "line": 11
+    },
+    {
+      "method": "POST",
+      "path": "/live/update",
+      "file": "routes\\api\\location.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/live/stop",
+      "file": "routes\\api\\location.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/live/stop/:liveLocationId",
+      "file": "routes\\api\\location.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/live/:liveLocationId",
+      "file": "routes\\api\\location.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/:id/claim",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 19
+    },
+    {
+      "method": "PUT",
+      "path": "/:id/claim",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 20
+    },
+    {
+      "method": "PUT",
+      "path": "/:id/status",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 23
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 26
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/listings",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/categories",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 11
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/trending",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 12
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/wishlist",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/listings/recommended",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/listings/:id",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 16
+    },
+    {
+      "method": "PUT",
+      "path": "/marketplace/listings/:id",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 17
+    },
+    {
+      "method": "DELETE",
+      "path": "/marketplace/listings/:id",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/contact",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 21
+    },
+    {
+      "method": "PUT",
+      "path": "/marketplace/listings/:id/sold",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 22
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/favorite",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 23
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/wishlist",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 24
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/view",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/share",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 26
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/report",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 27
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/boost",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 28
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/listings/:id/relist",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 29
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/seller/favorite",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/sellers/:sellerId/alert",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 33
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/sellers/:sellerId/alert",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 34
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/sellers/:id",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 35
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/order",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 38
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/orders",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/orders/:orderId",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 40
+    },
+    {
+      "method": "PATCH",
+      "path": "/marketplace/orders/:orderId/status",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 41
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/orders/:orderId/confirm-meetup",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 42
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/chats",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 45
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/chats/:id/messages",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 46
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/chats/:chatId/messages",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 47
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/users/:id/block",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 50
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/users/:id/review",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 51
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/reviews",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 52
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/users/:id/reviews",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 53
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/lost-found",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 56
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/lost-found",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 57
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/skills",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 58
+    },
+    {
+      "method": "POST",
+      "path": "/marketplace/skills",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 59
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/favorites",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 62
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/counts",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 63
+    },
+    {
+      "method": "GET",
+      "path": "/marketplace/safe-locations",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 64
+    },
+    {
+      "method": "POST",
+      "path": "/location/resolve",
+      "file": "routes\\api\\marketplace.routes.js",
+      "line": 65
+    },
+    {
+      "method": "POST",
+      "path": "/conversations",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/conversations",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 86
+    },
+    {
+      "method": "GET",
+      "path": "/conversations/:id",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 144
+    },
+    {
+      "method": "GET",
+      "path": "/messages/:conversation_id",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 196
+    },
+    {
+      "method": "PUT",
+      "path": "/messages/:message_id",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 252
+    },
+    {
+      "method": "DELETE",
+      "path": "/messages/:message_id",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 267
+    },
+    {
+      "method": "POST",
+      "path": "/messages/upload",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 282
+    },
+    {
+      "method": "POST",
+      "path": "/messages/:message_id/react",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 292
+    },
+    {
+      "method": "GET",
+      "path": "/settings",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 307
+    },
+    {
+      "method": "PUT",
+      "path": "/settings",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 334
+    },
+    {
+      "method": "PATCH",
+      "path": "/conversations/:id/toggle",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 361
+    },
+    {
+      "method": "GET",
+      "path": "/conversations/:id/status",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 390
+    },
+    {
+      "method": "DELETE",
+      "path": "/conversations/:id",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 429
+    },
+    {
+      "method": "GET",
+      "path": "/stats",
+      "file": "routes\\api\\media-admin.routes.js",
+      "line": 8
+    },
+    {
+      "method": "POST",
+      "path": "/cleanup",
+      "file": "routes\\api\\media-admin.routes.js",
+      "line": 9
+    },
+    {
+      "method": "POST",
+      "path": "/upload-init",
+      "file": "routes\\api\\media.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/upload-complete",
+      "file": "routes\\api\\media.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/download-token/:mediaId",
+      "file": "routes\\api\\media.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/ack-download",
+      "file": "routes\\api\\media.routes.js",
+      "line": 19
+    },
+    {
+      "method": "POST",
+      "path": "/request-redelivery",
+      "file": "routes\\api\\media.routes.js",
+      "line": 22
+    },
+    {
+      "method": "GET",
+      "path": "/inbox",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/conversations",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/archived",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/welcome-cards",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 17
+    },
+    {
+      "method": "GET",
+      "path": "/official-chat",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/official-chat/status",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 19
+    },
+    {
+      "method": "POST",
+      "path": "/official-chat/complete-onboarding",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/official-chat/replay",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 24
+    },
+    {
+      "method": "POST",
+      "path": "/open",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/start",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 26
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 27
+    },
+    {
+      "method": "GET",
+      "path": "/mutual-groups/:partnerId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 28
+    },
+    {
+      "method": "GET",
+      "path": "/search",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 31
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/search",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/send",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 35
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 36
+    },
+    {
+      "method": "POST",
+      "path": "/read/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 37
+    },
+    {
+      "method": "POST",
+      "path": "/unread/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/unread",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 39
+    },
+    {
+      "method": "POST",
+      "path": "/mute/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 40
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/mute",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 41
+    },
+    {
+      "method": "PATCH",
+      "path": "/chat/:chatId/mute",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 42
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/archive",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 43
+    },
+    {
+      "method": "PATCH",
+      "path": "/chat/:chatId/archive",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 44
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/unarchive",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 45
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/pin",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 50
+    },
+    {
+      "method": "PATCH",
+      "path": "/chat/:chatId/pin",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 51
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/favorite",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 52
+    },
+    {
+      "method": "PATCH",
+      "path": "/chat/:chatId/favorite",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 53
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/priority",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 54
+    },
+    {
+      "method": "PATCH",
+      "path": "/chat/:chatId/priority",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 55
+    },
+    {
+      "method": "DELETE",
+      "path": "/chat/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 56
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 59
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId/delete-for-me",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 60
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId/delete-for-all",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 61
+    },
+    {
+      "method": "PATCH",
+      "path": "/:messageId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 62
+    },
+    {
+      "method": "PUT",
+      "path": "/:messageId/edit",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 63
+    },
+    {
+      "method": "POST",
+      "path": "/:messageId/react",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 64
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId/react",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 65
+    },
+    {
+      "method": "POST",
+      "path": "/:messageId/star",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 66
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId/star",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 67
+    },
+    {
+      "method": "POST",
+      "path": "/:messageId/pin",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 68
+    },
+    {
+      "method": "POST",
+      "path": "/:messageId/unpin",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 69
+    },
+    {
+      "method": "DELETE",
+      "path": "/:messageId/pin",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 70
+    },
+    {
+      "method": "POST",
+      "path": "/:messageId/forward",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 71
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/messages/:messageId/copy",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 72
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/messages/:messageId/forward",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 73
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/messages/:messageId/copy",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 74
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/messages/:messageId/forward",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 75
+    },
+    {
+      "method": "GET",
+      "path": "/:messageId/info",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 76
+    },
+    {
+      "method": "GET",
+      "path": "/sync/events",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 77
+    },
+    {
+      "method": "GET",
+      "path": "/:messageId/permissions",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 80
+    },
+    {
+      "method": "GET",
+      "path": "/:chatId/privacy",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 81
+    },
+    {
+      "method": "PATCH",
+      "path": "/:chatId/privacy",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 82
+    },
+    {
+      "method": "POST",
+      "path": "/:chatId/capture-attempt",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 83
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/pinned",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 86
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/media",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 87
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/files",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 88
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/links",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 89
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/voice",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 90
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/music",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 91
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/stories",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 92
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/posts",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 93
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/stats",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 94
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/nickname",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 95
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/nickname-history",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 96
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 99
+    },
+    {
+      "method": "GET",
+      "path": "/:chatId",
+      "file": "routes\\api\\messages.routes.js",
+      "line": 100
+    },
+    {
+      "method": "POST",
+      "path": "/reports",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 7
+    },
+    {
+      "method": "POST",
+      "path": "/appeals",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 10
+    },
+    {
+      "method": "POST",
+      "path": "/appeals/:appeal_id/review",
+      "file": "routes\\api\\moderation.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/stream",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/:id/spark",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/:id/save",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 21
+    },
+    {
+      "method": "POST",
+      "path": "/:id/share",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 22
+    },
+    {
+      "method": "POST",
+      "path": "/:id/view",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 23
+    },
+    {
+      "method": "POST",
+      "path": "/:id/engagement",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 24
+    },
+    {
+      "method": "GET",
+      "path": "/:id/share-data",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 25
+    },
+    {
+      "method": "GET",
+      "path": "/:id/comments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 28
+    },
+    {
+      "method": "POST",
+      "path": "/:id/comments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 29
+    },
+    {
+      "method": "POST",
+      "path": "/comment/:id/like",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 30
+    },
+    {
+      "method": "POST",
+      "path": "/user/:userId/follow",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 33
+    },
+    {
+      "method": "GET",
+      "path": "/users/:userId/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 36
+    },
+    {
+      "method": "GET",
+      "path": "/search",
+      "file": "routes\\api\\music.routes.js",
+      "line": 6
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/unread-count",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/vapid-public-key",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/subscribe",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 19
+    },
+    {
+      "method": "POST",
+      "path": "/register-fcm-token",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 22
+    },
+    {
+      "method": "PUT",
+      "path": "/read-all",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/read-all",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 26
+    },
+    {
+      "method": "PUT",
+      "path": "/:notificationId/read",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 29
+    },
+    {
+      "method": "POST",
+      "path": "/clear",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/:id/read",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 33
+    },
+    {
+      "method": "DELETE",
+      "path": "/:notificationId",
+      "file": "routes\\api\\notifications.routes.js",
+      "line": 39
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/popular-users",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 11
+    },
+    {
+      "method": "GET",
+      "path": "/recommendations",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/follow",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/interests",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/complete",
+      "file": "routes\\api\\onboarding.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/version",
+      "file": "routes\\api\\ota.routes.js",
+      "line": 23
+    },
+    {
+      "method": "POST",
+      "path": "/deploy-ota",
+      "file": "routes\\api\\ota.routes.js",
+      "line": 82
+    },
+    {
+      "method": "GET",
+      "path": "/feed",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 12
+    },
+    {
+      "method": "GET",
+      "path": "/new",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/liked",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/saved",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 17
+    },
+    {
+      "method": "POST",
+      "path": "/:id/spark",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 23
+    },
+    {
+      "method": "POST",
+      "path": "/:id/like",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 24
+    },
+    {
+      "method": "POST",
+      "path": "/:id/save",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 25
+    },
+    {
+      "method": "GET",
+      "path": "/:id/comments",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 26
+    },
+    {
+      "method": "POST",
+      "path": "/:id/comments",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 27
+    },
+    {
+      "method": "POST",
+      "path": "/:id/share",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 28
+    },
+    {
+      "method": "POST",
+      "path": "/:id/reshare",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 29
+    },
+    {
+      "method": "PATCH",
+      "path": "/:id/reshare/comment",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 30
+    },
+    {
+      "method": "GET",
+      "path": "/:id/translate",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 31
+    },
+    {
+      "method": "GET",
+      "path": "/comments/:id/translate",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/:id/report",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 33
+    },
+    {
+      "method": "POST",
+      "path": "/:id/action",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 34
+    },
+    {
+      "method": "PUT",
+      "path": "/:id",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 35
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 36
+    },
+    {
+      "method": "PATCH",
+      "path": "/comments/:id",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 39
+    },
+    {
+      "method": "DELETE",
+      "path": "/comments/:id",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 40
+    },
+    {
+      "method": "GET",
+      "path": "/online-friends",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/presence/:userId",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/chat/:chatId/history",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/chat/:chatId/read-all",
+      "file": "routes\\api\\realtime.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 10
+    },
+    {
+      "method": "PUT",
+      "path": "/:roomId",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 11
+    },
+    {
+      "method": "DELETE",
+      "path": "/:roomId",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/join",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/leave",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/channels",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 19
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/channels",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 20
+    },
+    {
+      "method": "PATCH",
+      "path": "/:roomId/channels/:channelId",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 21
+    },
+    {
+      "method": "DELETE",
+      "path": "/:roomId/channels/:channelId",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 22
+    },
+    {
+      "method": "GET",
+      "path": "/channels/:channelId/messages",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/channels/:channelId/messages",
+      "file": "routes\\api\\rooms.routes.js",
+      "line": 26
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\search.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/suggestions",
+      "file": "routes\\api\\search.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/trending",
+      "file": "routes\\api\\search.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/discovery",
+      "file": "routes\\api\\search.routes.js",
+      "line": 20
+    },
+    {
+      "method": "GET",
+      "path": "/history",
+      "file": "routes\\api\\search.routes.js",
+      "line": 23
+    },
+    {
+      "method": "POST",
+      "path": "/history",
+      "file": "routes\\api\\search.routes.js",
+      "line": 24
+    },
+    {
+      "method": "DELETE",
+      "path": "/history",
+      "file": "routes\\api\\search.routes.js",
+      "line": 25
+    },
+    {
+      "method": "DELETE",
+      "path": "/history/:id",
+      "file": "routes\\api\\search.routes.js",
+      "line": 26
+    },
+    {
+      "method": "GET",
+      "path": "/status",
+      "file": "routes\\api\\security.routes.js",
+      "line": 31
+    },
+    {
+      "method": "GET",
+      "path": "/available-factors",
+      "file": "routes\\api\\security.routes.js",
+      "line": 32
+    },
+    {
+      "method": "POST",
+      "path": "/transaction/initiate",
+      "file": "routes\\api\\security.routes.js",
+      "line": 35
+    },
+    {
+      "method": "POST",
+      "path": "/transaction/verify",
+      "file": "routes\\api\\security.routes.js",
+      "line": 36
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/disable",
+      "file": "routes\\api\\security.routes.js",
+      "line": 39
+    },
+    {
+      "method": "POST",
+      "path": "/password/change",
+      "file": "routes\\api\\security.routes.js",
+      "line": 40
+    },
+    {
+      "method": "POST",
+      "path": "/pin/reset-token",
+      "file": "routes\\api\\security.routes.js",
+      "line": 41
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/alternate-email/request",
+      "file": "routes\\api\\security.routes.js",
+      "line": 44
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/alternate-email/verify",
+      "file": "routes\\api\\security.routes.js",
+      "line": 45
+    },
+    {
+      "method": "GET",
+      "path": "/alerts/unacknowledged",
+      "file": "routes\\api\\security.routes.js",
+      "line": 48
+    },
+    {
+      "method": "POST",
+      "path": "/alerts/:eventId/acknowledge",
+      "file": "routes\\api\\security.routes.js",
+      "line": 49
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/email/request",
+      "file": "routes\\api\\security.routes.js",
+      "line": 52
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/email/verify",
+      "file": "routes\\api\\security.routes.js",
+      "line": 53
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/email/disable",
+      "file": "routes\\api\\security.routes.js",
+      "line": 54
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/sms/request",
+      "file": "routes\\api\\security.routes.js",
+      "line": 57
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/sms/verify",
+      "file": "routes\\api\\security.routes.js",
+      "line": 58
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/sms/disable",
+      "file": "routes\\api\\security.routes.js",
+      "line": 59
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/disable-all",
+      "file": "routes\\api\\security.routes.js",
+      "line": 62
+    },
+    {
+      "method": "POST",
+      "path": "/recovery-codes/generate",
+      "file": "routes\\api\\security.routes.js",
+      "line": 65
+    },
+    {
+      "method": "POST",
+      "path": "/track",
+      "file": "routes\\api\\share.routes.js",
+      "line": 7
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\share.routes.js",
+      "line": 33
+    },
+    {
+      "method": "GET",
+      "path": "/offers",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 7
+    },
+    {
+      "method": "GET",
+      "path": "/offers/:id",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 8
+    },
+    {
+      "method": "GET",
+      "path": "/offers/:id/reviews",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 9
+    },
+    {
+      "method": "POST",
+      "path": "/offers",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 12
+    },
+    {
+      "method": "PUT",
+      "path": "/offers/:id",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 13
+    },
+    {
+      "method": "DELETE",
+      "path": "/offers/:id",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/offers/:id/book",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/bookings/client",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/bookings/provider",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 17
+    },
+    {
+      "method": "POST",
+      "path": "/bookings/:id/status",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/bookings/:id/rate",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/knowledge/search",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 54
+    },
+    {
+      "method": "POST",
+      "path": "/knowledge",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 79
+    },
+    {
+      "method": "PUT",
+      "path": "/knowledge/:id",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 93
+    },
+    {
+      "method": "PATCH",
+      "path": "/knowledge/:id/publish",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 108
+    },
+    {
+      "method": "PATCH",
+      "path": "/knowledge/:id/unpublish",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 121
+    },
+    {
+      "method": "DELETE",
+      "path": "/knowledge/:id",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 134
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 7
+    },
+    {
+      "method": "GET",
+      "path": "/add-yours/:prompt_id",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 10
+    },
+    {
+      "method": "POST",
+      "path": "/add-yours/prompt",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 11
+    },
+    {
+      "method": "POST",
+      "path": "/add-yours/respond",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/poll/vote",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/reaction",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/active",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 7
+    },
+    {
+      "method": "GET",
+      "path": "/archive",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 8
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/:id/likes",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 11
+    },
+    {
+      "method": "GET",
+      "path": "/:id/viewers",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/:id/view",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/:id/like",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/:id/share",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/:id/archive",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 16
+    },
+    {
+      "method": "POST",
+      "path": "/:id/comments/toggle",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 17
+    },
+    {
+      "method": "POST",
+      "path": "/:id/comments",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 18
+    },
+    {
+      "method": "GET",
+      "path": "/:id/comments",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 19
+    },
+    {
+      "method": "PATCH",
+      "path": "/:id/settings",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/privacy/hide",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 21
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 22
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\support.routes.js",
+      "line": 6
+    },
+    {
+      "method": "POST",
+      "path": "/ticket",
+      "file": "routes\\api\\support.routes.js",
+      "line": 26
+    },
+    {
+      "method": "POST",
+      "path": "/bot/ask",
+      "file": "routes\\api\\support.routes.js",
+      "line": 64
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "file": "routes\\api\\upload.routes.js",
+      "line": 8
+    },
+    {
+      "method": "POST",
+      "path": "/message",
+      "file": "routes\\api\\upload.routes.js",
+      "line": 9
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "file": "routes\\api\\user.routes.js",
+      "line": 13
+    },
+    {
+      "method": "GET",
+      "path": "/active-friends",
+      "file": "routes\\api\\user.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/search",
+      "file": "routes\\api\\user.routes.js",
+      "line": 15
+    },
+    {
+      "method": "GET",
+      "path": "/suggestions",
+      "file": "routes\\api\\user.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/username-suggestions",
+      "file": "routes\\api\\user.routes.js",
+      "line": 17
+    },
+    {
+      "method": "GET",
+      "path": "/following",
+      "file": "routes\\api\\user.routes.js",
+      "line": 18
+    },
+    {
+      "method": "GET",
+      "path": "/followers",
+      "file": "routes\\api\\user.routes.js",
+      "line": 19
+    },
+    {
+      "method": "GET",
+      "path": "/mutual-followers",
+      "file": "routes\\api\\user.routes.js",
+      "line": 20
+    },
+    {
+      "method": "POST",
+      "path": "/contacts/match",
+      "file": "routes\\api\\user.routes.js",
+      "line": 21
+    },
+    {
+      "method": "GET",
+      "path": "/blocks",
+      "file": "routes\\api\\user.routes.js",
+      "line": 24
+    },
+    {
+      "method": "GET",
+      "path": "/block/status/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/block/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 26
+    },
+    {
+      "method": "DELETE",
+      "path": "/block/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 27
+    },
+    {
+      "method": "POST",
+      "path": "/:id/block",
+      "file": "routes\\api\\user.routes.js",
+      "line": 30
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/block",
+      "file": "routes\\api\\user.routes.js",
+      "line": 31
+    },
+    {
+      "method": "POST",
+      "path": "/:id/mute",
+      "file": "routes\\api\\user.routes.js",
+      "line": 32
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/mute",
+      "file": "routes\\api\\user.routes.js",
+      "line": 33
+    },
+    {
+      "method": "POST",
+      "path": "/:id/report",
+      "file": "routes\\api\\user.routes.js",
+      "line": 34
+    },
+    {
+      "method": "GET",
+      "path": "/follow-requests",
+      "file": "routes\\api\\user.routes.js",
+      "line": 37
+    },
+    {
+      "method": "POST",
+      "path": "/follow-requests/respond",
+      "file": "routes\\api\\user.routes.js",
+      "line": 38
+    },
+    {
+      "method": "POST",
+      "path": "/follow-requests/:requestId/accept",
+      "file": "routes\\api\\user.routes.js",
+      "line": 39
+    },
+    {
+      "method": "POST",
+      "path": "/follow-requests/:requestId/reject",
+      "file": "routes\\api\\user.routes.js",
+      "line": 40
+    },
+    {
+      "method": "GET",
+      "path": "/advanced-settings",
+      "file": "routes\\api\\user.routes.js",
+      "line": 42
+    },
+    {
+      "method": "PUT",
+      "path": "/settings",
+      "file": "routes\\api\\user.routes.js",
+      "line": 43
+    },
+    {
+      "method": "GET",
+      "path": "/export-data",
+      "file": "routes\\api\\user.routes.js",
+      "line": 44
+    },
+    {
+      "method": "GET",
+      "path": "/2fa/setup",
+      "file": "routes\\api\\user.routes.js",
+      "line": 45
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/enable",
+      "file": "routes\\api\\user.routes.js",
+      "line": 46
+    },
+    {
+      "method": "POST",
+      "path": "/2fa/disable",
+      "file": "routes\\api\\user.routes.js",
+      "line": 47
+    },
+    {
+      "method": "GET",
+      "path": "/sessions",
+      "file": "routes\\api\\user.routes.js",
+      "line": 50
+    },
+    {
+      "method": "DELETE",
+      "path": "/sessions/:sessionId",
+      "file": "routes\\api\\user.routes.js",
+      "line": 51
+    },
+    {
+      "method": "POST",
+      "path": "/security/token",
+      "file": "routes\\api\\user.routes.js",
+      "line": 52
+    },
+    {
+      "method": "POST",
+      "path": "/sessions/logout-all",
+      "file": "routes\\api\\user.routes.js",
+      "line": 53
+    },
+    {
+      "method": "PUT",
+      "path": "/profile",
+      "file": "routes\\api\\user.routes.js",
+      "line": 55
+    },
+    {
+      "method": "PATCH",
+      "path": "/profile/note",
+      "file": "routes\\api\\user.routes.js",
+      "line": 56
+    },
+    {
+      "method": "POST",
+      "path": "/avatar",
+      "file": "routes\\api\\user.routes.js",
+      "line": 57
+    },
+    {
+      "method": "PUT",
+      "path": "/password",
+      "file": "routes\\api\\user.routes.js",
+      "line": 58
+    },
+    {
+      "method": "DELETE",
+      "path": "/me",
+      "file": "routes\\api\\user.routes.js",
+      "line": 59
+    },
+    {
+      "method": "POST",
+      "path": "/account/delete",
+      "file": "routes\\api\\user.routes.js",
+      "line": 62
+    },
+    {
+      "method": "POST",
+      "path": "/account/terminate",
+      "file": "routes\\api\\user.routes.js",
+      "line": 63
+    },
+    {
+      "method": "PUT",
+      "path": "/account/visibility",
+      "file": "routes\\api\\user.routes.js",
+      "line": 64
+    },
+    {
+      "method": "GET",
+      "path": "/:id/posts",
+      "file": "routes\\api\\user.routes.js",
+      "line": 67
+    },
+    {
+      "method": "GET",
+      "path": "/:id/followers",
+      "file": "routes\\api\\user.routes.js",
+      "line": 68
+    },
+    {
+      "method": "GET",
+      "path": "/:id/following",
+      "file": "routes\\api\\user.routes.js",
+      "line": 69
+    },
+    {
+      "method": "GET",
+      "path": "/:id/highlights",
+      "file": "routes\\api\\user.routes.js",
+      "line": 70
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 71
+    },
+    {
+      "method": "POST",
+      "path": "/follow/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 72
+    },
+    {
+      "method": "DELETE",
+      "path": "/follow/:id",
+      "file": "routes\\api\\user.routes.js",
+      "line": 73
+    },
+    {
+      "method": "POST",
+      "path": "/:id/follow",
+      "file": "routes\\api\\user.routes.js",
+      "line": 76
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/follow",
+      "file": "routes\\api\\user.routes.js",
+      "line": 77
+    },
+    {
+      "method": "POST",
+      "path": "/:id/poke",
+      "file": "routes\\api\\user.routes.js",
+      "line": 78
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 10
+    },
+    {
+      "method": "GET",
+      "path": "/history",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 11
+    },
+    {
+      "method": "POST",
+      "path": "/deposit",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 12
+    },
+    {
+      "method": "POST",
+      "path": "/verify",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 13
+    },
+    {
+      "method": "POST",
+      "path": "/withdraw",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 14
+    },
+    {
+      "method": "GET",
+      "path": "/banks",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 15
+    },
+    {
+      "method": "POST",
+      "path": "/resolve-account",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 16
+    },
+    {
+      "method": "GET",
+      "path": "/auto-withdrawal",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 17
+    },
+    {
+      "method": "POST",
+      "path": "/auto-withdrawal",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 18
+    },
+    {
+      "method": "POST",
+      "path": "/webhook/paystack",
+      "file": "routes\\api\\wallet.routes.js",
+      "line": 23
+    }
+  ]
+}

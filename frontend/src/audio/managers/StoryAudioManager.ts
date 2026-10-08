@@ -1,5 +1,4 @@
 import { EventBus, audioEventBus } from '../EventBus';
-import { logger } from '../../utils/logger';
 
 export class StoryAudioManager {
   private static instance: StoryAudioManager | null = null;
@@ -14,14 +13,16 @@ export class StoryAudioManager {
   private isInitialized = false;
   private originalVolume = 1.0;
 
-  constructor(audioContext: AudioContext | null, eventBus: EventBus) {
+  constructor(audioContext: AudioContext | null = null, eventBus?: EventBus) {
     this.audio = new Audio();
     this.audio.crossOrigin = 'anonymous';
     this.audio.loop = true;
-    this.eventBus = eventBus;
+    this.eventBus = eventBus || audioEventBus;
     if (audioContext) {
       this.ctx = audioContext;
     }
+
+    StoryAudioManager.instance = this;
 
     // Subscribe to EventBus notifications
     this.eventBus.on('duck_story', (duckFactor: number) => {
@@ -37,9 +38,17 @@ export class StoryAudioManager {
     });
   }
 
-  public static getInstance(audioContext?: AudioContext, eventBus?: EventBus): StoryAudioManager {
+  public setAudioContext(audioContext: AudioContext) {
+    if (!this.ctx) {
+      this.ctx = audioContext;
+    }
+  }
+
+  public static getInstance(audioContext?: AudioContext | null, eventBus?: EventBus): StoryAudioManager {
     if (!StoryAudioManager.instance) {
       StoryAudioManager.instance = new StoryAudioManager(audioContext || null, eventBus || audioEventBus);
+    } else if (audioContext && !StoryAudioManager.instance.ctx) {
+      StoryAudioManager.instance.setAudioContext(audioContext);
     }
     return StoryAudioManager.instance;
   }
@@ -64,9 +73,9 @@ export class StoryAudioManager {
       this.gainNode.connect(this.ctx.destination);
       
       this.isInitialized = true;
-      logger.log('[StoryAudioManager] Web Audio API context successfully initialized.');
+      console.log('[StoryAudioManager] Web Audio API context successfully initialized.');
     } catch (e) {
-      logger.error('[StoryAudioManager] Web Audio API failed to initialize:', e);
+      console.error('[StoryAudioManager] Web Audio API failed to initialize:', e);
     }
   }
 
@@ -78,7 +87,7 @@ export class StoryAudioManager {
       tempAudio.preload = 'auto';
       tempAudio.load();
     } catch (err) {
-      logger.warn('[StoryAudioManager] Preload failed:', err);
+      console.warn('[StoryAudioManager] Preload failed:', err);
     }
   }
 
@@ -106,11 +115,11 @@ export class StoryAudioManager {
 
     if (this.gainNode && this.ctx) {
       this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
-      this.audio.play().catch(e => logger.warn('[StoryAudioManager] Play request failed/blocked:', e));
+      this.audio.play().catch(e => console.warn('[StoryAudioManager] Play request failed/blocked:', e));
       this.gainNode.gain.linearRampToValueAtTime(this.originalVolume, this.ctx.currentTime + 0.4);
     } else {
       this.audio.volume = this.originalVolume;
-      this.audio.play().catch(e => logger.warn('[StoryAudioManager] Play request failed/blocked:', e));
+      this.audio.play().catch(e => console.warn('[StoryAudioManager] Play request failed/blocked:', e));
     }
   }
 

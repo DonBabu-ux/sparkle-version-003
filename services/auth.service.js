@@ -316,6 +316,24 @@ class AuthService {
                     ]
                 ).catch(err => logger.error('Failed to record legal consent:', err));
 
+                // Atomic referral attribution if referral code or handoff token provided
+                const refCode = data.referral_code || data.referralCode || data.ref;
+                const handoffTok = data.handoff_token || data.handoffToken;
+                if (refCode || handoffTok) {
+                    try {
+                        const ReferralService = require('./referral.service');
+                        await ReferralService.attributeSignup({
+                            newUserId: userId,
+                            referralCode: refCode,
+                            handoffToken: handoffTok,
+                            attributionMethod: handoffTok ? 'handoff_token' : 'manual_code',
+                            conn
+                        });
+                    } catch (refErr) {
+                        logger.warn('[AuthService] Referral attribution warning:', refErr.message);
+                    }
+                }
+
                 const { sendEmail } = require('../config/email');
                 sendEmail({
                     to: normEmail,
@@ -329,6 +347,14 @@ class AuthService {
                 }).catch(err => logger.error('Failed to send signup verification email:', err));
 
             });
+
+            // Ensure new user gets their canonical referral code generated immediately
+            try {
+                const ReferralService = require('./referral.service');
+                await ReferralService.getOrCreateUserReferralCode({ user_id: userId, username: normUsername });
+            } catch (refCodeErr) {
+                logger.warn('[AuthService] Could not generate initial referral code:', refCodeErr.message);
+            }
 
             // Log event and generate tokens after successfully committing user insertion to the DB
             await logEvent('signup_completed', userId, { deviceId });

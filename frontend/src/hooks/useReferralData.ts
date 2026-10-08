@@ -2,29 +2,25 @@ import { useState, useCallback, useEffect } from 'react';
 import {
   getReferralStats,
   getRewards,
-  getMilestones,
-  getAchievements,
   getInviteLink,
   getLeaderboard,
+  type ReferralStats,
+  type RewardRule,
+  type LeaderboardData,
+  type InviteLink,
 } from '../services/referralService';
-import type { ReferralStats, Reward, Milestone, Achievement, InviteLink, LeaderboardEntry } from '../types/referral';
-import { logger } from '../utils/logger';
 
 export interface UseReferralDataResult {
   data: {
     stats?: ReferralStats;
-    rewards?: Reward[];
-    milestones?: Milestone[];
-    achievements?: Achievement[];
+    rewards?: RewardRule[];
     inviteLink?: InviteLink;
-    leaderboard?: LeaderboardEntry[];
+    leaderboard?: LeaderboardData;
   };
   loading: boolean;
   errors: {
     stats?: string;
     rewards?: string;
-    milestones?: string;
-    achievements?: string;
     inviteLink?: string;
     leaderboard?: string;
   };
@@ -40,33 +36,25 @@ export const useReferralData = (): UseReferralDataResult => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     setErrors({});
-    const promises = {
-      stats: getReferralStats(),
-      rewards: getRewards(),
-      milestones: getMilestones(),
-      achievements: getAchievements(),
-      inviteLink: getInviteLink(),
-    } as const;
-    // Leaderboard is optional – only fetch if feature flag present (placeholder check)
-    const includeLeaderboard = false; // adjust as needed
-    if (includeLeaderboard) {
-      // @ts-ignore – dynamic key addition
-      promises.leaderboard = getLeaderboard();
-    }
-    const results = await Promise.allSettled(Object.entries(promises).map(([, fn]) => fn));
-    const keys = Object.keys(promises) as (keyof typeof promises)[];
+
+    const [statsResult, rewardsResult, inviteLinkResult] = await Promise.allSettled([
+      getReferralStats(),
+      getRewards(),
+      getInviteLink(),
+    ]);
+
     const newData: Partial<UseReferralDataResult['data']> = {};
     const newErrors: Partial<UseReferralDataResult['errors']> = {};
-    results.forEach((result, idx) => {
-      const key = keys[idx];
-      if (result.status === 'fulfilled') {
-        // @ts-ignore – assign correctly
-        newData[key] = result.value;
-      } else {
-        // @ts-ignore – assign error message
-        newErrors[key] = result.reason?.message || 'Failed to load';
-      }
-    });
+
+    if (statsResult.status === 'fulfilled') newData.stats = statsResult.value;
+    else newErrors.stats = statsResult.reason?.message || 'Failed to load stats';
+
+    if (rewardsResult.status === 'fulfilled') newData.rewards = rewardsResult.value;
+    else newErrors.rewards = rewardsResult.reason?.message || 'Failed to load rewards';
+
+    if (inviteLinkResult.status === 'fulfilled') newData.inviteLink = inviteLinkResult.value;
+    else newErrors.inviteLink = inviteLinkResult.reason?.message || 'Failed to load invite link';
+
     setData(prev => ({ ...prev, ...newData }));
     setErrors(prev => ({ ...prev, ...newErrors }));
     setLoading(false);
@@ -77,8 +65,7 @@ export const useReferralData = (): UseReferralDataResult => {
     fetchAll();
   }, [fetchAll]);
 
-  const refreshSection = useCallback(async (section) => {
-    // Simple switch based on section name
+  const refreshSection = useCallback(async (section: keyof UseReferralDataResult['data']) => {
     try {
       switch (section) {
         case 'stats': {
@@ -89,16 +76,6 @@ export const useReferralData = (): UseReferralDataResult => {
         case 'rewards': {
           const rewards = await getRewards();
           setData(d => ({ ...d, rewards }));
-          break;
-        }
-        case 'milestones': {
-          const milestones = await getMilestones();
-          setData(d => ({ ...d, milestones }));
-          break;
-        }
-        case 'achievements': {
-          const achievements = await getAchievements();
-          setData(d => ({ ...d, achievements }));
           break;
         }
         case 'inviteLink': {
@@ -112,10 +89,10 @@ export const useReferralData = (): UseReferralDataResult => {
           break;
         }
         default:
-          logger.warn('Unknown section refresh', section);
+          console.warn('Unknown section refresh', section);
       }
     } catch (e) {
-      setErrors(e => ({ ...e, [section]: (e as Error).message }));
+      setErrors(prev => ({ ...prev, [section]: (e as Error).message }));
     }
   }, []);
 

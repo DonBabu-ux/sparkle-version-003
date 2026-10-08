@@ -1,0 +1,108 @@
+
+========================================================
+                 SPARKLE PHASE 1A REPORT
+                 SAFE READ CAPACITY TEST
+========================================================
+
+Generated: 2026-10-05T17:11:57.760Z
+Target: http://localhost:3000
+
+--------------------------------------------------------
+TEST CONFIGURATION
+--------------------------------------------------------
+
+Maximum VUs:                 300
+Safe GET routes discovered:  76
+Static GET routes tested:    37
+Parameterized routes skipped:34
+External reads skipped:     5
+
+Traffic:
+  GET only
+  No writes
+  No uploads
+  No OTP
+  No SMS
+  No payments
+  No account deletion
+
+--------------------------------------------------------
+HTTP PERFORMANCE
+--------------------------------------------------------
+
+Total requests:              27
+Average latency:             44.85 ms
+Median / p50:                4.68 ms
+p95 latency:                 221.96 ms
+p99 latency:                 0.00 ms
+HTTP failure rate:           81.48 %
+
+--------------------------------------------------------
+INTERPRETATION
+--------------------------------------------------------
+
+p95 < 1.5s:
+  Healthy target for this phase.
+
+p95 1.5s - 3s:
+  Performance pressure is appearing.
+
+p95 > 3s:
+  Investigate before increasing load.
+
+5xx or timeout growth:
+  Indicates server/infrastructure saturation
+  rather than normal application-level 4xx responses.
+
+--------------------------------------------------------
+PARAMETERIZED ROUTES DEFERRED
+--------------------------------------------------------
+
+GET /api/ai/sparkly/conversations/:id/messages
+GET /api/clubs/:id
+GET /api/clubs/:id/announcements
+GET /api/clubs/:id/leadership
+GET /api/clubs/:id/members
+GET /api/clubs/category/:category
+GET /api/confessions/:id/comments
+GET /api/confessions/community/:campus
+GET /api/conversations/:id
+GET /api/conversations/:id/status
+GET /api/events/:id/analytics
+GET /api/events/:id/attendees
+GET /api/events/:id/qr
+GET /api/events/:id/share
+GET /api/highlights/:id
+GET /api/location/live/:liveLocationId
+GET /api/lost-found/:id
+GET /api/moments/:id
+GET /api/moments/:id/comments
+GET /api/moments/:id/share-data
+GET /api/moments/users/:userId/moments
+GET /api/polls/:id/results
+GET /api/polls/:id/share
+GET /api/posts/:id
+GET /api/posts/:id/comments
+GET /api/posts/:id/translate
+GET /api/posts/comments/:id/translate
+GET /api/share/:id
+GET /api/skill-market/offers/:id
+GET /api/skill-market/offers/:id/reviews
+GET /api/stickers/add-yours/:prompt_id
+GET /api/stories/:id/comments
+GET /api/stories/:id/likes
+GET /api/stories/:id/viewers
+
+--------------------------------------------------------
+EXTERNAL READS DEFERRED
+--------------------------------------------------------
+
+GET /api/audio/search
+GET /api/giphy/search
+GET /api/giphy/trending
+GET /api/link-preview
+GET /api/music/search
+
+========================================================
+END OF PHASE 1A
+========================================================

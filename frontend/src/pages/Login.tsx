@@ -166,7 +166,17 @@ export default function Login() {
       setPin(newPin);
       const nextIndex = Math.min(index + cleaned.length, 5);
       document.getElementById(`pin-${nextIndex}`)?.focus();
+    } else {
+      // Handle single digit
+      const newPin = [...pin];
+      newPin[index] = cleaned;
+      setPin(newPin);
+      if (cleaned && index < 5) {
+        document.getElementById(`pin-${index + 1}`)?.focus();
+      }
     }
+    // Dismiss the resend-success toast as soon as the user starts typing
+    if (success) setSuccess('');
   };
 
   const handlePinKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -200,10 +210,15 @@ export default function Login() {
     if (cooldown > 0 || resendingCode) return;
     setResendingCode(true);
     setAuthError(null);
+    setSuccess('');
     try {
       const res = await api.post('/auth/resend-2fa', { userId: twoFactorUserId }, { timeout: 15000 });
+      // Clear the old pin so the user enters the fresh code
+      setPin(['', '', '', '', '', '']);
       showSuccess(res.data?.message || 'Verification code resent! Check your inbox or phone.');
       setCooldown(60);
+      // Restore focus to first pin input
+      setTimeout(() => document.getElementById('pin-0')?.focus(), 50);
     } catch (err: unknown) {
       const classified = classifyLoginError(err, { isOnline: navigator.onLine });
       setAuthError(classified);

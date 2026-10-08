@@ -11,6 +11,7 @@ const socialController = require('../../controllers/social.controller');
 const { getUserHighlights } = require('../../controllers/highlight.controller');
 
 router.get('/me', authMiddleware, userController.getCurrentUser);
+router.get('/hub-relevance-badges', authMiddleware, userController.getHubRelevanceBadges);
 router.get('/active-friends', authMiddleware, userController.getActiveFriends);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);

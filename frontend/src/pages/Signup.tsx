@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Users, Heart, Eye, EyeOff,
-  Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase,
+  Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase, Gift,
 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
+import { getPendingReferral, capturePendingReferral, clearPendingReferral } from '../services/referralAttribution';
 
 type Step = 1 | 2 | 3 | 4 | 5;
 
@@ -54,10 +55,38 @@ export default function Signup() {
   const [resendingOtp, setResendingOtp] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
 
+  // Referral Attribution State
+  const [searchParams] = useSearchParams();
+  const [referralCode, setReferralCode] = useState('');
+  const [handoffToken, setHandoffToken] = useState('');
+  const [referredByUsername, setReferredByUsername] = useState<string | null>(null);
+  const [showReferralInput, setShowReferralInput] = useState(false);
+
   const navigate = useNavigate();
   const { login } = useUserStore();
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+
+    // 1. Check URL query params for ?ref=... or ?code=...
+    const urlRef = searchParams.get('ref') || searchParams.get('code');
+    const urlHandoff = searchParams.get('handoff');
+
+    if (urlRef) {
+      const code = urlRef.trim().toUpperCase();
+      setReferralCode(code);
+      if (urlHandoff) setHandoffToken(urlHandoff);
+      capturePendingReferral({ referralCode: code, handoffToken: urlHandoff || undefined });
+    } else {
+      // 2. Fall back to pending referral stored in localStorage
+      const pending = getPendingReferral();
+      if (pending) {
+        setReferralCode(pending.referralCode);
+        if (pending.handoffToken) setHandoffToken(pending.handoffToken);
+        if (pending.referrer?.username) setReferredByUsername(pending.referrer.username);
+      }
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (otpCooldown > 0) {
@@ -75,9 +104,7 @@ export default function Signup() {
     setCheckingUsername(true);
     const handler = setTimeout(async () => {
       try {
-        const res = await api.get(
-          `/auth/check-username?username=${encodeURIComponent(form.username.trim())}&name=${encodeURIComponent(form.name.trim())}`
-        );
+        const res = await api.get(`/auth/check-username?username=${encodeURIComponent(form.username.trim())}`);
         if (res.data) {
           setUsernameAvailable(res.data.available);
           setUsernameSuggestions(res.data.suggestions || []);
@@ -89,7 +116,7 @@ export default function Signup() {
       }
     }, 500);
     return () => clearTimeout(handler);
-  }, [form.username, form.name]);
+  }, [form.username]);
 
   useEffect(() => {
     const emailTrim = form.email.trim();
@@ -165,7 +192,7 @@ export default function Signup() {
     setLoading(true);
     setError('');
     try {
-      await api.post('/auth/signup', {
+      const res = await api.post('/auth/signup', {
         name: form.name, username: form.username,
         email: form.email, password: form.password,
         campus: form.affiliation_type !== 'None' ? form.campus : undefined,
@@ -173,30 +200,21 @@ export default function Signup() {
         user_type: 'student',
         terms_version: '1.0',
         privacy_version: '1.0',
+        referral_code: referralCode.trim() || undefined,
+        handoff_token: handoffToken || undefined
       });
-      // A.4 #2: signup tokens were mirrored into localStorage
-      // (`sparkle_signup_*`) but never read anywhere — removed. The verify-email
-      // step issues the real session (login() below).
+      clearPendingReferral();
+      if (res.data?.token) {
+        localStorage.setItem('sparkle_signup_token', res.data.token);
+        localStorage.setItem('sparkle_signup_refresh', res.data.refreshToken);
+        localStorage.setItem('sparkle_signup_user', JSON.stringify(res.data.user));
+      }
       showSuccess('Signed up! Verify your email.');
       setStep(5);
       setOtpCooldown(60);
     } catch (err) {
-      const e = err as {
-        response?: {
-          data?: {
-            message?: string;
-            errors?: Array<{ field?: string; code?: string; message?: string; suggestions?: string[] }>;
-          };
-        }
-      };
-      const data = e.response?.data;
-      const taken = data?.errors?.find(x => x.code === 'USERNAME_TAKEN' && x.suggestions?.length);
-      if (taken?.suggestions) {
-        setUsernameSuggestions(taken.suggestions);
-        setUsernameAvailable(false);
-        setStep(2); // land the user back on the username field with chips visible
-      }
-      showError(data?.message || taken?.message || data?.errors?.[0]?.message || 'Something went wrong.');
+      const e = err as { response?: { data?: { message?: string } } };
+      showError(e.response?.data?.message || 'Something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -312,6 +330,13 @@ export default function Signup() {
               {/* Step 1: Welcome */}
               {step === 1 && (
                 <div className="su-step">
+                  <button className="su-google" type="button">
+                    <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="su-google__img" alt="" />
+                    <span>Continue with Google</span>
+                  </button>
+
+                  <div className="su-sep"><span>or</span></div>
+
                   <button onClick={nextStep} className="su-btn su-btn--main" type="button">
                     Get started
                     <ArrowRight size={18} strokeWidth={2.5} />
@@ -508,6 +533,48 @@ export default function Signup() {
                       <span className="su-review__label">Sparkle Region</span>
                       <span className="su-review__value">{form.campus || 'Sparkle Global'}</span>
                     </div>
+
+                    {/* Referral Attribution Indicator & Fallback */}
+                    {referralCode ? (
+                      <div className="su-review__detail" style={{ marginTop: '0.5rem', backgroundColor: '#fdf2f8', padding: '0.6rem 0.8rem', borderRadius: '0.8rem', border: '1px solid #fbcfe8' }}>
+                        <span className="su-review__label" style={{ color: '#db2777', fontWeight: 700, display: 'flex', itemsCenter: 'center', gap: '0.3rem' }}>
+                          <Gift size={13} /> Invited By
+                        </span>
+                        <span className="su-review__value" style={{ color: '#9d174d', fontWeight: 800 }}>
+                          {referredByUsername ? `@${referredByUsername}` : referralCode}
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ marginTop: '0.5rem', textAlign: 'left' }}>
+                        {!showReferralInput ? (
+                          <button
+                            type="button"
+                            onClick={() => setShowReferralInput(true)}
+                            style={{ background: 'none', border: 'none', color: '#db2777', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0' }}
+                          >
+                            <Gift size={13} /> Have a referral code?
+                          </button>
+                        ) : (
+                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.3rem' }}>
+                            <input
+                              type="text"
+                              value={referralCode}
+                              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                              placeholder="Enter referral code"
+                              className="su-input"
+                              style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', textTransform: 'uppercase' }}
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setShowReferralInput(false)}
+                              style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
+                            >
+                              Done
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <p style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '0.75rem 0 1rem 0', lineHeight: 1.5 }}>

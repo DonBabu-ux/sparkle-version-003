@@ -1,0 +1,635 @@
+========================================
+        SPARKLE API INVENTORY
+========================================
+
+Generated: 2026-10-05T16:49:49.799Z
+Routes directory: C:\Users\user\Desktop\BABU DON\SPARKLE\SPARKLE 2\sparkle-version-003\routes
+Route files scanned: 43
+Endpoints detected: 534
+
+
+--- routes\api\ai.routes.js ---
+POST     /sparkly/chat                                 line 14
+POST     /sparkly/chat/stream                          line 15
+POST     /sparkly/stream                               line 16
+GET      /sparkly/conversations                        line 17
+GET      /sparkly/conversations/search                 line 18
+POST     /sparkly/conversations                        line 19
+GET      /sparkly/conversations/:id/messages           line 20
+DELETE   /sparkly/conversations/:id                    line 21
+GET      /sparkly/memories                             line 22
+DELETE   /sparkly/memories                             line 23
+DELETE   /sparkly/memories/:id                         line 24
+POST     /sparkly/messages/:id/feedback                line 25
+DELETE   /sparkly/messages/:id/feedback                line 26
+POST     /sparkly/conversations/:id/branch             line 27
+
+--- routes\api\analytics.routes.js ---
+GET      /creator                                      line 6
+
+--- routes\api\audio.routes.js ---
+GET      /search                                       line 6
+
+--- routes\api\auth.routes.js ---
+POST     /signup                                       line 33
+POST     /login                                        line 34
+POST     /refresh                                      line 35
+POST     /verify-2fa                                   line 36
+POST     /resend-2fa                                   line 37
+POST     /request-2fa-recovery                         line 38
+POST     /logout                                       line 39
+GET      /check-username                               line 40
+GET      /check-email                                  line 41
+POST     /verify-email                                 line 44
+POST     /verify-sms                                   line 45
+POST     /forgot-password                              line 46
+POST     /reset-password                               line 47
+POST     /resend-verification                          line 48
+POST     /google/sync                                  line 51
+POST     /otp/verify/sync                              line 52
+GET      /validate                                     line 55
+POST     /switch-account                               line 56
+
+--- routes\api\boost.routes.js ---
+POST     /calculate                                    line 13
+POST     /activate                                     line 14
+GET      /active                                       line 15
+GET      /history                                      line 16
+POST     /renew                                        line 17
+
+--- routes\api\campus.routes.js ---
+GET      /polls                                        line 7
+POST     /polls                                        line 8
+POST     /polls/:id/vote                               line 9
+GET      /polls/:id/results                            line 10
+POST     /polls/:id/invite                             line 11
+GET      /polls/:id/share                              line 12
+POST     /polls/:id/predict                            line 13
+POST     /polls/:id/interaction                        line 14
+GET      /events                                       line 17
+POST     /events                                       line 18
+POST     /events/:id/rsvp                              line 19
+GET      /events/:id/attendees                         line 20
+GET      /events/:id/share                             line 21
+GET      /events/:id/qr                                line 22
+POST     /events/checkin                               line 23
+DELETE   /events/:id                                   line 24
+PATCH    /events/:id/status                            line 25
+POST     /events/rsvp/approve                          line 26
+PATCH    /events/:id                                   line 27
+GET      /events/:id/analytics                         line 28
+POST     /events/:id/notify                            line 29
+GET      /streams                                      line 32
+GET      /streams/active                               line 33
+POST     /streams                                      line 34
+POST     /streams/start                                line 35
+POST     /streams/:id/updates                          line 36
+POST     /streams/:id/follow                           line 37
+POST     /streams/:id/join                             line 38
+POST     /streams/:id/end                              line 39
+
+--- routes\api\clubs.routes.js ---
+GET      /                                             line 8
+POST     /                                             line 9
+GET      /category/:category                           line 10
+GET      /:id                                          line 11
+PUT      /:id                                          line 12
+GET      /:id/members                                  line 13
+GET      /:id/leadership                               line 14
+POST     /:id/join                                     line 15
+POST     /:id/leave                                    line 16
+GET      /:id/announcements                            line 19
+POST     /:id/announcements                            line 20
+POST     /:id/events/:eventId/rsvp                     line 23
+
+--- routes\api\confession.routes.js ---
+GET      /                                             line 8
+GET      /community/:campus                            line 9
+POST     /                                             line 12
+POST     /:id/react                                    line 13
+POST     /:id/report                                   line 14
+POST     /:id/comments                                 line 15
+GET      /:id/comments                                 line 16
+
+--- routes\api\discover.routes.js ---
+GET      /feed                                         line 15
+GET      /suggested-users                              line 39
+GET      /trending-creators                            line 63
+
+--- routes\api\giphy.routes.js ---
+GET      /trending                                     line 8
+GET      /search                                       line 20
+
+--- routes\api\groupChat.routes.js ---
+POST     /                                             line 8
+GET      /                                             line 9
+GET      /:chatId                                      line 10
+PUT      /:chatId                                      line 11
+GET      /:chatId/messages                             line 14
+POST     /:chatId/messages                             line 15
+POST     /:chatId/members                              line 18
+POST     /:chatId/leave                                line 19
+DELETE   /:chatId/members/:userId                      line 20
+PATCH    /:chatId/members/:userId/role                 line 21
+GET      /:chatId/channels                             line 25
+POST     /:chatId/channels                             line 26
+PATCH    /:chatId/channels/:id                         line 27
+DELETE   /:chatId/channels/:id                         line 28
+
+--- routes\api\groups.routes.js ---
+GET      /                                             line 12
+GET      /:id                                          line 13
+POST     /                                             line 16
+POST     /:id/post                                     line 19
+GET      /:id/posts                                    line 22
+GET      /:id/requests                                 line 25
+POST     /requests/:requestId/approve                  line 28
+POST     /requests/:requestId/reject                   line 29
+POST     /:id/join                                     line 32
+POST     /:id/leave                                    line 33
+DELETE   /:id                                          line 34
+POST     /:id/update                                   line 35
+GET      /:id/members                                  line 36
+POST     /:id/users/:userId/remove                     line 37
+POST     /:id/users/:userId/promote                    line 38
+POST     /:id/users/:userId/demote                     line 39
+DELETE   /:id/posts/:postId                            line 40
+POST     /:id/invite                                   line 41
+GET      /:id/pending-posts                            line 42
+POST     /posts/:postId/approve                        line 43
+POST     /posts/:postId/reject                         line 44
+POST     /:id/users/:userId/mute                       line 45
+POST     /:id/users/:userId/ban                        line 46
+
+--- routes\api\highlights.routes.js ---
+GET      /archive                                      line 16
+POST     /                                             line 19
+GET      /:id                                          line 20
+PUT      /:id                                          line 21
+DELETE   /:id                                          line 22
+POST     /:id/stories                                  line 25
+DELETE   /:id/stories/:storyId                         line 26
+
+--- routes\api\index.js ---
+USE      /auth                                         line 32
+GET      /csrf-token                                   line 35
+GET      /health                                       line 40
+USE      /users                                        line 50
+USE      /messages                                     line 51
+USE      /groupChat                                    line 52
+USE      /posts                                        line 53
+USE      /stories                                      line 54
+USE      /moments                                      line 55
+USE      /upload                                       line 56
+USE      /share                                        line 57
+USE      /notifications                                line 58
+USE      /onboarding                                   line 59
+USE      /discover                                     line 60
+USE      /rooms                                        line 61
+USE      /location                                     line 62
+USE      /ai                                           line 63
+USE      /sparkly                                      line 64
+USE      /ai                                           line 67
+POST     /comments/:id/like                            line 72
+USE      /                                             line 75
+USE      /                                             line 76
+USE      /marketplace                                  line 77
+USE      /groups                                       line 78
+USE      /confessions                                  line 79
+USE      /skill-market                                 line 80
+USE      /search                                       line 81
+USE      /realtime                                     line 82
+USE      /support                                      line 83
+USE      /link-preview                                 line 84
+USE      /clubs                                        line 85
+USE      /lost-found                                   line 86
+USE      /analytics                                    line 87
+USE      /highlights                                   line 88
+USE      /stickers                                     line 89
+USE      /giphy                                        line 90
+USE      /music                                        line 91
+USE      /audio                                        line 92
+USE      /moderation                                   line 93
+USE      /admin/media                                  line 94
+USE      /ota                                          line 95
+USE      /wallet                                       line 96
+USE      /boost                                        line 97
+USE      /media                                        line 98
+USE      /security                                     line 99
+
+--- routes\api\link-preview.routes.js ---
+GET      /                                             line 59
+
+--- routes\api\location.routes.js ---
+POST     /resolve                                      line 7
+POST     /live/start                                   line 11
+POST     /live/update                                  line 12
+POST     /live/stop                                    line 13
+POST     /live/stop/:liveLocationId                    line 14
+GET      /live/:liveLocationId                         line 15
+
+--- routes\api\lost-found.routes.js ---
+GET      /                                             line 10
+GET      /:id                                          line 13
+POST     /                                             line 16
+POST     /:id/claim                                    line 19
+PUT      /:id/claim                                    line 20
+PUT      /:id/status                                   line 23
+DELETE   /:id                                          line 26
+
+--- routes\api\marketplace.routes.js ---
+GET      /marketplace/listings                         line 10
+GET      /marketplace/categories                       line 11
+GET      /marketplace/trending                         line 12
+GET      /marketplace/wishlist                         line 13
+GET      /marketplace/listings/recommended             line 14
+GET      /marketplace/listings/:id                     line 15
+POST     /marketplace/listings                         line 16
+PUT      /marketplace/listings/:id                     line 17
+DELETE   /marketplace/listings/:id                     line 18
+POST     /marketplace/listings/:id/contact             line 21
+PUT      /marketplace/listings/:id/sold                line 22
+POST     /marketplace/listings/:id/favorite            line 23
+POST     /marketplace/listings/:id/wishlist            line 24
+POST     /marketplace/listings/:id/view                line 25
+POST     /marketplace/listings/:id/share               line 26
+POST     /marketplace/listings/:id/report              line 27
+POST     /marketplace/listings/:id/boost               line 28
+POST     /marketplace/listings/:id/relist              line 29
+POST     /marketplace/seller/favorite                  line 32
+POST     /marketplace/sellers/:sellerId/alert          line 33
+GET      /marketplace/sellers/:sellerId/alert          line 34
+GET      /marketplace/sellers/:id                      line 35
+POST     /marketplace/order                            line 38
+GET      /marketplace/orders                           line 39
+GET      /marketplace/orders/:orderId                  line 40
+PATCH    /marketplace/orders/:orderId/status           line 41
+POST     /marketplace/orders/:orderId/confirm-meetup   line 42
+GET      /marketplace/chats                            line 45
+GET      /marketplace/chats/:id/messages               line 46
+POST     /marketplace/chats/:chatId/messages           line 47
+POST     /marketplace/users/:id/block                  line 50
+POST     /marketplace/users/:id/review                 line 51
+POST     /marketplace/reviews                          line 52
+GET      /marketplace/users/:id/reviews                line 53
+GET      /marketplace/lost-found                       line 56
+POST     /marketplace/lost-found                       line 57
+GET      /marketplace/skills                           line 58
+POST     /marketplace/skills                           line 59
+GET      /marketplace/favorites                        line 62
+GET      /marketplace/counts                           line 63
+GET      /marketplace/safe-locations                   line 64
+POST     /location/resolve                             line 65
+
+--- routes\api\marketplaceChatRoutes.js ---
+POST     /conversations                                line 14
+GET      /conversations                                line 86
+GET      /conversations/:id                            line 144
+GET      /messages/:conversation_id                    line 196
+PUT      /messages/:message_id                         line 252
+DELETE   /messages/:message_id                         line 267
+POST     /messages/upload                              line 282
+POST     /messages/:message_id/react                   line 292
+GET      /settings                                     line 307
+PUT      /settings                                     line 334
+PATCH    /conversations/:id/toggle                     line 361
+GET      /conversations/:id/status                     line 390
+DELETE   /conversations/:id                            line 429
+
+--- routes\api\media-admin.routes.js ---
+GET      /stats                                        line 8
+POST     /cleanup                                      line 9
+
+--- routes\api\media.routes.js ---
+POST     /upload-init                                  line 12
+POST     /upload-complete                              line 13
+GET      /download-token/:mediaId                      line 16
+POST     /ack-download                                 line 19
+POST     /request-redelivery                           line 22
+
+--- routes\api\messages.routes.js ---
+GET      /inbox                                        line 14
+GET      /conversations                                line 15
+GET      /archived                                     line 16
+GET      /welcome-cards                                line 17
+GET      /official-chat                                line 18
+POST     /official-chat/status                         line 19
+POST     /official-chat/complete-onboarding            line 20
+POST     /official-chat/replay                         line 24
+POST     /open                                         line 25
+POST     /start                                        line 26
+POST     /chat                                         line 27
+GET      /mutual-groups/:partnerId                     line 28
+GET      /search                                       line 31
+GET      /chat/:chatId/search                          line 32
+POST     /send                                         line 35
+POST     /                                             line 36
+POST     /read/:chatId                                 line 37
+POST     /unread/:chatId                               line 38
+POST     /chat/:chatId/unread                          line 39
+POST     /mute/:chatId                                 line 40
+POST     /chat/:chatId/mute                            line 41
+PATCH    /chat/:chatId/mute                            line 42
+POST     /chat/:chatId/archive                         line 43
+PATCH    /chat/:chatId/archive                         line 44
+POST     /chat/:chatId/unarchive                       line 45
+POST     /chat/:chatId/pin                             line 50
+PATCH    /chat/:chatId/pin                             line 51
+POST     /chat/:chatId/favorite                        line 52
+PATCH    /chat/:chatId/favorite                        line 53
+POST     /chat/:chatId/priority                        line 54
+PATCH    /chat/:chatId/priority                        line 55
+DELETE   /chat/:chatId                                 line 56
+DELETE   /:messageId                                   line 59
+DELETE   /:messageId/delete-for-me                     line 60
+DELETE   /:messageId/delete-for-all                    line 61
+PATCH    /:messageId                                   line 62
+PUT      /:messageId/edit                              line 63
+POST     /:messageId/react                             line 64
+DELETE   /:messageId/react                             line 65
+POST     /:messageId/star                              line 66
+DELETE   /:messageId/star                              line 67
+POST     /:messageId/pin                               line 68
+POST     /:messageId/unpin                             line 69
+DELETE   /:messageId/pin                               line 70
+POST     /:messageId/forward                           line 71
+POST     /chat/:chatId/messages/:messageId/copy        line 72
+POST     /chat/:chatId/messages/:messageId/forward     line 73
+POST     /:chatId/messages/:messageId/copy             line 74
+POST     /:chatId/messages/:messageId/forward          line 75
+GET      /:messageId/info                              line 76
+GET      /sync/events                                  line 77
+GET      /:messageId/permissions                       line 80
+GET      /:chatId/privacy                              line 81
+PATCH    /:chatId/privacy                              line 82
+POST     /:chatId/capture-attempt                      line 83
+GET      /chat/:chatId/pinned                          line 86
+GET      /chat/:chatId/media                           line 87
+GET      /chat/:chatId/files                           line 88
+GET      /chat/:chatId/links                           line 89
+GET      /chat/:chatId/voice                           line 90
+GET      /chat/:chatId/music                           line 91
+GET      /chat/:chatId/stories                         line 92
+GET      /chat/:chatId/posts                           line 93
+GET      /chat/:chatId/stats                           line 94
+POST     /chat/:chatId/nickname                        line 95
+GET      /chat/:chatId/nickname-history                line 96
+GET      /chat/:chatId                                 line 99
+GET      /:chatId                                      line 100
+
+--- routes\api\moderation.routes.js ---
+POST     /reports                                      line 7
+POST     /appeals                                      line 10
+POST     /appeals/:appeal_id/review                    line 13
+
+--- routes\api\moments.routes.js ---
+GET      /stream                                       line 9
+GET      /:id                                          line 12
+POST     /                                             line 13
+POST     /:id/spark                                    line 20
+POST     /:id/save                                     line 21
+POST     /:id/share                                    line 22
+POST     /:id/view                                     line 23
+POST     /:id/engagement                               line 24
+GET      /:id/share-data                               line 25
+GET      /:id/comments                                 line 28
+POST     /:id/comments                                 line 29
+POST     /comment/:id/like                             line 30
+POST     /user/:userId/follow                          line 33
+GET      /users/:userId/moments                        line 36
+
+--- routes\api\music.routes.js ---
+GET      /search                                       line 6
+
+--- routes\api\notifications.routes.js ---
+GET      /                                             line 10
+GET      /unread-count                                 line 13
+GET      /vapid-public-key                             line 16
+POST     /subscribe                                    line 19
+POST     /register-fcm-token                           line 22
+PUT      /read-all                                     line 25
+POST     /read-all                                     line 26
+PUT      /:notificationId/read                         line 29
+POST     /clear                                        line 32
+POST     /:id/read                                     line 33
+DELETE   /:notificationId                              line 39
+
+--- routes\api\onboarding.routes.js ---
+GET      /status                                       line 10
+GET      /popular-users                                line 11
+GET      /recommendations                              line 12
+POST     /follow                                       line 13
+POST     /interests                                    line 14
+POST     /complete                                     line 15
+
+--- routes\api\ota.routes.js ---
+GET      /version                                      line 23
+POST     /deploy-ota                                   line 82
+
+--- routes\api\posts.routes.js ---
+GET      /feed                                         line 12
+GET      /new                                          line 13
+GET      /liked                                        line 14
+GET      /saved                                        line 15
+GET      /:id                                          line 16
+POST     /                                             line 17
+POST     /:id/spark                                    line 23
+POST     /:id/like                                     line 24
+POST     /:id/save                                     line 25
+GET      /:id/comments                                 line 26
+POST     /:id/comments                                 line 27
+POST     /:id/share                                    line 28
+POST     /:id/reshare                                  line 29
+PATCH    /:id/reshare/comment                          line 30
+GET      /:id/translate                                line 31
+GET      /comments/:id/translate                       line 32
+POST     /:id/report                                   line 33
+POST     /:id/action                                   line 34
+PUT      /:id                                          line 35
+DELETE   /:id                                          line 36
+PATCH    /comments/:id                                 line 39
+DELETE   /comments/:id                                 line 40
+
+--- routes\api\realtime.routes.js ---
+GET      /online-friends                               line 13
+GET      /presence/:userId                             line 14
+GET      /chat/:chatId/history                         line 15
+POST     /chat/:chatId/read-all                        line 16
+
+--- routes\api\rooms.routes.js ---
+POST     /                                             line 8
+GET      /                                             line 9
+GET      /:roomId                                      line 10
+PUT      /:roomId                                      line 11
+DELETE   /:roomId                                      line 12
+POST     /:roomId/join                                 line 15
+POST     /:roomId/leave                                line 16
+GET      /:roomId/channels                             line 19
+POST     /:roomId/channels                             line 20
+PATCH    /:roomId/channels/:channelId                  line 21
+DELETE   /:roomId/channels/:channelId                  line 22
+GET      /channels/:channelId/messages                 line 25
+POST     /channels/:channelId/messages                 line 26
+
+--- routes\api\search.routes.js ---
+GET      /                                             line 13
+GET      /suggestions                                  line 16
+GET      /trending                                     line 19
+GET      /discovery                                    line 20
+GET      /history                                      line 23
+POST     /history                                      line 24
+DELETE   /history                                      line 25
+DELETE   /history/:id                                  line 26
+
+--- routes\api\security.routes.js ---
+GET      /status                                       line 31
+GET      /available-factors                            line 32
+POST     /transaction/initiate                         line 35
+POST     /transaction/verify                           line 36
+POST     /2fa/disable                                  line 39
+POST     /password/change                              line 40
+POST     /pin/reset-token                              line 41
+POST     /2fa/alternate-email/request                  line 44
+POST     /2fa/alternate-email/verify                   line 45
+GET      /alerts/unacknowledged                        line 48
+POST     /alerts/:eventId/acknowledge                  line 49
+POST     /2fa/email/request                            line 52
+POST     /2fa/email/verify                             line 53
+POST     /2fa/email/disable                            line 54
+POST     /2fa/sms/request                              line 57
+POST     /2fa/sms/verify                               line 58
+POST     /2fa/sms/disable                              line 59
+POST     /2fa/disable-all                              line 62
+POST     /recovery-codes/generate                      line 65
+
+--- routes\api\share.routes.js ---
+POST     /track                                        line 7
+GET      /:id                                          line 33
+
+--- routes\api\skill-market.routes.js ---
+GET      /offers                                       line 7
+GET      /offers/:id                                   line 8
+GET      /offers/:id/reviews                           line 9
+POST     /offers                                       line 12
+PUT      /offers/:id                                   line 13
+DELETE   /offers/:id                                   line 14
+POST     /offers/:id/book                              line 15
+GET      /bookings/client                              line 16
+GET      /bookings/provider                            line 17
+POST     /bookings/:id/status                          line 18
+POST     /bookings/:id/rate                            line 19
+
+--- routes\api\sparklyKnowledge.routes.js ---
+GET      /health                                       line 14
+GET      /knowledge/search                             line 54
+POST     /knowledge                                    line 79
+PUT      /knowledge/:id                                line 93
+PATCH    /knowledge/:id/publish                        line 108
+PATCH    /knowledge/:id/unpublish                      line 121
+DELETE   /knowledge/:id                                line 134
+
+--- routes\api\stickers.routes.js ---
+POST     /                                             line 7
+GET      /add-yours/:prompt_id                         line 10
+POST     /add-yours/prompt                             line 11
+POST     /add-yours/respond                            line 12
+POST     /poll/vote                                    line 15
+POST     /reaction                                     line 16
+
+--- routes\api\stories.routes.js ---
+GET      /active                                       line 7
+GET      /archive                                      line 8
+POST     /                                             line 9
+GET      /:id/likes                                    line 11
+GET      /:id/viewers                                  line 12
+POST     /:id/view                                     line 13
+POST     /:id/like                                     line 14
+POST     /:id/share                                    line 15
+POST     /:id/archive                                  line 16
+POST     /:id/comments/toggle                          line 17
+POST     /:id/comments                                 line 18
+GET      /:id/comments                                 line 19
+PATCH    /:id/settings                                 line 20
+POST     /privacy/hide                                 line 21
+DELETE   /:id                                          line 22
+
+--- routes\api\support.routes.js ---
+POST     /                                             line 6
+POST     /ticket                                       line 26
+POST     /bot/ask                                      line 64
+
+--- routes\api\upload.routes.js ---
+POST     /                                             line 8
+POST     /message                                      line 9
+
+--- routes\api\user.routes.js ---
+GET      /me                                           line 13
+GET      /active-friends                               line 14
+GET      /search                                       line 15
+GET      /suggestions                                  line 16
+GET      /username-suggestions                         line 17
+GET      /following                                    line 18
+GET      /followers                                    line 19
+GET      /mutual-followers                             line 20
+POST     /contacts/match                               line 21
+GET      /blocks                                       line 24
+GET      /block/status/:id                             line 25
+POST     /block/:id                                    line 26
+DELETE   /block/:id                                    line 27
+POST     /:id/block                                    line 30
+DELETE   /:id/block                                    line 31
+POST     /:id/mute                                     line 32
+DELETE   /:id/mute                                     line 33
+POST     /:id/report                                   line 34
+GET      /follow-requests                              line 37
+POST     /follow-requests/respond                      line 38
+POST     /follow-requests/:requestId/accept            line 39
+POST     /follow-requests/:requestId/reject            line 40
+GET      /advanced-settings                            line 42
+PUT      /settings                                     line 43
+GET      /export-data                                  line 44
+GET      /2fa/setup                                    line 45
+POST     /2fa/enable                                   line 46
+POST     /2fa/disable                                  line 47
+GET      /sessions                                     line 50
+DELETE   /sessions/:sessionId                          line 51
+POST     /security/token                               line 52
+POST     /sessions/logout-all                          line 53
+PUT      /profile                                      line 55
+PATCH    /profile/note                                 line 56
+POST     /avatar                                       line 57
+PUT      /password                                     line 58
+DELETE   /me                                           line 59
+POST     /account/delete                               line 62
+POST     /account/terminate                            line 63
+PUT      /account/visibility                           line 64
+GET      /:id/posts                                    line 67
+GET      /:id/followers                                line 68
+GET      /:id/following                                line 69
+GET      /:id/highlights                               line 70
+GET      /:id                                          line 71
+POST     /follow/:id                                   line 72
+DELETE   /follow/:id                                   line 73
+POST     /:id/follow                                   line 76
+DELETE   /:id/follow                                   line 77
+POST     /:id/poke                                     line 78
+
+--- routes\api\wallet.routes.js ---
+GET      /                                             line 10
+GET      /history                                      line 11
+POST     /deposit                                      line 12
+POST     /verify                                       line 13
+POST     /withdraw                                     line 14
+GET      /banks                                        line 15
+POST     /resolve-account                              line 16
+GET      /auto-withdrawal                              line 17
+POST     /auto-withdrawal                              line 18
+POST     /webhook/paystack                             line 23
+
+========================================
+LOAD-TEST SAFETY NOTES
+========================================
+GET/HEAD/OPTIONS routes are generally safer candidates for automated load testing.
+POST/PUT/PATCH/DELETE routes may create, modify, send, delete, charge, or trigger data.
+Review write endpoints before adding them to a load test.
+Never blindly stress password reset, OTP/SMS, payment, account deletion, or media-upload endpoints.

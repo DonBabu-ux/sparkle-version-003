@@ -1,0 +1,690 @@
+{
+  "generatedAt": "2026-10-05T16:52:41.624Z",
+  "count": 76,
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations",
+      "routePath": "/sparkly/conversations",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations/:id/messages",
+      "routePath": "/sparkly/conversations/:id/messages",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/conversations/search",
+      "routePath": "/sparkly/conversations/search",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 18,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ai/sparkly/memories",
+      "routePath": "/sparkly/memories",
+      "prefix": "/ai",
+      "file": "routes\\api\\ai.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/audio/search",
+      "routePath": "/search",
+      "prefix": "/audio",
+      "file": "routes\\api\\audio.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/check-email",
+      "routePath": "/check-email",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 41,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/check-username",
+      "routePath": "/check-username",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 40,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/validate",
+      "routePath": "/validate",
+      "prefix": "/auth",
+      "file": "routes\\api\\auth.routes.js",
+      "line": 55,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs",
+      "routePath": "/",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id",
+      "routePath": "/:id",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/announcements",
+      "routePath": "/:id/announcements",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/leadership",
+      "routePath": "/:id/leadership",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/:id/members",
+      "routePath": "/:id/members",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/clubs/category/:category",
+      "routePath": "/category/:category",
+      "prefix": "/clubs",
+      "file": "routes\\api\\clubs.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions",
+      "routePath": "/",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/confessions/community/:campus",
+      "routePath": "/community/:campus",
+      "prefix": "/confessions",
+      "file": "routes\\api\\confession.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations",
+      "routePath": "/conversations",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 86,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/:id",
+      "routePath": "/conversations/:id",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 144,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/conversations/:id/status",
+      "routePath": "/conversations/:id/status",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 390,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/feed",
+      "routePath": "/feed",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/suggested-users",
+      "routePath": "/suggested-users",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 39,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/discover/trending-creators",
+      "routePath": "/trending-creators",
+      "prefix": "/discover",
+      "file": "routes\\api\\discover.routes.js",
+      "line": 63,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events",
+      "routePath": "/events",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/analytics",
+      "routePath": "/events/:id/analytics",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/attendees",
+      "routePath": "/events/:id/attendees",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/qr",
+      "routePath": "/events/:id/qr",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 22,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/events/:id/share",
+      "routePath": "/events/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 21,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/giphy/search",
+      "routePath": "/search",
+      "prefix": "/giphy",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/giphy/trending",
+      "routePath": "/trending",
+      "prefix": "/giphy",
+      "file": "routes\\api\\giphy.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "routePath": "/health",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/highlights/:id",
+      "routePath": "/:id",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/highlights/archive",
+      "routePath": "/archive",
+      "prefix": "/highlights",
+      "file": "routes\\api\\highlights.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/knowledge/search",
+      "routePath": "/knowledge/search",
+      "prefix": "/",
+      "file": "routes\\api\\sparklyKnowledge.routes.js",
+      "line": 54,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/link-preview",
+      "routePath": "/",
+      "prefix": "/link-preview",
+      "file": "routes\\api\\link-preview.routes.js",
+      "line": 59,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/location/live/:liveLocationId",
+      "routePath": "/live/:liveLocationId",
+      "prefix": "/location",
+      "file": "routes\\api\\location.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lost-found",
+      "routePath": "/",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/lost-found/:id",
+      "routePath": "/:id",
+      "prefix": "/lost-found",
+      "file": "routes\\api\\lost-found.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id",
+      "routePath": "/:id",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 28,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/:id/share-data",
+      "routePath": "/:id/share-data",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 25,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/stream",
+      "routePath": "/stream",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/moments/users/:userId/moments",
+      "routePath": "/users/:userId/moments",
+      "prefix": "/moments",
+      "file": "routes\\api\\moments.routes.js",
+      "line": 36,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/music/search",
+      "routePath": "/search",
+      "prefix": "/music",
+      "file": "routes\\api\\music.routes.js",
+      "line": 6,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ota/version",
+      "routePath": "/version",
+      "prefix": "/ota",
+      "file": "routes\\api\\ota.routes.js",
+      "line": 23,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls",
+      "routePath": "/polls",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls/:id/results",
+      "routePath": "/polls/:id/results",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/polls/:id/share",
+      "routePath": "/polls/:id/share",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id",
+      "routePath": "/:id",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 26,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/:id/translate",
+      "routePath": "/:id/translate",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 31,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/comments/:id/translate",
+      "routePath": "/comments/:id/translate",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/feed",
+      "routePath": "/feed",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/liked",
+      "routePath": "/liked",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 14,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/new",
+      "routePath": "/new",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/posts/saved",
+      "routePath": "/saved",
+      "prefix": "/posts",
+      "file": "routes\\api\\posts.routes.js",
+      "line": 15,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search",
+      "routePath": "/",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 13,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/discovery",
+      "routePath": "/discovery",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 20,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/history",
+      "routePath": "/history",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 23,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/suggestions",
+      "routePath": "/suggestions",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/search/trending",
+      "routePath": "/trending",
+      "prefix": "/search",
+      "file": "routes\\api\\search.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/settings",
+      "routePath": "/settings",
+      "prefix": "/",
+      "file": "routes\\api\\marketplaceChatRoutes.js",
+      "line": 307,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/share/:id",
+      "routePath": "/:id",
+      "prefix": "/share",
+      "file": "routes\\api\\share.routes.js",
+      "line": 33,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/bookings/client",
+      "routePath": "/bookings/client",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 16,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/bookings/provider",
+      "routePath": "/bookings/provider",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 17,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers",
+      "routePath": "/offers",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers/:id",
+      "routePath": "/offers/:id",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/skill-market/offers/:id/reviews",
+      "routePath": "/offers/:id/reviews",
+      "prefix": "/skill-market",
+      "file": "routes\\api\\skill-market.routes.js",
+      "line": 9,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stickers/add-yours/:prompt_id",
+      "routePath": "/add-yours/:prompt_id",
+      "prefix": "/stickers",
+      "file": "routes\\api\\stickers.routes.js",
+      "line": 10,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/comments",
+      "routePath": "/:id/comments",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 19,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/likes",
+      "routePath": "/:id/likes",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 11,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/:id/viewers",
+      "routePath": "/:id/viewers",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 12,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/active",
+      "routePath": "/active",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 7,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/stories/archive",
+      "routePath": "/archive",
+      "prefix": "/stories",
+      "file": "routes\\api\\stories.routes.js",
+      "line": 8,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/streams",
+      "routePath": "/streams",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 32,
+      "classification": "SAFE_READ"
+    },
+    {
+      "method": "GET",
+      "path": "/api/streams/active",
+      "routePath": "/streams/active",
+      "prefix": "/",
+      "file": "routes\\api\\campus.routes.js",
+      "line": 33,
+      "classification": "SAFE_READ"
+    }
+  ]
+}

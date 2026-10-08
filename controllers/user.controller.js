@@ -1206,6 +1206,299 @@ const getUsernameSuggestions = async (req, res) => {
     }
 };
 
+const getHubRelevanceBadges = async (req, res) => {
+    try {
+        const userId = req.user?.userId || req.user?.user_id;
+        if (!userId) {
+            return res.json({ success: true, relevance: {} });
+        }
+
+        const pool = require('../config/database');
+
+        // 1. Fetch user's registered interests
+        let interestSlugs = [];
+        try {
+            const [interests] = await pool.query(
+                'SELECT interest_slug FROM user_interests WHERE user_id = ?',
+                [userId]
+            );
+            interestSlugs = (interests || []).map(r => String(r.interest_slug).trim().toLowerCase());
+        } catch (_) {
+            interestSlugs = [];
+        }
+
+        // 2. Fetch user's campus
+        let campus = 'all';
+        try {
+            const [userRow] = await pool.query(
+                'SELECT campus FROM users WHERE user_id = ? LIMIT 1',
+                [userId]
+            );
+            if (userRow && userRow[0] && userRow[0].campus) {
+                campus = userRow[0].campus;
+            }
+        } catch (_) {}
+
+        // Interest mapping table for categorizing content strictly by user's interest pool
+        const interestCategoryMap = {
+            tech: ['tech', 'electronics', 'computers', 'code', 'coding', 'programming', 'software', 'gadgets'],
+            design: ['design', 'art', 'Furniture', 'home', 'decor', 'drawing', 'graphics'],
+            music: ['music', 'beats', 'audio', 'instruments', 'songs'],
+            gaming: ['gaming', 'games', 'consoles', 'esports', 'playstation', 'xbox', 'nintendo'],
+            dancing: ['dancing', 'dance', 'performance'],
+            food: ['food', 'foodie', 'cooking', 'dining', 'snacks', 'recipes'],
+            memes: ['memes', 'humor', 'funny', 'entertainment'],
+            books: ['books', 'writing', 'textbooks', 'study', 'reading', 'academics'],
+            startups: ['startups', 'business', 'entrepreneurship', 'services', 'freelance'],
+            fitness: ['fitness', 'gym', 'workout', 'sports', 'health'],
+            fashion: ['fashion', 'clothing', 'apparel', 'shoes', 'style', 'accessories', 'beauty'],
+            movies: ['movies', 'film', 'cinema', 'tv', 'series', 'netflix']
+        };
+
+        let matchedCategories = new Set();
+        interestSlugs.forEach(slug => {
+            const mapped = interestCategoryMap[slug];
+            if (mapped) {
+                mapped.forEach(c => matchedCategories.add(c.toLowerCase()));
+            } else {
+                matchedCategories.add(slug.toLowerCase());
+            }
+        });
+
+        const userCategoryList = Array.from(matchedCategories);
+        const hasInterests = userCategoryList.length > 0;
+
+        const relevance = {
+            Marketplace: 0,
+            Groups: 0,
+            Polls: 0,
+            Messages: 0,
+            Shorts: 0,
+            Anonymous: 0,
+            Services: 0,
+            'Find Friends': 0,
+            'Live Video': 0
+        };
+
+        // --- A. MARKETPLACE: Only count listings relevant to user's interest pool ---
+        try {
+            if (hasInterests) {
+                const [mRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM marketplace_listings 
+                     WHERE is_sold = 0 
+                       AND (status IS NULL OR status = 'active')
+                       AND seller_id != ?
+                       AND (LOWER(category) IN (?) 
+                            OR LOWER(title) REGEXP ?
+                            OR LOWER(COALESCE(tags, '')) REGEXP ?)
+                       AND created_at >= DATE_SUB(NOW(), INTERVAL 14 DAY)`,
+                    [
+                        userId, 
+                        userCategoryList,
+                        userCategoryList.slice(0, 5).join('|'),
+                        userCategoryList.slice(0, 5).join('|')
+                    ]
+                );
+                relevance.Marketplace = mRows[0]?.count || 0;
+            } else {
+                // Default campus relevance if no specific interests set
+                const [mRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM marketplace_listings 
+                     WHERE is_sold = 0 
+                       AND (status IS NULL OR status = 'active')
+                       AND seller_id != ?
+                       AND (campus = ? OR campus = 'all')
+                       AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
+                    [userId, campus]
+                );
+                relevance.Marketplace = Math.min(mRows[0]?.count || 0, 9);
+            }
+        } catch (e) {
+            logger.warn('[HubRelevance] Marketplace count error: ' + e.message);
+        }
+
+        // --- B. GROUPS: Active groups/discussions matching user's interests ---
+        try {
+            if (hasInterests) {
+                const [gRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM groups g
+                     WHERE g.group_id NOT IN (SELECT group_id FROM group_members WHERE user_id = ?)
+                       AND (LOWER(g.category) IN (?) OR LOWER(g.name) REGEXP ?)
+                       AND (g.campus = ? OR g.campus = 'all' OR ? = 'all')`,
+                    [
+                        userId, 
+                        userCategoryList, 
+                        userCategoryList.slice(0, 5).join('|'),
+                        campus,
+                        campus
+                    ]
+                );
+                relevance.Groups = gRows[0]?.count || 0;
+            } else {
+                const [gRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM groups g
+                     WHERE g.group_id NOT IN (SELECT group_id FROM group_members WHERE user_id = ?)
+                       AND (g.campus = ? OR g.campus = 'all')`,
+                    [userId, campus]
+                );
+                relevance.Groups = Math.min(gRows[0]?.count || 0, 6);
+            }
+        } catch (e) {
+            logger.warn('[HubRelevance] Groups count error: ' + e.message);
+        }
+
+        // --- C. POLLS: Active unvoted polls matching user's interests/campus ---
+        try {
+            if (hasInterests) {
+                const [pRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM polls p
+                     WHERE (p.is_expired = 0 OR p.is_expired IS NULL)
+                       AND (p.expires_at IS NULL OR p.expires_at > NOW())
+                       AND p.poll_id NOT IN (SELECT poll_id FROM poll_votes WHERE user_id = ?)
+                       AND (LOWER(p.category) IN (?) OR p.campus = ? OR p.campus = 'all')`,
+                    [userId, userCategoryList, campus]
+                );
+                relevance.Polls = pRows[0]?.count || 0;
+            } else {
+                const [pRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM polls p
+                     WHERE (p.is_expired = 0 OR p.is_expired IS NULL)
+                       AND (p.expires_at IS NULL OR p.expires_at > NOW())
+                       AND p.poll_id NOT IN (SELECT poll_id FROM poll_votes WHERE user_id = ?)
+                       AND (p.campus = ? OR p.campus = 'all')`,
+                    [userId, campus]
+                );
+                relevance.Polls = pRows[0]?.count || 0;
+            }
+        } catch (e) {
+            logger.warn('[HubRelevance] Polls count error: ' + e.message);
+        }
+
+        // --- D. SHORTS: New video moments matching user's interests ---
+        try {
+            if (hasInterests) {
+                const [mRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM moments m
+                     WHERE m.user_id != ?
+                       AND (LOWER(m.category) IN (?) OR LOWER(m.caption) REGEXP ?)
+                       AND m.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
+                    [
+                        userId, 
+                        userCategoryList,
+                        userCategoryList.slice(0, 5).join('|')
+                    ]
+                );
+                relevance.Shorts = mRows[0]?.count || 0;
+            } else {
+                const [mRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM moments m
+                     WHERE m.user_id != ?
+                       AND m.created_at >= DATE_SUB(NOW(), INTERVAL 2 DAY)`,
+                    [userId]
+                );
+                relevance.Shorts = Math.min(mRows[0]?.count || 0, 8);
+            }
+        } catch (e) {
+            logger.warn('[HubRelevance] Shorts count error: ' + e.message);
+        }
+
+        // --- E. ANONYMOUS: New confessions in campus feed ---
+        try {
+            const [cRows] = await pool.query(
+                `SELECT COUNT(*) as count 
+                 FROM confessions c
+                 WHERE c.user_id != ?
+                   AND (c.campus = ? OR c.campus = 'all' OR ? = 'all')
+                   AND (c.is_approved = 1 OR c.is_approved IS NULL)
+                   AND c.created_at >= DATE_SUB(NOW(), INTERVAL 3 DAY)`,
+                [userId, campus, campus]
+            );
+            relevance.Anonymous = Math.min(cRows[0]?.count || 0, 12);
+        } catch (e) {
+            logger.warn('[HubRelevance] Confessions count error: ' + e.message);
+        }
+
+        // --- F. SERVICES / SKILL MARKET: Offers matching user's interests ---
+        try {
+            if (hasInterests) {
+                const [sRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM skill_offers so
+                     WHERE so.is_active = 1
+                       AND so.user_id != ?
+                       AND (LOWER(so.category) IN (?) OR LOWER(so.title) REGEXP ?)`,
+                    [
+                        userId, 
+                        userCategoryList,
+                        userCategoryList.slice(0, 5).join('|')
+                    ]
+                );
+                relevance.Services = sRows[0]?.count || 0;
+            } else {
+                const [sRows] = await pool.query(
+                    `SELECT COUNT(*) as count 
+                     FROM skill_offers so
+                     WHERE so.is_active = 1
+                       AND so.user_id != ?
+                       AND (so.campus = ? OR so.campus = 'all' OR ? = 'all')`,
+                    [userId, campus, campus]
+                );
+                relevance.Services = Math.min(sRows[0]?.count || 0, 5);
+            }
+        } catch (e) {
+            logger.warn('[HubRelevance] Services count error: ' + e.message);
+        }
+
+        // --- G. FIND FRIENDS: Pending follow requests or suggestions ---
+        try {
+            const [fRows] = await pool.query(
+                `SELECT COUNT(*) as count 
+                 FROM follow_requests 
+                 WHERE target_id = ? AND status = 'pending'`,
+                [userId]
+            );
+            relevance['Find Friends'] = fRows[0]?.count || 0;
+        } catch (_) {
+            try {
+                const [fRows2] = await pool.query(
+                    `SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND type = 'follow' AND is_read = 0`,
+                    [userId]
+                );
+                relevance['Find Friends'] = fRows2[0]?.count || 0;
+            } catch (_) {}
+        }
+
+        // --- H. LIVE VIDEO: Currently live moments ---
+        try {
+            const [lRows] = await pool.query(
+                `SELECT COUNT(*) as count FROM moments WHERE is_live = 1 AND user_id != ?`,
+                [userId]
+            );
+            relevance['Live Video'] = lRows[0]?.count || 0;
+        } catch (_) {}
+
+        res.json({
+            success: true,
+            userInterests: interestSlugs,
+            relevance
+        });
+    } catch (error) {
+        logger.error('Get hub relevance badges error: ' + error.message);
+        res.json({
+            success: true,
+            relevance: {}
+        });
+    }
+};
+
 module.exports = {
     getCurrentUser,
     searchUsers,
@@ -1239,5 +1532,6 @@ module.exports = {
     updateNote,
     getMyFollowers,
     getMutualFollowers,
-    matchContacts
+    matchContacts,
+    getHubRelevanceBadges
 };

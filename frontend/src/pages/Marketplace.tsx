@@ -3,7 +3,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import api from '../api/api';
-import MarketplaceModals from '../components/modals/MarketplaceModals';
 import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
 import SparklyMiniChat from '../components/marketplace/SparklyMiniChat';
 import { useModalStore } from '../store/modalStore';
@@ -449,7 +448,6 @@ export default function Marketplace() {
         initialMessage={sparklyInitialMsg}
       />
 
-      <MarketplaceModals />
     </div>
   );
 }

@@ -325,19 +325,6 @@ export default function Notifications() {
     });
     const displayName = actorIdentity.displayName;
 
-    // Format timestamp nicely
-    let formattedTimeStr = '';
-    try {
-      formattedTimeStr = new Date(notif.created_at).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit'
-      });
-    } catch {
-      formattedTimeStr = '';
-    }
-
     return (
       <div
         key={notif.notification_id || notif.id}

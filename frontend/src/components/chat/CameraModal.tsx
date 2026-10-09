@@ -1,9 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  X, Moon, Sun, Camera as CameraIcon, SwitchCamera, Image as ImageIcon,
-  PenTool, Type, Crop, Download, Undo, Check, Sparkles, Send, PlusCircle
-} from 'lucide-react';
+import { X, Moon, Sun, SwitchCamera, Image as ImageIcon, Download, Sparkles, Send } from 'lucide-react';
 import { getAvatarUrl } from '../../utils/imageUtils';
+import { showError } from '../../utils/toast';
+import { validateFile } from '../../utils/fileValidation';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
@@ -35,7 +34,6 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   
   // Post-capture states
   const [viewMode, setViewMode] = useState<'off' | 'once' | 'twice'>('off');
-  const [activeTool, setActiveTool] = useState<'none' | 'draw' | 'text' | 'crop'>('none');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -100,6 +98,12 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const check = validateFile(file, { kind: 'any', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = (event) => setCapturedMedia(event.target?.result as string);
     reader.readAsDataURL(file);
@@ -202,51 +206,21 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
           
           {/* Right Tools Panel */}
           <div className="absolute right-4 top-24 flex flex-col gap-4 z-10">
-            <button onClick={() => setActiveTool('draw')} className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${activeTool === 'draw' ? 'bg-primary text-white' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}>
-              <PenTool size={20} />
-            </button>
-            <button onClick={() => setActiveTool('text')} className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${activeTool === 'text' ? 'bg-primary text-white' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}>
-              <Type size={20} />
-            </button>
-            <button onClick={() => setActiveTool('crop')} className={`w-11 h-11 rounded-full flex items-center justify-center transition-all ${activeTool === 'crop' ? 'bg-primary text-white' : 'bg-black/40 text-white backdrop-blur-md hover:bg-black/60'}`}>
-              <Crop size={20} />
-            </button>
-            <button className="w-11 h-11 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-all">
+            <button
+              onClick={() => {
+                const a = document.createElement('a');
+                a.href = capturedMedia;
+                a.download = 'sparkle-capture.jpg';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+              }}
+              className="w-11 h-11 rounded-full bg-black/40 text-white backdrop-blur-md flex items-center justify-center hover:bg-black/60 transition-all"
+              title="Save photo"
+            >
               <Download size={20} />
             </button>
           </div>
-
-          {/* Active Tool Overlays (Draw/Text) */}
-          {activeTool === 'draw' && (
-            <div className="absolute inset-0 z-20 flex flex-col justify-between bg-black/20 pointer-events-none">
-              <div className="p-6 pt-24 flex justify-between pointer-events-auto">
-                <button onClick={() => setActiveTool('none')} className="text-white hover:text-white/70"><Undo size={28} /></button>
-                <button onClick={() => setActiveTool('none')} className="text-white font-black uppercase tracking-widest text-sm bg-black/50 px-4 py-2 rounded-full">Done</button>
-              </div>
-              <div className="p-8 pb-32 flex justify-center gap-4 pointer-events-auto">
-                {['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ffffff'].map(color => (
-                  <button key={color} className="w-8 h-8 rounded-full border-2 border-white/50" style={{ backgroundColor: color }} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {activeTool === 'text' && (
-            <div className="absolute inset-0 z-20 flex flex-col justify-between bg-black/60 backdrop-blur-sm pointer-events-none">
-              <div className="p-6 pt-24 flex justify-between pointer-events-auto">
-                <button onClick={() => setActiveTool('none')} className="text-white hover:text-white/70"><Undo size={28} /></button>
-                <button onClick={() => setActiveTool('none')} className="text-white font-black uppercase tracking-widest text-sm bg-black/50 px-4 py-2 rounded-full">Done</button>
-              </div>
-              <div className="flex-1 flex items-center justify-center pointer-events-auto">
-                <input type="text" autoFocus placeholder="Type something..." className="bg-transparent text-white text-4xl font-bold text-center outline-none w-full px-8 placeholder:text-white/30" />
-              </div>
-              <div className="p-8 pb-32 flex justify-center gap-4 pointer-events-auto">
-                {['#ffffff', '#000000', '#ff006e', '#00e5ff', '#ffff00'].map(color => (
-                  <button key={color} className="w-8 h-8 rounded-full border-2 border-white/50 shadow-md" style={{ backgroundColor: color }} />
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Bottom Send Bar */}
           <div className="absolute bottom-0 left-0 right-0 px-6 pt-10 pb-[calc(1.5rem+env(safe-area-inset-bottom))] bg-gradient-to-t from-black/80 to-transparent flex items-end justify-between pointer-events-auto">
@@ -259,10 +233,6 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
                 className="bg-black/50 backdrop-blur-md px-4 py-2 rounded-full text-white text-[11px] font-bold uppercase tracking-widest border border-white/10 w-fit"
               >
                 View: {viewMode}
-              </button>
-              <button className="flex items-center gap-2 bg-white/10 backdrop-blur-md px-5 py-3 rounded-full text-white font-bold hover:bg-white/20 transition-all border border-white/10 w-fit">
-                <PlusCircle size={18} />
-                <span>Story</span>
               </button>
             </div>
             

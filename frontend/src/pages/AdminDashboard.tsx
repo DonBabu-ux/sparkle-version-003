@@ -2,10 +2,7 @@ import { showError, showInfo, showSuccess } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect } from 'react';
 import api from '../api/api';
-import { 
-  Shield, Eye, Users, AlertCircle, BarChart3, Clock, MoreVertical, 
-  Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database
-} from 'lucide-react';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';

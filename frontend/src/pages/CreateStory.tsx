@@ -1,19 +1,7 @@
 import { showError } from '../utils/toast';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
-  X, Zap, Settings, ChevronLeft, Send, Sparkles, 
-  Smile, Camera, Music, Search, Bookmark, Mic2, LayoutGrid,
-  Plus, History, TrendingUp, Music2, Type, 
-  AtSign, Palette, Timer, Gauge, Wand2, Image as ImageIcon,
-  RotateCw, Check, Layers, UserPlus, Pencil, Music4, ChevronDown,
-  MapPin, AlignLeft, ArrowRightLeft, MousePointer2, AlignCenter,
-  AlignRight, CaseUpper, Sparkle, Type as TypeIcon, Pipette,
-  CheckCircle2, Radio, Play, Clapperboard, Timer as TimerIcon, 
-  ZapOff, Ghost, Grid3X3, Maximize, Layers2, Scan,
-  Square, RectangleHorizontal, Minus, PlusCircle, Pause, Volume2, VolumeX,
-  Languages, Navigation, Map, Loader2, Music3, AlertCircle
-} from 'lucide-react';
+import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, LayoutGrid, Plus, TrendingUp, Music2, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Loader2, Music3, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -30,6 +18,7 @@ import CameraPermissionsManager from '../components/camera/CameraPermissionsMana
 import { useUploadStore, type UploadJob, type StoryMetadata } from '../store/uploadStore';
 import { UploadManager } from '../services/UploadManager';
 import { logger } from '../utils/logger';
+import { validateFile, validateFiles } from '../utils/fileValidation';
 
 type Phase = 'entry' | 'camera' | 'editor' | 'music_picker' | 'template_picker' | 'text_story';
 type Mode = 'post' | 'story' | 'reel';
@@ -72,7 +61,7 @@ const MOCK_PROMPTS = [
   { id: 4, prompt: 'Current mood in 1 pic', count: '+220K' },
 ];
 
-const MODES: Mode[] = ['post', 'story', 'reel'];
+
 
 const FILTERS = [
   { id: 'normal', name: 'Normal', css: 'none' },
@@ -88,7 +77,7 @@ let sessionDeviceMediaCache: { file?: File, url: string, isVideo: boolean }[] = 
 export default function CreateStory() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useUserStore();
+  useUserStore();
   
   const {
     stream,
@@ -161,7 +150,7 @@ export default function CreateStory() {
   const [isWideAspect, setIsWideAspect] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const pressTimer = useRef<any>(null);
+  useRef<any>(null);
 
   useEffect(() => {
     if (parentId) {
@@ -403,6 +392,12 @@ export default function CreateStory() {
   const handleDeviceFilesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
     if (selectedFiles.length > 0) {
+      const check = validateFiles(selectedFiles, { kind: 'any', maxSizeMB: 20 });
+      if (!check.ok) {
+        showError(check.error!);
+        e.target.value = '';
+        return;
+      }
       const mediaList = selectedFiles.map(fileObj => ({
         file: fileObj,
         url: URL.createObjectURL(fileObj),
@@ -420,6 +415,13 @@ export default function CreateStory() {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       logger.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
+
+      const check = validateFile(selectedFile, { kind: 'any', maxSizeMB: 20 });
+      if (!check.ok) {
+        showError(check.error!);
+        e.target.value = '';
+        return;
+      }
       
       if (previewUrl && previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewUrl);
@@ -1169,10 +1171,7 @@ export default function CreateStory() {
                   <AnimatePresence>
                     {showEditMenu && (
                       <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] p-4 flex flex-col gap-2 z-[350]">
-                         <button className="edit-sub-btn"><Languages size={18} /><span>Translate</span></button>
-                         <button className="edit-sub-btn"><Navigation size={18} /><span>Direction</span></button>
                          <button onClick={() => setStickers([...stickers, { id: 'loc-'+Date.now(), type: 'location', config: { name: 'Current Location' }, x: 50, y: 30, scale: 1, rotation: 0 }])} className="edit-sub-btn"><MapPin size={18} /><span>Location</span></button>
-                         <button className="edit-sub-btn"><Layers size={18} /><span>Layout</span></button>
                       </motion.div>
                     )}
                   </AnimatePresence>

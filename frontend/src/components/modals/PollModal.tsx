@@ -1,18 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  X, 
-  Plus, 
-  Trash2, 
-  BarChart3, 
-  Sparkles, 
-  Zap, 
-  ArrowRight, 
-  Globe, 
-  Shield, 
-  Clock,
-  Layers
-} from 'lucide-react';
+import { X, Plus, Trash2, BarChart3, Zap, ArrowRight, Shield, Clock, Layers } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';

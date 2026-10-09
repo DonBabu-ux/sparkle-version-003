@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ChevronLeft, Pin, Search, ArrowUpDown, CornerUpRight, Trash2, Copy, Share2, 
-  Star, User, Clock, Check, Calendar, X
-} from 'lucide-react';
+import { ChevronLeft, Pin, Search, ArrowUpDown, CornerUpRight, Trash2, Copy, Share2, Check, Calendar } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';

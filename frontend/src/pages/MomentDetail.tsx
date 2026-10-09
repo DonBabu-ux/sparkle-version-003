@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, MessageSquare, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
+import { ArrowLeft, Heart, Share2, Sparkles, Orbit, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import clsx from 'clsx';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import { getTiktokEmbedUrl } from '../utils/tiktokEmbed';
 import { logger } from '../utils/logger';
+import { showSuccess } from '../utils/toast';
 import { safeHref } from '../utils/safeHref';
 
 interface MomentData {
@@ -72,6 +73,21 @@ export default function MomentDetail() {
     } finally {
       setLiking(false);
     }
+  };
+
+  const handleShare = async () => {
+    if (!moment) return;
+    const shareUrl = `${window.location.origin}/moments/${moment.moment_id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Sparkle Moment', url: shareUrl });
+        return;
+      } catch { /* dismissed — fall through to copy */ }
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showSuccess('Moment link copied to clipboard!');
+    } catch { /* clipboard unavailable */ }
   };
 
   return (
@@ -141,6 +157,7 @@ export default function MomentDetail() {
                     <iframe
                       key={embedAttempt}
                       src={embedUrl}
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
                       onLoad={() => { embedLoadedRef.current = true; }}
                       className="w-full h-full border-none"
                       allow="autoplay; encrypted-media"
@@ -172,14 +189,7 @@ export default function MomentDetail() {
                     <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic drop-shadow-2xl">{moment.like_count || 0}</span>
                   </button>
 
-                  <button className="flex flex-col items-center gap-3 group/btn">
-                    <div className="w-16 min-w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border-2 border-white/20 flex items-center justify-center text-white transition-all group-hover/btn:scale-110 hover:bg-white hover:text-primary shadow-2xl">
-                      <MessageSquare size={32} strokeWidth={3} />
-                    </div>
-                    <span className="text-[11px] font-black text-white uppercase tracking-[0.2em] italic drop-shadow-2xl">{moment.comment_count || 0}</span>
-                  </button>
-
-                  <button className="w-16 min-w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border-2 border-white/20 flex items-center justify-center text-white transition-all hover:bg-white hover:text-primary group-hover:scale-110 shadow-2xl">
+                  <button className="w-16 min-w-16 h-16 rounded-[24px] bg-white/10 backdrop-blur-3xl border-2 border-white/20 flex items-center justify-center text-white transition-all hover:bg-white hover:text-primary group-hover/btn:scale-110 shadow-2xl" onClick={handleShare}>
                     <Share2 size={28} strokeWidth={3} />
                   </button>
                 </div>

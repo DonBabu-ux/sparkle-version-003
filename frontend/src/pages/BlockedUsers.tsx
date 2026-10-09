@@ -1,5 +1,5 @@
 import { confirmDialog } from '../store/dialogStore';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, UserX, Shield, Search } from 'lucide-react';
 import api from '../api/api';

@@ -1,27 +1,26 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, BadgeCheck, ShieldCheck, Star, FileText, Upload, Send, 
-  CheckCircle2, ChevronDown, Lock, TrendingUp, Users, Zap, Shield, Target
-} from 'lucide-react';
+import { ArrowLeft, BadgeCheck, ShieldCheck, Star, Upload, Send, ChevronDown, Lock, TrendingUp, Users, Zap, Shield, Target } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
+import { validateFile } from '../utils/fileValidation';
 
 export default function Verified() {
   const navigate = useNavigate();
   const { user } = useUserStore();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [submitLoading, setSubmitLoading] = useState(false);
   const [stats, setStats] = useState({ followers: 0, engagement: 0, trustLevel: 1 });
   const [formData, setFormData] = useState({
     category: '',
     documentType: '',
     description: ''
   });
+  const [idFile, setIdFile] = useState<File | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -48,11 +47,8 @@ export default function Verified() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSubmitLoading(true);
-    setTimeout(() => {
-      setSubmitLoading(false);
-      setStep(3);
-    }, 2000);
+    // No identity-verification pipeline exists server-side — never fake a success state.
+    showError('Identity verification is not accepting submissions yet. Your document was NOT uploaded and nothing was sent.');
   };
 
   if (loading) return (
@@ -255,7 +251,24 @@ export default function Verified() {
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Signal Evidence (Upload)</label>
                   <div className="group relative">
-                    <input type="file" id="id-upload" className="sr-only" required />
+                    <input
+                      type="file"
+                      id="id-upload"
+                      className="sr-only"
+                      required
+                      accept="image/*,.pdf"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (!f) return;
+                        const check = validateFile(f, { kind: 'any', maxSizeMB: 10 });
+                        if (!check.ok) {
+                          showError(check.error!);
+                          e.target.value = '';
+                          return;
+                        }
+                        setIdFile(f);
+                      }}
+                    />
                     <label 
                       htmlFor="id-upload" 
                       className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[32px] bg-white/40 dark:bg-white/5 group-hover:bg-white/60 dark:group-hover:bg-white/10 group-hover:border-[#FF1F6D]/30 transition-all cursor-pointer"
@@ -265,6 +278,11 @@ export default function Verified() {
                       </div>
                       <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Transmit File Signal</span>
                       <span className="text-[8px] font-bold text-black/30 dark:text-white/20 mt-1 uppercase italic tracking-widest">JPG, PNG, PDF (10MB MAX)</span>
+                      {idFile && (
+                        <span className="text-[9px] font-bold text-[#FF1F6D] mt-1 uppercase italic tracking-widest break-all px-4 text-center">
+                          ✓ {idFile.name}
+                        </span>
+                      )}
                     </label>
                   </div>
                 </div>
@@ -283,69 +301,17 @@ export default function Verified() {
 
                 <button 
                   type="submit" 
-                  disabled={submitLoading} 
                   className="w-full py-5 rounded-[22px] bg-[#FF1F6D] text-white font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#FF1F6D]/20 flex items-center justify-center gap-3 uppercase tracking-wider italic"
                 >
-                  {submitLoading ? (
-                    <div className="w-6 h-6 border-4 border-white/30 border-t-white rounded-full animate-spin"></div>
-                  ) : (
-                    <>
-                      <Send size={20} strokeWidth={3} />
-                      Submit Evolution
-                    </>
-                  )}
+                  <Send size={20} strokeWidth={3} />
+                  Submit Evolution
                 </button>
               </div>
             </form>
           )}
 
-          {step === 3 && (
-            <div className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-10 md:p-14 text-center transition-all animate-scale-in">
-              <div className="w-24 h-24 md:w-32 md:h-32 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-8 shadow-inner border border-emerald-100 dark:border-emerald-500/20">
-                <CheckCircle2 size={56} strokeWidth={2} />
-              </div>
-              <h2 className="text-2xl md:text-3xl font-black text-black dark:text-white tracking-tight italic mb-3 uppercase">Signal Transmitted</h2>
-              <p className="text-sm md:text-base text-black/50 dark:text-white/40 leading-relaxed font-medium mb-10 max-w-sm mx-auto italic uppercase">
-                Your reputation evolution is being processed. Expect node confirmation within 24–48 hours.
-              </p>
-
-              <div className="flex justify-between items-center px-4 mb-12 relative">
-                <div className="absolute top-4 left-10 right-10 h-0.5 bg-black/5 dark:bg-white/5 z-0" />
-                <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <CheckCircle2 size={16} strokeWidth={3} />
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-emerald-500 tracking-wider italic">Sent</span>
-                </div>
-                <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#121212] text-black/10 dark:text-white/10 flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
-                    <div className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-black/20 dark:text-white/20 tracking-wider italic">Auditing</span>
-                </div>
-                <div className="flex flex-col items-center gap-3 relative z-10">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#121212] text-black/10 dark:text-white/10 flex items-center justify-center shadow-sm border border-black/5 dark:border-white/5">
-                    <div className="w-2 h-2 rounded-full bg-current" />
-                  </div>
-                  <span className="text-[10px] font-black uppercase text-black/20 dark:text-white/20 tracking-wider italic">Finalized</span>
-                </div>
-              </div>
-
-              <button 
-                onClick={() => navigate('/dashboard')} 
-                className="w-full py-5 rounded-[22px] bg-black dark:bg-white text-white dark:text-black font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-black/10 dark:shadow-white/10 uppercase tracking-wider italic"
-              >
-                Return to Node
-              </button>
-            </div>
-          )}
         </main>
       </div>
-
-      <style>{`
-        @keyfra  
-        .animate-scale-in { animation: scaleIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-      `}</style>
     </div>
   );
 }

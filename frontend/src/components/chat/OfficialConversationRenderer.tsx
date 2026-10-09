@@ -1,6 +1,6 @@
 import React from 'react';
 import { OnboardingProgressCard } from './OnboardingProgressCard';
-import { ShieldAlert, AlertTriangle, Info, ShieldCheck, HelpCircle } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, Info, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface OfficialMessage {

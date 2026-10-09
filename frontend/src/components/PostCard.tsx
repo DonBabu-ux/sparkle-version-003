@@ -1,12 +1,7 @@
 import { showError, showInfo, showSuccess } from '../utils/toast';
 import { confirmDialog, promptDialog } from '../store/dialogStore';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { 
-  MoreHorizontal, Share2, MessageCircle, Heart, Bookmark, X, 
-  Globe, Lock, MapPin, Smile, Clock, EyeOff, Flag, Pencil, 
-  Trash2, Bell, Info, Link as LinkIcon, UserPlus, UserMinus,
-  Sparkles, Zap, ChevronDown, Check, Send
-} from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { MoreHorizontal, Bookmark, X, Globe, Lock, Smile, Clock, EyeOff, Flag, Pencil, Trash2, Bell, Info, Link as LinkIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -113,8 +108,8 @@ const IncognitoIcon = ({ size = 16, className = "" }) => (
   </svg>
 );
 
-const PostCard: React.FC<PostCardProps> = ({ post, onRefresh }) => {
-  const navigate = useNavigate();
+const PostCard: React.FC<PostCardProps> = ({ post }) => {
+  useNavigate();
   const { user: currentUser } = useUserStore();
   const { setActiveModal, triggerRefresh } = useModalStore();
   const { isOffline } = useNetworkStore();

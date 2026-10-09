@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Navbar, { MOBILE_HEADERLESS_PREFIXES } from './Navbar';
 

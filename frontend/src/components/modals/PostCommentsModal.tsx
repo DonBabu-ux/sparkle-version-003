@@ -2,7 +2,7 @@ import { showInfo, showSuccess } from '../../utils/toast';
 import { confirmDialog } from '../../store/dialogStore';
 import { lockScroll, unlockScroll } from '../AppScreen';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { X, Heart, Loader2, ChevronDown, Check, Smile, ArrowUp } from 'lucide-react';
+import { X, ChevronDown, Check, Smile, ArrowUp } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 import { useUserStore } from '../../store/userStore';
@@ -11,6 +11,7 @@ import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import MentionText from '../MentionText';
 import { formatCount } from '../../utils/format';
+import { fetchGiphyItems } from '../../utils/giphyClient';
 import { emitHeart } from '../TikTokHearts';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
@@ -43,7 +44,7 @@ interface PostCommentsModalProps {
 
 export default function PostCommentsModal({ post, onClose }: PostCommentsModalProps) {
   const { user } = useUserStore();
-  const { setActiveModal } = useModalStore();
+  useModalStore();
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
@@ -185,7 +186,6 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
   const [giphySearch, setGiphySearch] = useState('');
   const [giphyResults, setGiphyResults] = useState<any[]>([]);
   const [loadingGiphy, setLoadingGiphy] = useState(false);
-  const GIPHY_API_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
   // Conditionally mounted by its parent; suspend while the nested sort sheet is open.
   const a11yRef = useModalA11y(!showSortModal, onClose);
   const sortSheetRef = useModalA11y(showSortModal, () => setShowSortModal(false));
@@ -195,12 +195,13 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       const fetchGiphy = async () => {
         setLoadingGiphy(true);
         try {
-          const endpoint = giphySearch ? 'search' : 'trending';
-          const query = giphySearch ? `&q=${encodeURIComponent(giphySearch)}` : '';
-          const url = `https://api.giphy.com/v1/stickers/${endpoint}?api_key=${GIPHY_API_KEY}${query}&limit=24&rating=g`;
-          const res = await fetch(url);
-          const data = await res.json();
-          setGiphyResults(data.data || []);
+          const items = await fetchGiphyItems({
+            type: 'stickers',
+            endpoint: giphySearch ? 'search' : 'trending',
+            q: giphySearch || undefined,
+            limit: 24,
+          });
+          setGiphyResults(items);
         } catch (err) {
           logger.error('Giphy fetch error', err);
         } finally {

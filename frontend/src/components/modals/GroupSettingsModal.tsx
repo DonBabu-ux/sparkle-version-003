@@ -1,15 +1,11 @@
 import { showError, showSuccess } from '../../utils/toast';
+import { validateFile } from '../../utils/fileValidation';
 import { confirmDialog } from '../../store/dialogStore';
 import { useState, useEffect, useRef } from 'react';
-import { 
-  X, Settings, Users, UserCheck, Shield, ChevronRight, Check, Loader2, 
-  Trash2, ShieldAlert, ArrowLeft, Globe, Lock, PenSquare, 
-  UserMinus, UserPlus, Info, Bell, LogOut, Camera, Image as ImageIcon,
-  MessageSquare, VolumeX, Ban
-} from 'lucide-react';
+import { X, Users, UserCheck, Shield, ChevronRight, Trash2, ShieldAlert, ArrowLeft, Globe, PenSquare, Info, Camera, MessageSquare, VolumeX, Ban } from 'lucide-react';
 import api from '../../api/api';
 import { getAvatarUrl, getMediaUrl } from '../../utils/imageUtils';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -45,6 +41,16 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [iconPreview, setIconPreview] = useState(groupData.icon_url || '');
   const [coverPreview, setCoverPreview] = useState(groupData.cover_image || '');
+  const previewUrlsRef = useRef<{ icon: string; cover: string }>({ icon: iconPreview, cover: coverPreview });
+  previewUrlsRef.current = { icon: iconPreview, cover: coverPreview };
+  useEffect(() => () => {
+    const { icon, cover } = previewUrlsRef.current;
+    if (icon.startsWith('blob:')) URL.revokeObjectURL(icon);
+    if (cover.startsWith('blob:')) URL.revokeObjectURL(cover);
+  }, []);
+  const revokeIfBlob = (url: string) => {
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+  };
 
   // Members & Requests & Moderation
   const [members, setMembers] = useState<any[]>([]);
@@ -168,11 +174,20 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
     const file = e.target.files?.[0];
     if (!file) return;
 
+    const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
+
     const previewUrl = URL.createObjectURL(file);
     if (type === 'icon') {
+      revokeIfBlob(iconPreview);
       setIconFile(file);
       setIconPreview(previewUrl);
     } else {
+      revokeIfBlob(coverPreview);
       setCoverFile(file);
       setCoverPreview(previewUrl);
     }

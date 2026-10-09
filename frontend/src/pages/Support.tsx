@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { LifeBuoy, MessageSquare, Mail, BookOpen, ChevronRight, HelpCircle, Plus, Clock, CheckCircle, MessageCircle } from 'lucide-react';
+import { LifeBuoy, MessageSquare, BookOpen, ChevronRight, HelpCircle, Plus, Clock, CheckCircle, MessageCircle } from 'lucide-react';
 import api from '../api/api';
 import { logger } from '../utils/logger';
 

@@ -55,7 +55,7 @@ export function generateVideoThumbnail(videoFile: File, timeInSeconds = 0.5): Pr
       }
     };
 
-    video.onerror = (e) => {
+    video.onerror = (_e) => {
       URL.revokeObjectURL(videoUrl);
       reject(new Error('Video loading failed for thumbnail capture'));
     };

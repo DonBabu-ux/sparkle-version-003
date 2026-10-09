@@ -1,6 +1,6 @@
 import { showError, showInfo } from '../../utils/toast';
-import React, { useState } from 'react';
-import { X, Zap, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check, ArrowRight, DollarSign } from 'lucide-react';
+import { useState } from 'react';
+import { X, Zap, GraduationCap, Code, Palette, PenTool, Music, Cpu, Hammer, Check, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 import { motion } from 'framer-motion';
 import { logger } from '../../utils/logger';

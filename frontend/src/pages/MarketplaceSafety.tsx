@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ShieldCheck, ArrowLeft, ShieldAlert, CreditCard, 
-  MapPin, MessageCircle, AlertTriangle, CheckCircle2,
-  UserCheck, FileText, Package, Eye, ChevronRight, ChevronLeft
-} from 'lucide-react';
+import { ShieldCheck, ArrowLeft, CreditCard, MapPin, MessageCircle, UserCheck, FileText, ChevronRight, ChevronLeft } from 'lucide-react';
 import clsx from 'clsx';
 
 export default function MarketplaceSafety() {
   const navigate = useNavigate();
-  const [currentPage, setCurrentPage] = useState(0);
+  const [ , setCurrentPage ] = useState(0);
 
   const slides = [
     {

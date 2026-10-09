@@ -1,15 +1,10 @@
 import { showError, showInfo, showSuccess } from '../../utils/toast';
+import { validateFile } from '../../utils/fileValidation';
 import { confirmDialog, promptDialog } from '../../store/dialogStore';
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { 
-  X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, 
-  Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, 
-  MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft,
-  Palette, MessageCircle, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Settings, Wand2, Play, RotateCcw,
-  Copy, Phone, Globe, UserPlus, CheckCircle2, Link2, BarChart2, History
-} from 'lucide-react';
+import { X, Search, Bell, Users, Image as ImageIcon, Pin, Volume2, Download, Share2, Clock, Eye, MoreHorizontal, Shield, Lock, MinusCircle, ShieldAlert, AlertTriangle, Trash2, ChevronLeft, Palette, Smile, ImagePlus, User, Edit3, Check, Sparkles, Send, Wand2, Play, RotateCcw, Copy, Globe, CheckCircle2, Link2, BarChart2, History } from 'lucide-react';
 import { sanitizePartnerName } from '../../utils/nameSanitizer';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useThemeStore, PRESET_THEMES, type SparkleTheme } from '../../store/themeStore';
@@ -32,17 +27,7 @@ interface ChatSettingsModalProps {
 }
 
 // Removed static EMOJIS and MEMOJIS as we'll use emoji-mart and more realistic avatars
-const MEMOJIS = [
-  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1527980965255-d3b416303d12?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=100&auto=format&fit=crop',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=100&auto=format&fit=crop',
-];
+
 
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
@@ -145,7 +130,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
 
   const [wordInput, setWordInput] = useState('');
   const [wordEmoji, setWordEmoji] = useState('✨');
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [ ,  ] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   
   const [nicknameInput, setNicknameInput] = useState(displayPartnerName);
@@ -1186,6 +1171,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => {
                     const file = e.target.files?.[0];
                     if (file) {
+                      const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+                      if (!check.ok) {
+                        showError(check.error!);
+                        e.target.value = '';
+                        return;
+                      }
                       const reader = new FileReader();
                       reader.onload = (ev) => setCustomPhoto(ev.target?.result as string);
                       reader.readAsDataURL(file);
@@ -2081,10 +2072,4 @@ function TabButton({ active, children, onClick }: { active: boolean, children: R
   );
 }
 
-function Chip({ text }: { text: string }) {
-  return (
-    <div className="px-4 py-2 bg-white/10 border border-white/10 rounded-full text-sm font-bold text-white/90 hover:bg-white/20 cursor-pointer transition-colors">
-      {text}
-    </div>
-  );
-}
+

@@ -40,6 +40,15 @@ export interface User {
   note?: string;
   highlights?: { id: string; img: string; title: string }[];
   onboarding_step?: number;
+  // Settings / privacy preferences (server user_settings shape)
+  user_type?: string;
+  push_notifications?: number;
+  message_privacy?: string;
+  last_seen_privacy?: string;
+  chat_theme?: string;
+  auto_download_media?: string;
+  link_previews_enabled?: number;
+  media_quality?: string;
   // Digital Identity cooldown timestamps (server-authoritative)
   name_updated_at?: string | null;
   username_updated_at?: string | null;

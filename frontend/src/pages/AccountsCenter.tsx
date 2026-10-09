@@ -1,17 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  UserCircle, 
-  Lock, 
-  Smartphone, 
-  Mail, 
-  Key, 
-  ChevronRight, 
-  Plus, 
-  Orbit,
-  Zap,
-  Shield
-} from 'lucide-react';
+import { ArrowLeft, UserCircle, Lock, Smartphone, Mail, Key, ChevronRight, Plus, Orbit, Zap } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 
 export default function AccountsCenter() {
@@ -159,7 +147,7 @@ export default function AccountsCenter() {
           <footer className="pt-48 pb-24 text-center space-y-10 relative z-10">
             <div className="flex justify-center gap-12">
               {['Manifesto', 'Stealth', 'Codex'].map(link => (
-                <button key={link} className="text-[10px] font-black uppercase tracking-[0.5em] text-black/10 hover:text-primary transition-colors italic leading-none">{link}</button>
+                <span key={link} className="text-[10px] font-black uppercase tracking-[0.5em] text-black/10 hover:text-primary transition-colors italic leading-none">{link}</span>
               ))}
             </div>
             <div className="flex flex-col items-center gap-4">

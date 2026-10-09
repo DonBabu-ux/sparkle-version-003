@@ -1,21 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  Search,
-  X,
-  Users,
-  Sparkles,
-  MessageSquare,
-  UserCheck,
-  UserPlus,
-  Share2,
-  Lock,
-  PhoneCall,
-  CheckCircle2,
-  Loader2,
-  RefreshCw
-} from 'lucide-react';
+import { ArrowLeft, Search, X, Users, Sparkles, MessageSquare, UserCheck, Share2, Loader2, RefreshCw } from 'lucide-react';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
@@ -75,7 +60,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
   title,
   actionLabel
 }) => {
-  const currentUser = useUserStore((state) => state.user);
+  useUserStore((state) => state.user);
   const a11yRef = useModalA11y(isOpen, onClose);
 
   // Active Tab: 'sparkle' (Mutual connections) | 'contacts' (Device contacts)

@@ -6,11 +6,11 @@ import type { Post } from "../types/post";
 import { useNavigate } from "react-router-dom";
 import { useDeviceSeed } from "../hooks/useDeviceSeed";
 import Spinner from "./ui/Spinner";
-import { Orbit, UserPlus, Check } from "lucide-react";
+import { UserPlus, Check } from "lucide-react";
 import ModernOfflineState from "./ui/ModernOfflineState";
 import { useNetworkStore } from "../store/networkStore";
-import { getOptimizedMediaUrl } from "../utils/imageUtils";
-import { PrefetchEngine, MediaCacheService } from "../services/FeedCacheService";
+import "../utils/imageUtils";
+import { PrefetchEngine } from "../services/FeedCacheService";
 import { logger } from '../utils/logger';
 
 const LIMIT = 10;
@@ -25,7 +25,7 @@ interface VirtualizedFeedProps {
  * Prevents flashing content or layout jumping.
  */
 const SkeletonCard = () => {
-  const theme = useNetworkStore((state) => state.isOffline); // Simple dark/light adaptation
+  useNetworkStore((state) => state.isOffline); // Simple dark/light adaptation
   const shimmerClass = "animate-shimmer bg-black/5 dark:bg-white/5";
 
   return (
@@ -193,7 +193,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const { seed, deviceId } = useDeviceSeed();
-  const { isOffline, quality } = useNetworkStore();
+  const { isOffline } = useNetworkStore();
 
   const loadingRef = useRef(false);
   const lastFetchTime = useRef(0);

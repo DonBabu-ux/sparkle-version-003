@@ -1,6 +1,6 @@
 import { showError, showSuccess } from '../../utils/toast';
 import { useState, useEffect } from 'react';
-import { X, MapPin, Navigation, Compass, ChevronRight, MessageCircle, ChevronDown, ChevronLeft, FileWarning, UserPlus, Plus } from 'lucide-react';
+import { X, Navigation, ChevronRight, MessageCircle, ChevronLeft, FileWarning, UserPlus, Plus, Heart } from 'lucide-react';
 import { useMarketplaceStore } from '../../store/marketplaceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -26,7 +26,7 @@ export default function MarketplaceModals() {
   const [jobStatus, setJobStatus] = useState<'IDLE' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'>('IDLE');
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [lastSequence, setLastSequence] = useState<number>(0);
-  const [loadState, setLoadState] = useState<'NORMAL' | 'DEGRADED' | 'CRITICAL'>('NORMAL');
+  const [ , setLoadState ] = useState<'NORMAL' | 'DEGRADED' | 'CRITICAL'>('NORMAL');
   const a11yRef = useModalA11y(!!activeModal, () => setActiveModal(null));
 
   useEffect(() => {
@@ -294,7 +294,23 @@ export default function MarketplaceModals() {
                         name: 'X' 
                       },
                     ].map(app => (
-                      <button key={app.name} className="flex flex-col items-center gap-2 group">
+                      <button
+                        key={app.name}
+                        onClick={() => {
+                          const url = `${window.location.origin}/marketplace/listings/${selectedListing?.listing_id}`;
+                          const text = encodeURIComponent(`Check out "${selectedListing?.title}" on Sparkle Marketplace`);
+                          const encUrl = encodeURIComponent(url);
+                          if (app.name === 'WhatsApp') {
+                            window.open(`https://wa.me/?text=${text}%20${encUrl}`, '_blank', 'noopener,noreferrer');
+                          } else if (app.name === 'X') {
+                            window.open(`https://twitter.com/intent/tweet?url=${encUrl}&text=${text}`, '_blank', 'noopener,noreferrer');
+                          } else {
+                            navigator.clipboard.writeText(url);
+                            showSuccess('Link copied — paste it in Instagram!');
+                          }
+                        }}
+                        className="flex flex-col items-center gap-2 group"
+                      >
                         <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:scale-110 group-hover:bg-white transition-all shadow-sm">
                           {app.icon}
                         </div>
@@ -336,17 +352,20 @@ export default function MarketplaceModals() {
                     </div>
                   </button>
 
-                  <button className="w-full flex items-center gap-4 p-4 hover:bg-marketplace-bg rounded-2xl transition-all group">
-                    <div className="w-10 h-10 rounded-xl bg-marketplace-bg flex items-center justify-center group-hover:bg-white transition-colors">
-                      <X size={20} />
-                    </div>
-                    <div className="text-left">
-                      <span className="font-black text-[15px] block">Hide Listing</span>
-                      <span className="text-[11px] font-bold opacity-60 block">Don't show this item in my feed</span>
-                    </div>
-                  </button>
-
-                  <button className="w-full flex items-center gap-4 p-4 hover:bg-marketplace-bg rounded-2xl transition-all group">
+                  <button onClick={async () => {
+                      const sellerId = (selectedListing as { seller_id?: string } | null)?.seller_id;
+                      if (!sellerId) {
+                        showError('Unable to identify this seller.');
+                        return;
+                      }
+                      try {
+                        await api.post(`/marketplace/users/${sellerId}/block`, { userId: sellerId, reason: 'Blocked from listing' });
+                        showSuccess('Seller blocked');
+                        setActiveModal(null);
+                      } catch {
+                        showError('Failed to block seller. Please try again.');
+                      }
+                    }} className="w-full flex items-center gap-4 p-4 hover:bg-marketplace-bg rounded-2xl transition-all group">
                     <div className="w-10 h-10 rounded-xl bg-marketplace-bg flex items-center justify-center group-hover:bg-white transition-colors">
                       <UserPlus size={20} className="text-slate-400" />
                     </div>
@@ -422,7 +441,7 @@ export default function MarketplaceModals() {
               {/* LOCATION MODAL */}
               {activeModal === 'location' && (
                 <div className="space-y-6">
-                  <button className="w-full flex items-center gap-3 p-4 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-all">
+                  <button onClick={detectLocation} className="w-full flex items-center gap-3 p-4 bg-primary/10 text-primary rounded-xl font-bold hover:bg-primary/20 transition-all">
                     <Navigation size={20} /> Use Current Location
                   </button>
                   <div>
@@ -486,6 +505,32 @@ export default function MarketplaceModals() {
               {/* CATEGORIES MODAL */}
               {activeModal === 'categories' && (
                 <div className="space-y-1 pb-10">
+                  <button
+                    onClick={() => {
+                      navigate('/wishlist');
+                      setActiveModal(null);
+                    }}
+                    className="w-full flex items-center justify-between p-4 hover:bg-marketplace-bg rounded-xl transition-all border-b border-marketplace-bg"
+                  >
+                    <span className="font-semibold text-marketplace-text flex items-center gap-3">
+                      <Heart size={18} className="text-[#FF1F6D]" />
+                      Saved Items (Wishlist)
+                    </span>
+                    <ChevronRight size={18} className="text-marketplace-muted/30" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      navigate('/lost-found');
+                      setActiveModal(null);
+                    }}
+                    className="w-full flex items-center justify-between p-4 hover:bg-marketplace-bg rounded-xl transition-all border-b border-marketplace-bg"
+                  >
+                    <span className="font-semibold text-marketplace-text flex items-center gap-3">
+                      <FileWarning size={18} className="text-amber-500" />
+                      Lost &amp; Found
+                    </span>
+                    <ChevronRight size={18} className="text-marketplace-muted/30" />
+                  </button>
                   {[
                     'Buy and Sell Groups', 'Vehicles', 'Housing', 'Home Sales', 
                     'Rentals', 'Home & Garden', 'Furniture', 'Household Appliances',
@@ -559,29 +604,6 @@ export default function MarketplaceModals() {
               {/* INBOX MODAL */}
               {activeModal === 'inbox' && (
                 <div className="flex flex-col h-full -mx-6 -my-6">
-                  {/* Top Level Tabs */}
-                  <div className="flex border-b border-slate-100 bg-white sticky top-0 z-10 px-4 pt-2">
-                    <button className="flex-1 py-3 font-bold text-primary border-b-2 border-primary">Selling</button>
-                    <button className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-50 transition-colors">Buying</button>
-                  </div>
-
-                  {/* Horizontal Sub-filters */}
-                  <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-3 px-4 bg-slate-50/50 border-b border-slate-100 sticky top-[48px] z-10">
-                    {['All', 'Pending', 'Payment', 'Paid', 'Completed'].map((filter, i) => (
-                      <button 
-                        key={filter}
-                        className={clsx(
-                          "px-4 py-1.5 rounded-full text-sm font-bold whitespace-nowrap shadow-sm border transition-colors",
-                          i === 0 
-                            ? "bg-slate-800 text-white border-slate-800" 
-                            : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"
-                        )}
-                      >
-                        {filter}
-                      </button>
-                    ))}
-                  </div>
-
                   {/* Chat List Placeholder */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4">
                   {/* Chat List Placeholder */}

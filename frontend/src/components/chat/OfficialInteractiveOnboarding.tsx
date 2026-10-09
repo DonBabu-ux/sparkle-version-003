@@ -1,15 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  Users,
-  Camera,
-  Music,
-  Shield,
-  ArrowRight,
-  CheckCircle2,
-  X,
-  Sparkles,
-} from 'lucide-react';
+import { Users, Camera, Music, Shield, ArrowRight, CheckCircle2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowLeft, RefreshCw, Volume2, ShieldAlert, CheckCircle, Play, Settings } from 'lucide-react';
+import { ArrowLeft, RefreshCw, ShieldAlert, CheckCircle, Play, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AudioSessionManager from '../managers/AudioSessionManager';
 import type { SoundKey } from '../managers/SoundManager';

@@ -24,6 +24,7 @@ export default function Clubs() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('All Communities');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState({ name: '', category: 'Social', description: '', campus: user?.campus || '' });
@@ -109,6 +110,8 @@ export default function Clubs() {
               <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
               <input 
                 type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Scan for community signals..." 
                 className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
@@ -138,7 +141,10 @@ export default function Clubs() {
            </div>
         ) : (
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12 pb-48 px-2">
-              {clubs.map((club) => (
+              {clubs.filter((club) => {
+                 const q = searchQuery.trim().toLowerCase();
+                 return !q || club.name.toLowerCase().includes(q) || club.description.toLowerCase().includes(q) || club.category.toLowerCase().includes(q);
+               }).map((club) => (
                  <Link 
                   key={club.club_id} 
                   to={`/clubs/${club.club_id}`}

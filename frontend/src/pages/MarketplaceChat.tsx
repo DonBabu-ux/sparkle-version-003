@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
-import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Edit2, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag, PackageCheck, BadgeDollarSign, ScanSearch, MapPin, Repeat2, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Send, Image as ImageIcon, MoreVertical, Check, CheckCheck, Smile, Paperclip, Reply, X, Trash2, ShieldCheck, EyeOff, ShoppingBag as ShoppingBagIcon, ShieldAlert, Tag, PackageCheck, BadgeDollarSign, ScanSearch, MapPin, Repeat2, CalendarClock } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
@@ -12,9 +12,12 @@ import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 import { useSocket } from '../hooks/useSocket';
 import { logger } from '../utils/logger';
+import { fetchGiphyItems } from '../utils/giphyClient';
+import { showError } from '../utils/toast';
+import { validateFiles } from '../utils/fileValidation';
 
 
-const EMOJI_LIST = ['😊', '😂', '🥰', '😍', '😒', '😭', '😩', '😔', '😘', '☺️', '😁', '🥳', '😎', '😡', '🤔', '👍', '❤️', '🔥', '✨', '🙌', '💯', '🙏', '🤝', '💰', '🏠', '🚗', '📦', '🎁', '🛒'];
+
 
 const VIRTUAL_GIFTS = [
   { id: 'available', Icon: PackageCheck, label: 'Still Available?', text: 'Is this still available?', color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -24,8 +27,6 @@ const VIRTUAL_GIFTS = [
   { id: 'swap', Icon: Repeat2, label: 'Open to Swap?', text: 'Are you open to a trade or swap?', color: 'text-violet-600', bg: 'bg-violet-50' },
   { id: 'reserve', Icon: CalendarClock, label: 'Can You Hold?', text: 'Can you hold this for me until tomorrow?', color: 'text-sky-600', bg: 'bg-sky-50' },
 ];
-
-const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY;
 
 interface Message {
   id: string;
@@ -63,7 +64,7 @@ const MarketplaceChat = () => {
   const { conversationId } = useParams<{ conversationId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, token } = useUserStore();
+  const { user } = useUserStore();
   
   const socket = useSocket('/marketplace');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -100,12 +101,13 @@ const MarketplaceChat = () => {
         setGiphyLoading(true);
         try {
           const type = pickerTab === 'gif' ? 'gifs' : 'stickers';
-          const endpoint = giphySearch ? 'search' : 'trending';
-          const queryParam = giphySearch ? `&q=${encodeURIComponent(giphySearch)}` : '';
-          const url = `https://api.giphy.com/v1/${type}/${endpoint}?api_key=${GIPHY_API_KEY}${queryParam}&limit=20&rating=g`;
-          const res = await fetch(url);
-          const data = await res.json();
-          setGiphyResults(data.data || []);
+          const items = await fetchGiphyItems({
+            type,
+            endpoint: giphySearch ? 'search' : 'trending',
+            q: giphySearch || undefined,
+            limit: 20,
+          });
+          setGiphyResults(items);
         } catch (err) {
           logger.error("Giphy fetch failed", err);
         } finally {
@@ -253,7 +255,7 @@ const MarketplaceChat = () => {
       setAmIBlocked(Boolean(data.amIBlocked));
     };
 
-    const handleConversationUnblocked = (data: any) => {
+    const handleConversationUnblocked = (_data: any) => {
       setIsBlockedByMe(false);
       setAmIBlocked(false);
     };
@@ -319,7 +321,14 @@ const MarketplaceChat = () => {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0 || !socket) return;
-    
+
+    const check = validateFiles(Array.from(files), { kind: 'any', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
+
     setIsUploading(true);
     const fileArray = Array.from(files);
     

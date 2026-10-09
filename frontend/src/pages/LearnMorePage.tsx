@@ -1,7 +1,7 @@
-import React, { lazy, Suspense } from 'react';
+import { lazy, Suspense } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Info } from 'lucide-react';
+import 'lucide-react';
 
 const MicrophoneShowcase = lazy(() => import('../components/MicrophoneShowcase'));
 const RewardCarousel = lazy(() => import('../components/RewardCarousel'));

@@ -24,9 +24,7 @@ interface ActionSheetProps {
   permissions?: MessagePermissions;
 }
 
-export const MessageActionSheet: React.FC<ActionSheetProps> = ({
-  isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, isMe, themeColor = "#ff1493", onForward, permissions
-}) => {
+export const MessageActionSheet: React.FC<ActionSheetProps> = ({ isOpen, onClose, onReply, onCopy, onDelete, onMore, onReact, onOpenEmojiPicker, themeColor = "#ff1493", onForward, permissions }) => {
   const a11yRef = useModalA11y(isOpen, onClose);
   return (
     <AnimatePresence>

@@ -2,10 +2,8 @@ import { showError, showSuccess } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  ArrowLeft, Clock, Trash2, RotateCw, Lock, Sparkles, X
-} from 'lucide-react';
+import { AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Clock, Trash2, Lock } from 'lucide-react';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';

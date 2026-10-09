@@ -76,3 +76,4 @@ only when real data exists / made reachable (clipping fix), respectively.
 `referralService.ts` + `useReferralData.ts` retained as the documented seam for a
 future backend; the `/referral/*` endpoints still do not exist.
 - `src/mocks/referralData.ts` — orphaned mock (last importer `FloatingRewardWidget` deleted in B5).
+- `src/components/chat/ChatInfoHeader.tsx` — never imported anywhere; its Call/Video buttons were dead (C3.2). Call/video entry points already exist in the Messages header via `useCall().startCall`.

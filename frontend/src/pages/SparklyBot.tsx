@@ -1,11 +1,7 @@
 import { showInfo } from '../utils/toast';
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, Plus, Send, Mic, Square, RefreshCw, Trash2, Brain, Sparkles, X, ChevronRight, MessageSquare,
-  Search, Copy, Check, PanelLeft, ThumbsUp, ThumbsDown, GitFork, Settings, User, Shield, Info, Sliders,
-  MessageCircle, AlertCircle, Palette, Zap, Globe, Edit3
-} from 'lucide-react';
+import { ArrowLeft, Plus, Send, Mic, Square, RefreshCw, Trash2, Brain, X, ChevronRight, MessageSquare, Search, Copy, Check, PanelLeft, ThumbsUp, ThumbsDown, GitFork, Settings, User, Shield, Sliders, AlertCircle, Palette, Zap, Globe, Edit3 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -486,14 +482,12 @@ export default function SparklyBot() {
         for (const evt of events) {
           if (!evt.trim()) continue;
 
-          let eventType = 'message';
+          
           let dataStr = '';
 
           const lines = evt.split('\n');
           for (const line of lines) {
-            if (line.startsWith('event:')) {
-              eventType = line.slice(6).trim();
-            } else if (line.startsWith('data:')) {
+            if (line.startsWith('data:')) {
               dataStr = line.slice(5).trim();
             }
           }

@@ -239,9 +239,9 @@ no DB pool leaks; queue cap never hit.
 | Item | What | Note |
 |---|---|---|
 | **C7** | Social/OTP endpoints issue 7-day JWTs from unverified client input (**login-as-anyone**) | 🔴 **user-deferred 2026-10-07** — do not touch until told |
-| **C2 (A.4 lows)** | 5 items: Giphy key in bundle → `/api/giphy` proxy; OTP/email → URL **fragment**; client file validation; TikTok iframe sandbox; `revokeObjectURL` sweep | full spec prepared 2026-10-08 (dispatch aborted) |
-| **C3 (A.5)** | 5 orphan routes, ~60 dead controls wire-or-remove, domain conflict (`sparkle.app` vs `sparkleweb.app.vercel.app`), silent form failures (PostDetail, Confessions comments → `showError`) | "140 native dialogs" claim is stale (done) |
-| **B6 / tsc** | ~**826** `tsc` errors (was 927; TS2304 = 0) → typecheck-green campaign → `tsc --noEmit` in CI | frozen decision; see H7 |
+| ~~**C2 (A.4 lows)**~~ | ✅ **done 2026-10-09 (uncommitted)**: Giphy key → `/api/giphy` proxy (env-only, 503 fallback); OTP/reset → URL **fragment** + `pages/VerifyEmail.tsx`; client file validation wired in **17** inputs (`utils/fileValidation.ts`); TikTok iframe sandboxed; `revokeObjectURL` sweep (9 files + Messages ownership logic) | 6 contract tests in `src/utils/__tests__/` + `__tests__/` |
+| ~~**C3 (A.5)**~~ | ✅ **done 2026-10-09 (uncommitted)**: orphan routes wired (Settings rows → `/follow-requests` + `/settings/audio-diagnostics`, categories modal → `/wishlist` + `/lost-found`); dead buttons **47→0**, dead inputs **6→0**, Help FAQ search reads state, fake QR scanner → real manual check-in (`POST /events/checkin`), silent forms → `showError` (PostDetail/Confessions), Verified.tsx fake submit → honest refusal (no server pipeline), `ChatInfoHeader.tsx` deleted | 8 contract tests: `orphanRoutes`, `silentForms`, `fakeScanner`, `deadControls`, `honestForms` |
+| **B6 / tsc** | ~**866** `tsc` errors fresh (was 838; TS2304 ≈ 0) → typecheck-green campaign → `tsc --noEmit` in CI | frozen decision; see H7 |
 | **H10/H11** | Render env (`NODE_ENV=production`, `JWT_SECRET`, `DB_POOL_LIMIT`, start cmd) — **user-side** | also Firebase key restriction (M14), Upstash `noeviction` + command burn |
 | **Firebase Admin** | needs a real service-account JSON (not the Android config) | optional feature, non-blocking |
 | **Defer list** | express 5, multer 2, vite 8, capacitor 8 major upgrades; dev-only `braces` GHSA (upstream unpatched) | by decision |

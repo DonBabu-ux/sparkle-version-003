@@ -2,19 +2,14 @@ import { showError, showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Search as SearchIcon, X, Clock, MoreHorizontal,
-  ChevronRight, Hash, Trash2, 
-  RotateCw, User, Zap, Sparkles, Send, ArrowLeft, Hand,
-  TrendingUp, Compass
-} from 'lucide-react';
+import { Search as SearchIcon, X, Clock, MoreHorizontal, ChevronRight, Hash, Trash2, User, Sparkles, Send, ArrowLeft, Hand, TrendingUp, Compass } from 'lucide-react';
 import api from '../api/api';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
 import ListingCard from '../components/marketplace/ListingCard';
 import { useUserStore } from '../store/userStore';
-import { IdentityManager } from '../utils/identityManager';
-import { VerifiedBadge } from '../components/common/VerifiedBadge';
+import '../utils/identityManager';
+import '../components/common/VerifiedBadge';
 import debounce from 'lodash.debounce';
 import { logger } from '../utils/logger';
 
@@ -52,8 +47,8 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [actionItem, setActionItem] = useState<SearchResult | null>(null);
   const [poking, setPoking] = useState(false);
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [ ,  ] = useState<SearchResult[]>([]);
+  const [ ,  ] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const fetchInitialData = useCallback(async () => {

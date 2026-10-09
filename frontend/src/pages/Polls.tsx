@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Plus, ChevronRight, Hash, Calendar, MapPin, Orbit, Sparkles, Zap, Users } from 'lucide-react';
+import { BarChart2, Plus, ChevronRight, Calendar, Sparkles, Zap, Users } from 'lucide-react';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
@@ -34,7 +34,7 @@ interface Poll {
 }
 
 export default function Polls() {
-  const { user } = useUserStore();
+  useUserStore();
   const { setActiveModal } = useModalStore();
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);

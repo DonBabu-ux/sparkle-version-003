@@ -2,12 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { 
-  Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, 
-  Play, Send, X, Search, History,
-  Volume2, VolumeX, Loader2, Sparkles, Eye, Orbit,
-  Smile, ArrowUp
-} from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -17,7 +12,7 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useInteractionStore } from '../store/interactionStore';
 import { FeedPaginationAudit } from '../services/feedPaginationAudit';
-import { trackingService } from '../services/TrackingService';
+import '../services/TrackingService';
 import { getMediaUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
@@ -51,7 +46,7 @@ interface Comment {
   replies?: Comment[];
 }
 
-const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void }) => {
+const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void; onReply?: (username: string) => void }) => {
   return (
     <div className="flex gap-3 mb-6 group animate-fade-in items-start">
       <img 
@@ -90,8 +85,7 @@ const CommentItem = ({ comment, onLike }: { comment: Comment; onLike: (id: strin
         </div>
 
         <div className="flex items-center gap-6 mt-2">
-          <button className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline active:opacity-50">Reply</button>
-          <button className="text-[11px] font-bold text-gray-400 uppercase tracking-widest hover:text-gray-600">Translate</button>
+          <button onClick={() => onReply?.(comment.username)} className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline active:opacity-50">Reply</button>
         </div>
       </div>
     </div>
@@ -144,7 +138,7 @@ const ReelItem = React.memo(({
   const [progress, setProgress] = useState(0);
   const lastTap = useRef<number>(0);
   const navigate = useNavigate();
-  const heartIdCounter = useRef(0);
+  useRef(0);
   const viewTracked = useRef(false);
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPress = useRef(false);
@@ -548,15 +542,15 @@ export default function Moments() {
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true); // Default to muted for reliable autoplay
-  const [qualityNote, setQualityNote] = useState<string | null>(null);
-  const qualityTimer = useRef<NodeJS.Timeout | null>(null);
+  const [ ,  ] = useState<string | null>(null);
+  useRef<NodeJS.Timeout | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
-  const [isShareOpen, setIsShareOpen] = useState(false);
-  const [selectedMoment, setSelectedMoment] = useState<Moment | null>(null);
+  const [ ,  ] = useState(false);
+  const [ ,  ] = useState<Moment | null>(null);
   
   // Giphy & Sticker States
   const [showStickers, setShowStickers] = useState(false);
@@ -581,10 +575,10 @@ export default function Moments() {
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
-  const [showHDIntro, setShowHDIntro] = useState(false);
+  const [ , setShowHDIntro ] = useState(false);
 
   // Zustand Interaction Store integration
-  const interactionStore = useInteractionStore.getState();
+  useInteractionStore.getState();
 
   // Local Toast alert state
 
@@ -835,7 +829,7 @@ export default function Moments() {
     }
   }, [activeSearchTab]);
 
-  const handleFollow = async (userId: string, momentId: string) => {
+  const handleFollow = async (userId: string, _momentId: string) => {
     if (!user) {
       navigate('/login');
       return;
@@ -856,15 +850,7 @@ export default function Moments() {
     }
   };
 
-  const trackEngagement = async (momentId: string, type: string, value?: number, category?: string) => {
-    if (!user) return;
-    trackingService.sendSignal({
-      postId: momentId,
-      action: type as any,
-      watchTime: value,
-      timestamp: Date.now()
-    });
-  };
+  
 
   const lastScrollTime = useRef<number>(0);
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -1248,7 +1234,7 @@ export default function Moments() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0.5 p-0.5">
-                      {searchResults.map((moment, idx) => (
+                      {searchResults.map((moment, _idx) => (
                         <div 
                           key={moment.moment_id}
                           onClick={() => {
@@ -1422,9 +1408,10 @@ export default function Moments() {
                       <CommentItem 
                         key={c.comment_id} 
                         comment={c} 
-                        onLike={(id, e) => {
+                        onLike={(_id, e) => {
                           if (e) emitHeart(e.clientX, e.clientY);
                         }} 
+                        onReply={(username) => setNewComment(prev => (prev ? prev.replace(/\s+$/, '') + ' ' : '') + '@' + username + ' ')}
                       />
                     ))}
                   </div>

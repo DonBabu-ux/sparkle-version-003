@@ -5,29 +5,10 @@ import ProfileIdentityPreview from './ProfileIdentityPreview';
 import MentionAutocomplete, { type MentionOption } from '../MentionAutocomplete';
 import { useMentionSearch } from '../../hooks/useMentionSearch';
 import { VerifiedBadge } from '../common/VerifiedBadge';
-import {
-  ArrowLeft,
-  Camera,
-  ChevronRight,
-  Copy,
-  Check,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  Sparkles,
-  GraduationCap,
-  Compass,
-  FileText,
-  User as UserIcon,
-  AtSign,
-  Search,
-  Eye,
-  Upload,
-  X,
-  Loader2,
-} from 'lucide-react';
+import { ArrowLeft, Camera, ChevronRight, Copy, Check, CheckCircle2, AlertCircle, Clock, Sparkles, GraduationCap, Compass, User as UserIcon, AtSign, Search, Eye, Upload, X, Loader2 } from 'lucide-react';
 import type { User } from '../../types/user';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { validateFile } from '../../utils/fileValidation';
 
 interface EditProfileModalProps {
   isOpen: boolean;
@@ -389,13 +370,9 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   const handleFileSelected = async (file: File) => {
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setErrorMsg('Please select a valid image file (JPG, PNG, WebP).');
-      return;
-    }
-
-    if (file.size > 10 * 1024 * 1024) {
-      setErrorMsg('Image file size must be under 10MB.');
+    const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      setErrorMsg(check.error!);
       return;
     }
 

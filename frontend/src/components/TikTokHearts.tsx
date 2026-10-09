@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface Heart {
@@ -33,12 +33,11 @@ export const TikTokHearts = () => {
       
       // V-pattern physics
       let drift = (Math.random() - 0.5) * 200;
-      let flyUp = 400 + Math.random() * 200;
+      
       
       if (pattern === 'v') {
         // First heart goes left-ish, second goes right-ish
         drift = i === 0 ? -120 - Math.random() * 60 : 120 + Math.random() * 60;
-        flyUp = 500 + Math.random() * 100;
       }
 
       const delay = i * 0.05;

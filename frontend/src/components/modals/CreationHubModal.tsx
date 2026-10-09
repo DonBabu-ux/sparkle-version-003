@@ -1,21 +1,8 @@
-import React from 'react';
+import 'react';
 import { useNavigate } from 'react-router-dom';
 import { useModalStore } from '../../store/modalStore';
 import { useModalA11y } from '../../hooks/useModalA11y';
-import { 
-  Pen, 
-  PlayCircle, 
-  Calendar, 
-  X,
-  Store,
-  Ghost,
-  History,
-  Sparkles,
-  BarChart3,
-  Orbit,
-  ArrowRight,
-  Hammer
-} from 'lucide-react';
+import { Pen, PlayCircle, Calendar, X, Store, History, Sparkles, BarChart3, Orbit, ArrowRight, Hammer } from 'lucide-react';
 
 interface CreationHubModalProps {
   onClose: () => void;

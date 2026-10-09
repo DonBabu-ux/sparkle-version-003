@@ -1,4 +1,4 @@
-import React, { useRef, FC, useState } from 'react';
+import React, { useRef, type FC, useState } from 'react';
 import { motion, useMotionValue } from 'framer-motion';
 import { useGesture } from '@use-gesture/react';
 import { Music3 } from 'lucide-react';

@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { useCamera } from '../../hooks/useCamera';
 import { RefreshCw, User } from 'lucide-react';
-import { designTokens } from '../../theme/designTokens';
+import '../../theme/designTokens';
 
 /**
  * Displays the live local camera preview for the video call.

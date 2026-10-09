@@ -12,13 +12,13 @@ const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
   (typeof window !== 'undefined' ? window.location.origin : '');
 
 let _socket: Socket | null = null;
-let _currentUserId: string | null = null;
+
 const _sockets = new Map<string, Socket>();
 
 /**
  * Create a new socket instance for the given user and namespace.
  */
-export const createSocket = (userId: string, token: string, namespace = ''): Socket => {
+export const createSocket = (userId: string, _token: string, namespace = ''): Socket => {
   const key = `${userId}:${namespace}`;
   let s = _sockets.get(key);
 
@@ -42,7 +42,6 @@ export const createSocket = (userId: string, token: string, namespace = ''): Soc
 
     if (namespace === '') {
       _socket = s;
-      _currentUserId = userId;
     }
 
     // H21/H26: first connect gets a fresh token when the stored one is expiring,

@@ -691,7 +691,7 @@ const forgotPassword = async (req, res) => {
             templateData: {
                 name: user.name,
                 code: token,
-                resetUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/reset-password?email=${encodeURIComponent(email)}&code=${token}`
+                resetUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/reset-password#email=${encodeURIComponent(email)}&code=${token}`
             }
         }).catch(e => logger.error('Reset email failed:', e));
 
@@ -827,7 +827,7 @@ const resendVerification = async (req, res) => {
             templateData: {
                 name: user.name,
                 code,
-                verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/verify-email?code=${code}`
+                verifyUrl: `${process.env.APP_URL || 'https://sparklewebapp.vercel.app'}/verify-email#email=${encodeURIComponent(email)}&code=${code}`
             }
         });
 

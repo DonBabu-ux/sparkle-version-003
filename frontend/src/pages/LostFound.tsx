@@ -27,6 +27,7 @@ export default function LostFound() {
   const [items, setItems] = useState<LFItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showReport, setShowReport] = useState(false);
   const [step, setStep] = useState(1);
   const [reportType, setReportType] = useState<'lost' | 'found'>('lost');
@@ -135,6 +136,8 @@ export default function LostFound() {
                 <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Scan village items..." 
                   className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
                 />
@@ -160,7 +163,10 @@ export default function LostFound() {
             </div>
           ) : (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-                {items.map((item, i) => (
+                {items.filter((item) => {
+                  const q = searchQuery.trim().toLowerCase();
+                  return !q || item.title.toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q);
+                }).map((item, i) => (
                    <div 
                     key={item.id} 
                     className="bg-white/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
@@ -185,7 +191,24 @@ export default function LostFound() {
                         </div>
                         
                         <div className="absolute top-6 right-6">
-                           <button className="w-12 h-12 bg-white/20 backdrop-blur-3xl border border-white/20 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary">
+                           <button
+                             onClick={async (e) => {
+                               e.stopPropagation();
+                               const url = `${window.location.origin}/lost-found`;
+                               const text = `${item.type === 'lost' ? 'Lost' : 'Found'}: ${item.title}`;
+                               if (navigator.share) {
+                                 try {
+                                   await navigator.share({ title: item.title, text, url });
+                                   return;
+                                 } catch { /* dismissed — fall through to copy */ }
+                               }
+                               try {
+                                 await navigator.clipboard.writeText(url);
+                                 showSuccess('Link copied to clipboard!');
+                               } catch { /* clipboard unavailable */ }
+                             }}
+                             className="w-12 h-12 bg-white/20 backdrop-blur-3xl border border-white/20 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
+                           >
                               <Share2 size={20} strokeWidth={3} />
                            </button>
                         </div>

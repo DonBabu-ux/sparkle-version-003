@@ -63,7 +63,13 @@ export default function Help() {
             <div className="faq-section">
               <h2 className="section-title">Frequently Asked Questions</h2>
               <div className="faq-list responsive-card">
-                {faqs.map((faq, i) => (
+                {faqs
+                  .map((faq, i) => ({ faq, i }))
+                  .filter(({ faq }) => {
+                    const q = searchQuery.trim().toLowerCase();
+                    return !q || faq.q.toLowerCase().includes(q) || faq.a.toLowerCase().includes(q);
+                  })
+                  .map(({ faq, i }) => (
                   <div key={i} className={`faq-item group ${openFaq === i ? 'open' : ''}`}>
                     <div
                       className="faq-question"
@@ -94,7 +100,7 @@ export default function Help() {
                       <span>support@sparkle.app</span>
                     </div>
                   </div>
-                  <button className="contact-btn">Send Email</button>
+                  <button className="contact-btn" onClick={() => { window.location.href = 'mailto:support@sparkle.app'; }}>Send Email</button>
                 </div>
                 <div className="contact-card responsive-card">
                   <div className="contact-info">
@@ -104,7 +110,7 @@ export default function Help() {
                       <span>Found a glitch?</span>
                     </div>
                   </div>
-                  <button className="contact-btn">Report Issue</button>
+                  <button className="contact-btn" onClick={() => navigate('/support')}>Report Issue</button>
                 </div>
               </div>
             </div>

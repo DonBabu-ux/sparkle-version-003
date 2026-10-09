@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X, Search, Send, Link, MessageCircle, Share2, MoreHorizontal, PlusCircle, Bookmark, ChevronLeft } from 'lucide-react';
+import { X, Search, Send, Link, MessageCircle, Share2, MoreHorizontal, PlusCircle, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';
 import type { User } from '../../types/user';
@@ -14,12 +14,12 @@ interface MomentShareModalProps {
 }
 
 export default function MomentShareModal({ moment, onClose, onDownload }: MomentShareModalProps) {
-  const navigate = useNavigate();
+  useNavigate();
   const [search, setSearch] = useState('');
   const [recipients, setRecipients] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [isSaved, setIsSaved] = useState(moment.is_saved || false);
+  const [ ,  ] = useState(moment.is_saved || false);
 
   const [showStoryComposer, setShowStoryComposer] = useState(false);
   const [storyCaption, setStoryCaption] = useState('');

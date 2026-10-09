@@ -2,7 +2,7 @@ import { showError, showInfo, showSuccess } from '../../utils/toast';
 import { confirmDialog, promptDialog } from '../../store/dialogStore';
 import React from 'react';
 import { X, Bookmark, Link as LinkIcon, PlusCircle, MinusCircle, Flag, Pencil, Trash2 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
 import { useUserStore } from '../../store/userStore';

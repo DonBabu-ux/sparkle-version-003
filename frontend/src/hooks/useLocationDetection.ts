@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import api from '../api/api';
 import { logger } from '../utils/logger';
@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 const LOCATION_CACHE_KEY = 'sparkle_last_location';
 
 export const useLocationDetection = () => {
-  const { setFilters, location } = useMarketplaceStore();
+  const { setFilters } = useMarketplaceStore();
 
   const resolveWithBackend = useCallback(async (coords?: { lat: number; lon: number }) => {
     try {
@@ -45,7 +45,7 @@ export const useLocationDetection = () => {
     if ('geolocation' in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          const { latitude, longitude, accuracy } = position.coords;
+          const { latitude, longitude } = position.coords;
           resolveWithBackend({ lat: latitude, lon: longitude });
         },
         (error) => {

@@ -2,15 +2,11 @@ import { showError, showInfo } from '../utils/toast';
 import { promptDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeft, Check, Star, AlertCircle, ShoppingBag, 
-  Send, Share2, MoreHorizontal, ShieldCheck, 
-  Calendar, MapPin, MessageSquare, Award, ExternalLink, Bell
-} from 'lucide-react';
+import { ChevronLeft, Check, Star, AlertCircle, ShoppingBag, Send, Share2, MoreHorizontal, ShieldCheck, Calendar, MapPin, MessageSquare, Award, Bell } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import ProfileShareModal from '../components/modals/ProfileShareModal';
 import ListingCard from '../components/marketplace/ListingCard';
 import Spinner from '../components/ui/Spinner';
@@ -46,15 +42,7 @@ export default function SellerProfile() {
   // If no :id in URL (my-shop route), use the logged-in user's id
   const sellerId = id || user?.user_id || user?.id;
 
-  const handleFollow = async () => {
-    if (!seller) return;
-    try {
-      await api.post(`/marketplace/seller/favorite`, { sellerId: seller.user_id });
-      // Update local state or refetch
-    } catch (err) {
-      logger.error('Follow error:', err);
-    }
-  };
+  
 
   const handleAlertToggle = async () => {
     if (!seller) return;
@@ -421,7 +409,7 @@ export default function SellerProfile() {
                   <h4 className="text-lg font-black mb-1">Trading Safety</h4>
                   <p className="text-white/60 text-sm font-medium">Always meet in public places for transactions.</p>
                 </div>
-                <button className="relative z-10 px-6 py-2.5 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
+                <button onClick={() => navigate('/help')} className="relative z-10 px-6 py-2.5 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
                   Read Guide
                 </button>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />

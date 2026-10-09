@@ -1,6 +1,6 @@
 import { showInfo } from '../../utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon, ChevronRight } from 'lucide-react';
+import { User as UserIcon } from 'lucide-react';
 import type { User } from '../../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';

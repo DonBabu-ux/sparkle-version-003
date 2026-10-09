@@ -31,7 +31,7 @@ export const AppLockOverlay: React.FC = () => {
   const [factorCode, setFactorCode] = useState('');
   const [resetError, setResetError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [verifiedToken, setVerifiedToken] = useState<string | null>(null);
+  const [ , setVerifiedToken ] = useState<string | null>(null);
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 

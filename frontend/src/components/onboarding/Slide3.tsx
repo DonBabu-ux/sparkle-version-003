@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserPlus, UserCheck, ArrowRight, ArrowLeft, Loader2, Compass } from 'lucide-react';
 import api from '../../api/api';

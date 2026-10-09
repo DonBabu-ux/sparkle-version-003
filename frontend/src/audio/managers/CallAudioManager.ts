@@ -5,7 +5,7 @@ export class CallAudioManager {
   private activeCallStatus: 'idle' | 'ringing' | 'connecting' | 'busy' = 'idle';
   private eventBus: EventBus;
 
-  constructor(audioCtx: AudioContext | null = null, eventBus?: EventBus) {
+  constructor(_audioCtx: AudioContext | null = null, eventBus?: EventBus) {
     this.eventBus = eventBus || audioEventBus;
     CallAudioManager.instance = this;
 

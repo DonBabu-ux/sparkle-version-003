@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Search, Orbit } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../api/api';

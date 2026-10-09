@@ -1,31 +1,28 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import PostCard from '../components/PostCard';
+import '../components/PostCard';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import AppScreen, { scrollTopTo } from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
 import { storyCache } from '../utils/storyCache';
-import { 
-  Check, Image, Video, Smile, Ghost, 
-  Plus, Sparkles, Flame, TrendingUp, Orbit, Send, 
-  ChevronRight, BarChart3, Calendar 
-} from 'lucide-react';
+import { Image, Video, Smile, Plus, TrendingUp, ChevronRight } from 'lucide-react';
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Spinner from '../components/ui/Spinner';
 import { useDeviceSeed } from '../hooks/useDeviceSeed';
 import { PullToRefreshProvider, usePullToRefresh } from '../components/PullToRefreshProvider';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { User } from '../types/user';
-import type { Post } from '../types/post';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { useUploadStore } from '../store/uploadStore';
-import { CloudUpload, AlertTriangle, RefreshCw, X as XIcon } from 'lucide-react';
+import { CloudUpload, RefreshCw, X as XIcon } from 'lucide-react';
 import { useUploadNotificationStore } from '../components/notifications/UploadNotificationCenter';
 import AestheticProfileCompletionBanner from '../components/profile/AestheticProfileCompletionBanner';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
+import { validateFiles } from '../utils/fileValidation';
 
 interface StoryItem {
   story_id?: string;
@@ -101,7 +98,7 @@ function DashboardContent() {
   const navigate = useNavigate();
   const { setActiveModal } = useModalStore();
   const { stories, suggestions, setPosts, appendPosts, prependPosts, setStories, setSuggestions, lastFetched, orderedPostIds, postsById } = useFeedStore();
-  const { start: refreshDashboard } = usePullToRefresh('dashboard', () => fetchDashboardData(true, true));
+  usePullToRefresh('dashboard', () => fetchDashboardData(true, true));
 const posts = orderedPostIds.map(id => postsById[id]);
 
   // Upload queue state
@@ -112,14 +109,14 @@ const posts = orderedPostIds.map(id => postsById[id]);
   const activeUploads = uploadJobs.filter((j) => j.type === 'STORY' && j.status !== 'PUBLISHED' && j.status !== 'CANCELLED');
   const [showUploadSheet, setShowUploadSheet] = useState(false);
   
-  const [newPostContent, setNewPostContent] = useState('');
-  const [isPublishing, setIsPublishing] = useState(false);
-  const [mediaFiles, setMediaFiles] = useState<File[]>([]);
+  const [ ,  ] = useState('');
+  const [ ,  ] = useState(false);
+  const [ ,  ] = useState<File[]>([]);
   const [trendingTags, setTrendingTags] = useState<TrendingTag[]>([]);
-  const [loading, setLoading] = useState(!lastFetched);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [hiddenPostIds, setHiddenPostIds] = useState<string[]>([]);
+  const [ , setLoading ] = useState(!lastFetched);
+  const [ , setLoadingMore ] = useState(false);
+  const [ , setHasMore ] = useState(true);
+  const [ , setHiddenPostIds ] = useState<string[]>([]);
   const offsetRef = useRef<number>(0);
   const lastSyncTime = useRef<number>(Date.now());
   const isInitialMount = useRef(true);
@@ -240,7 +237,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
   }, [fetchDashboardData, fetchDeltaData, fetchStoriesData]);
 
   const { refreshCounter } = useModalStore();
-  const observerTarget = useRef<HTMLDivElement>(null);
+  useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const storyJustPosted = sessionStorage.getItem('sparkle_story_posted');
@@ -273,12 +270,24 @@ const posts = orderedPostIds.map(id => postsById[id]);
             <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-red-500/5 rounded-xl transition-all cursor-pointer group text-red-500/60 dark:text-red-400">
               <Video size={20} className="text-red-500 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-black uppercase tracking-widest">Video</span>
-              <input type="file" className="hidden" accept="video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+              <input type="file" className="hidden" accept="video/*" onChange={(e) => {
+                const f = Array.from(e.target.files || []);
+                if (f.length === 0) return;
+                const check = validateFiles(f, { kind: 'any', maxSizeMB: 15 });
+                if (!check.ok) { showError(check.error!); e.target.value = ''; return; }
+                setActiveModal('post', null, { initialFiles: f });
+              }} />
             </label>
             <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-500/5 rounded-xl transition-all cursor-pointer group text-emerald-500/60 dark:text-emerald-400">
               <Image size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
-              <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => { setActiveModal('post', null, { initialFiles: Array.from(e.target.files || []) }); }} />
+              <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => {
+                const f = Array.from(e.target.files || []);
+                if (f.length === 0) return;
+                const check = validateFiles(f, { kind: 'any', maxSizeMB: 15 });
+                if (!check.ok) { showError(check.error!); e.target.value = ''; return; }
+                setActiveModal('post', null, { initialFiles: f });
+              }} />
             </label>
             <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
               <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />

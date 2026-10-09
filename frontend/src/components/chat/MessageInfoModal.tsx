@@ -1,8 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  X, Check, CheckCheck, Clock, Edit2, Share2, CornerUpLeft, 
-  Smile, User, ShieldCheck, Info
-} from 'lucide-react';
+import { X, Check, CheckCheck, Clock, Edit2, Share2, CornerUpLeft, Info } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';

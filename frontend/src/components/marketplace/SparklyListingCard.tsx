@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, MessageSquare, Heart, MapPin, ExternalLink, Check } from 'lucide-react';
+import { ShoppingBag, MessageSquare, Heart, MapPin, ExternalLink } from 'lucide-react';
 import api from '../../api/api';
 import { getMediaUrl } from '../../utils/imageUtils';
 import { logger } from '../../utils/logger';

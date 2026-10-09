@@ -1,13 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  X, ArrowLeft, Search, Smile, Sparkles, Heart, Frown, 
-  Zap, Ghost, Sun, Moon, Star, PartyPopper,
-  Tv, Utensils, Coffee, Ticket, Plane, Headphones, 
-  Brain, BookOpen, Gamepad2, Megaphone, Check,
-  Wind, Shield, Target, Compass, Anchor, Cloud,
-  ShoppingBag, PenTool, Footprints, Dumbbell, Bike, Car,
-  Users, UserPlus, ChevronRight, Loader2
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, ArrowLeft, Search, Smile, Sparkles, Heart, Frown, Zap, Ghost, Sun, Moon, Star, PartyPopper, Tv, Utensils, Coffee, Ticket, Plane, Headphones, Brain, BookOpen, Gamepad2, Megaphone, Check, Wind, Shield, Target, Compass, Anchor, Cloud, ShoppingBag, PenTool, Footprints, Dumbbell, Users, UserPlus, ChevronRight } from 'lucide-react';
 import api from '../../api/api';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import Spinner from '../ui/Spinner';

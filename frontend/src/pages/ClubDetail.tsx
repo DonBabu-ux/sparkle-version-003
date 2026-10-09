@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Users, MapPin, MessageSquare, ChevronRight, Orbit, Sparkles } from 'lucide-react';
+import { ArrowLeft, Users, MapPin, MessageSquare, ChevronRight, Sparkles } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import PostCard from '../components/PostCard';
 import api from '../api/api';

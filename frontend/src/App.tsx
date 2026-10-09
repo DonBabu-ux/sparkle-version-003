@@ -18,7 +18,7 @@ import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { DialogHost } from './components/ui/DialogHost';
 import { MockCallProvider } from './components/MockCallProvider';
-import { SocketProvider } from './context/SocketProvider';
+import './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
 import { AppLockOverlay } from './components/security/AppLockOverlay';
@@ -63,6 +63,7 @@ const SkillHub = lazy(() => import('./pages/SkillHub'));
 const Signup = lazy(() => import('./pages/Signup'));
 const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const Orders = lazy(() => import('./pages/Orders'));
 const MyListings = lazy(() => import('./pages/MyListings'));
 const ReportListing = lazy(() => import('./pages/ReportListing'));
@@ -135,7 +136,7 @@ import SparkleHubPage from './pages/SparkleHubPage';
 import InviteLandingPage from './pages/InviteLandingPage';
 
 function App() {
-  const { isAuthenticated, token, refreshToken } = useUserStore();
+  const { isAuthenticated, token } = useUserStore();
   const [hydrated, setHydrated] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const [navigationCompleted, setNavigationCompleted] = useState(false);
@@ -152,7 +153,7 @@ function App() {
     if (navigationCompleted) return;
 
     const currentPath = window.location.pathname;
-    const isPublic = ['/signup', '/forgot-password', '/reset-password', '/about', '/ai', '/legal'].some(
+    const isPublic = ['/signup', '/forgot-password', '/reset-password', '/verify-email', '/about', '/ai', '/legal'].some(
       p => currentPath.startsWith(p)
     ) || Boolean(currentPath.match(/^\/invite\/.+/));
 
@@ -214,7 +215,7 @@ function App() {
           logger.log('[Startup] Waiting for persist hydration');
           await Promise.race([
             new Promise<void>((resolve) => {
-              const unsub = useUserStore.persist.onFinishHydration(() => {
+              useUserStore.persist.onFinishHydration(() => {
                 logger.log('[Startup] Persist hydration finished');
                 setHydrated(true);
                 resolve();
@@ -433,6 +434,7 @@ function App() {
                     <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={getPostLoginRoute(getRoleFromToken(token))} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
+                    <Route path="/verify-email" element={<VerifyEmail />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
                     <Route path="/home" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />

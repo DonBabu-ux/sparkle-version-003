@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ShieldAlert, CheckCircle2, AlertTriangle, ShieldCheck, Info } from 'lucide-react';
+import { ChevronLeft, ShieldAlert, CheckCircle2, ShieldCheck } from 'lucide-react';
 import api from '../api/api';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,7 +11,7 @@ export default function ReportListing() {
   const { id } = useParams();
   const navigate = useNavigate();
   const reportListingStore = useMarketplaceStore(state => state.reportListing);
-  const [listing, setListing] = useState<any>(null);
+  const [ , setListing ] = useState<any>(null);
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);

@@ -82,7 +82,7 @@ export class StoryAudioManager {
     }
   }
 
-  public async play(url: string, startOffset: number = 0, duration: number = 15) {
+  public async play(url: string, startOffset: number = 0, _duration: number = 15) {
     if (!url) return;
     
     this.initWebAudio();

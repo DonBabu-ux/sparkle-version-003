@@ -17,6 +17,7 @@ import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
 
 const TABS = ['all', 'my campus', 'my events', 'trending'];
 
@@ -41,7 +42,22 @@ export default function Events() {
   const [events, setEvents] = useState<CampusEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [expandedReqs, setExpandedReqs] = useState<Set<string>>(new Set());
+  const [passQr, setPassQr] = useState<{ src: string; title: string } | null>(null);
+  const [passLoading, setPassLoading] = useState<string | null>(null);
+
+  const openAccessPass = async (eventId: string, title: string) => {
+    setPassLoading(eventId);
+    try {
+      const res = await api.get(`/events/${eventId}/qr`);
+      setPassQr({ src: res.data.qr, title });
+    } catch {
+      showError('Could not load your access pass. Please try again.');
+    } finally {
+      setPassLoading(null);
+    }
+  };
 
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -150,6 +166,8 @@ export default function Events() {
               <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
               <input 
                 type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Scan for event signals..." 
                 className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
@@ -178,7 +196,10 @@ export default function Events() {
              </div>
           ) : (
              <div className="flex flex-col gap-12">
-               {events.map((ev) => {
+               {events.filter((ev) => {
+                  const q = searchQuery.trim().toLowerCase();
+                  return !q || ev.title.toLowerCase().includes(q) || (ev.campus || '').toLowerCase().includes(q);
+                }).map((ev) => {
                   const progress = ev.max_attendees && ev.max_attendees > 0
                     ? Math.min(100, Math.round(((ev.total_rsvps || 0) / ev.max_attendees) * 100))
                     : 0;
@@ -260,9 +281,13 @@ export default function Events() {
                                 )}
                                 {ev.user_status === 'accepted' && (
                                    <div className="flex items-center gap-4 flex-1 lg:flex-none">
-                                      <button className="flex-1 px-12 h-20 bg-black text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-black/30 hover:scale-[1.05] transition-all flex items-center justify-center gap-4 italic">
+                                      <button
+                                        onClick={() => openAccessPass(ev.event_id, ev.title)}
+                                        disabled={passLoading === ev.event_id}
+                                        className="flex-1 px-12 h-20 bg-black text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-black/30 hover:scale-[1.05] transition-all flex items-center justify-center gap-4 italic disabled:opacity-60"
+                                      >
                                          <Ticket size={24} strokeWidth={4} className="text-primary" />
-                                         Access Pass
+                                         {passLoading === ev.event_id ? 'Loading…' : 'Access Pass'}
                                       </button>
                                       <button 
                                         onClick={() => handleRSVP(ev.event_id, 'not_going')}
@@ -313,6 +338,23 @@ export default function Events() {
           )}
         </div>
       </main>
+
+      {/* Access Pass QR Overlay */}
+      {passQr && (
+        <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-6" onClick={() => setPassQr(null)}>
+          <div className="bg-white rounded-[32px] p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-black mb-1 italic">{passQr.title}</h3>
+            <p className="text-[9px] font-bold text-black/40 uppercase tracking-widest mb-4">Show this pass at the door</p>
+            <img src={passQr.src} alt="Access pass QR code" className="mx-auto w-56 h-56 rounded-2xl" />
+            <button
+              onClick={() => setPassQr(null)}
+              className="mt-4 w-full py-3 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
 
       <style>{`
         

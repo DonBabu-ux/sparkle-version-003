@@ -11,7 +11,7 @@ const BASE_URL = API_URL.replace(/\/api\/?$/, '');
  * Prioritizes provided URL, then falls back to a hosted default or local asset.
  * Section 5: Default Avatar Handling (APK Safe)
  */
-export const getAvatarUrl = (url?: string | null, seed?: string | null): string => {
+export const getAvatarUrl = (url?: string | null, _seed?: string | null): string => {
   if (url && (url.includes('sparkle-logo') || url.includes('/assets/system/'))) {
     return url.startsWith('/') ? url : `/${url}`;
   }

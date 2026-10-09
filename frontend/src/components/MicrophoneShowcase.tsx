@@ -1,7 +1,7 @@
 import React, { Suspense, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Html, Float, Html as DreiHtml } from '@react-three/drei';
-import * as THREE from 'three';
+import { OrbitControls, Html, Float } from '@react-three/drei';
+import 'three';
 
 // Helper to create a simple 3D microphone
 function Microphone() {

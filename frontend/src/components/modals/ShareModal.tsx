@@ -177,7 +177,19 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
               </div>
               <span className="text-[11px] font-semibold text-black/40 dark:text-white/40">{copied ? 'Copied' : 'Copy'}</span>
            </button>
-           <button className="flex flex-col items-center gap-2 group">
+           <button
+             onClick={async () => {
+               if (navigator.share) {
+                 try {
+                   await navigator.share({ title: 'Sparkle', url: resolvedContentUrl });
+                   return;
+                 } catch { /* dismissed */ }
+               }
+               navigator.clipboard.writeText(resolvedContentUrl);
+               setCopied(true);
+             }}
+             className="flex flex-col items-center gap-2 group"
+           >
               <div className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 text-black/60 dark:text-white/60 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/10">
                  <MoreHorizontal size={18} />
               </div>

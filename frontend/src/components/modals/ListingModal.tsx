@@ -1,6 +1,7 @@
 import { showError } from '../../utils/toast';
-import { useState, useRef } from 'react';
-import { X, Camera, Tag, DollarSign, Package, Loader2, Store, Plus, ChevronLeft } from 'lucide-react';
+import { validateFiles } from '../../utils/fileValidation';
+import { useState, useRef, useEffect } from 'react';
+import { X, Camera, Tag, DollarSign, Package, Store, Plus, ChevronLeft } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
@@ -20,11 +21,23 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
   const [previews, setPreviews] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewsRef = useRef<string[]>(previews);
+  previewsRef.current = previews;
+  useEffect(() => () => {
+    previewsRef.current.forEach(u => { if (u.startsWith('blob:')) URL.revokeObjectURL(u); });
+  }, []);
   // Conditionally mounted by its parent: open whenever rendered.
   const a11yRef = useModalA11y(true, onClose);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
+    const check = validateFiles(selected, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     setFiles([...files, ...selected]);
     const urls = selected.map(f => URL.createObjectURL(f));
     setPreviews([...previews, ...urls]);
@@ -32,7 +45,10 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
 
   const removeFile = (i: number) => {
     setFiles(files.filter((_, idx) => idx !== i));
-    setPreviews(previews.filter((_, idx) => idx !== i));
+    setPreviews(previews.filter((_, idx) => {
+      if (idx === i && previews[i]?.startsWith('blob:')) URL.revokeObjectURL(previews[i]);
+      return idx !== i;
+    }));
   };
 
   const handleSubmit = async () => {

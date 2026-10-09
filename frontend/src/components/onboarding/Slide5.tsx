@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
 import api from '../../api/api';

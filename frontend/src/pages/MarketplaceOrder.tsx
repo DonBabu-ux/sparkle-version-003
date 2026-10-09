@@ -1,10 +1,7 @@
 import { showError } from '../utils/toast';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { 
-  ChevronLeft, ShieldCheck, MapPin, CreditCard, 
-  Clock, MessageSquare, AlertCircle, CheckCircle2 
-} from 'lucide-react';
+import { ChevronLeft, ShieldCheck, MapPin, CreditCard, Clock, CheckCircle2 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import Spinner from '../components/ui/Spinner';
@@ -25,7 +22,7 @@ export default function MarketplaceOrder() {
   const [agreedPrice, setAgreedPrice] = useState<string>('');
   const [campus, setCampus] = useState(user?.campus || '');
   const [location, setLocation] = useState('');
-  const [message, setMessage] = useState('');
+  const [ message,  ] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
 
   useEffect(() => {

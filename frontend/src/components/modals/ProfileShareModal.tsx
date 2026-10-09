@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Copy, Check, Share2 } from 'lucide-react';
+import { X, Copy, Check } from 'lucide-react';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
 interface ProfileShareModalProps {

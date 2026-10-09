@@ -2,7 +2,7 @@ import { showError, showInfo, showSuccess } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { registerPlugin } from '@capacitor/core';
 
-import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
+import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';
 import { useMessageStore } from '../store/messageStore';
@@ -14,7 +14,7 @@ import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
-import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
+import { useThemeStore } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet } from '../components/chat/MessageActionModals';
 import { useLongPress } from '../hooks/useLongPress';
 
@@ -24,9 +24,9 @@ import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../
 import type { SparkleTheme } from '../store/themeStore';
 import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
-import { OfficialMessageCard } from '../components/chat/OfficialMessageCard';
+import '../components/chat/OfficialMessageCard';
 import { SparklePayCard } from '../components/chat/SparklePayCard';
-import { OfficialWelcomeCards } from '../components/chat/OfficialWelcomeCards';
+import '../components/chat/OfficialWelcomeCards';
 import { OfficialInteractiveOnboarding } from '../components/chat/OfficialInteractiveOnboarding';
 import { DeveloperEmergencyConsoleModal } from '../components/chat/DeveloperEmergencyConsoleModal';
 import { SparkleStorage } from '../services/SparkleStorageService';
@@ -37,7 +37,7 @@ import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
 import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
-import { SparkleUndoToast } from '../components/chat/SparkleUndoToast';
+import '../components/chat/SparkleUndoToast';
 import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
 import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
 import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
@@ -46,7 +46,7 @@ import { SparklyAvatar } from '../components/sparkly/SparklyAvatar';
 import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
 import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
-import debounce from 'lodash.debounce';
+import 'lodash.debounce';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import PersistentOfflineQueue from '../services/PersistentOfflineQueue';
@@ -56,80 +56,7 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import {
-  Search,
-  Plus,
-  MoreVertical,
-  Phone,
-  Video,
-  Send,
-  Paperclip,
-  Smile,
-  ArrowLeft,
-  ArrowDown,
-  ArrowUp,
-  GripVertical,
-  Archive,
-  Bookmark,
-  ImageIcon,
-  FileText,
-  MapPin,
-  Check,
-  CheckCircle2,
-  RotateCw,
-  AlertCircle,
-  Flag,
-  Trash2,
-  Info,
-  Orbit,
-  X,
-  ShoppingBag,
-  User,
-  Type,
-  Palette,
-  Pin,
-  Star,
-  Mail,
-  Eraser,
-  Ban,
-  BellOff,
-  Volume2,
-  Users,
-  Download,
-  Share2,
-  Clock,
-  Eye,
-  MoreHorizontal,
-  Shield,
-  Lock,
-  MinusCircle,
-  ShieldAlert,
-  AlertTriangle,
-  Image,
-  Sparkles,
-  Cloud,
-  SquarePen,
-  Gift,
-  Flame,
-  Heart,
-  Zap,
-  Coffee,
-  Ghost,
-  Sun,
-  Moon,
-  Music,
-  Gamepad2,
-  Wand2,
-  PlusCircle,
-  Camera,
-  Mic,
-  ChevronRight,
-  ChevronLeft,
-  Play,
-  Pause,
-  Forward,
-  Settings
-} from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, Orbit, X, User, Palette, Pin, Star, Eraser, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings } from 'lucide-react';
 import { useCall } from '../components/MockCallProvider';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -142,6 +69,8 @@ import AppScreen from '../components/AppScreen';
 import { useMessageSocket } from '../hooks/useMessageSocket';
 import { logger } from '../utils/logger';
 import { safeHref } from '../utils/safeHref';
+import { fetchGiphyItems } from '../utils/giphyClient';
+import { validateFile, validateFiles } from '../utils/fileValidation';
 
 // --- Types ---
 interface ChatConversation {
@@ -162,19 +91,6 @@ interface ChatConversation {
   last_message_at?: string;     // aliased in getUserConversations query
 }
 
-interface ChatMessage {
-  message_id: string;
-  sender_id: string;
-  content: string;
-  status: string;
-  sent_at?: string;
-  created_at?: string;
-  is_read?: boolean;
-  type?: 'text' | 'image' | 'video' | 'voice_note' | 'document' | 'location' | 'contact' | string;
-  media_url?: string;
-  mediaUrl?: string;
-  metadata?: string;
-}
 
 const VoiceNotePlayer = ({ url }: { url: string }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -594,23 +510,7 @@ const LiveRecordingBar = memo(({
   );
 });
 
-const ChatInput = memo(({
-  initialMessage,
-  onTyping,
-  onSend,
-  onCameraOpen,
-  isMenuCollapsed,
-  setIsMenuCollapsed,
-  selectedChat,
-  sending,
-  getQuickReaction,
-  setShowAttachmentMenu,
-  showAttachmentMenu,
-  onVoiceSend,
-  theme,
-  replyToMessage,
-  onFileSelect
-}: any) => {
+const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending, getQuickReaction, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onFileSelect }: any) => {
   const drafts = useChatStore(state => state.drafts);
   const setDraft = useChatStore(state => state.setDraft);
   const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
@@ -684,22 +584,22 @@ const ChatInput = memo(({
     }
   }, [recordingSessionId, onVoiceSend]);
 
-  const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
-
   const fetchGiphy = useCallback(async (type: 'gifs' | 'stickers', query?: string) => {
     setLoadingGiphy(true);
     try {
-      const endpoint = query ? 'search' : 'trending';
-      const url = `https://api.giphy.com/v1/${type}/${endpoint}?api_key=${GIPHY_KEY}&q=${query || ''}&limit=20&rating=g`;
-      const res = await fetch(url);
-      const json = await res.json();
-      setGiphyResults(json.data || []);
+      const items = await fetchGiphyItems({
+        type,
+        endpoint: query ? 'search' : 'trending',
+        q: query || undefined,
+        limit: 20,
+      });
+      setGiphyResults(items);
     } catch (err) {
       logger.error('Giphy error', err);
     } finally {
       setLoadingGiphy(false);
     }
-  }, [GIPHY_KEY]);
+  }, []);
 
   useEffect(() => {
     if (showEmojiPicker && (pickerTab === 'gifs' || pickerTab === 'stickers')) {
@@ -763,14 +663,7 @@ const ChatInput = memo(({
     );
   }
 
-  const STICKERS = [
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941344_1280.png',
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941346_1280.png',
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941347_1280.png',
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941348_1280.png',
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941349_1280.png',
-    'https://cdn.pixabay.com/photo/2020/03/17/17/46/sticker-4941350_1280.png'
-  ];
+  
 
   const AVATARS = [
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
@@ -925,6 +818,12 @@ const ChatInput = memo(({
                       className="hidden"
                       onChange={(e) => {
                         if (e.target.files && e.target.files.length > 0) {
+                          const check = validateFiles(Array.from(e.target.files), { kind: 'any', maxSizeMB: 10 });
+                          if (!check.ok) {
+                            showError(check.error!);
+                            e.target.value = '';
+                            return;
+                          }
                           if (onFileSelect) {
                             onFileSelect(e.target.files);
                           }
@@ -1166,7 +1065,7 @@ const EMPTY_MESSAGES_ARRAY: any[] = [];
 
 export default function Messages() {
   const { user } = useUserStore();
-  const { setActiveModal } = useModalStore();
+  useModalStore();
   const socket = useSocket();
   const { startCall } = useCall();
   const navigate = useNavigate();
@@ -1214,7 +1113,7 @@ export default function Messages() {
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [showSelectionMenu, setShowSelectionMenu] = useState(false);
   const [deleteConfirmCount, setDeleteConfirmCount] = useState<number | null>(null);
-  const [undoToast, setUndoToast] = useState<{
+  const [ , setUndoToast ] = useState<{
     id: string;
     message: string;
     undoAction: () => void;
@@ -1483,8 +1382,8 @@ export default function Messages() {
   const chatId = selectedChat?.chat_id ?? '';
   const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
   const setStoreMessages = useChatStore(state => state.setMessages);
-  const addMessage = useChatStore(state => state.addMessage);
-  const editMessage = useChatStore(state => state.editMessage);
+  useChatStore(state => state.addMessage);
+  useChatStore(state => state.editMessage);
   const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
   const deleteMessagesBulkLocal = useChatStore(state => state.deleteMessagesBulkLocal);
   const deleteMessageForEveryone = useChatStore(state => state.deleteMessageForEveryone);
@@ -1505,7 +1404,7 @@ export default function Messages() {
   const [messageSearch, setMessageSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
-  const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
+  const [ ,  ] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
   const [reactionSheetMsg, setReactionSheetMsg] = useState<any | null>(null);
   const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
@@ -1585,6 +1484,25 @@ export default function Messages() {
   const [mediaCaption, setMediaCaption] = useState('');
   const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
   const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
+  // Blob-URL ownership: deviceMedia previews are shared with the composer selection,
+  // so only revoke urls the device grid doesn't own (C2.5).
+  const selectedMediaRef = useRef<any[]>(selectedMediaItems);
+  selectedMediaRef.current = selectedMediaItems;
+  const deviceMediaRef = useRef<any[]>(deviceMedia);
+  deviceMediaRef.current = deviceMedia;
+  const releaseOwnedUrls = (items: any[]) => {
+    const owned = new Set(deviceMediaRef.current.map((i: any) => i?.url));
+    (items || []).forEach((i: any) => {
+      if (i?.url?.startsWith?.('blob:') && !owned.has(i.url)) URL.revokeObjectURL(i.url);
+    });
+  };
+  useEffect(() => () => {
+    releaseOwnedUrls(selectedMediaRef.current);
+    deviceMediaRef.current.forEach((i: any) => {
+      if (i?.url?.startsWith?.('blob:')) URL.revokeObjectURL(i.url);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const [mediaPermission, setMediaPermission] = useState<'prompt' | 'granted' | 'denied'>('prompt');
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
@@ -1592,30 +1510,23 @@ export default function Messages() {
   const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [noteView, setNoteView] = useState('main');
+  const [ ,  ] = useState(false);
+  const [ ,  ] = useState('main');
   // Helper to toggle selection of chats/contacts for forwarding
-  const toggleForwardChat = (chatId: string) => {
-    setSelectedForwardChatIds(prev => {
-      if (prev.includes(chatId)) {
-        return prev.filter(id => id !== chatId);
-      }
-      return [...prev, chatId];
-    });
-  };
-  const [noteText, setNoteText] = useState(user?.note || '');
+  
+  const [ ,  ] = useState(user?.note || '');
   const [showViewNoteModal, setShowViewNoteModal] = useState(false);
-  const [viewingNote, setViewingNote] = useState<any>(null);
-  const [noteReactionEmoji, setNoteReactionEmoji] = useState<string | null>(null);
-  const [showNoteOptions, setShowNoteOptions] = useState(false);
+  const [ viewingNote,  ] = useState<any>(null);
+  const [ ,  ] = useState<string | null>(null);
+  const [ ,  ] = useState(false);
   const [unreadCountInChat, setUnreadCountInChat] = useState(0);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
-  const [activeSettingView, setActiveSettingView] = useState('main');
-  const [previewThemeId, setPreviewThemeId] = useState<string | null>(null);
-  const [customPhotoPreview, setCustomPhotoPreview] = useState<string | null>(null);
+  const [ ,  ] = useState('main');
+  const [ ,  ] = useState<string | null>(null);
+  const [ ,  ] = useState<string | null>(null);
   const [playingEffectEmoji, setPlayingEffectEmoji] = useState<string | null>(null);
-  const [showWordEmojiPicker, setShowWordEmojiPicker] = useState(false);
-  const [newWordEffect, setNewWordEffect] = useState({ word: '', emoji: '😀' });
+  const [ ,  ] = useState(false);
+  const [ ,  ] = useState({ word: '', emoji: '😀' });
   const [partnerIsTyping, setPartnerIsTyping] = useState(false);
   const [typingUsers, setTypingUsers] = useState<{ chatId: string, name: string }[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
@@ -1631,7 +1542,7 @@ export default function Messages() {
   const [noteBubbles, setNoteBubbles] = useState<Array<{ id: number; emoji: string; x: number; delay: number }>>([]);
   const [noteReacted, setNoteReacted] = useState<string | null>(null);
   const [noteNotification, setNoteNotification] = useState<{ emoji: string; name: string; note: string } | null>(null);
-  const [noteReactSent, setNoteReactSent] = useState(false);
+  const [ , setNoteReactSent ] = useState(false);
   const [isNoteReacting, setIsNoteReacting] = useState(false);
   const [noteReplyText, setNoteReplyText] = useState('');
   const [showNoteEmojiPicker, setShowNoteEmojiPicker] = useState(false);
@@ -1876,7 +1787,7 @@ export default function Messages() {
         api.get(`/messages/${selectedChat.chat_id}/privacy`)
           .then(res => {
             const data = res.data || {};
-            const ps = data.mySettings || {};
+            
             const enforced = data.enforcedSettings || {};
             const effective = enforced.effective || {};
             setActivePrivacy({
@@ -1954,22 +1865,15 @@ export default function Messages() {
     }
   }, [hiddenTabs, activeFilter]);
 
-  const { getThemeForChat, setThemeForChat, getQuickReaction, setQuickReaction, getWordEffects, addWordEffect, removeWordEffect } = useThemeStore();
+  const { getThemeForChat, getQuickReaction, getWordEffects } = useThemeStore();
   const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
-  const activeThemeId = currentChatTheme?.id;
+  
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const notePlaceholder = "Feeling sparkle ✨";
+  
 
-  const getShortLastSeen = (time: string | null | undefined) => {
-    if (!time) return '...';
-    const diff = Date.now() - new Date(time).getTime();
-    if (diff < 60000) return 'now';
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}m`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}h`;
-    return `${Math.floor(diff / 86400000)}d`;
-  };
+  
 
   // --- Effects ---
   useEffect(() => {
@@ -1986,6 +1890,13 @@ export default function Messages() {
   const handleDeviceImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    const check = validateFiles(Array.from(files), { kind: 'any', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
 
     const newItems: any[] = [];
     for (let i = 0; i < files.length; i++) {
@@ -2145,28 +2056,7 @@ export default function Messages() {
     }
   };
 
-  const handleOpenDirectChat = (contact: any) => {
-    const partnerId = contact.user_id || contact.id;
-    const existing = conversations.find(c => c.partner_id === partnerId);
-
-    if (existing) {
-      setSelectedChat(existing);
-      navigate(`/messages?chat=${existing.chat_id}`);
-    } else {
-      // Create a temporary chat object for the UI — no client-generated timestamps
-      setSelectedChat({
-        chat_id: 'temp_' + Date.now(),
-        partner_id: partnerId,
-        partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
-        partner_avatar: contact.avatar_url,
-        unread_count: 0,
-        last_message_time: null,
-        partner_online: contact.is_online
-      });
-      // Clear the chat param since we are in a temp chat
-      navigate('/messages', { replace: true });
-    }
-  };
+  
 
   const fetchMessages = async (chatId: string) => {
     // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
@@ -2522,7 +2412,7 @@ export default function Messages() {
       }
     };
     // Lightweight re-fetch wrapper used by chat-updated listener
-    const fetchChatList = () => fetchInbox();
+    
     const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
       const activeChatId = currentChatIdRef.current;
       if (activeChatId && data.chatId === activeChatId) {
@@ -2846,6 +2736,7 @@ export default function Messages() {
     } else {
       // Route images / videos into existing Media Composer for preview & captioning
       setShowAttachmentSheet(false);
+      releaseOwnedUrls(selectedMediaRef.current);
       setSelectedMediaItems(normalizedItems);
       setMediaCaption('');
       setShowMediaComposer(true);
@@ -3153,6 +3044,7 @@ export default function Messages() {
 
       if (mediaUrl) {
         // 3. Update local message bubble with uploaded URL
+        URL.revokeObjectURL(blobUrl);
         updateMessages(prev => prev.map(m =>
           (m.message_id === clientMessageId || m.id === clientMessageId)
             ? { ...m, media_url: mediaUrl, mediaUrl: mediaUrl }
@@ -3204,16 +3096,7 @@ export default function Messages() {
     }
   };
 
-  const handleDeleteMessage = async (msgId: string) => {
-    updateMessages(prev => prev.filter(m => m.message_id !== msgId));
-    if (socket && selectedChat) {
-      socket.emit('delete-for-everyone', {
-        messageId: msgId,
-        chatId: selectedChat.chat_id,
-        isGroup: selectedChat.type === 'group'
-      });
-    }
-  };
+  
 
   const handleReactToMessage = async (msgId: string, emoji: string) => {
     if (!selectedChat) return;
@@ -3318,19 +3201,9 @@ export default function Messages() {
     setShowNewChatModal(false);
   };
 
-  const handleAction = (label: string) => {
-    if (label === 'Customize themes') setActiveSettingView('customize');
-    else showInfo(`Action: ${label}`);
-  };
+  
 
-  const handleApplyTheme = () => {
-    if (previewThemeId && selectedChat) {
-      const theme = PRESET_THEMES.find(t => t.id === previewThemeId);
-      if (theme) setThemeForChat(selectedChat.chat_id, theme);
-      setPreviewThemeId(null);
-      setActiveSettingView('main');
-    }
-  };
+  
 
   const safeTime = (time: string) => {
     if (!time) return '';
@@ -3343,17 +3216,9 @@ export default function Messages() {
    * Never uses relative counters — always anchors to today / yesterday / weekday / date.
    * "last seen" prefix is added by the JSX caller.
    */
-  const formatLastSeen = (time: string) => formatLastSeenChat(time);
+  
 
-  const formatMessageText = (content?: string) => {
-    if (!content) return '';
-    try {
-      const parsed = JSON.parse(content);
-      if (parsed.type === 'camera_capture') return '📷 Photo';
-      if (parsed.type === 'marketplace_inquiry') return '🛒 Marketplace inquiry';
-    } catch (e) { }
-    return content;
-  };
+  
 
   const getDeletedMessageText = (msg: any, isMe: boolean) => {
     const isGroup = selectedChat?.is_group || selectedChat?.chat_type === 'group';
@@ -3368,21 +3233,10 @@ export default function Messages() {
     }
   };
 
-  const getStatusLabel = (chat: ChatConversation) => {
-    // Only show outgoing receipt status when there are no unread incoming messages
-    if ((chat.unread_count ?? 0) > 0) return '';
-    // Map backend 'read' → display 'Seen', 'delivered' → 'Delivered', else 'Sent'
-    // IMPORTANT: Never derive 'Delivered' from partner_online — that causes false positives.
-    // Status must only advance via explicit socket ACK (mark-delivered / join-chat).
-    const s = chat.last_message_status;
-    if (s === 'read' || s === 'seen') return 'Seen';
-    if (s === 'delivered') return 'Delivered';
-    if (s === 'sent') return 'Sent';
-    return '';
-  };
+  
 
   /** Compact, human-readable timestamp — delegates to shared utility so format is consistent everywhere */
-  const getTimeAgo = (time?: string) => formatChatTimestamp(time);
+  
 
   // --- Filtered & Sorted conversations ---
   const filteredConversations = useMemo(() => {
@@ -4149,7 +4003,7 @@ export default function Messages() {
                               }
                               setActiveMessageMenu({ msg, type: 'longPress' });
                             }}
-                            onClick={(e) => {
+                            onClick={(_e) => {
                               if (isSelectionMode) {
                                 setSelectedMessageIds(prev => {
                                   const next = new Set(prev);
@@ -5262,7 +5116,7 @@ export default function Messages() {
           onClose={() => setShowCameraModal(false)}
           partnerName={sanitizePartnerName(selectedChat?.partner_name, selectedChat?.partner_username) || 'My Story'}
           partnerAvatar={selectedChat?.partner_avatar || user?.avatar_url}
-          onSend={(mediaUrl, viewMode) => {
+          onSend={(mediaUrl, _viewMode) => {
             setShowCameraModal(false);
             if (!mediaUrl || !selectedChat) return;
             handleMediaSelection({ source: 'camera', uri: mediaUrl });
@@ -5293,9 +5147,6 @@ export default function Messages() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <button className="text-white/60 hover:text-white transition-colors p-1">
-                  <MoreHorizontal size={22} />
-                </button>
                 <button
                   onClick={() => setShowViewNoteModal(false)}
                   className="text-white/60 hover:text-white transition-colors p-1"
@@ -5547,6 +5398,7 @@ export default function Messages() {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
               onClick={() => {
                 setShowAttachmentSheet(false);
+                releaseOwnedUrls(selectedMediaRef.current);
                 setSelectedMediaItems([]);
               }}
             />
@@ -5608,6 +5460,12 @@ export default function Messages() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
+                            const check = validateFile(file, { kind: 'any', maxSizeMB: 10 });
+                            if (!check.ok) {
+                              showError(check.error!);
+                              e.target.value = '';
+                              return;
+                            }
                             handleMediaSelection({ source: 'attachment', file, type: 'document' });
                           }
                         }}
@@ -5627,8 +5485,10 @@ export default function Messages() {
                         onChange={(e) => {
                           const file = e.target.files?.[0];
                           if (file) {
-                            if (file.size > 25 * 1024 * 1024) {
-                              showInfo('Audio file is too large (maximum size is 25MB).');
+                            const check = validateFile(file, { kind: 'any', maxSizeMB: 25 });
+                            if (!check.ok) {
+                              showInfo(check.error!);
+                              e.target.value = '';
                               return;
                             }
                             setShowAttachmentSheet(false);
@@ -5771,7 +5631,9 @@ export default function Messages() {
                             key={item.id}
                             onClick={() => {
                               if (isSelected) {
+                                const gone = selectedMediaItems.find(i => i.id === item.id);
                                 setSelectedMediaItems(prev => prev.filter(i => i.id !== item.id));
+                                if (gone) releaseOwnedUrls([gone]);
                               } else {
                                 setSelectedMediaItems(prev => [...prev, item]);
                               }
@@ -5837,6 +5699,7 @@ export default function Messages() {
                 type="button"
                 onClick={() => {
                   setShowMediaComposer(false);
+                  releaseOwnedUrls(selectedMediaRef.current);
                   setSelectedMediaItems([]);
                   setMediaCaption('');
                 }}
@@ -5870,13 +5733,15 @@ export default function Messages() {
               <div className="flex items-center justify-between">
                 {/* Thumbnails grid */}
                 <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
-                  {selectedMediaItems.map((item, idx) => (
+                  {selectedMediaItems.map((item, _idx) => (
                     <div key={item.id} className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 shrink-0">
                       <img src={item.url} className="w-full h-full object-cover" alt="" />
                       <button
                         type="button"
                         onClick={() => {
+                          const gone = selectedMediaItems.find(i => i.id === item.id);
                           setSelectedMediaItems(prev => prev.filter(i => i.id !== item.id));
+                          if (gone) releaseOwnedUrls([gone]);
                           if (selectedMediaItems.length <= 1) {
                             setShowMediaComposer(false);
                           }
@@ -5950,6 +5815,7 @@ export default function Messages() {
                             if (socket?.connected) {
                               socket.emit('send-message', payload, (response: any) => {
                                 if (response?.success) {
+                                  releaseOwnedUrls([item]);
                                   updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
                                     ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
                                     : m
@@ -6058,9 +5924,6 @@ export default function Messages() {
                   placeholder="Example: Work, Friends"
                   className="w-full h-[52px] bg-transparent border-b-2 border-[#ff1493]/60 focus:border-[#ff1493] text-[17px] font-medium text-white placeholder:text-white/25 outline-none pb-1 transition-all pr-10"
                 />
-                <button type="button" className="absolute right-1 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-all">
-                  <Smile size={20} />
-                </button>
               </div>
               <p className="text-[12px] text-white/30 mt-3">Any list you create becomes a filter at the top of your Chats tab.</p>
             </div>
@@ -6107,9 +5970,6 @@ export default function Messages() {
                 <ArrowLeft size={20} />
               </button>
               <h2 className="text-[16px] font-bold text-white flex-1 tracking-tight">Add to list</h2>
-              <button className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.07] text-white/50 transition-all">
-                <Search size={18} />
-              </button>
             </div>
             <p className="text-[12px] text-white/35 px-5 py-3 border-b border-white/[0.05]">Add as many people or groups as you want. Only you can see who's included.</p>
             <div className="flex-1 overflow-y-auto no-scrollbar">

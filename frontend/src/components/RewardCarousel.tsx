@@ -1,6 +1,6 @@
-import React from 'react';
+import 'react';
 import { motion } from 'framer-motion';
-import { ArrowRight } from 'lucide-react';
+import 'lucide-react';
 
 // Placeholder reward data
 const rewards = [

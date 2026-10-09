@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Plus, Check, Orbit } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Check, Orbit } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';

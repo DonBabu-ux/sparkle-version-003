@@ -72,7 +72,7 @@ export const UploadManager = {
   },
 
   wake() {
-    const { jobs, updateJob } = useUploadStore.getState();
+    const { jobs } = useUploadStore.getState();
     const limit = getConcurrencyLimit();
 
     if (limit === 0) {

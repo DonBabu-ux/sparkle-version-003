@@ -1,6 +1,6 @@
 import { showError } from '../../utils/toast';
 import { useState, useRef } from 'react';
-import { X, Repeat2, Loader2, AtSign } from 'lucide-react';
+import { X, Repeat2, AtSign } from 'lucide-react';
 import api from '../../api/api';
 import { useModalStore } from '../../store/modalStore';
 import Spinner from '../ui/Spinner';

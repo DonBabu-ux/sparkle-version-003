@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ChevronLeft, Image as ImageIcon, FileText, Link2, Mic, Music, Play, ExternalLink, 
-  Download, Share2, CornerUpRight, Bookmark, Search, ArrowUpDown, Clock, 
-  User, CheckCircle2, AlertCircle, ChevronRight, Eye, Calendar, Maximize2, X
-} from 'lucide-react';
+import { ChevronLeft, Image as ImageIcon, FileText, Link2, Mic, Music, Play, ExternalLink, Download, Share2, CornerUpRight, Search, AlertCircle, ChevronRight, Eye, Calendar, X } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
@@ -406,7 +402,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
                       className="p-4 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl flex items-center justify-between gap-3 group transition-all"
                     >
                       <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <button className="p-3 text-white rounded-full shadow-lg hover:scale-105 transition-transform" style={{ background: chatBubbleSent }}>
+                        <button onClick={() => { onJumpToMessage(voice.message_id); onClose(); }} className="p-3 text-white rounded-full shadow-lg hover:scale-105 transition-transform" style={{ background: chatBubbleSent }}>
                           <Play className="w-4 h-4 fill-white" />
                         </button>
                         <div className="flex-1 min-w-0">
@@ -463,7 +459,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <button className="p-2 text-white rounded-full hover:scale-105 transition-transform" style={{ background: chatBubbleSent }}>
+                        <button onClick={() => { onJumpToMessage(track.message_id); onClose(); }} className="p-2 text-white rounded-full hover:scale-105 transition-transform" style={{ background: chatBubbleSent }}>
                           <Play className="w-3.5 h-3.5 fill-white" />
                         </button>
                         <button

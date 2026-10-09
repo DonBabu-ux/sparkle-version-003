@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useUploadStore, type UploadJob } from '../../store/uploadStore';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useUploadStore } from '../../store/uploadStore';
 import { useNetworkStore } from '../../store/networkStore';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ChevronUp, ChevronDown, CheckCircle, AlertTriangle, 
-  X, RefreshCw, Trash2, Play, CloudUpload
-} from 'lucide-react';
+import { ChevronUp, ChevronDown, CheckCircle, AlertTriangle, RefreshCw, Trash2, Play, CloudUpload } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadEventBus } from '../../utils/UploadEventBus';
 import { create } from 'zustand';
@@ -59,7 +56,7 @@ export default function UploadNotificationCenter() {
       !dismissedJobs.includes(j.uploadId)
   );
 
-  const totalActiveCount = activeJobs.length + failedJobs.length;
+  
 
   // On mount, auto-dismiss any jobs that are already in final status (so they don't pop up on page load)
   useEffect(() => {

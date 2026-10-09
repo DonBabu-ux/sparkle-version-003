@@ -1,7 +1,7 @@
 import ErrorRetry from '../components/ui/ErrorRetry';
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
-import { Search, ShoppingBag, Plus, MapPin, Grid, MessageCircle, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
+import { Search, ShoppingBag, MapPin, Grid, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import api from '../api/api';
 import MarketplaceInbox from '../components/marketplace/MarketplaceInbox';
 import SparklyMiniChat from '../components/marketplace/SparklyMiniChat';
@@ -16,7 +16,7 @@ import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I
 
 import ListingCard from '../components/marketplace/ListingCard';
 import { logger } from '../utils/logger';
-import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
+import '../components/marketplace/MarketplaceImageSlider';
 
 interface Listing {
   listing_id: string;
@@ -50,7 +50,7 @@ export default function Marketplace() {
 
   // Zustand Store for Marketplace State
   const searchQuery = useMarketplaceStore(state => state.searchQuery);
-  const storeCategory = useMarketplaceStore(state => state.category);
+  useMarketplaceStore(state => state.category);
   const filterLocation = useMarketplaceStore(state => state.location);
   const radiusKm = useMarketplaceStore(state => state.radiusKm);
   const minPrice = useMarketplaceStore(state => state.minPrice);
@@ -60,7 +60,7 @@ export default function Marketplace() {
   const setActiveModal = useMarketplaceStore(state => state.setActiveModal);
   const reportedListings = useMarketplaceStore(state => state.reportedListings);
   
-  const setSearchQuery = (q: string) => setFilters({ searchQuery: q });
+  
 
   const [listings, setListings] = useState<Listing[]>([]);
   const filteredListings = listings.filter(item => !reportedListings.includes(item.listing_id));
@@ -295,7 +295,10 @@ export default function Marketplace() {
               </div>
               
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
-                <button className="flex items-center justify-center w-8 h-8 rounded border border-marketplace-border text-[#1877F2] flex-shrink-0 bg-white">
+                <button 
+                  onClick={() => setActiveModal('categories')}
+                  className="flex items-center justify-center w-8 h-8 rounded border border-marketplace-border text-[#1877F2] flex-shrink-0 bg-white"
+                >
                   <Grid size={14} />
                 </button>
                 <button 

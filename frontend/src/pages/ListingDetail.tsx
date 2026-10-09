@@ -4,8 +4,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import api from '../api/api';
-import { ChevronLeft, Share2, Heart, MessageCircle, MapPin, Search, MoreHorizontal, Bell, Send, UserPlus, FileWarning, ArrowLeft, Bookmark, CornerUpRight, ShieldCheck } from 'lucide-react';
-import { getAvatarUrl } from '../utils/imageUtils';
+import { ChevronLeft, Share2, MessageCircle, Search, MoreHorizontal, Bell, UserPlus, Bookmark, CornerUpRight, ShieldCheck } from 'lucide-react';
+import '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
 import Spinner from '../components/ui/Spinner';
@@ -19,9 +19,9 @@ export default function ListingDetail() {
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeImage, setActiveImage] = useState(0);
+  const [ ,  ] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isAlerted, setIsAlerted] = useState(false);
+  const [ , setIsAlerted ] = useState(false);
   const [message, setMessage] = useState("Is this still available?");
   const [suggestedGroups, setSuggestedGroups] = useState<any[]>([]);
   const [suggestedListings, setSuggestedListings] = useState<Listing[]>([]);
@@ -166,7 +166,7 @@ export default function ListingDetail() {
 
   const media = listing.media || [];
   const isOwner = user?.id === listing.seller_id;
-  const timeString = timeAgo(listing.created_at) || 'an hour ago';
+  
 
   return (
     <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-20 max-w-screen-md mx-auto shadow-sm">
@@ -179,7 +179,7 @@ export default function ListingDetail() {
           </button>
           <h1 className="text-[20px] font-bold text-marketplace-text tracking-tight capitalize">{listing.title}</h1>
         </div>
-        <button className="p-1 text-marketplace-text">
+        <button onClick={() => navigate('/marketplace')} className="p-1 text-marketplace-text">
           <Search size={22} strokeWidth={2.5} />
         </button>
       </header>

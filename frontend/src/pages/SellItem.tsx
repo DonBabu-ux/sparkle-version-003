@@ -1,5 +1,6 @@
 import { showError } from '../utils/toast';
-import { useState, useRef } from 'react';
+import { validateFiles } from '../utils/fileValidation';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   ChevronLeft, Camera, X, ChevronRight, MapPin, 
@@ -39,6 +40,11 @@ export default function SellItem() {
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const previewsRef = useRef<string[]>(previews);
+  previewsRef.current = previews;
+  useEffect(() => () => {
+    previewsRef.current.forEach(u => { if (u.startsWith('blob:')) URL.revokeObjectURL(u); });
+  }, []);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,6 +63,14 @@ export default function SellItem() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const files = Array.from(e.target.files);
+      if (files.length > 0) {
+        const check = validateFiles(files, { kind: 'image', maxSizeMB: 10 });
+        if (!check.ok) {
+          showError(check.error!);
+          e.target.value = '';
+          return;
+        }
+      }
       setMedia(prev => [...prev, ...files]);
       const newPreviews = files.map(file => URL.createObjectURL(file));
       setPreviews(prev => [...prev, ...newPreviews]);
@@ -65,7 +79,11 @@ export default function SellItem() {
 
   const removeMedia = (index: number) => {
     setMedia(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => {
+      const removed = prev[index];
+      if (removed?.startsWith('blob:')) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

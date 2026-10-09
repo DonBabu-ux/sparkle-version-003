@@ -1,9 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  ArrowLeft, Shield, UserX, MessageSquare, Bell, Eye, EyeOff, Check, AlertTriangle,
-  Lock, BarChart3, CreditCard, ShieldAlert, ChevronRight, UserCheck, Settings,
-  HelpCircle, CheckCircle2, TrendingUp, Package, Users, Flag
-} from 'lucide-react';
+import { ArrowLeft, Shield, UserX, Bell, Eye, Check, AlertTriangle, Lock, BarChart3, CreditCard, ShieldAlert, ChevronRight, UserCheck, Settings, HelpCircle, CheckCircle2, TrendingUp, Package, Users, Flag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
@@ -405,9 +401,7 @@ const MarketplaceSettings = () => {
                   </div>
                   {payout.is_default ? (
                     <span className="px-3 py-1 bg-amber-100 text-amber-700 text-[10px] font-black uppercase tracking-wider rounded-full">Default</span>
-                  ) : (
-                    <button className="text-sm font-bold text-slate-400 hover:text-slate-700">Make Default</button>
-                  )}
+                  ) : null}
                 </div>
               ))
             ) : (
@@ -416,8 +410,7 @@ const MarketplaceSettings = () => {
                   <CreditCard size={24} className="text-slate-400" />
                 </div>
                 <div className="font-black text-slate-800 mb-2">No Payout Methods</div>
-                <div className="text-sm font-bold text-slate-500 mb-6">Add a bank or mobile wallet to receive funds.</div>
-                <button className="px-6 py-3 bg-slate-800 text-white font-black text-sm rounded-xl hover:bg-slate-700">Add Method</button>
+                <div className="text-sm font-bold text-slate-400 mb-6">Payout setup is not available yet — bank and mobile wallet support is coming soon.</div>
               </div>
             )}
           </div>
@@ -534,17 +527,8 @@ function MarketplaceSupportView() {
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="p-8 bg-indigo-600 rounded-xl text-white overflow-hidden relative">
           <div className="relative z-10">
-            <h4 className="text-2xl font-black tracking-tighter mb-2">How can we help?</h4>
-            <p className="text-indigo-100 font-bold text-sm mb-6 opacity-80">Search for help or chat with our automated assistant.</p>
-            <div className="flex bg-white/20 backdrop-blur-md rounded-xl p-1">
-              <input 
-                placeholder="Search help articles..." 
-                className="bg-transparent border-none outline-none flex-1 px-4 py-3 text-sm font-bold placeholder:text-indigo-200"
-              />
-              <button className="bg-white text-indigo-600 p-3 rounded-xl shadow-lg">
-                <Users size={18} />
-              </button>
-            </div>
+            <div className="text-2xl font-black tracking-tighter mb-2">How can we help?</div>
+            <p className="text-indigo-100 font-bold text-sm mb-6 opacity-80">Chat with our automated assistant or browse the options below.</p>
           </div>
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
         </div>

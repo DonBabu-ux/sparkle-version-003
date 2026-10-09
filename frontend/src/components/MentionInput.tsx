@@ -209,7 +209,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
                 {mentionQuery === '@' && (
                   <div className="mb-2">
                     <p className="px-5 py-1 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Broadcast</p>
-                    {SPECIALS.map(({ id, label, desc, Icon }) => (
+                    {SPECIALS.map(({ id, desc, Icon }) => (
                       <button
                         key={id}
                         className="w-full px-5 py-3 flex items-center gap-4 hover:bg-gray-50 active:bg-gray-100 transition-colors"

@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft, RefreshCw, BarChart2, Video, Plus, Eye, Flame, Play, MessageSquare,
-  Sparkles, Megaphone, FileText, Image as ImageIcon, Calendar, Radio
-} from 'lucide-react';
+import { ArrowLeft, RefreshCw, Video, Flame, Play, Sparkles, FileText, Image as ImageIcon, Radio } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -35,7 +32,7 @@ export default function CreatorStudio() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StudioStats | null>(null);
-  const [content, setContent] = useState<UploadedContent[]>(MOCK_CONTENT);
+  const [ content,  ] = useState<UploadedContent[]>(MOCK_CONTENT);
 
   const fetchStats = useCallback(async () => {
     try {

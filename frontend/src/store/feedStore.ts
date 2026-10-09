@@ -57,7 +57,7 @@ export interface FeedState {
 
 export const useFeedStore = create<FeedState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       orderedPostIds: initialOrderedPostIds,
       postsById: initialPostsById,
       optimisticPosts: {},

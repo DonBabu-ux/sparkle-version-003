@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Zap, Clock, TrendingUp, ShieldCheck, DollarSign,
-  AlertCircle, History, Sparkles, RefreshCw, CheckCircle2, ArrowRight
-} from 'lucide-react';
+import { X, Zap, TrendingUp, AlertCircle, History, RefreshCw, CheckCircle2, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -43,7 +40,7 @@ interface BoostConnectModalProps {
 
 export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostConnectModalProps) {
   const [activeTab, setActiveTab] = useState<'boost' | 'history'>('boost');
-  const [loading, setLoading] = useState(false);
+  const [ , setLoading ] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
   // Wallet

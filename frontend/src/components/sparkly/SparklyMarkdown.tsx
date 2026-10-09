@@ -10,12 +10,7 @@ interface Props {
   className?: string;
 }
 
-function escapeHtml(text: string) {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-}
+
 
 /**
  * Parse inline markdown: **bold**, *italic*, `code`, [link](url)

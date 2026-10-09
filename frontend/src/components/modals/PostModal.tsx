@@ -1,9 +1,7 @@
 import { showError } from '../../utils/toast';
-import { useState, useRef } from 'react';
-import {
-  X, Image as ImageIcon, MapPin, Globe, Ghost, Lock,
-  Loader2, Smile, Tag, ChevronDown, Check, Users, Sparkles
-} from 'lucide-react';
+import { validateFiles } from '../../utils/fileValidation';
+import { useState, useRef, useEffect } from 'react';
+import { X, Image as ImageIcon, MapPin, Globe, Lock, Smile, Tag, ChevronDown, Check, Users, Sparkles } from 'lucide-react';
 import api from '../../api/api';
 import MentionInput from '../MentionInput';
 import { useUserStore } from '../../store/userStore';
@@ -79,6 +77,11 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
   const [previews, setPreviews] = useState<string[]>(
     editPost?.media_url ? editPost.media_url.split(',') : initialFiles.map((f: File) => URL.createObjectURL(f))
   );
+  const previewsRef = useRef<string[]>(previews);
+  previewsRef.current = previews;
+  useEffect(() => () => {
+    previewsRef.current.forEach(u => { if (u.startsWith('blob:')) URL.revokeObjectURL(u); });
+  }, []);
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   // Conditionally mounted by its parent; suspend while the nested selector sheet is open.
@@ -89,6 +92,13 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selected = Array.from(e.target.files || []);
+    if (selected.length === 0) return;
+    const check = validateFiles(selected, { kind: 'any', maxSizeMB: 15 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     setFiles(prev => [...prev, ...selected]);
     const newPreviews = selected.map(f => URL.createObjectURL(f));
     setPreviews(prev => [...prev, ...newPreviews]);
@@ -96,7 +106,11 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
 
   const removeFile = (index: number) => {
     setFiles(prev => prev.filter((_, i) => i !== index));
-    setPreviews(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => {
+      const removed = prev[index];
+      if (removed?.startsWith('blob:')) URL.revokeObjectURL(removed);
+      return prev.filter((_, i) => i !== index);
+    });
   };
 
   const handleSubmit = async () => {

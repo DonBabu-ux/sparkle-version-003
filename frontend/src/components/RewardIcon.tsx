@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { type ReactNode } from 'react';
 
 /**
  * RewardIcon – a wrapper that applies premium visual effects to reward SVGs.

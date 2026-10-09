@@ -1,19 +1,5 @@
 import { useState } from 'react';
-import { 
-  Sparkles, 
-  Smartphone, 
-  Code, 
-  BookOpen, 
-  Download, 
-  ExternalLink, 
-  Terminal, 
-  Layers, 
-  Cpu, 
-  ShieldCheck, 
-  CheckCircle,
-  Copy,
-  ChevronRight
-} from 'lucide-react';
+import { Sparkles, Smartphone, Code, BookOpen, Terminal, Layers, Cpu, ShieldCheck, CheckCircle, Copy } from 'lucide-react';
 
 interface AppItem {
   name: string;
@@ -162,10 +148,6 @@ export default function Ecosystem() {
                   
                   <div className="flex items-center justify-between border-t border-gray-100 dark:border-white/5 mt-6 pt-4 text-xs font-semibold text-gray-400">
                     <span>Version {app.version}</span>
-                    <button className="flex items-center gap-1 text-[#FF3D6D] hover:underline font-bold">
-                      <span>Launch App</span>
-                      <ExternalLink size={12} />
-                    </button>
                   </div>
                 </div>
               ))}
@@ -177,22 +159,7 @@ export default function Ecosystem() {
               <div className="bg-gradient-to-r from-purple-500 to-[#FF3D6D] text-white p-8 rounded-[32px] shadow-xl">
                 <h3 className="text-2xl font-black mb-2">Download Sparkle for Mobile</h3>
                 <p className="text-white/80 text-sm max-w-lg mb-6">Experience fluid 120Hz scrolling, native push notifications, edge-to-edge camera integrations, and offline caching systems.</p>
-                <div className="flex flex-wrap gap-4">
-                  <button className="flex items-center gap-3 bg-white text-gray-900 px-6 py-3 rounded-2xl font-bold shadow-lg hover:scale-[1.02] transition-transform">
-                    <Download size={20} className="text-[#FF3D6D]" />
-                    <div className="text-left">
-                      <div className="text-[10px] uppercase font-black text-gray-400 leading-none">Download APK</div>
-                      <div className="text-sm font-black">Android Native v3.0.2</div>
-                    </div>
-                  </button>
-                  <button className="flex items-center gap-3 bg-white text-gray-900 px-6 py-3 rounded-2xl font-bold shadow-lg hover:scale-[1.02] transition-transform">
-                    <Smartphone size={20} className="text-[#FF3D6D]" />
-                    <div className="text-left">
-                      <div className="text-[10px] uppercase font-black text-gray-400 leading-none">Get iOS App</div>
-                      <div className="text-sm font-black">iOS Dev Sandbox Build</div>
-                    </div>
-                  </button>
-                </div>
+                <p className="text-white/70 text-sm font-bold">Builds are not publicly distributed yet — check back soon.</p>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

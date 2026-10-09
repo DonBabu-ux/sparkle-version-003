@@ -1,4 +1,4 @@
-import { useState, TouchEvent, MouseEvent } from 'react';
+import { useState, type TouchEvent, type MouseEvent } from 'react';
 import { ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 import clsx from 'clsx';
 

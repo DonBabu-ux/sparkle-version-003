@@ -4,19 +4,10 @@ import api from '../api/api';
 import { motion } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import clsx from 'clsx';
-import { 
-  Home, Users, Plus, X, User, Ghost, 
-  ShoppingBag, 
-  LogOut, 
-  Calendar,
-  Pen, PlayCircle, History, Store, LayoutGrid,
-  BarChart3, Sparkles, Compass,
-  Search as SearchIcon, Bell, MessageSquare,
-  Zap, Activity, Package, UserPlus, Image as ImageIcon, Send, CheckCircle2, LifeBuoy, HelpCircle, Briefcase, Settings
-} from 'lucide-react';
+import { Home, Users, Plus, Pen, PlayCircle, History, Store, LayoutGrid, BarChart3, Compass, Search as SearchIcon, Bell } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
-import { getAvatarUrl } from '../utils/imageUtils';
+import '../utils/imageUtils';
 import Avatar from './Avatar';
 
 import PostModal from './modals/PostModal';
@@ -67,7 +58,7 @@ const SpyIcon = ({ size = 24, className = "" }: { size?: number, className?: str
 /** Paths where Navbar hides its mobile top header (shared with PageShell — S1/§3 P2-1). */
 export const MOBILE_HEADERLESS_PREFIXES = ['/search', '/moments', '/marketplace', '/groups', '/settings', '/profile', '/messages'];
 export default function Navbar() {
-  const { user, logout } = useUserStore();
+  const { user } = useUserStore();
   const { activeModal, setActiveModal, modalData, triggerSuccess } = useModalStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -300,7 +291,7 @@ export default function Navbar() {
                 <CreateHighlightModal 
                   isOpen={true} 
                   onClose={() => setActiveModal(null)} 
-                  onCreated={(h) => {
+                  onCreated={(_h) => {
                     setActiveModal(null);
                     triggerSuccess();
                   }} 

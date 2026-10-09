@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Pause, Music, X, Send, AlertTriangle } from 'lucide-react';
+import { Play, Pause, Music, X, Send } from 'lucide-react';
 import AudioSessionManager from '../../audio/managers/AudioSessionManager';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';

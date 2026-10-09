@@ -8,41 +8,7 @@ import React, {
   type ReactNode,
 } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Bell,
-  Volume2,
-  Shield,
-  Lock,
-  UserX,
-  MessageCircle,
-  ChevronRight,
-  ChevronLeft,
-  RotateCcw,
-  Play,
-  Smartphone,
-  Eye,
-  EyeOff,
-  Trash2,
-  Palette,
-  Wifi,
-  Check,
-  CheckCircle2,
-  AlertCircle,
-  HelpCircle,
-  Info,
-  Archive,
-  LogOut,
-  AlertTriangle,
-  Activity,
-  Copy,
-  Share2,
-  Camera,
-  Monitor,
-  Vibrate,
-  BellOff,
-  Sliders,
-} from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Shield, Lock, UserX, MessageCircle, ChevronRight, ChevronLeft, RotateCcw, Play, Smartphone, Eye, EyeOff, Trash2, Palette, Wifi, Check, HelpCircle, Info, Archive, LogOut, AlertTriangle, Activity, Copy, Share2, Camera, Monitor, Vibrate, BellOff } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';

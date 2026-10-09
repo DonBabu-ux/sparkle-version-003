@@ -1,12 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Users, Target, TrendingUp, Rocket, Gift, Radio, 
-  BarChart2, Calendar, ChevronRight, Lock, BadgeCheck, 
-  ArrowRight, Sparkles, Award, ArrowLeft, Info, HelpCircle, Star
-} from 'lucide-react';
+import { Users, Target, Rocket, Gift, Radio, BarChart2, Calendar, ChevronRight, Lock, ArrowRight, Info, Star } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
-import api from '../api/api';
+import '../api/api';
 import { useNavigate } from 'react-router-dom';
 import SparkleLiveHero from '../components/SparkleLiveHero';
 // --- Custom Svg Components to match the exact elements in the image ---
@@ -50,7 +46,7 @@ const HolographicPlatform = () => (
 
 export default function LockedLivePage() {
   const user = useUserStore(state => state.user);
-  const invites = user?.invited_users_count ?? 0;
+  
   const followers = user?.followers_count ?? 0;
 
   // Progress toward 1,000 followers live unlock
@@ -60,8 +56,8 @@ export default function LockedLivePage() {
   const nextMilestone = milestones.find(m => m > followers) || 1000;
   const remaining = nextMilestone - followers;
   
-  const [creators, setCreators] = useState<any[]>([]);
-  const [loadingCreators, setLoadingCreators] = useState(true);
+  const [ , setCreators ] = useState<any[]>([]);
+  const [ , setLoadingCreators ] = useState(true);
   const [earlyAccessRequested, setEarlyAccessRequested] = useState(false);
   const [showAccessModal, setShowAccessModal] = useState(false);
 

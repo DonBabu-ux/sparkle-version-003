@@ -1,4 +1,4 @@
-import React, { createContext, useContext, ReactNode, useRef, useEffect, useState } from 'react';
+import { createContext, useContext, type ReactNode, useRef, useEffect, useState } from 'react';
 import { useRefreshStore } from '../store/refreshStore';
 import { useGesture } from '@use-gesture/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,7 +28,7 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
   // Gesture handling for elastic pull-down
   const containerRef = useRef<HTMLDivElement>(null);
   const [pullY, setPullY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
+  const [ , setIsDragging ] = useState(false);
 
   // S9: the REAL scroller is AppScreen's inner wrapper; this outer container
   // only ever scrolls on pages that don't render AppScreen. Falling back to it

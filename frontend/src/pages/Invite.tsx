@@ -1,34 +1,8 @@
 // frontend/src/pages/Invite.tsx
 // Production Sparkle Referrals & Invite Management (100% Real Database Data)
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ArrowLeft, 
-  Sparkles, 
-  Bell, 
-  Link2, 
-  Copy, 
-  Check, 
-  Share2, 
-  Users, 
-  Coins, 
-  Star, 
-  Crown, 
-  Gift, 
-  Calendar, 
-  ChevronRight, 
-  X, 
-  MessageCircle, 
-  Send, 
-  Smartphone, 
-  Heart, 
-  ShieldCheck, 
-  AlertCircle,
-  RefreshCw,
-  Info,
-  QrCode,
-  UserCheck
-} from 'lucide-react';
+import { ArrowLeft, Sparkles, Bell, Link2, Copy, Check, Share2, Users, Coins, Star, Crown, Gift, ChevronRight, X, MessageCircle, Send, Smartphone, Heart, ShieldCheck, AlertCircle, RefreshCw, Info, QrCode, UserCheck } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { useUserStore } from '../store/userStore';
 import Avatar from '../components/Avatar';

@@ -1,23 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Shield,
-  Lock,
-  User as UserIcon,
-  MessageSquare,
-  Sparkles,
-  Database,
-  Bell,
-  Wand2,
-  Sliders,
-  Terminal,
-  Workflow,
-  FileSearch,
-  Search,
-  ChevronRight,
-  Info
-} from 'lucide-react';
+import { ArrowLeft, Shield, Lock, User as UserIcon, MessageSquare, Sparkles, Database, Bell, Wand2, Sliders, Terminal, Workflow, FileSearch, Search, Info } from 'lucide-react';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import { useUserStore } from '../store/userStore';

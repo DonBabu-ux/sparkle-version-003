@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import { getOptimizedMediaUrl } from '../utils/imageUtils';
-import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check, Info } from 'lucide-react';
+import { Heart, MessageSquare, Send, ArrowLeft, Orbit, ChevronDown, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -11,6 +11,7 @@ import type { Post } from '../types/post';
 import PostHeader from '../components/PostHeader';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
 
 interface Comment {
   comment_id: string;
@@ -88,6 +89,7 @@ export default function PostDetail() {
       }
     } catch (err) {
       logger.error('Failed to add comment:', err);
+      showError('Failed to post comment. Please try again.');
     } finally {
       setSubmitting(false);
     }

@@ -4,6 +4,7 @@ import { ArrowLeft, History, Calendar, Sparkles, ChevronRight, Share2, X } from 
 import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
+import { showSuccess } from '../utils/toast';
 
 export default function Memories() {
   const navigate = useNavigate();
@@ -129,7 +130,22 @@ export default function Memories() {
             </div>
 
             <div className="pt-6">
-              <button className="w-full h-16 flex items-center justify-center gap-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl text-black dark:text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 group shadow-lg active:scale-[0.98]">
+              <button
+                onClick={async () => {
+                  const url = `${window.location.origin}/memories`;
+                  if (navigator.share) {
+                    try {
+                      await navigator.share({ title: 'My Sparkle Memories', url });
+                      return;
+                    } catch { /* dismissed — fall through to copy */ }
+                  }
+                  try {
+                    await navigator.clipboard.writeText(url);
+                    showSuccess('Memories link copied to clipboard!');
+                  } catch { /* clipboard unavailable */ }
+                }}
+                className="w-full h-16 flex items-center justify-center gap-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl text-black dark:text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 group shadow-lg active:scale-[0.98]"
+              >
                 <Share2 size={18} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
                 <span>Share Memories</span>
               </button>

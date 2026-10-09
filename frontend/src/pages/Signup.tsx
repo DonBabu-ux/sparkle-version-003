@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Users, Heart, Eye, EyeOff,
@@ -51,7 +51,7 @@ export default function Signup() {
     number: false,
     special: false
   });
-  const [otpSuccess, setOtpSuccess] = useState(false);
+  const [ otpSuccess,  ] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
 
@@ -330,7 +330,7 @@ export default function Signup() {
               {/* Step 1: Welcome */}
               {step === 1 && (
                 <div className="su-step">
-                  <button className="su-google" type="button">
+                  <button className="su-google" type="button" onClick={() => showError("Google sign-in isn't available yet — continue with your email.")}>
                     <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="su-google__img" alt="" />
                     <span>Continue with Google</span>
                   </button>

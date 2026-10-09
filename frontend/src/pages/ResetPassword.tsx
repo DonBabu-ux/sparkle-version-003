@@ -1,14 +1,14 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Lock, Eye, EyeOff, CheckCircle2, Shield, Check, X, RefreshCw, ChevronLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Eye, EyeOff, CheckCircle2, Shield, Check, X, RefreshCw, ChevronLeft } from 'lucide-react';
 import api from '../api/api';
+import { parseResetLinkParams } from '../utils/resetLink';
 
 export default function ResetPassword() {
-  const [searchParams] = useSearchParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
-  const emailParam = searchParams.get('email') || '';
-  const tokenParam = searchParams.get('token') || searchParams.get('code') || '';
+  const { email: emailParam, code: tokenParam } = parseResetLinkParams(location.hash, location.search);
 
   // OTP inputs state: 6 separate fields
   const [otpValues, setOtpValues] = useState<string[]>(() => {

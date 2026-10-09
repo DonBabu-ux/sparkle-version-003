@@ -1,4 +1,5 @@
 import { showError } from '../../utils/toast';
+import { validateFile } from '../../utils/fileValidation';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -84,6 +85,12 @@ function InAppCaptureModal({ mode, onCapture, onClose }: InAppCaptureModalProps)
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = ev => {
       streamRef.current?.getTracks().forEach(t => t.stop());
@@ -210,15 +217,11 @@ interface IdentityVerificationModalProps {
 
 type Step = 'intro' | 'id-upload' | 'selfie' | 'processing' | 'success';
 
-export default function IdentityVerificationModal({
-  isOpen,
-  onClose,
-  onComplete,
-}: IdentityVerificationModalProps) {
+export default function IdentityVerificationModal({ isOpen, onClose }: IdentityVerificationModalProps) {
   const [step, setStep] = useState<Step>('intro');
   const [idFront, setIdFront] = useState<string | null>(null);
   const [selfie, setSelfie] = useState<string | null>(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [ , setIsProcessing ] = useState(false);
   // Which in-app camera view is active: null = none, 'id' | 'selfie' = open
   const [activeCam, setActiveCam] = useState<'id' | 'selfie' | null>(null);
   const a11yRef = useModalA11y(isOpen, onClose);

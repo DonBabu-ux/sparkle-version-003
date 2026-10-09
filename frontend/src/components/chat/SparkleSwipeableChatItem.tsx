@@ -21,20 +21,7 @@ interface SparkleSwipeableChatItemProps {
   typingUsers: { chatId: string; name: string }[];
 }
 
-export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> = ({
-  chat,
-  isSelected,
-  isSelectionMode,
-  user,
-  onSelect,
-  onOpen,
-  onLongPress,
-  onArchive,
-  onDelete,
-  getStatusLabel,
-  formatMessageText,
-  typingUsers,
-}) => {
+export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> = ({ chat, isSelected, isSelectionMode, user, onSelect, onOpen, onLongPress, onArchive, onDelete, formatMessageText, typingUsers }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const archiveBg = useTransform(x, [0, 80], ['rgba(147, 51, 234, 0)', 'rgba(147, 51, 234, 0.4)']);

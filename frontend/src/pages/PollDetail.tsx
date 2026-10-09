@@ -1,7 +1,7 @@
 import { showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, BarChart2, CheckCircle2, ChevronRight, Users, X, UserPlus, UserCheck, Sparkles, Orbit } from 'lucide-react';
+import { ArrowLeft, BarChart2, Users, X, UserPlus, UserCheck, Sparkles } from 'lucide-react';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import Spinner from '../components/ui/Spinner';

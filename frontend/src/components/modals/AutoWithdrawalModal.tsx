@@ -1,9 +1,6 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, Zap, Calendar, Sliders, ShieldCheck, CheckCircle2,
-  Smartphone, Building2, AlertCircle, Loader2, Info
-} from 'lucide-react';
+import { X, Zap, Calendar, Sliders, ShieldCheck, CheckCircle2, Smartphone, Building2, AlertCircle, Loader2 } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';

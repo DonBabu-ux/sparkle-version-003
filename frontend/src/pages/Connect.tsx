@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, UserPlus, Users, UserCheck, Sparkles, Orbit, Compass, Zap, CheckCircle2 } from 'lucide-react';
+import { Search, Users, Sparkles, Orbit, Compass } from 'lucide-react';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
-import Spinner from '../components/ui/Spinner';
+import '../components/ui/Spinner';
 
 const TABS = [
   { label: 'Discovery', icon: Compass },
@@ -101,7 +101,7 @@ export default function Connect() {
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
   }, [searchQuery]);
 
-  const SKELETON_COUNT = 6;
+  
 
   return (
     <div className="flex bg-app min-h-dvh text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">

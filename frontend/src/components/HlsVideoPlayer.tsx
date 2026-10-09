@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react';
+import { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import Hls from 'hls.js';
-import { Loader2 } from 'lucide-react';
+import 'lucide-react';
 import { logger } from '../utils/logger';
 
 interface HlsVideoPlayerProps {

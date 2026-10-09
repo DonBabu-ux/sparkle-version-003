@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Orbit, Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
+import { Image as ImageIcon, Grid, Layers, PlayCircle, Eye, Heart } from 'lucide-react';
 import ErrorRetry from '../components/ui/ErrorRetry';
 import api from '../api/api';
 import type { Post } from '../types/post';
 import { logger } from '../utils/logger';
 
-function LazyMediaCard({ m, idx, onClick }: { m: Post; idx: number; onClick: () => void }) {
+function LazyMediaCard({ m, onClick }: { m: Post; idx: number; onClick: () => void }) {
   const [isVisible, setIsVisible] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 

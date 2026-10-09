@@ -1,4 +1,4 @@
-import { showInfo } from '../utils/toast';
+import { showInfo, showError } from '../utils/toast';
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
@@ -11,10 +11,7 @@ import { formatCount } from '../utils/format';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import Spinner from '../components/ui/Spinner';
-import { 
-  ShieldCheck, Plus, Orbit, MessageSquare, ArrowLeft, Flame, TrendingUp, Sparkles, Globe, Smile, BookOpen,
-  MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Bookmark, Heart, Send
-} from 'lucide-react';
+import { ShieldCheck, Plus, Orbit, ArrowLeft, Flame, Sparkles, Globe, Smile, BookOpen, MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Send } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
@@ -161,6 +158,7 @@ export default function Confessions() {
     } catch (err) {
       if (forceAdd) reactedIdsRef.current.delete(confessionId);
       logger.error('Error reacting to confession:', err);
+      showError('Could not save your reaction. Please try again.');
     }
   };
 
@@ -244,6 +242,7 @@ export default function Confessions() {
       ));
     } catch (err) {
       logger.error('Failed to add comment:', err);
+      showError('Failed to post comment. Please try again.');
     } finally {
       setIsCommenting(prev => ({ ...prev, [confessionId]: false }));
     }
@@ -286,9 +285,6 @@ export default function Confessions() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button className="w-10 h-10 rounded-2xl bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 flex items-center justify-center text-black/40 dark:text-white hover:text-primary transition-all shadow-sm active:scale-95">
-                <TrendingUp size={17} />
-              </button>
               {/* Plus button opens the local ConfessionModal */}
               <button
                 onClick={() => setShowComposeModal(true)}

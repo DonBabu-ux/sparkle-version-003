@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../../store/userStore';
-import { CheckCircle2, User, GraduationCap, Compass, FileText, HelpCircle } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
 
 export const OnboardingProgressCard: React.FC = () => {
   const navigate = useNavigate();

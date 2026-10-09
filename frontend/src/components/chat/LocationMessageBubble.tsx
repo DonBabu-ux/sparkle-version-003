@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { MapPin, Navigation, Clock, ExternalLink, Square } from 'lucide-react';
+import { Navigation, Clock, ExternalLink, Square } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
 import { liveLocationService } from '../../services/liveLocationService';
 import { logger } from '../../utils/logger';

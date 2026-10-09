@@ -1,26 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import {
-  ArrowLeft,
-  RotateCw,
-  Search,
-  Maximize2,
-  Minimize2,
-  Navigation,
-  MapPin,
-  Clock,
-  Building,
-  ShoppingBag,
-  GraduationCap,
-  Activity,
-  Shield,
-  Utensils,
-  Bus,
-  Trees,
-  X,
-  Loader2
-} from 'lucide-react';
+import { ArrowLeft, RotateCw, Search, Maximize2, Minimize2, Navigation, MapPin, Building, ShoppingBag, GraduationCap, Activity, Shield, Utensils, Bus, Trees, X, Loader2 } from 'lucide-react';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { LiveLocationIntroModal } from './LiveLocationIntroModal';
@@ -70,11 +51,11 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   const [currentCoords, setCurrentCoords] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
   const [gpsStatus, setGpsStatus] = useState<string>('GPS acquiring...');
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [isSendingCurrent, setIsSendingCurrent] = useState<boolean>(false);
+  const [ isSendingCurrent,  ] = useState<boolean>(false);
   
   // Search state
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [isSearching, setIsSearching] = useState<boolean>(false);
+  const [ ,  ] = useState<boolean>(false);
   
   // Map expand toggle state
   const [isMapExpanded, setIsMapExpanded] = useState<boolean>(false);

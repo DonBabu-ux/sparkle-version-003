@@ -1,8 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { 
-  ChevronLeft, Search, Calendar, User, Filter, CornerUpRight, MessageSquare, 
-  Image as ImageIcon, FileText, Link2, Mic, Music, Share2, Eye, X
-} from 'lucide-react';
+import { ChevronLeft, Search, Calendar, CornerUpRight, MessageSquare, Image as ImageIcon, FileText, Link2, Mic, Music, Share2, Eye } from 'lucide-react';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
@@ -59,7 +56,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
   const [keyword, setKeyword] = useState('');
   const [activeType, setActiveType] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState('');
-  const [senderFilter, setSenderFilter] = useState('');
+  const [ senderFilter,  ] = useState('');
   
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);

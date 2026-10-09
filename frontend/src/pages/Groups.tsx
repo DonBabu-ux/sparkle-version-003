@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
-import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Compass, Lock, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Shield, Search, ArrowRight, Sparkles, Globe, Lock, ArrowLeft } from 'lucide-react';
 import type { Group } from '../types/group';
 import { useNavigate } from 'react-router-dom';
 import ModernOfflineState from '../components/ui/ModernOfflineState';

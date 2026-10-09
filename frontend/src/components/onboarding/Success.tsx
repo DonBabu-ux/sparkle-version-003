@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { useUserStore } from '../../store/userStore';
 import { logger } from '../../utils/logger';
 
 export default function Success() {
-  const [loading, setLoading] = useState(true);
+  const [ , setLoading ] = useState(true);
   const navigate = useNavigate();
   const { user, setUser } = useUserStore();
 

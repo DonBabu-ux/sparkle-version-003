@@ -5,7 +5,7 @@ import { logger } from '../../utils/logger';
 export class NotificationManager {
   private eventBus: EventBus;
 
-  constructor(audioCtx: AudioContext | null, eventBus: EventBus) {
+  constructor(_audioCtx: AudioContext | null, eventBus: EventBus) {
     this.eventBus = eventBus;
 
     // Listen to push/local channel setup triggers

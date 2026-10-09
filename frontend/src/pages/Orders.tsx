@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Package, ChevronLeft, CreditCard, Clock, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, Package, ChevronLeft, CreditCard, Clock, ChevronRight } from 'lucide-react';
 import api from '../api/api';
 import clsx from 'clsx';
 import { motion } from 'framer-motion';

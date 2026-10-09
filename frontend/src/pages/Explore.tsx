@@ -1,7 +1,7 @@
 import Skeleton from '../components/ui/Skeleton';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, MessageCircle, Heart, Search, Filter } from 'lucide-react';
+import { Play, MessageCircle, Heart, Search } from 'lucide-react';
 import api from '../api/api';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -156,13 +156,10 @@ export default function Explore() {
                   type="text" 
                   placeholder="Search Sparkle Discovery..." 
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-black/5 dark:!bg-white/5 focus:!bg-white dark:focus:!bg-white/10 dark:text-white border-none shadow-sm"
-                />
-              </div>
-              <button className="w-11 h-11 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-full flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-black dark:text-white shadow-sm">
-                <Filter size={18} />
-              </button>
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-black/5 dark:!bg-white/5 focus:!bg-white dark:focus:!bg-white/10 dark:text-white border-none shadow-sm"
+              />
+            </div>
             </div>
             
             {/* Categories */}

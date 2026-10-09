@@ -1,5 +1,5 @@
 // src/theme/ThemeProvider.tsx
-import React, { createContext, useContext, useMemo, ReactNode } from 'react';
+import React, { createContext, useContext, useMemo, type ReactNode } from 'react';
 import { designTokens } from './designTokens';
 
 export type ThemeMode = 'light' | 'dark';

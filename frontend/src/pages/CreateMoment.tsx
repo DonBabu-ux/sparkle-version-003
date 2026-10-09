@@ -1,15 +1,25 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Camera, Film, X } from 'lucide-react';
 import Navbar from '../components/Navbar';
 import api from '../api/api';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
+import { validateFile } from '../utils/fileValidation';
 
 export default function CreateMoment() {
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const previewRef = useRef<string | null>(null);
+  previewRef.current = preview;
+  useEffect(() => () => {
+    if (previewRef.current?.startsWith('blob:')) URL.revokeObjectURL(previewRef.current);
+  }, []);
+  const revokePreview = (url: string | null) => {
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+  };
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
   const [isVideo, setIsVideo] = useState(false);
@@ -17,8 +27,15 @@ export default function CreateMoment() {
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
+    const check = validateFile(f, { kind: 'any', maxSizeMB: 100 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     setFile(f);
     setIsVideo(f.type.startsWith('video/'));
+    revokePreview(previewRef.current);
     const url = URL.createObjectURL(f);
     setPreview(url);
   };
@@ -78,7 +95,7 @@ export default function CreateMoment() {
                 </div>
               ) : (
                 <div className="cm-preview-wrap">
-                  <button type="button" className="cm-remove-btn" onClick={() => { setFile(null); setPreview(null); }}>
+                  <button type="button" className="cm-remove-btn" onClick={() => { setFile(null); revokePreview(previewRef.current); setPreview(null); }}>
                     <X size={16} />
                   </button>
                   {isVideo ? (

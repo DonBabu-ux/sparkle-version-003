@@ -1,4 +1,4 @@
-import React from 'react';
+import 'react';
 import { Camera, Mic, ShieldAlert, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 

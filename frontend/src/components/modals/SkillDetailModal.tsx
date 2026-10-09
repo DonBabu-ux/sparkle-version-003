@@ -1,11 +1,8 @@
 import Skeleton from '../ui/Skeleton';
 import ErrorRetry from '../ui/ErrorRetry';
 import { showError } from '../../utils/toast';
-import React, { useState, useEffect } from 'react';
-import {
-  X, Star, ShieldCheck, MessageCircle, Calendar,
-  Clock, ArrowRight, Check, MapPin, Tag
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Star, ShieldCheck, MessageCircle, Calendar, Clock, ArrowRight, Check } from 'lucide-react';
 import api from '../../api/api';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

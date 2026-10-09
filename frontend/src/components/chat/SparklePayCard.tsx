@@ -15,16 +15,7 @@ export interface SparklePayCardProps {
   payload?: any;
 }
 
-export const SparklePayCard: React.FC<SparklePayCardProps> = ({
-  eventType = 'topup',
-  title,
-  subtitle,
-  amount,
-  referenceId,
-  balance,
-  status = 'Successful',
-  sentAt,
-}) => {
+export const SparklePayCard: React.FC<SparklePayCardProps> = ({ title, subtitle, amount, referenceId, balance, status = 'Successful', sentAt }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyRef = () => {

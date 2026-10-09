@@ -1,17 +1,12 @@
 import { confirmDialog } from '../../store/dialogStore';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import {
-  MessageCircle, Search, ChevronLeft, MoreHorizontal,
-  Phone, Video, Info, Image as ImageIcon, Send, ShieldCheck,
-  MapPin, Clock, Tag, ShoppingBag as ShoppingBagIcon, CheckCircle2, Plus, SlidersHorizontal, EyeOff, ShieldAlert
-} from 'lucide-react';
+import { MessageCircle, MoreHorizontal, Tag, ShoppingBag as ShoppingBagIcon, SlidersHorizontal, EyeOff, ShieldAlert } from 'lucide-react';
 import clsx from 'clsx';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import { useUserStore } from '../../store/userStore';
 import { useSocket } from '../../hooks/useSocket';
-import { useMarketplaceStore } from '../../store/marketplaceStore';
+import '../../store/marketplaceStore';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
@@ -25,12 +20,12 @@ export default function MarketplaceInbox() {
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [ selectedChatId,  ] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [chats, setChats] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const socket = useSocket();
+  useSocket();
 
   // Fetch chats on mount
   useEffect(() => {

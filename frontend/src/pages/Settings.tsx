@@ -2,51 +2,24 @@ import { lockScroll, unlockScroll } from '../components/AppScreen';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
+import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
-import type { User } from '../types/user';
-import {
-  User as UserIcon,
-  Shield,
-  EyeOff,
-  MessageSquare,
-  Palette,
-  LogOut,
-  Camera,
-  Trash2,
-  CheckCircle2,
-  AlertCircle,
-  Smartphone,
-  Lock,
-  Sparkles,
-  Sliders,
-  FileText,
-  ShoppingBag,
-  ArrowLeft,
-  ChevronRight,
-  Volume2,
-  Moon,
-  Sun,
-  HardDrive,
-  Download,
-  X,
-  TriangleAlert
-} from 'lucide-react';
+import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck } from 'lucide-react';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
-import AudioSessionManager from '../audio/managers/AudioSessionManager';
+import '../audio/managers/AudioSessionManager';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import { logger } from '../utils/logger';
 
 export default function Settings() {
-  const { user, setUser, theme, setTheme } = useUserStore();
+  const { user, theme, setTheme } = useUserStore();
   const navigate = useNavigate();
 
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [ ,  ] = useState(false);
+  const [ success,  ] = useState<string | null>(null);
+  const [ error,  ] = useState<string | null>(null);
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showLegalModal, setShowLegalModal] = useState(false);
@@ -95,7 +68,7 @@ export default function Settings() {
     };
   }, [showAccountControl]);
 
-  const [formData, setFormData] = useState({
+  const [ ,  ] = useState({
     name: user?.name || '',
     username: user?.username || '',
     headline: user?.headline || '',
@@ -109,11 +82,7 @@ export default function Settings() {
     show_contact_info: user?.show_contact_info || false,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData(prev => ({ ...prev, [name]: val }));
-  };
+  
 
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
@@ -121,31 +90,7 @@ export default function Settings() {
     api.put('/users/settings', { dark_mode_enabled: nextTheme === 'dark' }).catch(() => {});
   };
 
-  const handleSubmitProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setSuccess(null);
-    setError(null);
-
-    try {
-      const response = await api.put('/users/profile', formData);
-      if (response.data.success || response.status === 200) {
-        setSuccess('Profile updated successfully!');
-        if (user) {
-          setUser({ ...user, ...formData } as User);
-        }
-        setShowEditProfileModal(false);
-      }
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || 'Update failed. Please try again.');
-      } else {
-        setError((err as Error).message || 'Something went wrong.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  
 
   const handleToggleHide = async (hidden: boolean) => {
     setAcSubmitting(true);
@@ -327,6 +272,13 @@ export default function Settings() {
             rightElement="chevron"
             onClick={() => navigate('/marketplace/settings')}
           />
+          <SettingRow
+            icon={Volume2}
+            title="Audio Diagnostics"
+            description="Test your microphone, speakers, and call quality"
+            rightElement="chevron"
+            onClick={() => navigate('/settings/audio-diagnostics')}
+          />
         </SettingCardGroup>
 
         {/* GROUP 3: ADVANCED SETTINGS ENTRY (PROMINENT CONTROL CENTRE CARD) */}
@@ -339,6 +291,13 @@ export default function Settings() {
             badgeText="System Architecture"
             badgeVariant="pink"
             onClick={() => navigate('/settings/advanced')}
+          />
+          <SettingRow
+            icon={UserCheck}
+            title="Follow Requests"
+            description="Review people waiting to follow your private account"
+            rightElement="chevron"
+            onClick={() => navigate('/follow-requests')}
           />
         </SettingCardGroup>
 

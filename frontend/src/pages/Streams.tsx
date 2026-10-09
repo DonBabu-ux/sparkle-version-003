@@ -1,11 +1,8 @@
 import { showInfo } from '../utils/toast';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Lock, Eye, Video, ArrowLeft, Radio, Circle, 
-  Sparkles, ShieldAlert, Award 
-} from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Eye, Video, ArrowLeft, Radio, Award } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import LockedLivePage from './LockedLivePage';
 import Spinner from '../components/ui/Spinner';

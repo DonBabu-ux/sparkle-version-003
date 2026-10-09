@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import ErrorRetry from '../components/ui/ErrorRetry';
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Heart, ShoppingBag } from 'lucide-react';
 import api from '../api/api';
 import type { Listing } from '../types/listing';

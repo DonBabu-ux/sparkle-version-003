@@ -1,5 +1,6 @@
 import { showError } from '../../utils/toast';
-import { useState, useRef } from 'react';
+import { validateFile } from '../../utils/fileValidation';
+import { useState, useRef, useEffect } from 'react';
 import { X, Flame, Snowflake, Sparkles, ArrowRight, Image as ImageIcon, AlertTriangle, ShieldOff, Trash2 } from 'lucide-react';
 
 // Custom Spy/Anonymous Icon to match the "Incognito" aesthetic (Fedora + Glasses)
@@ -40,6 +41,14 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   // Image upload state
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const imagePreviewRef = useRef<string | null>(null);
+  imagePreviewRef.current = imagePreview;
+  useEffect(() => () => {
+    if (imagePreviewRef.current?.startsWith('blob:')) URL.revokeObjectURL(imagePreviewRef.current);
+  }, []);
+  const revokePreview = (url: string | null) => {
+    if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+  };
   const [showImageWarning, setShowImageWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Conditionally mounted by its parent: open whenever rendered.
@@ -90,13 +99,21 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
     setSelectedImage(file);
+    revokePreview(imagePreviewRef.current);
     const url = URL.createObjectURL(file);
     setImagePreview(url);
   };
 
   const removeImage = () => {
     setSelectedImage(null);
+    revokePreview(imagePreviewRef.current);
     setImagePreview(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };

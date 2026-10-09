@@ -1,9 +1,5 @@
-import React from 'react';
-import { 
-  Zap, RotateCw, Image as ImageIcon, Sparkles, X, 
-  Grid3X3, Square, RectangleHorizontal, Timer as TimerIcon, Gauge,
-  Volume2, VolumeX, Clapperboard, Radio, LayoutGrid
-} from 'lucide-react';
+import 'react';
+import { Zap, RotateCw, Image as ImageIcon, Sparkles, X, Grid3X3, Square, RectangleHorizontal, Timer as TimerIcon, Gauge, LayoutGrid } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface CameraControlsProps {
@@ -41,35 +37,7 @@ interface CameraControlsProps {
   onClose: () => void;
 }
 
-export default function CameraControls({
-  mode,
-  onModeChange,
-  flash,
-  torchSupported,
-  onFlashToggle,
-  cameraType,
-  onCameraTypeToggle,
-  onGalleryClick,
-  onCapture,
-  
-  isRecording,
-  recordingSeconds,
-  cameraTimer,
-  onTimerToggle,
-  cameraSpeed,
-  onSpeedToggle,
-  cameraLayout,
-  onLayoutToggle,
-  isMagicOn,
-  onMagicToggle,
-  isWideAspect,
-  onRatioToggle,
-  
-  filters,
-  activeFilter,
-  onFilterChange,
-  onClose
-}: CameraControlsProps) {
+export default function CameraControls({ mode, onModeChange, flash, torchSupported, onFlashToggle, onCameraTypeToggle, onGalleryClick, onCapture, isRecording, recordingSeconds, cameraTimer, onTimerToggle, cameraSpeed, onSpeedToggle, cameraLayout, onLayoutToggle, isMagicOn, onMagicToggle, isWideAspect, onRatioToggle, filters, activeFilter, onFilterChange, onClose }: CameraControlsProps) {
 
   // Format recording timer: 00:00
   const formatTimer = (seconds: number) => {

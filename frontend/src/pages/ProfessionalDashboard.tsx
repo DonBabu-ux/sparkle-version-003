@@ -1,18 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
-import { motion, AnimatePresence, useSpring, useMotionValue, animate } from 'framer-motion';
-import {
-  ArrowLeft, ChevronRight, X, Settings, BadgeCheck,
-  DollarSign, Zap, Shield, Plus, HelpCircle,
-  Heart, MessageSquare, Share2, TrendingUp, TrendingDown,
-  Wallet, ArrowDownCircle, ArrowUpCircle, History,
-  Eye, Users, Radio, Video, Clock, Bookmark, ThumbsUp,
-  Banknote, Store, Megaphone, BarChart2, Activity,
-  RefreshCw, CheckCircle2, XCircle, AlertCircle, Loader2,
-  ChevronDown, Building2, Smartphone, CreditCard
-} from 'lucide-react';
-import Spinner from '../components/ui/Spinner';
+import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
+import { ArrowLeft, X, Settings, BadgeCheck, DollarSign, Zap, Shield, Plus, HelpCircle, Heart, MessageSquare, Share2, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle, History, Eye, Users, Radio, Video, Banknote, Store, Megaphone, BarChart2, Activity, RefreshCw, CheckCircle2, XCircle, AlertCircle, Loader2, Building2, Smartphone, CreditCard } from 'lucide-react';
+import '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
 import BoostConnectModal from '../components/modals/BoostConnectModal';

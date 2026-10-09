@@ -1,10 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useCall } from './MockCallProvider';
-import { 
-  X, Mic, MicOff, Camera, CameraOff, Volume2, VolumeX, 
-  Bluetooth, Phone, PhoneOff, RefreshCw, Signal, 
-  User, ShieldAlert, Wifi, Battery, Minimize2, Maximize2
-} from 'lucide-react';
+import { Mic, MicOff, Camera, CameraOff, Volume2, VolumeX, Bluetooth, Phone, PhoneOff, RefreshCw, ShieldAlert, Minimize2 } from 'lucide-react';
 import { LocalPreview } from './video/LocalPreview';
 
 export const CallOverlay = () => {

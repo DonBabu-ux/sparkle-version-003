@@ -1,8 +1,8 @@
 // frontend/src/pages/InviteLandingPage.tsx
 // Public Referral Invitation Landing Page (/invite/:code)
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { Download, Smartphone, Globe, Copy, Check, AlertCircle, ArrowRight, CheckCircle2, LogIn } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Download, Smartphone, Copy, Check, AlertCircle, ArrowRight, CheckCircle2, LogIn } from 'lucide-react';
 import QRCode from 'react-qr-code';
 import { validateReferralCode, recordReferralClick } from '../services/referralService';
 import type { PublicInviteInfo } from '../services/referralService';

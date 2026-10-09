@@ -302,7 +302,7 @@ export const useMessageSocket = () => {
       getChatStore().removeReaction(data.chatId, data.messageId, data.userId, data.emoji);
     };
 
-    const handleNewGroupCreated = async (data: { chatId: string }) => {
+    const handleNewGroupCreated = async (_data: { chatId: string }) => {
       try {
         const res = await api.get('/messages/inbox');
         const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
@@ -389,7 +389,7 @@ export const useMessageSocket = () => {
 
     const handleConversationUpdated = (data: { chatId: string; action: string; userId?: string; [key: string]: any }) => {
       const chatStore = getChatStore();
-      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+      
       // We process this even if it's from us, in case it's a different tab syncing
       if (data.action === 'archived' || data.action === 'unarchived') {
         chatStore.toggleArchive(data.chatId, data.action === 'archived');

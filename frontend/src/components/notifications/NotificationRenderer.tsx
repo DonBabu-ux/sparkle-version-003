@@ -174,7 +174,7 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
     }
 
     if (item.type === 'grouped-card') {
-      const isExpanded = expandedKeys.has(item.key);
+      expandedKeys.has(item.key);
       return (
         <div style={{ ...style, paddingBottom: '12px' }} className="px-1">
           {/* We wrap GroupedNotificationCard with our toggle logic */}

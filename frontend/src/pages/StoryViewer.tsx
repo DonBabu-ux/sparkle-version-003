@@ -3,19 +3,9 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
-import { 
-  X, Send, Orbit, Camera, Plus, Heart, 
-  MessageCircle, MoreHorizontal, ChevronRight, Share2,
-  Users, User, Eye, Repeat, Info, Search,
-  Trash2, Flag, VolumeX, Link as LinkIcon, Download,
-  AtSign, Share as ShareIcon, Phone, MessageSquare,
-  Globe, Archive, Star, Wand2, Settings, MessageCircleOff,
-  UserMinus, Ban, EyeOff, ExternalLink, Check, Sparkles,
-  ChevronLeft, Bell, Lock, Shield, UserPlus, ArrowRight,
-  Music3
-} from 'lucide-react';
+import { X, Send, Heart, MessageCircle, MoreHorizontal, ChevronRight, Share2, User, Eye, Repeat, Search, Trash2, Link as LinkIcon, Download, AtSign, MessageSquare, Archive, Settings, MessageCircleOff, UserMinus, Ban, EyeOff, Check, ChevronLeft, Music3 } from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
-import { useStoryStore } from '../store/storyStore';
+import '../store/storyStore';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
@@ -100,7 +90,7 @@ export default function StoryViewer() {
   const elapsedMsRef = useRef<number>(0);
   
   // States
-  const [isPaused, setIsPaused] = useState(false);
+  const [ isPaused,  ] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
   
@@ -119,14 +109,19 @@ export default function StoryViewer() {
   // Real Data States
   const [viewers, setViewers] = useState<any[]>([]);
   const [shareContacts, setShareContacts] = useState<any[]>([]);
+  const [contactSearch, setContactSearch] = useState('');
+  const filteredContacts = shareContacts.filter((c) => {
+    const q = contactSearch.trim().toLowerCase();
+    return !q || (c.username || '').toLowerCase().includes(q) || (c.name || '').toLowerCase().includes(q);
+  });
   const [selectedMentions, setSelectedMentions] = useState<string[]>([]);
   const [activeViewerTab, setActiveViewerTab] = useState<'views' | 'likes' | 'shares'>('views');
   const [storyComments, setStoryComments] = useState<any[]>([]);
   const [activeCommentIndex, setActiveCommentIndex] = useState(0);
 
   const longPressTimer = useRef<any>(null);
-  const timerRef = useRef<any>(null);
-  const pausedRef = useRef(false);
+  useRef<any>(null);
+  useRef(false);
   const lastTap = useRef<number>(0);
 
   useEffect(() => {
@@ -684,8 +679,8 @@ export default function StoryViewer() {
                   </div>
 
                   <div className="flex items-center gap-4">
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowShareModal(true); }} className="text-white p-2 active:scale-75 transition-all"><Send size={24} /></button>
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowMentionModal(true); }} className="text-white p-2 active:scale-75 transition-all"><AtSign size={24} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white p-2 active:scale-75 transition-all"><Send size={24} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowMentionModal(true); }} className="text-white p-2 active:scale-75 transition-all"><AtSign size={24} /></button>
                     <button 
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY, 'v');
@@ -727,7 +722,7 @@ export default function StoryViewer() {
                      )}
                     <div className="flex items-center gap-5">
                       <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
-                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowShareModal(true); }} className="text-white"><Share2 size={24} /></button>
+                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white"><Share2 size={24} /></button>
                     </div>
                   </div>
                </div>
@@ -813,7 +808,7 @@ export default function StoryViewer() {
              <div className="flex-1 overflow-y-auto p-5 space-y-8">
                 <section>
                    <h3 className="text-white/40 font-semibold text-[11px] mb-3">Viewing</h3>
-                   <button onClick={() => setShowHideFromModal(true)} className="w-full flex items-center justify-between py-3">
+                   <button onClick={() => { setContactSearch(''); setShowHideFromModal(true); }} className="w-full flex items-center justify-between py-3">
                       <div className="flex items-center gap-3">
                          <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center text-white"><EyeOff size={18} /></div>
                          <div className="text-left">
@@ -941,10 +936,10 @@ export default function StoryViewer() {
                 </div>
                 <div className="relative mb-4">
                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-                   <input placeholder="Search followers..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
+                   <input placeholder="Search followers..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
                 </div>
                 <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
-                   {shareContacts.map((contact, i) => (
+                   {filteredContacts.map((contact, i) => (
                      <div key={i} className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                            <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 flex-shrink-0 rounded-full object-cover border border-white/10" alt="" />
@@ -1000,10 +995,10 @@ export default function StoryViewer() {
               </div>
               <div className="relative mb-4">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-                <input placeholder="Search followers..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
+                <input placeholder="Search followers..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
               </div>
               <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
-                {shareContacts.map((contact, i) => (
+                {filteredContacts.map((contact, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-11 h-11 flex-shrink-0 rounded-full object-cover border border-white/10" alt="" />
@@ -1087,10 +1082,10 @@ export default function StoryViewer() {
               </div>
               <div className="relative mb-4">
                 <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-                <input placeholder="Search people..." className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
+                <input placeholder="Search people..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
               </div>
               <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
-                {shareContacts.map((contact, i) => (
+                {filteredContacts.map((contact, i) => (
                   <div key={i} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 flex-shrink-0 rounded-full border border-white/10 object-cover" alt="" />

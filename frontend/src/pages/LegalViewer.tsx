@@ -1,10 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import {
-  FileText, ShieldCheck, Download, ExternalLink, ArrowLeft,
-  Calendar, Sparkles, Scale, Globe, RefreshCw, ChevronRight, Shield
-} from 'lucide-react';
-import { getLegalDocument, getPublicLegalDocuments, type LegalDocument } from '../config/legalDocuments';
+import { FileText, ShieldCheck, Download, ExternalLink, ArrowLeft, Calendar, Sparkles, Scale, Globe, RefreshCw, ChevronRight } from 'lucide-react';
+import { getLegalDocument, getPublicLegalDocuments } from '../config/legalDocuments';
 
 export default function LegalViewer() {
   const { documentId } = useParams<{ documentId?: string }>();

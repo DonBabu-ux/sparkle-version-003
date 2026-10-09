@@ -1,13 +1,10 @@
-import { showError, showInfo } from '../utils/toast';
+import { showError, showInfo, showSuccess } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { 
-  Calendar, Users, QrCode, Power, Settings, Plus, Camera, Check, X, 
-  Bell, Trash2, Edit, ArrowLeft, Shield, AlertCircle 
-} from 'lucide-react';
+import { Calendar, Users, QrCode, Power, Settings, Plus, Check, X, Trash2, ArrowLeft, Shield } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 
@@ -134,6 +131,29 @@ export default function EventsAdmin() {
     }
   };
 
+  const refreshAttendees = async (id: string) => {
+    try {
+      const res = await api.get(`/events/${id}/attendees`);
+      setAttendeesList(res.data || []);
+    } catch {
+      /* keep the list already on screen */
+    }
+  };
+
+  const checkInAttendee = async (eventId: string, userId: string) => {
+    try {
+      await api.post('/events/checkin', { userId, eventId });
+      showSuccess('Attendee checked in');
+      refreshAttendees(eventId);
+      fetchManagedEvents();
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { error?: string } } })?.response?.data?.error ||
+        'Failed to check in attendee';
+      showError(msg);
+    }
+  };
+
   return (
     <div className="flex bg-[#fafafa] min-h-dvh text-black overflow-x-hidden font-sans pb-20">
 
@@ -178,19 +198,53 @@ export default function EventsAdmin() {
           </div>
         </header>
 
-        {/* Scanner - Compact Overlay */}
+        {/* Check-In - Compact Overlay */}
         {showScanner && (
           <div className="bg-white rounded-[24px] p-4 mb-6 border-2 border-emerald-500/20 shadow-xl animate-fade-in">
              <div className="flex justify-between items-center mb-3">
                 <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
-                  <Camera size={14} className="text-emerald-500" /> Scanner Mode
+                  <QrCode size={14} className="text-emerald-500" /> Manual Check-In
                 </h3>
                 <button onClick={() => setShowScanner(false)} className="text-gray-400"><X size={16} /></button>
              </div>
-             <div className="aspect-square max-w-[240px] bg-black mx-auto rounded-2xl flex items-center justify-center relative overflow-hidden">
-                <div className="absolute inset-0 bg-emerald-500/10 z-10" style={{ background: 'linear-gradient(to bottom, transparent 50%, rgba(16, 185, 129, 0.4) 51%, transparent 51%)', backgroundSize: '100% 4px', animation: 'scanLine 2s linear infinite' }}></div>
-                <p className="text-[9px] text-white/40 font-black uppercase tracking-widest z-20 text-center px-4">Initializing Lens...</p>
-             </div>
+             <select
+               value={activeEventAttendees ?? ''}
+               onChange={(e) => { const id = e.target.value; if (id) loadAttendees(id); }}
+               className="w-full p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500/40 transition-all uppercase italic mb-3"
+             >
+               <option value="">Select event…</option>
+               {events.map((e) => (
+                 <option key={e.event_id} value={e.event_id}>{e.title}</option>
+               ))}
+             </select>
+             {activeEventAttendees ? (
+               (() => {
+                 const eligible = attendeesList.filter((a) => a.status === 'accepted' || a.status === 'attended');
+                 return eligible.length === 0 ? (
+                   <p className="text-[9px] font-black text-gray-400 uppercase text-center py-4">No accepted guests yet</p>
+                 ) : (
+                   <div className="space-y-1.5 max-h-[220px] overflow-y-auto no-scrollbar">
+                     {eligible.map((a) => (
+                       <div key={a.user_id} className="bg-gray-50 p-2 rounded-lg flex justify-between items-center">
+                         <span className="text-[9px] font-black uppercase text-gray-900 italic">{a.username}</span>
+                         {a.status === 'attended' ? (
+                           <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">Present</span>
+                         ) : (
+                           <button
+                             onClick={() => checkInAttendee(activeEventAttendees, a.user_id)}
+                             className="text-[8px] font-black uppercase px-2 py-1 rounded-md bg-emerald-500 text-white shadow-sm active:scale-95 transition-all"
+                           >
+                             Check In
+                           </button>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 );
+               })()
+             ) : (
+               <p className="text-[9px] font-black text-gray-400 uppercase text-center py-4">Pick an event to load its guest list</p>
+             )}
           </div>
         )}
 

@@ -1,8 +1,6 @@
 import { EventBus } from '../EventBus';
 import { AudioPool } from '../pools/AudioPool';
-import type { PoolStats } from '../pools/AudioPool';
 import { ThemeController } from '../settings/ThemeController';
-import type { SoundTheme } from '../settings/ThemeController';
 import { VolumeController } from '../settings/VolumeController';
 import { logger } from '../../utils/logger';
 

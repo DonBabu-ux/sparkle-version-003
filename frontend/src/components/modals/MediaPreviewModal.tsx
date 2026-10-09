@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-import { X, MoreHorizontal, Bookmark, EyeOff, AlertTriangle, ChevronDown } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { X, MoreHorizontal, Bookmark, EyeOff, AlertTriangle } from 'lucide-react';
 import { useModalStore } from '../../store/modalStore';
-import type { Post } from '../../types/post';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
 export default function MediaPreviewModal() {
   const { modalData, closeModal } = useModalStore();
+  const navigate = useNavigate();
   const [showMenu, setShowMenu] = useState(false);
   const a11yRef = useModalA11y(!!modalData, closeModal);
 
@@ -115,7 +116,7 @@ export default function MediaPreviewModal() {
                   </div>
                 </button>
 
-                <button className="w-full flex items-center gap-4 p-3 hover:bg-gray-100 rounded-xl transition-colors text-left group">
+                <button onClick={() => { closeModal(); navigate('/support'); }} className="w-full flex items-center gap-4 p-3 hover:bg-gray-100 rounded-xl transition-colors text-left group">
                   <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
                     <AlertTriangle size={20} className="text-gray-700" />
                   </div>

@@ -44,7 +44,7 @@ class TrackingService {
    * Track explicit exit when post leaves viewport
    */
   trackExit(postId: string, totalWatchTime: number, duration?: number) {
-    const startTime = this.activeSignals.get(postId);
+    this.activeSignals.get(postId);
     this.activeSignals.delete(postId);
 
     // Skip detection: if watched < 20% of content and total time < 3s

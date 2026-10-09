@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Smile, Search, ArrowLeft, ChevronRight } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
@@ -6,6 +6,7 @@ import { getAvatarUrl } from '../../utils/imageUtils';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { fetchGiphyItems } from '../../utils/giphyClient';
 
 interface NoteEditorModalProps {
   initialNote?: string;
@@ -18,9 +19,6 @@ const EMOJIS = ['😀','😂','🥰','😍','😒','😭','😩','😔','😘','
   '🤩','😏','😞','😟','🙁','😣','😖','😫','😤','😠','🤯','😳','🥵','🥶','😱',
   '😨','😰','😥','😓','🤗','🤔','🤭','🤫','🤥','😶','😐','😑','😬','🙄','😯',
   '😦','😧','😮','😲','🥱','😴','🤤','😪','😵','🤐','🥴','🤢','🤮','🤧','😷'];
-
-const GIPHY_KEY = 'V4AnAfCCCGEVjlUjiNMWWXCoW1JrAn4p';
-
 
 type Panel = 'none' | 'emoji' | 'gif' | 'music_error';
 type Screen = 'editor' | 'settings' | 'choose_people';
@@ -81,11 +79,8 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
   const fetchGifs = async (q = '') => {
     setLoadingGifs(true);
     try {
-      const endpoint = q ? 'search' : 'trending';
-      const url = `https://api.giphy.com/v1/gifs/${endpoint}?api_key=${GIPHY_KEY}&q=${q}&limit=24&rating=g`;
-      const res = await fetch(url);
-      const data = await res.json();
-      setGifs(data.data || []);
+      const items = await fetchGiphyItems({ type: 'gifs', endpoint: q ? 'search' : 'trending', q, limit: 24 });
+      setGifs(items);
     } catch { setGifs([]); }
     finally { setLoadingGifs(false); }
   };
@@ -137,7 +132,6 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
             <span className="text-white font-semibold text-[18px]">Choose people</span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-white/60 p-1"><Search size={20} /></button>
             <button
               onClick={() => setScreen('settings')}
               className="text-white font-bold text-[14px] uppercase tracking-wider pr-1"

@@ -337,7 +337,7 @@ export const useChatStore = create<ChatState>()(
           });
         },
 
-        markRead: (chatId, lastReadMsgId) => {
+        markRead: (chatId, _lastReadMsgId) => {
           set((state) => {
             const currentMsgs = state.messagesByConversation[chatId] || [];
             const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
@@ -453,7 +453,7 @@ export const useChatStore = create<ChatState>()(
 
         setActiveConversationId: (chatId) => {
           const currentEditing = get().editing;
-          set((state) => {
+          set((_state) => {
             const updates: any = { activeConversationId: chatId };
             if (currentEditing.chatId && currentEditing.chatId !== chatId) {
               updates.editing = {};

@@ -1,12 +1,7 @@
-import { confirmDialog } from '../store/dialogStore';
+import '../store/dialogStore';
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { 
-  Users, Settings, Shield, Plus, MoreHorizontal, 
-  Share2, Flag, LogOut, Camera, Globe, Info, 
-  Lock, Check, UserPlus, Image as ImageIcon, Activity, ArrowLeft
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Users, Settings, Shield, Plus, Camera, Globe, Info, Lock, Check, UserPlus, Image as ImageIcon, Activity, ArrowLeft } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
@@ -19,6 +14,8 @@ import type { Group, GroupMember } from '../types/group';
 import type { Post } from '../types/post';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
+import { showError } from '../utils/toast';
+import { validateFile } from '../utils/fileValidation';
 
 type Tab = 'posts' | 'about' | 'members' | 'media';
 
@@ -37,7 +34,7 @@ export default function GroupDetail() {
   const [isOwner, setIsOwner] = useState(false);
   const [pendingJoin, setPendingJoin] = useState(false);
   const [joining, setJoining] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
+  const [ ,  ] = useState(false);
   
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -105,26 +102,18 @@ export default function GroupDetail() {
     }
   };
 
-  const handleJoinLeave = async () => {
-    if (isMember) {
-      if (!await confirmDialog('Leave this circle?')) return;
-      try {
-        await api.delete(`/groups/${id}/leave`);
-        setIsMember(false);
-        setIsAdmin(false);
-        setIsOwner(false);
-        fetchGroupData();
-      } catch (err) {
-        logger.error('Leave failed:', err);
-      }
-    } else {
-      handleJoin();
-    }
-  };
+  
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'icon' | 'cover') => {
     const file = e.target.files?.[0];
     if (!file || !id) return;
+
+    const check = validateFile(file, { kind: 'image', maxSizeMB: 10 });
+    if (!check.ok) {
+      showError(check.error!);
+      e.target.value = '';
+      return;
+    }
 
     const fd = new FormData();
     fd.append(type === 'icon' ? 'icon' : 'cover', file);

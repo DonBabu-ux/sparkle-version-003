@@ -4,7 +4,6 @@ import {
   MapPin,
   Clock,
   CheckCircle2,
-  MoreVertical,
   ExternalLink,
   Trash2,
   ChevronRight,
@@ -133,11 +132,6 @@ export default function ListingCard({
                 <div className="bg-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">Sold</div>
               </div>
             )}
-            <div className="absolute top-4 right-4 flex gap-2">
-              <button className="w-10 h-10 bg-white/90 backdrop-blur-md rounded-2xl flex items-center justify-center shadow-lg text-marketplace-text hover:bg-white transition-colors">
-                <MoreVertical size={18} />
-              </button>
-            </div>
           </div>
 
           <div className="p-6">

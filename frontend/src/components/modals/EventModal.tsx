@@ -1,6 +1,6 @@
 import { showError } from '../../utils/toast';
 import { useState } from 'react';
-import { X, Calendar, MapPin, Users, Clock, Loader2, Orbit, Sparkles, ArrowRight } from 'lucide-react';
+import { X, Calendar, MapPin, Users, Clock, Orbit, Sparkles, ArrowRight } from 'lucide-react';
 import api from '../../api/api';
 import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';

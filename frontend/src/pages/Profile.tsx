@@ -7,31 +7,7 @@ import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { 
-  Grid, 
-  Bookmark, 
-  UserSquare, 
-  Clapperboard, 
-  Settings as SettingsIcon, 
-  Link as LinkIcon, 
-  MessageSquare, 
-  Sparkles, 
-  Orbit, 
-  Heart, 
-  MapPin,
-  GraduationCap,
-  Plus,
-  History,
-  Image as ImageIcon,
-  Zap,
-  TrendingUp,
-  Target,
-  ChevronDown,
-  LayoutDashboard,
-  Camera,
-  Pencil,
-  BookMarked
-} from 'lucide-react';
+import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Orbit, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';

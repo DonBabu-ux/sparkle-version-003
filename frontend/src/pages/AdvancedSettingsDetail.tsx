@@ -1,28 +1,7 @@
 import { showInfo } from '../utils/toast';
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Shield,
-  Lock,
-  User as UserIcon,
-  MessageSquare,
-  Sparkles,
-  Database,
-  Bell,
-  Wand2,
-  Sliders,
-  Terminal,
-  Workflow,
-  FileSearch,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  LogOut,
-  Smartphone,
-  Wifi,
-  Activity
-} from 'lucide-react';
+import { ArrowLeft, Shield, Lock, User as UserIcon, MessageSquare, Sparkles, Database, Bell, Wand2, Sliders, Terminal, Workflow, FileSearch, CheckCircle2, AlertCircle, Smartphone, Wifi, Activity } from 'lucide-react';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
 import api from '../api/api';
@@ -36,8 +15,8 @@ export default function AdvancedSettingsDetail() {
   const socket = useSocket();
   const { user, setUser } = useUserStore();
 
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState<string | null>(null);
+  const [ , setLoading ] = useState(true);
+  const [ , setUpdating ] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -448,6 +427,7 @@ export default function AdvancedSettingsDetail() {
                     a.href = url;
                     a.download = `sparkle_data_export_${user?.username || 'user'}.json`;
                     a.click();
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
                   } catch (e) {
                     setErrorMsg('Failed to export data');
                   }

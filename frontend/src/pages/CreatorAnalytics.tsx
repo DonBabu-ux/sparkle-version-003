@@ -2,10 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { motion } from 'framer-motion';
-import {
-  ArrowLeft, RefreshCw, BarChart2, TrendingUp, Users, Radio,
-  Eye, Video, MessageSquare, Share2, Heart, Award, ArrowUpRight, BookOpen
-} from 'lucide-react';
+import { ArrowLeft, RefreshCw, BarChart2, TrendingUp, Radio, Video, MessageSquare, Share2, Heart, Award, ArrowUpRight, BookOpen } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 

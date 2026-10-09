@@ -3,17 +3,12 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
-<<<<<<< HEAD
 const SparkleAIScreen = lazy(() => import('./pages/ai/SparkleAIScreen'));
-=======
-// import FloatingAIButton from './components/FloatingAIButton';
-import SparkleAIScreen from './pages/ai/SparkleAIScreen';
->>>>>>> 2c63d82
 // import StudyAssistantScreen from './pages/ai/StudyAssistantScreen';
 // import CaptionGeneratorScreen from './pages/ai/CaptionGeneratorScreen';
 // import BioGeneratorScreen from './pages/ai/BioGeneratorScreen';
-import SearchSparkleScreen from './pages/ai/SearchSparkleScreen';
-import FriendDiscoveryScreen from './pages/ai/FriendDiscoveryScreen';
+const SearchSparkleScreen = lazy(() => import('./pages/ai/SearchSparkleScreen'));
+const FriendDiscoveryScreen = lazy(() => import('./pages/ai/FriendDiscoveryScreen'));
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
 import { MotionConfig } from 'framer-motion';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
@@ -35,99 +30,96 @@ import { useNotificationStore } from './store/notificationStore';
 import api from './api/api';
 
 // Phase 1 — Core
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import Profile from './pages/Profile';
-import Marketplace from './pages/Marketplace';
-import Groups from './pages/Groups';
-import Messages from './pages/Messages';
-import MessagesSettings from './pages/MessagesSettings';
-import Settings from './pages/Settings';
-import SecurityCentre from './pages/SecurityCentre';
-import ChangePassword from './pages/ChangePassword';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Login = lazy(() => import('./pages/Login'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Marketplace = lazy(() => import('./pages/Marketplace'));
+const Groups = lazy(() => import('./pages/Groups'));
+const Messages = lazy(() => import('./pages/Messages'));
+const MessagesSettings = lazy(() => import('./pages/MessagesSettings'));
+const Settings = lazy(() => import('./pages/Settings'));
+const SecurityCentre = lazy(() => import('./pages/SecurityCentre'));
+const ChangePassword = lazy(() => import('./pages/ChangePassword'));
 import CrossDeviceSecurityAlertOverlay from './components/security/CrossDeviceSecurityAlertOverlay';
-import AdvancedSettings from './pages/AdvancedSettings';
-import AdvancedSettingsDetail from './pages/AdvancedSettingsDetail';
-import Notifications from './pages/Notifications';
-import Search from './pages/Search';
-import SearchHistory from './pages/SearchHistory';
-import AdminDashboard from './pages/AdminDashboard';
-import StorageIntelligencePanel from './pages/StorageIntelligencePanel';
-import PostDetail from './pages/PostDetail';
-import StoryViewer from './pages/StoryViewer';
-import GroupDetail from './pages/GroupDetail';
-import CreateGroup from './pages/CreateGroup';
-import GroupAdmin from './pages/GroupAdmin';
-import Confessions from './pages/Confessions';
-import ListingDetail from './pages/ListingDetail';
-import SellItem from './pages/SellItem';
-import SellerProfile from './pages/SellerProfile';
-import Wishlist from './pages/Wishlist';
-import SkillMarket from './pages/SkillMarket';
-import SkillHub from './pages/SkillHub';
-import Signup from './pages/Signup';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Orders from './pages/Orders';
-import MyListings from './pages/MyListings';
-import ReportListing from './pages/ReportListing';
-import MarketplaceOrder from './pages/MarketplaceOrder';
-import MarketplaceSafety from './pages/MarketplaceSafety';
+const AdvancedSettings = lazy(() => import('./pages/AdvancedSettings'));
+const AdvancedSettingsDetail = lazy(() => import('./pages/AdvancedSettingsDetail'));
+const Notifications = lazy(() => import('./pages/Notifications'));
+const Search = lazy(() => import('./pages/Search'));
+const SearchHistory = lazy(() => import('./pages/SearchHistory'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const StorageIntelligencePanel = lazy(() => import('./pages/StorageIntelligencePanel'));
+const PostDetail = lazy(() => import('./pages/PostDetail'));
+const StoryViewer = lazy(() => import('./pages/StoryViewer'));
+const GroupDetail = lazy(() => import('./pages/GroupDetail'));
+const CreateGroup = lazy(() => import('./pages/CreateGroup'));
+const GroupAdmin = lazy(() => import('./pages/GroupAdmin'));
+const Confessions = lazy(() => import('./pages/Confessions'));
+const ListingDetail = lazy(() => import('./pages/ListingDetail'));
+const SellItem = lazy(() => import('./pages/SellItem'));
+const SellerProfile = lazy(() => import('./pages/SellerProfile'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const SkillMarket = lazy(() => import('./pages/SkillMarket'));
+const SkillHub = lazy(() => import('./pages/SkillHub'));
+const Signup = lazy(() => import('./pages/Signup'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const Orders = lazy(() => import('./pages/Orders'));
+const MyListings = lazy(() => import('./pages/MyListings'));
+const ReportListing = lazy(() => import('./pages/ReportListing'));
+const MarketplaceOrder = lazy(() => import('./pages/MarketplaceOrder'));
+const MarketplaceSafety = lazy(() => import('./pages/MarketplaceSafety'));
 import MarketplaceModals from './components/modals/MarketplaceModals';
-import MarketplaceChat from './pages/MarketplaceChat';
-import MarketplaceSettings from './pages/MarketplaceSettings';
-import SparklyBot from './pages/SparklyBot';
+const MarketplaceChat = lazy(() => import('./pages/MarketplaceChat'));
+const MarketplaceSettings = lazy(() => import('./pages/MarketplaceSettings'));
+const SparklyBot = lazy(() => import('./pages/SparklyBot'));
 
 // Phase 2 — Social & Community
-import Clubs from './pages/Clubs';
-import ClubDetail from './pages/ClubDetail';
-import Events from './pages/Events';
-import EventsAdmin from './pages/EventsAdmin';
-import Connect from './pages/Connect';
-import FollowRequests from './pages/FollowRequests';
+const Clubs = lazy(() => import('./pages/Clubs'));
+const ClubDetail = lazy(() => import('./pages/ClubDetail'));
+const Events = lazy(() => import('./pages/Events'));
+const EventsAdmin = lazy(() => import('./pages/EventsAdmin'));
+const Connect = lazy(() => import('./pages/Connect'));
+const FollowRequests = lazy(() => import('./pages/FollowRequests'));
 
 // Phase 3 — Content & Discovery
-import Polls from './pages/Polls';
-import PollDetail from './pages/PollDetail';
-import Hashtag from './pages/Hashtag';
-import Explore from './pages/Explore';
-import Moments from './pages/Moments';
-import CreateMoment from './pages/CreateMoment';
-import CreateStory from './pages/CreateStory';
-import StorySnapshot from './pages/StorySnapshot';
-import Streams from './pages/Streams';
-import ProfessionalDashboard from './pages/ProfessionalDashboard';
+const Polls = lazy(() => import('./pages/Polls'));
+const PollDetail = lazy(() => import('./pages/PollDetail'));
+const Hashtag = lazy(() => import('./pages/Hashtag'));
+const Explore = lazy(() => import('./pages/Explore'));
+const Moments = lazy(() => import('./pages/Moments'));
+const CreateMoment = lazy(() => import('./pages/CreateMoment'));
+const CreateStory = lazy(() => import('./pages/CreateStory'));
+const StorySnapshot = lazy(() => import('./pages/StorySnapshot'));
+const Streams = lazy(() => import('./pages/Streams'));
+const ProfessionalDashboard = lazy(() => import('./pages/ProfessionalDashboard'));
 import GlobalEffects from './components/GlobalEffects';
 import LoadingBar from './components/LoadingBar';
 import { TikTokHearts } from './components/TikTokHearts';
 import PresenceManager from './components/PresenceManager';
 
 // Phase 4 — Utility
-import LostFound from './pages/LostFound';
-import Support from './pages/Support';
-import TicketDetail from './pages/Support/TicketDetail';
-import AccountsCenter from './pages/AccountsCenter';
-import Memories from './pages/Memories';
-import Gallery from './pages/Gallery';
-import Verified from './pages/Verified';
-import Invite from './pages/Invite';
-import InviteLandingPage from './pages/InviteLandingPage';
-import Help from './pages/Help';
-import Onboarding from './pages/Onboarding';
+const LostFound = lazy(() => import('./pages/LostFound'));
+const Support = lazy(() => import('./pages/Support'));
+const TicketDetail = lazy(() => import('./pages/Support/TicketDetail'));
+const AccountsCenter = lazy(() => import('./pages/AccountsCenter'));
+const Memories = lazy(() => import('./pages/Memories'));
+const Gallery = lazy(() => import('./pages/Gallery'));
+const Verified = lazy(() => import('./pages/Verified'));
+const Invite = lazy(() => import('./pages/Invite'));
+const Help = lazy(() => import('./pages/Help'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
 import OnboardingSheet from './components/onboarding/OnboardingSheet';
-import Ecosystem from './pages/Ecosystem';
-import SparkleHubPage from './pages/SparkleHubPage';
+const Ecosystem = lazy(() => import('./pages/Ecosystem'));
 
-import BlockedUsers from './pages/BlockedUsers';
+const BlockedUsers = lazy(() => import('./pages/BlockedUsers'));
 import AudioDiagnostics from './audio/diagnostics/AudioDiagnostics';
 
 // Phase 5 — Public & Static
-import About from './pages/About';
-import LegalViewer from './pages/LegalViewer';
-import NotFound from './pages/NotFound';
+const About = lazy(() => import('./pages/About'));
+const LegalViewer = lazy(() => import('./pages/LegalViewer'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 // New Creator Dashboard Sub-Routes
-<<<<<<< HEAD
 const Ads = lazy(() => import('./pages/Ads'));
 const CreatorStudio = lazy(() => import('./pages/CreatorStudio'));
 const CreatorAnalytics = lazy(() => import('./pages/CreatorAnalytics'));
@@ -139,12 +131,8 @@ import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
 import PageShell from './components/PageShell';
-=======
-import Ads from './pages/Ads';
-import CreatorStudio from './pages/CreatorStudio';
-import CreatorAnalytics from './pages/CreatorAnalytics';
-import WalletHistory from './pages/WalletHistory';
->>>>>>> 2c63d82
+import SparkleHubPage from './pages/SparkleHubPage';
+import InviteLandingPage from './pages/InviteLandingPage';
 
 function App() {
   const { isAuthenticated, token, refreshToken } = useUserStore();
@@ -156,6 +144,9 @@ function App() {
   const socket = useSocket();
   const { setStories } = useFeedStore();
 
+  // Any <img> whose load fails (dead CDN/link) swaps to the no-image placeholder
+  useEffect(() => installGlobalImageFallback(), []);
+
   // Helper function to manage safe navigation decision
   const performStartupNavigation = (target: string) => {
     if (navigationCompleted) return;
@@ -165,27 +156,27 @@ function App() {
       p => currentPath.startsWith(p)
     ) || Boolean(currentPath.match(/^\/invite\/.+/));
 
-    console.log(`[Navigation] Target: ${target}, Current: ${currentPath}, isPublic: ${isPublic}`);
+    logger.log(`[Navigation] Target: ${target}, Current: ${currentPath}, isPublic: ${isPublic}`);
 
     // Ensure state transitions occur so component renders fully
     setHydrated(true);
     setShowSplash(false);
-    console.log('SPLASH HIDDEN');
+    logger.log('SPLASH HIDDEN');
 
     if (isPublic) {
-      console.log(`[Navigation] Preserving public path: ${currentPath}`);
+      logger.log(`[Navigation] Preserving public path: ${currentPath}`);
       if (currentPath.startsWith('/signup')) {
-        console.log('NAVIGATING TO SIGNUP');
+        logger.log('NAVIGATING TO SIGNUP');
       }
       setNavigationCompleted(true);
       return;
     }
 
     if (target === '/dashboard') {
-      console.log('NAVIGATING TO DASHBOARD');
+      logger.log('NAVIGATING TO DASHBOARD');
       navigate('/dashboard');
     } else {
-      console.log('NAVIGATING TO LOGIN');
+      logger.log('NAVIGATING TO LOGIN');
       navigate('/login');
     }
     setNavigationCompleted(true);
@@ -193,16 +184,18 @@ function App() {
 
   // 1️⃣ Splash Mounted Log
   useEffect(() => {
-    console.log('SPLASH MOUNTED');
+    logger.log('SPLASH MOUNTED');
   }, []);
 
   // 2️⃣ Hard Fail-safe Watchdog Timer
   useEffect(() => {
-    console.log('[Failsafe] Starting 5s startup watchdog');
+    logger.log('[Failsafe] Starting 5s startup watchdog');
     const watchdog = setTimeout(() => {
       if (!navigationCompleted) {
-        console.error("Startup timeout reached");
-        performStartupNavigation('/login');
+        // H24: a slow boot (DB blip → 5s+ validate) must not bounce a valid
+        // session to /login — navigate by the session we actually have.
+        logger.warn("Startup timeout reached — navigating by session state");
+        performStartupNavigation(useUserStore.getState().isAuthenticated ? '/dashboard' : '/login');
       }
     }, 5000);
     return () => clearTimeout(watchdog);
@@ -210,19 +203,19 @@ function App() {
 
   // 3️⃣ Unified Startup Initialization Sequence
   useEffect(() => {
-    console.log('[Startup] Beginning unified init');
+    logger.log('[Startup] Beginning unified init');
     const runInit = async () => {
       // 1. Hydration Phase
       try {
         if (useUserStore.persist.hasHydrated()) {
-          console.log('[Startup] Persist already hydrated');
+          logger.log('[Startup] Persist already hydrated');
           setHydrated(true);
         } else {
-          console.log('[Startup] Waiting for persist hydration');
+          logger.log('[Startup] Waiting for persist hydration');
           await Promise.race([
             new Promise<void>((resolve) => {
               const unsub = useUserStore.persist.onFinishHydration(() => {
-                console.log('[Startup] Persist hydration finished');
+                logger.log('[Startup] Persist hydration finished');
                 setHydrated(true);
                 resolve();
               });
@@ -233,7 +226,7 @@ function App() {
           ]);
         }
       } catch (hydrationError) {
-        console.warn('⚠️ Hydration validation failed (falling back):', hydrationError);
+        logger.warn('⚠️ Hydration validation failed (falling back):', hydrationError);
         setHydrated(true);
       }
 
@@ -243,11 +236,15 @@ function App() {
       const currentRefreshToken = currentStoreState.refreshToken;
 
       // 2. Authentication Check Phase
-      console.log('AUTH CHECK STARTED');
+      logger.log('AUTH CHECK STARTED');
       if (currentToken || currentRefreshToken) {
-        console.log('TOKEN FOUND');
+        logger.log('TOKEN FOUND');
         try {
-          console.log('API REQUEST STARTED');
+          logger.log('API REQUEST STARTED');
+          // H21: rotate the token BEFORE validate + mount effects fire, so a
+          // stale session doesn't produce a 401 burst (and a slow refresh can't
+          // trip the validation timeout → login bounce while still authenticated).
+          await ensureFreshAccessToken(30_000);
           async function runWithTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
             return Promise.race([
               p,
@@ -256,23 +253,32 @@ function App() {
               ),
             ]);
           }
-          await runWithTimeout(authApi.validateToken(), 4500);
-          console.log('API REQUEST COMPLETED');
+          await runWithTimeout(authApi.validateToken(), 5000);
+          logger.log('API REQUEST COMPLETED');
           
           performStartupNavigation('/dashboard');
         } catch (err) {
-          console.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
-          console.log('TOKEN NOT FOUND');
-          performStartupNavigation('/login');
+          // H23: only a definitive rejection ends the session. A timeout,
+          // 503 (DB outage) or network failure must NOT bounce a valid
+          // session to the login screen — boot optimistically instead;
+          // later 401s run the normal refresh → logout flow.
+          if (isDefinitiveAuthFailure(err) || !useUserStore.getState().isAuthenticated) {
+            logger.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
+            logger.log('TOKEN NOT FOUND');
+            performStartupNavigation('/login');
+          } else {
+            logger.warn('⚠️ Initial auth validation transient failure (continuing boot):', err);
+            performStartupNavigation('/dashboard');
+          }
         }
       } else {
-        console.log('TOKEN NOT FOUND');
+        logger.log('TOKEN NOT FOUND');
         performStartupNavigation('/login');
       }
     };
 
     runInit().catch(err => {
-      console.error('Fatal initialization exception:', err);
+      logger.error('Fatal initialization exception:', err);
       performStartupNavigation('/login');
     });
   }, []); // Run exactly once on component mount
@@ -280,9 +286,9 @@ function App() {
   // OTA check (still after hydration)
   useEffect(() => {
     if (!hydrated) return;
-    console.log('[OTA] Checking for updates');
+    logger.log('[OTA] Checking for updates');
     OtaService.checkAndDownloadUpdate().catch(err => {
-      console.warn('OTA Background trigger warning:', err);
+      logger.warn('OTA Background trigger warning:', err);
     });
   }, [hydrated]);
 
@@ -290,7 +296,7 @@ function App() {
   useEffect(() => {
     if (!hydrated || !isAuthenticated || uploadManagerInitRef.current) return;
     uploadManagerInitRef.current = true;
-    console.log('[App] Initializing UploadManager...');
+    logger.log('[App] Initializing UploadManager...');
     UploadManager.init();
   }, [hydrated, isAuthenticated]);
 
@@ -298,7 +304,7 @@ function App() {
   useEffect(() => {
     if (!socket) return;
     const handleStoryPublished = (data: any) => {
-      console.log('[App] story:published received, refreshing stories...', data);
+      logger.log('[App] story:published received, refreshing stories...', data);
       
       // Re-fetch active stories to reflect the newly published story
       api.get('/stories/active').then((res: any) => {
@@ -306,7 +312,7 @@ function App() {
           setStories(res.data);
         }
       }).catch((err: any) => {
-        console.warn('[App] Failed to refresh stories after publish event:', err);
+        logger.warn('[App] Failed to refresh stories after publish event:', err);
       });
 
       // If the current user published the story, reload notifications to show the top success notification
@@ -415,11 +421,16 @@ function App() {
                   <AppLockOverlay />
                   <CrossDeviceSecurityAlertOverlay />
                   <UploadNotificationCenter />
-                  <Routes>
+                  <Suspense fallback={
+                        <div className="flex items-center justify-center h-full py-20">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                        </div>
+                      }>
+                    <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
                     <Route path="/" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} replace />} />
-                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to="/dashboard" />} />
-                    <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to="/dashboard" />} />
+                    <Route path="/login" element={!isAuthenticated ? <Login /> : <Navigate to={getPostLoginRoute(getRoleFromToken(token))} />} />
+                    <Route path="/signup" element={!isAuthenticated ? <Signup /> : <Navigate to={getPostLoginRoute(getRoleFromToken(token))} />} />
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
@@ -478,18 +489,14 @@ function App() {
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
-                    <Route path="/admin" element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
+                    <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
                     <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
                     <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id/settings" element={isAuthenticated ? <GroupAdmin /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id" element={isAuthenticated ? <GroupDetail /> : <Navigate to="/login" />} />
                     <Route path="/confessions" element={isAuthenticated ? <Confessions /> : <Navigate to="/login" />} />
-<<<<<<< HEAD
                     <Route path="/confessions/:id" element={isAuthenticated ? <Confessions /> : <Navigate to="/login" />} />
-=======
-
->>>>>>> 2c63d82
                     <Route path="/marketplace/category/:categoryId" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/inbox" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/sell" element={isAuthenticated ? <SellItem /> : <Navigate to="/login" />} />
@@ -511,7 +518,6 @@ function App() {
                     <Route path="/marketplace/sparkly" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
                     <Route path="/ai/sparkly" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
                     <Route path="/ai/sparkly-bot" element={isAuthenticated ? <SparklyBot /> : <Navigate to="/login" />} />
-                    <Route path="/profile/:id" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
                     <Route path="/wishlist" element={isAuthenticated ? <Wishlist /> : <Navigate to="/login" />} />
                     <Route path="/skill-market" element={isAuthenticated ? <SkillMarket /> : <Navigate to="/login" />} />
                     <Route path="/skill-market/hub" element={isAuthenticated ? <SkillHub /> : <Navigate to="/login" />} />
@@ -548,17 +554,9 @@ function App() {
                     <Route path="/studio" element={isAuthenticated ? <CreatorStudio /> : <Navigate to="/login" />} />
                     <Route path="/analytics" element={isAuthenticated ? <CreatorAnalytics /> : <Navigate to="/login" />} />
                     <Route path="/wallet/history" element={isAuthenticated ? <WalletHistory /> : <Navigate to="/login" />} />
-<<<<<<< HEAD
-=======
-                    {/* Convenience alias routes */}
-                    <Route path="/live" element={<Navigate to="/streams" replace />} />
-                    <Route path="/upload" element={<Navigate to="/moments/create" replace />} />
-                    <Route path="/shop" element={<Navigate to="/marketplace/my-shop" replace />} />
-                    <Route path="/explore" element={<Explore />} />
 
                     {/* ── Phase 4: Utility & Features ── */}
                     <Route path="/hub" element={isAuthenticated ? <SparkleHubPage /> : <Navigate to="/login" />} />
->>>>>>> 2c63d82
                     <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />
                     <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
                     <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
@@ -572,24 +570,8 @@ function App() {
                     <Route path="/help" element={isAuthenticated ? <Help /> : <Navigate to="/login" />} />
                     </Route>
 
-<<<<<<< HEAD
                     </Routes>
                   </Suspense>
-=======
-                    {/* ── Phase 5: Public & Static ── */}
-                    <Route path="/about" element={<About />} />
-                    <Route path="/legal" element={<LegalViewer />} />
-                    <Route path="/legal/:documentId" element={<LegalViewer />} />
-                    <Route path="/ai" element={<SparkleAIScreen />} />
-                    {/* <Route path="/ai/study" element={<StudyAssistantScreen />} /> */}
-                    {/* <Route path="/ai/caption" element={<CaptionGeneratorScreen />} /> */}
-                    {/* <Route path="/ai/bio" element={<BioGeneratorScreen />} /> */}
-                    <Route path="/ai/search" element={<SearchSparkleScreen />} />
-                    <Route path="/ai/friend" element={<FriendDiscoveryScreen />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  {/* <FloatingAIButton /> */}
->>>>>>> 2c63d82
                 </div>
             </MockCallProvider>
           </GlobalThemeProvider>

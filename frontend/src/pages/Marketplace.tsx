@@ -15,12 +15,9 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import clsx from 'clsx';
 import { useDebounce } from '../hooks/useDebounce'; // Assuming this exists or I will create it
 
-<<<<<<< HEAD
 import ListingCard from '../components/marketplace/ListingCard';
 import { logger } from '../utils/logger';
-=======
 import MarketplaceImageSlider from '../components/marketplace/MarketplaceImageSlider';
->>>>>>> 2c63d82
 
 interface Listing {
   listing_id: string;
@@ -138,12 +135,8 @@ export default function Marketplace() {
       // Only reset fallback if we actually found items with the original filters
       if (!isRetry && list.length > 0) setIsFallback(false);
     } catch (err) {
-<<<<<<< HEAD
       logger.error('Failed to fetch marketplace:', err);
       setError(true);
-=======
-      console.error('Failed to fetch marketplace:', err);
->>>>>>> 2c63d82
     } finally {
       if (!isRetry) setLoading(false);
     }
@@ -162,11 +155,7 @@ export default function Marketplace() {
         !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
 
-<<<<<<< HEAD
       <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white">
-=======
-      <div className="flex-1 lg:ml-72 w-full max-w-screen-md mx-auto shadow-sm min-h-screen bg-white">
->>>>>>> 2c63d82
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">

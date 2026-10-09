@@ -5,6 +5,8 @@ import { registerPlugin } from '@capacitor/core';
 import { formatChatTimestamp, formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';
+import { useMessageStore } from '../store/messageStore';
+import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
@@ -138,6 +140,8 @@ import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { useMessageSocket } from '../hooks/useMessageSocket';
+import { logger } from '../utils/logger';
+import { safeHref } from '../utils/safeHref';
 
 // --- Types ---
 interface ChatConversation {
@@ -194,7 +198,7 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
       audioRef.current.pause();
     } else {
       AudioSessionManager.registerVoicePlayback(audioRef.current);
-      audioRef.current.play().catch(console.error);
+      audioRef.current.play().catch(logger.error);
     }
   };
 
@@ -298,7 +302,7 @@ const AttachmentCard = ({ metadata }: { metadata: string }) => {
   try {
     parsed = JSON.parse(metadata);
   } catch (e) {
-    console.error("Failed to parse metadata", e);
+    logger.error("Failed to parse metadata", e);
     return null;
   }
   const att = parsed?.attachment;
@@ -644,7 +648,7 @@ const ChatInput = memo(({
     setRecordingSessionId(sessionId);
 
     voiceRecordingService.start(sessionId).catch((err: any) => {
-      console.error('[ChatInput] Microphone access failed:', err);
+      logger.error('[ChatInput] Microphone access failed:', err);
       if (voiceRecordingService.getCurrentSessionId() === sessionId) {
         setRecordingSessionId(null);
         showError('Microphone access is required to record voice notes.');
@@ -671,7 +675,7 @@ const ChatInput = memo(({
     if (!result || !result.file) return;
 
     if (result.duration < 0.8) {
-      console.log('[ChatInput] Voice note too short (<0.8s), discarded');
+      logger.log('[ChatInput] Voice note too short (<0.8s), discarded');
       return;
     }
 
@@ -691,7 +695,7 @@ const ChatInput = memo(({
       const json = await res.json();
       setGiphyResults(json.data || []);
     } catch (err) {
-      console.error('Giphy error', err);
+      logger.error('Giphy error', err);
     } finally {
       setLoadingGiphy(false);
     }
@@ -738,7 +742,7 @@ const ChatInput = memo(({
                     can_send_messages: true
                   });
                 } catch (err) {
-                  console.error('Failed to unblock user:', err);
+                  logger.error('Failed to unblock user:', err);
                 }
               }}
               className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-full bg-red-500/20 hover:bg-red-500/30 text-red-400 font-bold text-xs transition-all active:scale-95 border border-red-500/30 shadow-md"
@@ -1141,7 +1145,7 @@ async function uploadFileWithProgress(fileOrUrl, onProgress) {
       const blob = await response.blob();
       formData.append('file', blob, 'device_gallery_attachment.jpg');
     } catch (err) {
-      console.error('Fetch blob failed, sending mock file data', err);
+      logger.error('Fetch blob failed, sending mock file data', err);
       const mockBlob = new Blob(['mock content'], { type: 'image/jpeg' });
       formData.append('file', mockBlob, 'attachment.jpg');
     }
@@ -1199,10 +1203,10 @@ export default function Messages() {
     try {
       if (PrivacyProtection && typeof PrivacyProtection.enablePrivacyProtection === 'function') {
         await (enabled ? PrivacyProtection.enablePrivacyProtection() : PrivacyProtection.disablePrivacyProtection());
-        console.log(`[PrivacyProtection] Dynamic FLAG_SECURE ${enabled ? 'ENABLED' : 'DISABLED'}`);
+        logger.log(`[PrivacyProtection] Dynamic FLAG_SECURE ${enabled ? 'ENABLED' : 'DISABLED'}`);
       }
     } catch (err) {
-      console.warn('[PrivacyProtection] Android/Capacitor dynamic bridge is offline or unavailable');
+      logger.warn('[PrivacyProtection] Android/Capacitor dynamic bridge is offline or unavailable');
     }
   };
 
@@ -1230,7 +1234,7 @@ export default function Messages() {
           api.post('/messages/official-chat/status', { targetStatus: 'VIEWED' }).catch(() => { });
         }
       }
-    }).catch(console.warn);
+    }).catch(logger.warn);
 
     const handleOnboardingEvent = (e: any) => {
       if (e.detail) {
@@ -1266,7 +1270,7 @@ export default function Messages() {
     idsToArchive.forEach(id => {
       toggleArchive(id, true);
       api.post(`/messages/chat/${id}/archive`, { isArchived: true }).catch(() => {
-        api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(console.error);
+        api.patch(`/messages/chat/${id}/archive`, { isArchived: true }).catch(logger.error);
       });
     });
 
@@ -1277,7 +1281,7 @@ export default function Messages() {
         idsToArchive.forEach(id => {
           toggleArchive(id, false);
           api.post(`/messages/chat/${id}/archive`, { isArchived: false }).catch(() => {
-            api.patch(`/messages/chat/${id}/archive`, { isArchived: false }).catch(console.error);
+            api.patch(`/messages/chat/${id}/archive`, { isArchived: false }).catch(logger.error);
           });
         });
       },
@@ -1299,7 +1303,7 @@ export default function Messages() {
 
     idsToDelete.forEach(id => {
       toggleDelete(id);
-      api.delete(`/messages/chat/${id}`).catch(console.error);
+      api.delete(`/messages/chat/${id}`).catch(logger.error);
     });
 
     // Delete cannot be undone on the server side because data is dropped,
@@ -1324,7 +1328,7 @@ export default function Messages() {
     idsToPin.forEach(id => {
       togglePin(id, targetState);
       api.patch(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(() => {
-        api.post(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(console.error);
+        api.post(`/messages/chat/${id}/pin`, { isPinned: targetState }).catch(logger.error);
       });
     });
   };
@@ -1341,7 +1345,7 @@ export default function Messages() {
     idsToMute.forEach(id => {
       toggleMute(id, targetState);
       api.post(`/messages/chat/${id}/mute`, { muted: targetState }).catch(() => {
-        api.patch(`/messages/chat/${id}/mute`, { muted: targetState }).catch(console.error);
+        api.patch(`/messages/chat/${id}/mute`, { muted: targetState }).catch(logger.error);
       });
     });
   };
@@ -1357,7 +1361,7 @@ export default function Messages() {
 
     idsToFav.forEach(id => {
       toggleFavorite(id, targetState);
-      api.patch(`/messages/chat/${id}/favorite`, { isFavorite: targetState }).catch(console.error);
+      api.patch(`/messages/chat/${id}/favorite`, { isFavorite: targetState }).catch(logger.error);
     });
   };
 
@@ -1373,7 +1377,7 @@ export default function Messages() {
     idsToPriority.forEach(id => {
       togglePriority(id, targetState);
       api.patch(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(() => {
-        api.post(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(console.error);
+        api.post(`/messages/chat/${id}/priority`, { isPriority: targetState }).catch(logger.error);
       });
     });
   };
@@ -1390,9 +1394,9 @@ export default function Messages() {
     idsToMark.forEach(id => {
       toggleUnread(id, targetUnread);
       if (targetUnread) {
-        api.post(`/messages/unread/${id}`).catch(console.error);
+        api.post(`/messages/unread/${id}`).catch(logger.error);
       } else {
-        api.post(`/messages/read/${id}`).catch(console.error);
+        api.post(`/messages/read/${id}`).catch(logger.error);
       }
     });
   };
@@ -1405,7 +1409,7 @@ export default function Messages() {
     idsToClear.forEach(id => {
       useChatStore.getState().setMessages(id, []);
       api.post(`/messages/chat/${id}/clear`).catch(() => {
-        api.delete(`/messages/chat/${id}/messages`).catch(console.error);
+        api.delete(`/messages/chat/${id}/messages`).catch(logger.error);
       });
     });
   };
@@ -1414,7 +1418,7 @@ export default function Messages() {
     if (selectedChatIds.length === 0) return;
     const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
     if (targetChat && targetChat.partner_id) {
-      api.post(`/privacy/block`, { target_user_id: targetChat.partner_id }).catch(console.error);
+      api.post(`/privacy/block`, { target_user_id: targetChat.partner_id }).catch(logger.error);
       setSelectedChatIds([]);
     }
   };
@@ -1455,7 +1459,7 @@ export default function Messages() {
     const handleSynced = (e: any) => {
       const { chatId: syncedChatId } = e.detail || {};
       if (syncedChatId && selectedChat?.chat_id === syncedChatId) {
-        console.log('🔄 [Messages] Reactive sync event received for active chat:', syncedChatId);
+        logger.log('🔄 [Messages] Reactive sync event received for active chat:', syncedChatId);
         const msgs = useChatStore.getState().messagesByConversation[syncedChatId] || [];
         updateMessages(() => [...msgs]);
       }
@@ -1463,7 +1467,7 @@ export default function Messages() {
     const handleTimeout = (e: any) => {
       const { messageId: timeoutMsgId } = e.detail || {};
       if (timeoutMsgId) {
-        console.log('⏰ [Messages] Message timeout event received for messageId:', timeoutMsgId);
+        logger.log('⏰ [Messages] Message timeout event received for messageId:', timeoutMsgId);
         updateMessages(prev => prev.map(m => (m.message_id === timeoutMsgId || m.id === timeoutMsgId ? { ...m, status: 'failed' } : m)));
       }
     };
@@ -1488,14 +1492,14 @@ export default function Messages() {
     if (!chatId) return;
     const current = useChatStore.getState().messagesByConversation[chatId] || [];
     const updated = updater(current);
-    console.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
+    logger.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
     setStoreMessages(chatId, updated);
   };
   const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
     if (!targetChatId) return;
     const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
     const updated = updater(current);
-    console.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
+    logger.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
     setStoreMessages(targetChatId, updated);
   };
   const [messageSearch, setMessageSearch] = useState('');
@@ -1704,7 +1708,7 @@ export default function Messages() {
           }
         })
         .catch(err => {
-          console.error("Error fetching message permissions:", err);
+          logger.error("Error fetching message permissions:", err);
           setActiveMessagePermissions(undefined);
         });
     } else {
@@ -1861,7 +1865,7 @@ export default function Messages() {
                 setActiveMessagePermissions(res.data.permissions);
               }
             })
-            .catch(console.error);
+            .catch(logger.error);
         }
       }
     };
@@ -1883,7 +1887,7 @@ export default function Messages() {
               captureNotifications: !!effective.notifyScreenshotAttempts,
             });
           })
-          .catch(console.error);
+          .catch(logger.error);
       }
     };
 
@@ -2068,7 +2072,7 @@ export default function Messages() {
           } catch (e) { }
         })
         .catch(err => {
-          console.error('Failed to load chat privacy settings:', err);
+          logger.error('Failed to load chat privacy settings:', err);
         });
     } else {
       setActivePrivacy(null);
@@ -2094,7 +2098,7 @@ export default function Messages() {
                 attemptType: 'SCREENSHOT_ATTEMPT',
                 detectionMethod: eventData?.detectionMethod || 'NATIVE_BRIDGE',
                 deviceInfo: { userAgent: navigator.userAgent },
-              }).catch(console.error);
+              }).catch(logger.error);
             }
           });
           if (!cancelled) {
@@ -2124,7 +2128,7 @@ export default function Messages() {
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
     } catch (err: any) {
-      console.error('Failed to fetch inbox', err.response?.data || err);
+      logger.error('Failed to fetch inbox', err.response?.data || err);
       setConversations([]);
     } finally {
       setLoading(false);
@@ -2136,7 +2140,7 @@ export default function Messages() {
       const res = await api.get('/users/active-friends');
       setSuggestedContacts(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
-      console.error('Failed to fetch suggested', err);
+      logger.error('Failed to fetch suggested', err);
       setSuggestedContacts([]);
     }
   };
@@ -2184,7 +2188,7 @@ export default function Messages() {
       });
       scrollToBottom();
     } catch (err) {
-      console.error('Failed to fetch messages', err);
+      logger.error('Failed to fetch messages', err);
     }
   };
 
@@ -2224,7 +2228,7 @@ export default function Messages() {
     if (!socket || !selectedChat) return;
     const targetId = selectedChat.chat_id;
     if (targetId && !targetId.startsWith('temp_')) {
-      console.log('[JOIN_CHAT_EMIT]', targetId);
+      logger.log('[JOIN_CHAT_EMIT]', targetId);
       socket.emit('join-chat', targetId);
     }
   }, [socket, selectedChat?.chat_id]);
@@ -2233,7 +2237,7 @@ export default function Messages() {
     if (!socket) return;
 
     const handleNewMessage = (msg: any) => {
-      console.log('[MESSAGE_RECEIVED]', msg);
+      logger.log('[MESSAGE_RECEIVED]', msg);
       const activeChat = selectedChatRef.current;
       const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
 
@@ -2483,13 +2487,13 @@ export default function Messages() {
     };
 
     const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
-      console.log('[DELETE_RECEIVED]', data);
+      logger.log('[DELETE_RECEIVED]', data);
       const activeChatId = currentChatIdRef.current;
       if (activeChatId && data.chatId === activeChatId) {
         updateMessagesForChat(activeChatId, prev => {
           const updated = prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m);
           const updatedMsg = updated.find(m => m.message_id === data.messageId);
-          console.log('[DELETE_STORE_UPDATED]', updatedMsg);
+          logger.log('[DELETE_STORE_UPDATED]', updatedMsg);
           return updated;
         });
       }
@@ -2533,9 +2537,9 @@ export default function Messages() {
     };
 
     const handleNewMessageWrapped = (message: any) => {
-      console.log('[NEW_MESSAGE]', message.chatId);
-      console.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
-      console.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
+      logger.log('[NEW_MESSAGE]', message.chatId);
+      logger.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
+      logger.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
       handleNewMessage(message);
     };
 
@@ -2558,7 +2562,7 @@ export default function Messages() {
 
     // Listen for chat-updated events so the sidebar refreshes
     const handleChatUpdated = (data: { chatId: string }) => {
-      console.log('[CHAT_UPDATED_RECEIVED]', data);
+      logger.log('[CHAT_UPDATED_RECEIVED]', data);
       // Re-fetch inbox to pick up new last_message / unread_count
       fetchInbox();
     };
@@ -2566,7 +2570,7 @@ export default function Messages() {
 
     const handleReconnect = () => {
       const activeChatId = currentChatIdRef.current;
-      console.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
+      logger.log('🔄 Socket connected/reconnected! Rejoining active chat room:', activeChatId);
       if (activeChatId && !activeChatId.startsWith('temp_')) {
         socket.emit('join-chat', activeChatId);
       }
@@ -2678,7 +2682,7 @@ export default function Messages() {
     type?: 'image' | 'video' | 'audio' | 'document';
     fileName?: string;
   }) => {
-    console.log(`[MEDIA_SHORTCUT] source=${payload.source}`);
+    logger.log(`[MEDIA_SHORTCUT] source=${payload.source}`);
     if (!selectedChat) return;
 
     const normalizedItems: any[] = [];
@@ -2694,7 +2698,7 @@ export default function Messages() {
         else if (mime.startsWith('audio/')) mediaType = 'audio';
 
         const url = URL.createObjectURL(f);
-        console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name}`);
+        logger.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name}`);
         normalizedItems.push({
           id: `media_${Date.now()}_${i}_${Math.random().toString(36).substring(2, 6)}`,
           type: mediaType,
@@ -2714,7 +2718,7 @@ export default function Messages() {
       else if (mime.startsWith('audio/')) mediaType = 'audio';
 
       const url = URL.createObjectURL(f);
-      console.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name || payload.fileName}`);
+      logger.log(`[MEDIA_NORMALIZED] type=${mediaType} mime=${mime} name=${f.name || payload.fileName}`);
       normalizedItems.push({
         id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         type: mediaType,
@@ -2740,11 +2744,11 @@ export default function Messages() {
           fileBlob = await res.blob();
         }
       } catch (err) {
-        console.warn('[Camera] Failed to convert URI to blob:', err);
+        logger.warn('[Camera] Failed to convert URI to blob:', err);
       }
 
       const name = payload.fileName || `Camera_${mediaType === 'video' ? 'Video' : mediaType === 'audio' ? 'Audio' : 'Photo'}_${Date.now()}`;
-      console.log(`[MEDIA_NORMALIZED] type=${mediaType} name=${name}`);
+      logger.log(`[MEDIA_NORMALIZED] type=${mediaType} name=${name}`);
       normalizedItems.push({
         id: `media_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         type: mediaType,
@@ -2756,7 +2760,7 @@ export default function Messages() {
 
     // Reject invalid / empty payload early
     if (normalizedItems.length === 0) {
-      console.warn('[MEDIA_PIPELINE_WARN] Empty or invalid media payload rejected.');
+      logger.warn('[MEDIA_PIPELINE_WARN] Empty or invalid media payload rejected.');
       return;
     }
 
@@ -2767,7 +2771,7 @@ export default function Messages() {
       for (const item of normalizedItems) {
         const queueId = `upload_${Date.now()}_${item.id}`;
         const tempMessageId = crypto.randomUUID();
-        console.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
+        logger.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
 
         // Optimistic document / audio message bubble
         const optimisticMsg: any = {
@@ -2783,7 +2787,7 @@ export default function Messages() {
           media_url: item.url,
           mediaUrl: item.url
         };
-        console.log(`[MEDIA_MESSAGE_CREATE] messageId=${tempMessageId} type=${item.type}`);
+        logger.log(`[MEDIA_MESSAGE_CREATE] messageId=${tempMessageId} type=${item.type}`);
         updateMessages(prev => [...prev, optimisticMsg]);
         AudioSessionManager.playSound('send');
         if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
@@ -2830,7 +2834,7 @@ export default function Messages() {
               }
             }
           } catch (err) {
-            console.error('[MediaUpload] Upload failed:', err);
+            logger.error('[MediaUpload] Upload failed:', err);
             setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
             updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
               ? { ...m, status: 'failed' }
@@ -2861,7 +2865,7 @@ export default function Messages() {
     const messageType = specialType || 'text';
     const isMediaPayload = content.includes('"type":"camera_capture"') || content.includes('"type":"file"') || content.startsWith('data:image') || content.startsWith('data:video');
     if (messageType === 'text' && isMediaPayload) {
-      console.error('[MEDIA_PIPELINE_ERROR] Media attempted to enter text pipeline! Intercepting.', { content });
+      logger.error('[MEDIA_PIPELINE_ERROR] Media attempted to enter text pipeline! Intercepting.', { content });
       return;
     }
 
@@ -2967,7 +2971,7 @@ export default function Messages() {
       mediaUrl: mediaUrl,
       replyToId: currentReplyTo?.message_id,
       context: 'chat'
-    }).catch((err) => console.warn('[Sparkle] Outbox persistence warning:', err));
+    }).catch((err) => logger.warn('[Sparkle] Outbox persistence warning:', err));
 
     // Start individual 10-second delivery timeout timer
     PersistentOfflineQueue.startMessageTimeout(messageId, () => {
@@ -2983,7 +2987,7 @@ export default function Messages() {
       socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
         const serverAckMs = Math.round(performance.now() - emitStartTime);
         const totalMs = Math.round(performance.now() - sendStartTime);
-        console.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
+        logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
         if (response && response.success && response.messageId) {
           PersistentOfflineQueue.acknowledge(messageId);
           if (selectedChat) {
@@ -3024,11 +3028,11 @@ export default function Messages() {
             return prev;
           });
         } else {
-          console.warn('[Sparkle] Socket emit unacknowledged, message remains in outbox:', response?.error);
+          logger.warn('[Sparkle] Socket emit unacknowledged, message remains in outbox:', response?.error);
         }
       });
     } else {
-      console.log('[Sparkle] Offline — message safely persisted in local outbox:', messageId);
+      logger.log('[Sparkle] Offline — message safely persisted in local outbox:', messageId);
     }
   };
 
@@ -3083,7 +3087,7 @@ export default function Messages() {
         }
       });
     } else {
-      console.log('[Sparkle] Retry queued offline, will sync when connection returns:', msgId);
+      logger.log('[Sparkle] Retry queued offline, will sync when connection returns:', msgId);
     }
   };
 
@@ -3192,7 +3196,7 @@ export default function Messages() {
         ));
       }
     } catch (err) {
-      console.error('Failed to upload voice/audio note:', err);
+      logger.error('Failed to upload voice/audio note:', err);
       setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
       updateMessages(prev => prev.map(m =>
         (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
@@ -3719,7 +3723,7 @@ export default function Messages() {
                     const targetId = chat.chat_id;
                     toggleArchive(targetId, true);
                     api.post(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(() => {
-                      api.patch(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(console.error);
+                      api.patch(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(logger.error);
                     });
 
                     setUndoToast({
@@ -3728,7 +3732,7 @@ export default function Messages() {
                       undoAction: () => {
                         toggleArchive(targetId, false);
                         api.post(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(() => {
-                          api.patch(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(console.error);
+                          api.patch(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(logger.error);
                         });
                       },
                       commitAction: () => { },
@@ -3737,7 +3741,7 @@ export default function Messages() {
                   onDelete={() => {
                     const targetId = chat.chat_id;
                     toggleDelete(targetId);
-                    api.delete(`/messages/chat/${targetId}`).catch(console.error);
+                    api.delete(`/messages/chat/${targetId}`).catch(logger.error);
 
                     setUndoToast({
                       id: 'delete_' + Date.now(),
@@ -4264,7 +4268,7 @@ export default function Messages() {
                                   </span>
                                 ) : msg.is_deleted_for_everyone ? (
                                   <>
-                                    {console.log('[DELETE_RENDER]', msg.message_id)}
+                                    {logger.log('[DELETE_RENDER]', msg.message_id)}
                                     <span className="italic text-white/40 select-none">
                                       {getDeletedMessageText(msg, isMe)}
                                     </span>
@@ -4394,7 +4398,7 @@ export default function Messages() {
 
                                     {msg.type === 'document' && (
                                       <a
-                                        href={msg.media_url || msg.mediaUrl}
+                                        href={safeHref(msg.media_url || msg.mediaUrl)}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
@@ -5170,7 +5174,7 @@ export default function Messages() {
                             setForwardingMessage(null);
                           }
                         } catch (err) {
-                          console.error('Failed to forward to follower', err);
+                          logger.error('Failed to forward to follower', err);
                         }
                       }
                     }}
@@ -5378,7 +5382,7 @@ export default function Messages() {
                             setNoteNotification(null);
                           }, 2500);
                         } catch (err) {
-                          console.error('Failed to send reaction', err);
+                          logger.error('Failed to send reaction', err);
                         } finally {
                           setIsNoteReacting(false);
                         }
@@ -5462,7 +5466,7 @@ export default function Messages() {
                           setNoteReplyText('');
                           setShowViewNoteModal(false);
                         } catch (err) {
-                          console.error('Failed to send reply', err);
+                          logger.error('Failed to send reply', err);
                         }
                       }}
                       className="text-[#ff1493] hover:scale-110 active:scale-90 transition-all font-bold text-sm"
@@ -5962,7 +5966,7 @@ export default function Messages() {
                             }
                           }
                         } catch (err) {
-                          console.error('[MediaUpload] Upload failed:', err);
+                          logger.error('[MediaUpload] Upload failed:', err);
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
                           updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
                             ? { ...m, status: 'failed' }
@@ -6584,7 +6588,7 @@ export default function Messages() {
             handleSendMessage(undefined, contentJson, 'location');
           }}
           onSendLiveLocation={(sessionData) => {
-            console.log('Live location started:', sessionData);
+            logger.log('Live location started:', sessionData);
           }}
         />
       )}

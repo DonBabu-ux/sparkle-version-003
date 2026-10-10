@@ -41,6 +41,7 @@ import { useTimeTick } from '../hooks/useTimeTick';
 import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
 import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
 import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
+import { NewChatModal, type ContactUser } from '../components/chat/NewChatModal';
 import { SparklyListingCard } from '../components/marketplace/SparklyListingCard';
 import { SparklyAvatar } from '../components/sparkly/SparklyAvatar';
 import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
@@ -3205,6 +3206,98 @@ export default function Messages() {
     setShowNewChatModal(false);
   };
 
+  const handleStartChatFromPicker = async (selectedContacts: ContactUser[]) => {
+    if (!selectedContacts.length) return;
+
+    if (selectedContacts.length === 1) {
+      const contact = selectedContacts[0];
+      const partnerId = String(contact.user_id || contact.id || '');
+      
+      // 1. Check if direct conversation already exists in active conversation list
+      const existing = conversations.find(c => 
+        !c.is_group && 
+        c.chat_type !== 'group' && 
+        String(c.partner_id) === partnerId
+      );
+      if (existing) {
+        setSelectedChat(existing);
+        navigate(`/messages?chat=${existing.chat_id}`);
+        setShowNewChatModal(false);
+        return;
+      }
+
+      // 2. Open or create direct conversation on server idempotently
+      try {
+        const res = await api.post('/messages/open', { partnerId });
+        const conversationId = res.data?.data?.conversationId;
+        if (conversationId) {
+          const matched = conversations.find(c => c.chat_id === conversationId);
+          if (matched) {
+            setSelectedChat(matched);
+            navigate(`/messages?chat=${matched.chat_id}`);
+          } else {
+            const newConv: ChatConversation = {
+              chat_id: conversationId,
+              partner_id: partnerId,
+              partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
+              partner_username: contact.username,
+              partner_avatar: contact.avatar_url,
+              partner_online: contact.is_online,
+              unread_count: 0,
+              last_message_time: new Date().toISOString()
+            };
+            setConversations((prev: any[]) => [newConv, ...prev.filter(c => c.chat_id !== conversationId)]);
+            setSelectedChat(newConv);
+            navigate(`/messages?chat=${conversationId}`);
+          }
+          setShowNewChatModal(false);
+          return;
+        }
+      } catch (err) {
+        logger.warn('[Messages] Failed to open conversation via API, falling back to temp chat:', err);
+      }
+
+      // 3. Fallback to startNewChat
+      startNewChat(contact);
+    } else {
+      // Multiple contacts selected -> Create Group Conversation
+      const memberIds = selectedContacts.map(c => String(c.user_id || c.id || '')).filter(Boolean);
+      const names = selectedContacts.map(c => c.name || c.username).filter(Boolean);
+      const groupName = names.length > 0 
+        ? (names.join(', ').length > 30 ? `${names.join(', ').slice(0, 27)}...` : names.join(', '))
+        : 'Group Chat';
+
+      try {
+        const res = await api.post('/groupChat', {
+          name: groupName,
+          member_ids: memberIds
+        });
+
+        if (res.data?.status === 'success' && res.data?.data?.chatId) {
+          const newChatId = res.data.data.chatId;
+          const newGroupConv: ChatConversation = {
+            chat_id: newChatId,
+            partner_id: '',
+            partner_name: groupName,
+            is_group: true,
+            chat_type: 'group',
+            member_count: selectedContacts.length + 1,
+            unread_count: 0,
+            last_message: 'created the group',
+            last_message_time: new Date().toISOString()
+          };
+          setConversations((prev: any[]) => [newGroupConv, ...prev.filter(c => c.chat_id !== newChatId)]);
+          setSelectedChat(newGroupConv);
+          navigate(`/messages?chat=${newChatId}`);
+          setShowNewChatModal(false);
+        }
+      } catch (err: any) {
+        logger.error('[Messages] Failed to create group chat:', err);
+        showError(err?.response?.data?.error || 'Failed to create group conversation');
+      }
+    }
+  };
+
   
 
   
@@ -5087,14 +5180,23 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      <SparklePeopleHubModal
-        isOpen={showNewChatModal}
+      {/* ── Start New Chat — Full-Page Slide-In Interface ── */}
+      <NewChatModal
+        isOpen={showNewChatModal && peopleHubMode === 'new_chat'}
         onClose={() => setShowNewChatModal(false)}
-        title={peopleHubMode === 'share_contact' ? 'Share Contact' : undefined}
-        actionLabel={peopleHubMode === 'share_contact' ? 'Share Contact' : undefined}
-        onSelectUser={(contact) => {
-          setShowNewChatModal(false);
-          if (peopleHubMode === 'share_contact') {
+        conversations={conversations}
+        onStartChat={handleStartChatFromPicker}
+      />
+
+      {/* ── Share Contact in Active Chat ── */}
+      {showNewChatModal && peopleHubMode === 'share_contact' && (
+        <SparklePeopleHubModal
+          isOpen={showNewChatModal && peopleHubMode === 'share_contact'}
+          onClose={() => setShowNewChatModal(false)}
+          title="Share Contact"
+          actionLabel="Share Contact"
+          onSelectUser={(contact) => {
+            setShowNewChatModal(false);
             const contactName = contact.name || contact.username || 'Sparkle User';
             const contactPhoneOrHandle = contact.phone_number || (contact.username ? `@${contact.username}` : '+1 (555) 019-2834');
             const contactMetadata = JSON.stringify({
@@ -5105,15 +5207,13 @@ export default function Messages() {
               phone: contact.phone_number
             });
             handleSendMessage(undefined, contactName, 'contact', contactPhoneOrHandle, contactMetadata);
-          } else {
-            startNewChat(contact);
-          }
-        }}
-        onNavigateProfile={(username) => {
-          setShowNewChatModal(false);
-          navigate(`/profile/${username}`);
-        }}
-      />
+          }}
+          onNavigateProfile={(username) => {
+            setShowNewChatModal(false);
+            navigate(`/profile/${username}`);
+          }}
+        />
+      )}
 
       {showCameraModal && (
         <CameraModal
@@ -6555,6 +6655,22 @@ export default function Messages() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ── Small Pink Floating Compose Button on Messages Page ── */}
+      {!selectedChat && !showNewChatModal && (
+        <button
+          type="button"
+          onClick={() => {
+            setPeopleHubMode('new_chat');
+            setShowNewChatModal(true);
+          }}
+          className="fixed right-5 md:right-8 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-8 z-30 w-11 h-11 rounded-full bg-[#ff1493] text-white flex items-center justify-center shadow-lg shadow-[#ff1493]/35 hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff1493] focus:ring-offset-2 focus:ring-offset-[#13131a] cursor-pointer"
+          aria-label="Start new chat"
+          title="New message"
+        >
+          <Plus size={24} strokeWidth={2.5} className="text-white" />
+        </button>
+      )}
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

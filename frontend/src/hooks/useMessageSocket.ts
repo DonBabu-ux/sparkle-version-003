@@ -180,10 +180,13 @@ export const useMessageSocket = () => {
 
     // Enterprise session-aware delivery update handler
     const handleMessageDeliveredUpdate = (data: { messageId: string; chatId: string; deliveredAt: string; recipientUserId: string }) => {
-      getChatStore().updateMessage(data.chatId, data.messageId, {
+      const chatStore = getChatStore();
+      chatStore.updateMessage(data.chatId, data.messageId, {
         delivered_at: data.deliveredAt,
         status: 'delivered',
       });
+      // Advance the chat-list status ratchet so the tick updates without a refresh
+      chatStore.updateConversationReceipt(data.chatId, 'delivered', data.deliveredAt);
     };
 
     // Enterprise tri-condition read update handler
@@ -216,6 +219,9 @@ export const useMessageSocket = () => {
           }
         }
       });
+
+      // Advance the chat-list status ratchet so blue ticks appear without a page refresh
+      chatStore.updateConversationReceipt(data.chatId, 'read', readTime);
     };
 
     const handleMessagesDelivered = (data: { chatId: string; messageId?: string; userId?: string }) => {
@@ -224,16 +230,19 @@ export const useMessageSocket = () => {
 
       const chatStore = getChatStore();
       const msgs = chatStore.messagesByConversation[data.chatId] || [];
+      const deliveredAt = new Date().toISOString();
       msgs.forEach((m) => {
         const msgSenderId = m.sender_id || (m as any).senderId;
         const isFromMe = msgSenderId && myId && String(msgSenderId).toLowerCase() === String(myId).toLowerCase();
         if (isFromMe && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
           chatStore.updateMessage(data.chatId, m.message_id || (m as any).id, {
             status: 'delivered',
-            delivered_at: new Date().toISOString(),
+            delivered_at: deliveredAt,
           });
         }
       });
+      // Advance chat-list status ratchet
+      chatStore.updateConversationReceipt(data.chatId, 'delivered', deliveredAt);
     };
 
     const handleMessagesRead = (data: { chatId: string; readAt?: string; userId?: string; readerUserId?: string }) => {

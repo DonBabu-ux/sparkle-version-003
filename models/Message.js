@@ -534,13 +534,14 @@ class Message {
         let blockedByMeSet, blockedMeSet;
         [blockedByMeSet, blockedMeSet] = await blocksPromise;
 
-        const { formatSystemUser } = require('../helpers/systemAccount.helper');
+        const { formatSystemUser, isSystemAccount } = require('../helpers/systemAccount.helper');
         return rows.map(conv => {
             const formatted = formatSystemUser(conv);
             const pid = conv.partner_id ? String(conv.partner_id) : null;
             const isBlockedByMe = pid ? blockedByMeSet.has(pid) : false;
             const amIBlocked = pid ? blockedMeSet.has(pid) : false;
             const isBlocked = isBlockedByMe || amIBlocked;
+            const isSys = Boolean(formatted.is_system_account || isSystemAccount(conv) || conv.is_system);
 
             return {
                 ...conv,
@@ -554,7 +555,9 @@ class Message {
                 partner_name: isBlocked ? 'Sparkle User' : String(conv.partner_name || conv.partner_username || 'Sparkle User'),
                 partner_username: isBlocked ? '' : String(conv.partner_username || ''),
                 partner_avatar: isBlocked ? null : conv.partner_avatar,
-                is_online: isBlocked ? false : Boolean(conv.is_online),
+                is_online: (isBlocked || isSys) ? false : Boolean(conv.is_online),
+                last_message_sender_id: conv.last_message_sender_id ? String(conv.last_message_sender_id) : null,
+                last_message_status: conv.last_message_status || 'sent',
                 // Convert all TINYINT(1) DEFAULT 0 columns to proper booleans
                 is_pinned: Boolean(conv.is_pinned),
                 is_favorite: Boolean(conv.is_favorite),
@@ -567,7 +570,7 @@ class Message {
                 only_admins_send: Boolean(conv.only_admins_send),
                 disappearing_duration: Number(conv.disappearing_duration) || 0,
                 last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
-                last_seen_at: isBlocked ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
+                last_seen_at: (isBlocked || isSys) ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
             };
         });
     }
@@ -998,10 +1001,13 @@ class Message {
     /**
      * Session-aware Delivery ACK: Mark message delivered when recipient session ACKs receipt
      */
+    /**
+     * Session-aware Delivery ACK: Mark message delivered when recipient session ACKs receipt
+     */
     static async markSessionDelivered(messageId, sessionId, recipientUserId) {
         await db.query(`
             UPDATE messages 
-            SET delivered_at = COALESCE(delivered_at, NOW()), status = IF(read_at IS NOT NULL, 'read', 'delivered')
+            SET delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = IF(status = 'read' OR read_at IS NOT NULL, 'read', 'delivered')
             WHERE message_id = ? AND (recipient_id = ? OR recipient_id IS NULL)
         `, [messageId, recipientUserId]);
 
@@ -1010,24 +1016,76 @@ class Message {
     }
 
     /**
+     * Check if a user has read receipts enabled (per-chat override or global default)
+     */
+    static async areReadReceiptsEnabled(userId, chatId) {
+        try {
+            if (chatId) {
+                const [chatSettings] = await db.query(
+                    'SELECT read_receipts_enabled FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ? LIMIT 1',
+                    [chatId, userId]
+                );
+                if (chatSettings && chatSettings.length > 0 && chatSettings[0].read_receipts_enabled !== null && chatSettings[0].read_receipts_enabled !== undefined) {
+                    return chatSettings[0].read_receipts_enabled !== 0;
+                }
+            }
+            const [userSettings] = await db.query(
+                'SELECT default_read_receipts FROM users WHERE user_id = ? LIMIT 1',
+                [userId]
+            );
+            if (userSettings && userSettings.length > 0 && userSettings[0].default_read_receipts !== null && userSettings[0].default_read_receipts !== undefined) {
+                return userSettings[0].default_read_receipts !== 0;
+            }
+            return true;
+        } catch (err) {
+            logger.error(`areReadReceiptsEnabled error for user ${userId}:`, err?.message || err);
+            return true;
+        }
+    }
+
+    /**
      * Tri-Condition Read Receipt: Mark message read when recipient views message
+     * Respects reader's privacy setting:
+     * - If read receipts are disabled: marks is_read = 1 (clears recipient's unread counter internally)
+     *   without modifying publicly visible `status = 'read'` or `read_at`, and returns readReceiptsEnabled: false.
+     * - If read receipts are enabled: marks is_read = 1, status = 'read', read_at = UTC_TIMESTAMP(), and returns readReceiptsEnabled: true.
      */
     static async markReadTriCondition(chatId, messageIds, recipientUserId) {
+        const readReceiptsEnabled = await this.areReadReceiptsEnabled(recipientUserId, chatId);
+
         if (!Array.isArray(messageIds) || messageIds.length === 0) {
-            await db.query(`
-                UPDATE messages
-                SET read_at = COALESCE(read_at, NOW()), delivered_at = COALESCE(delivered_at, NOW()), status = 'read', is_read = 1
-                WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND read_at IS NULL
-            `, [chatId, chatId, recipientUserId]);
-            return;
+            if (readReceiptsEnabled) {
+                await db.query(`
+                    UPDATE messages
+                    SET read_at = COALESCE(read_at, UTC_TIMESTAMP()), delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = 'read', is_read = 1
+                    WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND read_at IS NULL
+                `, [chatId, chatId, recipientUserId]);
+            } else {
+                // Internal unread tracking only: clear recipient's unread indicator
+                await db.query(`
+                    UPDATE messages
+                    SET is_read = 1
+                    WHERE (conversation_id = ? OR chat_id = ?) AND sender_id != ? AND is_read = 0
+                `, [chatId, chatId, recipientUserId]);
+            }
+            return { readReceiptsEnabled };
         }
 
         const placeholders = messageIds.map(() => '?').join(',');
-        await db.query(`
-            UPDATE messages
-            SET read_at = COALESCE(read_at, NOW()), delivered_at = COALESCE(delivered_at, NOW()), status = 'read', is_read = 1
-            WHERE message_id IN (${placeholders}) AND sender_id != ?
-        `, [...messageIds, recipientUserId]);
+        if (readReceiptsEnabled) {
+            await db.query(`
+                UPDATE messages
+                SET read_at = COALESCE(read_at, UTC_TIMESTAMP()), delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = 'read', is_read = 1
+                WHERE message_id IN (${placeholders}) AND sender_id != ?
+            `, [...messageIds, recipientUserId]);
+        } else {
+            await db.query(`
+                UPDATE messages
+                SET is_read = 1
+                WHERE message_id IN (${placeholders}) AND sender_id != ?
+            `, [...messageIds, recipientUserId]);
+        }
+        return { readReceiptsEnabled };
     }
 
     /**

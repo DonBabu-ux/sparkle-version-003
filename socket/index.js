@@ -763,12 +763,18 @@ socket.on('get-rooms', () => {
                 const msg = await Message.getById(messageId);
                 if (msg) {
                     const chatId = msg.chat_id || msg.conversation_id;
-                    io.to(`chat:${chatId}`).emit('message-delivered-update', {
+                    const payload = {
                         messageId,
                         chatId,
                         recipientUserId: socket.userId,
                         deliveredAt: new Date().toISOString()
-                    });
+                    };
+                    io.to(`chat:${chatId}`).emit('message-delivered-update', payload);
+                    io.to(`chat:${chatId}`).emit('messages-delivered', payload);
+                    if (msg.sender_id) {
+                        io.to(`user:${msg.sender_id}`).emit('message-delivered-update', payload);
+                        io.to(`user:${msg.sender_id}`).emit('messages-delivered', payload);
+                    }
                 }
                 if (typeof callback === 'function') callback({ success: true });
             } catch (err) {
@@ -781,19 +787,36 @@ socket.on('get-rooms', () => {
             try {
                 const { chatId, messageIds } = data || {};
                 if (!chatId) return;
-                await Message.markReadTriCondition(chatId, messageIds, socket.userId);
+                const { readReceiptsEnabled } = await Message.markReadTriCondition(chatId, messageIds, socket.userId);
 
-                const readAt = new Date().toISOString();
-                const payload = {
-                    chatId,
-                    messageIds: messageIds || null,
-                    readerUserId: socket.userId,
-                    userId: socket.userId,
-                    readAt
-                };
-                io.to(`chat:${chatId}`).emit('message-read-update', payload);
-                io.to(`chat:${chatId}`).emit('messages-read', payload);
-                if (typeof callback === 'function') callback({ success: true });
+                if (readReceiptsEnabled) {
+                    const readAt = new Date().toISOString();
+                    const payload = {
+                        chatId,
+                        messageIds: messageIds || null,
+                        readerUserId: socket.userId,
+                        userId: socket.userId,
+                        readAt
+                    };
+                    io.to(`chat:${chatId}`).emit('message-read-update', payload);
+                    io.to(`chat:${chatId}`).emit('messages-read', payload);
+
+                    // Also broadcast to the other participant's personal user room if 1-on-1 chat
+                    const [chatRows] = await pool.query(
+                        'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ? LIMIT 1',
+                        [chatId]
+                    );
+                    if (chatRows && chatRows.length > 0) {
+                        const partnerId = String(chatRows[0].participant1_id) === String(socket.userId)
+                            ? chatRows[0].participant2_id
+                            : chatRows[0].participant1_id;
+                        if (partnerId) {
+                            io.to(`user:${partnerId}`).emit('message-read-update', payload);
+                            io.to(`user:${partnerId}`).emit('messages-read', payload);
+                        }
+                    }
+                }
+                if (typeof callback === 'function') callback({ success: true, readReceiptsEnabled: !!readReceiptsEnabled });
             } catch (err) {
                 logger.error('message-read-ack error:', err);
             }
@@ -818,16 +841,32 @@ socket.on('get-rooms', () => {
         // Legacy mark-read & mark-delivered compatibility wrappers
         socket.on('mark-read', async (chatId) => {
             try {
-                await Message.markReadTriCondition(chatId, null, socket.userId);
-                const readAt = new Date().toISOString();
-                const payload = {
-                    chatId,
-                    readerUserId: socket.userId,
-                    userId: socket.userId,
-                    readAt
-                };
-                io.to(`chat:${chatId}`).emit('message-read-update', payload);
-                io.to(`chat:${chatId}`).emit('messages-read', payload);
+                const { readReceiptsEnabled } = await Message.markReadTriCondition(chatId, null, socket.userId);
+                if (readReceiptsEnabled) {
+                    const readAt = new Date().toISOString();
+                    const payload = {
+                        chatId,
+                        readerUserId: socket.userId,
+                        userId: socket.userId,
+                        readAt
+                    };
+                    io.to(`chat:${chatId}`).emit('message-read-update', payload);
+                    io.to(`chat:${chatId}`).emit('messages-read', payload);
+
+                    const [chatRows] = await pool.query(
+                        'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ? LIMIT 1',
+                        [chatId]
+                    );
+                    if (chatRows && chatRows.length > 0) {
+                        const partnerId = String(chatRows[0].participant1_id) === String(socket.userId)
+                            ? chatRows[0].participant2_id
+                            : chatRows[0].participant1_id;
+                        if (partnerId) {
+                            io.to(`user:${partnerId}`).emit('message-read-update', payload);
+                            io.to(`user:${partnerId}`).emit('messages-read', payload);
+                        }
+                    }
+                }
             } catch (error) {
                 logger.error('Mark read error:', error);
             }
@@ -838,6 +877,17 @@ socket.on('get-rooms', () => {
                 const { messageId } = data || {};
                 if (messageId) {
                     await Message.markSessionDelivered(messageId, socket.sessionId, socket.userId);
+                    const msg = await Message.getById(messageId);
+                    if (msg && msg.sender_id) {
+                        const payload = {
+                            messageId,
+                            chatId: msg.chat_id || msg.conversation_id,
+                            recipientUserId: socket.userId,
+                            deliveredAt: new Date().toISOString()
+                        };
+                        io.to(`user:${msg.sender_id}`).emit('message-delivered-update', payload);
+                        io.to(`user:${msg.sender_id}`).emit('messages-delivered', payload);
+                    }
                 }
             } catch (error) {
                 logger.error('Mark delivered error:', error);
@@ -852,12 +902,24 @@ socket.on('get-rooms', () => {
             // The OFFLINE_GRACE_MS disconnect timeout will handle actual offline
         });
 
-        // Explicit offline signal (tab close / beforeunload)
+        // Explicit offline signal (tab close / beforeunload) - checks multi-device active sessions
         socket.on('presence:offline', async () => {
             try {
                 logger.info(`📴 Explicit offline signal from ${socket.userId}`);
-                await User.setOnlineStatus(socket.userId, false);
-                broadcastOnlineStatus(socket, false);
+                const sessions = userSockets.get(socket.userId);
+                if (sessions) {
+                    sessions.delete(socket);
+                    if (sessions.size === 0) {
+                        userSockets.delete(socket.userId);
+                    }
+                }
+                const stillOnline = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
+                if (!stillOnline) {
+                    await User.setOnlineStatus(socket.userId, false);
+                    await broadcastOnlineStatus(socket, false);
+                } else {
+                    logger.info(`📡 User still has active sessions on other devices, staying ONLINE: ${socket.userId}`);
+                }
             } catch (e) {
                 logger.error('presence:offline error:', e);
             }
@@ -1281,7 +1343,14 @@ socket.on('get-rooms', () => {
                 }
                 activeTypingSessions.delete(socket.id);
 
-                // Schedule offline transition after grace period
+                // If user still has other connected sessions on other devices/tabs, do NOT go offline!
+                const hasRemainingSessions = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
+                if (hasRemainingSessions) {
+                    logger.info(`📡 User still has active sessions on other devices, staying ONLINE: ${socket.userId}`);
+                    return;
+                }
+
+                // Schedule offline transition after grace period for the last disconnected session
                 // This allows brief network blips / transport upgrades to
                 // reconnect without the user appearing offline.
                 const timer = setTimeout(async () => {
@@ -1377,7 +1446,7 @@ const broadcastGroupPresence = (io, socket) => {
     }
 };
 
-// Helper: Broadcast online status to followers AND group peers
+// Helper: Broadcast online status to followers, group peers, and direct chat partners
 const broadcastOnlineStatus = async (socket, isOnline) => {
     try {
         const [followers] = await pool.query(
@@ -1388,22 +1457,32 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
         // Get Group Peers
         const groupPeers = await GroupMember.getGroupPeers(socket.userId);
 
+        // Direct Chat Partners (personal_chats)
+        const [chatPartners] = await pool.query(
+            `SELECT IF(participant1_id = ?, participant2_id, participant1_id) AS partner_id
+             FROM personal_chats
+             WHERE participant1_id = ? OR participant2_id = ?`,
+            [socket.userId, socket.userId, socket.userId]
+        );
+
         // Merge unique IDs
         const targetIds = new Set([
             ...followers.map(f => f.follower_id),
-            ...groupPeers
+            ...groupPeers,
+            ...chatPartners.map(p => p.partner_id)
         ]);
+        targetIds.delete(socket.userId);
 
         const statusData = {
             userId: socket.userId,
-            username: socket.user.username,
+            username: socket.user ? socket.user.username : undefined,
             isOnline,
             lastSeen: isOnline ? null : new Date().toISOString()
         };
 
         const rooms = Array.from(targetIds).map(id => `user:${id}`);
-        if (rooms.length > 0) {
-            socket.to(rooms).emit('user-status', statusData);
+        if (rooms.length > 0 && io) {
+            io.to(rooms).emit('user-status', statusData);
         }
     } catch (error) {
         logger.error('Broadcast status error:', error);

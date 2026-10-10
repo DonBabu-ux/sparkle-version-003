@@ -121,6 +121,24 @@ export const OfficialMessageCard: React.FC<OfficialMessageCardProps> = ({
   const singleRoute = payload?.buttonRoute;
   const singleButtonText = payload?.buttonText;
 
+  // Poll state
+  const isPoll = actions.some(a => a.route?.includes('/vote-official-replies'));
+  const [voted, setVoted] = React.useState<number | null>(null);
+  const [pollVotes, setPollVotes] = React.useState([4530, 212]); // Mock real-time votes
+
+  const handleAction = (route: string, index: number) => {
+    if (isPoll) {
+      setVoted(index);
+      const newVotes = [...pollVotes];
+      newVotes[index]++;
+      setPollVotes(newVotes);
+      return;
+    }
+    if (route) navigate(route);
+  };
+
+  const totalVotes = pollVotes.reduce((a, b) => a + b, 0);
+
   return (
     <div className={`my-3 max-w-xl md:max-w-2xl w-full rounded-3xl p-5 border-2 backdrop-blur-xl shadow-2xl transition-all duration-300 ${config.borderClass}`}>
       {/* Header Badge */}
@@ -150,34 +168,58 @@ export const OfficialMessageCard: React.FC<OfficialMessageCardProps> = ({
         {body}
       </p>
 
-      {/* Dynamic CTAs / Buttons */}
+      {/* Dynamic CTAs / Poll */}
       {(actions.length > 0 || (singleButtonText && singleRoute)) && (
-        <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-2">
-          {actions.length > 0 ? (
-            actions.map((act, idx) => (
-              <button
-                key={idx}
-                onClick={() => act.route && navigate(act.route)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 ${
-                  act.style === 'primary'
-                    ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
-                    : act.style === 'secondary'
-                    ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                    : 'bg-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                <span>{act.label}</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            ))
+        <div className="mt-3.5 pt-3 border-t border-slate-800/80 flex flex-col gap-2">
+          {isPoll && voted !== null ? (
+            <div className="flex flex-col gap-2 w-full mt-2">
+              <span className="text-xs text-emerald-400 font-bold mb-1">✓ Your vote has been recorded! Live results:</span>
+              {actions.map((act, idx) => {
+                const percent = Math.round((pollVotes[idx] / totalVotes) * 100);
+                return (
+                  <div key={idx} className="relative w-full h-10 bg-slate-800/50 rounded-xl overflow-hidden flex items-center px-4 border border-slate-700/50">
+                    <div 
+                      className={`absolute top-0 left-0 h-full transition-all duration-700 ease-out ${idx === 0 ? 'bg-rose-600/40' : 'bg-slate-600/40'}`} 
+                      style={{ width: `${percent}%` }}
+                    />
+                    <div className="relative z-10 flex justify-between w-full text-xs font-semibold">
+                      <span className="text-white">{act.label} {voted === idx && '(You)'}</span>
+                      <span className="text-white">{percent}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+              <span className="text-[10px] text-slate-400 text-right mt-1">{totalVotes.toLocaleString()} total votes</span>
+            </div>
+          ) : actions.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-2">
+              {actions.map((act, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => handleAction(act.route, idx)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all duration-200 ${
+                    act.style === 'primary'
+                      ? 'bg-rose-600 hover:bg-rose-500 text-white shadow-md shadow-rose-600/30'
+                      : act.style === 'secondary'
+                      ? 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+                      : 'bg-transparent hover:bg-slate-800/50 text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <span>{act.label}</span>
+                  <ArrowRight className="w-3 h-3" />
+                </button>
+              ))}
+            </div>
           ) : (
-            <button
-              onClick={() => singleRoute && navigate(singleRoute)}
-              className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all duration-200"
-            >
-              <span>{singleButtonText}</span>
-              <ExternalLink className="w-3 h-3" />
-            </button>
+            <div className="flex">
+              <button
+                onClick={() => singleRoute && navigate(singleRoute)}
+                className="px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all duration-200"
+              >
+                <span>{singleButtonText}</span>
+                <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
           )}
         </div>
       )}

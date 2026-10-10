@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { IdentityManager } from '../../utils/identityManager';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { formatChatTimestamp } from '../../utils/format';
+import { resolveChatListDisplay } from '../../utils/chatListDisplay';
 
 interface SparkleSwipeableChatItemProps {
   chat: any;
@@ -16,9 +17,10 @@ interface SparkleSwipeableChatItemProps {
   onLongPress: () => void;
   onArchive: () => void;
   onDelete: () => void;
-  getStatusLabel: (chat: any) => string;
+  getStatusLabel?: (chat: any) => string;
   formatMessageText: (text: string) => string;
   typingUsers: { chatId: string; name: string }[];
+  referenceTime?: number;
 }
 
 export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> = ({
@@ -34,6 +36,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   getStatusLabel,
   formatMessageText,
   typingUsers,
+  referenceTime,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
@@ -50,9 +53,12 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const displayName = isSelfChat ? 'Saved Messages' : itemIdentity.displayName;
 
   const currentUserId = user?.id || user?.user_id;
-  const lastSenderId = chat.last_message_sender_id || chat.last_sender_id;
-  const isLastMsgFromMe = Boolean(currentUserId && lastSenderId && String(lastSenderId) === String(currentUserId));
-  const hasUnreadIncoming = !isLastMsgFromMe && Boolean(chat.unread_count > 0);
+  const displayInfo = resolveChatListDisplay({
+    chat,
+    currentUserId,
+    referenceTime,
+  });
+  const hasUnreadIncoming = displayInfo.hasUnreadIncoming;
 
   // Reset swipe translation whenever selection mode changes
   useEffect(() => {
@@ -193,22 +199,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
               {Boolean(chat.is_muted) && <VolumeX size={12} className="text-purple-400 shrink-0" />}
             </h4>
 
-            {hasUnreadIncoming && (
-              chat.unread_count > 1 ? (
-                <div
-                  className="min-w-[20px] h-5 px-1.5 rounded-full bg-[#ff1493] flex items-center justify-center shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.6)] animate-bounce motion-reduce:animate-none ml-2"
-                  aria-label={`${chat.unread_count} unread messages`}
-                >
-                  <span className="text-[11px] font-black text-white leading-none tabular-nums">
-                    {chat.unread_count > 99 ? '99+' : chat.unread_count}
-                  </span>
-                </div>
-              ) : (
-                <div
-                  className="w-2.5 h-2.5 rounded-full bg-[#ff1493] animate-bounce shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.6)] motion-reduce:animate-none ml-2"
-                  aria-label="Unread message indicator"
-                />
-              )
+            {displayInfo.showUnreadEdgeDot && (
+              <div
+                className="w-2.5 h-2.5 rounded-full bg-[#ff1493] shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.4)] ml-2"
+                aria-label="Unread message indicator"
+              />
             )}
           </div>
 
@@ -227,22 +222,41 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                   );
                 }
 
+                if (displayInfo.mode === 'unread_summary') {
+                  return (
+                    <div className="flex items-center gap-1.5 truncate">
+                      <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
+                        {displayInfo.unreadSummary}
+                      </p>
+                      <span className="text-[10px] font-bold text-white/30 lowercase shrink-0">· {timeLabel}</span>
+                    </div>
+                  );
+                }
+
                 const rawText = chat.last_message_type === 'attachment'
                   ? '🎬 Story reply'
                   : chat.last_message
                   ? formatMessageText(chat.last_message)
                   : 'Sent a photo';
 
-                const previewText = isLastMsgFromMe ? `You: ${rawText}` : rawText;
+                const previewText = displayInfo.senderPrefix ? `${displayInfo.senderPrefix}${rawText}` : rawText;
 
                 return (
                   <div className="flex items-center gap-1.5 truncate">
-                    <p className={clsx(
-                      "text-[13px] truncate flex-1",
-                      hasUnreadIncoming ? "font-bold text-[#f5f5f5]" : "font-normal text-[#f5f5f5]/60"
-                    )}>
+                    <p className="text-[13px] font-normal text-[#f5f5f5]/60 truncate flex-1 min-w-0">
                       {previewText}
                     </p>
+                    {displayInfo.middleLabel && (
+                      <span className={clsx(
+                        "text-[11px] shrink-0 font-medium",
+                        displayInfo.middleLabel === 'Seen' ? "text-sky-400/90" :
+                        displayInfo.middleLabel === 'Active now' ? "text-emerald-400/90" :
+                        displayInfo.middleLabel === 'Failed' ? "text-rose-400/90" :
+                        "text-white/50"
+                      )}>
+                        · {displayInfo.middleLabel}
+                      </span>
+                    )}
                     <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
                   </div>
                 );

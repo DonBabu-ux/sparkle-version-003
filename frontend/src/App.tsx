@@ -1,18 +1,19 @@
-import { useEffect, useState, useRef, lazy, Suspense } from 'react';
+import { useEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
 import { OtaService } from './services/OtaService';
-const SparkleAIScreen = lazy(() => import('./pages/ai/SparkleAIScreen'));
+import { lazyWithRetry } from './utils/lazyWithRetry';
+const SparkleAIScreen = lazyWithRetry(() => import('./pages/ai/SparkleAIScreen'));
 // import StudyAssistantScreen from './pages/ai/StudyAssistantScreen';
 // import CaptionGeneratorScreen from './pages/ai/CaptionGeneratorScreen';
 // import BioGeneratorScreen from './pages/ai/BioGeneratorScreen';
-const SearchSparkleScreen = lazy(() => import('./pages/ai/SearchSparkleScreen'));
-const FriendDiscoveryScreen = lazy(() => import('./pages/ai/FriendDiscoveryScreen'));
+const SearchSparkleScreen = lazyWithRetry(() => import('./pages/ai/SearchSparkleScreen'));
+const FriendDiscoveryScreen = lazyWithRetry(() => import('./pages/ai/FriendDiscoveryScreen'));
 import { OTAUpdateProvider } from './components/OTAUpdateProvider';
 import { MotionConfig } from 'framer-motion';
 import { GlobalThemeProvider } from './components/GlobalThemeProvider';
-const LearnMorePage = lazy(() => import('./pages/LearnMorePage'));
+const LearnMorePage = lazyWithRetry(() => import('./pages/LearnMorePage'));
 import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
@@ -30,101 +31,101 @@ import { useNotificationStore } from './store/notificationStore';
 import api from './api/api';
 
 // Phase 1 — Core
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Login = lazy(() => import('./pages/Login'));
-const Profile = lazy(() => import('./pages/Profile'));
-const Marketplace = lazy(() => import('./pages/Marketplace'));
-const Groups = lazy(() => import('./pages/Groups'));
-const Messages = lazy(() => import('./pages/Messages'));
-const MessagesSettings = lazy(() => import('./pages/MessagesSettings'));
-const Settings = lazy(() => import('./pages/Settings'));
-const SecurityCentre = lazy(() => import('./pages/SecurityCentre'));
-const ChangePassword = lazy(() => import('./pages/ChangePassword'));
+const Dashboard = lazyWithRetry(() => import('./pages/Dashboard'));
+const Login = lazyWithRetry(() => import('./pages/Login'));
+const Profile = lazyWithRetry(() => import('./pages/Profile'));
+const Marketplace = lazyWithRetry(() => import('./pages/Marketplace'));
+const Groups = lazyWithRetry(() => import('./pages/Groups'));
+const Messages = lazyWithRetry(() => import('./pages/Messages'));
+const MessagesSettings = lazyWithRetry(() => import('./pages/MessagesSettings'));
+const Settings = lazyWithRetry(() => import('./pages/Settings'));
+const SecurityCentre = lazyWithRetry(() => import('./pages/SecurityCentre'));
+const ChangePassword = lazyWithRetry(() => import('./pages/ChangePassword'));
 import CrossDeviceSecurityAlertOverlay from './components/security/CrossDeviceSecurityAlertOverlay';
-const AdvancedSettings = lazy(() => import('./pages/AdvancedSettings'));
-const AdvancedSettingsDetail = lazy(() => import('./pages/AdvancedSettingsDetail'));
-const Notifications = lazy(() => import('./pages/Notifications'));
-const Search = lazy(() => import('./pages/Search'));
-const SearchHistory = lazy(() => import('./pages/SearchHistory'));
-const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
-const StorageIntelligencePanel = lazy(() => import('./pages/StorageIntelligencePanel'));
-const PostDetail = lazy(() => import('./pages/PostDetail'));
-const StoryViewer = lazy(() => import('./pages/StoryViewer'));
-const GroupDetail = lazy(() => import('./pages/GroupDetail'));
-const CreateGroup = lazy(() => import('./pages/CreateGroup'));
-const GroupAdmin = lazy(() => import('./pages/GroupAdmin'));
-const Confessions = lazy(() => import('./pages/Confessions'));
-const ListingDetail = lazy(() => import('./pages/ListingDetail'));
-const SellItem = lazy(() => import('./pages/SellItem'));
-const SellerProfile = lazy(() => import('./pages/SellerProfile'));
-const Wishlist = lazy(() => import('./pages/Wishlist'));
-const SkillMarket = lazy(() => import('./pages/SkillMarket'));
-const SkillHub = lazy(() => import('./pages/SkillHub'));
-const Signup = lazy(() => import('./pages/Signup'));
-const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/ResetPassword'));
-const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
-const Orders = lazy(() => import('./pages/Orders'));
-const MyListings = lazy(() => import('./pages/MyListings'));
-const ReportListing = lazy(() => import('./pages/ReportListing'));
-const MarketplaceOrder = lazy(() => import('./pages/MarketplaceOrder'));
-const MarketplaceSafety = lazy(() => import('./pages/MarketplaceSafety'));
+const AdvancedSettings = lazyWithRetry(() => import('./pages/AdvancedSettings'));
+const AdvancedSettingsDetail = lazyWithRetry(() => import('./pages/AdvancedSettingsDetail'));
+const Notifications = lazyWithRetry(() => import('./pages/Notifications'));
+const Search = lazyWithRetry(() => import('./pages/Search'));
+const SearchHistory = lazyWithRetry(() => import('./pages/SearchHistory'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard'));
+const StorageIntelligencePanel = lazyWithRetry(() => import('./pages/StorageIntelligencePanel'));
+const PostDetail = lazyWithRetry(() => import('./pages/PostDetail'));
+const StoryViewer = lazyWithRetry(() => import('./pages/StoryViewer'));
+const GroupDetail = lazyWithRetry(() => import('./pages/GroupDetail'));
+const CreateGroup = lazyWithRetry(() => import('./pages/CreateGroup'));
+const GroupAdmin = lazyWithRetry(() => import('./pages/GroupAdmin'));
+const Confessions = lazyWithRetry(() => import('./pages/Confessions'));
+const ListingDetail = lazyWithRetry(() => import('./pages/ListingDetail'));
+const SellItem = lazyWithRetry(() => import('./pages/SellItem'));
+const SellerProfile = lazyWithRetry(() => import('./pages/SellerProfile'));
+const Wishlist = lazyWithRetry(() => import('./pages/Wishlist'));
+const SkillMarket = lazyWithRetry(() => import('./pages/SkillMarket'));
+const SkillHub = lazyWithRetry(() => import('./pages/SkillHub'));
+const Signup = lazyWithRetry(() => import('./pages/Signup'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail'));
+const Orders = lazyWithRetry(() => import('./pages/Orders'));
+const MyListings = lazyWithRetry(() => import('./pages/MyListings'));
+const ReportListing = lazyWithRetry(() => import('./pages/ReportListing'));
+const MarketplaceOrder = lazyWithRetry(() => import('./pages/MarketplaceOrder'));
+const MarketplaceSafety = lazyWithRetry(() => import('./pages/MarketplaceSafety'));
 import MarketplaceModals from './components/modals/MarketplaceModals';
-const MarketplaceChat = lazy(() => import('./pages/MarketplaceChat'));
-const MarketplaceSettings = lazy(() => import('./pages/MarketplaceSettings'));
-const SparklyBot = lazy(() => import('./pages/SparklyBot'));
+const MarketplaceChat = lazyWithRetry(() => import('./pages/MarketplaceChat'));
+const MarketplaceSettings = lazyWithRetry(() => import('./pages/MarketplaceSettings'));
+const SparklyBot = lazyWithRetry(() => import('./pages/SparklyBot'));
 
 // Phase 2 — Social & Community
-const Clubs = lazy(() => import('./pages/Clubs'));
-const ClubDetail = lazy(() => import('./pages/ClubDetail'));
-const Events = lazy(() => import('./pages/Events'));
-const EventsAdmin = lazy(() => import('./pages/EventsAdmin'));
-const Connect = lazy(() => import('./pages/Connect'));
-const FollowRequests = lazy(() => import('./pages/FollowRequests'));
+const Clubs = lazyWithRetry(() => import('./pages/Clubs'));
+const ClubDetail = lazyWithRetry(() => import('./pages/ClubDetail'));
+const Events = lazyWithRetry(() => import('./pages/Events'));
+const EventsAdmin = lazyWithRetry(() => import('./pages/EventsAdmin'));
+const Connect = lazyWithRetry(() => import('./pages/Connect'));
+const FollowRequests = lazyWithRetry(() => import('./pages/FollowRequests'));
 
 // Phase 3 — Content & Discovery
-const Polls = lazy(() => import('./pages/Polls'));
-const PollDetail = lazy(() => import('./pages/PollDetail'));
-const Hashtag = lazy(() => import('./pages/Hashtag'));
-const Explore = lazy(() => import('./pages/Explore'));
-const Moments = lazy(() => import('./pages/Moments'));
-const CreateMoment = lazy(() => import('./pages/CreateMoment'));
-const CreateStory = lazy(() => import('./pages/CreateStory'));
-const StorySnapshot = lazy(() => import('./pages/StorySnapshot'));
-const Streams = lazy(() => import('./pages/Streams'));
-const ProfessionalDashboard = lazy(() => import('./pages/ProfessionalDashboard'));
+const Polls = lazyWithRetry(() => import('./pages/Polls'));
+const PollDetail = lazyWithRetry(() => import('./pages/PollDetail'));
+const Hashtag = lazyWithRetry(() => import('./pages/Hashtag'));
+const Explore = lazyWithRetry(() => import('./pages/Explore'));
+const Moments = lazyWithRetry(() => import('./pages/Moments'));
+const CreateMoment = lazyWithRetry(() => import('./pages/CreateMoment'));
+const CreateStory = lazyWithRetry(() => import('./pages/CreateStory'));
+const StorySnapshot = lazyWithRetry(() => import('./pages/StorySnapshot'));
+const Streams = lazyWithRetry(() => import('./pages/Streams'));
+const ProfessionalDashboard = lazyWithRetry(() => import('./pages/ProfessionalDashboard'));
 import GlobalEffects from './components/GlobalEffects';
 import LoadingBar from './components/LoadingBar';
 import { TikTokHearts } from './components/TikTokHearts';
 import PresenceManager from './components/PresenceManager';
 
 // Phase 4 — Utility
-const LostFound = lazy(() => import('./pages/LostFound'));
-const Support = lazy(() => import('./pages/Support'));
-const TicketDetail = lazy(() => import('./pages/Support/TicketDetail'));
-const AccountsCenter = lazy(() => import('./pages/AccountsCenter'));
-const Memories = lazy(() => import('./pages/Memories'));
-const Gallery = lazy(() => import('./pages/Gallery'));
-const Verified = lazy(() => import('./pages/Verified'));
-const Invite = lazy(() => import('./pages/Invite'));
-const Help = lazy(() => import('./pages/Help'));
-const Onboarding = lazy(() => import('./pages/Onboarding'));
+const LostFound = lazyWithRetry(() => import('./pages/LostFound'));
+const Support = lazyWithRetry(() => import('./pages/Support'));
+const TicketDetail = lazyWithRetry(() => import('./pages/Support/TicketDetail'));
+const AccountsCenter = lazyWithRetry(() => import('./pages/AccountsCenter'));
+const Memories = lazyWithRetry(() => import('./pages/Memories'));
+const Gallery = lazyWithRetry(() => import('./pages/Gallery'));
+const Verified = lazyWithRetry(() => import('./pages/Verified'));
+const Invite = lazyWithRetry(() => import('./pages/Invite'));
+const Help = lazyWithRetry(() => import('./pages/Help'));
+const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
 import OnboardingSheet from './components/onboarding/OnboardingSheet';
-const Ecosystem = lazy(() => import('./pages/Ecosystem'));
+const Ecosystem = lazyWithRetry(() => import('./pages/Ecosystem'));
 
-const BlockedUsers = lazy(() => import('./pages/BlockedUsers'));
+const BlockedUsers = lazyWithRetry(() => import('./pages/BlockedUsers'));
 import AudioDiagnostics from './audio/diagnostics/AudioDiagnostics';
 
 // Phase 5 — Public & Static
-const About = lazy(() => import('./pages/About'));
-const LegalViewer = lazy(() => import('./pages/LegalViewer'));
-const NotFound = lazy(() => import('./pages/NotFound'));
+const About = lazyWithRetry(() => import('./pages/About'));
+const LegalViewer = lazyWithRetry(() => import('./pages/LegalViewer'));
+const NotFound = lazyWithRetry(() => import('./pages/NotFound'));
 
 // New Creator Dashboard Sub-Routes
-const Ads = lazy(() => import('./pages/Ads'));
-const CreatorStudio = lazy(() => import('./pages/CreatorStudio'));
-const CreatorAnalytics = lazy(() => import('./pages/CreatorAnalytics'));
-const WalletHistory = lazy(() => import('./pages/WalletHistory'));
+const Ads = lazyWithRetry(() => import('./pages/Ads'));
+const CreatorStudio = lazyWithRetry(() => import('./pages/CreatorStudio'));
+const CreatorAnalytics = lazyWithRetry(() => import('./pages/CreatorAnalytics'));
+const WalletHistory = lazyWithRetry(() => import('./pages/WalletHistory'));
 import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
@@ -423,8 +424,8 @@ function App() {
                   <CrossDeviceSecurityAlertOverlay />
                   <UploadNotificationCenter />
                   <Suspense fallback={
-                        <div className="flex items-center justify-center h-full py-20">
-                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
+                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
                         </div>
                       }>
                     <Routes>
@@ -531,8 +532,8 @@ function App() {
                         isAuthenticated ? (
                           <Suspense
                             fallback={
-                              <div className="flex items-center justify-center h-full">
-                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                              <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
+                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
                               </div>
                             }
                           >

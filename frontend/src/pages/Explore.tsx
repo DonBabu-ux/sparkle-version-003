@@ -44,9 +44,9 @@ export default function Explore() {
     else setLoadingMore(true);
 
     try {
-      // Read from local cache instantly on first load
+      // Read from local cache instantly on first load (keyed per category)
       if (pageNum === 1) {
-        const cached = localStorage.getItem('explore_cache');
+        const cached = localStorage.getItem(`explore_cache:${activeCategory}`);
         if (cached) {
           try {
             const parsed = JSON.parse(cached);
@@ -58,10 +58,17 @@ export default function Explore() {
         }
       }
 
+      // Map selected category to backend params:
+      // - "For You"/"Trending" → posts mode (separate cache keys per mode)
+      // - named categories → moments query (search-intent signal) + posts mode cache key
+      const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '_');
+      const postsMode = activeCategory === 'For You' ? 'for_you' : activeCategory === 'Trending' ? 'trending' : `explore_${categorySlug}`;
+      const momentsQuery = activeCategory === 'For You' || activeCategory === 'Trending' ? '' : `&query=${encodeURIComponent(activeCategory.toLowerCase())}`;
+
       // Fetch from both endpoints
       const [postsRes, momentsRes] = await Promise.all([
-        api.get(`/posts/feed?limit=15&page=${pageNum}&tab=trending`).catch(() => ({ data: [] })),
-        api.get(`/moments/stream?limit=15&page=${pageNum}`).catch(() => ({ data: { moments: [] } }))
+        api.get(`/posts/feed?limit=15&page=${pageNum}&mode=${postsMode}`).catch(() => ({ data: [] })),
+        api.get(`/moments/stream?limit=15&page=${pageNum - 1}${momentsQuery}`).catch(() => ({ data: { moments: [] } }))
       ]);
 
       const postsData = Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.posts || []);
@@ -81,7 +88,7 @@ export default function Explore() {
       }));
 
       const normalizedMoments = momentsData.map((m: any) => {
-        const isVid = m.is_video || !!m.video_url || (m.media_url && String(m.media_url).match(/\.(mp4|webm|mov)$/i));
+        const isVid = m.media_type === 'video' || m.is_video || !!m.video_url || (m.media_url && String(m.media_url).match(/\.(mp4|webm|mov)$/i));
         return {
           id: m.moment_id,
           type: 'moment',
@@ -104,7 +111,7 @@ export default function Explore() {
       setMediaItems(prev => {
         // If page 1, replace (we might have shown cache). Avoid duplicates if appending.
         if (pageNum === 1) {
-          localStorage.setItem('explore_cache', JSON.stringify(combined.slice(0, 30)));
+          localStorage.setItem(`explore_cache:${activeCategory}`, JSON.stringify(combined.slice(0, 30)));
           return combined;
         } else {
           // Filter duplicates just in case

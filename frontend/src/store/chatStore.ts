@@ -4,6 +4,29 @@ import { devtools, persist } from 'zustand/middleware';
 import { useUserStore } from './userStore';
 
 
+export const getStatusRank = (status?: string | null): number => {
+  if (!status) return 0;
+  const s = String(status).trim().toLowerCase();
+  switch (s) {
+    case 'failed':
+    case 'error':
+      return -1;
+    case 'pending':
+    case 'sending':
+    case 'queued':
+      return 1;
+    case 'sent':
+      return 2;
+    case 'delivered':
+      return 3;
+    case 'read':
+    case 'seen':
+      return 4;
+    default:
+      return 0;
+  }
+};
+
 export interface ChatMessage {
   message_id: string;
   sender_id: string;
@@ -61,6 +84,7 @@ export interface ChatConversation {
   last_message_at?: string;
   last_message_status?: string;
   last_message_sender_id?: string;
+  last_read_at?: string;
   is_archived?: boolean;
   is_muted?: boolean;
   is_pinned?: boolean | number;
@@ -107,6 +131,7 @@ interface ChatState {
     convs: ChatConversation[] | ((prev: ChatConversation[]) => ChatConversation[])
   ) => void;
   updateConversation: (chatId: string, updates: Partial<ChatConversation>) => void;
+  updateConversationReceipt: (chatId: string, status: string, timestamp?: string) => void;
   setConversationBlockState: (
     chatId: string,
     blockState: {
@@ -383,6 +408,23 @@ export const useChatStore = create<ChatState>()(
             conversations: state.conversations.map((c) =>
               c.chat_id === chatId || c.partner_id === chatId ? { ...c, ...updates } : c
             ),
+          })),
+
+        // Ratchet the conversation-level last_message_status forward (sent → delivered → read).
+        // Only advances the status; never regresses (e.g. 'delivered' won't overwrite 'read').
+        updateConversationReceipt: (chatId, status, timestamp) =>
+          set((state) => ({
+            conversations: state.conversations.map((c) => {
+              if (c.chat_id !== chatId && c.partner_id !== chatId) return c;
+              const currentRank = getStatusRank(c.last_message_status);
+              const incomingRank = getStatusRank(status);
+              if (incomingRank <= currentRank) return c;
+              return {
+                ...c,
+                last_message_status: status,
+                ...(timestamp && status === 'read' ? { last_read_at: timestamp } : {}),
+              };
+            }),
           })),
 
         setConversationBlockState: (chatId, blockState) =>

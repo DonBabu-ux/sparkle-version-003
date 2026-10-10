@@ -97,3 +97,10 @@ frontend/dev-dist/
 
 # Local env backups
 .env.bak
+
+# Android signing & build artifacts (NEVER commit)
+*.jks
+keystore.properties
+local.properties
+.gradle/
+frontend/android/app/src/main/assets/public/

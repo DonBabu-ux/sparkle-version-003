@@ -539,8 +539,8 @@ class User {
             // Just mark online, don't update last_seen_at yet
             await pool.query('UPDATE users SET is_online = 1 WHERE user_id = ?', [userId]);
         } else {
-            // Mark offline AND record the exit time (last seen)
-            await pool.query('UPDATE users SET is_online = 0, last_seen_at = NOW() WHERE user_id = ?', [userId]);
+            // Mark offline AND record the exit time (last seen) in UTC
+            await pool.query('UPDATE users SET is_online = 0, last_seen_at = UTC_TIMESTAMP() WHERE user_id = ?', [userId]);
         }
         return true;
     }

@@ -37,7 +37,7 @@ import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
 import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
-import '../components/chat/SparkleUndoToast';
+import { useTimeTick } from '../hooks/useTimeTick';
 import { LocationPickerModal, type LocationPayload } from '../components/chat/LocationPickerModal';
 import { LocationMessageBubble } from '../components/chat/LocationMessageBubble';
 import { SparklePeopleHubModal } from '../components/chat/SparklePeopleHubModal';
@@ -1325,6 +1325,7 @@ export default function Messages() {
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
   const setConversations = useChatStore(state => state.setConversations);
+  const referenceTime = useTimeTick(30000);
   const getTabBadgeCount = (tabId: string) => {
     const safeConvs = Array.isArray(conversations) ? conversations : [];
     if (tabId === 'all') return safeConvs.length;
@@ -2211,6 +2212,7 @@ export default function Messages() {
           chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
           // Inherit status from the server message payload; never assume 'sent'
           chat.last_message_status = msg.status || 'sent';
+          chat.last_message_sender_id = msg.sender_id;
           if (msg.sender_id !== (user?.id || user?.user_id) && (!activeChat || activeChat.chat_id !== chat.chat_id)) {
             chat.unread_count = (chat.unread_count || 0) + 1;
           }
@@ -2230,6 +2232,7 @@ export default function Messages() {
             last_message_content: displayPreview,
             last_message_time: msg.sent_at || msg.created_at,
             last_message_status: msg.status || 'sent',
+            last_message_sender_id: msg.sender_id,
             partner_online: true
           };
           return [newChat, ...prev];
@@ -2274,7 +2277,7 @@ export default function Messages() {
       }
       setConversations((prev: any[]) => prev.map(c => {
         if (c.chat_id === data.chatId) {
-          return { ...c, last_message_status: 'read', unread_count: 0 };
+          return { ...c, last_message_status: 'read' };
         }
         return c;
       }));
@@ -2911,6 +2914,7 @@ export default function Messages() {
               chat.last_message_type = specialType || 'text';
               chat.last_message_content = preview;
               chat.last_message_status = 'sent';
+              chat.last_message_sender_id = user?.id || user?.user_id;
               chat.last_message_time = response.sentAt || chat.last_message_time;
               newConvs.splice(chatIndex, 1);
               newConvs.unshift(chat);
@@ -3559,6 +3563,7 @@ export default function Messages() {
                 <SparkleSwipeableChatItem
                   key={chat.chat_id}
                   chat={chat}
+                  referenceTime={referenceTime}
                   isSelected={selectedChatIds.includes(chat.chat_id)}
                   isSelectionMode={selectedChatIds.length > 0}
                   user={user}

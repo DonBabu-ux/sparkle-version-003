@@ -268,13 +268,13 @@ export default function InviteLandingPage() {
               width: '100%',
               padding: '16px 24px',
               borderRadius: 16,
-              background: 'linear-gradient(135deg, #ff006e 0%, #ff2d87 50%, #8b5cf6 100%)',
+              background: 'linear-gradient(135deg, #ff006e 0%, #ff1f7d 100%)',
               border: 'none',
               color: '#ffffff',
               fontSize: 16,
               fontWeight: 800,
               cursor: 'pointer',
-              boxShadow: '0 10px 32px rgba(255,0,110,0.45)',
+              boxShadow: '0 10px 32px rgba(255,0,110,0.6)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -285,11 +285,11 @@ export default function InviteLandingPage() {
             }}
             onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 14px 40px rgba(255,0,110,0.6)';
+              e.currentTarget.style.boxShadow = '0 14px 40px rgba(255,0,110,0.8)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 32px rgba(255,0,110,0.45)';
+              e.currentTarget.style.boxShadow = '0 10px 32px rgba(255,0,110,0.6)';
             }}
           >
             <span>Join Sparkle Directly</span>
@@ -303,31 +303,29 @@ export default function InviteLandingPage() {
               width: '100%',
               padding: '14px 22px',
               borderRadius: 16,
-              background: 'linear-gradient(180deg, #323046 0%, #262438 100%)',
-              border: '1.5px solid #635f88',
-              color: '#ffffff',
+              background: '#ffffff',
+              border: '1.5px solid #ffffff',
+              color: '#000000',
               fontSize: 14,
-              fontWeight: 700,
+              fontWeight: 800,
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: 8,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+              boxShadow: '0 4px 16px rgba(255,255,255,0.2)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
-              e.currentTarget.style.background = 'linear-gradient(180deg, #3e3b56 0%, #2d2b42 100%)';
-              e.currentTarget.style.borderColor = '#8a85bc';
+              e.currentTarget.style.background = '#f4f4f5';
               e.currentTarget.style.transform = 'translateY(-1px)';
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.background = 'linear-gradient(180deg, #323046 0%, #262438 100%)';
-              e.currentTarget.style.borderColor = '#635f88';
+              e.currentTarget.style.background = '#ffffff';
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <LogIn size={17} strokeWidth={2.4} color="#f472b6" />
+            <LogIn size={17} strokeWidth={2.4} color="#ff006e" />
             <span>Already have an account? Log In</span>
           </button>
         </div>
@@ -589,7 +587,7 @@ export default function InviteLandingPage() {
                     width: '100%',
                     padding: '16px 24px',
                     borderRadius: 16,
-                    background: 'linear-gradient(135deg, #ff006e 0%, #ff2d87 45%, #8b5cf6 100%)',
+                    background: 'linear-gradient(135deg, #ff006e 0%, #ff1f7d 100%)',
                     border: 'none',
                     color: '#ffffff',
                     fontWeight: 900,
@@ -599,17 +597,17 @@ export default function InviteLandingPage() {
                     justifyContent: 'center',
                     gap: 10,
                     cursor: 'pointer',
-                    boxShadow: '0 10px 32px rgba(255,0,110,0.45)',
+                    boxShadow: '0 10px 32px rgba(255,0,110,0.6)',
                     letterSpacing: '-0.2px',
                     transition: 'transform 0.15s, opacity 0.15s, box-shadow 0.15s',
                   }}
                   onMouseEnter={e => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 14px 40px rgba(255,0,110,0.6)';
+                    e.currentTarget.style.boxShadow = '0 14px 40px rgba(255,0,110,0.8)';
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 10px 32px rgba(255,0,110,0.45)';
+                    e.currentTarget.style.boxShadow = '0 10px 32px rgba(255,0,110,0.6)';
                   }}
                 >
                   <span>Claim Invite & Sign Up Free</span>
@@ -623,31 +621,29 @@ export default function InviteLandingPage() {
                     width: '100%',
                     padding: '14px 22px',
                     borderRadius: 16,
-                    background: 'linear-gradient(180deg, #323046 0%, #262438 100%)',
-                    border: '1.5px solid #635f88',
-                    color: '#ffffff',
-                    fontWeight: 700,
+                    background: '#ffffff',
+                    border: '1.5px solid #ffffff',
+                    color: '#000000',
+                    fontWeight: 800,
                     fontSize: 14,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: 9,
                     cursor: 'pointer',
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+                    boxShadow: '0 4px 16px rgba(255,255,255,0.2)',
                     transition: 'all 0.15s ease',
                   }}
                   onMouseEnter={e => {
-                    e.currentTarget.style.background = 'linear-gradient(180deg, #3e3b56 0%, #2d2b42 100%)';
-                    e.currentTarget.style.borderColor = '#8a85bc';
+                    e.currentTarget.style.background = '#f4f4f5';
                     e.currentTarget.style.transform = 'translateY(-1px)';
                   }}
                   onMouseLeave={e => {
-                    e.currentTarget.style.background = 'linear-gradient(180deg, #323046 0%, #262438 100%)';
-                    e.currentTarget.style.borderColor = '#635f88';
+                    e.currentTarget.style.background = '#ffffff';
                     e.currentTarget.style.transform = 'translateY(0)';
                   }}
                 >
-                  <LogIn size={18} strokeWidth={2.4} color="#f472b6" />
+                  <LogIn size={18} strokeWidth={2.4} color="#ff006e" />
                   <span>Already have an account? Log In</span>
                 </button>
 
@@ -658,9 +654,9 @@ export default function InviteLandingPage() {
                     style={{
                       padding: '12px 14px',
                       borderRadius: 14,
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(255, 255, 255, 0.18)',
-                      color: '#f4f4f5',
+                      background: '#2d2d3f',
+                      border: '1px solid #45455f',
+                      color: '#ffffff',
                       fontWeight: 700,
                       fontSize: 13,
                       display: 'flex',
@@ -671,12 +667,10 @@ export default function InviteLandingPage() {
                       transition: 'all 0.15s',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.14)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                      e.currentTarget.style.background = '#36364a';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                      e.currentTarget.style.background = '#2d2d3f';
                     }}
                   >
                     <Download size={16} strokeWidth={2.4} color="#38bdf8" />
@@ -688,9 +682,9 @@ export default function InviteLandingPage() {
                     style={{
                       padding: '12px 14px',
                       borderRadius: 14,
-                      background: 'rgba(255, 255, 255, 0.08)',
-                      border: '1.5px solid rgba(255, 255, 255, 0.18)',
-                      color: '#f4f4f5',
+                      background: '#2d2d3f',
+                      border: '1px solid #45455f',
+                      color: '#ffffff',
                       fontWeight: 700,
                       fontSize: 13,
                       display: 'flex',
@@ -701,12 +695,10 @@ export default function InviteLandingPage() {
                       transition: 'all 0.15s',
                     }}
                     onMouseEnter={e => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.14)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                      e.currentTarget.style.background = '#36364a';
                     }}
                     onMouseLeave={e => {
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
-                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.18)';
+                      e.currentTarget.style.background = '#2d2d3f';
                     }}
                   >
                     <Smartphone size={16} strokeWidth={2.2} color="#a78bfa" />

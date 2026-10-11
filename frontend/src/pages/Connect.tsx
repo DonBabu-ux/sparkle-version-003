@@ -10,6 +10,13 @@ const TABS = [
   { label: 'Network', icon: Users },
 ] as const;
 
+// Backend only understands these tab values (user.controller.js getSuggestions)
+const TAB_PARAM: Record<string, string> = {
+  Discovery: 'for you',
+  Suggested: 'suggested',
+  Network: 'following',
+};
+
 interface DiscoverUser {
   user_id?: string;
   id?: string;
@@ -29,11 +36,13 @@ interface DiscoverUser {
 export default function Connect() {
   const [users, setUsers]               = useState<DiscoverUser[]>([]);
   const [loading, setLoading]           = useState(true);
-  const [activeTab, setActiveTab]       = useState<string>('For You');
+  const [loadingMore, setLoadingMore]   = useState(false);
+  const [activeTab, setActiveTab]       = useState<string>('Discovery');
   const [searchQuery, setSearchQuery]   = useState('');
   const [offset, setOffset]             = useState(0);
   const [hasMore, setHasMore]           = useState(true);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchInitRef = useRef(false);
   const observer = useRef<IntersectionObserver | null>(null);
 
   const lastUserRef = useCallback((node: HTMLDivElement) => {
@@ -50,9 +59,10 @@ export default function Connect() {
   /* ── Data fetching ── */
   const fetchUsers = useCallback(async (isLoadMore = false) => {
     if (!isLoadMore) setLoading(true);
+    else setLoadingMore(true);
     try {
       const params: Record<string, string | number> = { 
-        tab: activeTab.toLowerCase(),
+        tab: TAB_PARAM[activeTab] || 'suggested',
         offset: isLoadMore ? offset : 0,
         limit: 20
       };
@@ -74,6 +84,7 @@ export default function Connect() {
       if (!isLoadMore) setUsers([]);
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [activeTab, searchQuery, offset]);
 
@@ -92,6 +103,7 @@ export default function Connect() {
   }, [offset]);
 
   useEffect(() => {
+    if (!searchInitRef.current) { searchInitRef.current = true; return; } // skip mount — tab effect already fetches
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
       setOffset(0);
@@ -160,10 +172,10 @@ export default function Connect() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="bg-white/5 border border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
-                   <div className="w-20 h-20 bg-white/10 rounded-full mb-6" />
-                   <div className="w-2/3 h-5 bg-white/10 rounded-full mb-3" />
-                   <div className="w-1/2 h-4 bg-white/10 rounded-full" />
+                <div key={i} className="bg-black/[0.03] dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
+                   <div className="w-20 h-20 bg-black/10 dark:bg-white/10 rounded-full mb-6" />
+                   <div className="w-2/3 h-5 bg-black/10 dark:bg-white/10 rounded-full mb-3" />
+                   <div className="w-1/2 h-4 bg-black/10 dark:bg-white/10 rounded-full" />
                 </div>
               ))}
             </div>
@@ -173,7 +185,7 @@ export default function Connect() {
                 <Search size={40} className="text-black/20 dark:text-white/10" />
               </div>
               <div className="space-y-3 px-4">
-                <h3 className="text-2xl font-black text-black dark:text-white italic italic">NO RESULTS FOUND</h3>
+                <h3 className="text-2xl font-black text-black dark:text-white italic">NO RESULTS FOUND</h3>
                 <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
               </div>
             </div>
@@ -194,12 +206,12 @@ export default function Connect() {
               ))}
               
               {/* Load More Skeleton */}
-              {offset > 0 && loading && (
+              {offset > 0 && loadingMore && (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={`load-more-${i}`} className="bg-white border border-gray-200 rounded-xl p-6 aspect-square animate-pulse flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-gray-100 rounded-full mb-4" />
-                    <div className="w-2/3 h-4 bg-gray-100 rounded-full mb-2" />
-                    <div className="w-1/2 h-3 bg-gray-100 rounded-full" />
+                  <div key={`load-more-${i}`} className="bg-black/[0.03] dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-black/10 dark:bg-white/10 rounded-full mb-4" />
+                    <div className="w-2/3 h-4 bg-black/10 dark:bg-white/10 rounded-full mb-2" />
+                    <div className="w-1/2 h-3 bg-black/10 dark:bg-white/10 rounded-full" />
                   </div>
                 ))
               )}

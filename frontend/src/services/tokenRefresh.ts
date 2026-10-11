@@ -7,6 +7,13 @@ const API_BASE = import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUr
 
 let inflight: Promise<string> | null = null;
 
+// Dead-session latch: after a definitive 4xx refresh failure, stop hitting
+// /auth/refresh from every stray 401 (pollers, overlays, page loads) until a
+// NEW token appears (fresh login). Without this, each late 401 fired its own
+// cookie + body refresh attempt → the 401→refresh→400 console storm.
+let sessionDead = false;
+let deadToken: string | null = null;
+
 /**
  * Single-flight access-token refresh shared by api.ts, AuthService and
  * socketService so only one rotation ever runs (a second concurrent refresh
@@ -16,6 +23,11 @@ let inflight: Promise<string> | null = null;
  */
 export function refreshTokenOnce(): Promise<string> {
     if (inflight) return inflight;
+
+    const preToken = useUserStore.getState().token;
+    if (sessionDead && (!preToken || preToken === deadToken)) {
+        return Promise.reject(new Error('Session expired. Please log in again.'));
+    }
 
     const run = (async () => {
         const { refreshToken, accounts } = useUserStore.getState();
@@ -51,10 +63,13 @@ export function refreshTokenOnce(): Promise<string> {
             if (!newToken) throw new Error('Refresh response missing token');
             const newRefresh = data?.refreshToken || refreshToken;
             useUserStore.getState().setToken(newToken, newRefresh);
+            sessionDead = false; // recovered (or a fresh login token worked)
             return newToken as string;
         } catch (err: unknown) {
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 400 || status === 401 || status === 403) {
+                sessionDead = true;
+                deadToken = useUserStore.getState().token;
                 useUserStore.getState().logout();
                 throw err instanceof Error ? err : new Error('Session expired. Please log in again.');
             }

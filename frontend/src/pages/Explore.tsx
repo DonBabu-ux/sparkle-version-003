@@ -28,6 +28,7 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState('For You');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const reqSeqRef = useRef(0);
 
   const categories = ['For You', 'Trending', 'Campus', 'Style', 'Events', 'Music', 'Sports'];
 
@@ -38,8 +39,9 @@ export default function Explore() {
   }, [activeCategory]);
 
   const fetchExploreMedia = async (pageNum: number) => {
-    if (loading || (loadingMore && pageNum !== 1)) return;
-    
+    if (pageNum !== 1 && loadingMore) return;
+    const seq = ++reqSeqRef.current;
+
     if (pageNum === 1) setLoading(true);
     else setLoadingMore(true);
 
@@ -67,7 +69,7 @@ export default function Explore() {
 
       // Fetch from both endpoints
       const [postsRes, momentsRes] = await Promise.all([
-        api.get(`/posts/feed?limit=15&page=${pageNum}&mode=${postsMode}`).catch(() => ({ data: [] })),
+        api.get(`/posts/feed?limit=15&offset=${(pageNum - 1) * 15}&mode=${postsMode}`).catch(() => ({ data: [] })),
         api.get(`/moments/stream?limit=15&page=${pageNum - 1}${momentsQuery}`).catch(() => ({ data: { moments: [] } }))
       ]);
 
@@ -108,6 +110,8 @@ export default function Explore() {
       // Shuffle the items
       combined = combined.sort(() => Math.random() - 0.5);
 
+      if (seq !== reqSeqRef.current) return; // stale response — a newer fetch superseded this one
+
       setMediaItems(prev => {
         // If page 1, replace (we might have shown cache). Avoid duplicates if appending.
         if (pageNum === 1) {
@@ -121,14 +125,16 @@ export default function Explore() {
         }
       });
       
-      if (combined.length === 0 && pageNum > 1) {
-        setHasMore(false);
+      if (pageNum > 1 && postsData.length + momentsData.length < 15) {
+        setHasMore(false); // short page → feed exhausted
       }
     } catch (err) {
       logger.error('Explore fetch error:', err);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (seq === reqSeqRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 
@@ -147,6 +153,15 @@ export default function Explore() {
     
     if (node) observerRef.current.observe(node);
   }, [loading, loadingMore, hasMore, page]);
+
+  const filteredItems = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return mediaItems;
+    return mediaItems.filter(item =>
+      (item.username || '').toLowerCase().includes(q) ||
+      (item.content || '').toLowerCase().includes(q)
+    );
+  })();
 
   return (
     <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
@@ -196,18 +211,20 @@ export default function Explore() {
                 <Skeleton key={i} className="aspect-square border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl" />
               ))}
             </div>
-          ) : mediaItems.length === 0 ? (
+          ) : filteredItems.length === 0 ? (
             <div className="py-20">
                <ModernOfflineState 
                  type="empty"
-                 title="Nothing to see yet"
-                 message="There are no posts here right now. Try looking in a different category or refresh the page!"
+                 title={searchQuery.trim() ? 'No matches' : 'Nothing to see yet'}
+                 message={searchQuery.trim()
+                   ? `Nothing found for "${searchQuery.trim()}". Try a different name or keyword.`
+                   : 'There are no posts here right now. Try looking in a different category or refresh the page!'}
                  onRetry={() => fetchExploreMedia(1)}
                />
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-1 md:gap-6 pb-24">
-              {mediaItems.map((m, i) => {
+              {filteredItems.map((m, i) => {
                 let spanClass = "col-span-1 row-span-1 aspect-square";
                 if (i % 10 === 0) {
                   spanClass = "col-span-2 row-span-2";
@@ -215,7 +232,7 @@ export default function Explore() {
                   spanClass = "col-span-2 row-span-2";
                 }
 
-                const isLastElement = i === mediaItems.length - 1;
+                const isLastElement = i === filteredItems.length - 1;
 
                 return (
                    <div 

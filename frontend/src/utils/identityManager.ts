@@ -91,7 +91,7 @@ export class IdentityManager {
         id: '',
         displayName: 'Sparkle User',
         username: 'sparkleuser',
-        avatar: '/assets/system/sparkle-logo.svg',
+        avatar: '/sparklelogo.png',
         isSystem: false,
         accountType: 'user',
         badge: { show: false, color: '#3B82F6', label: '', badgeType: 'user', isOfficial: false },
@@ -124,7 +124,7 @@ export class IdentityManager {
 
     // 1. Avatar Pipeline Resolution
     // System/Official -> Sparkle Logo -> avatar_url -> profile_photo -> partner_avatar -> generated avatar -> placeholder
-    let avatar = '/assets/system/sparkle-logo.svg';
+    let avatar = '/sparklelogo.png';
     if (!isSystemAccount) {
       if (user.avatar_url) avatar = user.avatar_url;
       else if (user.profile_photo) avatar = user.profile_photo;

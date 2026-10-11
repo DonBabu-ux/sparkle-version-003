@@ -2212,6 +2212,11 @@ export default function Messages() {
       socket.emit('message-read-ack', { chatId: selectedChat.chat_id });
       setUnreadCountInChat(0);
 
+      // HTTP fallback: ensures read_at is persisted even if socket was offline.
+      // The controller now stamps read_at, honours privacy settings, and re-emits
+      // socket events so senders still get blue ticks after reconnection.
+      api.post(`/messages/read/${selectedChat.chat_id}`).catch(() => {/* non-fatal */});
+
       // Cleanly clear local unread count badge in sidebar list
       setConversations((prev: any[]) => prev.map(c => {
         if (c.chat_id === selectedChat.chat_id) {

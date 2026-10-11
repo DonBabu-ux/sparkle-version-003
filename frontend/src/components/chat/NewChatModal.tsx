@@ -82,14 +82,22 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
-  // Reset state when modal opens
+  // Reset state when modal opens; also hide global bottom nav by adding body class
   useEffect(() => {
     if (isOpen) {
       setSelectedUserIds(new Set());
       setSearchQuery('');
       setDebouncedQuery('');
       setSearchResults([]);
+      // Signal Navbar to suppress the bottom navigation bar
+      document.body.classList.add('new-chat-open');
+    } else {
+      document.body.classList.remove('new-chat-open');
     }
+    return () => {
+      // Always clean up on unmount so we don't leave the class behind
+      document.body.classList.remove('new-chat-open');
+    };
   }, [isOpen]);
 
   // Load followers, following, suggestions & blocks on modal open
@@ -379,7 +387,8 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex justify-end bg-black/60 overflow-hidden">
+      {/* z-[2100] ensures this sits above the bottom nav (z-(--z-chrome) ≈ 1000) and any other overlays */}
+      <div className="fixed inset-0 z-[2100] flex justify-end bg-black/60 overflow-hidden">
         <motion.div
           variants={reducedMotion ? undefined : slideVariants}
           initial="initial"

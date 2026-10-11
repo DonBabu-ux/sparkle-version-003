@@ -1077,13 +1077,15 @@ class Message {
                 UPDATE messages
                 SET read_at = COALESCE(read_at, UTC_TIMESTAMP()), delivered_at = COALESCE(delivered_at, UTC_TIMESTAMP()), status = 'read', is_read = 1
                 WHERE message_id IN (${placeholders}) AND sender_id != ?
-            `, [...messageIds, recipientUserId]);
+                  AND (conversation_id = ? OR chat_id = ? OR personal_chat_id = ?)
+            `, [...messageIds, recipientUserId, chatId, chatId, chatId]);
         } else {
             await db.query(`
                 UPDATE messages
                 SET is_read = 1
                 WHERE message_id IN (${placeholders}) AND sender_id != ?
-            `, [...messageIds, recipientUserId]);
+                  AND (conversation_id = ? OR chat_id = ? OR personal_chat_id = ?)
+            `, [...messageIds, recipientUserId, chatId, chatId, chatId]);
         }
         return { readReceiptsEnabled };
     }

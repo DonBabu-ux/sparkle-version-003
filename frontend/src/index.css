@@ -675,3 +675,13 @@ html, body { overscroll-behavior-y: none;
     padding-top: var(--header-h);
   }
 }
+
+/* ── New-Chat Modal: suppress global bottom navigation bar ──
+   When NewChatModal is open it adds 'new-chat-open' to <body>.
+   The modal sits at z-[2100], well above --z-chrome (1000), but we
+   also hide the nav element so its pointer-event surface doesn't
+   intercept taps that belong to the Chat action button. */
+body.new-chat-open nav[aria-label="Primary"] {
+  display: none !important;
+  pointer-events: none !important;
+}

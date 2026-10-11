@@ -546,7 +546,42 @@ class MessageController {
         try {
             const { chatId } = req.params;
             const userId = req.user.user_id || req.user.userId;
-            await Message.updateStatus(chatId, userId, 'read');
+
+            // Use tri-condition so read_at is stamped and privacy settings are respected
+            const { readReceiptsEnabled } = await Message.markReadTriCondition(chatId, null, userId);
+
+            // Emit real-time read receipt updates so senders get blue ticks immediately
+            if (readReceiptsEnabled) {
+                try {
+                    const { getIO } = require('../socket');
+                    const io = getIO();
+                    if (io) {
+                        const readAt = new Date().toISOString();
+                        const payload = { chatId, readerUserId: userId, userId, readAt };
+                        io.to(`chat:${chatId}`).emit('message-read-update', payload);
+                        io.to(`chat:${chatId}`).emit('messages-read', payload);
+
+                        // For 1-on-1 chats: also push to the partner's personal user room
+                        const [chatRows] = await pool.query(
+                            'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ? LIMIT 1',
+                            [chatId]
+                        );
+                        if (chatRows && chatRows.length > 0) {
+                            const partnerId = String(chatRows[0].participant1_id) === String(userId)
+                                ? chatRows[0].participant2_id
+                                : chatRows[0].participant1_id;
+                            if (partnerId) {
+                                io.to(`user:${partnerId}`).emit('message-read-update', payload);
+                                io.to(`user:${partnerId}`).emit('messages-read', payload);
+                            }
+                        }
+                    }
+                } catch (emitErr) {
+                    // Non-fatal: DB is already updated; socket may not be initialised in tests
+                    logger.debug('[markRead] socket emit failed (non-fatal):', emitErr?.message || emitErr);
+                }
+            }
+
             res.json({ status: 'success' });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });

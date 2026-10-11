@@ -391,13 +391,51 @@ const shutdown = (signal) => {
 process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
-// Prevent unhandled promise rejections or async controller errors from crashing the process
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error('Unhandled Promise Rejection:', reason?.stack || reason?.message || reason);
+// ── Crash forensics ─────────────────────────────────────────────────────────
+// The backend has died silently 4+ times (no trace). JS-level handlers can't
+// fire on OOM/native kills, so we leave breadcrumbs:
+//  - heartbeat file: last memory snapshot every 60s (post-mortem OOM evidence)
+//  - exit hook: synchronous last-words with exit code + memory
+//  - uncaughtException: log full stack THEN exit (continuing leaves undefined state)
+const path2 = require('path');
+const fs2 = require('fs');
+const CRASH_DIR = path2.join(__dirname, '.logs');
+const HEARTBEAT_FILE = path2.join(__dirname, '.heartbeat.json');
+const mb = (n) => Math.round(n / 1024 / 1024);
+
+const writeCrashLine = (line) => {
+    try {
+        if (!fs2.existsSync(CRASH_DIR)) fs2.mkdirSync(CRASH_DIR, { recursive: true });
+        fs2.appendFileSync(path2.join(CRASH_DIR, 'crash.log'), `[${new Date().toISOString()}] ${line}\n`);
+    } catch { /* never let logging kill the process */ }
+};
+
+const memSnapshot = () => {
+    const m = process.memoryUsage();
+    return `rss=${mb(m.rss)}MB heapUsed=${mb(m.heapUsed)}MB heapTotal=${mb(m.heapTotal)}MB uptime=${Math.round(process.uptime())}s`;
+};
+
+setInterval(() => {
+    const rssMB = mb(process.memoryUsage().rss);
+    writeCrashLine(`HEARTBEAT ${memSnapshot()} pid=${process.pid}`);
+    if (rssMB > 1024) logger.warn(`⚠️ High memory: rss=${rssMB}MB (${memSnapshot()})`);
+}, 60_000).unref();
+
+process.on('exit', (code) => {
+    const line = `EXIT code=${code} ${memSnapshot()} pid=${process.pid}`;
+    writeCrashLine(line);
+    logger.error(line);
+});
+
+process.on('unhandledRejection', (reason) => {
+    logger.error(`Unhandled Promise Rejection: ${reason?.stack || reason?.message || reason}`);
+    writeCrashLine(`unhandledRejection: ${reason?.stack || reason?.message || reason}`);
 });
 
 process.on('uncaughtException', (err) => {
-    logger.error('Uncaught Exception:', err?.stack || err?.message || err);
+    logger.error(`Uncaught Exception: ${err?.stack || err?.message || err}`);
+    writeCrashLine(`uncaughtException: ${err?.stack || err?.message || err}`);
+    process.exit(1);
 });
 
 module.exports = { app, server };

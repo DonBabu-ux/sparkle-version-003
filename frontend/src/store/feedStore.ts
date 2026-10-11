@@ -244,7 +244,8 @@ export const useFeedStore = create<FeedState>()(
         postsById: Object.fromEntries(
           Object.entries(state.postsById).filter(([id]) => state.orderedPostIds.slice(0, 20).includes(id))
         ),
-        stories: state.stories,
+        // stories intentionally NOT persisted: backend only serves a 24h window,
+        // so a persisted copy renders expired rings on every cold start
         suggestions: state.suggestions,
         lastFetched: state.lastFetched 
       }),

@@ -54,6 +54,10 @@ export interface ChatMessage {
   pinned?: boolean | number;
   pinned_at?: string;
   pinned_by?: string;
+  structured_data?: unknown;
+  metadata?: unknown;
+  is_sparkly_bot?: boolean;
+  permissions?: unknown;
 
   // Enterprise Timestamp-Derived States & Sequence Fields
   delivered_at?: string | null;
@@ -66,6 +70,9 @@ export interface ChatMessage {
   id?: string;
   chatId?: string;
   createdAt?: string;
+  // Legacy snake/camelCase aliases still present in some payloads
+  mediaUrl?: string;
+  senderId?: string;
 }
 
 export interface ChatConversation {
@@ -162,6 +169,7 @@ interface ChatState {
 
   setReplyTarget: (chatId: string, msgId?: string) => void;
   setOnlineUsers: (userIds: string[]) => void;
+  onlineUsers: string[];
   setSocketStatus: (status: 'connected' | 'disconnected' | 'connecting') => void;
   setTyping: (chatId: string, userId: string, username: string, isTyping: boolean) => void;
   addReaction: (chatId: string, messageId: string, userId: string, emoji: string) => void;
@@ -931,6 +939,7 @@ export const useChatStore = create<ChatState>()(
         partialize: (state) => ({
           conversations: state.conversations,
           messagesByConversation: state.messagesByConversation,
+          drafts: state.drafts,
         }),
       }
     )

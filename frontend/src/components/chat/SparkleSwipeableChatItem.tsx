@@ -17,7 +17,6 @@ interface SparkleSwipeableChatItemProps {
   onLongPress: () => void;
   onArchive: () => void;
   onDelete: () => void;
-  getStatusLabel?: (chat: any) => string;
   formatMessageText: (text: string) => string;
   typingUsers: { chatId: string; name: string }[];
   referenceTime?: number;
@@ -33,7 +32,6 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   onLongPress,
   onArchive,
   onDelete,
-  getStatusLabel,
   formatMessageText,
   typingUsers,
   referenceTime,
@@ -145,6 +143,19 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
             onSelect();
           } else {
             onOpen();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Chat with ${displayName}${hasUnreadIncoming ? `, ${chat.unread_count || 1} unread` : ''}`}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            if (isSelectionMode) {
+              onSelect();
+            } else {
+              onOpen();
+            }
           }
         }}
         className={clsx(

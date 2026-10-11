@@ -115,9 +115,9 @@ export default function Navbar() {
         aria-label="Primary"
         className={clsx(
           "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-(--z-chrome) transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
-          isDarkBase 
-            ? "bg-black border-t border-white/10" 
-            : "bg-white/50 dark:bg-black/80 backdrop-blur-3xl border-t border-black/5 dark:border-white/5"
+          isDarkBase
+            ? "bg-black border-t border-white/10"
+            : "bg-white/95 dark:bg-black/80 backdrop-blur-3xl border-t border-black/10 dark:border-white/5 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] dark:shadow-none"
         )}
       >
         {/* Col 1 — Home */}
@@ -134,20 +134,20 @@ export default function Navbar() {
             }
           }}
         >
-          {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <Home size={22} strokeWidth={isDarkBase ? 3 : (isActive('/dashboard') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/dashboard') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
+          {isActive('/dashboard') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Home size={22} strokeWidth={isDarkBase ? 3 : (isActive('/dashboard') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/dashboard') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 2 — Connect */}
         <Link to="/connect" aria-label="Connect" aria-current={isActive('/connect') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <Users size={22} strokeWidth={isDarkBase ? 3 : (isActive('/connect') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/connect') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
+          {isActive('/connect') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Users size={22} strokeWidth={isDarkBase ? 3 : (isActive('/connect') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/connect') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 3 — Moments */}
         <Link to="/moments" aria-label="Moments" aria-current={isActive('/moments') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <PlayCircle size={22} strokeWidth={isDarkBase ? 3 : (isActive('/moments') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/moments') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
+          {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <PlayCircle size={22} strokeWidth={isDarkBase ? 3 : (isActive('/moments') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/moments') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 4 — Plus (column 4 of 7 = exact center) */}
@@ -159,14 +159,14 @@ export default function Navbar() {
 
         {/* Col 5 — Explore */}
         <Link to="/explore" aria-label="Explore" aria-current={isActive('/explore') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <Compass size={22} strokeWidth={isDarkBase ? 3 : (isActive('/explore') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/explore') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
+          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Compass size={22} strokeWidth={isDarkBase ? 3 : (isActive('/explore') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/explore') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 6 — Messages */}
         <Link to="/messages" aria-label="Messages" aria-current={isActive('/messages') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isDarkBase ? 'text-white' : (isActive('/messages') ? 'text-primary' : 'text-slate-400')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}}>
+          {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isDarkBase ? 'text-white' : (isActive('/messages') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}}>
             <path d="M12 2C6.477 2 2 6.145 2 11.243c0 2.906 1.404 5.5 3.6 7.22V22l3.193-1.755A10.86 10.86 0 0 0 12 20.486c5.523 0 10-4.145 10-9.243C22 6.145 17.523 2 12 2Z"
               fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth={isDarkBase ? 3 : (isActive('/messages') ? 3 : 1.8)} strokeLinejoin="round" />
             <path d="m6.5 14 3.5-4 2.5 2.5L16 9" stroke="currentColor" strokeWidth={isDarkBase ? 3 : (isActive('/messages') ? 3 : 1.8)} strokeLinecap="round" strokeLinejoin="round" />
@@ -175,7 +175,7 @@ export default function Navbar() {
 
         {/* Col 7 — Profile */}
         <Link to={`/profile/${user?.username}`} aria-label="Profile" aria-current={isActive(`/profile/${user?.username}`) ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          {isActive(`/profile/${user?.username}`) && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <Avatar 
             src={user?.avatar_url} 
             name={user?.username} 

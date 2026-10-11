@@ -460,7 +460,7 @@ export default function MessagesSettings() {
         showError("Couldn't save. Try again.");
       }
     },
-    [user, setUser, showToast]
+    [user, setUser]
   );
 
   const updateAdvancedSetting = useCallback(
@@ -472,7 +472,7 @@ export default function MessagesSettings() {
         showError("Couldn't save. Try again.");
       }
     },
-    [showToast]
+    []
   );
 
   useEffect(() => {

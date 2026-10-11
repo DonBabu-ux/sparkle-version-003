@@ -1,5 +1,5 @@
 import { showSuccess } from '../utils/toast';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
 import api from '../api/api';
@@ -38,6 +38,17 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
+  // Post-login navigation timer — must be cleared on unmount/re-submit, else a
+  // stale timer fires after the user already navigated away and bounces them
+  // to /dashboard (seen as: open chat → suddenly back on home).
+  const postLoginNavTimer = useRef<number | null>(null);
+  const clearPostLoginNav = useCallback(() => {
+    if (postLoginNavTimer.current !== null) {
+      window.clearTimeout(postLoginNavTimer.current);
+      postLoginNavTimer.current = null;
+    }
+  }, []);
+  useEffect(() => clearPostLoginNav, [clearPostLoginNav]);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -102,6 +113,7 @@ export default function Login() {
     }
 
     setLoading(true);
+    clearPostLoginNav(); // cancel any pending post-login navigation from a previous submit
     try {
       // 15-second client-side timeout for responsive feedback
       const res = await api.post(
@@ -127,7 +139,11 @@ export default function Login() {
         const targetRoute = data.next?.route === '/onboarding'
           ? '/onboarding'
           : getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token));
-        setTimeout(() => navigate(targetRoute), 1500);
+        clearPostLoginNav();
+        postLoginNavTimer.current = window.setTimeout(() => {
+          postLoginNavTimer.current = null;
+          navigate(targetRoute);
+        }, 1500);
         return;
       }
 
@@ -270,6 +286,7 @@ export default function Login() {
     }
 
     setLoading(true);
+    clearPostLoginNav();
     try {
       const res = await api.post(
         '/auth/verify-2fa',
@@ -280,7 +297,11 @@ export default function Login() {
       if ((data?.status === 'success' || data?.success) && data?.token) {
         setSuccessView('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
-        setTimeout(() => navigate(getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token))), 1200);
+        clearPostLoginNav();
+        postLoginNavTimer.current = window.setTimeout(() => {
+          postLoginNavTimer.current = null;
+          navigate(getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token)));
+        }, 1200);
       }
     } catch (err: unknown) {
       const classified = classifyLoginError(err, { isOnline: navigator.onLine });

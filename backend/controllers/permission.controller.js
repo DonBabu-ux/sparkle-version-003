@@ -134,9 +134,10 @@ async function checkParticipant(chatId, userId) {
       }
     }
 
-    // Check group chats members using correct column name
+    // Check group chat members (group_chat_members is keyed by chat_id;
+    // group_members is the separate Communities feature keyed by group_id)
     const [groupRows] = await db.query(
-      'SELECT user_id FROM group_members WHERE group_id = ? AND user_id = ?',
+      'SELECT user_id FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
       [chatId, userId]
     );
     if (groupRows && groupRows.length > 0) {

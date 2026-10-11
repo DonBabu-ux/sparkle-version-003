@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { useSocket } from './useSocket';
-import { useMessageStore } from '../store/messageStore';
 import { useChatStore } from '../store/chatStore';
 import { useUserStore } from '../store/userStore';
 import { useThemeStore } from '../store/themeStore';
@@ -20,7 +19,6 @@ export const useMessageSocket = () => {
     logger.log('[TRACE] Registering enterprise message socket listeners');
 
     const getChatStore  = () => useChatStore.getState();
-    const getMsgStore   = () => useMessageStore.getState();
 
     const runReconnectSyncSequence = async () => {
       if (isSyncInProgress || !socket.connected) return;
@@ -137,6 +135,11 @@ export const useMessageSocket = () => {
       if (activeChatId && !activeChatId.startsWith('temp_')) {
         reconcilePrivacySettings(activeChatId);
       }
+    };
+
+    const handleDisconnect = (reason: string) => {
+      logger.warn('🔌 Socket disconnected:', reason);
+      getChatStore().setSocketStatus('disconnected');
     };
 
     const handleNewMessage = (msg: any) => {
@@ -257,43 +260,23 @@ export const useMessageSocket = () => {
     };
 
     const handleMessagePinned = (data: { messageId: string; chatId: string; pinnedBy: string }) => {
-      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy });
-      const existing = getMsgStore().messages[data.messageId];
-      if (existing) {
-        getMsgStore().updateMessage(data.messageId, {
-          pinned: true,
-          pinned_by: data.pinnedBy,
-        });
-      }
+      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy, pinned_at: new Date().toISOString() });
     };
 
     const handleMessageUnpinned = (data: { messageId: string; chatId: string }) => {
-      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null });
-      const existing = getMsgStore().messages[data.messageId];
-      if (existing) {
-        getMsgStore().updateMessage(data.messageId, {
-          pinned: false,
-          pinned_by: null,
-        });
-      }
+      getChatStore().updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null, pinned_at: undefined });
     };
 
     const handleMessageEdited = (data: { messageId: string; chatId: string; content: string; editedAt: string }) => {
       getChatStore().editMessage(data.chatId, data.messageId, data.content);
-      getMsgStore().updateMessage(data.messageId, {
-        content: data.content,
-        is_edited: true,
-      });
     };
 
     const handleMessageDeletedEveryone = (data: { messageId: string; chatId: string }) => {
       getChatStore().deleteMessageForEveryone(data.chatId, data.messageId, 'This message was deleted');
-      getMsgStore().deleteMessage(data.messageId);
     };
 
     const handleMessageDeletedMe = (data: { messageId: string; chatId: string }) => {
       getChatStore().deleteMessageLocal(data.chatId, data.messageId);
-      getMsgStore().deleteMessage(data.messageId);
     };
 
     const handleDeleteRejected = (data: { messageId: string; chatId: string; originalContent?: string; reason?: string }) => {
@@ -366,9 +349,6 @@ export const useMessageSocket = () => {
 
     const handleMessagePinnedUpdated = (data: { messageId: string; chatId: string; pinned: boolean }) => {
       getChatStore().updateMessage(data.chatId, data.messageId, { pinned: data.pinned });
-      if (getMsgStore().messages[data.messageId]) {
-        getMsgStore().updateMessage(data.messageId, { pinned: data.pinned });
-      }
     };
 
     const handleSyncResponse = (data: { chatId: string; events?: any[] }) => {
@@ -507,6 +487,7 @@ export const useMessageSocket = () => {
     };
 
     socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
     socket.on('new-message', handleNewMessage);
     socket.on('receive_message', handleNewMessage);
     socket.on('message-delivered-update', handleMessageDeliveredUpdate);
@@ -558,6 +539,7 @@ export const useMessageSocket = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
 
       socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
       socket.off('new-message', handleNewMessage);
       socket.off('receive_message', handleNewMessage);
       socket.off('message-delivered-update', handleMessageDeliveredUpdate);
@@ -571,6 +553,7 @@ export const useMessageSocket = () => {
       socket.off('message-edited', handleMessageEdited);
       socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
       socket.off('message-deleted-me', handleMessageDeletedMe);
+      socket.off('delete-rejected', handleDeleteRejected);
       socket.off('new-reaction', handleNewReaction);
       socket.off('reaction-removed', handleReactionRemoved);
       socket.off('new_group_created', handleNewGroupCreated);

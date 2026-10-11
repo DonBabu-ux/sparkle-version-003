@@ -114,7 +114,7 @@ export const OfficialMessageCard: React.FC<OfficialMessageCardProps> = ({
 }) => {
   const navigate = useNavigate();
   const config = CATEGORY_CONFIG[category] || CATEGORY_CONFIG.announcement;
-  const CategoryIcon = config.icon;
+  const CategoryIcon = config.icon as React.ComponentType<{ className?: string }>;
 
   const cardTitle = payload?.title || title || config.badge;
   const actions = payload?.actions || [];

@@ -175,8 +175,16 @@ function App() {
     }
 
     if (target === '/dashboard') {
-      logger.log('NAVIGATING TO DASHBOARD');
-      navigate('/dashboard');
+      // Preserve deep links across full reloads (e.g. /messages?chat=X,
+      // /profile/username) — only force /dashboard from root or auth-flow pages.
+      const isAuthFlow = currentPath.startsWith('/login');
+      if (!isAuthFlow && currentPath !== '/' && currentPath !== '/dashboard') {
+        logger.log(`NAVIGATING TO PRESERVED DEEP LINK: ${currentPath}${window.location.search}`);
+        navigate(`${currentPath}${window.location.search}`);
+      } else {
+        logger.log('NAVIGATING TO DASHBOARD');
+        navigate('/dashboard');
+      }
     } else {
       logger.log('NAVIGATING TO LOGIN');
       navigate('/login');

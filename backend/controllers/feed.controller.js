@@ -317,7 +317,9 @@ const getStories = async (req, res) => {
         (SELECT COUNT(*) FROM stories WHERE user_id = s.user_id AND created_at > NOW() - INTERVAL 24 HOUR) as user_story_count,
         COALESCE((SELECT COUNT(*) FROM story_likes WHERE story_id = s.story_id), 0) as like_count,
         -- Show is_liked to all users
-        COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked
+        COALESCE((SELECT 1 FROM story_likes WHERE story_id = s.story_id AND user_id = ?), 0) as is_liked,
+        -- Has the requester viewed this story (drives ring viewed/unviewed state)
+        COALESCE((SELECT 1 FROM story_views WHERE story_id = s.story_id AND user_id = ?), 0) as is_viewed
       FROM stories s
       JOIN users u ON s.user_id = u.user_id
       WHERE s.created_at > NOW() - INTERVAL 24 HOUR
@@ -333,7 +335,7 @@ const getStories = async (req, res) => {
       )
       ORDER BY s.created_at DESC
       LIMIT 200
-    `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
+    `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
                 rows = result;
                 break;
             } catch (err) {
@@ -449,6 +451,7 @@ const getStories = async (req, res) => {
                 created_at: s.created_at,
                 like_count: parseInt(s.like_count) || 0,
                 is_liked: parseInt(s.is_liked) === 1,
+                is_viewed: parseInt(s.is_viewed) === 1,
                 // Rich media metadata for premium card display
                 thumbnail_url: getSafeMediaUrl(s.thumbnail_url),
                 width: s.width || null,
@@ -474,6 +477,12 @@ const getStories = async (req, res) => {
                     return st;
                 })
             });
+        }
+
+        // Per-group viewed state for the requester — drives ring style + unviewed badge
+        for (const g of groups) {
+            g.unviewed_count = g.stories.filter(st => !st.is_viewed).length;
+            g.is_fully_viewed = g.unviewed_count === 0;
         }
 
         res.json(groups);

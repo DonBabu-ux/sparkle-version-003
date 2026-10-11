@@ -134,7 +134,7 @@ export default function StoryViewer() {
         const userGroup = groups.find((g: UserStoryGroup) => String(g.user_id) === String(userId));
         if (userGroup) {
           setUserStories(userGroup);
-          api.post(`/stories/${userGroup.stories[0].story_id}/view`).catch(() => {});
+          // view-marking is handled by the currentIndex effect below (no double-post)
         } else if (!preloaded) {
           navigate('/dashboard');
         }
@@ -510,7 +510,7 @@ export default function StoryViewer() {
                    })()}</span></h4>
                </div>
             </div>
-            <button onClick={() => navigate('/dashboard')} className="text-white bg-black/20 p-2 rounded-full backdrop-blur-md border border-white/10"><X size={24} /></button>
+            <button onClick={() => navigate('/dashboard')} className="text-white bg-neutral-900 p-2 rounded-full border border-white/15"><X size={24} /></button>
           </div>
 
           {/* Media */}
@@ -629,7 +629,7 @@ export default function StoryViewer() {
                  animate={{ opacity: 1, y: 0 }}
                  className="absolute right-5 bottom-32 z-50 flex flex-col gap-2 items-end select-none"
                >
-                 <div className="bg-black/30 backdrop-blur-xl border border-white/10 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 shadow-2xl max-w-[160px]">
+                  <div className="bg-neutral-900 border border-white/15 rounded-2xl px-3 py-2.5 flex items-center gap-2.5 shadow-2xl max-w-[160px]">
                    <div className="w-7 h-7 rounded-full bg-rose-500/80 flex items-center justify-center shrink-0 overflow-hidden">
                      {musicMeta?.thumbnailUrl ? (
                        <img src={musicMeta.thumbnailUrl} alt="" className="w-full h-full object-cover" />
@@ -678,19 +678,19 @@ export default function StoryViewer() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-4">
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white p-2 active:scale-75 transition-all"><Send size={24} /></button>
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowMentionModal(true); }} className="text-white p-2 active:scale-75 transition-all"><AtSign size={24} /></button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Send size={20} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowMentionModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><AtSign size={20} /></button>
                     <button 
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY, 'v');
                         window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`, '_blank', 'noopener,noreferrer');
                       }} 
-                      className="p-2 active:scale-75 transition-all"
+                      className="bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"
                     >
                       {WA_LOGO}
                     </button>
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowOptionsSheet(true); }} className="flex flex-col items-center gap-0.5 text-white p-2 active:scale-75 transition-all">
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowOptionsSheet(true); }} className="flex flex-col items-center gap-0.5 text-white bg-neutral-900 border border-white/15 rounded-2xl px-3 py-2 active:scale-75 transition-all">
                       <MoreHorizontal size={22} />
                       <span className="text-[8px] font-black uppercase tracking-widest">More</span>
                     </button>
@@ -700,14 +700,14 @@ export default function StoryViewer() {
                <div className="flex flex-col w-full gap-2 pointer-events-auto">
                   <button 
                     onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowCommentModal(true); }} 
-                    className="self-start mb-1 active:opacity-50 transition-opacity"
+                    className="self-start mb-1 active:opacity-70 transition-opacity"
                   >
-                     <span className="text-[12px] font-medium text-white/80 italic tracking-wide shadow-lg">say something...</span>
+                     <span className="text-[12px] font-medium text-white italic tracking-wide bg-neutral-900 border border-white/15 rounded-full px-4 py-2 inline-block">say something...</span>
                   </button>
 
                   <div className="flex items-center w-full gap-4">
                     <div className="flex-1 relative">
-                      <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-white/10 backdrop-blur-2xl border border-white/20 rounded-full px-6 text-[13px] text-white" />
+                      <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-neutral-900 border border-white/15 rounded-full px-6 text-[13px] text-white placeholder:text-white/50" />
                       <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); handleSendStoryMessage(replyText); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
                     </div>
                     {replySent && (
@@ -720,9 +720,9 @@ export default function StoryViewer() {
                          ✓ Sent
                        </motion.div>
                      )}
-                    <div className="flex items-center gap-5">
-                      <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'}`}><Heart size={26} /></button>
-                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white"><Share2 size={24} /></button>
+                    <div className="flex items-center gap-3">
+                      <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'} bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all`}><Heart size={22} /></button>
+                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Share2 size={20} /></button>
                     </div>
                   </div>
                </div>

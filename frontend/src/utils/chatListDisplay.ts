@@ -138,9 +138,6 @@ export const resolveChatListDisplay = ({
   // Messages sent by the current user must never count as incoming unread.
   const hasUnreadIncoming = !isLastMsgFromMe && unreadCount > 0;
 
-  // Static edge indicator visibility strictly tracks incoming unread state.
-  const showUnreadEdgeDot = hasUnreadIncoming;
-
   // 1. Priority: Incoming unread messages get bold unread summary
   if (hasUnreadIncoming) {
     return {

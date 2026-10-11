@@ -357,8 +357,8 @@ class Message {
                   AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
                 ORDER BY m.sent_at ASC
             `;
-            const [messages] = await db.query(query, [chatId, userId]);
-            
+            const [messages] = await db.query(query, [chatId, userId, userId]);
+
             const [privacyRows] = await db.query(
                 'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
                 [chatId]

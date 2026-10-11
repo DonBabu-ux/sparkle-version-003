@@ -5,7 +5,6 @@ import { registerPlugin } from '@capacitor/core';
 import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';
-import { useMessageStore } from '../store/messageStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
@@ -14,7 +13,7 @@ import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
 import { useNavigate, useSearchParams, useParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
-import { useThemeStore } from '../store/themeStore';
+import { useThemeStore, type AnimationType } from '../store/themeStore';
 import { MessageActionSheet, MessageMoreModal, FullEmojiPickerModal, ReactionDetailsSheet } from '../components/chat/MessageActionModals';
 import { useLongPress } from '../hooks/useLongPress';
 
@@ -81,15 +80,28 @@ interface ChatConversation {
   partner_name: string;
   partner_username?: string;
   partner_online?: boolean;
+  is_online?: number | boolean;
+  last_seen_at?: string;
   is_archived?: boolean;
   is_group?: boolean;
   chat_type?: string;
+  type?: string;
   member_count?: number;
   group_online_count?: number;
   unread_count: number;
   last_message?: string;
   last_message_time?: string;   // from personal_chats table column
   last_message_at?: string;     // aliased in getUserConversations query
+  disappearing_duration?: number;
+  display_name?: string;
+  name?: string;
+  username?: string;
+  account_type?: string;
+  conversation_type?: string;
+  is_system_account?: boolean | number;
+  is_system?: boolean | number;
+  official_badge?: string;
+  id?: string;
 }
 
 
@@ -533,7 +545,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
 
   const [recordingSessionId, setRecordingSessionId] = useState<string | null>(null);
 
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const editing = useChatStore(state => state.editing);
 
   useEffect(() => {
@@ -675,12 +687,26 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
     'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver'
   ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (selectedChat) {
       setDraft(selectedChat.chat_id, val);
     }
+    // Auto-grow the composer up to ~5 lines
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
     onTyping(val);
+  };
+
+  const handleComposerKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // IME composition guard — never send half-composed CJK text
+    if (e.nativeEvent.isComposing) return;
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      if (!localMessage.trim() || sending) return;
+      e.currentTarget.form?.requestSubmit();
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -839,22 +865,25 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
             </AnimatePresence>
 
             {/* Input Area — Naturally expands as left icons collapse */}
-            <div className="flex-1 flex items-center bg-white/5 border border-white/10 rounded-full px-4 py-2 mx-1 transition-all duration-200 min-w-0">
-              <input
+            <div className="flex-1 flex items-end bg-white/5 border border-white/10 rounded-3xl px-4 py-2 mx-1 transition-all duration-200 min-w-0">
+              <textarea
                 ref={inputRef}
-                type="text"
+                rows={1}
                 value={localMessage}
                 onChange={handleChange}
+                onKeyDown={handleComposerKeyDown}
                 onFocus={() => setShowEmojiPicker(false)}
                 placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
-                className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white"
+                className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
                 autoComplete="off"
+                aria-label="Message text"
               />
               <button
                 type="button"
                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                aria-label={showEmojiPicker ? 'Close emoji picker' : 'Open emoji picker'}
                 className={clsx(
-                  "transition-all ml-2 shrink-0",
+                  "transition-all ml-2 shrink-0 mb-0.5",
                   showEmojiPicker ? "text-[#ff1493] scale-110" : "text-white/20 hover:text-white"
                 )}
               >
@@ -880,6 +909,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                 <button
                   type="submit"
                   disabled={sending}
+                  aria-label="Send message"
                   className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center"
                   style={{ backgroundColor: themePrimary, color: '#ffffff' }}
                 >
@@ -892,6 +922,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                   style={{ backgroundColor: themePrimary }}
                   className="p-2.5 rounded-full hover:opacity-90 active:scale-95 transition-all shadow-lg flex items-center justify-center text-white"
                   title="Record Voice Note"
+                  aria-label="Record voice note"
                 >
                   <Mic size={18} strokeWidth={2.5} />
                 </button>
@@ -1114,12 +1145,6 @@ export default function Messages() {
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [showSelectionMenu, setShowSelectionMenu] = useState(false);
   const [deleteConfirmCount, setDeleteConfirmCount] = useState<number | null>(null);
-  const [ , setUndoToast ] = useState<{
-    id: string;
-    message: string;
-    undoAction: () => void;
-    commitAction: () => void;
-  } | null>(null);
   const [showOrbitMenu, setShowOrbitMenu] = useState(false);
   const [showOrbitConstellation, setShowOrbitConstellation] = useState(false);
   const [peekChat, setPeekChat] = useState<any | null>(null);
@@ -1174,19 +1199,7 @@ export default function Messages() {
       });
     });
 
-    setUndoToast({
-      id: 'archive_' + Date.now(),
-      message: `${idsToArchive.length} chat(s) archived`,
-      undoAction: () => {
-        idsToArchive.forEach(id => {
-          toggleArchive(id, false);
-          api.post(`/messages/chat/${id}/archive`, { isArchived: false }).catch(() => {
-            api.patch(`/messages/chat/${id}/archive`, { isArchived: false }).catch(logger.error);
-          });
-        });
-      },
-      commitAction: () => { }, // No-op, action already committed
-    });
+    showSuccess(`${idsToArchive.length} chat(s) archived`);
   };
 
   const triggerDeleteConfirmation = () => {
@@ -1206,14 +1219,8 @@ export default function Messages() {
       api.delete(`/messages/chat/${id}`).catch(logger.error);
     });
 
-    // Delete cannot be undone on the server side because data is dropped,
-    // so we don't allow undoing deletions in the toast anymore, we just show a regular toast or nothing.
-    setUndoToast({
-      id: 'delete_' + Date.now(),
-      message: `${idsToDelete.length} chat(s) deleted`,
-      undoAction: () => { },
-      commitAction: () => { },
-    });
+    // Delete cannot be undone on the server side; surface a plain confirmation.
+    showSuccess(`${idsToDelete.length} chat(s) deleted`);
   };
 
   const handleBatchPin = () => {
@@ -1265,6 +1272,96 @@ export default function Messages() {
     });
   };
 
+  // ── Orbit / action-sheet handlers (wired to real APIs & local store) ──
+  const getTargetChatForActions = () => {
+    if (selectedChatIds.length === 1) {
+      return conversations.find(c => c.chat_id === selectedChatIds[0]) || null;
+    }
+    return selectedChat || peekChat;
+  };
+
+  const handleOrbitMute = () => {
+    const chat = getTargetChatForActions();
+    if (!chat?.chat_id) return;
+    const targetState = !chat.is_muted;
+    toggleMute(chat.chat_id, targetState);
+    api.post(`/messages/chat/${chat.chat_id}/mute`, { muted: targetState }).catch(() => {
+      api.patch(`/messages/chat/${chat.chat_id}/mute`, { muted: targetState }).catch(logger.error);
+    });
+    showSuccess(targetState ? 'Chat muted' : 'Chat unmuted');
+  };
+
+  const handleMarkUnread = () => {
+    const chat = getTargetChatForActions();
+    if (!chat?.chat_id) return;
+    setConversations(prev => prev.map(c =>
+      c.chat_id === chat.chat_id ? { ...c, unread_count: Math.max(1, c.unread_count || 0) } : c
+    ));
+    showInfo('Marked as Unread');
+  };
+
+  const handleClearChat = () => {
+    const chat = getTargetChatForActions();
+    if (!chat?.chat_id) return;
+    const ids = (useChatStore.getState().messagesByConversation[chat.chat_id] || [])
+      .map((m: any) => m.message_id)
+      .filter(Boolean);
+    if (ids.length > 0) {
+      deleteMessagesBulkLocal(chat.chat_id, ids);
+      if (socket?.connected) {
+        socket.emit('delete-for-me-bulk', { operationId: crypto.randomUUID(), messageIds: ids, chatId: chat.chat_id });
+      }
+    }
+    showSuccess('Chat cleared');
+  };
+
+  const handleExportChat = () => {
+    const chat = getTargetChatForActions();
+    if (!chat?.chat_id) return;
+    const msgs = useChatStore.getState().messagesByConversation[chat.chat_id] || [];
+    if (msgs.length === 0) {
+      showInfo('Nothing to export yet');
+      return;
+    }
+    const lines = msgs.map((m: any) =>
+      `[${m.sent_at || ''}] ${m.sender_name || m.sender_username || m.sender_id || 'Unknown'}: ${m.content || `[${m.type || 'message'}]`}`
+    );
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chat-export-${chat.chat_id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showSuccess('Chat exported');
+  };
+
+  const handleBlockUser = async () => {
+    const chat = getTargetChatForActions();
+    const partnerId = chat?.partner_id || chat?.partner_username;
+    if (!partnerId) return;
+    try {
+      await api.post(`/user/block/${partnerId}`);
+      showSuccess('User blocked');
+    } catch (err) {
+      logger.error('Block user failed', err);
+      showError('Could not block user');
+    }
+  };
+
+  const handleReportUser = async () => {
+    const chat = getTargetChatForActions();
+    const partnerId = chat?.partner_id || chat?.partner_username;
+    if (!partnerId) return;
+    try {
+      await api.post(`/user/${partnerId}/report`, {});
+      showInfo('Thank you for reporting. Our moderation team will review this user shortly.');
+    } catch (err) {
+      logger.error('Report user failed', err);
+      showError('Could not submit report');
+    }
+  };
+
   const handleBatchPriority = () => {
     const idsToPriority = [...selectedChatIds];
     if (idsToPriority.length === 0) return;
@@ -1299,28 +1396,6 @@ export default function Messages() {
         api.post(`/messages/read/${id}`).catch(logger.error);
       }
     });
-  };
-
-  const handleClearChat = () => {
-    const idsToClear = [...selectedChatIds];
-    if (idsToClear.length === 0) return;
-
-    setSelectedChatIds([]);
-    idsToClear.forEach(id => {
-      useChatStore.getState().setMessages(id, []);
-      api.post(`/messages/chat/${id}/clear`).catch(() => {
-        api.delete(`/messages/chat/${id}/messages`).catch(logger.error);
-      });
-    });
-  };
-
-  const handleBlockUser = () => {
-    if (selectedChatIds.length === 0) return;
-    const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);
-    if (targetChat && targetChat.partner_id) {
-      api.post(`/privacy/block`, { target_user_id: targetChat.partner_id }).catch(logger.error);
-      setSelectedChatIds([]);
-    }
   };
 
   // --- State ---
@@ -1383,6 +1458,7 @@ export default function Messages() {
 
   const chatId = selectedChat?.chat_id ?? '';
   const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
+  const socketStatus = useChatStore(state => state.socketStatus);
   const setStoreMessages = useChatStore(state => state.setMessages);
   useChatStore(state => state.addMessage);
   useChatStore(state => state.editMessage);
@@ -1396,17 +1472,17 @@ export default function Messages() {
     logger.log('[MESSAGE_STORE_UPDATED]', { chatId, length: updated.length });
     setStoreMessages(chatId, updated);
   };
-  const updateMessagesForChat = (targetChatId: string, updater: (msgs: any[]) => any[]) => {
-    if (!targetChatId) return;
-    const current = useChatStore.getState().messagesByConversation[targetChatId] || [];
-    const updated = updater(current);
-    logger.log('[MESSAGE_STORE_UPDATED]', { targetChatId, length: updated.length });
-    setStoreMessages(targetChatId, updated);
-  };
   const [messageSearch, setMessageSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  // Chat whose initial message load has completed — guards the "No messages yet"
+  // empty state from flashing for a frame before fetchMessages starts.
+  const [loadedChatId, setLoadedChatId] = useState<string | null>(null);
+  const [messagesError, setMessagesError] = useState(false);
+  // True from the moment a chat is opened until its first message load finishes —
+  // drives the skeleton + top loading bar instead of the empty-state flash.
+  const isChatOpening = !!chatId && messages.length === 0 && !messagesError && (loadingMessages || loadedChatId !== chatId);
   const [sending, setSending] = useState(false);
-  const [ ,  ] = useState(false);
   const [activeMessageMenu, setActiveMessageMenu] = useState<{ msg: any, type: 'longPress' | 'click' } | null>(null);
   const [reactionSheetMsg, setReactionSheetMsg] = useState<any | null>(null);
   const [activeMessagePermissions, setActiveMessagePermissions] = useState<MessagePermissions | undefined>(undefined);
@@ -1416,6 +1492,7 @@ export default function Messages() {
   const [selectedMessageIds, setSelectedMessageIds] = useState<Set<string>>(new Set());
   const [pendingDeletingIds, setPendingDeletingIds] = useState<Set<string>>(new Set());
   const [failedResendModalMsg, setFailedResendModalMsg] = useState<any | null>(null);
+  const [swipeDeleteTarget, setSwipeDeleteTarget] = useState<{ chatId: string; name: string } | null>(null);
 
   const handleBulkDeleteForMe = () => {
     if (selectedMessageIds.size === 0 || !selectedChat) return;
@@ -1425,7 +1502,6 @@ export default function Messages() {
 
     // 1. Instantly update local UI (<100ms)
     deleteMessagesBulkLocal(targetChatId, idsArray);
-    idsArray.forEach(id => useMessageStore.getState().deleteMessage(id));
 
     // 2. Transmit background socket / offline queue
     const payload = { operationId, messageIds: idsArray, chatId: targetChatId };
@@ -1950,7 +2026,10 @@ export default function Messages() {
     } else {
       store.setActiveConversationId(null);
     }
-  }, [selectedChat?.chat_id, socket, user]);
+    // Depend on stable id primitives, not the user object — profile refreshes
+    // recreate the object and would re-download the whole conversation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChat?.chat_id, socket, user?.id, user?.user_id]);
 
   useEffect(() => {
     if (selectedChat?.chat_id && !selectedChat.chat_id.startsWith('temp_')) {
@@ -2061,6 +2140,8 @@ export default function Messages() {
   
 
   const fetchMessages = async (chatId: string) => {
+    setLoadingMessages(true);
+    setMessagesError(false);
     // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
     const cached: any[] = [];
     if (cached && cached.length > 0) {
@@ -2078,9 +2159,14 @@ export default function Messages() {
         const localOnly = prev.filter(m => !serverIds.has(m.message_id));
         return [...msgs, ...localOnly];
       });
+      setMessagesError(false);
       scrollToBottom();
     } catch (err) {
       logger.error('Failed to fetch messages', err);
+      setMessagesError(true);
+    } finally {
+      setLoadingMessages(false);
+      setLoadedChatId(chatId);
     }
   };
 
@@ -2089,7 +2175,7 @@ export default function Messages() {
     selectedChatRef.current = selectedChat;
   }, [selectedChat]);
 
-  // Dedicated effect to handle initial read receipts when a new conversation is explicitly opened/tapped
+  // Typing indicator — depends only on typing state, never triggers read receipts
   useEffect(() => {
     if (selectedChat) {
       const isTyping = typingUsers.some(t => t.chatId === selectedChat.chat_id);
@@ -2097,7 +2183,28 @@ export default function Messages() {
     } else {
       setPartnerIsTyping(false);
     }
+  }, [typingUsers, selectedChat?.chat_id]);
 
+  // Clear outgoing "typing" state when switching chats or unmounting so the
+  // partner never sees a stuck typing indicator.
+  const prevTypingChatIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    prevTypingChatIdRef.current = selectedChat?.chat_id || null;
+    return () => {
+      const oldChatId = prevTypingChatIdRef.current;
+      if (oldChatId && isTypingRef.current && socket?.connected) {
+        socket.emit('typing', { chatId: oldChatId, isTyping: false });
+      }
+      isTypingRef.current = false;
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = null;
+      }
+    };
+  }, [selectedChat?.chat_id, socket]);
+
+  // Dedicated effect to handle initial read receipts when a new conversation is explicitly opened/tapped
+  useEffect(() => {
     if (!socket || !selectedChat) return;
 
     if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
@@ -2113,7 +2220,7 @@ export default function Messages() {
         return c;
       }));
     }
-  }, [socket, selectedChat?.chat_id, typingUsers]);
+  }, [socket, selectedChat?.chat_id]);
 
   // Join the socket.io room for the active chat whenever it changes
   useEffect(() => {
@@ -2127,162 +2234,6 @@ export default function Messages() {
 
   useEffect(() => {
     if (!socket) return;
-
-    const handleNewMessage = (msg: any) => {
-      logger.log('[MESSAGE_RECEIVED]', msg);
-      const activeChat = selectedChatRef.current;
-      const isCurrentChat = activeChat && (msg.conversation_id === activeChat.chat_id || msg.chat_id === activeChat.chat_id || msg.sender_id === activeChat.partner_id);
-
-      // 1. If it belongs to current active chat, update message array
-      if (isCurrentChat) {
-        const activeChatId = currentChatIdRef.current;
-        if (activeChatId) {
-          updateMessagesForChat(activeChatId, prev => {
-            if (prev.some(m => m.message_id === msg.message_id)) return prev;
-            return [...prev, msg];
-          });
-        }
-        triggerWordEffect(msg.content);
-
-        // Let backend know we received it ONLY IF NOT GROUP
-        const isGroup = activeChat?.is_group || activeChat?.chat_type === 'group' || msg.chat_type === 'group';
-        if (!isGroup) {
-          if (document.hasFocus()) {
-            socket.emit('mark-read', msg.conversation_id || msg.chat_id);
-          } else {
-            socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
-          }
-        }
-
-        if (isNearBottomRef.current) {
-          setTimeout(() => scrollToBottom('smooth'), 50);
-          setUnreadCountInChat(0);
-        } else {
-          setUnreadCountInChat(prev => prev + 1);
-        }
-      } else {
-        // We received a message for a different chat, mark it delivered if personal
-        if (msg.chat_type !== 'group') {
-          socket.emit('mark-delivered', { messageId: msg.message_id, chatId: msg.conversation_id || msg.chat_id });
-        }
-      }
-
-      // 2. Reactively update the conversations list — use ONLY server-provided timestamps
-      setConversations((prev: any[]) => {
-        const chatId = msg.conversation_id || msg.chat_id;
-        const chatIndex = prev.findIndex(c => c.chat_id === chatId || c.partner_id === msg.sender_id);
-
-        const getFormattedPreview = (m: any) => {
-          const t = m.type || 'text';
-          const cnt = m.content || '';
-          if (t === 'location') {
-            if (cnt && typeof cnt === 'string' && cnt.startsWith('{')) {
-              try {
-                const p = JSON.parse(cnt);
-                if (p.name || p.address) return `📍 ${p.name || p.address}`;
-              } catch (e) { }
-            }
-            return '📍 Location';
-          }
-          if (t === 'live_location') return '📍 Live Location';
-          if (t === 'attachment') return '🎬 Story reply';
-          if (t === 'image') return '📷 Photo';
-          if (t === 'video') return '🎥 Video';
-          if (t === 'audio') return '🎤 Voice note';
-          if (t === 'document') return '📄 Document';
-          if (t === 'contact') return '👤 Contact Card';
-          if (cnt && typeof cnt === 'string' && cnt.startsWith('{"type":')) {
-            try {
-              const p = JSON.parse(cnt);
-              if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
-              if (p.type === 'live_location') return '📍 Live Location';
-            } catch (e) { }
-          }
-          return cnt || (t !== 'text' ? `Shared ${t}` : '');
-        };
-
-        const displayPreview = getFormattedPreview(msg);
-
-        if (chatIndex >= 0) {
-          const newConvs = [...prev];
-          const chat = { ...newConvs[chatIndex] };
-          chat.last_message = displayPreview;
-          chat.last_message_type = msg.type;
-          chat.last_message_content = displayPreview;
-          // Use server timestamp only — never fall back to client Date
-          chat.last_message_time = msg.sent_at || msg.created_at || chat.last_message_time;
-          // Inherit status from the server message payload; never assume 'sent'
-          chat.last_message_status = msg.status || 'sent';
-          chat.last_message_sender_id = msg.sender_id;
-          if (msg.sender_id !== (user?.id || user?.user_id) && (!activeChat || activeChat.chat_id !== chat.chat_id)) {
-            chat.unread_count = (chat.unread_count || 0) + 1;
-          }
-          newConvs.splice(chatIndex, 1);
-          newConvs.unshift(chat);
-          return newConvs;
-        } else {
-          // New conversation!
-          const newChat: any = {
-            chat_id: chatId,
-            partner_id: msg.sender_id,
-            partner_name: sanitizePartnerName(msg.sender_name || msg.sender_username || 'New Contact', msg.sender_username),
-            partner_avatar: msg.sender_avatar,
-            unread_count: (activeChat && activeChat.chat_id === chatId) ? 0 : 1,
-            last_message: displayPreview,
-            last_message_type: msg.type,
-            last_message_content: displayPreview,
-            last_message_time: msg.sent_at || msg.created_at,
-            last_message_status: msg.status || 'sent',
-            last_message_sender_id: msg.sender_id,
-            partner_online: true
-          };
-          return [newChat, ...prev];
-        }
-      });
-    };
-
-    const handleMessagesDelivered = (data: { chatId: string, messageId?: string, userId: string }) => {
-      const myId = user?.id || user?.user_id;
-      if (data.userId === myId) return; // Prevent falsely upgrading own messages when self receives
-
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => {
-          if (m.sender_id === myId && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
-            return { ...m, status: 'delivered' };
-          }
-          return m;
-        }));
-      }
-      setConversations((prev: any[]) => prev.map(c => {
-        if (c.chat_id === data.chatId && c.last_message_status !== 'read') {
-          return { ...c, last_message_status: 'delivered' };
-        }
-        return c;
-      }));
-    };
-
-    const handleMessagesRead = (data: { chatId: string, readAt?: string, userId?: string }) => {
-      const myId = user?.id || user?.user_id;
-      if (data.userId === myId) return; // Prevent falsely upgrading own messages when self reads
-
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => {
-          // Only upgrade MY outgoing messages to 'read'; never touch received messages, never downgrade
-          if (m.sender_id === myId && m.status !== 'read' && data.readAt) {
-            return { ...m, status: 'read', read_at: data.readAt };
-          }
-          return m;
-        }));
-      }
-      setConversations((prev: any[]) => prev.map(c => {
-        if (c.chat_id === data.chatId) {
-          return { ...c, last_message_status: 'read' };
-        }
-        return c;
-      }));
-    };
 
     const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
       setConversations((prev: any[]) => prev.map(chat => {
@@ -2359,108 +2310,23 @@ export default function Messages() {
       }
     };
 
-    const handleMessagePinned = (data: { messageId: string, chatId: string, pinnedBy: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: true, pinned_at: new Date().toISOString(), pinned_by: data.pinnedBy } : m));
-      }
-    };
+    // NOTE: message-pinned/unpinned, message-edited, message-deleted-*, and reactions
+    // are handled centrally by useMessageSocket.ts (writes straight into chatStore).
 
-    const handleMessageUnpinned = (data: { messageId: string, chatId: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, pinned: false, pinned_at: undefined, pinned_by: undefined } : m));
-      }
+    // Listen for chat-updated events so the sidebar refreshes (debounced —
+    // backend emits this to both parties on EVERY message)
+    let chatUpdatedTimer: number | undefined;
+    const handleChatUpdated = (data: { chatId: string }) => {
+      logger.log('[CHAT_UPDATED_RECEIVED]', data);
+      if (chatUpdatedTimer) window.clearTimeout(chatUpdatedTimer);
+      chatUpdatedTimer = window.setTimeout(() => fetchInbox(), 1500);
     };
+    socket.on('chat-updated', handleChatUpdated);
 
-    const handleMessageEdited = (data: { messageId: string, chatId: string, content: string, editedAt: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => m.message_id === data.messageId ? { ...m, content: data.content, edited: true, edited_at: data.editedAt } : m));
-      }
-    };
-
-    const handleMessageDeletedEveryone = (data: { messageId: string, chatId: string }) => {
-      logger.log('[DELETE_RECEIVED]', data);
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => {
-          const updated = prev.map(m => m.message_id === data.messageId ? { ...m, content: 'This message was deleted', is_deleted_for_everyone: true } : m);
-          const updatedMsg = updated.find(m => m.message_id === data.messageId);
-          logger.log('[DELETE_STORE_UPDATED]', updatedMsg);
-          return updated;
-        });
-      }
-    };
-
-    const handleMessageDeletedMe = (data: { messageId: string, chatId: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.filter(m => m.message_id !== data.messageId));
-      }
-    };
-
-    const handleNewReaction = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => {
-          if (m.message_id === data.messageId) {
-            const reactions = m.reactions || [];
-            if (reactions.some(r => r.user_id === data.userId)) {
-              return { ...m, reactions: reactions.map(r => r.user_id === data.userId ? { ...r, emoji: data.emoji } : r) };
-            }
-            return { ...m, reactions: [...reactions, { emoji: data.emoji, user_id: data.userId }] };
-          }
-          return m;
-        }));
-      }
-    };
-    // Lightweight re-fetch wrapper used by chat-updated listener
-    
-    const handleReactionRemoved = (data: { messageId: string, chatId: string, userId: string, emoji: string }) => {
-      const activeChatId = currentChatIdRef.current;
-      if (activeChatId && data.chatId === activeChatId) {
-        updateMessagesForChat(activeChatId, prev => prev.map(m => {
-          if (m.message_id === data.messageId) {
-            const reactions = m.reactions || [];
-            return { ...m, reactions: reactions.filter(r => !(r.user_id === data.userId && r.emoji === data.emoji)) };
-          }
-          return m;
-        }));
-      }
-    };
-
-    const handleNewMessageWrapped = (message: any) => {
-      logger.log('[NEW_MESSAGE]', message.chatId);
-      logger.log('[CURRENT_CHAT]', useChatStore.getState().currentChatId);
-      logger.log('[STORE_MESSAGES]', useChatStore.getState().messagesByChat?.[message.chatId]?.length);
-      handleNewMessage(message);
-    };
-
-    // Commented out to avoid duplication with useMessageSocket.ts which updates the chatStore directly.
-    // socket.on('new-message', handleNewMessageWrapped);
-    // socket.on('receive_message', handleNewMessage);
-    // socket.on('messages-delivered', handleMessagesDelivered);
-    // socket.on('messages-read', handleMessagesRead);
     socket.on('user-status', handleUserStatus);
     socket.on('user-typing', handleUserTyping);
     socket.on('user-note-update', handleUserNoteUpdate);
     socket.on('group:presence:update', handleGroupPresenceUpdate);
-    socket.on('message-pinned', handleMessagePinned);
-    socket.on('message-unpinned', handleMessageUnpinned);
-    // socket.on('message-edited', handleMessageEdited);
-    // socket.on('message-deleted-everyone', handleMessageDeletedEveryone);
-    // socket.on('message-deleted-me', handleMessageDeletedMe);
-    // socket.on('new-reaction', handleNewReaction);
-    // socket.on('reaction-removed', handleReactionRemoved);
-
-    // Listen for chat-updated events so the sidebar refreshes
-    const handleChatUpdated = (data: { chatId: string }) => {
-      logger.log('[CHAT_UPDATED_RECEIVED]', data);
-      // Re-fetch inbox to pick up new last_message / unread_count
-      fetchInbox();
-    };
-    socket.on('chat-updated', handleChatUpdated);
 
     const handleReconnect = () => {
       const activeChatId = currentChatIdRef.current;
@@ -2472,21 +2338,11 @@ export default function Messages() {
     socket.on('connect', handleReconnect);
 
     return () => {
-      socket.off('new-message', handleNewMessageWrapped);
-      socket.off('receive_message', handleNewMessage);
-      socket.off('messages-delivered', handleMessagesDelivered);
-      socket.off('messages-read', handleMessagesRead);
+      if (chatUpdatedTimer) window.clearTimeout(chatUpdatedTimer);
       socket.off('user-status', handleUserStatus);
       socket.off('user-typing', handleUserTyping);
       socket.off('user-note-update', handleUserNoteUpdate);
       socket.off('group:presence:update', handleGroupPresenceUpdate);
-      socket.off('message-pinned', handleMessagePinned);
-      socket.off('message-unpinned', handleMessageUnpinned);
-      socket.off('message-edited', handleMessageEdited);
-      socket.off('message-deleted-everyone', handleMessageDeletedEveryone);
-      socket.off('message-deleted-me', handleMessageDeletedMe);
-      socket.off('new-reaction', handleNewReaction);
-      socket.off('reaction-removed', handleReactionRemoved);
       socket.off('chat-updated', handleChatUpdated);
       socket.off('connect', handleReconnect);
     };
@@ -2541,9 +2397,11 @@ export default function Messages() {
       }
     }
 
-    // 3. Scroll to bottom
+    // 3. Scroll to bottom, or count an unread arrival when scrolled up
     if (isNearBottomRef.current) {
       setTimeout(() => scrollToBottom('smooth'), 50);
+    } else if (!isMe) {
+      setUnreadCountInChat(prev => prev + 1);
     }
   }, [messages.length, selectedChat?.chat_id]);
 
@@ -2724,7 +2582,7 @@ export default function Messages() {
                   }
                 });
               } else {
-                PersistentOfflineQueue.enqueue(payload);
+                PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
               }
             }
           } catch (err) {
@@ -2811,7 +2669,6 @@ export default function Messages() {
 
     // ── Step 1: Display IMMEDIATELY — user sees the message before any network call
     updateMessages(prev => [...prev, optimisticMsg]);
-    if (!contentOverride && !isRich) setNewMessage('');
     if (selectedChat) {
       useChatStore.getState().setDraft(selectedChat.chat_id, '');
     }
@@ -2868,13 +2725,21 @@ export default function Messages() {
       context: 'chat'
     }).catch((err) => logger.warn('[Sparkle] Outbox persistence warning:', err));
 
-    // Start individual 10-second delivery timeout timer
-    PersistentOfflineQueue.startMessageTimeout(messageId, () => {
-      updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'failed' } : m)));
+    // Start individual 10-second delivery timeout timer ONLY when we can actually transmit.
+    // Offline messages sit in the outbox as 'queued' and flush automatically on reconnect.
+    if (socket?.connected) {
+      PersistentOfflineQueue.startMessageTimeout(messageId, () => {
+        updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'failed' } : m)));
+        if (selectedChat) {
+          useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'failed' });
+        }
+      });
+    } else {
+      updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId ? { ...m, status: 'queued' } : m)));
       if (selectedChat) {
-        useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'failed' });
+        useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, { status: 'queued' });
       }
-    });
+    }
 
     // ── Step 3: Transmit via WebSocket if connected ──
     const emitStartTime = performance.now();
@@ -2942,6 +2807,14 @@ export default function Messages() {
   const handleRetryMessage = (failedMsg: any) => {
     if (!selectedChat) return;
     const msgId = failedMsg.message_id || failedMsg.id;
+
+    // Guard: a failed upload keeps a local blob:/data: URL which is dead after
+    // the session — re-sending it would store a permanently broken link.
+    const retryMediaUrl = failedMsg.media_url || failedMsg.mediaUrl;
+    if (retryMediaUrl && typeof retryMediaUrl === 'string' && (retryMediaUrl.startsWith('blob:') || retryMediaUrl.startsWith('data:'))) {
+      showError('This attachment could not be uploaded. Please re-attach the file and send again.');
+      return;
+    }
 
     // Mark back to 'sending'
     updateMessages(prev => prev.map(m =>
@@ -3651,6 +3524,18 @@ export default function Messages() {
                   onRetry={() => fetchInbox()}
                 />
               </div>
+            ) : loading && (!Array.isArray(filteredConversations) || filteredConversations.length === 0) ? (
+              <div className="py-4 px-2 flex flex-col gap-3" aria-hidden>
+                {[0, 1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="flex items-center gap-3 px-2">
+                    <div className="w-12 h-12 rounded-full bg-white/5 animate-pulse shrink-0" />
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="h-3 w-1/3 rounded bg-white/5 animate-pulse" />
+                      <div className="h-2.5 w-1/2 rounded bg-white/[0.03] animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               Array.isArray(filteredConversations) && filteredConversations.map((chat) => (
                 <SparkleSwipeableChatItem
@@ -3663,6 +3548,7 @@ export default function Messages() {
                   onSelect={() => toggleChatSelection(chat.chat_id)}
                   onOpen={() => {
                     setSelectedChat(chat);
+                    setLoadingMessages(true);
                     navigate(`/messages?chat=${chat.chat_id}`);
                     if (chat.unread_count > 0) {
                       setConversations((prev: any[]) => prev.map(c =>
@@ -3678,43 +3564,12 @@ export default function Messages() {
                       api.patch(`/messages/chat/${targetId}/archive`, { isArchived: true }).catch(logger.error);
                     });
 
-                    setUndoToast({
-                      id: 'archive_' + Date.now(),
-                      message: 'Chat archived',
-                      undoAction: () => {
-                        toggleArchive(targetId, false);
-                        api.post(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(() => {
-                          api.patch(`/messages/chat/${targetId}/archive`, { isArchived: false }).catch(logger.error);
-                        });
-                      },
-                      commitAction: () => { },
-                    });
+                    showSuccess('Chat archived');
                   }}
                   onDelete={() => {
-                    const targetId = chat.chat_id;
-                    toggleDelete(targetId);
-                    api.delete(`/messages/chat/${targetId}`).catch(logger.error);
-
-                    setUndoToast({
-                      id: 'delete_' + Date.now(),
-                      message: 'Conversation deleted',
-                      undoAction: () => { },
-                      commitAction: () => { },
-                    });
-                  }}
-                  getStatusLabel={(c) => {
-                    const msgType = c.last_message_type;
-                    const msgTxt = c.last_message || '';
-                    if (msgType === 'location') return '📍 Location';
-                    if (msgType === 'live_location') return '📍 Live Location';
-                    if (typeof msgTxt === 'string' && msgTxt.startsWith('{"type":')) {
-                      try {
-                        const p = JSON.parse(msgTxt);
-                        if (p.type === 'location') return p.name || p.address ? `📍 ${p.name || p.address}` : '📍 Location';
-                        if (p.type === 'live_location') return '📍 Live Location';
-                      } catch (e) { }
-                    }
-                    return msgTxt || 'No messages yet';
+                    const c = chat as any;
+                    const name = c.partner_name || c.display_name || c.name || c.partner_username || 'this conversation';
+                    setSwipeDeleteTarget({ chatId: chat.chat_id, name });
                   }}
                   formatMessageText={(txt) => {
                     if (typeof txt === 'string' && txt.startsWith('{"type":')) {
@@ -3878,11 +3733,11 @@ export default function Messages() {
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
                         {!isSystemChat && (
                           <>
-                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
-                            <button className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
+                            <button aria-label="Start voice call" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                            <button aria-label="Start video call" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                           </>
                         )}
-                        <button onClick={() => setShowChatSettings(true)} className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
+                        <button onClick={() => setShowChatSettings(true)} aria-label="Chat settings" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
                           <Info size={19} strokeWidth={2.2} />
                         </button>
                       </div>
@@ -3890,6 +3745,38 @@ export default function Messages() {
                   );
                 })()}
               </header>
+
+              {/* Reconnecting banner — visible whenever the realtime socket is down */}
+              {socketStatus !== 'connected' && (
+                <div className="flex items-center justify-center gap-2 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-[11px] font-semibold tracking-tight shrink-0" role="status">
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden />
+                  {socketStatus === 'disconnected'
+                    ? 'Reconnecting… messages will send automatically'
+                    : 'Connecting…'}
+                </div>
+              )}
+
+              {/* Instagram-style top loading bar while the chat's first messages load */}
+              <AnimatePresence>
+                {isChatOpening && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="fixed top-0 left-0 right-0 h-[3px] z-(--z-max) pointer-events-none overflow-hidden bg-white/[0.04]"
+                    role="status"
+                    aria-label="Opening chat"
+                  >
+                    <motion.div
+                      className="h-full w-2/5 rounded-full bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] shadow-[0_0_12px_rgba(255,61,109,0.6)]"
+                      initial={{ x: '-110%' }}
+                      animate={{ x: '320%' }}
+                      transition={{ duration: 1.05, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               {/* Selection Mode Top Bar */}
               <AnimatePresence>
@@ -4023,11 +3910,40 @@ export default function Messages() {
                     )}
                   </>
                 )}
-                <div className="flex flex-col">
+                <div className="flex flex-col" role="log" aria-live="polite" aria-label="Message conversation">
+                  {isChatOpening ? (
+                    <div className="flex flex-col gap-3 py-6" aria-hidden>
+                      {[0, 1, 2, 3, 4].map(i => (
+                        <div key={i} className={`flex ${i % 2 ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`h-10 rounded-2xl bg-white/5 animate-pulse ${i % 2 ? 'w-40' : 'w-56'}`} />
+                        </div>
+                      ))}
+                    </div>
+                  ) : messagesError && messages.length === 0 ? (
+                    <div className="py-10">
+                      <ModernOfflineState
+                        type="error"
+                        title="Couldn't load messages"
+                        message="Check your connection and try again."
+                        onRetry={() => selectedChat && fetchMessages(selectedChat.chat_id)}
+                      />
+                    </div>
+                  ) : messages.length === 0 && !messageSearch && loadedChatId === chatId ? (
+                    <div className="flex flex-col items-center justify-center text-center py-16 px-6">
+                      <div className="text-4xl mb-3 select-none" aria-hidden>👋</div>
+                      <p className="text-white/60 text-sm font-medium">No messages yet</p>
+                      <p className="text-white/30 text-xs mt-1">Say hi — send the first message!</p>
+                    </div>
+                  ) : null}
+                  {messageSearch && filteredMessages.length === 0 ? (
+                    <div className="py-10 text-center">
+                      <p className="text-white/40 text-sm">No messages matching “{messageSearch}”</p>
+                    </div>
+                  ) : null}
                   {filteredMessages.flatMap((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
-                    const prevMsg = i > 0 ? messages[i - 1] : null;
-                    const nextMsg = i < messages.length - 1 ? messages[i + 1] : null;
+                    const prevMsg = i > 0 ? filteredMessages[i - 1] : null;
+                    const nextMsg = i < filteredMessages.length - 1 ? filteredMessages[i + 1] : null;
                     const isFirst = !prevMsg || prevMsg.sender_id !== msg.sender_id;
                     const isLast = !nextMsg || nextMsg.sender_id !== msg.sender_id;
                     const hasTail = !msg.reply_content;
@@ -4472,8 +4388,13 @@ export default function Messages() {
                               {isMe && (
                                 <div className="flex items-center -ml-0.5">
                                   {(selectedChat?.is_group || selectedChat?.chat_type === 'group') ? (
-                                    <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
-                                  ) : msg.status === 'failed' ? null : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
+                                    msg.status === 'failed' || msg.status === 'blocked' ? null
+                                    : msg.status === 'sending' || msg.status === 'queued' ? (
+                                      <Clock size={12} className="text-[#cbd5e1] ml-1 drop-shadow-md" strokeWidth={2} />
+                                    ) : (
+                                      <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
+                                    )
+                                  ) : msg.status === 'failed' || msg.status === 'blocked' ? null : msg.is_read || msg.status === 'read' || msg.status === 'seen' ? (
                                     <div className="flex -space-x-[7px] drop-shadow-md">
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
                                       <Check size={15} className="text-[#38bdf8]" strokeWidth={3} />
@@ -4483,7 +4404,7 @@ export default function Messages() {
                                       <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
                                       <Check size={15} className="text-[#cbd5e1]" strokeWidth={3} />
                                     </div>
-                                  ) : msg.status === 'sending' ? (
+                                  ) : msg.status === 'sending' || msg.status === 'queued' ? (
                                     <Clock size={12} className="text-[#cbd5e1] ml-1 drop-shadow-md" strokeWidth={2} />
                                   ) : (
                                     <Check size={15} className="text-[#cbd5e1] drop-shadow-md" strokeWidth={3} />
@@ -4493,14 +4414,22 @@ export default function Messages() {
                             </div>
                           </MessageBubbleWrapper>
 
-                          {/* Outer Delivery-Error Row for Outgoing Failed Messages */}
-                          {isMe && msg.status === 'failed' && (
+                          {/* Outer Delivery-Error Row for Outgoing Failed / Blocked Messages */}
+                          {isMe && msg.status === 'queued' && (
+                            <div className="flex items-center justify-end gap-1.5 mt-1 mb-1 px-1 select-none">
+                              <Clock size={11} className="text-white/30" strokeWidth={2.5} />
+                              <span className="text-[10px] text-white/30 font-medium">
+                                Queued — will send when you're back online
+                              </span>
+                            </div>
+                          )}
+                          {isMe && (msg.status === 'failed' || msg.status === 'blocked') && (
                             <div className="flex items-center justify-end gap-3 mt-1.5 mb-1.5 px-1 select-none animate-fade-in">
                               <button
                                 type="button"
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  setFailedResendModalMsg(msg);
+                                  if (msg.status !== 'blocked') setFailedResendModalMsg(msg);
                                 }}
                                 className="flex items-center gap-2 text-red-500 hover:text-red-400 font-extrabold text-xs tracking-tight transition-colors cursor-pointer group"
                               >
@@ -4508,22 +4437,26 @@ export default function Messages() {
                                   !
                                 </span>
                                 <span className="font-extrabold text-red-500 hover:text-red-400">
-                                  Message not delivered · {safeTime(msg.failed_at || msg.sent_at || msg.created_at || '')}
+                                  {msg.status === 'blocked'
+                                    ? 'Not sent — you can no longer message this user'
+                                    : <>Message not delivered · {safeTime(msg.failed_at || msg.sent_at || msg.created_at || '')}</>}
                                 </span>
                               </button>
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRetryMessage(msg);
-                                }}
-                                disabled={msg.status === 'sending'}
-                                title="Resend message"
-                                aria-label="Resend message"
-                                className="flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 text-white transition-all cursor-pointer shadow-lg shadow-red-600/40 border border-red-400/30 ml-0.5"
-                              >
-                                <RotateCw size={22} strokeWidth={3} className={clsx("text-white drop-shadow-sm", msg.status === 'sending' && "animate-spin")} />
-                              </button>
+                              {msg.status !== 'blocked' && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRetryMessage(msg);
+                                  }}
+                                  disabled={msg.status === 'sending'}
+                                  title="Resend message"
+                                  aria-label="Resend message"
+                                  className="flex items-center justify-center min-w-[44px] min-h-[44px] w-11 h-11 rounded-full bg-red-600 hover:bg-red-500 active:scale-95 text-white transition-all cursor-pointer shadow-lg shadow-red-600/40 border border-red-400/30 ml-0.5"
+                                >
+                                  <RotateCw size={22} strokeWidth={3} className={clsx("text-white drop-shadow-sm", msg.status === 'sending' && "animate-spin")} />
+                                </button>
+                              )}
                             </div>
                           )}
 
@@ -4590,6 +4523,7 @@ export default function Messages() {
                       scrollToBottom('smooth');
                       setUnreadCountInChat(0);
                     }}
+                    aria-label={unreadCountInChat > 0 ? `Scroll to latest message, ${unreadCountInChat} unread` : 'Scroll to latest message'}
                     className="absolute bottom-[90px] left-1/2 -translate-x-1/2 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
                   >
                     <ArrowDown size={20} strokeWidth={3} />
@@ -4731,10 +4665,6 @@ export default function Messages() {
                 />
               )}
             </PullUpDisappearingGesture>
-          ) : loading ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
-              <div className="w-8 h-8 border-4 border-[#ff1493] border-t-transparent rounded-full animate-spin"></div>
-            </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" aria-hidden>
@@ -4825,12 +4755,11 @@ export default function Messages() {
                               next.delete(targetId);
                               return next;
                             });
-                            if (res?.success) {
-                              deleteMessageForEveryone(targetChatId, targetId, 'This message was deleted');
-                              useMessageStore.getState().deleteMessage(targetId);
-                            } else {
-                              setPrivacyAlert({ message: res?.error || 'Could not delete message for everyone.' });
-                            }
+                              if (res?.success) {
+                                deleteMessageForEveryone(targetChatId, targetId, 'This message was deleted');
+                              } else {
+                                showError(res?.error || 'Could not delete message for everyone.');
+                              }
                           });
                         } else {
                           PersistentOfflineQueue.enqueueInteraction({ type: 'delete-message', chatId: targetChatId, messageId: targetId });
@@ -5933,7 +5862,7 @@ export default function Messages() {
                                 }
                               });
                             } else {
-                              PersistentOfflineQueue.enqueue(payload);
+                              PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
                             }
                           }
                         } catch (err) {
@@ -6412,18 +6341,18 @@ export default function Messages() {
           const target = peekChat?.partner_username || user?.username || user?.user_id;
           if (target) navigate(`/profile/${target}`);
         }}
-        onMarkUnread={() => showInfo('Marked as Unread')}
+        onMarkUnread={handleMarkUnread}
         onFavorite={handleBatchFavorite}
         onPin={handleBatchPin}
-        onMute={() => showInfo('Muted Notifications')}
-        onClearChat={() => showSuccess('Chat Cleared')}
-        onExportChat={() => showInfo('Exporting Chat...')}
-        onBlockUser={() => showError('User Blocked')}
-        onReportUser={() => showInfo('User Reported')}
+        onMute={handleOrbitMute}
+        onClearChat={handleClearChat}
+        onExportChat={handleExportChat}
+        onBlockUser={handleBlockUser}
+        onReportUser={handleReportUser}
         onMessageSettings={() => navigate('/messages/settings')}
-        isPinned={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
-        isFavorite={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
-        isMuted={selectedChatIds.length === 1 && conversations.find(c => c.chat_id === selectedChatIds[0])?.is_muted}
+        isPinned={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
+        isFavorite={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
+        isMuted={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_muted}
       />
 
       <SparkleOrbitMenu
@@ -6433,9 +6362,9 @@ export default function Messages() {
           { id: 'profile', label: 'View Profile', icon: <User size={18} />, onClick: () => navigate(`/profile/${user?.username || user?.user_id}`) },
           { id: 'fav', label: 'Favorite Chat', icon: <Star size={18} className="text-amber-400 fill-amber-400" />, onClick: handleBatchFavorite },
           { id: 'pin', label: 'Pin Chat', icon: <Pin size={18} className="text-[#FF008A] fill-[#FF008A]" />, onClick: handleBatchPin },
-          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: () => showSuccess('Chat Cleared') },
-          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: () => showError('User Blocked') },
-          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: () => showInfo('Chat Exported') },
+          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: handleClearChat },
+          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: handleBlockUser },
+          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: handleExportChat },
         ]}
       />
 
@@ -6671,6 +6600,57 @@ export default function Messages() {
           <Plus size={24} strokeWidth={2.5} className="text-white" />
         </button>
       )}
+
+      {/* Swipe Delete Confirmation Modal */}
+      <AnimatePresence>
+        {swipeDeleteTarget && (
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ opacity: 0, y: 100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 100 }}
+              className="w-full sm:max-w-md bg-slate-900 border-t sm:border border-white/10 rounded-t-3xl sm:rounded-3xl p-6 text-white shadow-2xl space-y-4"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center border border-red-500/30 shrink-0">
+                  <Trash2 size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Delete conversation?</h3>
+                  <p className="text-xs text-white/50">
+                    Chat with {swipeDeleteTarget.name} will be removed for you. This cannot be undone.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const targetId = swipeDeleteTarget.chatId;
+                    setSwipeDeleteTarget(null);
+                    toggleDelete(targetId);
+                    api.delete(`/messages/chat/${targetId}`).catch(logger.error);
+                    showSuccess('Conversation deleted');
+                  }}
+                  className="w-full flex items-center justify-center gap-2 py-3.5 px-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-sm transition-all shadow-lg active:scale-98"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setSwipeDeleteTarget(null)}
+                  className="w-full py-2.5 text-center text-xs font-bold text-white/40 hover:text-white/70 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <DeveloperEmergencyConsoleModal isOpen={showDevConsole} onClose={() => setShowDevConsole(false)} />
 

@@ -66,6 +66,18 @@ class NotificationService {
         }
     }
 
+    /**
+     * Direct FCM push to a single device token. Used by the delivery-queue
+     * worker as the offline-DM fallback when the recipient's socket is
+     * unreachable (was called but never implemented — every offline push
+     * threw "sendPush is not a function").
+     */
+    static async sendPush({ token, title, body, data = {} }) {
+        if (!token) return null;
+        const { sendFcmNotification } = require('../utils/fcm');
+        return sendFcmNotification([token], title, body, data);
+    }
+
     static getPriorityValue(priority) {
         switch (priority) {
             case 'HIGH': return 1;

@@ -21,6 +21,9 @@ router.post('/subscribe', notificationController.subscribePush);
 // Register FCM token for mobile push
 router.post('/register-fcm-token', notificationController.registerFcmToken);
 
+// Deregister FCM token (logout / account removal)
+router.post('/deregister-fcm-token', notificationController.deregisterFcmToken);
+
 // Mark all as read
 router.put('/read-all', notificationController.markAllAsRead);
 router.post('/read-all', notificationController.markAllAsRead);

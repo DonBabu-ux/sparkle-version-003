@@ -1,5 +1,6 @@
 // socketService.ts
 import { io, Socket } from 'socket.io-client';
+import { Capacitor } from '@capacitor/core';
 import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
 import { refreshTokenOnce, ensureFreshAccessToken } from './tokenRefresh';
@@ -29,7 +30,13 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
         const currentToken = useUserStore.getState().token;
         const currentUser = useUserStore.getState().user;
         const currentUserId = currentUser?.user_id || currentUser?.id;
-        cb({ token: currentToken, userId: currentUserId });
+        // FCM device token → stored on this socket's user_sessions row so the
+        // delivery-queue worker can push offline DMs (PushService caches it).
+        let fcmToken: string | null = null;
+        try {
+          fcmToken = localStorage.getItem('sparkle_fcm_token');
+        } catch { /* storage unavailable */ }
+        cb({ token: currentToken, userId: currentUserId, pushToken: fcmToken, platform: Capacitor.getPlatform() });
       },
       reconnectionAttempts: Infinity,
       reconnectionDelay: 1000,

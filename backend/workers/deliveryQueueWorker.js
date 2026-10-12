@@ -136,22 +136,40 @@ class DeliveryQueueWorker {
                 }
 
                 // 3b. Push notification fallback (only when socket is not reachable)
-                if (!deliveredViaSocket && item.push_token) {
-                    try {
-                        const notificationService = require('../services/notification.service');
-                        await notificationService.sendPush({
-                            token: item.push_token,
-                            title: 'New Message',
-                            body: item.type === 'text' ? item.content : `Sent a ${item.type}`,
-                            data: {
-                                type: 'message',
-                                chatId: item.chat_id || item.conversation_id,
-                                messageId: item.message_id,
-                                server_sequence: String(item.server_sequence)
-                            }
-                        });
-                    } catch (pushErr) {
-                        logger.warn(`[DeliveryQueueWorker] Push fallback failed for session ${item.session_id}: ${pushErr.message}`);
+                if (!deliveredViaSocket) {
+                    // Prefer the session's own push token; fall back to the
+                    // account's registered FCM token (web sessions never set
+                    // user_sessions.push_token, so without this the offline-DM
+                    // push never fired for them).
+                    let pushToken = item.push_token;
+                    if (!pushToken) {
+                        try {
+                            const [fcmRows] = await db.query(
+                                'SELECT token FROM fcm_tokens WHERE user_id = ? LIMIT 1',
+                                [item.recipient_id]
+                            );
+                            pushToken = fcmRows[0]?.token;
+                        } catch (fcmErr) {
+                            logger.warn(`[DeliveryQueueWorker] fcm_tokens lookup failed: ${fcmErr.message}`);
+                        }
+                    }
+                    if (pushToken) {
+                        try {
+                            const notificationService = require('../services/notification.service');
+                            await notificationService.sendPush({
+                                token: pushToken,
+                                title: 'New Message',
+                                body: item.type === 'text' ? item.content : `Sent a ${item.type}`,
+                                data: {
+                                    type: 'message',
+                                    chatId: item.chat_id || item.conversation_id,
+                                    messageId: item.message_id,
+                                    server_sequence: String(item.server_sequence)
+                                }
+                            });
+                        } catch (pushErr) {
+                            logger.warn(`[DeliveryQueueWorker] Push fallback failed for session ${item.session_id}: ${pushErr.message}`);
+                        }
                     }
                 }
 

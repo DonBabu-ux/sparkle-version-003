@@ -374,7 +374,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-4">
                 <img
-                  src="/sparklelogo.png"
+                  src="/logo.png"
                   className="w-24 h-24 rounded-full object-cover border-4 border-rose-500/40 shadow-[0_0_30px_rgba(244,63,94,0.4)]"
                   alt="Sparkle Official"
                 />

@@ -19,6 +19,7 @@ import type { SoundTheme } from '../audio/settings/ThemeController';
 import type { SoundKey } from '../audio/managers/SoundManager';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { sanitizePartnerName } from '../utils/nameSanitizer';
+import { getDeviceSessionId } from '../utils/deviceSession';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -414,7 +415,7 @@ export default function MessagesSettings() {
   const [deviceSessions, setDeviceSessions] = useState<DeviceSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(false);
   const [revokingSession, setRevokingSession] = useState<string | null>(null);
-  const currentSessionId = useMemo(() => localStorage.getItem('sparkle_session_id'), []);
+  const currentSessionId = useMemo(() => getDeviceSessionId(user?.user_id), [user?.user_id]);
 
   const fetchDeviceSessions = useCallback(async () => {
     setLoadingSessions(true);

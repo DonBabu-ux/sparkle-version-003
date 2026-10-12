@@ -329,8 +329,13 @@ initializeSocket(server);
 // Initialize email service
 initializeEmail();
 
-if (require.main === module) {
-    server.listen(PORT, () => {
+// Bind when run directly (node server.js inside backend/) OR through the
+// hosting-platform root entry (root server.js sets SPARKLE_ROOT_ENTRY=1).
+// Without the flag, `require('./backend/server.js')` from root never listens.
+if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
+    // Bind explicitly on 0.0.0.0 — Render requires it and its port scanner
+    // connects over IPv4.
+    server.listen(PORT, '0.0.0.0', () => {
         logger.info(`------------------------------------------`);
         logger.info(`🔥 Sparkle Server running on port ${PORT}`);
         logger.info(`🔌 WebSocket server initialized`);
@@ -365,7 +370,7 @@ if (require.main === module) {
             logger.error(`Port ${PORT} is in use, retrying in 1s...`);
             setTimeout(() => {
                 server.close();
-                server.listen(PORT);
+                server.listen(PORT, '0.0.0.0');
             }, 1000);
         } else {
             logger.error('Server error:', e);

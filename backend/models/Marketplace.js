@@ -2402,6 +2402,19 @@ class Marketplace {
     }
 
     /**
+     * Check whether the current user follows (favorites) a seller.
+     * MUST query marketplace_seller_favorites — the same table used by the
+     * final toggleFavoriteSeller definition below (class method order wins).
+     */
+    static async isFavoriteSeller(userId, sellerId) {
+        const [rows] = await pool.query(
+            'SELECT 1 FROM marketplace_seller_favorites WHERE user_id = ? AND seller_id = ? LIMIT 1',
+            [userId, sellerId]
+        );
+        return rows.length > 0;
+    }
+
+    /**
      * Toggle favorite seller (follow/unfollow a seller)
      */
     static async toggleFavoriteSeller(userId, sellerId) {

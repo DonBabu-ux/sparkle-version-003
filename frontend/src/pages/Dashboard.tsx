@@ -306,7 +306,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                 {(() => {
                   // Derive own story group from already-fetched stories
                   const myStoryGroup = stories.find(
-                    (g: StoryGroup) => String(g.user_id) === String(user?.user_id)
+                    (g: StoryGroup) => String(g.user_id) === String(user?.user_id || user?.id)
                   );
                   const myFirstStory = myStoryGroup?.stories[0];
                   // Thumbnail fallback: thumbnail_url → media_url (images only) → avatar
@@ -320,7 +320,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                     <div
                       onClick={() =>
                         myStoryGroup
-                          ? navigate(`/stories/${user?.user_id}`, { state: { userStoryGroup: myStoryGroup } })
+                          ? navigate(`/stories/${user?.user_id || user?.id}`, { state: { userStoryGroup: myStoryGroup } })
                           : navigate('/afterglow/create')
                       }
                       className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-black rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10"

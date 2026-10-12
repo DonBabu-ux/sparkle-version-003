@@ -1,8 +1,11 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 
+// Lucide-style icon component: accepts className/size and renders an SVG.
+export type SettingIcon = React.ComponentType<React.SVGProps<SVGSVGElement>>;
+
 export interface SettingRowProps {
-  icon: React.ElementType;
+  icon: SettingIcon;
   title: string;
   description?: string;
   value?: string | React.ReactNode;

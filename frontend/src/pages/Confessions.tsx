@@ -11,7 +11,7 @@ import { formatCount } from '../utils/format';
 import data from '@emoji-mart/data';
 import Picker from '@emoji-mart/react';
 import Spinner from '../components/ui/Spinner';
-import { ShieldCheck, Plus, Orbit, ArrowLeft, Flame, Sparkles, Globe, Smile, BookOpen, MessageCircleHeart, Star, Feather, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Send } from 'lucide-react';
+import { ShieldCheck, Plus, Orbit, ArrowLeft, Flame, Globe, Star, Snowflake, ShieldOff, MoreHorizontal, Download, Flag, X, MessageCircle, Send } from 'lucide-react';
 import { logger } from '../utils/logger';
 
 const HeartIcon = ({ active, size = 25, className = "" }: { active?: boolean, size?: number, className?: string }) => (
@@ -56,7 +56,7 @@ interface Confession {
   category?: string;
   author_alias?: string;
   image_url?: string;
-  react_count?: number;
+  rating_count?: number;
   relate_count?: number;
   support_count?: number;
   smile_count?: number;
@@ -66,15 +66,20 @@ interface Confession {
   created_at?: string;
 }
 
+// Tab ids match the categories the compose modal actually posts (backend stores `category`).
 const CATEGORIES = [
-  { id: 'all',        label: 'All',        icon: <Globe size={13} /> },
-  { id: 'love',       label: 'Love',       icon: <MessageCircleHeart size={13} /> },
-  { id: 'academics',  label: 'Academics',  icon: <BookOpen size={13} /> },
-  { id: 'gossip',     label: 'Gossip',     icon: <Sparkles size={13} /> },
-  { id: 'regrets',    label: 'Regrets',    icon: <Feather size={13} /> },
-  { id: 'deep secret',label: 'Deep Secret',icon: <Star size={13} /> },
-  { id: 'funny',      label: 'Funny',      icon: <Smile size={13} /> },
+  { id: 'all',   label: 'All',         icon: <Globe size={13} /> },
+  { id: 'fire',  label: 'Hot Take',    icon: <Flame size={13} /> },
+  { id: 'ice',   label: 'Cold Truth',  icon: <Snowflake size={13} /> },
+  { id: 'ghost', label: 'Deep Secret', icon: <Star size={13} /> },
 ];
+
+const CATEGORY_LABELS: Record<string, string> = {
+  fire: 'Hot Take',
+  ice: 'Cold Truth',
+  ghost: 'Deep Secret',
+  general: 'General',
+};
 
 export default function Confessions() {
   const { user } = useUserStore();
@@ -83,54 +88,72 @@ export default function Confessions() {
   const location = useLocation();
   const urlConfessionId =
     pathConfessionId || new URLSearchParams(location.search).get('id') || undefined;
-  const deepLinkHandledRef = useRef(false);
-  const { activeModal, setActiveModal, triggerSuccess } = useModalStore();
+  const { activeModal, setActiveModal } = useModalStore();
   const [showComposeModal, setShowComposeModal] = useState(false);
   const [confessions, setConfessions] = useState<Confession[]>([]);
   const [loading, setLoading] = useState(true);
-  const [campus] = useState(user?.campus || 'all');
+  const [fetchError, setFetchError] = useState(false);
+  const campus = user?.campus || 'all';
   const [activeCategory, setActiveCategory] = useState('all');
   const [expandedComments, setExpandedComments] = useState<Record<string, boolean>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
   const [isCommenting, setIsCommenting] = useState<Record<string, boolean>>({});
+  const [commentsLoading, setCommentsLoading] = useState<Record<string, boolean>>({});
+  const [commentsError, setCommentsError] = useState<Record<string, boolean>>({});
   const [trendingConfession, setTrendingConfession] = useState<Confession | null>(null);
 
   // In-app Image Previewer State
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [previewConfessionId, setPreviewConfessionId] = useState<string | null>(null);
   const [previewOptionsOpen, setPreviewOptionsOpen] = useState(false);
 
   // Reaction Menu State
   const [activeReactionMenu, setActiveReactionMenu] = useState<string | null>(null);
+  const [reactionAnchor, setReactionAnchor] = useState<{ left: number; bottom: number } | null>(null);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   // Modal & Interaction States
   const [activeCommentsModal, setActiveCommentsModal] = useState<string | null>(null);
-  const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>({});
+  const [savedPosts, setSavedPosts] = useState<Record<string, boolean>>(() => {
+    try {
+      const ids: string[] = JSON.parse(localStorage.getItem('sparkle_saved_confessions') || '[]');
+      return Object.fromEntries(ids.map(id => [id, true]));
+    } catch {
+      return {};
+    }
+  });
   const [replyTo, setReplyTo] = useState<{ id: string, author: string } | null>(null);
 
-  const fetchConfessions = async () => {
-    setLoading(true);
+  const fetchSeqRef = useRef(0);
+
+  const fetchConfessions = async (silent = false) => {
+    const seq = ++fetchSeqRef.current;
+    if (!silent) setLoading(true);
+    setFetchError(false);
     try {
       let url = `/confessions?campus=${campus}`;
       if (activeCategory !== 'all') url += `&category=${activeCategory}`;
-      
+
       const response = await api.get(url);
       const data = response.data;
       const list = data.data || data.confessions || (Array.isArray(data) ? data : []);
+      if (seq !== fetchSeqRef.current) return;
       setConfessions(list);
 
       // Pick trending (most reacts)
       if (list.length > 0) {
-        const trending = [...list].sort((a: Confession, b: Confession) => (b.react_count || 0) - (a.react_count || 0))[0];
+        const trending = [...list].sort((a: Confession, b: Confession) => (b.rating_count || 0) - (a.rating_count || 0))[0];
         setTrendingConfession(trending);
       } else {
         setTrendingConfession(null);
       }
     } catch (err) {
+      if (seq !== fetchSeqRef.current) return;
       logger.error('Failed to fetch confessions:', err);
+      setFetchError(true);
     } finally {
-      setLoading(false);
+      if (seq === fetchSeqRef.current && !silent) setLoading(false);
     }
   };
 
@@ -139,6 +162,9 @@ export default function Confessions() {
   }, [campus, activeCategory]);
 
   const reactedIdsRef = useRef(new Set<string>());
+  const lastImageTapRef = useRef<{ id: string; t: number } | null>(null);
+  const imageTapTimerRef = useRef<number | null>(null);
+  useEffect(() => () => { if (imageTapTimerRef.current) window.clearTimeout(imageTapTimerRef.current); }, []);
 
   const handleReact = async (confessionId: string, reactionType: string, e?: React.MouseEvent, forceAdd?: boolean) => {
     if (e) {
@@ -153,7 +179,7 @@ export default function Confessions() {
     
     try {
       await api.post(`/confessions/${confessionId}/react`, { type: reactionType });
-      fetchConfessions();
+      fetchConfessions(true);
       setActiveReactionMenu(null);
     } catch (err) {
       if (forceAdd) reactedIdsRef.current.delete(confessionId);
@@ -164,19 +190,25 @@ export default function Confessions() {
 
   const toggleComments = async (id: string) => {
     setActiveCommentsModal(id);
+    setCommentsError(prev => ({ ...prev, [id]: false }));
+    setCommentsLoading(prev => ({ ...prev, [id]: true }));
     try {
       const response = await api.get(`/confessions/${id}/comments`);
       setCommentsData(prev => ({ ...prev, [id]: response.data.data || response.data || [] }));
     } catch (err) {
       logger.error('Failed to fetch comments:', err);
+      setCommentsError(prev => ({ ...prev, [id]: true }));
+    } finally {
+      setCommentsLoading(prev => ({ ...prev, [id]: false }));
     }
   };
 
   // Deep links: /confessions/:id (and legacy share links /confessions?id=…)
   // must open the shared confession's conversation, not the plain list.
+  const deepLinkHandledIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!urlConfessionId || loading || deepLinkHandledRef.current) return;
-    deepLinkHandledRef.current = true;
+    if (!urlConfessionId || loading || deepLinkHandledIdRef.current === urlConfessionId) return;
+    deepLinkHandledIdRef.current = urlConfessionId;
     (async () => {
       const inList =
         confessions.some((c: Confession) => c.confession_id === urlConfessionId) ||
@@ -218,8 +250,15 @@ export default function Confessions() {
   };
 
   const handleSave = (id: string) => {
-    setSavedPosts(prev => ({ ...prev, [id]: !prev[id] }));
-    triggerSuccess();
+    const isSaved = !!savedPosts[id];
+    setSavedPosts(prev => {
+      const next = { ...prev, [id]: !prev[id] };
+      try {
+        localStorage.setItem('sparkle_saved_confessions', JSON.stringify(Object.keys(next).filter(k => next[k])));
+      } catch { /* private mode / quota — keep in-memory state */ }
+      return next;
+    });
+    showInfo(isSaved ? 'Removed from saved' : 'Saved');
   };
 
   const handleAddComment = async (confessionId: string) => {
@@ -227,22 +266,28 @@ export default function Confessions() {
     if (!text?.trim() || isCommenting[confessionId]) return;
 
     setIsCommenting(prev => ({ ...prev, [confessionId]: true }));
+    const content = replyTo ? `↳ ${replyTo.author}: ${text}` : text;
     try {
-      const content = replyTo ? `↳ ${replyTo.author}: ${text}` : text;
       await api.post(`/confessions/${confessionId}/comments`, { 
         content,
         parent_id: replyTo?.id 
       });
       setCommentInputs(prev => ({ ...prev, [confessionId]: '' }));
       setReplyTo(null);
+    } catch (err) {
+      logger.error('Failed to add comment:', err);
+      showError('Failed to post comment. Please try again.');
+      setIsCommenting(prev => ({ ...prev, [confessionId]: false }));
+      return;
+    }
+    try {
       const response = await api.get(`/confessions/${confessionId}/comments`);
       setCommentsData(prev => ({ ...prev, [confessionId]: response.data.data || response.data || [] }));
       setConfessions(prev => prev.map(c => 
         c.confession_id === confessionId ? { ...c, comment_count: (c.comment_count || 0) + 1 } : c
       ));
     } catch (err) {
-      logger.error('Failed to add comment:', err);
-      showError('Failed to post comment. Please try again.');
+      logger.error('Failed to refresh comments:', err);
     } finally {
       setIsCommenting(prev => ({ ...prev, [confessionId]: false }));
     }
@@ -344,7 +389,7 @@ export default function Confessions() {
                           </div>
                         ))}
                       </div>
-                      <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{trendingConfession.react_count || 0} resonating</span>
+                      <span className="text-[9px] font-bold text-white/40 uppercase tracking-widest">{trendingConfession.rating_count || 0} resonating</span>
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
@@ -392,6 +437,22 @@ export default function Confessions() {
                 </div>
                 <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.4em] animate-pulse">Scanning Nodes...</p>
               </div>
+            ) : fetchError ? (
+              <div className="py-32 flex flex-col items-center gap-6 text-center">
+                <div className="w-20 h-20 rounded-3xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center">
+                  <Orbit size={36} strokeWidth={1.5} className="text-black/10 dark:text-white/10" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">Signal Lost</h3>
+                  <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest mt-1">Couldn't load confessions. Check your connection.</p>
+                </div>
+                <button
+                  onClick={() => fetchConfessions()}
+                  className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                >
+                  Retry
+                </button>
+              </div>
             ) : confessions.length > 0 ? (
               confessions.map((conf, idx) => (
                 <div
@@ -430,7 +491,7 @@ export default function Confessions() {
                         </span>
                         {conf.category && (
                           <span className="text-[8px] font-black text-primary uppercase tracking-wider italic">
-                            {conf.category}
+                            {CATEGORY_LABELS[conf.category] || conf.category}
                           </span>
                         )}
                       </div>
@@ -445,15 +506,31 @@ export default function Confessions() {
                   </p>
                   </div>
 
-                  {/* Attached Image (Edge-to-Edge) */}
+                  {/* Attached Image (Edge-to-Edge) — single tap previews, double tap hearts */}
                   {conf.image_url && (
                     <div 
                       className="relative bg-black cursor-pointer border-y border-black/5 dark:border-white/10 overflow-hidden"
                       onClick={(e) => {
-                        emitHeart(e.clientX, e.clientY);
-                        setPreviewImage(conf.image_url!);
+                        const now = Date.now();
+                        const last = lastImageTapRef.current;
+                        if (last && last.id === conf.confession_id && now - last.t < 300) {
+                          lastImageTapRef.current = null;
+                          if (imageTapTimerRef.current) {
+                            window.clearTimeout(imageTapTimerRef.current);
+                            imageTapTimerRef.current = null;
+                          }
+                          handleReact(conf.confession_id, 'heart', e, true);
+                          return;
+                        }
+                        lastImageTapRef.current = { id: conf.confession_id, t: now };
+                        const { clientX, clientY } = e;
+                        imageTapTimerRef.current = window.setTimeout(() => {
+                          imageTapTimerRef.current = null;
+                          emitHeart(clientX, clientY);
+                          setPreviewImage(conf.image_url!);
+                          setPreviewConfessionId(conf.confession_id);
+                        }, 280);
                       }}
-                      onDoubleClick={(e) => handleReact(conf.confession_id, 'heart', e, true)}
                     >
                       <img
                         src={conf.image_url}
@@ -474,8 +551,18 @@ export default function Confessions() {
                         {/* Reaction Button & Popover */}
                         <div className="relative">
                           <button
-                            onClick={() => {
-                              setActiveReactionMenu(activeReactionMenu === conf.confession_id ? null : conf.confession_id);
+                            onClick={(e) => {
+                              const opening = activeReactionMenu !== conf.confession_id;
+                              if (opening) {
+                                const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                                setReactionAnchor({
+                                  left: Math.max(12, Math.min(r.left, window.innerWidth - 274)),
+                                  bottom: window.innerHeight - r.top + 8,
+                                });
+                              } else {
+                                setReactionAnchor(null);
+                              }
+                              setActiveReactionMenu(opening ? conf.confession_id : null);
                               setShowEmojiPicker(false);
                             }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all active:scale-90 group/react ${
@@ -488,13 +575,16 @@ export default function Confessions() {
                               className="transition-transform group-hover/react:scale-110" 
                             />
                             <span className="text-[13px] font-bold tracking-tight">
-                              {formatCount((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0) || conf.react_count || 0)}
+                              {formatCount((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0) || conf.rating_count || 0)}
                             </span>
                           </button>
 
                           {/* Reaction Palette Popover */}
                           {activeReactionMenu === conf.confession_id && (
-                            <div className="absolute left-0 bottom-14 bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-black/5 dark:border-white/10 p-4 animate-scale-in z-50 min-w-[250px]">
+                            <div
+                              style={reactionAnchor ? { position: 'fixed', left: reactionAnchor.left, bottom: reactionAnchor.bottom } : undefined}
+                              className="bg-white dark:bg-[#121212] rounded-[24px] shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-black/5 dark:border-white/10 p-4 animate-scale-in z-50 min-w-[250px] max-h-[70vh] overflow-y-auto no-scrollbar"
+                            >
                               {!showEmojiPicker ? (
                                 <>
                                   <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-black/5 dark:border-white/10">
@@ -607,11 +697,10 @@ export default function Confessions() {
         </div>
       </main>
 
-      {/* Local ConfessionModal overlay — no Navbar on this page */}
+      {/* Local ConfessionModal overlay — close via X/Esc (with discard guard) only, not backdrop taps */}
       {showComposeModal && (
         <div
           className="fixed inset-0 z-(--z-top) flex items-center justify-center p-4 md:p-6 bg-black/20 backdrop-blur-xl animate-fade-in"
-          onClick={() => setShowComposeModal(false)}
         >
           <div className="w-full max-w-lg animate-scale-in" onClick={e => e.stopPropagation()}>
             <ConfessionModal
@@ -638,7 +727,7 @@ export default function Confessions() {
           {/* Top Bar */}
           <div className="flex items-center justify-between p-4 px-5 safe-pt">
             <button 
-              onClick={() => { setPreviewImage(null); setPreviewOptionsOpen(false); }}
+              onClick={() => { setPreviewImage(null); setPreviewConfessionId(null); setPreviewOptionsOpen(false); }}
               className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
             >
               <X size={20} strokeWidth={2.5} />
@@ -665,7 +754,17 @@ export default function Confessions() {
                     <span className="text-[13px] font-bold">Save Image</span>
                   </button>
                   <button 
-                    onClick={() => { showInfo('Reported'); setPreviewOptionsOpen(false); }}
+                    onClick={async () => {
+                      setPreviewOptionsOpen(false);
+                      if (!previewConfessionId) return;
+                      try {
+                        const res = await api.post(`/confessions/${previewConfessionId}/report`, { reason: 'Inappropriate image' });
+                        showInfo(res.data?.message || 'Reported. Our team will review it.');
+                      } catch (err) {
+                        logger.error('Report failed:', err);
+                        showError('Failed to report. Please try again.');
+                      }
+                    }}
                     className="w-full flex items-center gap-3 px-3 py-3 text-left text-rose-400 hover:bg-white/10 rounded-xl transition-colors mt-1"
                   >
                     <Flag size={16} />
@@ -673,7 +772,7 @@ export default function Confessions() {
                   </button>
                   <div className="h-px bg-white/10 my-1 mx-2" />
                   <button 
-                    onClick={() => { setPreviewImage(null); setPreviewOptionsOpen(false); }}
+                    onClick={() => { setPreviewImage(null); setPreviewConfessionId(null); setPreviewOptionsOpen(false); }}
                     className="w-full flex items-center gap-3 px-3 py-3 text-left text-gray-300 hover:bg-white/10 rounded-xl transition-colors"
                   >
                     <ShieldOff size={16} />
@@ -720,7 +819,22 @@ export default function Confessions() {
 
             {/* Comments List */}
             <div className="flex-1 overflow-y-auto p-5 space-y-4 no-scrollbar bg-white dark:bg-[#101217]">
-              {commentsData[activeCommentsModal]?.length === 0 ? (
+              {commentsLoading[activeCommentsModal] ? (
+                <div className="py-20 flex flex-col items-center gap-4 text-center">
+                  <Spinner size="large" color="text-primary" />
+                  <p className="text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em]">Loading replies...</p>
+                </div>
+              ) : commentsError[activeCommentsModal] ? (
+                <div className="py-20 flex flex-col items-center gap-4 text-center">
+                  <p className="text-[12px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest">Couldn't load replies.</p>
+                  <button
+                    onClick={() => toggleComments(activeCommentsModal)}
+                    className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : commentsData[activeCommentsModal]?.length === 0 ? (
                 <div className="py-20 flex flex-col items-center gap-3 text-center">
                   <div className="w-16 h-16 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center">
                     <SpyIcon size={24} className="text-black/10 dark:text-white/10" />
@@ -856,10 +970,7 @@ export default function Confessions() {
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        @        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        @        .animate-slide-up { animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
-        @        .animate-fade-in { animation: fadeIn 0.5s ease-out; }
-        
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

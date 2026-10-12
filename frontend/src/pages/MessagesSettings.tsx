@@ -5,10 +5,11 @@ import React, {
   useEffect,
   useRef,
   useCallback,
+  useMemo,
   type ReactNode,
 } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Bell, Volume2, Shield, Lock, UserX, MessageCircle, ChevronRight, ChevronLeft, RotateCcw, Play, Smartphone, Eye, EyeOff, Trash2, Palette, Wifi, Check, HelpCircle, Info, Archive, LogOut, AlertTriangle, Activity, Copy, Share2, Camera, Monitor, Vibrate, BellOff } from 'lucide-react';
+import { ArrowLeft, Bell, Volume2, Shield, Lock, UserX, MessageCircle, ChevronRight, ChevronLeft, RotateCcw, Play, Smartphone, Eye, EyeOff, Trash2, Palette, Wifi, Check, HelpCircle, Info, Archive, LogOut, Activity, Copy, Share2, Camera, Monitor, Vibrate, BellOff } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { useThemeStore, PRESET_THEMES } from '../store/themeStore';
@@ -18,6 +19,7 @@ import type { SoundTheme } from '../audio/settings/ThemeController';
 import type { SoundKey } from '../audio/managers/SoundManager';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { sanitizePartnerName } from '../utils/nameSanitizer';
+import { getDeviceSessionId } from '../utils/deviceSession';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CONSTANTS
@@ -38,28 +40,14 @@ const SOUND_THEMES: { key: SoundTheme; label: string; desc: string }[] = [
   { key: 'Minimal', label: 'Minimal (Pitch Up DSP)', desc: 'Short, crisp pitch-shifted tones' },
 ];
 
-const MOCK_DEVICE_SESSIONS = [
-  {
-    id: 'session-001',
-    device: 'Chrome on Windows',
-    isCurrent: true,
-    ip: '192.168.x.x',
-    location: 'Nairobi, Kenya',
-    time: 'Active now',
-    suspicious: false,
-    macAddress: null,
-  },
-  {
-    id: 'session-002',
-    device: 'Android Device',
-    isCurrent: false,
-    ip: '41.80.x.x',
-    location: 'Nairobi, Kenya',
-    time: '2 hours ago',
-    suspicious: false,
-    macAddress: null,
-  },
-];
+// Shape returned by GET /users/sessions (see backend getActiveSessions)
+interface DeviceSession {
+  session_id: string;
+  device_name: string | null;
+  ip_address: string | null;
+  last_active: string | null;
+  created_at: string | null;
+}
 
 type SectionView =
   | 'home'
@@ -423,9 +411,51 @@ export default function MessagesSettings() {
   const [blockedUsers, setBlockedUsers] = useState<any[]>([]);
   const [loadingBlocked, setLoadingBlocked] = useState(false);
 
-  // Device logins
-  const [deviceSessions] = useState(MOCK_DEVICE_SESSIONS);
-  const hasSuspiciousSession = deviceSessions.some(s => s.suspicious);
+  // Device logins (real data from GET /users/sessions)
+  const [deviceSessions, setDeviceSessions] = useState<DeviceSession[]>([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
+  const [revokingSession, setRevokingSession] = useState<string | null>(null);
+  const currentSessionId = useMemo(() => getDeviceSessionId(user?.user_id), [user?.user_id]);
+
+  const fetchDeviceSessions = useCallback(async () => {
+    setLoadingSessions(true);
+    try {
+      const res = await api.get('/users/sessions');
+      const rows = Array.isArray(res.data) ? res.data : (res.data?.sessions ?? []);
+      setDeviceSessions(rows);
+    } catch {
+      showError("Couldn't load sessions.");
+    } finally {
+      setLoadingSessions(false);
+    }
+  }, []);
+
+  const revokeSession = useCallback(
+    async (sessionId: string) => {
+      setRevokingSession(sessionId);
+      try {
+        await api.delete(`/users/sessions/${sessionId}`);
+        setDeviceSessions(prev => prev.filter(s => s.session_id !== sessionId));
+        showSuccess('Session signed out.');
+      } catch {
+        showError("Couldn't sign out that session.");
+      } finally {
+        setRevokingSession(null);
+      }
+    },
+    []
+  );
+
+  const logoutAllOtherDevices = useCallback(async () => {
+    try {
+      await api.post('/users/sessions/logout-all');
+      showSuccess('Signed out from all other devices.');
+      // After logout-all only this device's session remains server-side; refresh.
+      fetchDeviceSessions();
+    } catch {
+      showError("Couldn't sign out other devices.");
+    }
+  }, [fetchDeviceSessions]);
 
   // Side sheets
   const [soundThemeSheet, setSoundThemeSheet] = useState(false);
@@ -466,7 +496,9 @@ export default function MessagesSettings() {
   const updateAdvancedSetting = useCallback(
     async (key: string, value: boolean) => {
       try {
-        await api.put('/users/advanced-settings', { [key]: value ? 1 : 0 });
+        // These advanced keys are whitelisted in backend updateSettings.
+        // (There is no PUT /users/advanced-settings route — it 404s.)
+        await api.put('/users/settings', { [key]: value ? 1 : 0 });
         showSuccess('Saved');
       } catch {
         showError("Couldn't save. Try again.");
@@ -800,18 +832,6 @@ export default function MessagesSettings() {
       </div>
 
       <div className="flex-1 overflow-y-auto pb-24">
-        {hasSuspiciousSession && (
-          <div className="mx-4 mt-4 mb-1 p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
-            <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-bold text-amber-800">Security notice</p>
-              <p className="text-xs text-amber-600 mt-0.5">
-                Suspicious login activity detected on your account.
-              </p>
-            </div>
-          </div>
-        )}
-
         <div className="mt-2">
           <SectionHeader title="Activity" />
           <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-3">
@@ -893,8 +913,6 @@ export default function MessagesSettings() {
               iconBg="bg-gray-100"
               title="Device Logins"
               subtitle="Review where you are logged in"
-              badge={hasSuspiciousSession ? '1 alert' : undefined}
-              badgeColor="bg-red-100 text-red-600"
               onClick={() => goTo('device-logins')}
             />
           </div>
@@ -1456,8 +1474,6 @@ export default function MessagesSettings() {
             iconBg="bg-gray-100"
             title="Device Logins"
             subtitle="Review and manage active login sessions"
-            badge={hasSuspiciousSession ? '1 alert' : undefined}
-            badgeColor="bg-red-100 text-red-600"
             onClick={() => goTo('device-logins')}
           />
         </div>
@@ -1983,86 +1999,94 @@ export default function MessagesSettings() {
   // DEVICE LOGINS
   // ─────────────────────────────────────────────────────────────────────────
 
+  const formatWhen = (iso: string | null) => {
+    if (!iso) return 'Unknown time';
+    const then = new Date(iso).getTime();
+    if (Number.isNaN(then)) return 'Unknown time';
+    const diffMs = Date.now() - then;
+    if (diffMs < 60_000) return 'Active now';
+    const mins = Math.floor(diffMs / 60_000);
+    if (mins < 60) return `${mins} min ago`;
+    const hrs = Math.floor(mins / 60);
+    if (hrs < 24) return `${hrs} hr${hrs === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hrs / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
+  };
+
   const renderDeviceLogins = () => (
     <SubPage title="Device Logins" onBack={goBack}>
       <div className="pb-24">
-        <div className="mx-4 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-2">
-          <AlertTriangle size={14} className="text-amber-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-amber-700 leading-relaxed">
-            <strong>Demonstration session data.</strong> This view shows current and recent login sessions. MAC addresses are marked as unavailable because they cannot be obtained over internet HTTP requests.
-          </p>
-        </div>
-
         <SectionHeader
           title="Where you are logged in"
           description="Review devices that have recently accessed your Sparkle account."
         />
 
         <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          {deviceSessions.map((session, i) => (
-            <React.Fragment key={session.id}>
-              {i > 0 && <Divider />}
-              <div className="px-4 py-4">
-                <div className="flex items-start gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                      session.isCurrent ? 'bg-green-50' : 'bg-gray-100'
-                    }`}
-                  >
-                    <Smartphone
-                      size={18}
-                      className={session.isCurrent ? 'text-green-600' : 'text-gray-500'}
-                    />
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-bold text-gray-900">{session.device}</p>
-                      {session.isCurrent && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
-                          Current
-                        </span>
-                      )}
-                      {session.suspicious && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">
-                          Suspicious
-                        </span>
-                      )}
+          {loadingSessions && deviceSessions.length === 0 && (
+            <div className="px-4 py-6 text-center text-xs text-gray-400">Loading sessions…</div>
+          )}
+          {!loadingSessions && deviceSessions.length === 0 && (
+            <div className="px-4 py-6 text-center text-xs text-gray-400">
+              No recent sessions found.
+            </div>
+          )}
+          {deviceSessions.map((session, i) => {
+            const isCurrent = !!currentSessionId && session.session_id === currentSessionId;
+            return (
+              <React.Fragment key={session.session_id}>
+                {i > 0 && <Divider />}
+                <div className="px-4 py-4">
+                  <div className="flex items-start gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                        isCurrent ? 'bg-green-50' : 'bg-gray-100'
+                      }`}
+                    >
+                      <Smartphone
+                        size={18}
+                        className={isCurrent ? 'text-green-600' : 'text-gray-500'}
+                      />
                     </div>
-                    <div className="text-xs text-gray-500 mt-1 space-y-0.5">
-                      <p>IP: {session.ip}</p>
-                      <p>Location: {session.location}</p>
-                      <p>MAC address: {session.macAddress || 'Unavailable (not accessible via internet)'}</p>
-                      <p>{session.time}</p>
-                    </div>
-                    {!session.isCurrent && (
-                      <div className="flex gap-2 mt-3">
-                        <button
-                          type="button"
-                          className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 rounded-lg transition-colors"
-                        >
-                          Log out
-                        </button>
-                        {session.suspicious && (
-                          <button
-                            type="button"
-                            className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-xs font-bold text-red-700 rounded-lg transition-colors"
-                          >
-                            Report
-                          </button>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-gray-900">
+                          {session.device_name || 'Unknown device'}
+                        </p>
+                        {isCurrent && (
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                            Current
+                          </span>
                         )}
                       </div>
-                    )}
+                      <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                        {session.ip_address && <p>IP: {session.ip_address}</p>}
+                        <p>{formatWhen(session.last_active)}</p>
+                      </div>
+                      {!isCurrent && (
+                        <div className="flex gap-2 mt-3">
+                          <button
+                            type="button"
+                            disabled={revokingSession === session.session_id}
+                            onClick={() => revokeSession(session.session_id)}
+                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {revokingSession === session.session_id ? 'Signing out…' : 'Log out'}
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </React.Fragment>
-          ))}
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {deviceSessions.length > 1 && (
           <div className="mx-4 mt-4">
             <button
               type="button"
+              onClick={logoutAllOtherDevices}
               className="w-full py-3 bg-white border border-red-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 hover:text-red-600 transition-all flex items-center justify-center gap-2"
             >
               <LogOut size={15} />
@@ -2193,6 +2217,12 @@ export default function MessagesSettings() {
         return renderHome();
     }
   };
+
+  useEffect(() => {
+    if (view === 'device-logins') {
+      fetchDeviceSessions();
+    }
+  }, [view, fetchDeviceSessions]);
 
   return (
     <div className="min-h-dvh bg-gray-50 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">

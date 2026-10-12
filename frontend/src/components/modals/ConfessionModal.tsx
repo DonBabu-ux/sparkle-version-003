@@ -51,8 +51,13 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   };
   const [showImageWarning, setShowImageWarning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Closing with content would silently discard the confession — confirm first.
+  const attemptClose = () => {
+    if ((content.trim() || selectedImage) && !window.confirm('Discard this confession?')) return;
+    onClose();
+  };
   // Conditionally mounted by its parent: open whenever rendered.
-  const a11yRef = useModalA11y(true, onClose);
+  const a11yRef = useModalA11y(true, attemptClose);
 
   const handleSubmit = async () => {
     if (!content.trim()) return;
@@ -62,7 +67,8 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
         // Image path: multipart/form-data (requires multer on the backend route)
         const formData = new FormData();
         formData.append('content', content);
-        formData.append('sub_type', subType);
+        // Backend createConfession reads `category` from req.body
+        formData.append('category', subType);
         formData.append('is_anonymous', 'true');
         formData.append('image', selectedImage);
         await api.post('/confessions', formData, {
@@ -72,15 +78,17 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
         // Standard path: JSON body — matches backend req.body parsing
         await api.post('/confessions', {
           content,
-          sub_type: subType,
+          category: subType,
           is_anonymous: true,
         });
       }
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Confession failed:', err);
-      showError('Failed to share confession.');
+      // Surface backend moderation messages (e.g. community guidelines flag)
+      const msg = err?.response?.data?.error || err?.response?.data?.message;
+      showError(msg || 'Failed to share confession.');
     } finally {
       setSubmitting(false);
     }
@@ -140,7 +148,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
         </div>
         <button
           className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
-          onClick={onClose}
+          onClick={attemptClose}
         >
           <X size={18} strokeWidth={2.5} />
         </button>

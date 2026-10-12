@@ -1129,6 +1129,13 @@ const viewStory = async (req, res) => {
         const storyId = req.params.id;
         const userId = req.user.userId || req.user.user_id;
 
+        // Owners never view-mark their own stories — otherwise they would
+        // appear in their own viewer list like a different account.
+        const [storyRows] = await pool.query('SELECT user_id FROM stories WHERE story_id = ?', [storyId]);
+        if (storyRows.length > 0 && String(storyRows[0].user_id) === String(userId)) {
+            return res.json({ success: true, skipped: true });
+        }
+
         const viewId = crypto.randomUUID();
         await pool.query(
             'INSERT IGNORE INTO story_views (view_id, story_id, user_id) VALUES (?, ?, ?)',
@@ -1222,25 +1229,28 @@ const updateStorySettings = async (req, res) => {
 const getStoryViewers = async (req, res) => {
     try {
         const storyId = req.params.id;
-        const currentUserId = req.user.userId || req.user.user_id;
+
+        // Exclude the owner's own rows so they never appear in their own viewer list
+        const [storyRows] = await pool.query('SELECT user_id FROM stories WHERE story_id = ?', [storyId]);
+        const ownerId = storyRows.length > 0 ? storyRows[0].user_id : null;
 
         const [viewers] = await pool.query(`
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'view' as type, sv.created_at
             FROM story_views sv
             JOIN users u ON sv.user_id = u.user_id
-            WHERE sv.story_id = ?
+            WHERE sv.story_id = ? AND (? IS NULL OR sv.user_id != ?)
             UNION
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'like' as type, sl.created_at
             FROM story_likes sl
             JOIN users u ON sl.user_id = u.user_id
-            WHERE sl.story_id = ?
+            WHERE sl.story_id = ? AND (? IS NULL OR sl.user_id != ?)
             UNION
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'share' as type, ss.created_at
             FROM story_shares ss
             JOIN users u ON ss.user_id = u.user_id
-            WHERE ss.story_id = ?
+            WHERE ss.story_id = ? AND (? IS NULL OR ss.user_id != ?)
             ORDER BY created_at DESC
-        `, [storyId, storyId, storyId]);
+        `, [storyId, ownerId, ownerId, storyId, ownerId, ownerId, storyId, ownerId, ownerId]);
 
         res.json(viewers);
     } catch (error) {

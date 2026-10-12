@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, LayoutGrid, Plus, TrendingUp, Music2, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Loader2, Music3, AlertCircle } from 'lucide-react';
+import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Loader2, Music3, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -284,13 +284,8 @@ export default function CreateStory() {
         logger.error('Failed to load local media cache:', e);
       }
 
-      // 3. Fallback on browser: Automatically click hidden file input to let the user select their photos gallery folder/files
-      if (deviceMedia.length === 0) {
-        const timer = setTimeout(() => {
-          deviceFilesInputRef.current?.click();
-        }, 600);
-        return () => clearTimeout(timer);
-      }
+      // 3. Fallback on browser: user loads media explicitly via the
+      // "Load Media" tile (no auto file-dialog popup — Instagram-style).
     };
 
     loadDevicePhotos();
@@ -756,26 +751,17 @@ export default function CreateStory() {
       {selectedMusic && phase !== 'music_picker' && phase !== 'entry' && phase !== 'template_picker' && <MusicIndicator />}
 
       <AnimatePresence mode="wait">
-          {/* 1. ENTRY PHASE */}
+          {/* 1. ENTRY PHASE — Instagram/WhatsApp style: one clean gallery picker */}
           {phase === 'entry' && (
               <motion.div key="entry" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-white dark:bg-[#101217] text-black dark:text-white z-[200] flex flex-col">
                   <div className="p-6 flex items-center justify-between border-b border-black/5 dark:border-white/5">
                       <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-black/30 dark:text-white/30"><X size={28} strokeWidth={3} /></button>
-                      <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] flex-1 text-center text-black dark:text-white">New Story</h2>
-                      <button onClick={() => deviceFilesInputRef.current?.click()} className="text-[12px] font-black italic uppercase text-black dark:text-white px-4 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full flex items-center gap-1.5 hover:bg-black/10 dark:hover:bg-white/10 transition-all">Recent <ChevronDown size={14} className="opacity-60" /></button>
-                  </div>
-                  <div className="p-6 flex gap-4 overflow-x-auto no-scrollbar border-b border-black/5 dark:border-white/5">
-                      <button onClick={() => setPhase('template_picker')} className="entry-action-card bg-amber-500/10 text-amber-600"><div className="w-12 h-12 rounded-2xl bg-amber-500 flex items-center justify-center text-white shadow-lg"><TrendingUp size={24} /></div><span>Templates</span></button>
-                      <button onClick={() => openMusicPicker('entry')} className="entry-action-card bg-rose-500/10 text-rose-600"><div className="w-12 h-12 rounded-2xl bg-rose-500 flex items-center justify-center text-white shadow-lg"><Music2 size={24} /></div><span>Music</span></button>
-                      <button onClick={() => { setPhase('camera'); setMode('story'); }} className="entry-action-card bg-blue-500/10 text-blue-600"><div className="w-12 h-12 rounded-2xl bg-blue-500 flex items-center justify-center text-white shadow-lg"><LayoutGrid size={24} /></div><span>Layout</span></button>
-                      <button onClick={() => setPhase('text_story')} className="entry-action-card bg-gradient-to-tr from-purple-500 to-rose-500 text-purple-600">
-                          <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-primary shadow-lg"><Type size={24} strokeWidth={3} /></div>
-                          <span className="text-transparent bg-clip-text bg-gradient-to-tr from-purple-600 to-rose-600">Text Story</span>
-                      </button>
+                      <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] flex-1 text-center text-black dark:text-white">Add to Story</h2>
+                      <button onClick={() => deviceFilesInputRef.current?.click()} className="text-[12px] font-black italic uppercase text-black dark:text-white px-4 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full flex items-center gap-1.5 hover:bg-black/10 dark:hover:bg-white/10 transition-all">Gallery <ChevronDown size={14} className="opacity-60" /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
                       <div className="grid grid-cols-3 gap-3">
-                          <button onClick={() => { setPhase('camera'); setMode('post'); }} className="row-span-2 col-span-1 rounded-[24px] bg-gray-100 dark:bg-zinc-900 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 transition-colors">
+                          <button onClick={() => { setPhase('camera'); setMode('story'); }} className="row-span-2 col-span-1 rounded-[24px] bg-gray-100 dark:bg-zinc-900 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 transition-colors">
                               <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg">
                                   <Camera size={32} className="text-black dark:text-white" />
                               </div>
@@ -804,18 +790,20 @@ export default function CreateStory() {
                                   <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
                               </button>
                           ))}
-                          {/* Trailing dashed slots to let users easily load their real local device pictures */}
-                          {[...Array(Math.max(4, 15 - deviceMedia.length))].map((_, i) => (
-                              <button 
-                                  key={`empty-${i}`} 
-                                  onClick={() => deviceFilesInputRef.current?.click()}
-                                  className="rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group aspect-square"
-                              >
-                                  <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
-                                  <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
-                              </button>
-                          ))}
+                          {/* Load-more tile — lets users pick additional local files */}
+                          <button 
+                              onClick={() => deviceFilesInputRef.current?.click()}
+                              className="rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group aspect-square"
+                          >
+                              <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
+                              <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
+                          </button>
                       </div>
+                      {deviceMedia.length === 0 && (
+                          <p className="text-center text-[12px] font-bold text-black/30 dark:text-white/30 mt-10">
+                              No photos loaded yet — tap “Load Media” to pick images or videos.
+                          </p>
+                      )}
                   </div>
               </motion.div>
           )}

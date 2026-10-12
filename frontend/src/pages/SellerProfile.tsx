@@ -18,6 +18,7 @@ interface Seller {
   name?: string;
   avatar_url?: string;
   bio?: string;
+  location?: string;
   created_at?: string;
   is_verified?: boolean;
   active_listings?: number;

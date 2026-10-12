@@ -29,10 +29,17 @@ interface SearchResult {
   type?: string;
   label?: string;
   value?: string;
+  query?: string;
   member_count?: number;
   spark_count?: number;
   comment_count?: number;
   has_story?: boolean;
+  // Post-shape fields (backend search returns post rows for the posts tab)
+  post_type?: string;
+  created_at?: string;
+  reshare_count?: number;
+  is_sparked?: boolean;
+  is_saved?: boolean;
   updates: string[];
 }
 
@@ -47,9 +54,8 @@ export default function Search() {
   const [loading, setLoading] = useState(false);
   const [actionItem, setActionItem] = useState<SearchResult | null>(null);
   const [poking, setPoking] = useState(false);
-  const [ ,  ] = useState<SearchResult[]>([]);
-  const [ ,  ] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchSeqRef = useRef(0);
 
   const fetchInitialData = useCallback(async () => {
     try {
@@ -101,11 +107,13 @@ export default function Search() {
         setResults({});
         return;
     }
+    const seq = ++searchSeqRef.current;
     setLoading(true);
     try {
       const response = await api.get('/search', {
         params: { q, type, campus: currentUser?.campus }
       });
+      if (seq !== searchSeqRef.current) return;
       if (response.data.status === 'success') {
         if (type === 'all') {
             setResults(response.data.data.results || {});
@@ -114,9 +122,11 @@ export default function Search() {
         }
       }
     } catch (err) {
+      if (seq !== searchSeqRef.current) return;
       logger.error('Search failed:', err);
+      showError('Search failed. Please try again.');
     } finally {
-      setLoading(false);
+      if (seq === searchSeqRef.current) setLoading(false);
     }
   }, [currentUser?.campus]);
 
@@ -130,6 +140,10 @@ export default function Search() {
   useEffect(() => {
     fetchInitialData();
   }, [fetchInitialData]);
+
+  useEffect(() => {
+    return () => debouncedSearch.cancel();
+  }, [debouncedSearch]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -226,7 +240,7 @@ export default function Search() {
                                     >
                                         <div className="flex items-center gap-4">
                                             <span className="text-sm font-black text-gray-300 group-hover:text-primary transition-colors italic">0{i + 1}</span>
-                                            <span className="text-base font-bold text-gray-900 italic">{tag.name}</span>
+                                            <span className="text-base font-bold text-gray-900 dark:text-white italic">{tag.name}</span>
                                         </div>
                                         <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tag.count} Sparks</span>
                                     </motion.div>
@@ -259,7 +273,7 @@ export default function Search() {
                                       onClick={() => setQuery(h.query)}
                                     >
                                         <div className="flex-1 min-w-0">
-                                            <span className="block text-base font-bold text-gray-900 italic truncate">{h.query}</span>
+                                            <span className="block text-base font-bold text-gray-900 dark:text-white italic truncate">{h.query}</span>
                                         </div>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActionItem({ ...h, type: 'history' }); }}
@@ -330,7 +344,7 @@ export default function Search() {
                                         </div>
                                     ))}
                                     {type === 'posts' && Array.isArray(items) && items.map((p, j) => (
-                                        <PostCard key={`res-p-${p.post_id || p.id || j}`} post={p} />
+                                        <PostCard key={`res-p-${p.post_id || p.id || j}`} post={p as any} />
                                     ))}
                                     {(type === 'groups' || type === 'clubs' || type === 'hashtags') && Array.isArray(items) && items.map((g, j) => (
                                         <div 
@@ -346,7 +360,7 @@ export default function Search() {
                                                 <img src={g.image || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-lg font-bold text-gray-900 leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
+                                                <div className="text-lg font-bold text-gray-900 dark:text-white leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
                                                 <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-primary transition-colors">
                                                     {type === 'hashtags' ? 'Hashtag' : g.subtitle || 'Community'}
                                                 </div>

@@ -24,6 +24,7 @@ import { SoundProvider, handleNotificationSound } from './context/SoundProvider'
 import { CallOverlay } from './components/CallOverlay';
 import { AppLockOverlay } from './components/security/AppLockOverlay';
 import { UploadManager } from './services/UploadManager';
+import { initPushNotifications, startPushAuthSync } from './services/PushService';
 import UploadNotificationCenter from './components/notifications/UploadNotificationCenter';
 import { useSocket } from './hooks/useSocket';
 import { useFeedStore } from './store/feedStore';
@@ -143,6 +144,7 @@ function App() {
   const [navigationCompleted, setNavigationCompleted] = useState(false);
   const navigate = useNavigate();
   const uploadManagerInitRef = useRef(false);
+  const pushInitRef = useRef(false);
   const socket = useSocket();
   const { setStories } = useFeedStore();
 
@@ -309,6 +311,33 @@ function App() {
     logger.log('[App] Initializing UploadManager...');
     UploadManager.init();
   }, [hydrated, isAuthenticated]);
+
+  // ── Native push (APK): channels + permission + FCM token registration ──
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated || pushInitRef.current) return;
+    pushInitRef.current = true;
+    logger.log('[App] Initializing native push notifications...');
+    initPushNotifications().catch(err => logger.warn('[App] Push init error:', err));
+  }, [hydrated, isAuthenticated]);
+
+  // ── Native push: re-sync the device token on login/account switch ──
+  useEffect(() => {
+    const unsubscribe = startPushAuthSync();
+    return () => unsubscribe();
+  }, []);
+
+  // ── Native push: notification taps navigate in-app (PushService dispatches) ──
+  useEffect(() => {
+    const onSparkleNavigate = (e: Event) => {
+      const url = (e as CustomEvent<{ url?: string }>).detail?.url;
+      if (url && url.startsWith('/')) {
+        logger.log('[App] Opening notification deep link:', url);
+        navigate(url);
+      }
+    };
+    window.addEventListener('sparkle:navigate', onSparkleNavigate);
+    return () => window.removeEventListener('sparkle:navigate', onSparkleNavigate);
+  }, [navigate]);
 
   // ── Socket: Listen for story:published to auto-refresh stories bar ──
   useEffect(() => {

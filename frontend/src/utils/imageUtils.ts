@@ -1,4 +1,4 @@
-import defaultAvatar from '../assets/avatar.png';
+import defaultAvatar from '../assets/avatar-default.svg';
 
 // API URL resolved from env vars at build time. Same-origin '/api' by default:
 // prod builds hit the Render backend directly; dev goes through the Vite proxy.
@@ -6,9 +6,18 @@ const API_URL = import.meta.env.VITE_API_URL || '/api';
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
+// The Cloudinary account behind legacy media rows is permanently closed —
+// any res.cloudinary.com URL is dead weight and must never be requested.
+const isDeadCloudinaryUrl = (url: string) => url.includes('res.cloudinary.com');
+
+// Backend-shipped default avatar paths — route them to the bundled
+// professional SVG so the UI never shows the old clipart PNG.
+const isBackendDefaultAvatar = (url: string) =>
+  url.includes('avatars/default') || url.includes('avatar_default');
+
 /**
  * Returns a reliable avatar URL.
- * Prioritizes provided URL, then falls back to a hosted default or local asset.
+ * Prioritizes provided URL, then falls back to a bundled default.
  * Section 5: Default Avatar Handling (APK Safe)
  */
 export const getAvatarUrl = (url?: string | null, _seed?: string | null): string => {
@@ -17,7 +26,11 @@ export const getAvatarUrl = (url?: string | null, _seed?: string | null): string
   }
   // 1. Check for valid URL
   if (url && url !== 'null' && url !== 'undefined' && url.trim() !== '') {
-    // If it's already a full URL (Cloudinary, etc)
+    // Dead Cloudinary account — fall back to the bundled default
+    if (isDeadCloudinaryUrl(url)) return defaultAvatar;
+    // Backend default avatar file — use the bundled professional version
+    if (isBackendDefaultAvatar(url)) return defaultAvatar;
+    // If it's already a full URL
     if (url.startsWith('http')) {
       return url;
     }
@@ -37,11 +50,15 @@ export const getAvatarUrl = (url?: string | null, _seed?: string | null): string
 
 /**
  * Returns a reliable media URL.
- * Extends the basic getMediaUrl by applying Cloudinary transformations (f_auto, q_auto, width)
- * based on network quality (via networkStore).
+ * Dead Cloudinary URLs resolve to '' so callers render their own placeholder
+ * instead of firing a doomed network request.
  */
 export const getMediaUrl = (url?: string | null): string => {
   if (!url || url === 'null' || url === 'undefined' || url.trim() === '') {
+    return '';
+  }
+
+  if (isDeadCloudinaryUrl(url)) {
     return '';
   }
 

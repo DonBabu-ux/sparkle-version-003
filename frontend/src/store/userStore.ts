@@ -3,6 +3,7 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import { capacitorStorage } from './capacitorStorage';
 
 import type { User } from '../types/user';
+import { forgetDeviceSession } from '../utils/deviceSession';
 
 export interface AccountSession {
   user: User;
@@ -118,6 +119,16 @@ export const useUserStore = create<UserState>()(
       },
 
       logout: () => {
+        // Detach this device's FCM push token from the outgoing account
+        // BEFORE the session clears (best-effort; captured token keeps the
+        // auth header valid for the request even after the store resets).
+        const outgoingToken = get().token;
+        if (outgoingToken) {
+          import('../services/PushService')
+            .then((m) => m.deregisterPushToken(outgoingToken))
+            .catch(() => {});
+        }
+
         // Clear all UI blocking states (Modals)
         try {
           const { closeModal } = require('./modalStore').useModalStore.getState();
@@ -131,6 +142,7 @@ export const useUserStore = create<UserState>()(
         purgeAccountScopedCaches();
 
         const activeId = get().activeAccountId;
+        forgetDeviceSession(activeId);
         const accounts = get().accounts.filter(acc => acc.user.user_id !== activeId);
         
         if (accounts.length > 0) {
@@ -190,6 +202,14 @@ export const useUserStore = create<UserState>()(
         if (isActive) {
           // Active session is ending — same purge as logout.
           purgeAccountScopedCaches();
+          forgetDeviceSession(userId);
+          // Detach this device's FCM token from the removed account too.
+          const outgoingToken = get().token;
+          if (outgoingToken) {
+            import('../services/PushService')
+              .then((m) => m.deregisterPushToken(outgoingToken))
+              .catch(() => {});
+          }
           if (accounts.length > 0) {
             const nextAccount = accounts[0];
             set({ 

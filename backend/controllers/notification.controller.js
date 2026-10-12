@@ -558,6 +558,26 @@ const notificationController = {
                         }
                     }
                 }
+
+                // Mobile push (FCM) — native app notifications (APK/iOS).
+                // Same master toggle as web push; per-type + DND gates already
+                // returned at entry, so this respects all user preferences.
+                if (pushEnabled) {
+                    try {
+                        const [fcmRows] = await connection.query('SELECT token FROM fcm_tokens WHERE user_id = ?', [data.user_id]);
+                        if (fcmRows.length > 0) {
+                            const { sendFcmNotification } = require('../utils/fcm');
+                            await sendFcmNotification(
+                                fcmRows.map(r => r.token),
+                                data.title || 'Sparkle Notification',
+                                data.content || '',
+                                { type: data.type || 'system', url: data.action_url || '/' }
+                            );
+                        }
+                    } catch (fcmErr) {
+                        console.error('FCM push failed:', fcmErr.message);
+                    }
+                }
             } catch (err) {
                 console.error('Push notification system failed:', err);
             }

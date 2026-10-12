@@ -11,6 +11,7 @@ import {
 import type { AuthErrorInfo } from '../utils/authErrorClassifier';
 import { getRoleFromToken } from '../utils/tokenUtils';
 import { getPostLoginRoute } from '../utils/adminRoute';
+import { recordDeviceSession } from '../utils/deviceSession';
 import AuthErrorCard from '../components/auth/AuthErrorCard';
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=640&q=80&auto=format';
@@ -136,6 +137,7 @@ export default function Login() {
       if ((data?.status === 'success' || data?.success) && data?.token) {
         setSuccessView('Welcome back!');
         login(data.token, data.refreshToken || '', data.user);
+        recordDeviceSession(data.user?.user_id, data.sessionId);
         const targetRoute = data.next?.route === '/onboarding'
           ? '/onboarding'
           : getPostLoginRoute(data.user?.role ?? getRoleFromToken(data.token));
@@ -297,6 +299,7 @@ export default function Login() {
       if ((data?.status === 'success' || data?.success) && data?.token) {
         setSuccessView('Verification successful!');
         login(data.token, data.refreshToken || '', data.user);
+        recordDeviceSession(data.user?.user_id, data.sessionId);
         clearPostLoginNav();
         postLoginNavTimer.current = window.setTimeout(() => {
           postLoginNavTimer.current = null;

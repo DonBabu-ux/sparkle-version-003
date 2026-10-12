@@ -130,10 +130,28 @@ export default function Settings() {
     setAcSubmitting(true);
     setAcError(null);
     try {
+      // Download a data archive first, while this session is still valid.
+      // (The backend delete endpoint has no working export-email path, so the
+      //  export has to happen here via GET /users/export-data.)
+      if (acDataExport) {
+        try {
+          const exportRes = await api.get('/users/export-data', { responseType: 'blob' });
+          const blob = new Blob([exportRes.data], { type: 'application/json' });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `sparkle-data-export-${new Date().toISOString().slice(0, 10)}.json`;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        } catch {
+          // Non-blocking: export failure should not stop the deletion flow.
+        }
+      }
       await api.post('/users/account/delete', {
         password: acPassword,
         reason: acReason,
-        requestDataExport: acDataExport,
       });
       useUserStore.getState().logout();
       navigate('/login');
@@ -768,7 +786,7 @@ export default function Settings() {
                 >
                   <div>
                     <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{doc.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400">{doc.summary}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400">{doc.description}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>

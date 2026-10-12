@@ -13,10 +13,20 @@
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
             android:name=".MainActivity"
             android:label="@string/title_activity_main"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:launchMode="singleTask"
-            android:windowSoftInputMode="adjustResize"
-            android:exported="true">
+        android:theme="@style/AppTheme.NoActionBarLaunch"
+        android:launchMode="singleTask"
+        android:windowSoftInputMode="adjustResize"
+        android:exported="true">
+
+        <!-- FCM: fallback channel (messages set android.notification.channel_id
+             explicitly; this covers any payload without one) + status bar icon -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="system" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -56,4 +66,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Android 13+ runtime notification permission (requested by the
+         push/local notifications Capacitor plugins) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Channel vibration (notification channels set vibration=true) -->
+    <uses-permission android:name="android.permission.VIBRATE" />
 </manifest>

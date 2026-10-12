@@ -1,5 +1,5 @@
 import ErrorRetry from '../components/ui/ErrorRetry';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, Link, useParams, useLocation } from 'react-router-dom';
 import { Search, ShoppingBag, MapPin, Grid, SlidersHorizontal, ChevronDown, ListFilter, Sparkles, ChevronLeft, X } from 'lucide-react';
 import api from '../api/api';
@@ -87,10 +87,20 @@ export default function Marketplace() {
   }, [debouncedSearch, setFilters]);
 
   const [isFallback, setIsFallback] = useState(false);
+  // Stale-closure guard: fetchListings' useCallback deps intentionally exclude
+  // isFallback (a change must NOT retrigger a fetch), so reads go through a ref.
+  const isFallbackRef = useRef(false);
+  const setIsFallbackTracked = useCallback((v: boolean) => {
+    isFallbackRef.current = v;
+    setIsFallback(v);
+  }, []);
 
   const fetchListings = useCallback(async (isRetry = false) => {
     if (!isRetry) setLoading(true);
     setError(false);
+    // Track whether THIS invocation hands off to the radius-expanded retry;
+    // the retry's own finally() clears the spinner — see the end of this fn.
+    let recursed = false;
     try {
       const currentCategory = categoryId || 'all';
       const params = new URLSearchParams({
@@ -100,7 +110,7 @@ export default function Marketplace() {
       });
 
       // Apply location filters only if not in "Global Fallback" mode
-      if (!isFallback) {
+      if (!isFallbackRef.current) {
         params.append('lat', filterLocation.lat.toString());
         params.append('lng', filterLocation.lng.toString());
         params.append('radius', (isRetry ? '1000' : radiusKm.toString()));
@@ -115,31 +125,41 @@ export default function Marketplace() {
       
       // Genius Fallback Logic:
       // 1. If local (short radius) is empty, try expanding to 1000km
-      if (list.length === 0 && !isRetry && !isFallback && !searchQuery) {
-        console.log('No local results, expanding radius...');
+      if (list.length === 0 && !isRetry && !isFallbackRef.current && !searchQuery) {
+        logger.info('No local results, expanding radius...');
+        recursed = true;
         fetchListings(true); 
         return;
       }
 
-      // 2. If still empty after expansion, go Global
-      if (list.length === 0 && (isRetry || isFallback) && !searchQuery) {
-        console.log('No results in expanded radius, showing global feed...');
-        setIsFallback(true);
-        const globalRes = await api.get(`/marketplace/listings?category=${currentCategory !== 'all' ? currentCategory : ''}&sort=${sortBy}`);
+      // 2. If still empty after expansion, go Global (keeps user's price filters)
+      if (list.length === 0 && (isRetry || isFallbackRef.current) && !searchQuery) {
+        logger.info('No results in expanded radius, showing global feed...');
+        setIsFallbackTracked(true);
+        const globalParams = new URLSearchParams({
+          category: currentCategory !== 'all' ? currentCategory : '',
+          sort: sortBy
+        });
+        if (minPrice) globalParams.append('minPrice', minPrice.toString());
+        if (maxPrice) globalParams.append('maxPrice', maxPrice.toString());
+        const globalRes = await api.get(`/marketplace/listings?${globalParams.toString()}`);
         setListings(globalRes.data.listings || []);
         return;
       }
 
       setListings(list);
       // Only reset fallback if we actually found items with the original filters
-      if (!isRetry && list.length > 0) setIsFallback(false);
+      if (!isRetry && list.length > 0) setIsFallbackTracked(false);
     } catch (err) {
       logger.error('Failed to fetch marketplace:', err);
       setError(true);
     } finally {
-      if (!isRetry) setLoading(false);
+      // The expanded-radius retry owns the spinner from here (its own call
+      // keeps loading=true until it finishes) — clearing here caused a flash
+      // of the empty grid mid-retry.
+      if (!isRetry && !recursed) setLoading(false);
     }
-  }, [searchQuery, categoryId, filterLocation, radiusKm, sortBy, minPrice, maxPrice]);
+  }, [searchQuery, categoryId, filterLocation, radiusKm, sortBy, minPrice, maxPrice, setIsFallbackTracked]);
 
   useEffect(() => {
     fetchListings();
@@ -384,7 +404,7 @@ export default function Marketplace() {
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px]">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-marketplace-bg animate-pulse" />
+                    <div key={i} className="aspect-square bg-slate-100 animate-pulse" />
                   ))}
                 </div>
               ) : error ? (

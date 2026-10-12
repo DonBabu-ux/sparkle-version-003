@@ -18,10 +18,12 @@ android {
     }
     signingConfigs {
         release {
-            storeFile file("sparkle-release.jks")
-            storePassword project.property("STORE_PASSWORD")
-            keyAlias project.property("KEY_ALIAS")
-            keyPassword project.property("KEY_PASSWORD")
+            if (project.hasProperty("STORE_PASSWORD")) {
+                storeFile file("sparkle-release.jks")
+                storePassword project.property("STORE_PASSWORD")
+                keyAlias project.property("KEY_ALIAS")
+                keyPassword project.property("KEY_PASSWORD")
+            }
         }
     }
     buildTypes {

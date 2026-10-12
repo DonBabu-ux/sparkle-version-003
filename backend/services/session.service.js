@@ -36,21 +36,26 @@ class SessionService {
      * Get all active sessions for a recipient (for multi-device delivery)
      */
     static async getActiveSessions(userId) {
+        // Only sessions that can actually RECEIVE something: a live socket
+        // (is_online) or a registered push token. Zombie rows from old logins
+        // (no socket, no token) must not be enqueued — they multiplied the
+        // delivery queue and caused the FCM notification bomb.
         const [rows] = await db.query(`
             SELECT session_id, socket_id, platform, push_token, is_online 
             FROM user_sessions 
             WHERE user_id = ?
+              AND (is_online = 1 OR push_token IS NOT NULL)
         `, [userId]);
         return rows;
     }
 
     /**
-     * Remove expired sessions older than 30 days
+     * Remove expired sessions older than 7 days
      */
     static async cleanupStaleSessions() {
         await db.query(`
             DELETE FROM user_sessions 
-            WHERE last_active_at < DATE_SUB(NOW(), INTERVAL 30 DAY)
+            WHERE last_active_at < DATE_SUB(NOW(), INTERVAL 7 DAY)
         `);
     }
 }

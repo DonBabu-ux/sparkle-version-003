@@ -19,6 +19,22 @@ const IDLE_POLL_MS = 5000;
  */
 const ACTIVE_POLL_MS = 2000;
 
+/**
+ * Successful-push dedupe: `${messageId}:${token}` -> timestamp.
+ * One message must produce AT MOST one FCM push per unique device token,
+ * regardless of how many stale user_sessions rows share that token
+ * (notification-bomb fix).
+ */
+const PUSH_SUCCESS_TTL_MS = 10 * 60 * 1000;
+const recentlyPushedSuccess = new Map();
+
+const _prunePushSuccessMap = (nowMs) => {
+    if (recentlyPushedSuccess.size < 10000) return;
+    for (const [key, ts] of recentlyPushedSuccess) {
+        if (nowMs - ts > PUSH_SUCCESS_TTL_MS) recentlyPushedSuccess.delete(key);
+    }
+};
+
 class DeliveryQueueWorker {
     /**
      * Enqueue a message for guaranteed delivery to a specific recipient session.
@@ -38,6 +54,9 @@ class DeliveryQueueWorker {
      */
     static async processQueue(io) {
         try {
+            // Per-cycle push dedupe: a message is pushed at most once per unique
+            // device token within one processing cycle.
+            const cycleAttemptedPush = new Set();
             // ── 1. Fetch pending items ────────────────────────────────────────────
             // We do NOT use FOR UPDATE / SKIP LOCKED because mysql2 doesn't make it
             // easy to hold the transaction open across async calls.  Instead we
@@ -154,6 +173,17 @@ class DeliveryQueueWorker {
                         }
                     }
                     if (pushToken) {
+                        const pushKey = `${item.message_id}:${pushToken}`;
+                        const nowMs = Date.now();
+                        // Duplicate coverage: this exact message was already pushed
+                        // to this exact token (success map) or attempted earlier in
+                        // this cycle (sibling session rows share the same token) —
+                        // drop the redundant queue row without sending again.
+                        if (cycleAttemptedPush.has(pushKey) || recentlyPushedSuccess.has(pushKey)) {
+                            await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
+                            continue;
+                        }
+                        cycleAttemptedPush.add(pushKey);
                         try {
                             const notificationService = require('../services/notification.service');
                             await notificationService.sendPush({
@@ -167,8 +197,15 @@ class DeliveryQueueWorker {
                                     server_sequence: String(item.server_sequence)
                                 }
                             });
+                            // Push is fire-and-forget: a successful send must REMOVE
+                            // the queue row — never retry an already-delivered push.
+                            _prunePushSuccessMap(nowMs);
+                            recentlyPushedSuccess.set(pushKey, nowMs);
+                            await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
+                            continue;
                         } catch (pushErr) {
                             logger.warn(`[DeliveryQueueWorker] Push fallback failed for session ${item.session_id}: ${pushErr.message}`);
+                            // Transient failure — fall through to retry scheduling (3c)
                         }
                     }
                 }

@@ -522,7 +522,7 @@ const updatePassword = async (req, res) => {
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const { password, reason, requestDataExport } = req.body;
+        const { password, reason } = req.body;
 
         if (!password) {
             return res.status(400).json({ error: 'Password required to delete account' });
@@ -540,17 +540,8 @@ const deleteAccount = async (req, res) => {
             logger.info(`User ${userId} deleting account. Reason: ${reason}`);
         }
 
-        // If data export requested, trigger email before deleting
-        if (requestDataExport) {
-            try {
-                const emailService = require('../services/email.service');
-                // Fire-and-forget — don't block deletion
-                emailService.sendDataExportEmail && emailService.sendDataExportEmail(user).catch(() => {});
-            } catch (_) {
-                logger.debug(`deleteAccount: data export email trigger failed for user ${userId}`, _?.message || _);
-            }
-        }
-
+        // Data export is handled client-side before this call (the frontend
+        // downloads GET /users/export-data while the session is still valid).
         await User.delete(userId);
 
         res.clearCookie('sparkleToken');
@@ -635,7 +626,7 @@ const getActiveSessions = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
         const [sessions] = await User.pool.query(
-            'SELECT session_id, device_name, ip_address, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY last_active DESC',
+            'SELECT session_id, device_name, ip_address, last_active, created_at FROM user_sessions WHERE user_id = ? ORDER BY last_active DESC LIMIT 30',
             [userId]
         );
         res.json(sessions);
@@ -671,6 +662,11 @@ const logoutAllDevices = async (req, res) => {
         
         // 2. Clear known sessions
         await User.pool.query('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
+
+        // 3. Kill refresh tokens so old devices cannot mint new access tokens.
+        //    (token_version only guards access tokens; without this a stolen
+        //     refresh token survives logout-all.)
+        await User.pool.query('DELETE FROM refresh_tokens WHERE user_id = ?', [userId]);
         
         res.clearCookie('sparkleToken');
         res.json({ success: true, message: 'Logged out from all devices' });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { getAvatarUrl } from '../utils/imageUtils';
-import defaultAvatar from '../assets/avatar.png';
+import defaultAvatar from '../assets/avatar-default.svg';
 
 interface AvatarProps {
   src?: string | null;

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import defaultAvatar from '../assets/avatar-default.svg';
+import { getMediaUrl } from '../utils/imageUtils';
 
 export default function GlobalEffects() {
   const location = useLocation();
@@ -13,21 +15,21 @@ export default function GlobalEffects() {
         if (img.dataset.fallbackApplied) return;
         img.dataset.fallbackApplied = "true";
         
-        if (img.src.includes('avatar')) {
-          img.src = '/uploads/avatars/default.png';
+        // Avatars (incl. dead-Cloudinary profile photos) get the professional default
+        if (img.src.includes('avatar') || img.src.includes('res.cloudinary.com')) {
+          img.src = defaultAvatar;
         } else {
-          img.src = '/uploads/defaults/no-image.png';
+          img.src = getMediaUrl('/uploads/defaults/no-image.png') || defaultAvatar;
         }
       } else if (target.tagName === 'VIDEO') {
         const video = target as HTMLVideoElement;
         if (video.dataset.fallbackApplied) return;
         video.dataset.fallbackApplied = "true";
         
-        // Hide broken video and show a styled placeholder div (via parent logic if possible)
         video.style.display = 'none';
         const placeholder = document.createElement('div');
         placeholder.className = 'video-error-placeholder';
-        placeholder.innerHTML = 'Media Unavailable';
+        placeholder.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Media Unavailable</span>';
         video.parentElement?.appendChild(placeholder);
       }
     };

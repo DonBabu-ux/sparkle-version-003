@@ -224,6 +224,23 @@ const login = async (req, res) => {
             userAgent: req.headers['user-agent']
         });
 
+        // CREATE SESSION RECORD (powers Device Logins in Settings)
+        const sessionId = crypto.randomUUID();
+        const userAgent = req.headers['user-agent'] || 'Unknown Device';
+        try {
+            await query(
+                'INSERT INTO user_sessions (session_id, user_id, device_name, ip_address) VALUES (?, ?, ?, ?)',
+                [sessionId, user.user_id, userAgent, ip]
+            );
+            // Opportunistic cleanup: keep each user's session list bounded
+            await query(
+                'DELETE FROM user_sessions WHERE user_id = ? AND last_active < DATE_SUB(NOW(), INTERVAL 7 DAY)',
+                [user.user_id]
+            );
+        } catch (sessionErr) {
+            logger.warn('Failed to create user_sessions row on login: ' + (sessionErr?.message || sessionErr));
+        }
+
         if (isNewDevice) {
             // Trigger security alert email (non-blocking)
             sendEmail({
@@ -251,6 +268,7 @@ const login = async (req, res) => {
             status: 'success',
             token: accessToken,
             refreshToken: refreshToken,
+            sessionId,
             user: {
                 id: user.user_id,
                 user_id: user.user_id,

@@ -1,4 +1,4 @@
-import { showError } from '../utils/toast';
+import { showError, showInfo } from '../utils/toast';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
@@ -78,11 +78,18 @@ export default function Profile() {
         setIsFollowing(profileData.is_followed_by_me);
         setIsRequested(profileData.is_requested_by_me);
 
-        const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
-        if (postsRes.data && Array.isArray(postsRes.data)) {
-          const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
-          setPosts(allPosts);
-          setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
+        // Posts are secondary: a failure here must not wipe the loaded profile
+        try {
+          const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
+          if (postsRes.data && Array.isArray(postsRes.data)) {
+            const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
+            setPosts(allPosts);
+            setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
+          }
+        } catch (err) {
+          logger.error('Failed to fetch posts:', err);
+          setPosts([]);
+          setReels([]);
         }
       }
     } catch (err) {
@@ -159,7 +166,11 @@ export default function Profile() {
   }, [profile]);
 
   const handleFollowToggle = async () => {
-    if (!profile || isRequested) return;
+    if (!profile) return;
+    if (isRequested) {
+      showInfo('Follow request already sent — waiting for approval.');
+      return;
+    }
     const targetId = profile.user_id || profile.id;
     try {
       const res = await api.post(`/users/${targetId}/follow`);
@@ -175,6 +186,7 @@ export default function Profile() {
       } : prev);
     } catch (err) {
       logger.error('Follow toggle failed:', err);
+      showError('Could not update follow. Please try again.');
     }
   };
 
@@ -479,6 +491,10 @@ export default function Profile() {
                         <button onClick={handleFollowToggle} className="px-6 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
                           Following
                         </button>
+                      ) : isRequested ? (
+                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-white dark:bg-white/5 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black/50 dark:text-white/50 transition-all uppercase tracking-widest border border-dashed border-black/20 dark:border-white/20">
+                          Requested
+                        </button>
                       ) : (
                         <button onClick={handleFollowToggle} className="px-6 py-2 bg-[#FF1F6D] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#FF1F6D]/20 uppercase tracking-widest">
                           Follow
@@ -626,7 +642,7 @@ export default function Profile() {
             {([
               { id: 'posts',  label: 'POSTS',  icon: Grid },
               { id: 'reels',  label: 'REELS',  icon: Clapperboard },
-              ...(showOwnerActions ? [{ id: 'saved', label: 'SAVED', icon: Bookmark }] : []),
+              ...(showOwnerActions ? ([{ id: 'saved', label: 'SAVED', icon: Bookmark }] as const) : []),
               { id: 'tagged', label: 'TAGGED', icon: UserSquare }
             ] as const).map(tab => (
               <button 
@@ -684,15 +700,16 @@ export default function Profile() {
             ))
           ) : (
             <div className="col-span-full py-12">
-               <ModernOfflineState 
-                 type="empty"
-                 title={activeTab === 'posts' ? "Silence is Golden" : activeTab === 'reels' ? "No Motion" : "Vault Empty"}
-                 message={activeTab === 'posts' 
-                   ? "This user hasn't sparked any posts yet. Stay tuned!" 
-                   : activeTab === 'reels' ? "No moments have been captured here yet."
-                   : "Nothing saved in this collection yet."
-                 }
-               />
+                <ModernOfflineState 
+                  type="empty"
+                  title={activeTab === 'posts' ? "Silence is Golden" : activeTab === 'reels' ? "No Motion" : activeTab === 'saved' ? "Vault Empty" : "Nothing Tagged Yet"}
+                  message={activeTab === 'posts' 
+                    ? "This user hasn't sparked any posts yet. Stay tuned!" 
+                    : activeTab === 'reels' ? "No moments have been captured here yet."
+                    : activeTab === 'saved' ? "Nothing saved in this collection yet."
+                    : "When people tag this user in posts, they'll appear here."
+                  }
+                />
             </div>
           )}
         </div>

@@ -40,6 +40,10 @@ interface Story {
   audio_duration?: number;
   created_at: string;
   stickers?: any[];
+  story_layers?: any[];
+  story_duration?: number;
+  duration?: number;
+  thumbnail_url?: string | null;
   views_count?: number;
   likes_count?: number;
   shares_count?: number;
@@ -93,6 +97,11 @@ export default function StoryViewer() {
   const [ isPaused,  ] = useState(false);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [isLongPressing, setIsLongPressing] = useState(false);
+
+  // Owner detection: setUser replacements (profile/avatar edits) may keep only `id`,
+  // so fall back like chatStore does. Declared before the viewers derived state.
+  const myId = currentUser?.user_id || currentUser?.id;
+  const isOwner = !!myId && !!userStories && String(myId) === String(userStories.user_id);
   
   // Sheet & Modal States
   const [showViewersSheet, setShowViewersSheet] = useState(false);
@@ -107,7 +116,10 @@ export default function StoryViewer() {
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Real Data States
-  const [viewers, setViewers] = useState<any[]>([]);
+  const [rawViewers, setViewers] = useState<any[]>([]);
+  // Exclude the owner's own rows (legacy self-views) so you never appear
+  // in your own "View Activity" list.
+  const viewers = rawViewers.filter(v => !isOwner || String(v?.user_id) !== String(myId));
   const [shareContacts, setShareContacts] = useState<any[]>([]);
   const [contactSearch, setContactSearch] = useState('');
   const filteredContacts = shareContacts.filter((c) => {
@@ -148,19 +160,25 @@ export default function StoryViewer() {
   }, [userId, navigate]);
 
   useEffect(() => {
-    if (showViewersSheet) setViewerIndex(currentIndex);
-  }, [showViewersSheet, currentIndex]);
+    // Owners always track the visible story (inline view stack follows it);
+    // non-owners only sync when the sheet opens.
+    if (showViewersSheet || isOwner) setViewerIndex(currentIndex);
+  }, [showViewersSheet, currentIndex, isOwner]);
 
   useEffect(() => {
     if (userStories?.stories[currentIndex]) {
         const currentId = userStories.stories[currentIndex].story_id;
-        api.post(`/stories/${currentId}/view`).catch(() => {});
+        // Owners never mark their own stories as viewed — otherwise you appear
+        // in your own "View Activity" list like a different account.
+        if (!isOwner) {
+          api.post(`/stories/${currentId}/view`).catch(() => {});
+        }
         // Fetch comments for the current story
         api.get(`/stories/${currentId}/comments`)
            .then(res => setStoryComments(res.data))
            .catch(() => setStoryComments([]));
     }
-  }, [currentIndex, userStories]);
+  }, [currentIndex, userStories, isOwner]);
 
   useEffect(() => {
     if (storyComments.length > 0) {
@@ -172,12 +190,15 @@ export default function StoryViewer() {
   }, [storyComments]);
 
   useEffect(() => {
-    if (showViewersSheet && userStories?.stories[viewerIndex]) {
+    // Owners: keep viewers loaded for the current story so the inline
+    // "View Activity" avatar stack is populated without opening the sheet.
+    // Non-owners only need them when the sheet is open.
+    if (userStories?.stories[viewerIndex] && (showViewersSheet || isOwner)) {
         api.get(`/stories/${userStories.stories[viewerIndex].story_id}/viewers`)
            .then(res => setViewers(Array.isArray(res.data) ? res.data : []))
            .catch(() => setViewers([]));
     }
-  }, [showViewersSheet, viewerIndex, userStories]);
+  }, [showViewersSheet, viewerIndex, userStories, isOwner]);
 
   useEffect(() => {
     if (showShareModal || showMentionModal) {
@@ -371,7 +392,6 @@ export default function StoryViewer() {
   if (!userStories) return null;
 
   const currentStory = userStories.stories[currentIndex];
-  const isOwner = String(currentUser?.user_id) === String(userStories.user_id);
   const unviewedCount = userStories.stories.length - currentIndex;
 
   const handleLike = async (e?: any) => {
@@ -748,10 +768,11 @@ export default function StoryViewer() {
 
                <div className="w-12 h-1 bg-white/20 rounded-full mx-auto mb-6" onClick={() => setShowViewersSheet(false)} />
                
-               <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center justify-between mb-8">
                   <div className="flex gap-6">
-                     <button onClick={() => setActiveViewerTab('views')} className={`tab-btn ${activeViewerTab === 'views' ? 'active' : ''}`}><Eye size={18} /> {viewers.length}</button>
+                     <button onClick={() => setActiveViewerTab('views')} className={`tab-btn ${activeViewerTab === 'views' ? 'active' : ''}`}><Eye size={18} /> {viewers.filter(v => v.type === 'view').length}</button>
                      <button onClick={() => setActiveViewerTab('likes')} className={`tab-btn ${activeViewerTab === 'likes' ? 'active' : ''}`}><Heart size={18} /> {viewers.filter(v => v.type === 'like').length}</button>
+                     <button onClick={() => setActiveViewerTab('shares')} className={`tab-btn ${activeViewerTab === 'shares' ? 'active' : ''}`}><Share2 size={18} /> {viewers.filter(v => v.type === 'share').length}</button>
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{viewerIndex + 1} / {userStories.stories.length}</span>
@@ -759,8 +780,8 @@ export default function StoryViewer() {
                   </div>
                </div>
 
-               <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
-                  {viewers.map((v, i) => v && (
+                <div className="flex-1 overflow-y-auto space-y-6 no-scrollbar">
+                  {viewers.filter(v => v.type === activeViewerTab.slice(0, -1)).map((v, i) => v && (
                     <div key={i} className="flex items-center justify-between group">
                        <div className="flex items-center gap-4">
                           <div className="relative">
@@ -769,7 +790,7 @@ export default function StoryViewer() {
                           </div>
                           <div>
                             <h4 className="text-white font-bold text-[14px]">{v.username}</h4>
-                            <p className="text-white/40 text-[11px] font-medium">{v.user_name || 'Sparkle Member'}</p>
+                            <p className="text-white/40 text-[11px] font-medium">{v.name || 'Sparkle Member'}</p>
                           </div>
                        </div>
                        <div className="flex items-center gap-3">
@@ -778,7 +799,7 @@ export default function StoryViewer() {
                        </div>
                     </div>
                   ))}
-                  {viewers.length === 0 && (
+                  {viewers.filter(v => v.type === activeViewerTab.slice(0, -1)).length === 0 && (
                     <div className="flex flex-col items-center justify-center py-20 text-white/20">
                        <EyeOff size={48} className="mb-4" />
                        <p className="text-[11px] font-black uppercase tracking-widest italic">No activity yet</p>
@@ -1048,7 +1069,7 @@ export default function StoryViewer() {
                 <img src={getAvatarUrl(showViewerOptions.avatar_url, showViewerOptions.username)} className="w-16 h-16 flex-shrink-0 rounded-full border-2 border-white/10 object-cover" alt="" />
                 <div className="flex-1 min-w-0">
                   <h4 className="text-white font-black text-[16px] truncate">{showViewerOptions.username}</h4>
-                  <p className="text-white/50 text-[13px]">{showViewerOptions.user_name || 'Sparkle Member'}</p>
+                  <p className="text-white/50 text-[13px]">{showViewerOptions.name || 'Sparkle Member'}</p>
                 </div>
                 <button onClick={() => setShowViewerOptions(null)} className="ml-auto flex-shrink-0 text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
               </div>

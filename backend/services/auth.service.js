@@ -44,13 +44,21 @@ class AuthService {
         const tokenData = tokens[0];
 
         // 2. Get user data
-        const users = await safeQuery('SELECT user_id, email, username, role FROM users WHERE user_id = ?', [tokenData.user_id]);
+        const users = await safeQuery('SELECT user_id, email, username, role, account_status FROM users WHERE user_id = ?', [tokenData.user_id]);
 
         if (users.length === 0) {
             throw new Error('User not found');
         }
 
         const user = users[0];
+
+        // 2b. Block refresh for terminated/disabled accounts. token_version
+        //     guards access tokens, but refresh tokens are only killed by an
+        //     explicit DELETE, so account_status is the durable check here.
+        const status = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
+        if (status && status !== 'active' && status !== 'verified') {
+            throw new Error('Account is not active');
+        }
 
         // 3. Generate new tokens (Rotation)
         const newTokens = await this.generateTokens(user, tokenData.device_id);

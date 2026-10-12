@@ -7,12 +7,18 @@ export interface Listing {
   condition?: string;
   category?: string;
   campus?: string;
+  location?: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   seller_id?: string;
   seller_name?: string;
   seller_username?: string;
   seller_avatar?: string;
+  seller_verified?: number | boolean;
   is_wishlisted?: boolean;
   media?: { media_url: string }[];
+  image_urls?: string[];
+  created_at?: string;
 }
 
 export interface Review {

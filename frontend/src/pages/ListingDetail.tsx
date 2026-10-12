@@ -1,10 +1,10 @@
-import { showInfo, showSuccess } from '../utils/toast';
+import { showInfo, showSuccess, showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { useMarketplaceStore } from '../store/marketplaceStore';
 import api from '../api/api';
-import { ChevronLeft, Share2, MessageCircle, Search, MoreHorizontal, Bell, UserPlus, Bookmark, CornerUpRight, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, Share2, MessageCircle, Search, MoreHorizontal, Bell, UserPlus, Bookmark, CornerUpRight, ShieldCheck, MapPin } from 'lucide-react';
 import '../utils/imageUtils';
 import { timeAgo } from '../utils/format';
 import type { Listing } from '../types/listing';
@@ -19,9 +19,10 @@ export default function ListingDetail() {
 
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
-  const [ ,  ] = useState(0);
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [ , setIsAlerted ] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [sellerJoinedAt, setSellerJoinedAt] = useState<string | null>(null);
   const [message, setMessage] = useState("Is this still available?");
   const [suggestedGroups, setSuggestedGroups] = useState<any[]>([]);
   const [suggestedListings, setSuggestedListings] = useState<Listing[]>([]);
@@ -36,10 +37,24 @@ export default function ListingDetail() {
             setListing(listingRes.data.listing);
             setIsWishlisted(listingRes.data.listing.is_wishlisted);
 
-            if (listingRes.data.listing.seller_id) {
-              api.get(`/marketplace/sellers/${listingRes.data.listing.seller_id}/alert`)
+            if (listingRes.data.listing.seller_id && !String(listingRes.data.listing.seller_id).startsWith('mock-')) {
+              const sellerId = listingRes.data.listing.seller_id;
+              api.get(`/marketplace/sellers/${sellerId}/alert`)
                 .then(alertRes => {
                   if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
+                })
+                .catch(() => {});
+              // Follow state + real join date (non-blocking, like the alert check)
+              api.get(`/marketplace/sellers/${sellerId}/favorite`)
+                .then(favRes => {
+                  if (favRes.data.success) setIsFollowing(!!favRes.data.favorited);
+                })
+                .catch(() => {});
+              api.get(`/marketplace/sellers/${sellerId}`)
+                .then(profRes => {
+                  if (profRes.data.success && profRes.data.seller?.created_at) {
+                    setSellerJoinedAt(profRes.data.seller.created_at);
+                  }
                 })
                 .catch(() => {});
             }
@@ -100,6 +115,21 @@ export default function ListingDetail() {
       }
     } catch (err) {
       logger.error("Alert toggle failed:", err);
+      showError("Could not update seller alert. Please try again.");
+    }
+  };
+
+  const handleFollow = async () => {
+    if (!listing?.seller_id || String(listing.seller_id).startsWith('mock-')) return;
+    try {
+      const res = await api.post('/marketplace/seller/favorite', { sellerId: listing.seller_id });
+      if (res.data.success) {
+        setIsFollowing(!!res.data.favorited);
+        showInfo(res.data.favorited ? "✅ Now following this seller" : "Unfollowed this seller");
+      }
+    } catch (err) {
+      logger.error("Follow toggle failed:", err);
+      showError("Could not update follow. Please try again.");
     }
   };
 
@@ -113,7 +143,10 @@ export default function ListingDetail() {
           text: `Check out ${listing.title} for KES ${parseFloat(listing.price as string).toLocaleString()} on Sparkle Marketplace!`,
           url: shareUrl
         });
-      } catch (err) {
+      } catch (err: any) {
+        // User dismissing the native share sheet is not an error —
+        // don't claim "copied to clipboard" when nothing happened.
+        if (err?.name === 'AbortError') return;
         navigator.clipboard.writeText(shareUrl);
         showSuccess('Listing link copied to clipboard!');
       }
@@ -137,6 +170,7 @@ export default function ListingDetail() {
       }
     } catch (err) {
       logger.error('Wishlist toggle failed:', err);
+      showError("Could not update your wishlist. Please try again.");
     }
   };
 
@@ -150,9 +184,12 @@ export default function ListingDetail() {
       const convId = res.data.chatId || res.data.conversationId || res.data.id;
       if (convId) {
         navigate(`/marketplace/messages/${convId}`);
+      } else {
+        showError("Could not start a chat with this seller. Please try again.");
       }
     } catch (err) {
       logger.error('Contact failed:', err);
+      showError("Could not message the seller. Please try again.");
     }
   };
 
@@ -303,25 +340,64 @@ export default function ListingDetail() {
           <div className="flex items-center gap-3">
             <img src={listing.seller_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
             <div>
-              <h4 className="font-bold text-[15px] text-marketplace-text">{listing.seller_name || listing.seller_username}</h4>
-              <p className="text-[13px] text-marketplace-muted">Joined Sparkle in 2026</p>
+              <h4 className="font-bold text-[15px] text-marketplace-text flex items-center gap-1">
+                {listing.seller_name || listing.seller_username}
+                {listing.seller_verified ? <ShieldCheck size={14} className="text-[#1877F2]" aria-label="Verified seller" /> : null}
+              </h4>
+              {sellerJoinedAt && (
+                <p className="text-[13px] text-marketplace-muted">
+                  Joined Sparkle in {new Date(sellerJoinedAt).toLocaleString('en', { month: 'short', year: 'numeric' })}
+                </p>
+              )}
             </div>
           </div>
-          <button className="flex items-center gap-1 px-4 py-1.5 bg-marketplace-bg hover:bg-slate-200 transition-colors rounded-lg font-bold text-[14px]">
-            <UserPlus size={16} className="text-marketplace-text" />
-            Follow
+          <button
+            onClick={(e) => { e.stopPropagation(); handleFollow(); }}
+            className={`flex items-center gap-1 px-4 py-1.5 transition-colors rounded-lg font-bold text-[14px] ${
+              isFollowing
+                ? 'bg-[#1877F2] text-white hover:bg-blue-600'
+                : 'bg-marketplace-bg hover:bg-slate-200 text-marketplace-text'
+            }`}
+          >
+            <UserPlus size={16} />
+            {isFollowing ? 'Following' : 'Follow'}
           </button>
         </div>
       </div>
 
-      {/* 7. Map Placeholder */}
+      {/* 7. Location */}
       <div className="px-4 pb-4">
-        <div className="w-full h-32 bg-green-50 rounded-lg overflow-hidden relative border border-marketplace-border">
-          <div className="absolute inset-0 opacity-40" style={{ backgroundImage: 'url(https://maps.wikimedia.org/osm-intl/13/4825/3155.png)', backgroundSize: 'cover' }}></div>
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-16 h-16 bg-[#1877F2]/20 border-2 border-[#1877F2]/50 rounded-full flex items-center justify-center">
-            <div className="w-3 h-3 bg-[#1877F2] rounded-full"></div>
-          </div>
-        </div>
+        {(() => {
+          const lat = parseFloat(String(listing.latitude ?? ''));
+          const lng = parseFloat(String(listing.longitude ?? ''));
+          const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+          if (hasCoords) {
+            const bbox = `${lng - 0.006}%2C${lat - 0.004}%2C${lng + 0.006}%2C${lat + 0.004}`;
+            return (
+              <div className="w-full h-48 rounded-lg overflow-hidden border border-marketplace-border">
+                <iframe
+                  title={`Map of ${listing.location || listing.campus || 'listing location'}`}
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat}%2C${lng}`}
+                />
+              </div>
+            );
+          }
+          return (
+            <div className="w-full p-4 bg-green-50 rounded-lg border border-marketplace-border flex items-start gap-3">
+              <MapPin size={20} className="text-green-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="font-bold text-[15px] text-marketplace-text">
+                  {listing.location || listing.campus || 'Meet on campus'}
+                </h4>
+                <p className="text-[13px] text-marketplace-muted mt-0.5">
+                  Exact location shared in chat. Always meet in a safe, public campus spot.
+                </p>
+              </div>
+            </div>
+          );
+        })()}
       </div>
 
       <hr className="border-marketplace-border mt-2 mb-4" />

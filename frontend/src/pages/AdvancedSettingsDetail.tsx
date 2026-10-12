@@ -40,6 +40,7 @@ export default function AdvancedSettingsDetail() {
   });
 
   const [sessions, setSessions] = useState<any[]>([]);
+  const [apiReachable, setApiReachable] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -47,6 +48,22 @@ export default function AdvancedSettingsDetail() {
       fetchSessions();
     }
   }, [section]);
+
+  // Probe the backend health endpoint so the "API Service Status" badge
+  // reflects reality instead of a hardcoded claim.
+  useEffect(() => {
+    let cancelled = false;
+    const probe = async () => {
+      try {
+        await api.get('/health', { timeout: 4000 });
+        if (!cancelled) setApiReachable(true);
+      } catch {
+        if (!cancelled) setApiReachable(false);
+      }
+    };
+    probe();
+    return () => { cancelled = true; };
+  }, []);
 
   const fetchSettings = async () => {
     setLoading(true);
@@ -385,15 +402,19 @@ export default function AdvancedSettingsDetail() {
                 title="API Service Status"
                 description="REST backend API reachability"
                 rightElement="badge"
-                badgeText="REACHABLE"
-                badgeVariant="green"
+                badgeText={
+                  apiReachable === null ? 'CHECKING' : apiReachable ? 'REACHABLE' : 'UNREACHABLE'
+                }
+                badgeVariant={
+                  apiReachable === null ? 'slate' : apiReachable ? 'green' : 'amber'
+                }
               />
               <SettingRow
                 icon={Database}
                 title="App Version & Build"
                 description="Sparkle Social Ecosystem v1.0.0 (Build 2026.09)"
                 rightElement="badge"
-                badgeText="STABLE"
+                badgeText="v1.0.0"
                 badgeVariant="slate"
               />
             </SettingCardGroup>

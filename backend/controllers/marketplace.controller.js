@@ -1110,6 +1110,20 @@ const toggleSellerFavorite = [
     }
 ];
 
+const getSellerFavoriteStatus = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.json({ success: true, favorited: false });
+
+        const { sellerId } = req.params;
+        const favorited = await Marketplace.isFavoriteSeller(user.user_id, sellerId);
+        res.json({ success: true, favorited });
+    } catch (error) {
+        logger.error('Get seller favorite status error:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch seller follow status' });
+    }
+};
+
 const blockUser = [
     validate(marketplaceSchemas.blockUserSchema, 'body'),
     async (req, res) => {
@@ -1339,6 +1353,7 @@ module.exports = {
     relistItem,
     getRecommendations,
     toggleSellerFavorite,
+    getSellerFavoriteStatus,
     toggleSellerAlert,
     getSellerAlertStatus,
     recordView,

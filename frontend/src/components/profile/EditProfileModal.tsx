@@ -107,10 +107,14 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   // Modal dialog states
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [showUsernameConfirm, setShowUsernameConfirm] = useState(false);
+  // Escape-to-close must respect unsaved-changes confirmation (see
+  // handleAttemptClose, defined below). We route the a11y hook through this
+  // ref so it always calls the latest guarded handler.
+  const attemptCloseRef = useRef<() => void>(() => {});
   // Suspend the main dialog while a confirmation sheet is stacked on top.
   const a11yRef = useModalA11y(
     isOpen && !showDiscardConfirm && !showUsernameConfirm,
-    onClose,
+    () => attemptCloseRef.current(),
   );
   const discardRef = useModalA11y(isOpen && showDiscardConfirm, () => setShowDiscardConfirm(false));
   const usernameRef = useModalA11y(isOpen && showUsernameConfirm, () => setShowUsernameConfirm(false));
@@ -231,6 +235,8 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       onClose();
     }
   };
+  // Keep the Escape (a11y) path pointing at the latest guarded handler.
+  attemptCloseRef.current = handleAttemptClose;
 
   // Discard changes
   const handleConfirmDiscard = () => {

@@ -1,0 +1,97 @@
+# Runs automatically on every push to main that touches the app.
+# - OTA: builds the web bundle and releases it to the OtaKit base channel
+# - APK: builds a debug APK and attaches it to the rolling "debug-latest"
+#        GitHub Release (stable download link for new users' first install).
+#
+# REQUIRED SETUP (one time): add the OTAKIT_TOKEN repo secret.
+#   Repo on GitHub → Settings → Secrets and variables → Actions → New secret
+#   Name: OTAKIT_TOKEN   Value: otakit_sk_... (from your OtaKit dashboard/CLI login)
+#   Without it the OTA step is skipped (APK still builds).
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/release.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OTAKIT_TOKEN: ${{ secrets.OTAKIT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root deps (Capacitor CLI)
+        run: npm ci --no-audit --no-fund
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build web bundle
+        working-directory: frontend
+        run: npx vite build
+
+      - name: Sync Capacitor (picks up new native plugins)
+        run: npx cap sync android
+
+      - name: Release OTA bundle to OtaKit base channel
+        if: env.OTAKIT_TOKEN != ''
+        run: npx -y @otakit/cli upload --release
+
+      - name: Warn when OTA token missing
+        if: env.OTAKIT_TOKEN == ''
+        run: echo "::warning::OTAKIT_TOKEN secret not set — OTA bundle NOT released. Add it in repo Settings → Secrets → Actions."
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # local.properties is committed with a Windows sdk.dir path; remove it so
+      # the runner's ANDROID_HOME is used instead.
+      - name: Prepare Android project
+        run: |
+          rm -f android/local.properties
+          chmod +x android/gradlew
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew app:assembleDebug --console=plain
+
+      - name: Publish APK to rolling "debug-latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: debug-latest
+          name: Latest Debug APK
+          prerelease: true
+          body: >
+            Rolling debug build of Sparkle, rebuilt on every push to main.
+            Install once — all future updates arrive automatically over the air
+            (OtaKit). Requires Android 8.0+.
+          files: android/app/build/outputs/apk/debug/app-debug.apk

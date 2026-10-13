@@ -38,6 +38,8 @@ pids
 *.pid
 *.seed
 *.pid.lock
+backend/exports_storage/
+exports_storage/
 
 # Build outputs (if any)
 dist/

@@ -54,6 +54,9 @@ class AccountLifecycleWorker {
 
             // 2. Process Expired Suspensions (only accounts with status = 'suspended' and non-null expiry)
             await this.processExpiredSuspensions();
+
+            // 3. Process Expired Data Exports and purge physical files
+            await this.processExpiredExports();
         } catch (err) {
             logger.error('[AccountLifecycleWorker] Maintenance cycle failure:', err);
         } finally {
@@ -124,6 +127,37 @@ class AccountLifecycleWorker {
             }
         } catch (err) {
             logger.error('[AccountLifecycleWorker] Error processing expired suspensions:', err.message);
+        }
+    }
+
+    /**
+     * Purge physical export files whose download token has expired
+     */
+    async processExpiredExports() {
+        const fs = require('fs');
+        try {
+            const [expired] = await pool.query(`
+                SELECT job_id, file_path 
+                FROM data_export_jobs 
+                WHERE status = 'READY' 
+                  AND token_expires_at IS NOT NULL 
+                  AND token_expires_at <= NOW()
+                LIMIT 50
+            `);
+
+            for (const row of expired) {
+                try {
+                    if (row.file_path && fs.existsSync(row.file_path)) {
+                        await fs.promises.unlink(row.file_path);
+                    }
+                    await pool.query('UPDATE data_export_jobs SET status = "EXPIRED", file_path = NULL WHERE job_id = ?', [row.job_id]);
+                    logger.info(`[AccountLifecycleWorker] Purged expired export file for job ${row.job_id}`);
+                } catch (e) {
+                    logger.warn(`[AccountLifecycleWorker] Failed to purge export file for job ${row.job_id}: ${e.message}`);
+                }
+            }
+        } catch (err) {
+            logger.error('[AccountLifecycleWorker] Error cleaning expired export jobs:', err.message);
         }
     }
 }

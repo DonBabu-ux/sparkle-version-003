@@ -710,6 +710,94 @@ const renderers = {
         <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
             &copy; 2026 Sparkle. All rights reserved.
         </div>
+    </div>`,
+
+    'export-ready': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Personal Data Export is Ready - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #0284c7 0%, #0369a1 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Your Data Export is Ready</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your requested personal data archive has been generated and validated.</p>
+            <div style="background:#f0f9ff;border-left:4px solid #0284c7;padding:12px 16px;margin:18px 0;border-radius:4px;color:#0369a1;">
+                <strong>Format:</strong> ${esc((d.format || 'PDF').toUpperCase())}<br/>
+                <strong>File Size:</strong> ${esc(d.fileSize || 'Standard Archive')}<br/>
+                <strong>Expires in:</strong> 48 hours (${esc(d.expiryDate || '')})
+            </div>
+            <p style="text-align:center;margin:24px 0;">
+                <a href="${esc(d.downloadUrl)}" style="background:#0284c7;color:#fff;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:bold;display:inline-block;">Download Archive</a>
+            </p>
+            <p style="font-size:13px;color:#64748b;">For your security, this link is single-account authorized, expires in 48 hours, and contains only data approved for export under Sparkle privacy rules.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'recovery-challenge': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Recovery Verification Code - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Verification Code</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>You requested an account verification challenge for <strong>${esc(d.actionName || 'Account Recovery')}</strong>.</p>
+            <div style="background:#f5f3ff;border:2px dashed #7c3aed;padding:16px;margin:20px 0;border-radius:8px;text-align:center;">
+                <span style="font-size:32px;font-weight:bold;letter-spacing:6px;color:#6d28d9;">${esc(d.code)}</span>
+            </div>
+            <p style="font-size:13px;color:#64748b;">This verification code is valid for 15 minutes. If you did not request this verification, please disregard this email.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'appeal-received': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Appeal Received - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #0d9488 0%, #0f766e 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Appeal Case Received</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>We have received your appeal regarding your Sparkle account termination.</p>
+            <div style="background:#f0fdfa;border-left:4px solid #0d9488;padding:12px 16px;margin:18px 0;border-radius:4px;color:#0f766e;">
+                <strong>Case Reference:</strong> ${esc(d.referenceNumber)}<br/>
+                <strong>Category:</strong> ${esc(d.category || 'General Appeal')}<br/>
+                <strong>Status:</strong> Under Initial Review
+            </div>
+            <p>Our Trust & Safety team will review your submission and communicate our decision to this email address within 3-5 business days.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'deletion-cancelled': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Deletion Cancelled - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #16a34a 0%, #15803d 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Account Deletion Cancelled</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your pending account deletion has been successfully cancelled.</p>
+            <div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 16px;margin:18px 0;border-radius:4px;color:#15803d;">
+                <strong>Account Status:</strong> Active<br/>
+                Your profile, content, and settings have been preserved.
+            </div>
+            <p>You can now log back into your Sparkle account normally.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
     </div>`
 };
 

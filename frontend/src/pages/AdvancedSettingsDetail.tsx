@@ -920,15 +920,15 @@ export default function AdvancedSettingsDetail() {
               />
             </SettingCardGroup>
 
-            <SettingCardGroup title="Data Portability & Exports">
+            <SettingCardGroup title="Data Portability & Personal Archive">
               <SettingRow
                 icon={Download}
-                title="Export My Complete Data Archive"
-                description="Export a full JSON archive containing your profile, posts, messages, and marketplace items"
+                title="Personal Data Export Centre"
+                description="Generate PDF reports, Excel workbooks, CSV spreadsheets, or structured JSON archives with field-level selection"
                 rightElement="badge"
-                badgeText={exportingData ? 'EXPORTING...' : 'EXPORT JSON'}
+                badgeText="OPEN CENTRE"
                 badgeVariant="pink"
-                onClick={handleExportData}
+                onClick={() => navigate('/settings/data-centre')}
               />
             </SettingCardGroup>
           </>

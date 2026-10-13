@@ -43,6 +43,43 @@ router.post('/follow-requests/:requestId/reject', authMiddleware, socialControll
 router.get('/advanced-settings', authMiddleware, userController.getAdvancedSettings);
 router.put('/settings', authMiddleware, userController.updateSettings);
 router.get('/export-data', authMiddleware, userController.exportUserData);
+
+// Data Centre (Secure Export Manifest, Job Management & Token Download)
+router.get('/data-centre/history', authMiddleware, async (req, res) => {
+    try {
+        const dataExportService = require('../../services/dataExport.service');
+        const history = await dataExportService.getUserExports(req.user.user_id || req.user.id);
+        res.json({ success: true, history });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+router.post('/data-centre/export', authMiddleware, async (req, res) => {
+    try {
+        const dataExportService = require('../../services/dataExport.service');
+        const { categories, format, deliveryEmail, isAlternate } = req.body;
+        const result = await dataExportService.requestExport({
+            userId: req.user.user_id || req.user.id,
+            requestedCategories: categories,
+            format,
+            deliveryEmail,
+            isAlternate
+        });
+        res.json({ success: true, ...result });
+    } catch (e) {
+        res.status(400).json({ error: e.message });
+    }
+});
+router.get('/data-centre/download/:token', async (req, res) => {
+    try {
+        const dataExportService = require('../../services/dataExport.service');
+        const { filePath, fileName } = await dataExportService.getFileByToken(req.params.token);
+        res.download(filePath, fileName);
+    } catch (e) {
+        res.status(403).json({ error: e.message });
+    }
+});
+
 router.get('/2fa/setup', authMiddleware, userController.generate2FASecret);
 router.post('/2fa/enable', authMiddleware, userController.enableTwoFactor);
 router.post('/2fa/disable', authMiddleware, userController.disableTwoFactor);

@@ -81,6 +81,7 @@ router.use('/confessions', confessionRoutes);
 router.use('/skill-market', skillMarketRoutes);
 router.use('/search', require('./search.routes'));
 router.use('/realtime', require('./realtime.routes'));
+router.use('/recovery', require('./recovery.routes'));
 router.use('/support', require('./support.routes'));
 router.use('/link-preview', linkPreviewRoutes);
 router.use('/clubs', require('./clubs.routes'));

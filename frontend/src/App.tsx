@@ -137,6 +137,8 @@ import { logger } from './utils/logger';
 import PageShell from './components/PageShell';
 import SparkleHubPage from './pages/SparkleHubPage';
 import InviteLandingPage from './pages/InviteLandingPage';
+const DataCentre = lazyWithRetry(() => import('./pages/DataCentre'));
+const AccountRecoveryPortal = lazyWithRetry(() => import('./pages/AccountRecoveryPortal'));
 
 function App() {
   const { isAuthenticated, token } = useUserStore();
@@ -476,6 +478,7 @@ function App() {
                     <Route path="/forgot-password" element={<ForgotPassword />} />
                     <Route path="/reset-password" element={<ResetPassword />} />
                     <Route path="/verify-email" element={<VerifyEmail />} />
+                    <Route path="/recovery" element={<AccountRecoveryPortal />} />
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
                     <Route path="/home" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/messages" element={isAuthenticated ? <Messages /> : <Navigate to="/login" />} />
@@ -523,6 +526,7 @@ function App() {
                     <Route path="/marketplace" element={isAuthenticated ? <Marketplace /> : <Navigate to="/login" />} />
                     <Route path="/groups" element={isAuthenticated ? <Groups /> : <Navigate to="/login" />} />
                     <Route path="/settings" element={isAuthenticated ? <Settings /> : <Navigate to="/login" />} />
+                    <Route path="/settings/data-centre" element={isAuthenticated ? <DataCentre /> : <Navigate to="/login" />} />
                     <Route path="/settings/security" element={isAuthenticated ? <SecurityCentre /> : <Navigate to="/login" />} />
                     <Route path="/settings/change-password" element={isAuthenticated ? <ChangePassword /> : <Navigate to="/login" />} />
                     <Route path="/settings/advanced" element={isAuthenticated ? <AdvancedSettings /> : <Navigate to="/login" />} />

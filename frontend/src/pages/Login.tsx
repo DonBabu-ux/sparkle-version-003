@@ -490,12 +490,12 @@ export default function Login() {
                   Create new account
                 </Link>
 
-                <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.72rem', color: '#64748b', display: 'flex', itemsCenter: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <div style={{ marginTop: '1.25rem', textAlign: 'center', fontSize: '0.72rem', color: '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
                   <Link to="/legal/terms" style={{ color: '#94a3b8', textDecoration: 'none' }}>Terms &amp; Conditions</Link>
                   <span>•</span>
                   <Link to="/legal/privacy" style={{ color: '#94a3b8', textDecoration: 'none' }}>Privacy Policy</Link>
                   <span>•</span>
-                  <Link to="/legal/community-guidelines" style={{ color: '#94a3b8', textDecoration: 'none' }}>Community Guidelines</Link>
+                  <Link to="/recovery" style={{ color: '#38bdf8', fontWeight: 600, textDecoration: 'none' }}>Account Recovery &amp; Appeals</Link>
                 </div>
               </>
             ) : (

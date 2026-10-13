@@ -1948,6 +1948,7 @@ export default function Messages() {
   
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesListRef = useRef<HTMLDivElement>(null);
 
   
 
@@ -2349,7 +2350,15 @@ export default function Messages() {
   }, [socket, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    // Scroll the message list container directly — scrollIntoView would also
+    // scroll outer ancestors (AppScreen wrapper, window) causing the whole
+    // page to jump when the keyboard opens.
+    const container = messagesListRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    }
     setUnreadCountInChat(0);
   };
 
@@ -3432,7 +3441,7 @@ export default function Messages() {
   };
 
   return (
-    <AppScreen>
+    <AppScreen scrollable={false}>
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
 
@@ -3940,7 +3949,7 @@ export default function Messages() {
                 )}
               </AnimatePresence>
 
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
+              <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
                 {(() => {
                   const partnerName = (sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || '').toLowerCase();
                   const partnerUsername = (selectedChat?.partner_username || selectedChat?.username || '').toLowerCase();

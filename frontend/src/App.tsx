@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { OtaKit } from '@otakit/capacitor-updater';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
@@ -306,6 +307,28 @@ function App() {
       logger.warn('[OtaKit] notifyAppReady failed:', err);
     });
   }, [hydrated]);
+
+  // ── Android back button: navigate back in-app instead of exiting ──
+  // Guarded: APKs older than the @capacitor/app plugin lack the native
+  // implementation — the call rejects and must not break the session.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const ROOT_PATHS = ['/dashboard', '/login', '/'];
+    let handle: { remove(): Promise<void> } | null = null;
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      const path = window.location.pathname;
+      const isRoot = ROOT_PATHS.some(p => path === p || path.startsWith(p + '/'));
+      if (!isRoot && canGoBack) {
+        window.history.back();
+      } else {
+        // On root screen: minimize instead of killing the process
+        CapApp.minimizeApp().catch(() => { });
+      }
+    }).then(h => { handle = h; }).catch(err => {
+      logger.warn('[BackButton] plugin unavailable (old APK?):', err);
+    });
+    return () => { handle?.remove().catch(() => { }); };
+  }, []);
 
   // ── Upload Manager: Initialize once after hydration ──
   useEffect(() => {

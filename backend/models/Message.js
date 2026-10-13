@@ -91,13 +91,34 @@ class Message {
                 [chatId]
             );
             if (personalRows.length > 0) {
-                personalChatId = chatId;
                 const p = personalRows[0];
-                if (!recipientId) {
-                    recipientId = (p.participant1_id === senderId) ? p.participant2_id : p.participant1_id;
+                // Membership gate: sender must be one of the two participants.
+                // (Self-chats have p1 === p2 and pass — the intentional "Saved Messages" space.)
+                if (senderId !== p.participant1_id && senderId !== p.participant2_id) {
+                    const forbiddenErr = new Error('You are not a participant of this chat');
+                    forbiddenErr.code = 'CHAT_FORBIDDEN';
+                    forbiddenErr.statusCode = 403;
+                    throw forbiddenErr;
                 }
+                personalChatId = chatId;
+                // Participant pair is authoritative: always derive the recipient from it,
+                // never trust a client-supplied recipientId/partnerId (cross-chat injection fix).
+                recipientId = (p.participant1_id === senderId) ? p.participant2_id : p.participant1_id;
             } else {
+                // Not a personal chat: only proceed if it is a group the sender belongs to.
+                // Unknown chatIds previously fell through as groupChatId and produced
+                // recipient_id=NULL "limbo" rows.
+                const GroupMember = require('./GroupMember');
+                const isMember = await GroupMember.isParticipant(chatId, senderId);
+                if (!isMember) {
+                    const notFoundErr = new Error('Chat not found');
+                    notFoundErr.code = 'CHAT_NOT_FOUND';
+                    notFoundErr.statusCode = 404;
+                    throw notFoundErr;
+                }
                 groupChatId = chatId;
+                // Groups have no single recipient — clear any client-supplied value
+                recipientId = null;
             }
         } else if (recipientId) {
             personalChatId = await this.getOrCreateConversation(senderId, recipientId, marketplaceListingId);
@@ -213,20 +234,20 @@ class Message {
                 `, [sentAt, groupChatId]);
             }
 
-            // Enqueue delivery tasks into delivery_queue for recipient sessions (non-blocking)
+            // Enqueue delivery task for the recipient (non-blocking).
+            // ONE row per recipient — not per session: the worker may push at
+            // most one FCM per message no matter how many stale user_sessions
+            // rows exist or how many backend processes poll the queue
+            // (notification-bomb / double-push fix).
             if (recipientId) {
                 setImmediate(async () => {
                     try {
-                        const SessionService = require('../services/session.service');
                         const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
-                        const sessions = await SessionService.getActiveSessions(recipientId);
-                        for (const session of sessions) {
-                            await DeliveryQueueWorker.enqueue({
-                                messageId,
-                                recipientId,
-                                sessionId: session.session_id
-                            });
-                        }
+                        await DeliveryQueueWorker.enqueue({
+                            messageId,
+                            recipientId,
+                            sessionId: 'all'
+                        });
                     } catch (queueErr) {
                         logger.warn('[Message] Non-blocking delivery queue enqueue error:', queueErr.message);
                     }

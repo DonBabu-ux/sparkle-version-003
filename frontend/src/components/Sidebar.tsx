@@ -51,7 +51,7 @@ export default function Sidebar() {
     { name: 'Search', icon: Search, path: '/search', action: () => navigate('/search') },
     { name: 'Explore', icon: Compass, path: '/explore' },
     { name: 'Reels', icon: PlayCircle, path: '/moments' },
-    { name: 'Messages', icon: Send, path: '/messages', badge: '1' },
+    { name: 'Messages', icon: Send, path: '/messages' },
     { name: 'Notifications', icon: Heart, path: '/notifications', badge: 'dot' },
     { name: 'Create', icon: Plus, path: '#', action: () => setActiveModal('creation_hub') },
     ...(isAdminRole(role) ? [{ name: 'Admin', icon: Shield, path: '/admin' }] : []),

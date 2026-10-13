@@ -6,7 +6,26 @@ This guide documents all issues encountered during the build setup and their sol
 
 ## Quick Start (How to Build & Run)
 
-### 1. Build the Debug APK
+> **⚠️ CRITICAL ORDER:** The backend is deployed on Render (`https://sparkle-version-003-1-f4v3.onrender.com`). The APK is a **client** — it needs the web bundle built with the server URL baked in. **Building the APK without Step 0 makes the app call `localhost:3000` and die after login** (this exact bug happened). Never skip Step 0.
+
+### Step 0: Build the web bundle (from repo root)
+
+```powershell
+# frontend/.env.production MUST exist (gitignored) and contain:
+#   VITE_API_URL=https://sparkle-version-003-1-f4v3.onrender.com/api
+#   VITE_SOCKET_URL=https://sparkle-version-003-1-f4v3.onrender.com
+npx vite build           # run from frontend/ — production mode auto-loads .env.production
+```
+
+### Step 1: Sync web assets into the Android project
+
+```powershell
+# from repo root (NOT inside android/) — needs root package.json overrides (see Issue 8)
+npx cap sync android
+```
+
+### Step 2: Build the Debug APK
+
 Open **PowerShell** in the `android/` directory and run:
 
 ```powershell
@@ -36,6 +55,17 @@ adb install -r "app\build\outputs\apk\debug\app-debug.apk"
 
 # Launch the app
 adb shell am start -n com.sparkleapp/.MainActivity
+```
+
+### 3. Increment App Version (For Testing Updates)
+When creating a new build update to test on phone or emulator, bump `versionCode` and `versionName` in `android/app/build.gradle`:
+
+```groovy
+defaultConfig {
+    ...
+    versionCode 2
+    versionName "1.0.1"
+}
 ```
 
 ---
@@ -128,10 +158,57 @@ Below is the complete troubleshooting log from initial build failure to successf
 ---
 
 ### Issue 6: Syncing Frontend Web Build Assets
-* **Process:** Ensure Capacitor assets in `app/src/main/assets/public` are updated when web code in `frontend/dist` changes:
+* **Process:** Use `npx cap sync android` from the **repo root** (not `android/`) — it copies `frontend/dist` to `app/src/main/assets/public` **and** updates plugins/manifest/gradle. A bare robocopy misses plugin registration:
   ```powershell
+  # preferred
+  npx cap sync android
+  # fallback (assets only — still run cap sync if plugins changed)
   robocopy "..\frontend\dist" "app\src\main\assets\public" /E /MIR /NP /NDL /NJS /NJH
   ```
+
+---
+
+### Issue 7: Invalid `sdk.dir` Path in `local.properties`
+* **Error / Symptom:** Gradle build fails locating Android SDK or throws initialization errors on `AndroidLocationsBuildService`.
+* **Cause:** `local.properties` contained a hardcoded path (`C:\Users\user\AppData\Local\Android\Sdk`) from another user profile or environment.
+* **Fix:** Updated `local.properties` to point to the local Android SDK directory:
+  ```properties
+  sdk.dir=C\:\\Users\\Derivo\\AppData\\Local\\Android\\Sdk
+  ```
+
+---
+
+### Issue 8: `cap sync` Crashes With `extractTemplate` TypeError
+* **Error:**
+  ```text
+  Cannot read properties of undefined (reading 'extract')
+  at extractTemplate ...
+  ```
+* **Cause:** The committed `package-lock.json` resolved **tar@7.5.22** for `@capacitor/cli` (which requires `^6.1.11`). tar v7's CJS output breaks the CLI's template extraction.
+* **Fix:** Root `package.json` pins a compatible tar via npm overrides (already committed):
+  ```json
+  "overrides": { "@capacitor/cli": { "tar": "^6.1.11" } }
+  ```
+  Verify with: `node -e "console.log(require('./package-lock.json').packages['node_modules/@capacitor/cli/node_modules/tar'].version)"` → must print `6.x`.
+
+---
+
+### Issue 9: APK Loads but "Dies" After Login (Calls localhost)
+* **Symptom:** App opens, login POST fails with `ERR_CONNECTION_RESET` / connection problem card; feed/suggestions/stories/notifications all fail.
+* **Cause:** The web bundle was built **without** `frontend/.env.production`, so `VITE_API_URL` defaulted to `http://localhost:3000/api` — inside the APK that means *the phone itself*.
+* **Fix:** Always run Step 0 first. Verify the built bundle actually contains the Render URL:
+  ```powershell
+  Select-String -Path frontend\dist\assets\*.js -Pattern "onrender\.com" -SimpleMatch | Select-Object -First 1
+  ```
+  Also confirm `frontend/.env.production` is present (gitignored — must exist on every build machine).
+
+---
+
+### Issue 10: Backend Unreachable on Render (`No open ports detected`)
+* **Symptom:** Render log shows `Port scan timeout reached, no open ports detected`; every API call fails; `CREATE TABLE` logs still appear (process alive).
+* **Cause:** Render runs `node server.js` from the **repo root**, but `backend/server.js` only bound its port when `require.main === module` — false when loaded through the root entry, so nothing ever listened.
+* **Fix (committed):** root `server.js` sets `SPARKLE_ROOT_ENTRY=1` + `dns.setDefaultResultOrder('ipv4first')` (also fixes email `ENETUNREACH` on IPv6-less Render); `backend/server.js` listens on `0.0.0.0:${PORT}` when flagged. Render uses its dashboard env vars — `PORT` is injected automatically (default 10000; an override is respected).
+* **Verify in deploy log:** `🔥 Sparkle Server running on port NNNN` + no port-scan warnings.
 
 ---
 
@@ -140,10 +217,14 @@ Below is the complete troubleshooting log from initial build failure to successf
 | File | Status | Description |
 | :--- | :--- | :--- |
 | `android/gradle.properties` | **Created** | Enabled `android.useAndroidX` & `android.enableJetifier`. |
-| `android/app/build.gradle` | **Modified** | Made `signingConfigs.release` conditional on `hasProperty("STORE_PASSWORD")`. |
+| `android/local.properties` | **Updated** | Corrected `sdk.dir` path to local Android SDK location. (Machine-specific — must NOT be committed; gitignored.) |
+| `android/app/build.gradle` | **Modified** | Made `signingConfigs.release` conditional on `hasProperty("STORE_PASSWORD")`; bumped `versionCode` (2) and `versionName` ("1.0.1") for update testing. |
 | `android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml` | **Deleted** | Removed vector overriding real app icon. |
 | `android/app/src/main/res/mipmap-*/ic_launcher*.png` | **Updated** | Replaced default green robot images with scaled Sparkle logo assets. |
-| `android/BUILD_GUIDE.md` | **Created** | Developer guide and troubleshooting reference document. |
+| `android/BUILD_GUIDE.md` | **Updated** | Developer guide, versioning instructions, and troubleshooting reference document. |
+| `android/gradle/wrapper/gradle-wrapper.properties` | **Updated** | Gradle wrapper 8.2.1 → **8.5** (8.2.1 is incompatible with the JDK 21+ that Android Studio ships); `networkTimeout=300000`. |
+| `package.json` (root) | **Updated** | npm `overrides` pinning `tar@^6.1.11` for `@capacitor/cli` (fixes cap sync crash). |
+| `frontend/.env.production` | **Created** | Bakes Render API + socket URLs into the APK bundle. **Gitignored — must exist on every build machine.** |
 
 ---
 

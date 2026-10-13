@@ -24,6 +24,11 @@ export interface OtaVersionMetadata {
 export class OtaService {
     private static isWatchdogActive = false;
 
+    // Kill switch: OtaKit (@otakit/capacitor-updater) now owns OTA delivery.
+    // The legacy self-hosted bootloader stays intact below for rollback only —
+    // flip to true to deactivate OtaKit and revive this system.
+    private static readonly OTA_SYSTEM_ENABLED = false;
+
     /**
      * Checks if the app is currently running in a native Capacitor mobile container (iOS/Android)
      */
@@ -37,6 +42,7 @@ export class OtaService {
      * Returns true if a dynamically downloaded JS bundle was successfully injected.
      */
     public static async bootstrap(): Promise<boolean> {
+        if (!OtaService.OTA_SYSTEM_ENABLED) return false;
         if (!this.isMobile()) return false;
 
         try {
@@ -84,6 +90,7 @@ export class OtaService {
      * Start background update query checking and progressive downloading
      */
     public static async checkAndDownloadUpdate(): Promise<void> {
+        if (!OtaService.OTA_SYSTEM_ENABLED) return;
         if (!this.isMobile()) return;
 
         try {

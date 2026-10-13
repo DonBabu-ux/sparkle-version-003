@@ -112,10 +112,17 @@ export interface ChatConversation {
   can_send_messages?: boolean;
 }
 
+interface ChatPagingMeta {
+  hasMoreOlder: boolean;
+  oldestCursor: number | null;
+  isLoadingOlder: boolean;
+}
+
 interface ChatState {
   conversations: ChatConversation[];
   activeConversationId: string | null;
   messagesByConversation: Record<string, ChatMessage[]>;
+  chatPaging: Record<string, ChatPagingMeta>;
   typingUsers: Record<string, { userId: string; username: string; timestamp: number }[]>;
   drafts: Record<string, string>;
   unreadCounts: Record<string, number>;
@@ -151,6 +158,7 @@ interface ChatState {
   ) => void;
   setActiveConversationId: (chatId: string | null) => void;
   setMessages: (chatId: string, msgs: ChatMessage[]) => void;
+  setChatPaging: (chatId: string, updates: Partial<ChatPagingMeta>) => void;
   addMessage: (chatId: string, msg: ChatMessage) => void;
   updateMessage: (chatId: string, msgId: string, updates: Partial<ChatMessage>) => void;
   editMessage: (chatId: string, msgId: string, newContent: string) => void;
@@ -192,6 +200,7 @@ export const useChatStore = create<ChatState>()(
         conversations: [],
         activeConversationId: null,
         messagesByConversation: {},
+        chatPaging: {},
         typingUsers: {},
         unreadCounts: {},
         drafts: {},
@@ -533,6 +542,21 @@ export const useChatStore = create<ChatState>()(
             },
           }));
           get().refreshConversation(chatId);
+        },
+
+        setChatPaging: (chatId, updates) => {
+          set((state) => ({
+            chatPaging: {
+              ...state.chatPaging,
+              [chatId]: {
+                hasMoreOlder: false,
+                oldestCursor: null,
+                isLoadingOlder: false,
+                ...state.chatPaging[chatId],
+                ...updates,
+              },
+            },
+          }));
         },
 
         updateSenderMessagePermissions: (chatId, senderId, newPermissions, privacyVersion) => {
@@ -938,7 +962,10 @@ export const useChatStore = create<ChatState>()(
         name: 'sparkle-chat-storage',
         partialize: (state) => ({
           conversations: state.conversations,
-          messagesByConversation: state.messagesByConversation,
+          // messagesByConversation is intentionally NOT persisted: it grew to
+          // the full history of every chat and made store hydration the slow
+          // part of opening Messages. Chat windows are refetched (paged) on
+          // open; drafts and conversation metadata stay cached.
           drafts: state.drafts,
         }),
       }

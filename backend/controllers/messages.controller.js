@@ -239,13 +239,55 @@ class MessageController {
         try {
             const chatId = req.params.chatId || req.params.conversationId || req.params.partnerId;
             const userId = req.user.user_id || req.user.userId;
-            
+
+            // Optional keyset pagination: limit / before / after / anchor (message_id).
+            const { limit, before, after, anchor } = req.query;
+
             // If it's a partnerId (UUID format but not a chat_id), we might need to getOrCreate first
             // But usually the client will pass a chatId if they have one.
             // For starting a new chat, startConversation endpoint is used.
-            
-            const { chatId: resolvedChatId, messages } = await Message.getMessages(chatId, userId);
-            res.json({ status: 'success', data: messages, chatId: resolvedChatId });
+
+            const { chatId: resolvedChatId, messages, hasMore, nextCursor } =
+                await Message.getMessages(chatId, userId, { limit, before, after, anchor });
+
+            // Unread anchor (personal chats only): first unread sequence + total
+            // unread so the client can open right at the unread marker / show a pill.
+            let firstUnreadSeq = null;
+            let firstUnreadId = null;
+            let unreadCount = 0;
+            const [pc] = await pool.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [resolvedChatId]);
+            if (pc.length > 0) {
+                const [unreadRows] = await pool.query(`
+                    SELECT COUNT(*) as unread, MIN(m.server_sequence) as first_seq
+                    FROM messages m
+                    WHERE (m.conversation_id = ? OR m.chat_id = ?)
+                      AND m.sender_id != ?
+                      AND m.is_read = 0
+                      AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
+                      AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+                      AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
+                `, [resolvedChatId, resolvedChatId, userId, userId, userId]);
+                unreadCount = Number(unreadRows?.[0]?.unread) || 0;
+                firstUnreadSeq = unreadRows?.[0]?.first_seq != null ? Number(unreadRows[0].first_seq) : null;
+                if (firstUnreadSeq != null) {
+                    const [firstRow] = await pool.query(
+                        'SELECT message_id FROM messages WHERE server_sequence = ? AND (conversation_id = ? OR chat_id = ?) LIMIT 1',
+                        [firstUnreadSeq, resolvedChatId, resolvedChatId]
+                    );
+                    firstUnreadId = firstRow?.[0]?.message_id || null;
+                }
+            }
+
+            res.json({
+                status: 'success',
+                data: messages,
+                chatId: resolvedChatId,
+                hasMore,
+                nextCursor,
+                firstUnreadSeq,
+                firstUnreadId,
+                unreadCount
+            });
         } catch (error) {
             console.error('getConversationMessages Error:', error?.message || error);
             if (error?.statusCode === 404) {

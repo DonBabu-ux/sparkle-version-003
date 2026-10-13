@@ -12,6 +12,14 @@ interface AvatarProps {
 const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '' }) => {
   const [error, setError] = React.useState(false);
 
+  // Reset the sticky error flag whenever src changes — otherwise a one-time
+  // load failure (e.g. before the store hydrates, or a transient CDN miss)
+  // permanently locks the avatar to the letter fallback even after a valid
+  // URL arrives.
+  React.useEffect(() => {
+    setError(false);
+  }, [src]);
+
   const SIZE_PX: Record<AvatarProps['size'], number> = {
     xs: 24, nav: 28, sm: 32, md: 40, lg: 48, xl: 64, '2xl': 96, xxl: 128,
   };
@@ -63,7 +71,6 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '' 
         alt={name || 'User'} 
         width={SIZE_PX[size]}
         height={SIZE_PX[size]}
-        loading="lazy"
         className={`${sizeClasses[size]} rounded-full object-cover shrink-0 ${className}`}
         onError={() => setError(true)}
       />

@@ -1,7 +1,8 @@
 # Runs automatically on every push to main that touches the app.
 # - OTA: builds the web bundle and releases it to the OtaKit base channel
-# - APK: builds a debug APK and attaches it to the rolling "debug-latest"
-#        GitHub Release (stable download link for new users' first install).
+# - APK: builds the APK (as sparkle-x.y.z.apk) and attaches it to the rolling
+#        "latest" GitHub Release (stable download link for new users' first
+#        install).
 #
 # REQUIRED SETUP (one time): add the OTAKIT_TOKEN repo secret.
 #   Repo on GitHub → Settings → Secrets and variables → Actions → New secret
@@ -91,14 +92,28 @@ jobs:
         working-directory: android
         run: ./gradlew app:assembleDebug --console=plain
 
-      - name: Publish APK to rolling "debug-latest" release
+      # The release is rolling: strip previous APK assets so it always holds
+      # exactly one current build (otherwise a versionName bump would leave
+      # the old sparkle-x.y.z.apk sitting next to the new one).
+      - name: Remove previous APK assets from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_id=$(gh api "repos/${{ github.repository }}/releases/tags/latest" --jq .id 2>/dev/null || true)
+          if [ -n "$release_id" ]; then
+            gh api "repos/${{ github.repository }}/releases/$release_id/assets" --jq '.[].id' | \
+              xargs -r -I{} gh api -X DELETE "repos/${{ github.repository }}/releases/assets/{}"
+          fi
+
+      - name: Publish APK to rolling "latest" release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: debug-latest
-          name: Latest Debug APK
+          tag_name: latest
+          name: Sparkle – Latest Build
           prerelease: true
           body: >
-            Rolling debug build of Sparkle, rebuilt on every push to main.
+            Rolling build of Sparkle, rebuilt on every push to main.
+            The version is in the filename (sparkle-x.y.z.apk).
             Install once — all future updates arrive automatically over the air
             (OtaKit). Requires Android 8.0+.
-          files: android/app/build/outputs/apk/debug/app-debug.apk
+          files: android/app/build/outputs/apk/debug/sparkle-*.apk

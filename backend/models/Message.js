@@ -234,20 +234,20 @@ class Message {
                 `, [sentAt, groupChatId]);
             }
 
-            // Enqueue delivery tasks into delivery_queue for recipient sessions (non-blocking)
+            // Enqueue delivery task for the recipient (non-blocking).
+            // ONE row per recipient — not per session: the worker may push at
+            // most one FCM per message no matter how many stale user_sessions
+            // rows exist or how many backend processes poll the queue
+            // (notification-bomb / double-push fix).
             if (recipientId) {
                 setImmediate(async () => {
                     try {
-                        const SessionService = require('../services/session.service');
                         const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
-                        const sessions = await SessionService.getActiveSessions(recipientId);
-                        for (const session of sessions) {
-                            await DeliveryQueueWorker.enqueue({
-                                messageId,
-                                recipientId,
-                                sessionId: session.session_id
-                            });
-                        }
+                        await DeliveryQueueWorker.enqueue({
+                            messageId,
+                            recipientId,
+                            sessionId: 'all'
+                        });
                     } catch (queueErr) {
                         logger.warn('[Message] Non-blocking delivery queue enqueue error:', queueErr.message);
                     }

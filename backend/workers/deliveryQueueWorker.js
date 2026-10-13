@@ -80,11 +80,9 @@ class DeliveryQueueWorker {
             const [pendingItems] = await db.query(`
                 SELECT dq.queue_id, dq.message_id, dq.recipient_id, dq.session_id, dq.attempts,
                        m.chat_id, m.conversation_id, m.content, m.type, m.sender_id,
-                       m.sent_at, m.server_sequence,
-                       us.socket_id, us.push_token, us.is_online
+                       m.sent_at, m.server_sequence
                 FROM delivery_queue dq
                 JOIN messages m ON dq.message_id = m.message_id
-                LEFT JOIN user_sessions us ON dq.session_id = us.session_id
                 WHERE dq.next_retry_at <= NOW()
                 ORDER BY dq.next_retry_at
                 LIMIT 50
@@ -131,86 +129,131 @@ class DeliveryQueueWorker {
 
             // ── 3. Deliver active items ───────────────────────────────────────────
             for (const item of activeItems) {
+                // 3a. Atomic claim — exactly ONE worker process may deliver this
+                //     row. Guards against overlapping processes (Render deploy
+                //     overlap, local+prod both running) double-pushing.
+                try {
+                    const [claim] = await db.query(`
+                        UPDATE delivery_queue
+                        SET next_retry_at = DATE_ADD(NOW(), INTERVAL 3600 SECOND)
+                        WHERE queue_id = ? AND next_retry_at <= NOW()
+                    `, [item.queue_id]);
+                    if (claim.affectedRows === 0) continue; // claimed elsewhere
+                } catch (claimErr) {
+                    logger.warn(`[DeliveryQueueWorker] Claim failed for ${item.queue_id}: ${claimErr.message}`);
+                    continue;
+                }
+
                 let deliveredViaSocket = false;
 
-                // 3a. Socket delivery (fastest path — zero latency)
-                if (item.socket_id && io) {
-                    const recipientSocket = io.sockets.sockets.get(item.socket_id);
-                    if (recipientSocket && recipientSocket.connected) {
-                        recipientSocket.emit('new-message', {
-                            id: item.message_id,
-                            message_id: item.message_id,
-                            chatId: item.chat_id || item.conversation_id,
-                            chat_id: item.chat_id || item.conversation_id,
-                            sender_id: item.sender_id,
-                            content: item.content,
-                            type: item.type,
-                            sent_at: item.sent_at,
-                            server_sequence: item.server_sequence,
-                            delivery_required_ack: true,
-                            sessionId: item.session_id
-                        });
-                        deliveredViaSocket = true;
+                // 3b. Socket delivery (fastest path — zero latency). The queue
+                //     row is per-recipient, so resolve the recipient's live
+                //     sessions at delivery time. Room broadcast already fans
+                //     out to other connected devices, so one live socket is
+                //     enough.
+                if (io) {
+                    try {
+                        const [sessions] = await db.query(`
+                            SELECT session_id, socket_id, is_online
+                            FROM user_sessions
+                            WHERE user_id = ? AND socket_id IS NOT NULL
+                            ORDER BY last_active_at DESC
+                            LIMIT 10
+                        `, [item.recipient_id]);
+                        for (const sess of sessions) {
+                            const recipientSocket = io.sockets.sockets.get(sess.socket_id);
+                            if (recipientSocket && recipientSocket.connected) {
+                                recipientSocket.emit('new-message', {
+                                    id: item.message_id,
+                                    message_id: item.message_id,
+                                    chatId: item.chat_id || item.conversation_id,
+                                    chat_id: item.chat_id || item.conversation_id,
+                                    sender_id: item.sender_id,
+                                    content: item.content,
+                                    type: item.type,
+                                    sent_at: item.sent_at,
+                                    server_sequence: item.server_sequence,
+                                    delivery_required_ack: true,
+                                    sessionId: sess.session_id
+                                });
+                                deliveredViaSocket = true;
+                                break;
+                            }
+                            // Self-heal zombie "online" rows whose socket is gone
+                            // (force-killed apps never send a disconnect).
+                            if (sess.is_online === 1) {
+                                db.query(
+                                    'UPDATE user_sessions SET is_online = 0, socket_id = NULL WHERE session_id = ?',
+                                    [sess.session_id]
+                                ).catch(() => {});
+                            }
+                        }
+                    } catch (sessErr) {
+                        logger.warn(`[DeliveryQueueWorker] Session lookup failed for ${item.recipient_id}: ${sessErr.message}`);
                     }
                 }
 
-                // 3b. Push notification fallback (only when socket is not reachable)
-                if (!deliveredViaSocket) {
-                    // Prefer the session's own push token; fall back to the
-                    // account's registered FCM token (web sessions never set
-                    // user_sessions.push_token, so without this the offline-DM
-                    // push never fired for them).
-                    let pushToken = item.push_token;
+                if (deliveredViaSocket) {
+                    // Reached a live socket — done. Room broadcast covers any
+                    // other connected devices; push must not fire.
+                    await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
+                    continue;
+                }
+
+                // 3c. Push fallback — exactly one token, at most one FCM send.
+                try {
+                    let pushToken = null;
+                    const [sessTok] = await db.query(`
+                        SELECT push_token FROM user_sessions
+                        WHERE user_id = ? AND push_token IS NOT NULL
+                        ORDER BY last_active_at DESC
+                        LIMIT 1
+                    `, [item.recipient_id]);
+                    pushToken = sessTok[0]?.push_token || null;
                     if (!pushToken) {
-                        try {
-                            const [fcmRows] = await db.query(
-                                'SELECT token FROM fcm_tokens WHERE user_id = ? LIMIT 1',
-                                [item.recipient_id]
-                            );
-                            pushToken = fcmRows[0]?.token;
-                        } catch (fcmErr) {
-                            logger.warn(`[DeliveryQueueWorker] fcm_tokens lookup failed: ${fcmErr.message}`);
-                        }
+                        const [fcmRows] = await db.query(
+                            'SELECT token FROM fcm_tokens WHERE user_id = ? ORDER BY last_used_at DESC LIMIT 1',
+                            [item.recipient_id]
+                        );
+                        pushToken = fcmRows[0]?.token || null;
                     }
                     if (pushToken) {
                         const pushKey = `${item.message_id}:${pushToken}`;
                         const nowMs = Date.now();
-                        // Duplicate coverage: this exact message was already pushed
-                        // to this exact token (success map) or attempted earlier in
-                        // this cycle (sibling session rows share the same token) —
-                        // drop the redundant queue row without sending again.
+                        // Same-process safety net on top of the DB claim.
                         if (cycleAttemptedPush.has(pushKey) || recentlyPushedSuccess.has(pushKey)) {
                             await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
                             continue;
                         }
                         cycleAttemptedPush.add(pushKey);
-                        try {
-                            const notificationService = require('../services/notification.service');
-                            await notificationService.sendPush({
-                                token: pushToken,
-                                title: 'New Message',
-                                body: item.type === 'text' ? item.content : `Sent a ${item.type}`,
-                                data: {
-                                    type: 'message',
-                                    chatId: item.chat_id || item.conversation_id,
-                                    messageId: item.message_id,
-                                    server_sequence: String(item.server_sequence)
-                                }
-                            });
-                            // Push is fire-and-forget: a successful send must REMOVE
-                            // the queue row — never retry an already-delivered push.
-                            _prunePushSuccessMap(nowMs);
-                            recentlyPushedSuccess.set(pushKey, nowMs);
-                            await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
-                            continue;
-                        } catch (pushErr) {
-                            logger.warn(`[DeliveryQueueWorker] Push fallback failed for session ${item.session_id}: ${pushErr.message}`);
-                            // Transient failure — fall through to retry scheduling (3c)
-                        }
+                        const notificationService = require('../services/notification.service');
+                        await notificationService.sendPush({
+                            token: pushToken,
+                            title: 'New Message',
+                            body: item.type === 'text' ? item.content : `Sent a ${item.type}`,
+                            data: {
+                                type: 'message',
+                                chatId: item.chat_id || item.conversation_id,
+                                messageId: item.message_id,
+                                server_sequence: String(item.server_sequence)
+                            }
+                        });
+                        // Push is fire-and-forget: a successful send must REMOVE
+                        // the queue row — never retry an already-delivered push.
+                        _prunePushSuccessMap(nowMs);
+                        recentlyPushedSuccess.set(pushKey, nowMs);
+                        await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
+                        continue;
                     }
+                } catch (pushErr) {
+                    logger.warn(`[DeliveryQueueWorker] Push fallback failed for recipient ${item.recipient_id}: ${pushErr.message}`);
+                    // Transient failure — release the claim so 3d retries soon.
+                    try {
+                        await db.query('UPDATE delivery_queue SET next_retry_at = NOW() WHERE queue_id = ?', [item.queue_id]);
+                    } catch (_) { /* fall through to retry scheduling */ }
                 }
 
-                // 3c. Advance retry counter with exponential back-off
+                // 3d. Advance retry counter with exponential back-off
                 const nextAttempt = item.attempts + 1;
                 const delaySec = RETRY_INTERVALS_SEC[Math.min(nextAttempt, RETRY_INTERVALS_SEC.length - 1)];
                 await db.query(`
@@ -266,10 +309,12 @@ class DeliveryQueueWorker {
 
     /**
      * Remove item from queue when recipient session acknowledges receipt.
+     * Also clears the per-recipient ('all') row so an acked message is never
+     * re-emitted or pushed by a later retry cycle.
      */
     static async acknowledgeDelivery(messageId, sessionId) {
         await db.query(
-            'DELETE FROM delivery_queue WHERE message_id = ? AND session_id = ?',
+            `DELETE FROM delivery_queue WHERE message_id = ? AND (session_id = ? OR session_id = 'all')`,
             [messageId, sessionId]
         );
     }

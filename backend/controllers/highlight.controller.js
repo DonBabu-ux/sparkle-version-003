@@ -161,13 +161,22 @@ const addStoriesToHighlight = async (req, res) => {
 
         if (!story_ids || !story_ids.length) return res.status(400).json({ error: 'No story IDs provided' });
 
+        // Only attach stories the caller actually owns — otherwise any user
+        // could pin someone else's story into their highlight.
+        const [owned] = await pool.query(
+            'SELECT story_id FROM stories WHERE story_id IN (?) AND user_id = ?',
+            [story_ids, userId]
+        );
+        const ownedIds = owned.map(r => r.story_id);
+        if (!ownedIds.length) return res.status(403).json({ error: 'No authorized stories provided' });
+
         // Get current max position
         const [[maxPos]] = await pool.query(
             'SELECT COALESCE(MAX(position), -1) as maxPos FROM highlight_stories WHERE highlight_id = ?',
             [id]
         );
 
-        const values = story_ids.map((sid, idx) => [crypto.randomUUID(), id, sid, maxPos.maxPos + 1 + idx]);
+        const values = ownedIds.map((sid, idx) => [crypto.randomUUID(), id, sid, maxPos.maxPos + 1 + idx]);
         await pool.query(
             `INSERT IGNORE INTO highlight_stories (id, highlight_id, story_id, position) VALUES ?`,
             [values]

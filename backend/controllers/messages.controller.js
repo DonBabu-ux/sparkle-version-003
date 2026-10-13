@@ -1549,7 +1549,10 @@ class MessageController {
                 [chatId, userId, userId]
             );
             if (!chatRows.length) {
-                const [groupRows] = await pool.query('SELECT chat_id, created_at FROM group_chats WHERE chat_id = ?', [chatId]);
+                const [groupRows] = await pool.query(
+                    'SELECT chat_id FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
+                    [chatId, userId]
+                );
                 if (!groupRows.length) return res.status(403).json({ status: 'error', error: 'Access denied' });
             }
 

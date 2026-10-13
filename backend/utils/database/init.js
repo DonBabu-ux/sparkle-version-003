@@ -316,7 +316,32 @@ const repairStoriesTable = async () => {
             { name: 'audio_url', type: 'VARCHAR(500) DEFAULT NULL' },
             { name: 'audio_source', type: "ENUM('local', 'online') DEFAULT NULL" },
             { name: 'audio_start', type: 'FLOAT DEFAULT 0.0' },
-            { name: 'audio_duration', type: 'FLOAT DEFAULT 15.0' }
+            { name: 'audio_duration', type: 'FLOAT DEFAULT 15.0' },
+            { name: 'parent_story_id', type: 'CHAR(36) DEFAULT NULL' },
+            { name: 'stickers', type: 'TEXT DEFAULT NULL' },
+            { name: 'music_info', type: 'TEXT DEFAULT NULL' },
+            { name: 'type', type: "VARCHAR(20) DEFAULT 'media'" },
+            { name: 'collage_data', type: 'TEXT DEFAULT NULL' },
+            { name: 'comments_enabled', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'reply_privacy', type: "VARCHAR(20) DEFAULT 'everyone'" },
+            { name: 'comment_privacy', type: "VARCHAR(20) DEFAULT 'everyone'" },
+            { name: 'allow_sharing', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'allow_message_sharing', type: 'TINYINT(1) DEFAULT 1' },
+            { name: 'auto_share_fb', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'auto_share_wa', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'save_to_gallery', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'save_to_archive', type: 'TINYINT(1) DEFAULT 0' },
+            { name: 'thumbnail_url', type: 'VARCHAR(500) DEFAULT NULL' },
+            { name: 'width', type: 'INT DEFAULT NULL' },
+            { name: 'height', type: 'INT DEFAULT NULL' },
+            { name: 'duration', type: 'FLOAT DEFAULT NULL' },
+            { name: 'file_size', type: 'INT DEFAULT NULL' },
+            { name: 'processing_status', type: 'VARCHAR(30) DEFAULT NULL' },
+            { name: 'story_layers', type: 'TEXT DEFAULT NULL' },
+            { name: 'story_duration', type: 'INT DEFAULT 10' },
+            { name: 'story_version', type: 'INT DEFAULT 1' },
+            { name: 'story_theme', type: 'VARCHAR(50) DEFAULT NULL' },
+            { name: 'story_effects', type: 'TEXT DEFAULT NULL' }
         ];
 
         for (const col of columnsToAdd) {

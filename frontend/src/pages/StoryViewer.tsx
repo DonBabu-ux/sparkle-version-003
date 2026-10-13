@@ -44,9 +44,7 @@ interface Story {
   story_duration?: number;
   duration?: number;
   thumbnail_url?: string | null;
-  views_count?: number;
-  likes_count?: number;
-  shares_count?: number;
+  like_count?: number;
   is_liked?: boolean;
   comments_enabled?: boolean;
   is_archived?: boolean;
@@ -148,7 +146,20 @@ export default function StoryViewer() {
           setUserStories(userGroup);
           // view-marking is handled by the currentIndex effect below (no double-post)
         } else if (!preloaded) {
-          navigate('/dashboard');
+          // The :userId param may actually be a story_id (legacy share links,
+          // notification taps). Resolve it: active story -> open its owner's
+          // group; expired -> the /story/:storyId memorial snapshot.
+          try {
+            const single = await api.get(`/stories/single/${userId}`);
+            const s = single.data.story;
+            if (!s.is_expired) {
+              navigate(`/stories/${s.user_id}`, { replace: true });
+            } else {
+              navigate(`/story/${userId}`, { replace: true });
+            }
+          } catch {
+            navigate('/dashboard');
+          }
         }
       } catch (err) {
         if (!preloaded) navigate('/dashboard');
@@ -399,7 +410,7 @@ export default function StoryViewer() {
     try {
       const res = await api.post(`/stories/${currentStory.story_id}/like`);
       const updatedStories = [...userStories.stories];
-      updatedStories[currentIndex] = { ...currentStory, is_liked: res.data.liked, likes_count: res.data.liked ? (currentStory.likes_count || 0) + 1 : Math.max(0, (currentStory.likes_count || 1) - 1) };
+      updatedStories[currentIndex] = { ...currentStory, is_liked: res.data.liked, like_count: res.data.liked ? (currentStory.like_count || 0) + 1 : Math.max(0, (currentStory.like_count || 1) - 1) };
       setUserStories({ ...userStories, stories: updatedStories });
     } catch (err) { logger.error(err); }
   };
@@ -428,7 +439,7 @@ export default function StoryViewer() {
     try {
       await api.post('/messages/send', {
         partnerId: contactId,
-        content: `Check out this story: ${window.location.origin}/stories/${currentStory.story_id}`
+        content: `Check out this story: ${window.location.origin}/stories/${userStories.user_id}`
       });
       setShowShareModal(false);
     } catch (err) {

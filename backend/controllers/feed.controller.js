@@ -53,6 +53,23 @@ const getSafeMediaUrl = (url) => {
     return safeUrl;
 };
 
+// Shared gate for story interactions (like/share/view/comment).
+// Rejects expired stories (>24h) and viewers the owner hid their story from.
+// Returns null when the interaction is allowed, otherwise { status, error }.
+// Always answers 404 (not 403) so a blocked viewer cannot probe story existence.
+const storyInteractionError = async (storyRow, viewerId, db = pool) => {
+    if (storyRow.created_at && new Date(storyRow.created_at).getTime() < Date.now() - 24 * 60 * 60 * 1000) {
+        return { status: 404, error: 'Story not found' };
+    }
+    if (String(storyRow.user_id) === String(viewerId)) return null;
+    const [blocked] = await db.query(
+        'SELECT 1 FROM story_privacy_blocks WHERE user_id = ? AND blocked_user_id = ?',
+        [storyRow.user_id, viewerId]
+    );
+    if (blocked.length) return { status: 404, error: 'Story not found' };
+    return null;
+};
+
 // Generates a seed based on User-Agent to provide device-level consistent randomness
 const getSeedFromDevice = (req) => {
     const ua = req.headers['user-agent'] || 'sparkle-default';
@@ -452,6 +469,7 @@ const getStories = async (req, res) => {
                 like_count: parseInt(s.like_count) || 0,
                 is_liked: parseInt(s.is_liked) === 1,
                 is_viewed: parseInt(s.is_viewed) === 1,
+                comments_enabled: s.comments_enabled === null || s.comments_enabled === undefined ? 1 : !!s.comments_enabled,
                 // Rich media metadata for premium card display
                 thumbnail_url: getSafeMediaUrl(s.thumbnail_url),
                 width: s.width || null,
@@ -576,9 +594,17 @@ const createStory = async (req, res) => {
         } else if (req.files && Array.isArray(req.files) && req.files.length > 0) {
             media_type = req.files[0].mimetype.startsWith('video') ? 'video' : 'image';
         } else if (media_url) {
-            // Try to determine from URL extension
+            // Try to determine from URL extension; fall back to an explicit
+            // media_type from the body (moment reshare URLs often carry no
+            // recognizable extension).
             const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.mpg', '.mpeg'];
-            media_type = videoExtensions.some(ext => String(media_url).toLowerCase().includes(ext)) ? 'video' : 'image';
+            if (videoExtensions.some(ext => String(media_url).toLowerCase().includes(ext))) {
+                media_type = 'video';
+            } else if (req.body.media_type === 'video' || req.body.media_type === 'image') {
+                media_type = req.body.media_type;
+            } else {
+                media_type = 'image';
+            }
         }
 
         console.log('📝 Creating story with:', {
@@ -882,13 +908,20 @@ const likeStory = async (req, res) => {
 
         // Check if story exists and LOCK it to prevent deadlocks during concurrent likes
         const [storiesFound] = await connection.query(
-            'SELECT story_id, user_id FROM stories WHERE story_id = ? FOR UPDATE',
+            'SELECT story_id, user_id, created_at FROM stories WHERE story_id = ? FOR UPDATE',
             [storyId]
         );
 
         if (!storiesFound || storiesFound.length === 0) {
             await connection.rollback();
             return res.status(404).json({ error: 'Story not found' });
+        }
+
+        // Expired stories and hidden-from-you stories are not interactable
+        const gate = await storyInteractionError(storiesFound[0], userId, connection);
+        if (gate) {
+            await connection.rollback();
+            return res.status(gate.status).json({ error: gate.error });
         }
 
         // Check if already liked
@@ -933,7 +966,7 @@ const likeStory = async (req, res) => {
                         content: `Someone just loved your story!`,
                         actor_id: userId,
                         actor_name: actor[0]?.name,
-                        action_url: `/stories/${storyId}`
+                        action_url: `/stories/${storyData.user_id}`
                     }, connection);
                 } catch (notifErr) {
                     logger.error('Notification error (ignoring):', notifErr);
@@ -1044,23 +1077,17 @@ const shareStory = async (req, res) => {
         }
 
         // First check if story exists
-        const [story] = await pool.query('SELECT story_id, user_id FROM stories WHERE story_id = ?', [storyId]);
+        const [story] = await pool.query('SELECT story_id, user_id, created_at FROM stories WHERE story_id = ?', [storyId]);
         if (!story || story.length === 0) {
             console.log('❌ Story not found:', storyId);
             return res.status(404).json({ error: 'Story not found' });
         }
 
-        // Ensure shares table exists
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS story_shares (
-                share_id CHAR(36) NOT NULL PRIMARY KEY,
-                story_id CHAR(36) NOT NULL,
-                user_id CHAR(36) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (story_id) REFERENCES stories(story_id) ON DELETE CASCADE,
-                FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-        `);
+        // Expired stories and hidden-from-you stories are not shareable
+        const gate = await storyInteractionError(story[0], userId);
+        if (gate) {
+            return res.status(gate.status).json({ error: gate.error });
+        }
 
         // Get connection for transaction
         connection = await pool.getConnection();
@@ -1095,7 +1122,7 @@ const shareStory = async (req, res) => {
                         notificationId,
                         story[0].user_id,
                         userId,
-                        `/stories/${storyId}`
+                        `/stories/${story[0].user_id}`
                     ]
                 );
                 console.log('📨 Notification created for story share');
@@ -1131,9 +1158,18 @@ const viewStory = async (req, res) => {
 
         // Owners never view-mark their own stories — otherwise they would
         // appear in their own viewer list like a different account.
-        const [storyRows] = await pool.query('SELECT user_id FROM stories WHERE story_id = ?', [storyId]);
-        if (storyRows.length > 0 && String(storyRows[0].user_id) === String(userId)) {
+        const [storyRows] = await pool.query('SELECT user_id, created_at FROM stories WHERE story_id = ?', [storyId]);
+        if (storyRows.length === 0) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+        if (String(storyRows[0].user_id) === String(userId)) {
             return res.json({ success: true, skipped: true });
+        }
+
+        // Do not record views on expired stories or from hidden viewers
+        const gate = await storyInteractionError(storyRows[0], userId);
+        if (gate) {
+            return res.status(gate.status).json({ error: gate.error });
         }
 
         const viewId = crypto.randomUUID();
@@ -1162,6 +1198,18 @@ const addStoryComment = async (req, res) => {
 
         if (!text) return res.status(400).json({ error: 'Comment text is required' });
 
+        // Story must exist, be active, not hidden from commenter, comments on
+        const [storyRows] = await pool.query(
+            'SELECT user_id, created_at, comments_enabled FROM stories WHERE story_id = ?',
+            [storyId]
+        );
+        if (!storyRows.length) return res.status(404).json({ error: 'Story not found' });
+        const gate = await storyInteractionError(storyRows[0], userId);
+        if (gate) return res.status(gate.status).json({ error: gate.error });
+        if (storyRows[0].comments_enabled === 0 || storyRows[0].comments_enabled === false) {
+            return res.status(403).json({ error: 'Comments are turned off for this story' });
+        }
+
         const commentId = crypto.randomUUID();
         await pool.query(
             'INSERT INTO story_comments (comment_id, story_id, user_id, text) VALUES (?, ?, ?, ?)',
@@ -1178,6 +1226,8 @@ const addStoryComment = async (req, res) => {
 const getStoryComments = async (req, res) => {
     try {
         const storyId = req.params.id;
+        const [exists] = await pool.query('SELECT 1 FROM stories WHERE story_id = ?', [storyId]);
+        if (!exists.length) return res.status(404).json({ error: 'Story not found' });
         const [comments] = await pool.query(`
             SELECT sc.*, u.username, u.avatar_url 
             FROM story_comments sc
@@ -1229,10 +1279,17 @@ const updateStorySettings = async (req, res) => {
 const getStoryViewers = async (req, res) => {
     try {
         const storyId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
 
-        // Exclude the owner's own rows so they never appear in their own viewer list
+        // Only the story's owner may see who viewed/liked/shared it
         const [storyRows] = await pool.query('SELECT user_id FROM stories WHERE story_id = ?', [storyId]);
-        const ownerId = storyRows.length > 0 ? storyRows[0].user_id : null;
+        if (!storyRows.length) {
+            return res.status(404).json({ error: 'Story not found' });
+        }
+        const ownerId = storyRows[0].user_id;
+        if (String(ownerId) !== String(userId)) {
+            return res.status(403).json({ error: 'Only the story owner can see viewers' });
+        }
 
         const [viewers] = await pool.query(`
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'view' as type, sv.created_at
@@ -1318,10 +1375,52 @@ const hideStoryFromUser = async (req, res) => {
     }
 };
 
+// GET /stories/single/:id — resolve a single story by its own ID.
+// Used by the /story/:storyId snapshot page (expired-story memorial card)
+// and by StoryViewer when a link was shared with a story_id instead of the
+// owner's user_id.
+const getSingleStory = async (req, res) => {
+    try {
+        const storyId = req.params.id;
+        const [rows] = await pool.query(`
+            SELECT s.story_id, s.user_id, s.media_url, s.media_type, s.caption,
+                   s.like_count, s.created_at,
+                   u.username, u.name AS user_name, u.avatar_url
+            FROM stories s
+            JOIN users u ON s.user_id = u.user_id
+            WHERE s.story_id = ?
+        `, [storyId]);
+        if (!rows.length) return res.status(404).json({ error: 'Story not found' });
+
+        const s = rows[0];
+        const isExpired = new Date(s.created_at).getTime() < Date.now() - 24 * 60 * 60 * 1000;
+
+        res.json({
+            story: {
+                story_id: s.story_id,
+                user_id: s.user_id,
+                username: s.username,
+                user_name: s.user_name,
+                avatar_url: s.avatar_url,
+                media_url: s.media_url === 'text' ? null : getSafeMediaUrl(s.media_url),
+                media_type: s.media_type,
+                caption: s.caption,
+                created_at: s.created_at,
+                like_count: s.like_count || 0,
+                is_expired: isExpired
+            }
+        });
+    } catch (error) {
+        logger.error('Get single story error:', error);
+        res.status(500).json({ error: 'Failed to fetch story' });
+    }
+};
+
 module.exports = {
     getFeedPosts,
     getNewPosts,
     getStories,
+    getSingleStory,
     createStory,
     likeStory,
     getStoryLikes,

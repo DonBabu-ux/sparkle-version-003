@@ -437,7 +437,7 @@ export default function Notifications() {
               onClick={(e) => {
                 e.stopPropagation();
                 if (notif.target?.entity_type === 'post') navigate(`/post/${notif.target.entity_id}`);
-                if (notif.target?.entity_type === 'story') navigate(`/stories/${notif.target.entity_id}`);
+                if (notif.target?.entity_type === 'story') navigate(`/story/${notif.target.entity_id}`);
               }}
               className="w-11 h-11 bg-slate-100 dark:bg-zinc-800 rounded-xl overflow-hidden border border-black/5 dark:border-white/8 cursor-pointer hover:brightness-90 transition-all flex items-center justify-center text-lg"
             >

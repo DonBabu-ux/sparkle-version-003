@@ -21,12 +21,17 @@ class AccountRecoveryService {
         const validActions = ['CANCEL_DELETION', 'APPEAL_TERMINATION', 'DATA_EXPORT', 'STATUS_CHECK'];
         if (!validActions.includes(actionType)) throw new Error('Invalid recovery action specified');
 
-        // Rate limiting check via Redis (max 3 challenges per contact per 10 mins)
-        const rateKey = `ratelimit:recovery:${contact}`;
-        const count = await redisService.incr(rateKey);
-        if (count === 1) await redisService.expire(rateKey, 600);
-        if (count > 5) {
-            throw new Error('Too many recovery requests. Please wait a few minutes before trying again.');
+        // Rate limiting check via Redis (soft-fail if remote Redis latency spikes)
+        try {
+            const rateKey = `ratelimit:recovery:${contact}`;
+            const count = await redisService.incr(rateKey);
+            if (count === 1) await redisService.expire(rateKey, 600);
+            if (count > 8) {
+                throw new Error('Too many recovery requests. Please wait a few minutes before trying again.');
+            }
+        } catch (rErr) {
+            if (rErr.message?.includes('Too many recovery')) throw rErr;
+            logger.debug(`[AccountRecovery] Redis rate limit skipped: ${rErr.message}`);
         }
 
         // Look up user by email
@@ -70,7 +75,7 @@ class AccountRecoveryService {
         const requestId = crypto.randomUUID();
         const ttlSeconds = 15 * 60; // 15 mins
 
-        // Store challenge in DB & Redis
+        // Store challenge in DB
         await pool.query(`
             INSERT INTO account_recovery_requests (
                 request_id, user_id, contact_identifier, contact_type,
@@ -85,14 +90,15 @@ class AccountRecoveryService {
             actionType
         ]);
 
-        await redisService.set(`recovery_otp:${requestId}`, {
+        // Non-blocking Redis write with fallback
+        redisService.set(`recovery_otp:${requestId}`, {
             userId: user.user_id,
             code,
             actionType,
             contact
-        }, ttlSeconds);
+        }, ttlSeconds).catch(err => logger.debug(`[AccountRecovery] Redis set non-fatal: ${err.message}`));
 
-        // Send challenge via email
+        // Send challenge via email in background (do NOT block HTTP response on SMTP roundtrip)
         const actionLabels = {
             CANCEL_DELETION: 'Cancel Pending Account Deletion',
             APPEAL_TERMINATION: 'Appeal Account Termination',
@@ -100,16 +106,18 @@ class AccountRecoveryService {
             STATUS_CHECK: 'Check Request Status'
         };
 
-        await emailService.send({
-            to: user.email,
-            subject: `Sparkle Verification Code: ${code}`,
-            templateName: 'recovery-challenge',
-            templateData: {
-                name: user.name,
-                code,
-                actionName: actionLabels[actionType] || 'Account Recovery'
-            }
-        }).catch(err => logger.warn(`[AccountRecovery] Email dispatch failed: ${err.message}`));
+        setImmediate(() => {
+            emailService.send({
+                to: user.email,
+                subject: `Sparkle Verification Code: ${code}`,
+                templateName: 'recovery-challenge',
+                templateData: {
+                    name: user.name,
+                    code,
+                    actionName: actionLabels[actionType] || 'Account Recovery'
+                }
+            }).catch(err => logger.warn(`[AccountRecovery] Background email dispatch failed: ${err.message}`));
+        });
 
         return {
             success: true,

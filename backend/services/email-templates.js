@@ -628,7 +628,89 @@ const renderers = {
     </div>
 </body>
 </html>
-`
+`,
+    'account-suspended': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Suspended - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #f59e0b 0%, #d97706 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Sparkle Account Suspended</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your Sparkle account has been temporarily suspended.</p>
+            <div style="background:#fef3c7;border-left:4px solid #f59e0b;padding:12px 16px;margin:18px 0;border-radius:4px;color:#92400e;">
+                <strong>Reason:</strong> ${esc(d.reason || 'Temporary break / User request')}<br>
+                ${d.expiresAt ? `<strong>Scheduled to lift:</strong> ${esc(d.expiresAt)}` : '<strong>Duration:</strong> Indefinite until reactivated'}
+            </div>
+            <p>While suspended, you have been logged out of all active devices, and your profile is hidden from campus feeds and searches. Your posts, followers, and messages remain preserved.</p>
+            ${d.canReactivate ? `<p>You can reactivate your account at any time by signing into your Sparkle account and confirming your reactivation.</p>` : `<p>If you believe this suspension was made in error or have questions, please reach out to our team at support@sparkle.app.</p>`}
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'account-terminated': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Terminated - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Sparkle Account Terminated</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your Sparkle account authorization has been permanently terminated.</p>
+            <div style="background:#fee2e2;border-left:4px solid #ef4444;padding:12px 16px;margin:18px 0;border-radius:4px;color:#991b1b;">
+                <strong>Reason:</strong> ${esc(d.reason || 'Account termination requested')}<br>
+                <strong>Status:</strong> Terminated
+            </div>
+            <p>All active sessions and tokens have been revoked. Normal login and password resets are permanently disabled for this account.</p>
+            <p>In accordance with our data retention policy, lifecycle and audit records are securely retained before archival. If you wish to appeal or request an official review, please contact support@sparkle.app.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'account-deletion-scheduled': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Scheduled for Deletion - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #e11d48 0%, #9f1239 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Account Scheduled for Deletion</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>We received a request to permanently delete your Sparkle account.</p>
+            <div style="background:#ffe4e6;border-left:4px solid #e11d48;padding:12px 16px;margin:18px 0;border-radius:4px;color:#9f1239;">
+                <strong>30-Day Grace Period:</strong> Permanent deletion scheduled on <strong>${esc(d.scheduledDate || 'in 30 days')}</strong>.
+            </div>
+            <p>All devices have been signed out. During this 30-day grace period, your profile remains hidden and protected from discovery.</p>
+            <p><strong>Changed your mind?</strong> You can cancel this deletion at any time before the deadline by logging into your account or visiting the account recovery portal.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`,
+
+    'account-deleted': (d) => `<meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Permanently Deleted - Sparkle</title>
+    <div style="max-width:600px;margin:20px auto;font-family:sans-serif;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.08);border:1px solid #e2e8f0;">
+        <div style="background:linear-gradient(135deg, #475569 0%, #1e293b 100%);padding:30px 20px;text-align:center;color:#fff;">
+            <h1 style="margin:0;font-size:24px;">Sparkle Account Deleted</h1>
+        </div>
+        <div style="padding:30px;color:#334155;line-height:1.6;">
+            <p style="font-size:16px;">Hi <strong>${esc(d.name || 'there')}</strong>,</p>
+            <p>Your Sparkle account has been permanently deleted following the completion of the 30-day retention grace period.</p>
+            <p>Your profile information, stories, moments, and private messages have been erased, and your username and email association have been released.</p>
+            <p>Thank you for having been part of the Sparkle community.</p>
+        </div>
+        <div style="background:#f8fafc;padding:16px;text-align:center;font-size:12px;color:#64748b;border-top:1px solid #e2e8f0;">
+            &copy; 2026 Sparkle. All rights reserved.
+        </div>
+    </div>`
 };
 
 function renderTemplate(name, data) {

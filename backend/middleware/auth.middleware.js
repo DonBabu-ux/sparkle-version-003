@@ -28,7 +28,10 @@ const authMiddleware = async (req, res, next) => {
         if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
             // STALENESS CHECK: Ensure the cached user matches the current token's user
             if (cached.user.user_id === decoded.userId || cached.user.userId === decoded.userId) {
-                if (decoded.tokenVersion === cached.user.token_version) {
+                const cachedStatus = cached.user.account_status ? String(cached.user.account_status).trim().toLowerCase() : 'active';
+                if (cachedStatus !== 'active') {
+                    userCache.delete(decoded.userId);
+                } else if (decoded.tokenVersion === cached.user.token_version) {
                     req.user = cached.user;
                     return next();
                 }
@@ -69,8 +72,43 @@ const authMiddleware = async (req, res, next) => {
         const user = users[0];
         const userData = { ...decoded, ...user, userType: user.user_role }; 
 
+        // ACCOUNT LIFECYCLE CHECK (Suspend, Terminate, Deletion, Deactivated)
+        const accountStatus = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
+        if (accountStatus !== 'active') {
+            userCache.delete(decoded.userId);
+            if (accountStatus === 'suspended') {
+                return res.status(403).json({
+                    error: 'Account suspended',
+                    code: 'ACCOUNT_SUSPENDED',
+                    message: 'Your account is suspended. Contact support or follow recovery options.'
+                });
+            }
+            if (accountStatus === 'terminated') {
+                return res.status(403).json({
+                    error: 'Account terminated',
+                    code: 'ACCOUNT_TERMINATED',
+                    message: 'This Sparkle account has been terminated and access is no longer available.'
+                });
+            }
+            if (accountStatus === 'pending_deletion') {
+                return res.status(403).json({
+                    error: 'Account pending deletion',
+                    code: 'ACCOUNT_PENDING_DELETION',
+                    message: 'This account is scheduled for deletion and cannot access protected services.'
+                });
+            }
+            if (accountStatus === 'deleted' || accountStatus === 'deactivated') {
+                return res.status(403).json({
+                    error: 'Account unavailable',
+                    code: 'ACCOUNT_UNAVAILABLE',
+                    message: 'This account is not active.'
+                });
+            }
+        }
+
         // GLOBAL LOGOUT CHECK (Token Versioning)
         if (decoded.tokenVersion !== undefined && decoded.tokenVersion < user.token_version) {
+            userCache.delete(decoded.userId);
             return res.status(401).json({ error: 'Session expired: Global logout performed' });
         }
         
@@ -248,9 +286,14 @@ const optionalAuthMiddleware = async (req, res, next) => {
     }
 };
 
+const invalidateUserCache = (userId) => {
+    if (userId) userCache.delete(userId);
+};
+
 module.exports = {
     authMiddleware,
     ejsAuthMiddleware,
     optionalAuthMiddleware,
-    optionalAuth: optionalAuthMiddleware
+    optionalAuth: optionalAuthMiddleware,
+    invalidateUserCache
 };

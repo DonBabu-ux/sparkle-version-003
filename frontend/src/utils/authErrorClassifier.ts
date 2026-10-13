@@ -7,6 +7,9 @@ export type AuthErrorType =
   | 'INVALID_CREDENTIALS'
   | 'ACCOUNT_LOCKED'
   | 'ACCOUNT_SUSPENDED'
+  | 'ACCOUNT_TERMINATED'
+  | 'ACCOUNT_PENDING_DELETION'
+  | 'ACCOUNT_DELETED'
   | 'ACCOUNT_DISABLED'
   | 'EMAIL_NOT_VERIFIED'
   | 'TOO_MANY_ATTEMPTS'
@@ -206,11 +209,47 @@ export function classifyLoginError(error: unknown, options?: { isOnline?: boolea
     if (backendCode === 'ACCOUNT_SUSPENDED') {
       return {
         type: 'ACCOUNT_SUSPENDED',
-        title: 'Account unavailable',
-        message: 'This account is currently unavailable. Please contact Sparkle Support if you believe this is a mistake.',
+        title: 'Account Suspended',
+        message: data.message || 'This account is currently suspended. If you chose to take a break, you can reactivate your account.',
         action: 'contact_support',
-        actionLabel: 'Contact Support',
+        actionLabel: 'Reactivate or Support',
         actionLink: '/support',
+        severity: 'warning'
+      };
+    }
+
+    // ACCOUNT_TERMINATED
+    if (backendCode === 'ACCOUNT_TERMINATED') {
+      return {
+        type: 'ACCOUNT_TERMINATED',
+        title: 'Account Terminated',
+        message: data.message || 'This Sparkle account has been terminated and access is no longer available. If you believe this was made in error, review appeal options.',
+        action: 'contact_support',
+        actionLabel: 'Appeal Options',
+        actionLink: '/support',
+        severity: 'error'
+      };
+    }
+
+    // ACCOUNT_PENDING_DELETION
+    if (backendCode === 'ACCOUNT_PENDING_DELETION') {
+      return {
+        type: 'ACCOUNT_PENDING_DELETION',
+        title: 'Account Scheduled for Deletion',
+        message: data.message || 'This account is scheduled for deletion. You can cancel deletion within the 30-day grace period to restore access.',
+        action: 'contact_support',
+        actionLabel: 'Contact Support to Cancel',
+        actionLink: '/support',
+        severity: 'warning'
+      };
+    }
+
+    // ACCOUNT_DELETED
+    if (backendCode === 'ACCOUNT_DELETED') {
+      return {
+        type: 'ACCOUNT_DELETED',
+        title: 'Account Deleted',
+        message: data.message || 'This account has been permanently deleted.',
         severity: 'error'
       };
     }

@@ -503,20 +503,35 @@ class User {
     }
 
     /**
-     * Mark account for deletion (Soft Delete - Algorithm 10)
+     * Mark account for deletion (30-day pending deletion workflow)
      */
-    static async delete(userId) {
-        // Set deletion_marked_at. We keep the record for 30 days for restoration.
-        // We also "soft delete" by setting deleted_at to NOW() for display purposes.
-        await pool.query(
-            `UPDATE users SET 
-                deletion_marked_at = NOW(), 
-                deleted_at = NOW(),
-                account_status = 'deactivated'
-             WHERE user_id = ?`, 
-            [userId]
-        );
-        return true;
+    static async delete(userId, reason = 'User requested deletion') {
+        const accountLifecycleService = require('../services/accountLifecycle.service');
+        return accountLifecycleService.requestDeletion({ userId, reason });
+    }
+
+    /**
+     * Suspend account
+     */
+    static async suspend(userId, reason = 'Temporary suspension', expiresAt = null, actorId = 'self', actorRole = 'user') {
+        const accountLifecycleService = require('../services/accountLifecycle.service');
+        return accountLifecycleService.suspendAccount({ userId, reason, expiresAt, actorId, actorRole });
+    }
+
+    /**
+     * Terminate account
+     */
+    static async terminate(userId, reason = 'Account terminated', actorId = 'self', actorRole = 'user') {
+        const accountLifecycleService = require('../services/accountLifecycle.service');
+        return accountLifecycleService.terminateAccount({ userId, reason, actorId, actorRole });
+    }
+
+    /**
+     * Cancel deletion
+     */
+    static async cancelDeletion(userId, actorId = 'self') {
+        const accountLifecycleService = require('../services/accountLifecycle.service');
+        return accountLifecycleService.cancelDeletion({ userId, actorId });
     }
 
 
@@ -866,5 +881,7 @@ class User {
         return true;
     }
 }
+
+User.pool = pool;
 
 module.exports = User;

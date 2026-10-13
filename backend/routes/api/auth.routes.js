@@ -46,6 +46,8 @@ router.post('/verify-sms', authRateLimiter, authController.verifySMS);
 router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
 router.post('/reset-password', authRateLimiter, authController.resetPassword);
 router.post('/resend-verification', authRateLimiter, authController.resendVerification);
+router.post('/reactivate', authRateLimiter, authController.reactivateAccount);
+router.post('/cancel-deletion', authRateLimiter, authController.cancelDeletion);
 
 // Unified Supabase Auth Routes
 router.post('/google/sync', supabaseController.syncSocialUser);

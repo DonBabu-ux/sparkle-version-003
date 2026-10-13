@@ -32,6 +32,7 @@ require('./jobs/candidatePool'); // Start feed candidate pool builder
 const { initMediaJobs } = require('./jobs/media-cleanup.job'); // Media lifecycle engine
 initMediaJobs();
 require('./workers/MediaCleanupWorker').start(); // Start 10-minute ephemeral media retention worker
+require('./workers/accountLifecycleWorker').start(); // Start account lifecycle worker
 
 const app = express();
 // Only trust a reverse proxy when actually behind one (Render sets

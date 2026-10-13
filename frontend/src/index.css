@@ -703,3 +703,33 @@ body.new-chat-open nav[aria-label="Primary"] {
   display: none !important;
   pointer-events: none !important;
 }
+
+/* Accessibility & Interface System Rules */
+html.reduce-motion *,
+html.reduce-motion *::before,
+html.reduce-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+html.high-contrast {
+  filter: contrast(115%);
+}
+
+html[data-font-scale="small"] {
+  font-size: 14.5px;
+}
+
+html[data-font-scale="medium"] {
+  font-size: 16px;
+}
+
+html[data-font-scale="large"] {
+  font-size: 17.5px;
+}
+
+html[data-font-scale="extra-large"] {
+  font-size: 19px;
+}

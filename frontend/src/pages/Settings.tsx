@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck } from 'lucide-react';
+import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert } from 'lucide-react';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
 import '../audio/managers/AudioSessionManager';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
@@ -26,12 +26,13 @@ export default function Settings() {
 
   // Unified Account Control sheet state
   const [showAccountControl, setShowAccountControl] = useState(false);
-  type AcTab = 'menu' | 'hide' | 'terminate' | 'delete';
+  type AcTab = 'menu' | 'hide' | 'suspend' | 'terminate' | 'delete';
   const [acTab, setAcTab] = useState<AcTab>('menu');
   const [acPassword, setAcPassword] = useState('');
   const [acReason, setAcReason] = useState('');
   const [acConfirmText, setAcConfirmText] = useState('');
   const [acDataExport, setAcDataExport] = useState(false);
+  const [acAcknowledgeTerminate, setAcAcknowledgeTerminate] = useState(false);
   const [acSubmitting, setAcSubmitting] = useState(false);
   const [acError, setAcError] = useState<string | null>(null);
   const [acSuccess, setAcSuccess] = useState<string | null>(null);
@@ -49,6 +50,7 @@ export default function Settings() {
     setAcReason('');
     setAcConfirmText('');
     setAcDataExport(false);
+    setAcAcknowledgeTerminate(false);
     setAcError(null);
     setAcSuccess(null);
     setShowAccountControl(true);
@@ -108,8 +110,25 @@ export default function Settings() {
     }
   };
 
+  const handleSuspendAccount = async () => {
+    if (!acPassword) { setAcError('Password is required.'); return; }
+    setAcSubmitting(true);
+    setAcError(null);
+    try {
+      await api.post('/users/account/suspend', { password: acPassword, reason: acReason });
+      useUserStore.getState().logout();
+      navigate('/login');
+    } catch (err) {
+      const e = err as { response?: { data?: { error?: string } } };
+      setAcError(e.response?.data?.error || 'Suspension failed. Check your password.');
+    } finally {
+      setAcSubmitting(false);
+    }
+  };
+
   const handleTerminateAccount = async () => {
     if (!acPassword) { setAcError('Password is required.'); return; }
+    if (!acAcknowledgeTerminate) { setAcError('Please acknowledge that termination permanently revokes access.'); return; }
     setAcSubmitting(true);
     setAcError(null);
     try {
@@ -152,6 +171,8 @@ export default function Settings() {
       await api.post('/users/account/delete', {
         password: acPassword,
         reason: acReason,
+        confirmText: acConfirmText,
+        exportData: acDataExport
       });
       useUserStore.getState().logout();
       navigate('/login');
@@ -326,7 +347,7 @@ export default function Settings() {
             title="Storage & Data Intelligence"
             description="Cache management and storage breakdown"
             rightElement="chevron"
-            onClick={() => navigate('/admin/storage')}
+            onClick={() => navigate('/settings/advanced/data')}
           />
           <SettingRow
             icon={FileText}
@@ -512,19 +533,34 @@ export default function Settings() {
                           </div>
                         </div>
 
-                        {/* Terminate */}
+                        {/* Suspend (Take a Break) */}
                         <button
-                          onClick={() => { setAcTab('terminate'); setAcError(null); }}
+                          onClick={() => { setAcTab('suspend'); setAcError(null); }}
                           className="w-full p-4 rounded-2xl border border-amber-200 dark:border-amber-500/30 bg-amber-50/70 dark:bg-amber-500/10 flex items-center gap-3 text-left hover:bg-amber-100/70 dark:hover:bg-amber-500/20 transition-all active:scale-[0.99]"
                         >
                           <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-500/20 flex items-center justify-center text-amber-600 dark:text-amber-400 flex-shrink-0">
-                            <Shield size={18} />
+                            <PauseCircle size={18} />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Terminate Account</p>
-                            <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">Suspend your account — reversible via support</p>
+                            <p className="text-sm font-bold text-amber-800 dark:text-amber-300">Suspend Account (Take a Break)</p>
+                            <p className="text-xs text-amber-700 dark:text-amber-400/80 mt-0.5">Temporary break — profile hidden, reactivate anytime</p>
                           </div>
                           <ChevronRight size={16} className="text-amber-500 flex-shrink-0" />
+                        </button>
+
+                        {/* Terminate */}
+                        <button
+                          onClick={() => { setAcTab('terminate'); setAcError(null); }}
+                          className="w-full p-4 rounded-2xl border border-orange-200 dark:border-orange-500/30 bg-orange-50/70 dark:bg-orange-500/10 flex items-center gap-3 text-left hover:bg-orange-100/70 dark:hover:bg-orange-500/20 transition-all active:scale-[0.99]"
+                        >
+                          <div className="w-10 h-10 rounded-xl bg-orange-100 dark:bg-orange-500/20 flex items-center justify-center text-orange-600 dark:text-orange-400 flex-shrink-0">
+                            <ShieldAlert size={18} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-bold text-orange-800 dark:text-orange-300">Terminate Account</p>
+                            <p className="text-xs text-orange-700 dark:text-orange-400/80 mt-0.5">Revoke access permanently — logs out all devices</p>
+                          </div>
+                          <ChevronRight size={16} className="text-orange-500 flex-shrink-0" />
                         </button>
 
                         {/* Delete */}
@@ -537,7 +573,7 @@ export default function Settings() {
                           </div>
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-bold text-red-700 dark:text-red-400">Delete Account</p>
-                            <p className="text-xs text-red-600 dark:text-red-400/80 mt-0.5">Permanently erase data — with data download form</p>
+                            <p className="text-xs text-red-600 dark:text-red-400/80 mt-0.5">Permanent data erasure — 30-day grace period & download form</p>
                           </div>
                           <ChevronRight size={16} className="text-red-400 flex-shrink-0" />
                         </button>
@@ -578,10 +614,10 @@ export default function Settings() {
                       </motion.div>
                     )}
 
-                    {/* ── TERMINATE TAB ── */}
-                    {acTab === 'terminate' && (
+                    {/* ── SUSPEND TAB ── */}
+                    {acTab === 'suspend' && (
                       <motion.div
-                        key="tab-terminate"
+                        key="tab-suspend"
                         initial={{ opacity: 0, x: 15 }}
                         animate={{ opacity: 1, x: 0 }}
                         exit={{ opacity: 0, x: 15 }}
@@ -589,12 +625,12 @@ export default function Settings() {
                         className="space-y-4"
                       >
                         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
-                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Temporary Suspension:</p>
+                          <p className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-1">Temporary Suspension / Break:</p>
                           <ul className="text-xs text-amber-700 dark:text-amber-400 space-y-1 list-disc list-inside">
-                            <li>You'll be logged out of all devices immediately</li>
-                            <li>Your profile will be hidden from everyone</li>
-                            <li>Your posts and profile are preserved safely</li>
-                            <li>Contact support@sparkle.app whenever you wish to reactivate</li>
+                            <li>You will be logged out of all devices immediately</li>
+                            <li>Your profile and posts are hidden from search and discover</li>
+                            <li>All data, friends, and messages remain 100% safe and intact</li>
+                            <li>Reactivate anytime simply by logging back in</li>
                           </ul>
                         </div>
                         <div>
@@ -608,8 +644,8 @@ export default function Settings() {
                           >
                             <option value="">Select a reason...</option>
                             <option value="taking_break">Taking a break</option>
+                            <option value="too_busy">Too busy with studies / exams</option>
                             <option value="privacy">Privacy concerns</option>
-                            <option value="too_busy">Too busy with studies</option>
                             <option value="other">Other reason</option>
                           </select>
                         </div>
@@ -627,12 +663,81 @@ export default function Settings() {
                           />
                         </div>
                         <button
-                          onClick={handleTerminateAccount}
+                          onClick={handleSuspendAccount}
                           disabled={acSubmitting || !acPassword}
                           className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
                         >
                           {acSubmitting ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
-                          Suspend / Terminate My Account
+                          Suspend My Account (Take a Break)
+                        </button>
+                      </motion.div>
+                    )}
+
+                    {/* ── TERMINATE TAB ── */}
+                    {acTab === 'terminate' && (
+                      <motion.div
+                        key="tab-terminate"
+                        initial={{ opacity: 0, x: 15 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 15 }}
+                        transition={{ duration: 0.2 }}
+                        className="space-y-4"
+                      >
+                        <div className="p-4 rounded-2xl bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
+                          <p className="text-sm font-semibold text-orange-800 dark:text-orange-300 mb-1">Permanent Access Revocation:</p>
+                          <ul className="text-xs text-orange-700 dark:text-orange-400 space-y-1 list-disc list-inside">
+                            <li>Your access to Sparkle will permanently end</li>
+                            <li>All active sessions and tokens will be immediately revoked</li>
+                            <li>Normal login and password resets will be disabled</li>
+                            <li>Account data is retained under regulatory retention policies</li>
+                            <li>Your email address remains reserved and cannot be reused</li>
+                          </ul>
+                        </div>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                            Reason <span className="font-normal text-slate-400">(optional)</span>
+                          </label>
+                          <select
+                            value={acReason}
+                            onChange={e => setAcReason(e.target.value)}
+                            className="w-full text-sm rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          >
+                            <option value="">Select a reason...</option>
+                            <option value="leaving_platform">Leaving Sparkle platform</option>
+                            <option value="privacy">Privacy concerns</option>
+                            <option value="switching">Switching to another platform</option>
+                            <option value="other">Other reason</option>
+                          </select>
+                        </div>
+                        <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 dark:text-zinc-400 select-none">
+                          <input
+                            type="checkbox"
+                            checked={acAcknowledgeTerminate}
+                            onChange={e => { setAcAcknowledgeTerminate(e.target.checked); setAcError(null); }}
+                            className="mt-0.5 rounded border-orange-300 text-orange-500 focus:ring-orange-400"
+                          />
+                          <span>I understand that terminating my account permanently revokes access and cannot be undone by signing in.</span>
+                        </label>
+                        <div>
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                            Confirm your password
+                          </label>
+                          <input
+                            type="password"
+                            value={acPassword}
+                            onChange={e => { setAcPassword(e.target.value); setAcError(null); }}
+                            placeholder="Your account password"
+                            autoComplete="current-password"
+                            className="w-full text-sm rounded-xl border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 px-3.5 py-2.5 focus:outline-none focus:ring-2 focus:ring-orange-400"
+                          />
+                        </div>
+                        <button
+                          onClick={handleTerminateAccount}
+                          disabled={acSubmitting || !acPassword || !acAcknowledgeTerminate}
+                          className="w-full py-3.5 rounded-2xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20"
+                        >
+                          {acSubmitting ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                          Permanently Terminate Account
                         </button>
                       </motion.div>
                     )}
@@ -648,11 +753,12 @@ export default function Settings() {
                         className="space-y-4"
                       >
                         <div className="p-4 rounded-2xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
-                          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Permanent Erase:</p>
+                          <p className="text-sm font-semibold text-red-700 dark:text-red-400 mb-1">Account Deletion (30-Day Grace Period):</p>
                           <ul className="text-xs text-red-600 dark:text-red-400 space-y-1 list-disc list-inside">
-                            <li>All profile data, stories, moments, and messages will be wiped</li>
-                            <li>Followers and connections will be permanently removed</li>
-                            <li>This action is irreversible and cannot be recovered</li>
+                            <li>Your account enters a 30-day pending deletion period</li>
+                            <li>You can cancel deletion at any time during this 30-day grace period</li>
+                            <li>After 30 days, all profile data, stories, moments, and private messages are permanently wiped</li>
+                            <li>Your email address and username will be released for reuse after permanent erasure</li>
                           </ul>
                         </div>
 

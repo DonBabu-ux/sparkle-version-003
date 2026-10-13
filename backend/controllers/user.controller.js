@@ -8,6 +8,7 @@ const crypto = require('crypto');
 const path = require('path');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
+const accountLifecycleService = require('../services/accountLifecycle.service');
 
 
 
@@ -325,7 +326,17 @@ const updateSettings = async (req, res) => {
             'default_allow_forwarding',
             'default_screenshot_notification',
             'default_disappearing_mode',
-            'blur_screen_recording'
+            'blur_screen_recording',
+            'high_contrast',
+            'video_autoplay',
+            'auto_suppress_notifications',
+            'priority_mention_bypass',
+            'data_saving_mode',
+            'request_filtering',
+            'cellular_low_data',
+            'background_sync_throttling',
+            'link_safety_sandbox',
+            'unverified_dm_filter'
         ];
 
         for (const key of Object.keys(req.body)) {
@@ -404,7 +415,19 @@ const getAdvancedSettings = async (req, res) => {
                 default_allow_forwarding: user.default_allow_forwarding !== 0,
                 default_screenshot_notification: user.default_screenshot_notification !== 0,
                 default_disappearing_mode: user.default_disappearing_mode || 'off',
-                blur_screen_recording: user.blur_screen_recording !== undefined ? user.blur_screen_recording !== 0 : true
+                blur_screen_recording: user.blur_screen_recording !== undefined ? user.blur_screen_recording !== 0 : true,
+                high_contrast: !!user.high_contrast,
+                video_autoplay: user.video_autoplay || 'wifi',
+                auto_suppress_notifications: !!user.auto_suppress_notifications,
+                priority_mention_bypass: user.priority_mention_bypass !== 0,
+                data_saving_mode: !!user.data_saving_mode,
+                request_filtering: user.request_filtering || 'standard',
+                cellular_low_data: user.cellular_low_data !== 0,
+                background_sync_throttling: !!user.background_sync_throttling,
+                link_safety_sandbox: user.link_safety_sandbox !== 0,
+                unverified_dm_filter: !!user.unverified_dm_filter,
+                dnd_start: user.dnd_start || '23:00',
+                dnd_end: user.dnd_end || '07:00'
             }
         });
     } catch (error) {
@@ -519,42 +542,99 @@ const updatePassword = async (req, res) => {
     }
 };
 
+const suspendAccount = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { password, reason, durationDays } = req.body;
+
+        if (!password) {
+            return res.status(400).json({ error: 'Password required to suspend account' });
+        }
+
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect password' });
+        }
+
+        let expiresAt = null;
+        if (durationDays && Number(durationDays) > 0) {
+            expiresAt = new Date(Date.now() + Number(durationDays) * 24 * 60 * 60 * 1000);
+        }
+
+        const result = await accountLifecycleService.suspendAccount({
+            userId,
+            reason: reason || 'Temporary break',
+            expiresAt,
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
+
+        res.clearCookie('sparkleToken');
+        return res.json({
+            success: true,
+            status: 'suspended',
+            message: 'Your account has been temporarily suspended. All sessions have been logged out.'
+        });
+    } catch (error) {
+        const errorMsg = error?.message || String(error).slice(0, 200);
+        logger.error('Suspend account error: ' + errorMsg);
+        res.status(500).json({ error: errorMsg });
+    }
+};
+
 const deleteAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
-        const { password, reason } = req.body;
+        const { password, reason, confirmText, exportData } = req.body;
 
         if (!password) {
             return res.status(400).json({ error: 'Password required to delete account' });
         }
 
-        const user = await User.findById(userId);
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (confirmText !== 'DELETE') {
+            return res.status(400).json({ error: "Please type 'DELETE' to confirm deletion" });
+        }
 
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ error: 'Incorrect password' });
         }
 
-        // Log reason if provided
-        if (reason) {
-            logger.info(`User ${userId} deleting account. Reason: ${reason}`);
-        }
-
-        // Data export is handled client-side before this call (the frontend
-        // downloads GET /users/export-data while the session is still valid).
-        await User.delete(userId);
+        const result = await accountLifecycleService.requestDeletion({
+            userId,
+            reason: reason || 'User requested deletion',
+            exportData: !!exportData,
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
 
         res.clearCookie('sparkleToken');
-        res.json({ success: true, message: 'Account deleted successfully' });
+        return res.json({
+            success: true,
+            status: 'pending_deletion',
+            scheduledAt: result.scheduledAt,
+            message: 'Account scheduled for deletion in 30 days. You can cancel at any time during this grace period.'
+        });
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Delete account error: ' + errorMsg);
-        res.status(500).json({ error: 'Failed to delete account' });
+        res.status(500).json({ error: errorMsg });
     }
 };
 
 // Terminate account — sets account_status = 'terminated', logs out all devices
-// Reversible by contacting support. Profile hidden from all users.
 const terminateAccount = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
@@ -565,30 +645,49 @@ const terminateAccount = async (req, res) => {
         }
 
         const user = await User.findById(userId);
-        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
+        const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             return res.status(401).json({ error: 'Incorrect password' });
         }
 
-        logger.info(`User ${userId} terminating account. Reason: ${reason || 'none'}`);
-
-        // Mark account as terminated (keeps data, but hides from all)
-        await User.pool.query(
-            `UPDATE users SET account_status = 'terminated', is_online = 0, last_seen_at = NOW() WHERE user_id = ?`,
-            [userId]
-        );
-
-        // Revoke all sessions
-        await User.pool.query('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
-        await User.pool.query('UPDATE users SET token_version = token_version + 1 WHERE user_id = ?', [userId]);
+        const result = await accountLifecycleService.terminateAccount({
+            userId,
+            reason: reason || 'Account termination requested',
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
 
         res.clearCookie('sparkleToken');
-        res.json({ success: true, message: 'Account terminated. Contact support to reactivate.' });
+        return res.json({
+            success: true,
+            status: 'terminated',
+            message: 'Account terminated. Access has ended.'
+        });
     } catch (error) {
         const errorMsg = error?.message || String(error).slice(0, 200);
         logger.error('Terminate account error: ' + errorMsg);
-        res.status(500).json({ error: 'Failed to terminate account' });
+        res.status(500).json({ error: errorMsg });
+    }
+};
+
+const cancelDeletion = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const result = await accountLifecycleService.cancelDeletion({
+            userId,
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
+        return res.json(result);
+    } catch (error) {
+        logger.error('Cancel deletion error: ' + error.message);
+        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
     }
 };
 
@@ -684,21 +783,19 @@ const exportUserData = async (req, res) => {
             user,
             posts,
             messages,
-            listings,
-            confessions
+            listings
         ] = await Promise.all([
-            User.findById(userId),
-            Post.getUserPosts(userId, userId), // Exporting own data, can see all
-            User.pool.query('SELECT * FROM messages WHERE sender_id = ?', [userId]),
-            User.pool.query('SELECT * FROM marketplace_listings WHERE seller_id = ?', [userId]),
-            User.pool.query('SELECT * FROM confessions WHERE campus = (SELECT campus FROM users WHERE user_id = ?)', [userId]) // Confessions aren't tied to user IDs usually, but maybe they were saved?
+            User.findById(userId).catch(() => null),
+            Post.getUserPosts(userId, userId).catch(() => []),
+            User.pool.query('SELECT * FROM messages WHERE sender_id = ?', [userId]).catch(() => [[]]),
+            User.pool.query('SELECT * FROM marketplace_listings WHERE seller_id = ?', [userId]).catch(() => [[]])
         ]);
 
         const dataExport = {
             profile: user,
-            posts: posts,
-            messages: messages[0],
-            listings: listings[0],
+            posts: posts || [],
+            messages: messages?.[0] || [],
+            listings: listings?.[0] || [],
             timestamp: new Date().toISOString()
         };
 
@@ -1503,7 +1600,9 @@ module.exports = {
     uploadAvatar,
     updatePassword,
     deleteAccount,
+    suspendAccount,
     terminateAccount,
+    cancelDeletion,
     setHideFromUsers,
     followUser,
     unfollowUser,

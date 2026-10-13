@@ -95,6 +95,19 @@ const initializeSocket = (server) => {
                 return next(new Error('User not found'));
             }
 
+            // ACCOUNT LIFECYCLE CHECK
+            const accountStatus = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
+            if (accountStatus === 'suspended' || accountStatus === 'terminated' || accountStatus === 'pending_deletion' || accountStatus === 'deleted' || accountStatus === 'deactivated') {
+                logger.warn(`🔌 Socket Auth REJECTED: User ${tokenUserId} has account_status='${accountStatus}'`);
+                return next(new Error(`ACCOUNT_${accountStatus.toUpperCase()}`));
+            }
+
+            // TOKEN VERSION CHECK
+            if (decoded.tokenVersion !== undefined && user.token_version !== undefined && decoded.tokenVersion < user.token_version) {
+                logger.warn(`🔌 Socket Auth REJECTED: Stale token version for user ${tokenUserId}`);
+                return next(new Error('SESSION_REVOKED'));
+            }
+
             socket.user = user;
             // Store the DB primary key for later use
             socket.userId = user.user_id;
@@ -1704,4 +1717,30 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
     }
 }
 
-module.exports = { initializeSocket, getIO, emitNotification, emitSecurityAlert, notifyOrderUpdate, emitMarketplaceMessage, handleSparklyMentionInChat };
+const disconnectUserSockets = (userId, reason = 'account_restricted') => {
+    try {
+        if (!userId) return;
+        const sockets = userSockets.get(userId);
+        if (sockets && sockets.size > 0) {
+            for (const socket of Array.from(sockets)) {
+                socket.emit('account_status_changed', { status: reason });
+                socket.disconnect(true);
+            }
+            userSockets.delete(userId);
+            logger.info(`🔌 Force-disconnected ${sockets.size} socket(s) for user ${userId} (reason: ${reason})`);
+        }
+    } catch (e) {
+        logger.error(`Error disconnecting sockets for user ${userId}:`, e);
+    }
+};
+
+module.exports = { 
+    initializeSocket, 
+    getIO, 
+    emitNotification, 
+    emitSecurityAlert, 
+    notifyOrderUpdate, 
+    emitMarketplaceMessage, 
+    handleSparklyMentionInChat,
+    disconnectUserSockets
+};

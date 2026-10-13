@@ -12,6 +12,7 @@ const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
 const emailService = require('../services/email.service');
+const accountLifecycleService = require('../services/accountLifecycle.service');
 
 // Helper to sanitize avatars - MOVED TO USER MODEL
 const getSafeAvatarUrl = (url) => User.getSafeAvatarUrl(url);
@@ -102,7 +103,7 @@ const login = async (req, res) => {
             });
         }
 
-        // Account status checks (Suspended, Disabled, Locked)
+        // Account status checks (Suspended, Terminated, Pending Deletion, Disabled, Locked)
         if (user.account_status) {
             const statusLower = String(user.account_status).trim().toLowerCase();
             if (statusLower === 'suspended') {
@@ -110,7 +111,34 @@ const login = async (req, res) => {
                     success: false,
                     status: 'error',
                     code: 'ACCOUNT_SUSPENDED',
-                    message: 'This account is currently unavailable. Please contact Sparkle Support if you believe this is a mistake.'
+                    message: 'This account is currently suspended. If this was a temporary self-suspension, you can reactivate your account.',
+                    canReactivate: user.suspended_by === 'self' || !user.suspended_by
+                });
+            }
+            if (statusLower === 'terminated') {
+                return res.status(403).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_TERMINATED',
+                    message: 'This Sparkle account has been terminated and access is no longer available. If you believe this action was made in error, review the available recovery or appeal options.'
+                });
+            }
+            if (statusLower === 'pending_deletion') {
+                return res.status(403).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_PENDING_DELETION',
+                    message: 'This account is scheduled for deletion. You can cancel deletion within the 30-day grace period to restore access.',
+                    scheduledAt: user.deletion_scheduled_at,
+                    canCancel: true
+                });
+            }
+            if (statusLower === 'deleted') {
+                return res.status(403).json({
+                    success: false,
+                    status: 'error',
+                    code: 'ACCOUNT_DELETED',
+                    message: 'This account has been permanently deleted.'
                 });
             }
             if (statusLower === 'disabled' || statusLower === 'deactivated') {
@@ -668,11 +696,18 @@ const forgotPassword = async (req, res) => {
         if (!email) return res.status(400).json({ status: 'error', message: 'Email is required' });
 
         const user = await queryOne(
-            'SELECT user_id, name FROM users WHERE email = ? LIMIT 1',
+            'SELECT user_id, name, account_status FROM users WHERE email = ? LIMIT 1',
             [email]
         );
         if (!user) {
             // Security: don't reveal if user exists
+            return res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
+        }
+
+        const userStatus = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
+        if (userStatus === 'terminated' || userStatus === 'deleted' || userStatus === 'pending_deletion') {
+            // Security policy: Password reset cannot reactivate or reset terminated/deletion-pending accounts
+            logger.info(`Password reset blocked for ${email}: status is '${userStatus}'`);
             return res.json({ status: 'success', message: "If an account exists for this email, we've sent password reset instructions." });
         }
 
@@ -757,6 +792,15 @@ const resetPassword = async (req, res) => {
         if (!reset) {
             logger.warn(`Password reset failed for ${email || 'unknown'} - Code: ${resetCode}. Reason: No valid matching/unexpired code found.`);
             return res.status(400).json({ status: 'error', message: 'Invalid or expired verification code' });
+        }
+
+        // Verify account is eligible for reset
+        const targetUser = await queryOne('SELECT user_id, account_status FROM users WHERE user_id = ? LIMIT 1', [reset.user_id]);
+        if (targetUser) {
+            const targetStatus = targetUser.account_status ? String(targetUser.account_status).trim().toLowerCase() : 'active';
+            if (targetStatus === 'terminated' || targetStatus === 'deleted' || targetStatus === 'pending_deletion') {
+                return res.status(403).json({ status: 'error', message: 'Password reset is not permitted for this account.' });
+            }
         }
 
         const hashedPassword = await bcrypt.hash(newPassword, 12);
@@ -1037,4 +1081,146 @@ const checkEmail = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, logout, verifyEmail, forgotPassword, resetPassword, verifySMS, resendVerification, validateToken, switchAccount, verify2FA, request2FARecovery, resend2FA, refreshToken, checkUsername, checkEmail };
+/**
+ * Public endpoint to reactivate a self-suspended account
+ */
+const reactivateAccount = async (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        if (!identifier || !password) {
+            return res.status(400).json({ error: 'Username or email and password are required' });
+        }
+
+        const cleanId = String(identifier).trim().toLowerCase();
+        const users = await query(
+            'SELECT * FROM users WHERE email = ? OR username = ? OR username_normalized = ? LIMIT 1',
+            [cleanId, cleanId, cleanId]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({ error: 'Incorrect credentials' });
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect credentials' });
+        }
+
+        const status = (user.account_status || 'active').toLowerCase();
+        if (status !== 'suspended') {
+            return res.status(400).json({ error: `Account is currently '${status}', not suspended.` });
+        }
+
+        const result = await accountLifecycleService.reactivateAccount({
+            userId: user.user_id,
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
+
+        // Issue tokens on successful reactivation
+        const deviceId = req.headers['x-device-id'] || 'reactivation-device';
+        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
+
+        res.cookie('sparkleToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+
+        return res.json({
+            success: true,
+            message: result.message,
+            token: accessToken,
+            refreshToken
+        });
+    } catch (error) {
+        logger.error('Reactivate account error: ' + error.message);
+        res.status(400).json({ error: error.message || 'Failed to reactivate account' });
+    }
+};
+
+/**
+ * Public endpoint to cancel a pending deletion during the 30-day grace period
+ */
+const cancelDeletion = async (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+        if (!identifier || !password) {
+            return res.status(400).json({ error: 'Username or email and password are required' });
+        }
+
+        const cleanId = String(identifier).trim().toLowerCase();
+        const users = await query(
+            'SELECT * FROM users WHERE email = ? OR username = ? OR username_normalized = ? LIMIT 1',
+            [cleanId, cleanId, cleanId]
+        );
+
+        if (users.length === 0) {
+            return res.status(401).json({ error: 'Incorrect credentials' });
+        }
+
+        const user = users[0];
+        const isMatch = await bcrypt.compare(password, user.password_hash);
+        if (!isMatch) {
+            return res.status(401).json({ error: 'Incorrect credentials' });
+        }
+
+        const status = (user.account_status || 'active').toLowerCase();
+        if (status !== 'pending_deletion') {
+            return res.status(400).json({ error: `Account is currently '${status}', not pending deletion.` });
+        }
+
+        const result = await accountLifecycleService.cancelDeletion({
+            userId: user.user_id,
+            actorId: 'self',
+            actorRole: 'user',
+            req
+        });
+
+        const deviceId = req.headers['x-device-id'] || 'cancel-deletion-device';
+        const { accessToken, refreshToken } = await authService.generateTokens(user, deviceId);
+
+        res.cookie('sparkleToken', accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            maxAge: 24 * 60 * 60 * 1000,
+            path: '/'
+        });
+
+        return res.json({
+            success: true,
+            message: result.message,
+            token: accessToken,
+            refreshToken
+        });
+    } catch (error) {
+        logger.error('Cancel deletion error: ' + error.message);
+        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
+    }
+};
+
+module.exports = { 
+    signup, 
+    login, 
+    logout, 
+    verifyEmail, 
+    forgotPassword, 
+    resetPassword, 
+    verifySMS, 
+    resendVerification, 
+    validateToken, 
+    switchAccount, 
+    verify2FA, 
+    request2FARecovery, 
+    resend2FA, 
+    refreshToken, 
+    checkUsername, 
+    checkEmail,
+    reactivateAccount,
+    cancelDeletion
+};

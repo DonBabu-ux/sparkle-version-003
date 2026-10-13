@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
+import { OtaKit } from '@otakit/capacitor-updater';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
-import { OtaService } from './services/OtaService';
 import { lazyWithRetry } from './utils/lazyWithRetry';
 const SparkleAIScreen = lazyWithRetry(() => import('./pages/ai/SparkleAIScreen'));
 // import StudyAssistantScreen from './pages/ai/StudyAssistantScreen';
@@ -295,12 +296,14 @@ function App() {
     });
   }, []); // Run exactly once on component mount
 
-  // OTA check (still after hydration)
+  // OtaKit: confirm the booted bundle is healthy so a newly activated update
+  // is kept (auto-rollback if this never fires). OtaKit itself checks silently
+  // on its launch/resume policies — no manual update check needed here.
   useEffect(() => {
     if (!hydrated) return;
-    logger.log('[OTA] Checking for updates');
-    OtaService.checkAndDownloadUpdate().catch(err => {
-      logger.warn('OTA Background trigger warning:', err);
+    if (!Capacitor.isNativePlatform()) return;
+    OtaKit.notifyAppReady().catch(err => {
+      logger.warn('[OtaKit] notifyAppReady failed:', err);
     });
   }, [hydrated]);
 

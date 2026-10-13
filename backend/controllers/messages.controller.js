@@ -305,6 +305,20 @@ class MessageController {
                     error: 'Invalid media_url'
                 });
             }
+            if (error.code === 'CHAT_FORBIDDEN') {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'CHAT_FORBIDDEN',
+                    error: error.message
+                });
+            }
+            if (error.code === 'CHAT_NOT_FOUND') {
+                return res.status(404).json({
+                    status: 'error',
+                    code: 'CHAT_NOT_FOUND',
+                    error: error.message
+                });
+            }
             res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
         }
     }

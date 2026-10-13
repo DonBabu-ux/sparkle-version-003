@@ -280,7 +280,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 30 }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="fixed inset-0 z-(--z-modal) bg-[#0b141a] text-white flex flex-col overflow-hidden select-none"
+        className="fixed inset-0 z-(--z-modal) bg-[#0b141a] text-white flex flex-col overflow-hidden select-none sm:max-w-[460px] sm:mx-auto sm:my-8 sm:rounded-[28px] sm:shadow-2xl sm:border sm:border-white/10"
       >
         {/* --- HEADER BAR --- */}
         <div className="h-16 px-4 border-b border-white/10 bg-[#13131a]/90 backdrop-blur-xl flex items-center justify-between shrink-0">

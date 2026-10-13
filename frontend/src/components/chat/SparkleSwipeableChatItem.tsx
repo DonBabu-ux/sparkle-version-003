@@ -10,6 +10,8 @@ import { resolveChatListDisplay } from '../../utils/chatListDisplay';
 interface SparkleSwipeableChatItemProps {
   chat: any;
   isSelected: boolean;
+  isActive?: boolean;
+  domId?: string;
   isSelectionMode: boolean;
   user: any;
   onSelect: () => void;
@@ -25,6 +27,8 @@ interface SparkleSwipeableChatItemProps {
 export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> = ({
   chat,
   isSelected,
+  isActive = false,
+  domId,
   isSelectionMode,
   user,
   onSelect,
@@ -45,6 +49,8 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isPressing, setIsPressing] = useState(false);
+  // Mouse must never arm swipe/long-press actions — only touch pointers may.
+  const dragPointerTypeRef = useRef<string>('mouse');
 
   const itemIdentity = IdentityManager.resolveIdentity(chat);
   const isSelfChat = chat.chat_type === 'self' || chat.partner_id === (user?.id || user?.user_id);
@@ -83,6 +89,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   };
 
   const handleDragEnd = (_: any, info: any) => {
+    // Mouse drags may visually move the row but must never trigger actions.
+    if (dragPointerTypeRef.current !== 'touch') {
+      resetSwipeState();
+      return;
+    }
     const width = containerRef.current?.offsetWidth || 350;
     // 35% responsive threshold based on container width
     const threshold = Math.max(110, width * 0.35);
@@ -102,7 +113,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const timeLabel = formatChatTimestamp(chat.last_message_time || chat.last_message_at);
 
   return (
-    <div ref={containerRef} className="relative overflow-hidden group select-none">
+    <div ref={containerRef} id={domId} className="relative overflow-hidden group select-none">
       {/* Background Swipe Actions Indicators - Opacity strictly 0 when unswiped */}
       <motion.div
         style={{ backgroundColor: archiveBg, opacity: actionOpacity }}
@@ -130,14 +141,16 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
         dragDirectionLock={true}
         dragConstraints={{ left: -140, right: 140 }}
         dragElastic={0.15}
+        onDragStart={(e: any) => { dragPointerTypeRef.current = e?.pointerType || 'mouse'; }}
         onDragEnd={handleDragEnd}
         style={{ x }}
-        onTouchStart={handleTouchStart}
-        onTouchEnd={handleTouchEnd}
-        onTouchCancel={resetSwipeState}
-        onMouseDown={handleTouchStart}
-        onMouseUp={handleTouchEnd}
-        onMouseLeave={handleTouchEnd}
+        onPointerDown={(e) => {
+          dragPointerTypeRef.current = e.pointerType || 'mouse';
+          if (e.pointerType === 'touch') handleTouchStart();
+        }}
+        onPointerUp={handleTouchEnd}
+        onPointerLeave={handleTouchEnd}
+        onPointerCancel={(e) => { handleTouchEnd(); if (e.pointerType === 'touch') resetSwipeState(); }}
         onClick={() => {
           if (isSelectionMode) {
             onSelect();
@@ -147,7 +160,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
         }}
         role="button"
         tabIndex={0}
-        aria-label={`Chat with ${displayName}${hasUnreadIncoming ? `, ${chat.unread_count || 1} unread` : ''}`}
+        aria-label={`Chat with ${displayName}${hasUnreadIncoming ? `, ${chat.unread_count || 1} unread` : ''}${isActive ? ' (open)' : ''}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -159,9 +172,14 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           }
         }}
         className={clsx(
-          "relative z-10 px-5 py-3.5 transition-all duration-150 cursor-pointer flex items-center gap-3.5 bg-[#13131a]",
-          isSelected ? 'bg-[#ff1493]/15' : 'hover:bg-white/[0.02] active:bg-white/[0.04]',
-          isPressing && 'scale-[0.99] opacity-90'
+          "relative z-10 px-5 py-3.5 transition-colors duration-150 cursor-pointer flex items-center gap-3.5 bg-[#13131a]",
+          isSelected
+            ? 'bg-[#ff1493]/15'
+            : isActive
+              ? 'bg-white/[0.07] shadow-[inset_3px_0_0_0_#ff1493]'
+              : 'hover:bg-white/[0.06] active:bg-white/[0.04]',
+          isPressing && 'scale-[0.99] opacity-90',
+          'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#ff1493]/60'
         )}
       >
 

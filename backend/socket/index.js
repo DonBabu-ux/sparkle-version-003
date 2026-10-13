@@ -629,6 +629,9 @@ socket.on('get-rooms', () => {
                 message.chatId = finalChatId;
                 message.id = message.message_id;
                 message.senderId = message.sender_id;
+                // Recipient is whatever the model stored (derived from the chat pair) —
+                // never the client-supplied recipientId/partnerId (forged-emit/push fix).
+                const trueRecipientId = message.recipient_id || null;
 
                 // 2. Authoritative ACK to Sender
                 if (typeof callback === 'function') {
@@ -651,13 +654,13 @@ socket.on('get-rooms', () => {
                     try {
                         // User room chat list update
                         io.to(`user:${socket.userId}`).emit('chat-updated', { chatId: finalChatId });
-                        if (recipientId) {
-                            io.to(`user:${recipientId}`).emit('chat-updated', { chatId: finalChatId });
+                        if (trueRecipientId) {
+                            io.to(`user:${trueRecipientId}`).emit('chat-updated', { chatId: finalChatId });
 
                             // Push Notification queueing for offline recipient
-                            const isOnline = userSockets.has(recipientId) && userSockets.get(recipientId).size > 0;
+                            const isOnline = userSockets.has(trueRecipientId) && userSockets.get(trueRecipientId).size > 0;
                             if (!isOnline) {
-                                await queuePushNotification(recipientId, {
+                                await queuePushNotification(trueRecipientId, {
                                     type: 'message',
                                     title: socket.user.name,
                                     body: type === 'text' ? content : `Sent a ${type}`,
@@ -704,7 +707,13 @@ socket.on('get-rooms', () => {
                 realtimeLogger.error(traceId, 'SEND_MESSAGE_ERROR', error, { data });
                 const isBlocked = Boolean(error.isBlocked || error.code === 'MESSAGE_BLOCKED' || error.message?.includes('blocked'));
                 const isBadUrl = error.code === 'INVALID_MEDIA_URL';
-                const errorCode = isBlocked ? 'MESSAGE_BLOCKED' : (isBadUrl ? 'INVALID_MEDIA_URL' : 'MESSAGE_ERROR');
+                const isForbidden = error.code === 'CHAT_FORBIDDEN';
+                const isNotFound = error.code === 'CHAT_NOT_FOUND';
+                const errorCode = isBlocked ? 'MESSAGE_BLOCKED'
+                    : isBadUrl ? 'INVALID_MEDIA_URL'
+                    : isForbidden ? 'CHAT_FORBIDDEN'
+                    : isNotFound ? 'CHAT_NOT_FOUND'
+                    : 'MESSAGE_ERROR';
                 const errorMessage = isBlocked ? 'You cannot message this user (blocked)' : (error.message || 'Failed to send message');
 
                 if (typeof callback === 'function') {

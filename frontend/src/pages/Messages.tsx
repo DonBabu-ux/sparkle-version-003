@@ -19,7 +19,7 @@ import { useLongPress } from '../hooks/useLongPress';
 
 import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
-import { KeyboardAwareChatLayout, StatusBarBackground, ChatInputDock } from '../components/SafeLayout';
+import { KeyboardAwareChatLayout, ChatInputDock } from '../components/SafeLayout';
 import type { SparkleTheme } from '../store/themeStore';
 import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
@@ -966,7 +966,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                     {Object.entries(EMOJIS).map(([category, list]) => (
                       <div key={category} className="space-y-3">
                         <h5 className="text-[11px] min-h-[30px] flex items-center font-black text-white/30 uppercase tracking-[2px] px-1">{category}</h5>
-                        <div className="grid grid-cols-8 sm:grid-cols-9 gap-y-4">
+                        <div className="grid grid-cols-8 sm:grid-cols-9 gap-y-4 max-w-[640px] mx-auto w-full">
                           {Array.from(new Set(list)).map((emoji, idx) => (
                             <button
                               key={`${category}-${emoji}-${idx}`}
@@ -3255,6 +3255,60 @@ export default function Messages() {
     });
   }, [conversations, activeFilter, customLists, messageSearch]);
 
+  // Desktop-only: track whether a chat was opened from the list (so the
+  // in-app back arrow POPS history instead of pushing a duplicate /messages
+  // entry — fixes "hardware/browser back reopens the chat").
+  const openedFromListRef = useRef(false);
+
+  // Desktop keyboard navigation: ↑/↓ switch chats, Escape closes overlays or the chat.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const inInput = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+
+      if (e.key === 'Escape') {
+        if (tabDropdown) { setTabDropdown(null); return; }
+        if (selectedMessageIds.size > 0) { setIsSelectionMode(false); setSelectedMessageIds(new Set()); return; }
+        if (selectedChatIds.length > 0) { setSelectedChatIds([]); return; }
+        if (!inInput && selectedChat) {
+          setSelectedChat(null);
+          openedFromListRef.current = false;
+          navigate('/messages');
+        }
+        return;
+      }
+
+      if (inInput) return;
+      if (!window.matchMedia('(min-width: 768px)').matches) return;
+      if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+      if (!Array.isArray(filteredConversations) || filteredConversations.length === 0) return;
+
+      e.preventDefault();
+      const idx = selectedChat
+        ? filteredConversations.findIndex(c => c.chat_id === selectedChat.chat_id)
+        : -1;
+      const next = e.key === 'ArrowDown'
+        ? (idx + 1) % filteredConversations.length
+        : (idx <= 0 ? filteredConversations.length - 1 : idx - 1);
+      const chat = filteredConversations[next];
+      setSelectedChat(chat);
+      openedFromListRef.current = false;
+      navigate(`/messages?chat=${chat.chat_id}`, { replace: true });
+      document.getElementById(`chat-row-${chat.chat_id}`)?.scrollIntoView({ block: 'nearest' });
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [tabDropdown, selectedMessageIds, selectedChatIds, selectedChat, filteredConversations, navigate, setIsSelectionMode]);
+
+  // Desktop: keep the active conversation visible in the list pane.
+  useEffect(() => {
+    if (!selectedChat) return;
+    if (!window.matchMedia('(min-width: 768px)').matches) return;
+    const el = document.getElementById(`chat-row-${selectedChat.chat_id}`);
+    el?.scrollIntoView({ block: 'nearest' });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedChat?.chat_id]);
+
   const visibleTabs = useMemo(() => {
     const presetLabels: Record<string, string> = {
       all: 'All',
@@ -3382,13 +3436,12 @@ export default function Messages() {
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
 
-      <KeyboardAwareChatLayout className="flex flex-col lg:flex-row flex-1 overflow-hidden relative bg-[#111118]">
+      <KeyboardAwareChatLayout className="flex flex-col md:flex-row flex-1 overflow-hidden relative bg-[#111118]">
         {/* SIDEBAR */}
         <aside className={clsx(
-          "w-full lg:w-[420px] bg-[#13131a] border-r border-white/[0.06] flex flex-col transition-all duration-300 min-h-0 h-full",
-          selectedChat ? 'hidden lg:flex' : 'flex flex-1 lg:flex-initial'
+          "w-full md:w-[360px] lg:w-[420px] bg-[#13131a] border-r border-white/[0.06] flex flex-col transition-all duration-300 min-h-0 h-full",
+          selectedChat ? 'hidden md:flex' : 'flex flex-1 md:flex-initial'
         )}>
-          <StatusBarBackground backgroundColor="#13131a" />
           {selectedChatIds.length > 0 ? (
             <SparkleHorizontalActionBar
               selectedCount={selectedChatIds.length}
@@ -3412,25 +3465,25 @@ export default function Messages() {
                   <h1 className="text-[26px] font-bold text-white/90 tracking-tight">Chats</h1>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all">
+                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60">
                     <Camera size={22} strokeWidth={2.2} />
                   </button>
                   <button
                     onClick={() => { setPeopleHubMode('new_chat'); setShowNewChatModal(true); }}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                   >
                     <SquarePen size={22} strokeWidth={2.2} />
                   </button>
                   <button
                     onClick={() => navigate('/messages/settings')}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                     title="Message Settings"
                   >
                     <Settings size={22} strokeWidth={2.2} />
                   </button>
                   <button
                     onClick={() => setShowOrbitMenu(true)}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all"
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                     title="Sparkle Options"
                   >
                     <Orbit size={22} strokeWidth={2.2} />
@@ -3466,10 +3519,10 @@ export default function Messages() {
                       onTouchEnd={clearTouchTimer}
                       onTouchMove={clearTouchTimer}
                       className={clsx(
-                        'shrink-0 px-2.5 py-1 text-[11px] font-bold transition-all duration-200 select-none touch-none',
+                        'shrink-0 px-3 py-1.5 text-[11px] font-bold transition-all duration-200 select-none touch-none rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60',
                         activeFilter === tab.id
-                          ? 'bg-[#ff1493] text-white shadow-[0_0_12px_rgba(255,20,147,0.28)] rounded-md'
-                          : 'bg-white/[0.16] text-white hover:bg-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.08] rounded-md'
+                          ? 'bg-[#ff1493] text-white shadow-[0_0_12px_rgba(255,20,147,0.28)]'
+                          : 'bg-white/[0.16] text-white hover:bg-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.08]'
                       )}
                     >
                       <span className="flex items-center gap-1.5 pointer-events-none">
@@ -3502,9 +3555,9 @@ export default function Messages() {
                     setListSelectedChats([]);
                     setShowNewListFlow('name');
                   }}
-                  className="w-[26px] h-[26px] shrink-0 flex items-center justify-center bg-white/[0.08] border border-white/[0.06] hover:bg-white/[0.15] text-white rounded-md transition-all active:scale-95 shadow-sm"
+                  className="w-8 h-8 shrink-0 flex items-center justify-center bg-white/[0.08] border border-white/[0.06] hover:bg-white/[0.15] text-white rounded-md transition-all active:scale-95 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                 >
-                  <Plus size={13} strokeWidth={3} />
+                  <Plus size={14} strokeWidth={3} />
                 </button>
               </div>
             </header>
@@ -3513,7 +3566,7 @@ export default function Messages() {
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto pb-24 no-scrollbar scroll-smooth bg-[#13131a]"
+            className="flex-1 overflow-y-auto pb-24 md:pb-6 no-scrollbar scroll-smooth bg-[#13131a]"
           >
             {Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
@@ -3542,12 +3595,15 @@ export default function Messages() {
                   key={chat.chat_id}
                   chat={chat}
                   referenceTime={referenceTime}
+                  domId={`chat-row-${chat.chat_id}`}
+                  isActive={selectedChat?.chat_id === chat.chat_id}
                   isSelected={selectedChatIds.includes(chat.chat_id)}
                   isSelectionMode={selectedChatIds.length > 0}
                   user={user}
                   onSelect={() => toggleChatSelection(chat.chat_id)}
                   onOpen={() => {
                     setSelectedChat(chat);
+                    openedFromListRef.current = true;
                     setLoadingMessages(true);
                     navigate(`/messages?chat=${chat.chat_id}`);
                     if (chat.unread_count > 0) {
@@ -3608,7 +3664,7 @@ export default function Messages() {
         {/* MAIN CHAT AREA */}
         <main className={clsx(
           "flex-1 flex flex-col transition-all duration-300 relative z-10 bg-transparent overflow-hidden",
-          !selectedChat ? 'hidden lg:flex' : 'flex',
+          !selectedChat ? 'hidden md:flex' : 'flex',
           (activePrivacy?.copyProtection || activePrivacy?.screenshotProtection || (activePrivacy as any)?.blockScreenshots) && 'select-none'
         )}>
           {selectedChat && <ChatBackground theme={currentChatTheme} />}
@@ -3622,7 +3678,6 @@ export default function Messages() {
                 useChatStore.getState().updateConversation(selectedChat.chat_id, { disappearing_duration: newDur });
               }}
             >
-              <StatusBarBackground backgroundColor={currentChatTheme?.colors?.backgroundDark || '#000000'} />
               <header
                 className="h-[56px] z-40 relative px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0"
                 style={{
@@ -3642,9 +3697,15 @@ export default function Messages() {
                         <button
                           onClick={() => {
                             setSelectedChat(null);
-                            navigate('/messages');
+                            if (openedFromListRef.current) {
+                              openedFromListRef.current = false;
+                              navigate(-1);
+                            } else {
+                              navigate('/messages', { replace: true });
+                            }
                           }}
-                          className="text-white hover:opacity-70 transition-opacity p-1.5 -ml-1 shrink-0"
+                          aria-label="Back to chat list"
+                          className="text-white hover:opacity-70 transition-opacity p-2 -ml-1 shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
                         >
                           <ArrowLeft size={20} strokeWidth={2.5} />
                         </button>
@@ -3733,11 +3794,11 @@ export default function Messages() {
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
                         {!isSystemChat && (
                           <>
-                            <button aria-label="Start voice call" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
-                            <button aria-label="Start video call" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
+                            <button aria-label="Start voice call" title="Voice call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                            <button aria-label="Start video call" title="Video call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                           </>
                         )}
-                        <button onClick={() => setShowChatSettings(true)} aria-label="Chat settings" className="text-white/80 hover:text-white p-2 transition-all active:scale-90" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
+                        <button onClick={() => setShowChatSettings(true)} aria-label="Chat settings" title="Chat settings" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
                           <Info size={19} strokeWidth={2.2} />
                         </button>
                       </div>
@@ -3879,7 +3940,7 @@ export default function Messages() {
                 )}
               </AnimatePresence>
 
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10" onScroll={handleScroll}>
+              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
                 {(() => {
                   const partnerName = (sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || '').toLowerCase();
                   const partnerUsername = (selectedChat?.partner_username || selectedChat?.username || '').toLowerCase();
@@ -3984,7 +4045,7 @@ export default function Messages() {
                             className="shrink-0 flex items-center justify-center transition-all duration-150 active:scale-90"
                           >
                             <div className={clsx(
-                              'w-[22px] h-[22px] rounded-full border-2 flex items-center justify-center transition-all duration-150',
+                              'w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all duration-150',
                               isSelected
                                 ? 'bg-[#ff1493] border-[#ff1493] scale-110'
                                 : 'border-white/30 bg-transparent hover:border-white/50'
@@ -4524,7 +4585,7 @@ export default function Messages() {
                       setUnreadCountInChat(0);
                     }}
                     aria-label={unreadCountInChat > 0 ? `Scroll to latest message, ${unreadCountInChat} unread` : 'Scroll to latest message'}
-                    className="absolute bottom-[90px] left-1/2 -translate-x-1/2 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
+                    className="absolute bottom-[90px] right-4 md:right-8 w-11 h-11 bg-[#ff1493] text-white rounded-full flex items-center justify-center shadow-[0_8px_28px_rgba(255,20,147,0.45)] z-50 hover:scale-110 transition-transform active:scale-95"
                   >
                     <ArrowDown size={20} strokeWidth={3} />
                     {unreadCountInChat > 0 && (
@@ -5424,7 +5485,7 @@ export default function Messages() {
       {/* ── 1. FLOATING ATTACHMENT BOTTOM SHEET ── */}
       <AnimatePresence>
         {showAttachmentSheet && (
-          <div className="fixed inset-0 z-(--z-modal) flex items-end justify-center select-none">
+          <div className="fixed inset-0 z-(--z-modal) flex items-end sm:items-center justify-center select-none">
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -5441,9 +5502,11 @@ export default function Messages() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 220 }}
-              className="relative z-10 w-full max-w-[540px] bg-[#121212]/95 border-t border-white/10 rounded-t-[32px] overflow-hidden backdrop-blur-xl flex flex-col"
+              className={clsx(
+                "relative z-10 w-full max-w-[540px] bg-[#121212]/95 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[28px] overflow-hidden backdrop-blur-xl flex flex-col",
+                attachmentSheetHeight === 'full' ? 'h-[92vh] sm:h-[min(640px,86vh)]' : 'h-[56vh] sm:h-[min(640px,86vh)]'
+              )}
               style={{
-                height: attachmentSheetHeight === 'full' ? '92vh' : '56vh',
                 boxShadow: '0 -20px 40px -15px rgba(0,0,0,0.7)'
               }}
             >
@@ -5453,7 +5516,10 @@ export default function Messages() {
                 onClick={() => setAttachmentSheetHeight(h => h === 'partial' ? 'full' : 'partial')}
               >
                 <div className="w-12 h-1.5 bg-white/20 rounded-full" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-white/30">
+                <span className="hidden sm:block text-[10px] font-black uppercase tracking-widest text-white/30">
+                  Attach
+                </span>
+                <span className="sm:hidden text-[10px] font-black uppercase tracking-widest text-white/30">
                   {attachmentSheetHeight === 'full' ? 'Swipe Down to Collapse' : 'Pull Up to Expand'}
                 </span>
               </div>

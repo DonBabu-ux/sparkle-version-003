@@ -18,5 +18,9 @@
 	{
 		"pkg": "@capacitor/status-bar",
 		"classpath": "com.capacitorjs.plugins.statusbar.StatusBarPlugin"
+	},
+	{
+		"pkg": "@otakit/capacitor-updater",
+		"classpath": "com.otakit.updater.UpdaterPlugin"
 	}
 ]

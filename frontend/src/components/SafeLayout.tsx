@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useUserStore } from '../store/userStore';
 
 /**
@@ -142,15 +142,24 @@ export const ChatInputDock: React.FC<{
   const theme = useUserStore((state) => state.theme);
   const defaultBg = theme === 'dark' ? '#000000' : '#ffffff';
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const baseHeightRef = useRef<number | null>(null);
 
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
 
     const handleResize = () => {
-      // If the visual viewport height is significantly less than window.innerHeight, the keyboard is open.
-      const open = window.innerHeight - vv.height > 80;
-      setIsKeyboardOpen(open);
+      const height = vv.height ?? window.innerHeight;
+      if (baseHeightRef.current === null) baseHeightRef.current = height;
+      // Keyboard is open when the viewport shrank meaningfully below the
+      // keyboard-closed baseline (150px covers URL-bar jitter, not keyboards).
+      const shrink = baseHeightRef.current - height;
+      if (shrink > 150) {
+        setIsKeyboardOpen(true);
+      } else {
+        baseHeightRef.current = height;
+        setIsKeyboardOpen(false);
+      }
     };
 
     vv.addEventListener('resize', handleResize);

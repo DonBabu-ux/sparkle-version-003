@@ -1,8 +1,8 @@
 # Runs automatically on every push to main that touches the app.
 # - OTA: builds the web bundle and releases it to the OtaKit base channel
-# - APK: builds the APK (as sparkle-x.y.z.apk) and attaches it to the rolling
-#        "latest" GitHub Release (stable download link for new users' first
-#        install).
+# - APK: builds the APK, attaches it to the rolling "latest" GitHub Release
+#        twice: versioned (sparkle-x.y.z.apk) and fixed-name (sparkle.apk —
+#        the permanent download link for new users' first install).
 #
 # REQUIRED SETUP (one time): add the OTAKIT_TOKEN repo secret.
 #   Repo on GitHub → Settings → Secrets and variables → Actions → New secret
@@ -92,6 +92,12 @@ jobs:
         working-directory: android
         run: ./gradlew app:assembleDebug --console=plain
 
+      # The versioned APK keeps the version visible in the filename; the
+      # fixed-name copy gives users a permanent link that never changes:
+      #   .../releases/download/latest/sparkle.apk
+      - name: Create fixed-name copy for the permanent link
+        run: cp android/app/build/outputs/apk/debug/sparkle-*.apk android/app/build/outputs/apk/debug/sparkle.apk
+
       # The release is rolling: strip previous APK assets so it always holds
       # exactly one current build (otherwise a versionName bump would leave
       # the old sparkle-x.y.z.apk sitting next to the new one).
@@ -113,7 +119,12 @@ jobs:
           prerelease: true
           body: >
             Rolling build of Sparkle, rebuilt on every push to main.
-            The version is in the filename (sparkle-x.y.z.apk).
+
+            Permanent download link (always the current build):
+            https://github.com/DonBabu-ux/sparkle-version-003/releases/download/latest/sparkle.apk
+
             Install once — all future updates arrive automatically over the air
             (OtaKit). Requires Android 8.0+.
-          files: android/app/build/outputs/apk/debug/sparkle-*.apk
+          files: |
+            android/app/build/outputs/apk/debug/sparkle-*.apk
+            android/app/build/outputs/apk/debug/sparkle.apk

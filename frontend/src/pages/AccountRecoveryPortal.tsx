@@ -51,7 +51,7 @@ export default function AccountRecoveryPortal() {
                 'status': 'STATUS_CHECK'
             };
 
-            const res = await api.post('/api/recovery/challenge', {
+            const res = await api.post('/recovery/challenge', {
                 contact,
                 actionType: actionTypeMap[activeTab]
             });
@@ -85,7 +85,7 @@ export default function AccountRecoveryPortal() {
 
         try {
             setLoading(true);
-            const res = await api.post('/api/recovery/verify', {
+            const res = await api.post('/recovery/verify', {
                 requestId,
                 code: challengeCode
             });
@@ -112,7 +112,7 @@ export default function AccountRecoveryPortal() {
         if (!verifiedToken) return;
         try {
             setLoading(true);
-            const res = await api.post('/api/recovery/cancel-deletion', { verifiedToken });
+            const res = await api.post('/recovery/cancel-deletion', { verifiedToken });
             if (res.data?.success) {
                 setMessage({
                     type: 'success',
@@ -136,7 +136,7 @@ export default function AccountRecoveryPortal() {
         if (!verifiedToken) return;
         try {
             setLoading(true);
-            const res = await api.post('/api/recovery/appeal', {
+            const res = await api.post('/recovery/appeal', {
                 verifiedToken,
                 reasonCategory,
                 explanation
@@ -164,7 +164,7 @@ export default function AccountRecoveryPortal() {
         if (!verifiedToken) return;
         try {
             setLoading(true);
-            const res = await api.post('/api/recovery/emergency-export', {
+            const res = await api.post('/recovery/emergency-export', {
                 verifiedToken,
                 format: 'pdf',
                 categories: ['profile', 'posts', 'messages', 'moments']
@@ -198,7 +198,7 @@ export default function AccountRecoveryPortal() {
 
         try {
             setLoading(true);
-            const res = await api.get(`/api/recovery/appeal/status?ref=${encodeURIComponent(appealRef)}&contact=${encodeURIComponent(contact)}`);
+            const res = await api.get(`/recovery/appeal/status?ref=${encodeURIComponent(appealRef)}&contact=${encodeURIComponent(contact)}`);
             if (res.data) {
                 setStatusResult(res.data);
             }

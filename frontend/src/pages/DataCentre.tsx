@@ -71,7 +71,7 @@ export default function DataCentre() {
     const fetchHistory = async () => {
         try {
             setHistoryLoading(true);
-            const res = await api.get('/api/users/data-centre/history');
+            const res = await api.get('/users/data-centre/history');
             if (res.data?.history) {
                 setHistory(res.data.history);
             }
@@ -121,7 +121,7 @@ export default function DataCentre() {
                 isAlternate: deliveryMode === 'alternate'
             };
 
-            const res = await api.post('/api/users/data-centre/export', payload);
+            const res = await api.post('/users/data-centre/export', payload);
             if (res.data?.success) {
                 setStatusMessage({
                     type: 'success',

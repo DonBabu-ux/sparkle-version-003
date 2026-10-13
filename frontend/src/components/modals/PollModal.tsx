@@ -18,6 +18,7 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
   const [expiresIn, setExpiresIn] = useState('24h');
   const [allowInvites, setAllowInvites] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   // Conditionally mounted by its parent: open whenever rendered.
   const a11yRef = useModalA11y(true, onClose);
 
@@ -43,13 +44,15 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
   const handleSubmit = async () => {
     const validOptions = options.map(o => o.trim()).filter(o => o !== '');
     if (!question.trim() || validOptions.length < 2) {
+      setError('Add a question and at least 2 options.');
       return;
     }
 
     setSubmitting(true);
+    setError(null);
     try {
       await api.post('/polls', {
-        question,
+        question: question.trim(),
         options: validOptions,
         is_anonymous: isAnonymous,
         expires_in: expiresIn,
@@ -57,8 +60,10 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
       });
       onSuccess();
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Poll creation failed:', err);
+      const msg = err?.response?.data?.error;
+      setError(typeof msg === 'string' && msg ? msg : 'Could not create the poll. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -210,6 +215,13 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
               </div>
            </div>
         </div>
+
+        {/* Error */}
+        {error && (
+          <div role="alert" className="mt-4 px-1 text-[12px] font-bold text-rose-600 bg-rose-50 border border-rose-100 rounded-xl py-3 px-4">
+            {error}
+          </div>
+        )}
 
         {/* Submit Button */}
         <button 

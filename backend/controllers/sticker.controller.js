@@ -67,7 +67,7 @@ const votePoll = async (req, res) => {
         const vote_id = crypto.randomUUID();
 
         await pool.query(
-            `INSERT INTO poll_votes (vote_id, sticker_id, user_id, option_index) 
+            `INSERT INTO sticker_poll_votes (vote_id, sticker_id, user_id, option_index) 
              VALUES (?, ?, ?, ?) 
              ON DUPLICATE KEY UPDATE option_index = VALUES(option_index)`,
             [vote_id, sticker_id, user_id, option_index]

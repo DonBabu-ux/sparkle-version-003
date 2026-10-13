@@ -1,4 +1,4 @@
-import { showSuccess } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, BarChart2, Users, X, UserPlus, UserCheck, Sparkles } from 'lucide-react';
@@ -61,6 +61,7 @@ export default function PollDetail() {
   const [showInviteSheet, setShowInviteSheet] = useState(false);
   const [followers, setFollowers] = useState<any[]>([]);
   const [invitedUsers, setInvitedUsers] = useState<string[]>([]);
+  const [requestedIds, setRequestedIds] = useState<Set<string>>(new Set());
   const [prediction, setPrediction] = useState<string | null>(null);
   const socket = useSocket();
 
@@ -93,7 +94,7 @@ export default function PollDetail() {
 
   useEffect(() => {
     if (!socket || !id) return;
-    socket.on('poll_participation', (data: { poll_id: string, option_id: string, total_votes: number }) => {
+    const onPollParticipation = (data: { poll_id: string, option_id: string, total_votes: number }) => {
       if (data.poll_id === id) {
         setPoll(prev => {
           if (!prev) return null;
@@ -106,8 +107,9 @@ export default function PollDetail() {
           return { ...prev, total_votes: data.total_votes, options: updatedOptions };
         });
       }
-    });
-    return () => { socket.off('poll_participation'); };
+    };
+    socket.on('poll_participation', onPollParticipation);
+    return () => { socket.off('poll_participation', onPollParticipation); };
   }, [socket, id]);
 
   const handleVote = async (optionId: string) => {
@@ -116,10 +118,24 @@ export default function PollDetail() {
     setSelected(optionId);
     try {
       await api.post(`/polls/${id}/vote`, { option_id: optionId });
+      // Flip to results immediately; fetchPoll reconciles counts + voters.
+      setPoll(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          user_voted_option: optionId,
+          total_votes: (prev.total_votes || 0) + 1,
+          options: prev.options?.map(o => o.option_id === optionId
+            ? { ...o, vote_count: o.vote_count + 1 }
+            : o)
+        };
+      });
       fetchPoll();
-    } catch (err) {
+    } catch (err: any) {
       logger.error('Vote error:', err);
       setSelected(poll?.user_voted_option || null);
+      const msg = err?.response?.data?.error;
+      showError(typeof msg === 'string' && msg ? msg : 'Could not submit your vote.');
     } finally {
       setVoting(false);
     }
@@ -127,8 +143,16 @@ export default function PollDetail() {
 
   const handleFollow = async (userId: string, isFollowing: boolean) => {
     try {
-      if (isFollowing) await api.delete(`/users/${userId}/follow`);
-      else await api.post(`/users/${userId}/follow`);
+      if (isFollowing) {
+        await api.delete(`/users/${userId}/follow`);
+        setRequestedIds(prev => { const n = new Set(prev); n.delete(userId); return n; });
+      } else {
+        const res = await api.post(`/users/${userId}/follow`);
+        // Private accounts return a pending request, not an instant follow.
+        if (res?.data?.status === 'requested') {
+          setRequestedIds(prev => new Set(prev).add(userId));
+        }
+      }
       if (poll) {
         const updatedOptions = poll.options?.map(opt => ({
           ...opt,
@@ -136,7 +160,10 @@ export default function PollDetail() {
         }));
         setPoll({ ...poll, options: updatedOptions });
       }
-    } catch (err) { logger.error(err); }
+    } catch (err) {
+      logger.error(err);
+      showError('Could not update follow.');
+    }
   };
 
   if (loading) return (
@@ -182,7 +209,12 @@ export default function PollDetail() {
               </div>
 
               <div className="flex items-center gap-3 mb-8">
-                 <img src={getSafeAvatarUrl(poll.creator_avatar)} className="w-8 h-8 rounded-full border-2 border-white shadow-sm" alt="" />
+                 {!poll.is_anonymous && (
+                   <img src={getSafeAvatarUrl(poll.creator_avatar)} className="w-8 h-8 rounded-full border-2 border-white shadow-sm" alt="" />
+                 )}
+                 {poll.is_anonymous && (
+                   <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm bg-gray-100 flex items-center justify-center text-[10px] font-black text-gray-400">?</div>
+                 )}
                  <div className="flex flex-col">
                     <span className="text-[11px] font-black text-gray-900 leading-none mb-1">{poll.is_anonymous ? 'Anonymous' : (poll.creator_name || `@${poll.username}`)}</span>
                     <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">{new Date(poll.created_at).toLocaleDateString()}</span>
@@ -320,6 +352,16 @@ export default function PollDetail() {
                 </button>
              </div>
              <div className="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar pb-20">
+                {(poll as any).voters_hidden && (
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center py-8">
+                    Participants are visible after you vote.
+                  </p>
+                )}
+                {poll.is_anonymous && !(poll as any).voters_hidden && (
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest text-center py-8">
+                    This poll is anonymous — participants are hidden.
+                  </p>
+                )}
                 {poll.options?.map(opt => (
                   <div key={opt.option_id} className="space-y-4">
                     <div className="flex items-center gap-3">
@@ -336,12 +378,12 @@ export default function PollDetail() {
                                   <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">@{voter.username}</p>
                                </div>
                             </div>
-                            {currentUser?.user_id !== voter.user_id && (
+                             {currentUser?.user_id !== voter.user_id && (
                               <button 
                                 onClick={() => handleFollow(voter.user_id, voter.is_following)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white border border-gray-200 text-gray-400' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
+                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white border border-gray-200 text-gray-400' : requestedIds.has(voter.user_id) ? 'bg-white border border-gray-200 text-gray-400 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
                               >
-                                {voter.is_following ? <UserCheck size={12} /> : 'Follow'}
+                                {voter.is_following ? <UserCheck size={12} /> : requestedIds.has(voter.user_id) ? 'Requested' : 'Follow'}
                               </button>
                             )}
                          </div>
@@ -401,10 +443,7 @@ export default function PollDetail() {
       )}
 
       <style>{`
-        @        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
-        @        .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
       `}</style>
     </div>
   );

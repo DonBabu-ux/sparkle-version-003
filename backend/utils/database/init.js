@@ -391,9 +391,12 @@ const initStickerTables = async () => {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 
-        // 5. Poll Votes
+        // 5. Sticker Poll Votes
+        // NOTE: story-sticker poll votes live in their OWN table — campus polls
+        // own `poll_votes` (poll_id/option_id/voted_at). Sharing the name meant
+        // one of the two features always broke against the other's schema.
         await pool.query(`
-            CREATE TABLE IF NOT EXISTS poll_votes (
+            CREATE TABLE IF NOT EXISTS sticker_poll_votes (
                 vote_id CHAR(36) PRIMARY KEY,
                 sticker_id CHAR(36) NOT NULL,
                 user_id CHAR(36) NOT NULL,
@@ -401,7 +404,7 @@ const initStickerTables = async () => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (sticker_id) REFERENCES story_stickers(sticker_id) ON DELETE CASCADE,
                 FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
-                UNIQUE KEY unique_poll_vote (sticker_id, user_id)
+                UNIQUE KEY unique_sticker_poll_vote (sticker_id, user_id)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
 

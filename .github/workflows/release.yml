@@ -74,11 +74,18 @@ jobs:
           java-version: '17'
 
       # local.properties is committed with a Windows sdk.dir path; remove it so
-      # the runner's ANDROID_HOME is used instead.
+      # the runner's ANDROID_HOME is used instead. gradle.properties carries
+      # required build flags (android.useAndroidX) — assert it's present so a
+      # future .gitignore regression fails loudly here, not deep in gradle.
       - name: Prepare Android project
         run: |
           rm -f android/local.properties
           chmod +x android/gradlew
+          test -f android/gradle.properties || {
+            echo "android/gradle.properties missing — writing required build flags"
+            printf 'android.useAndroidX=true\nandroid.enableJetifier=true\n' > android/gradle.properties
+          }
+          grep -q 'android.useAndroidX' android/gradle.properties
 
       - name: Build debug APK
         working-directory: android

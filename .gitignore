@@ -50,7 +50,9 @@ diagram-design/
 .agent/
 # Keystore and signing credentials (do not commit)
 android/app/sparkle-release.jks
-android/gradle.properties
+# android/gradle.properties holds required build flags (android.useAndroidX),
+# NOT secrets — it must be tracked or CI builds fail. Signing secrets live in
+# keystore.properties / *.jks, which stay ignored below.
 # Local environment files
 .env
 .env.*

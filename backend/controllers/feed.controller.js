@@ -703,6 +703,14 @@ const createStory = async (req, res) => {
             }
 
             if (resolvedAudioUrl) {
+                // Parse music metadata once — a crafted/legacy music_info string
+                // must not crash createStory via unguarded JSON.parse.
+                let musicMeta = null;
+                try {
+                    musicMeta = musicInfoVal ? JSON.parse(musicInfoVal) : null;
+                } catch (e) {
+                    musicMeta = null;
+                }
                 story_layers.push({
                     id: `music-${Date.now()}`,
                     type: 'music',
@@ -715,14 +723,14 @@ const createStory = async (req, res) => {
                     locked: false,
                     hidden: false,
                     data: {
-                        trackId: musicInfoVal ? (JSON.parse(musicInfoVal).trackId || JSON.parse(musicInfoVal).id || 'legacy') : 'legacy',
-                        title: musicInfoVal ? (JSON.parse(musicInfoVal).title || 'Summer Vibes') : 'Summer Vibes',
-                        artist: musicInfoVal ? (JSON.parse(musicInfoVal).artist || 'Unknown Artist') : 'Unknown Artist',
+                        trackId: musicMeta?.trackId || musicMeta?.id || 'legacy',
+                        title: musicMeta?.title || 'Music',
+                        artist: musicMeta?.artist || 'Unknown Artist',
                         url: resolvedAudioUrl,
                         start: audio_start || 0,
                         duration: resolvedAudioDuration || 15,
-                        style: musicInfoVal ? (JSON.parse(musicInfoVal).style || 1) : 1,
-                        thumbnailUrl: musicInfoVal ? (JSON.parse(musicInfoVal).thumbnailUrl || null) : null
+                        style: musicMeta?.style || 1,
+                        thumbnailUrl: musicMeta?.thumbnailUrl || null
                     }
                 });
             }

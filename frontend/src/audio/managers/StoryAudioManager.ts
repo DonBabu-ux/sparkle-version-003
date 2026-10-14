@@ -10,6 +10,10 @@ export class StoryAudioManager {
   private gainNode: GainNode | null = null;
   private eventBus: EventBus;
   private fadeInterval: any = null;
+  private pauseTimeout: any = null;
+  // Incremented on every play()/fadeOut() so an in-flight fade's delayed
+  // pause() can never kill a track that has already started playing again.
+  private fadeGeneration = 0;
   private currentTrackUrl: string | null = null;
   private isInitialized = false;
   private originalVolume = 1.0;
@@ -84,9 +88,15 @@ export class StoryAudioManager {
 
   public async play(url: string, startOffset: number = 0, _duration: number = 15) {
     if (!url) return;
-    
+
+    // Cancel any fade-out still pending from a previous pause()/stop():
+    // otherwise its delayed audio.pause() lands ~400ms after this track
+    // starts and the music silently dies while the story keeps playing.
+    this.fadeGeneration++;
+    this.cancelPendingFades();
+
     this.initWebAudio();
-    
+
     if (this.ctx && this.ctx.state === 'suspended') {
       await this.ctx.resume();
     }
@@ -98,11 +108,6 @@ export class StoryAudioManager {
     }
 
     this.audio.currentTime = startOffset;
-    
-    if (this.fadeInterval) {
-      clearInterval(this.fadeInterval);
-      this.fadeInterval = null;
-    }
 
     if (this.gainNode && this.ctx) {
       this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
@@ -158,11 +163,20 @@ export class StoryAudioManager {
     });
   }
 
-  public fadeOut(durationMs: number = 400, callback?: () => void) {
+  private cancelPendingFades() {
     if (this.fadeInterval) {
       clearInterval(this.fadeInterval);
       this.fadeInterval = null;
     }
+    if (this.pauseTimeout) {
+      clearTimeout(this.pauseTimeout);
+      this.pauseTimeout = null;
+    }
+  }
+
+  public fadeOut(durationMs: number = 400, callback?: () => void) {
+    this.cancelPendingFades();
+    const generation = ++this.fadeGeneration;
 
     if (this.gainNode && this.ctx && !this.audio.paused) {
       const time = this.ctx.currentTime;
@@ -172,8 +186,10 @@ export class StoryAudioManager {
       } catch (err) {
         this.audio.volume = 0;
       }
-      
-      setTimeout(() => {
+
+      this.pauseTimeout = setTimeout(() => {
+        this.pauseTimeout = null;
+        if (generation !== this.fadeGeneration) return; // superseded by play()
         if (callback) callback();
       }, durationMs);
     } else {
@@ -184,6 +200,11 @@ export class StoryAudioManager {
       }
       const step = vol / (durationMs / 30);
       this.fadeInterval = setInterval(() => {
+        if (generation !== this.fadeGeneration) {
+          clearInterval(this.fadeInterval);
+          this.fadeInterval = null;
+          return;
+        }
         vol = Math.max(0, vol - step);
         this.audio.volume = vol;
         if (vol === 0) {
@@ -208,10 +229,8 @@ export class StoryAudioManager {
   }
 
   public dispose() {
-    if (this.fadeInterval) {
-      clearInterval(this.fadeInterval);
-      this.fadeInterval = null;
-    }
+    this.fadeGeneration++;
+    this.cancelPendingFades();
     this.audio.pause();
     this.audio.src = '';
     this.currentTrackUrl = null;

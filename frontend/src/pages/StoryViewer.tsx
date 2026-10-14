@@ -270,6 +270,14 @@ export default function StoryViewer() {
     }
   }, [currentIndex, userStories]);
 
+  // Closing the viewer (X, back button, navigation) must stop the music —
+  // otherwise the track keeps playing behind the feed.
+  useEffect(() => {
+    return () => {
+      StoryAudioManager.getInstance().stop();
+    };
+  }, []);
+
   // Sync state machine on play/pause modal changes
   useEffect(() => {
     const isPausedGlobal = 

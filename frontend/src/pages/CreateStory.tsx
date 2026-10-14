@@ -160,6 +160,16 @@ export default function CreateStory() {
     }
   }, [parentId]);
 
+  // Leaving the composer mid-preview must stop the music preview.
+  useEffect(() => {
+    return () => {
+      if (musicAudioRef.current) {
+        musicAudioRef.current.pause();
+        musicAudioRef.current = null;
+      }
+    };
+  }, []);
+
   useEffect(() => {
     const loadDevicePhotos = async () => {
       // 1. Try native mobile platform folder reading first if we are inside a mobile Capacitor shell

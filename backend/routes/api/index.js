@@ -62,10 +62,6 @@ router.use('/discover', discoverRoutes);
 router.use('/rooms', roomsRoutes);
 router.use('/location', require('./location.routes'));
 router.use('/ai', aiRoutes);
-router.use('/sparkly', require('./sparkly.routes'));
-
-// Mount the AI router (SparkleAIScreen → /api/ai/*)
-router.use('/ai', aiRoutes);
 
 // Direct comment access for DashboardAPI compatibility
 const postController = require('../../controllers/post.controller');
@@ -90,7 +86,6 @@ router.use('/highlights', highlightsRoutes);
 router.use('/stickers', require('./stickers.routes'));
 router.use('/giphy', require('./giphy.routes'));
 router.use('/music', require('./music.routes'));
-router.use('/audio', require('./audio.routes'));
 router.use('/moderation', require('./moderation.routes'));
 router.use('/admin/media', require('./media-admin.routes'));
 router.use('/admin', require('./admin.routes'));

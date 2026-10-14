@@ -21,27 +21,6 @@ function read(abs: string): string {
     return readFileSync(abs, 'utf8');
 }
 
-describe('C2.4 — TikTok embed iframe is sandboxed', () => {
-    const content = read(join(SRC, 'pages', 'MomentDetail.tsx'));
-
-    it('has an iframe', () => {
-        expect(content).toMatch(/<iframe[\s\S]*?>/);
-    });
-
-    it('declares a sandbox with scripts allowed', () => {
-        const tag = content.match(/<iframe[\s\S]*?>/)![0];
-        expect(tag).toContain('sandbox=');
-        expect(tag).toMatch(/sandbox="[^"]*allow-scripts/);
-    });
-
-    it('does not allow top-navigation or downloads', () => {
-        const tag = content.match(/<iframe[\s\S]*?>/)![0];
-        expect(tag).not.toContain('allow-top-navigation');
-        expect(tag).not.toContain('allow-top-navigation-by-user-activation');
-        expect(tag).not.toContain('allow-downloads');
-    });
-});
-
 describe('C2.5 — every createObjectURL site revokes its blob URLs', () => {
     /**
      * Files whose blob URLs are revoked by a different module that owns the

@@ -556,7 +556,7 @@ function App() {
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
                     <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
-                    <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
+                    <Route path="/admin/storage" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <StorageIntelligencePanel />) : <Navigate to="/login" />} />
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
                     <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id/settings" element={isAuthenticated ? <GroupAdmin /> : <Navigate to="/login" />} />

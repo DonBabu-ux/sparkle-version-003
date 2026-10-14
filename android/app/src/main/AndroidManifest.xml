@@ -71,4 +71,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Channel vibration (notification channels set vibration=true) -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Voice calls & voice notes (WebView getUserMedia needs the app to hold these) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Video calls (@capacitor/camera also declares this; kept explicit for WebView getUserMedia) -->
+    <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

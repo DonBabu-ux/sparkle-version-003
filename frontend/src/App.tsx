@@ -20,7 +20,7 @@ import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { DialogHost } from './components/ui/DialogHost';
-import { MockCallProvider } from './components/MockCallProvider';
+import { CallProvider } from './components/CallProvider';
 import './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
@@ -473,7 +473,7 @@ function App() {
           <OfflineIndicator />
           <DialogHost />
           <GlobalThemeProvider>
-            <MockCallProvider>
+            <CallProvider>
               <div className="app no-scrollbar">
                   <LoadingBar />
                   <GlobalEffects />
@@ -639,7 +639,7 @@ function App() {
                     </Routes>
                   </Suspense>
                 </div>
-            </MockCallProvider>
+            </CallProvider>
           </GlobalThemeProvider>
         </NetworkStatusProvider>
       </CameraProvider>

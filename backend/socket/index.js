@@ -190,6 +190,9 @@ const initializeSocket = (server) => {
         // Broadcast group presence updates
         broadcastGroupPresence(io, socket);
 
+        // ── CALL SIGNALING (1:1 WebRTC relay) ──
+        require('./callSignaling').handleCallEvents(io, socket);
+
         // --- CHAT EVENTS ---
 
         // ── Register Session in DB ──

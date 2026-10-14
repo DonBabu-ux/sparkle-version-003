@@ -57,7 +57,7 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
 import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, Orbit, X, User, Palette, Pin, Star, Eraser, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2 } from 'lucide-react';
-import { useCall } from '../components/MockCallProvider';
+import { useCall } from '../components/CallProvider';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';

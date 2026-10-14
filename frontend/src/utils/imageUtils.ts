@@ -1,8 +1,10 @@
 import defaultAvatar from '../assets/avatar-default.svg';
+import { EnvironmentService } from '../services/EnvironmentService';
 
-// API URL resolved from env vars at build time. Same-origin '/api' by default:
-// prod builds hit the Render backend directly; dev goes through the Vite proxy.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// API URL resolved via EnvironmentService: env var override, absolute Render
+// URL in the native APK webview, same-origin elsewhere (Vite proxy in dev,
+// /api rewrite on Vercel in prod).
+const API_URL = EnvironmentService.getApiBaseUrl();
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 

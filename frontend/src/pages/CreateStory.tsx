@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Loader2, Music3, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
+import { EnvironmentService } from '../services/EnvironmentService';
 import { useUserStore } from '../store/userStore';
 import StickerPicker from '../components/stories/StickerPicker';
 import StickerRenderer from '../components/stories/StickerRenderer';
@@ -442,7 +443,7 @@ export default function CreateStory() {
       if (query.trim()) params.set('q', query.trim());
       // Match the same token resolution as api.ts interceptor
       const token = useUserStore.getState().token || '';
-      const res = await fetch(`/api/music/search?${params.toString()}`, {
+      const res = await fetch(`${EnvironmentService.getApiBaseUrl()}/music/search?${params.toString()}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

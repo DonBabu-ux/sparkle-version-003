@@ -56,6 +56,11 @@ jobs:
 
       - name: Build web bundle
         working-directory: frontend
+        env:
+          # Baked into the bundle so APK/OTA builds never fall back to
+          # relative /api (which resolves to localhost in the webview).
+          VITE_API_URL: https://sparkle-version-003-1-f4v3.onrender.com/api
+          VITE_SOCKET_URL: https://sparkle-version-003-1-f4v3.onrender.com
         run: npx vite build
 
       - name: Sync Capacitor (picks up new native plugins)

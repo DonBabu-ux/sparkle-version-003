@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Sparkle brand accent used for notification icon circles / lights
+         (default_notification_color, local heads-up iconColor) -->
+    <color name="sparkle_notification_color">#FF1493</color>
+</resources>

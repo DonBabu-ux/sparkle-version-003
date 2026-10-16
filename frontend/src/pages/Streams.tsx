@@ -9,7 +9,8 @@ import Spinner from '../components/ui/Spinner';
 
 export default function Streams() {
   const navigate = useNavigate();
-  const followers = useUserStore(state => state.user?.followers_count ?? 0);
+  const user = useUserStore(state => state.user);
+  const followers = user?.followers_count ?? 0;
   const [loading, setLoading] = useState(true);
 
   // Mock streams with real image references for high fidelity
@@ -70,8 +71,14 @@ export default function Streams() {
     );
   }
 
-  // Render locked view if user does not meet the 1000 follower requirement
-  if (followers < 1000) {
+  // Accounts that bypass the follower gate unconditionally
+  const LIVE_BYPASS_EMAILS = ['lewismwangi990@gmail.com'];
+  const hasLiveAccess =
+    followers >= 1000 ||
+    LIVE_BYPASS_EMAILS.includes((user?.email ?? '').toLowerCase());
+
+  // Render locked view if user does not meet the live access requirement
+  if (!hasLiveAccess) {
     return <LockedLivePage />;
   }
 

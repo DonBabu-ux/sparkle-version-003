@@ -266,7 +266,7 @@ export default function Notifications() {
           targetUrl = `/story/${entity_id}`;
           break;
         case 'message':
-          targetUrl = `/messages/${entity_id || ''}`;
+          targetUrl = entity_id ? `/messages?chat=${entity_id}` : '/messages';
           break;
         case 'confession':
           targetUrl = `/confessions?id=${entity_id}`;

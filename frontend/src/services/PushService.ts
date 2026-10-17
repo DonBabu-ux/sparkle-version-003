@@ -156,7 +156,7 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
         channelId: channelForType(type),
         smallIcon: 'ic_notification',
         iconColor: '#FF1493',
-        largeIcon: senderAvatar || 'https://sparkleweb.app.vercel.app/sparklelogo.png',
+        largeIcon: senderAvatar || 'https://sparkleweb.app.vercel.app/logo.png',
         group: 'sparkle_messages',
         inboxList: inboxList.length > 1 ? inboxList : undefined,
         attachments: mediaImage ? [{ id: 'media_preview', url: mediaImage }] : undefined,

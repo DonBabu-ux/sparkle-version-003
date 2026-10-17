@@ -50,7 +50,7 @@ const ANDROID_CHANNEL_BY_TYPE = {
 // notification (this is the "app icon in the notification").
 const NOTIFICATION_ICON = 'ic_notification';
 const NOTIFICATION_COLOR = '#FF1493';
-const BRAND_IMAGE_URL = 'https://sparkleweb.app.vercel.app/sparklelogo.png';
+const BRAND_IMAGE_URL = 'https://sparkleweb.app.vercel.app/logo.png';
 
 const sendFcmNotification = async (tokens, title, body, data = {}) => {
     if (!admin) {

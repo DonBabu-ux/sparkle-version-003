@@ -9,8 +9,8 @@
 const { isSafeMediaUrl } = require('./safeUrl');
 
 const MAX_PREVIEW_LENGTH = 120;
-const BRAND_LOGO_URL = 'https://sparkleweb.app.vercel.app/sparklelogo.png';
-const DEFAULT_AVATAR_URL = 'https://sparkleweb.app.vercel.app/sparklelogo.png';
+const BRAND_LOGO_URL = 'https://sparkleweb.app.vercel.app/logo.png';
+const DEFAULT_AVATAR_URL = 'https://sparkleweb.app.vercel.app/logo.png';
 
 /**
  * Derives a human-friendly, type-aware preview string for a message.

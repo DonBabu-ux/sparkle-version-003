@@ -607,12 +607,14 @@ export default function StoryViewer() {
                    )}
                  </>
               ) : (
-                <img 
-                  src={getMediaUrl(currentStory.media_url)} 
-                  className="h-full w-full object-cover" 
-                  alt="" 
-                  onLoad={() => setMediaLoaded(true)}
-                />
+                getMediaUrl(currentStory.media_url) ? (
+                  <img 
+                    src={getMediaUrl(currentStory.media_url)} 
+                    className="h-full w-full object-cover" 
+                    alt="" 
+                    onLoad={() => setMediaLoaded(true)}
+                  />
+                ) : null
               )}
               <StickerRenderer stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
            </div>

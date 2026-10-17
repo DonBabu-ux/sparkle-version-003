@@ -20,7 +20,6 @@ const REQUIRED_ASSETS = [
 
 
 const MAX_FILE_SIZE_BYTES = 1024 * 1024; // 1 MB limit
-const EXPECTED_SAMPLE_RATE = 44100; // 44.1 kHz
 
 /**
  * Validates audio assets for a specific theme.
@@ -83,21 +82,15 @@ export async function validateAssets(
 
       // Check sample rate by decoding a small snippet or full data
       const arrayBuffer = await response.clone().arrayBuffer();
-      // Decode the buffer
+      // Decode the buffer to verify the file is not corrupted.
+      // Note: sample rate is intentionally not checked — browsers resample transparently.
       try {
-        const decoded = await audioContext.decodeAudioData(arrayBuffer);
-        if (decoded.sampleRate !== EXPECTED_SAMPLE_RATE) {
-          warnings.push({
-            type: 'samplerate',
-            file: filename,
-            message: `Inconsistent sample rate: ${decoded.sampleRate} Hz. Expected ${EXPECTED_SAMPLE_RATE} Hz.`,
-          });
-        }
+        await audioContext.decodeAudioData(arrayBuffer);
       } catch (err) {
         warnings.push({
           type: 'format',
           file: filename,
-          message: `Failed to decode audio data. Format might be corrupted: ${err instanceof Error ? err.message : String(err)}`,
+          message: `Failed to decode audio data. File may be corrupted: ${err instanceof Error ? err.message : String(err)}`,
         });
       }
     } catch (e) {

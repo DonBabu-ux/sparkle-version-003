@@ -69,6 +69,51 @@ function urlFromData(data: unknown): string | null {
   return null;
 }
 
+/** Ask the app router (App.tsx listens for this) to navigate. */
+function openUrl(url: string | null): void {
+  if (!url || !url.startsWith('/')) return;
+  window.dispatchEvent(new CustomEvent('sparkle:navigate', { detail: { url } }));
+}
+
+/** POST the cached device token for the CURRENT account (server reassigns
+ *  the token to that account and detaches it from any other). */
+async function registerToken(): Promise<void> {
+  const authToken = useUserStore.getState().token;
+  const fcmToken = typeof localStorage !== 'undefined' ? localStorage.getItem(FCM_TOKEN_KEY) : null;
+  if (!authToken || !fcmToken) return;
+  try {
+    await api.post('/notifications/register-fcm-token', {
+      token: fcmToken,
+      deviceType: Capacitor.getPlatform(),
+    });
+    logger.log('[Push] FCM token registered for current account');
+  } catch (err) {
+    logger.warn('[Push] FCM token registration failed:', err);
+  }
+}
+
+/** Detach this device's token from `authToken`'s account (best-effort).
+ *  Called from userStore.logout with the OUTGOING session token captured
+ *  before the store is cleared. */
+export async function deregisterPushToken(authToken?: string | null): Promise<void> {
+  const bearer = authToken ?? useUserStore.getState().token;
+  let fcmToken: string | null = null;
+  try {
+    fcmToken = localStorage.getItem(FCM_TOKEN_KEY);
+  } catch { /* storage unavailable */ }
+  if (!bearer || !fcmToken) return;
+  try {
+    await api.post(
+      '/notifications/deregister-fcm-token',
+      { token: fcmToken },
+      { headers: { Authorization: `Bearer ${bearer}` } }
+    );
+    logger.log('[Push] FCM token deregistered for outgoing session');
+  } catch (err) {
+    logger.warn('[Push] FCM token deregistration failed:', err);
+  }
+}
+
 async function showForegroundHeadsUp(title: string | undefined, body: string | undefined, data: unknown): Promise<void> {
   const d = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
   const type = String(d.type || '');

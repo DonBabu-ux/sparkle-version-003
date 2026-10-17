@@ -78,35 +78,63 @@ const getPolls = async (req, res) => {
             rankedPolls = rankedPolls.slice(0, limit);
         }
 
-        // 2. Batch Fetch Social Context (Friends who voted) - ONLY for the results being returned
-        if (currentUserId && rankedPolls.length > 0) {
+        // 2. Batch Fetch Options (cards render live bars) + Social Context
+        if (rankedPolls.length > 0) {
             const pollIds = rankedPolls.map(p => p.poll_id);
-            const [friendsVoted] = await pool.query(`
-                SELECT v.poll_id, u.avatar_url, u.username 
-                FROM poll_votes v
-                JOIN users u ON v.user_id = u.user_id
-                JOIN follows f ON f.following_id = u.user_id
-                WHERE v.poll_id IN (?) AND f.follower_id = ?
-            `, [pollIds, currentUserId]);
 
-            // Group by poll_id
-            const friendsMap = friendsVoted.reduce((acc, f) => {
-                if (!acc[f.poll_id]) acc[f.poll_id] = [];
-                if (acc[f.poll_id].length < 3) {
-                    acc[f.poll_id].push({ ...f, avatar_url: getSafeAvatarUrl(f.avatar_url) });
-                }
+            const [optRows] = await pool.query(
+                'SELECT option_id, poll_id, option_text, vote_count, option_order FROM poll_options WHERE poll_id IN (?) ORDER BY option_order ASC',
+                [pollIds]
+            );
+            const optMap = optRows.reduce((acc, o) => {
+                (acc[o.poll_id] = acc[o.poll_id] || []).push(o);
                 return acc;
             }, {});
+            rankedPolls.forEach(poll => { poll.options = optMap[poll.poll_id] || []; });
 
-            rankedPolls.forEach(poll => {
-                poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
-                poll.friends_participating = friendsMap[poll.poll_id] || [];
-            });
-        } else {
-            rankedPolls.forEach(poll => {
-                poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
-                poll.friends_participating = [];
-            });
+            if (currentUserId) {
+                const [friendsVoted] = await pool.query(`
+                    SELECT v.poll_id, u.avatar_url, u.username 
+                    FROM poll_votes v
+                    JOIN users u ON v.user_id = u.user_id
+                    JOIN follows f ON f.following_id = u.user_id
+                    JOIN polls p ON p.poll_id = v.poll_id
+                    WHERE v.poll_id IN (?) AND f.follower_id = ? AND p.is_anonymous = 0
+                `, [pollIds, currentUserId]);
+
+                // Group by poll_id
+                const friendsMap = friendsVoted.reduce((acc, f) => {
+                    if (!acc[f.poll_id]) acc[f.poll_id] = [];
+                    if (acc[f.poll_id].length < 3) {
+                        acc[f.poll_id].push({ ...f, avatar_url: getSafeAvatarUrl(f.avatar_url) });
+                    }
+                    return acc;
+                }, {});
+
+                rankedPolls.forEach(poll => {
+                    // Anonymous polls must not expose the creator anywhere.
+                    if (poll.is_anonymous) {
+                        poll.username = null;
+                        poll.creator_name = null;
+                        poll.creator_avatar = null;
+                        poll.friends_participating = [];
+                    } else {
+                        poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
+                        poll.friends_participating = friendsMap[poll.poll_id] || [];
+                    }
+                });
+            } else {
+                rankedPolls.forEach(poll => {
+                    if (poll.is_anonymous) {
+                        poll.username = null;
+                        poll.creator_name = null;
+                        poll.creator_avatar = null;
+                    } else {
+                        poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
+                    }
+                    poll.friends_participating = [];
+                });
+            }
         }
 
         res.json({ 
@@ -358,6 +386,26 @@ const createPoll = async (req, res) => {
         const { question, options, campus, category, is_anonymous, expires_in, allow_invites } = req.body;
         const creator_id = req.user.user_id || req.user.userId;
 
+        // 0. VALIDATION
+        const q = typeof question === 'string' ? question.trim() : '';
+        if (q.length < 3 || q.length > 255) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Question must be 3-255 characters.' });
+        }
+        if (!Array.isArray(options)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Options must be an array.' });
+        }
+        const cleanOptions = [...new Set(options.map(o => (typeof o === 'string' ? o.trim() : '')).filter(o => o.length > 0))];
+        if (cleanOptions.length < 2 || cleanOptions.length > 5) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Polls need 2-5 unique options.' });
+        }
+        if (cleanOptions.some(o => o.length > 255)) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Each option must be 255 characters or less.' });
+        }
+
         // 1. ANTI-SPAM: Daily Limit (5 polls per day)
         const [dailyPolls] = await connection.query(`
             SELECT COUNT(*) as count FROM polls 
@@ -366,7 +414,6 @@ const createPoll = async (req, res) => {
 
         if (dailyPolls[0].count >= 5) {
             await connection.rollback();
-            connection.release();
             return res.status(429).json({ error: 'Daily poll limit reached (5/day). Try again tomorrow!' });
         }
 
@@ -383,30 +430,32 @@ const createPoll = async (req, res) => {
             else if (expires_in === '24h') now.setHours(now.getHours() + 24);
             else if (expires_in === '3d') now.setDate(now.getDate() + 3);
             else if (expires_in === '7d') now.setDate(now.getDate() + 7);
-            else expires_at = new Date(expires_in); // Custom date string
-            
+            else {
+                const parsed = new Date(expires_in);
+                if (!isNaN(parsed.getTime()) && parsed > now) expires_at = parsed;
+                else expires_at = new Date(now.getTime() + 24 * 60 * 60 * 1000); // safe fallback
+            }
+
             if (!expires_at) expires_at = now;
         }
 
         await connection.query(
             'INSERT INTO polls (poll_id, creator_id, question, campus, category, is_anonymous, expires_at, allow_invites) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            [poll_id, creator_id, question, campus || req.user.campus, category || 'General', is_anonymous ? 1 : 0, expires_at, allow_invites !== false ? 1 : 0]
+            [poll_id, creator_id, q, campus || req.user.campus, category || 'General', is_anonymous ? 1 : 0, expires_at, allow_invites !== false ? 1 : 0]
         );
 
-        if (options && Array.isArray(options)) {
-            for (let i = 0; i < options.length; i++) {
-                const option_id = uuidv4();
-                await connection.query(
-                    'INSERT INTO poll_options (option_id, poll_id, option_text, option_order) VALUES (?, ?, ?, ?)',
-                    [option_id, poll_id, options[i], i]
-                );
-            }
+        for (let i = 0; i < cleanOptions.length; i++) {
+            const option_id = uuidv4();
+            await connection.query(
+                'INSERT INTO poll_options (option_id, poll_id, option_text, option_order) VALUES (?, ?, ?, ?)',
+                [option_id, poll_id, cleanOptions[i], i]
+            );
         }
 
         await connection.commit();
         
         // Trigger Smart Notification Workflow
-        PollEngagementService.processPollNotifications(poll_id, creator_id);
+        PollEngagementService.processPollNotifications(poll_id, creator_id).catch(() => {});
 
         res.status(201).json({ message: 'Poll created', poll_id });
     } catch (error) {
@@ -430,9 +479,16 @@ const votePoll = async (req, res) => {
 
         // 1. Check Expiry & Participation Data
         const [pollCheck] = await connection.query('SELECT expires_at, total_votes FROM polls WHERE poll_id = ?', [id]);
-        if (pollCheck.length === 0) return res.status(404).json({ error: 'Poll not found' });
-        
-        if (pollCheck[0].expires_at && new Date(pollCheck[0].expires_at) < new Date()) {
+        if (pollCheck.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Poll not found' });
+        }
+
+        const pollExpired = pollCheck[0].expires_at && new Date(pollCheck[0].expires_at) < new Date();
+        if (pollExpired) {
+            // Keep the stale flag in sync so every consumer sees the Ended state.
+            connection.query('UPDATE polls SET is_expired = 1 WHERE poll_id = ?', [id]).catch(() => {});
+            await connection.rollback();
             return res.status(400).json({ error: 'This poll has ended and is no longer accepting votes.' });
         }
 
@@ -445,6 +501,16 @@ const votePoll = async (req, res) => {
         if (existing.length > 0) {
             await connection.rollback();
             return res.status(400).json({ error: 'You have already voted on this poll' });
+        }
+
+        // 2b. The chosen option must belong to THIS poll (blocks cross-poll count corruption)
+        const [optCheck] = await connection.query(
+            'SELECT option_id FROM poll_options WHERE option_id = ? AND poll_id = ?',
+            [option_id, id]
+        );
+        if (optCheck.length === 0) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Invalid poll option' });
         }
 
         // 3. Record vote
@@ -473,13 +539,15 @@ const votePoll = async (req, res) => {
         }
 
         // Increment Vote Streak if first vote of the day
+        // NOTE: poll_votes uses `voted_at` (not created_at) — the old column
+        // reference threw after commit and turned every vote into a 500.
         await pool.query(`
             UPDATE users 
             SET poll_vote_streak = poll_vote_streak + 1 
             WHERE user_id = ? AND NOT EXISTS (
                 SELECT 1 FROM poll_votes 
                 WHERE user_id = ? 
-                AND created_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
+                AND voted_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
                 AND poll_id != ?
             )
         `, [user_id, user_id, id]);
@@ -496,7 +564,13 @@ const votePoll = async (req, res) => {
 
         res.json({ message: 'Vote submitted', success: true });
     } catch (error) {
-        if (connection) await connection.rollback();
+        if (connection) {
+            try { await connection.rollback(); } catch (_) { /* already rolled back */ }
+        }
+        // Concurrent duplicate vote hits the unique key — report it honestly.
+        if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate'))) {
+            return res.status(400).json({ error: 'You have already voted on this poll' });
+        }
         res.status(500).json({ error: error.message });
     } finally {
         if (connection) connection.release();
@@ -517,20 +591,45 @@ const getPollResults = async (req, res) => {
         if (polls.length === 0) return res.status(404).json({ error: 'Poll not found' });
         const poll = polls[0];
 
-        // Fetch options
+        // Expiry is derived from expires_at — the stored flag is never set by a job.
+        poll.is_expired = !!(poll.is_expired || (poll.expires_at && new Date(poll.expires_at) < new Date()));
+        if (poll.is_expired) {
+            pool.query('UPDATE polls SET is_expired = 1 WHERE poll_id = ?', [id]).catch(() => {});
+        }
+
+        // Anonymous polls never expose the creator.
+        if (poll.is_anonymous) {
+            poll.username = null;
+            poll.creator_name = null;
+            poll.creator_avatar = null;
+        } else {
+            poll.creator_avatar = getSafeAvatarUrl(poll.creator_avatar);
+        }
+
+        // The viewer's own vote decides whether full voter details are visible.
+        const [userVote] = await pool.query('SELECT option_id FROM poll_votes WHERE poll_id = ? AND user_id = ?', [id, currentUserId]);
+        poll.user_voted_option = userVote.length > 0 ? userVote[0].option_id : null;
+        const viewerHasVoted = !!poll.user_voted_option;
+
+        // Fetch options — stable order so unvoted viewers don't see the leader first.
         const [options] = await pool.query(
-            'SELECT * FROM poll_options WHERE poll_id = ? ORDER BY vote_count DESC',
+            'SELECT * FROM poll_options WHERE poll_id = ? ORDER BY option_order ASC',
             [id]
         );
 
-        // Fetch voters for all options
-        const [voters] = await pool.query(`
-            SELECT v.option_id, u.user_id, u.name, u.username, u.avatar_url,
-                   (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_following
-            FROM poll_votes v
-            JOIN users u ON v.user_id = u.user_id
-            WHERE v.poll_id = ?
-        `, [currentUserId, id]);
+        // Voters are only exposed once the viewer has voted or the poll ended,
+        // and never for anonymous polls.
+        let voters = [];
+        if (!poll.is_anonymous && (viewerHasVoted || poll.is_expired)) {
+            [voters] = await pool.query(`
+                SELECT v.option_id, u.user_id, u.name, u.username, u.avatar_url,
+                       (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_following
+                FROM poll_votes v
+                JOIN users u ON v.user_id = u.user_id
+                WHERE v.poll_id = ?
+                LIMIT 500
+            `, [currentUserId, id]);
+        }
 
         // Group voters into options
         poll.options = options.map(opt => ({
@@ -541,10 +640,9 @@ const getPollResults = async (req, res) => {
                 is_following: !!v.is_following
             }))
         }));
-
-        // Check if current user voted
-        const [userVote] = await pool.query('SELECT option_id FROM poll_votes WHERE poll_id = ? AND user_id = ?', [id, currentUserId]);
-        poll.user_voted_option = userVote.length > 0 ? userVote[0].option_id : null;
+        // Tell the client whether voter details are withheld (pre-vote / anonymous).
+        poll.voters_hidden = !viewerHasVoted && !poll.is_expired;
+        poll.voters_hidden_anonymous = !!poll.is_anonymous;
 
         res.json({ poll });
     } catch (error) {
@@ -799,9 +897,10 @@ exports.predictPollWinner = async (req, res) => {
     const user_id = req.user.user_id;
 
     try {
-        const [poll] = await pool.query('SELECT is_expired FROM polls WHERE poll_id = ?', [id]);
+        const [poll] = await pool.query('SELECT is_expired, expires_at FROM polls WHERE poll_id = ?', [id]);
         if (poll.length === 0) return res.status(404).json({ message: 'Poll not found' });
-        if (poll[0].is_expired) return res.status(400).json({ message: 'Poll has already ended' });
+        const ended = poll[0].is_expired || (poll[0].expires_at && new Date(poll[0].expires_at) < new Date());
+        if (ended) return res.status(400).json({ message: 'Poll has already ended' });
 
         const predictionId = uuidv4();
         await pool.query(`
@@ -837,7 +936,7 @@ exports.trackPollInteraction = async (req, res) => {
             `, [user_id, poll[0].category]);
         }
 
-        await pollEngagementService.updateEngagementScore(id);
+        await PollEngagementService.updateEngagementScore(id);
         res.json({ message: 'Interaction tracked' });
     } catch (err) {
         console.error('Interaction tracking error:', err);

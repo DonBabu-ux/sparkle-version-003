@@ -1,14 +1,34 @@
 import defaultAvatar from '../assets/avatar-default.svg';
+import { EnvironmentService } from '../services/EnvironmentService';
 
-// API URL resolved from env vars at build time. Same-origin '/api' by default:
-// prod builds hit the Render backend directly; dev goes through the Vite proxy.
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+// API URL resolved via EnvironmentService: env var override, absolute Render
+// URL in the native APK webview, same-origin elsewhere (Vite proxy in dev,
+// /api rewrite on Vercel in prod).
+const API_URL = EnvironmentService.getApiBaseUrl();
 // Extract base URL (remove /api suffix)
 const BASE_URL = API_URL.replace(/\/api\/?$/, '');
 
-// The Cloudinary account behind legacy media rows is permanently closed —
-// any res.cloudinary.com URL is dead weight and must never be requested.
-const isDeadCloudinaryUrl = (url: string) => url.includes('res.cloudinary.com');
+// Only the CURRENT Cloudinary account is alive. Legacy rows from older or
+// closed accounts must never be requested — but the live account must pass
+// through so it can be rewritten to ImageKit for delivery.
+const CLOUDINARY_CLOUD = 'drwldeniw';
+const IMAGEKIT_ID = '9o04vzsnf';
+
+const CLOUDINARY_PREFIX = `https://res.cloudinary.com/${CLOUDINARY_CLOUD}/`;
+const IMAGEKIT_PREFIX = `https://ik.imagekit.io/${IMAGEKIT_ID}/`;
+
+const isDeadCloudinaryUrl = (url: string) =>
+  url.includes('res.cloudinary.com') && !url.includes(CLOUDINARY_PREFIX);
+
+// Rewrite a live Cloudinary IMAGE url to ImageKit for delivery.
+// ImageKit pulls the original from the Cloudinary web-server origin and
+// serves it optimized. Videos stay on Cloudinary: ImageKit free tier caps
+// video and Cloudinary already handles adaptive streaming for them.
+const rewriteToImageKit = (url: string): string => {
+  if (!url.startsWith(CLOUDINARY_PREFIX)) return url;
+  if (!url.includes('/image/upload/')) return url;
+  return url.replace(CLOUDINARY_PREFIX, IMAGEKIT_PREFIX);
+};
 
 // Backend-shipped default avatar paths — route them to the bundled
 // professional SVG so the UI never shows the old clipart PNG.
@@ -30,9 +50,9 @@ export const getAvatarUrl = (url?: string | null, _seed?: string | null): string
     if (isDeadCloudinaryUrl(url)) return defaultAvatar;
     // Backend default avatar file — use the bundled professional version
     if (isBackendDefaultAvatar(url)) return defaultAvatar;
-    // If it's already a full URL
+    // If it's already a full URL — route live Cloudinary images via ImageKit
     if (url.startsWith('http')) {
-      return url;
+      return rewriteToImageKit(url);
     }
     // If it's a relative upload path from our server
     if (url.startsWith('/uploads')) {
@@ -66,7 +86,7 @@ export const getMediaUrl = (url?: string | null): string => {
     return `${BASE_URL}${url}`;
   }
 
-  return url;
+  return rewriteToImageKit(url);
 };
 
 /**
@@ -116,7 +136,31 @@ export const getOptimizedMediaUrl = (
     }
   }
 
-  // 2. Cloudinary Optimization
+  // 2. ImageKit Optimization (live Cloudinary images, rewritten at getMediaUrl)
+  if (base.includes('ik.imagekit.io')) {
+    // Already transformed — don't stack another tr= on top
+    if (base.includes('?tr=') || base.includes('&tr=')) return base;
+
+    // ImageKit quality mapping — numeric, mirrors the Pexels scale
+    let q: string;
+    if (quality === 'thumbnail') q = '30';
+    else if (quality === 'low') q = '40';
+    else if (quality === 'medium') q = '60';
+    else if (quality === 'high') q = '75';
+    else q = '90';
+
+    const tr = [`q-${q}`, 'f-auto'];
+
+    if (width) {
+      const targetWidth = quality === 'thumbnail' ? Math.floor(width / 4) : width;
+      tr.push(`w-${targetWidth}`);
+    }
+
+    // ImageKit default transformationPosition is "query"
+    return `${base}?tr=${tr.join(',')}`;
+  }
+
+  // 3. Cloudinary Optimization (videos — stay on Cloudinary in the hybrid)
   if (!base.includes('res.cloudinary.com')) return base;
 
   // Prevent double-transforming if parameters already exist

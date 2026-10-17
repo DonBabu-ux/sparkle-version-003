@@ -8,6 +8,7 @@
 
 import CryptoService from './CryptoService';
 import SparkleSandboxStore from './SparkleSandboxStore';
+import { EnvironmentService } from './EnvironmentService';
 import { logger } from '../utils/logger';
 
 export interface DownloadProgress {
@@ -61,7 +62,7 @@ export class MediaDownloadManagerService {
     }
 
     // 2. Fetch short-lived signed download URL from server
-    const tokenRes = await fetch(`/api/media/download-token/${mediaId}`, { credentials: 'include' });
+    const tokenRes = await fetch(`${EnvironmentService.getApiBaseUrl()}/media/download-token/${mediaId}`, { credentials: 'include' });
     const tokenData = await tokenRes.json();
 
     if (!tokenData.success) {
@@ -115,7 +116,7 @@ export class MediaDownloadManagerService {
       localPath: SparkleSandboxStore.getSandboxPath('image', mediaId),
     });
 
-    await fetch('/api/media/ack-download', {
+    await fetch(`${EnvironmentService.getApiBaseUrl()}/media/ack-download`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
@@ -134,7 +135,7 @@ export class MediaDownloadManagerService {
    */
   async requestPeerRedelivery(mediaId: string): Promise<boolean> {
     try {
-      const res = await fetch('/api/media/request-redelivery', {
+      const res = await fetch(`${EnvironmentService.getApiBaseUrl()}/media/request-redelivery`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

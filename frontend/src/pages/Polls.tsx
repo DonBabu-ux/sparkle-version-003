@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BarChart2, Plus, ChevronRight, Calendar, Sparkles, Zap, Users } from 'lucide-react';
 import api from '../api/api';
@@ -41,33 +41,36 @@ export default function Polls() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('for_you');
-  const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [isInitialLoad, setIsInitialBurst] = useState(true);
+  const offsetRef = useRef(0);
+  const inFlightRef = useRef(false);
 
   const fetchPolls = useCallback(async (isLoadMore = false) => {
-    if (loadingMore || (loading && isLoadMore)) return;
-    
+    if (inFlightRef.current) return;
+    inFlightRef.current = true;
+
     if (isLoadMore) setLoadingMore(true);
     else setLoading(true);
 
     try {
-      const currentOffset = isLoadMore ? offset : 0;
-      const currentLimit = (isLoadMore || !isInitialLoad) ? 10 : 2; 
+      const currentOffset = isLoadMore ? offsetRef.current : 0;
+      const currentLimit = (isLoadMore || !isInitialLoad) ? 10 : 2;
 
-      const res = await api.get('/polls', { 
-        params: { 
-          filter, 
+      const res = await api.get('/polls', {
+        params: {
+          filter,
           offset: currentOffset,
           limit: currentLimit
-        } 
+        }
       });
-      
+
       const incomingPolls = res.data.polls || [];
-      
+      offsetRef.current = currentOffset + incomingPolls.length;
+
       setPolls(prev => {
         if (!isLoadMore) return incomingPolls;
-        
+
         // Prevent duplicates
         const existingIds = new Set(prev.map(p => p.poll_id));
         const filtered = incomingPolls.filter((p: Poll) => !existingIds.has(p.poll_id));
@@ -75,7 +78,6 @@ export default function Polls() {
       });
 
       setHasMore(res.data.hasMore);
-      setOffset(prev => prev + incomingPolls.length);
 
       // Handle the initial burst transition
       if (isInitialLoad && !isLoadMore && res.data.hasMore && incomingPolls.length === 2) {
@@ -86,16 +88,19 @@ export default function Polls() {
     } catch (err) {
       logger.error('Fetch polls error:', err);
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [filter, offset, loading, loadingMore, isInitialLoad]);
+  }, [filter, isInitialLoad]);
 
   useEffect(() => {
-    setOffset(0);
+    setPolls([]);
+    offsetRef.current = 0;
     setHasMore(true);
+    setIsInitialBurst(true);
     fetchPolls(false);
-  }, [filter]); // Only re-fetch when filter changes
+  }, [filter]); // Clear list and re-fetch when filter changes
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -233,7 +238,12 @@ export default function Polls() {
                   </h3>
 
                   <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500">
-                     <img src={poll.creator_avatar || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full" alt="" />
+                     {!poll.is_anonymous && (
+                       <img src={poll.creator_avatar || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full" alt="" />
+                     )}
+                     {poll.is_anonymous && (
+                       <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black text-gray-400">?</div>
+                     )}
                      <span>By <span className="text-gray-800">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span></span>
                      <span className="w-1 h-1 rounded-full bg-gray-300" />
                      <span className="text-primary">{poll.campus || 'Global Spectrum'}</span>
@@ -302,13 +312,6 @@ export default function Polls() {
           )}
         </div>
       </main>
-
-      <style>{`
-        @keyfra  .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyfra  .no-scrollbar::-webkit-scrollbar { display: none; }
-        
-        .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards; }
-      `}</style>
     </div>
   );
 }

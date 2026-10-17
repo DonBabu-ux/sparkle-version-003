@@ -1,7 +1,6 @@
-import { useState, useEffect } from 'react';
-import { useCall } from './MockCallProvider';
+import { useState, useEffect, useRef } from 'react';
+import { useCall } from './CallProvider';
 import { Mic, MicOff, Camera, CameraOff, Volume2, VolumeX, Bluetooth, Phone, PhoneOff, RefreshCw, ShieldAlert, Minimize2 } from 'lucide-react';
-import { LocalPreview } from './video/LocalPreview';
 
 export const CallOverlay = () => {
   const {
@@ -27,7 +26,36 @@ export const CallOverlay = () => {
     isFrontCamera,
     isMinimized,
     setMinimized,
+    remoteStream,
+    localStream,
   } = useCall();
+
+  const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Attach WebRTC streams to their playback elements as soon as they exist.
+  useEffect(() => {
+    if (remoteVideoRef.current && remoteStream && remoteVideoRef.current.srcObject !== remoteStream) {
+      remoteVideoRef.current.srcObject = remoteStream;
+      remoteVideoRef.current.play().catch(() => { /* autoplay policy: user already tapped Accept */ });
+    }
+  }, [remoteStream, state, isMinimized]);
+
+  useEffect(() => {
+    if (localVideoRef.current && localStream && localVideoRef.current.srcObject !== localStream) {
+      localVideoRef.current.srcObject = localStream;
+      localVideoRef.current.play().catch(() => { /* muted preview: allowed */ });
+    }
+  }, [localStream, state, isMinimized]);
+
+  // Voice calls have no <video> surface — pipe the remote audio separately.
+  useEffect(() => {
+    if (remoteAudioRef.current && remoteStream && remoteAudioRef.current.srcObject !== remoteStream) {
+      remoteAudioRef.current.srcObject = remoteStream;
+      remoteAudioRef.current.play().catch(() => { /* autoplay policy: user already tapped Accept */ });
+    }
+  }, [remoteStream, mode]);
 
   const [signalStrength, setSignalStrength] = useState<number>(3);
 
@@ -154,20 +182,28 @@ export const CallOverlay = () => {
       {/* Main Full-Screen Calling Portal */}
       <div className={`fixed inset-0 z-(--z-top) flex flex-col justify-between overflow-hidden bg-[#0A0B10] text-white font-sans ${state === 'failed' ? 'animate-shake-fail' : ''}`}>
         
-        {/* Background Layer: Glassy Blurred Mesh or Video Canvas */}
+        {/* Background Layer: live WebRTC video or glassy voice backdrop */}
         <div className="absolute inset-0 z-0">
-          {isVideo && isCameraOn && state === 'connected' ? (
-            // Simulated Active Video Stream Panel (Mesh canvas representing partner view)
+          {isVideo && state === 'connected' && remoteStream ? (
+            // Live remote video stream (audio plays through this element too)
+            <div className="absolute inset-0 bg-black overflow-hidden">
+              <video
+                ref={remoteVideoRef}
+                autoPlay
+                playsInline
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            </div>
+          ) : isVideo && state === 'connected' ? (
+            // Video call but remote camera off / still waiting for stream
             <div className="absolute inset-0 bg-[#0c0d14] overflow-hidden">
               <div className="absolute inset-0 opacity-40 blur-3xl scale-110 blur-mesh"></div>
-              {/* Simulated Local/Partner Stream Placeholder */}
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <img 
-                  src={getAvatarUrl(partnerAvatar, partnerName)} 
-                  alt="" 
+                <img
+                  src={getAvatarUrl(partnerAvatar, partnerName)}
+                  alt=""
                   className={`w-32 h-32 rounded-full object-cover shadow-2xl transition-all duration-700 ${isFrontCamera ? 'scale-x-[-1]' : ''}`}
                 />
-
               </div>
             </div>
           ) : (
@@ -175,12 +211,16 @@ export const CallOverlay = () => {
             <div className="absolute inset-0 bg-[#08090C] overflow-hidden">
               <div className="absolute inset-0 opacity-20 blur-3xl scale-125 blur-mesh"></div>
               {partnerAvatar && (
-                <div 
+                <div
                   className="absolute inset-0 bg-cover bg-center opacity-[0.08] blur-2xl scale-110"
                   style={{ backgroundImage: `url(${partnerAvatar})` }}
                 />
               )}
             </div>
+          )}
+          {/* Voice call: remote audio has no visible surface */}
+          {!isVideo && (
+            <audio ref={remoteAudioRef} autoPlay playsInline />
           )}
         </div>
 
@@ -260,9 +300,30 @@ export const CallOverlay = () => {
           </div>
         </div>
 
-        {/* FLOATING MINI PREVIEW (For Video Call Active Connected State) */}
-        {isVideo && state === 'connected' && (
-          <LocalPreview isCameraOn={isCameraOn} />
+        {/* FLOATING MINI PREVIEW (local camera during a connected video call) */}
+        {isVideo && state === 'connected' && isCameraOn && localStream && (
+          <div className="relative z-10 px-6 pb-2">
+            <div className="relative ml-auto w-28 h-40 rounded-xl overflow-hidden bg-black/30 border border-white/10 shadow-xl">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`w-full h-full object-cover ${isFrontCamera ? 'scale-x-[-1]' : ''}`}
+              />
+              <span className="absolute bottom-1.5 left-1.5 text-[9px] bg-black/50 text-white/80 px-1.5 py-0.5 rounded font-mono">
+                You
+              </span>
+              <button
+                onClick={() => { void switchCamera(); }}
+                className="absolute top-1.5 right-1.5 p-1.5 bg-black/50 hover:bg-white/20 active:scale-90 rounded-full transition-all flex items-center justify-center text-white"
+                title="Switch camera"
+                aria-label="Switch camera"
+              >
+                <RefreshCw size={12} />
+              </button>
+            </div>
+          </div>
         )}
 
         {/* BOTTOM ACTION BAR (Mute, Speaker, Bluetooth, Decline, Accept buttons) */}

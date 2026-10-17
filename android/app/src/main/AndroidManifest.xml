@@ -26,6 +26,10 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_notification" />
+        <!-- Accent color: circle behind the status-bar icon + accent on Android 5-7 -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/sparkle_notification_color" />
 
 
             <intent-filter>
@@ -71,4 +75,8 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Channel vibration (notification channels set vibration=true) -->
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Voice calls & voice notes (WebView getUserMedia needs the app to hold these) -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <!-- Video calls (@capacitor/camera also declares this; kept explicit for WebView getUserMedia) -->
+    <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

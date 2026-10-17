@@ -31,6 +31,8 @@ require('./workers/inactivityNotifier'); // Start marketplace inactivity worker
 require('./jobs/candidatePool'); // Start feed candidate pool builder
 const { initMediaJobs } = require('./jobs/media-cleanup.job'); // Media lifecycle engine
 initMediaJobs();
+const { initMediaHealthJob } = require('./jobs/media-health.job'); // Media health probe (dead-URL detection)
+initMediaHealthJob();
 require('./workers/MediaCleanupWorker').start(); // Start 10-minute ephemeral media retention worker
 require('./workers/accountLifecycleWorker').start(); // Start account lifecycle worker
 

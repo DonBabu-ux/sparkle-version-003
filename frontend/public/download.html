@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sparkle — Download</title>
+  <meta name="description" content="Download the Sparkle Android app — moments, stories, chats, marketplace and more for your campus." />
+  <link rel="icon" href="/favicon-64.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <style>
+    :root {
+      --pink: #ff2d87;
+      --pink-deep: #ff1493;
+      --violet: #8b5cf6;
+      --bg: #0b0713;
+      --card: rgba(255, 255, 255, 0.05);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --text: #f5f3ff;
+      --muted: #a39bb8;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    .bg-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(600px 400px at 80% -10%, rgba(255, 45, 135, 0.25), transparent 60%),
+        radial-gradient(700px 500px at 10% 20%, rgba(139, 92, 246, 0.18), transparent 60%),
+        radial-gradient(500px 400px at 50% 110%, rgba(255, 20, 147, 0.12), transparent 60%);
+      z-index: 0;
+    }
+    .wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 20px 64px;
+    }
+
+    /* Hero */
+    .hero { text-align: center; padding: 40px 0 56px; }
+    .logo {
+      width: 104px;
+      height: 104px;
+      border-radius: 28px;
+      margin: 0 auto 24px;
+      display: block;
+      box-shadow: 0 16px 48px rgba(255, 45, 135, 0.35);
+    }
+    h1 {
+      font-size: clamp(2.4rem, 6vw, 3.6rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff 20%, var(--pink) 60%, var(--violet));
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .tagline {
+      margin: 14px auto 0;
+      max-width: 480px;
+      color: var(--muted);
+      font-size: 1.1rem;
+      line-height: 1.6;
+    }
+    .cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 36px;
+      padding: 16px 40px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--pink-deep), var(--violet));
+      color: #fff;
+      font-size: 1.12rem;
+      font-weight: 700;
+      text-decoration: none;
+      box-shadow: 0 12px 40px rgba(255, 45, 135, 0.4);
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .cta:hover { transform: translateY(-2px); box-shadow: 0 16px 48px rgba(255, 45, 135, 0.55); }
+    .cta:active { transform: translateY(0); }
+    .cta svg { width: 20px; height: 20px; }
+    .cta-note {
+      display: block;
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    /* Features */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 14px;
+      margin: 8px 0 56px;
+    }
+    .feature {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 22px;
+      backdrop-filter: blur(8px);
+    }
+    .feature .emoji { font-size: 1.6rem; display: block; margin-bottom: 10px; }
+    .feature h3 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+    .feature p { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+
+    /* Install steps */
+    .install {
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 22px;
+      padding: 32px 28px;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+    .install h2 { font-size: 1.3rem; text-align: center; margin-bottom: 24px; }
+    .step { display: flex; gap: 16px; padding: 12px 0; align-items: flex-start; }
+    .step + .step { border-top: 1px solid rgba(255, 255, 255, 0.06); }
+    .step-num {
+      flex: none;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--pink-deep), var(--violet));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .step p { color: var(--muted); font-size: 0.95rem; line-height: 1.55; padding-top: 3px; }
+    .step p strong { color: var(--text); }
+
+    footer {
+      text-align: center;
+      margin-top: 48px;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.8;
+    }
+    footer a { color: var(--pink); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="bg-glow"></div>
+  <div class="wrap">
+    <section class="hero">
+      <img class="logo" src="/sparklelogo.png" alt="Sparkle app icon" />
+      <h1>Sparkle</h1>
+      <p class="tagline">Moments, stories, chats, marketplace and more — everything happening on your campus, in one app.</p>
+      <a class="cta" href="https://github.com/DonBabu-ux/sparkle-version-003/releases/download/latest/sparkle.apk" download>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download for Android
+      </a>
+      <span class="cta-note">Free &middot; Android 8+ &middot; always the latest build</span>
+    </section>
+
+    <section class="features">
+      <div class="feature">
+        <span class="emoji">&#128247;</span>
+        <h3>Moments &amp; Stories</h3>
+        <p>Share your day with photos, videos and disappearing stories your campus actually sees.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">&#128172;</span>
+        <h3>Chats &amp; Groups</h3>
+        <p>Private messages, group chats, reactions and read receipts — fast and reliable.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">&#128717;&#65039;</span>
+        <h3>Campus Marketplace</h3>
+        <p>Buy and sell with people you already trust. List anything in under a minute.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">&#127918;</span>
+        <h3>Clubs &amp; Events</h3>
+        <p>Discover clubs, RSVP to events and never miss what's happening on campus.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">&#128133;</span>
+        <h3>Confessions &amp; Polls</h3>
+        <p>Anonymous confessions, quick polls and the fun side of campus life.</p>
+      </div>
+      <div class="feature">
+        <span class="emoji">&#128737;&#65039;</span>
+        <h3>Privacy first</h3>
+        <p>Screenshot alerts, disappearing messages and granular controls on everything you share.</p>
+      </div>
+    </section>
+
+    <section class="install">
+      <h2>Install in 3 steps</h2>
+      <div class="step">
+        <span class="step-num">1</span>
+        <p><strong>Tap Download</strong> — grab the latest Sparkle APK (about 15&nbsp;MB).</p>
+      </div>
+      <div class="step">
+        <span class="step-num">2</span>
+        <p><strong>Open the file</strong> — find it in your notifications or Downloads folder and tap it.</p>
+      </div>
+      <div class="step">
+        <span class="step-num">3</span>
+        <p><strong>Allow install</strong> — if Android asks, allow "install from this source" for your browser, then tap <strong>Install</strong>. That's it.</p>
+      </div>
+    </section>
+
+    <footer>
+      <p>Sparkle &middot; built for campus life</p>
+      <p>Looking for a specific version? <a href="https://github.com/DonBabu-ux/sparkle-version-003/releases/tag/latest">All release builds&nbsp;&rarr;</a></p>
+    </footer>
+  </div>
+</body>
+</html>

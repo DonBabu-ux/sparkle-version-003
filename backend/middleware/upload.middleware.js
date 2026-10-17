@@ -3,6 +3,7 @@ const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const multer = require('multer');
 const path = require('path');
 const crypto = require('crypto');
+const { CompressedCloudinaryStorage } = require('../utils/compressStorage');
 require('dotenv').config();
 
 // Configuration
@@ -35,7 +36,7 @@ const getDrift = () => new Promise((resolve) => {
     }).on('error', () => resolve(21447)); // Fallback to last known good drift
 });
 
-const storage = new CloudinaryStorage({
+const baseStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
         console.log('☁️ Starting Cloudinary Upload for field:', file.fieldname, '| Original Name:', file.originalname);
@@ -55,8 +56,10 @@ const storage = new CloudinaryStorage({
         };
     },
 });
+// Compress images before they hit Cloudinary (videos pass through).
+const storage = new CompressedCloudinaryStorage(baseStorage, { maxEdge: 1600, quality: 80 });
 
-const marketplaceStorage = new CloudinaryStorage({
+const baseMarketplaceStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
         const driftOffset = 21447;
@@ -69,8 +72,9 @@ const marketplaceStorage = new CloudinaryStorage({
         };
     }
 });
+const marketplaceStorage = new CompressedCloudinaryStorage(baseMarketplaceStorage, { maxEdge: 1200, quality: 80 });
 
-const messageStorage = new CloudinaryStorage({
+const baseMessageStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: async (req, file) => {
         return {
@@ -82,6 +86,7 @@ const messageStorage = new CloudinaryStorage({
         };
     },
 });
+const messageStorage = new CompressedCloudinaryStorage(baseMessageStorage, { maxEdge: 1600, quality: 80 });
 
 const upload = multer({
     storage: storage,

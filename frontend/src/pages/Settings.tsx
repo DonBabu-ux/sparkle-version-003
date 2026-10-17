@@ -7,6 +7,8 @@ import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert } from 'lucide-react';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
+import { getRoleFromToken } from '../utils/tokenUtils';
+import { resolveAdminAccess } from '../utils/adminRoute';
 import '../audio/managers/AudioSessionManager';
 import { SettingCardGroup } from '../components/settings/SettingCardGroup';
 import { SettingRow } from '../components/settings/SettingRow';
@@ -14,8 +16,9 @@ import EditProfileModal from '../components/profile/EditProfileModal';
 import { logger } from '../utils/logger';
 
 export default function Settings() {
-  const { user, theme, setTheme } = useUserStore();
+  const { user, theme, setTheme, token } = useUserStore();
   const navigate = useNavigate();
+  const isAdmin = resolveAdminAccess(getRoleFromToken(token)) !== 'deny';
 
   const [ ,  ] = useState(false);
   const [ success,  ] = useState<string | null>(null);
@@ -342,13 +345,15 @@ export default function Settings() {
 
         {/* GROUP 4: SYSTEM & LEGAL */}
         <SettingCardGroup title="System & Legal">
-          <SettingRow
-            icon={HardDrive}
-            title="Storage & Data Intelligence"
-            description="Cache management and storage breakdown"
-            rightElement="chevron"
-            onClick={() => navigate('/settings/advanced/data')}
-          />
+          {isAdmin && (
+            <SettingRow
+              icon={HardDrive}
+              title="Storage & Data Intelligence"
+              description="Cache management and storage breakdown"
+              rightElement="chevron"
+              onClick={() => navigate('/admin/storage')}
+            />
+          )}
           <SettingRow
             icon={FileText}
             title="Legal & Privacy Policies"

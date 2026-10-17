@@ -262,9 +262,19 @@ class Message {
     }
 
     /**
-     * Get messages for conversation
+     * Get messages for conversation (keyset-paginated).
+     *
+     * options.limit   - page size (default 100, capped at 200) so no caller
+     *                   can accidentally pull an entire history again
+     * options.before  - server_sequence cursor: return the page OLDER than it
+     * options.after   - server_sequence cursor: return the page NEWER than it
+     * options.anchor  - message_id: return the page CONTAINING that message
+     *
+     * Returns { chatId, messages (ASC), hasMore, nextCursor } where nextCursor
+     * continues in the SAME direction the page was fetched (older for
+     * latest/before/anchor, newer for after).
      */
-    static async getMessages(input, userId) {
+    static async getMessages(input, userId, options = {}) {
         // 'input' could be a partnerId (user_id) or a conversationId (chat_id)
         let chatId = input;
 
@@ -291,121 +301,100 @@ class Message {
                 chatId = await this.getOrCreateConversation(userId, input);
             }
         }
-        
+
         // Re-check chat type for the query
         const [pc] = await db.query('SELECT chat_id FROM personal_chats WHERE chat_id = ?', [chatId]);
-        
-        let query;
-        if (pc.length > 0) {
-            // Rest of the query remains the same, but we return the resolved chatId too
-            query = `
-                SELECT 
-                    m.*,
-                    u.name as sender_name, 
-                    u.username as sender_username, 
-                    u.avatar_url as sender_avatar,
-                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
-                     FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
-                    rm.content as reply_content,
-                    rm.type as reply_type,
-                    ru.name as reply_sender_name,
-                    ml.title as listing_title,
-                    ml.price as listing_price,
-                    ml.image_url as listing_image
-                FROM messages m
-                JOIN users u ON m.sender_id = u.user_id
-                LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
-                LEFT JOIN users ru ON rm.sender_id = ru.user_id
-                LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
-                WHERE (m.conversation_id = ? OR m.chat_id = ?)
-                  AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
-                  AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
-                  AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
-                ORDER BY m.sent_at ASC
-            `;
-            const [messages] = await db.query(query, [chatId, chatId, userId, userId]);
-            
-            // Query chat privacy settings for all participants
-            const [privacyRows] = await db.query(
-                'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
-                [chatId]
-            );
-            const privacyMap = new Map();
-            (privacyRows || []).forEach(r => privacyMap.set(r.user_id, r));
+        const isPersonal = pc.length > 0;
 
-            // Ensure all dates are returned as ISO strings and permissions computed by PermissionEngine
-            const normalized = messages.map(m => {
-                const senderPrivacy = privacyMap.get(m.sender_id) || {};
-                const permissions = PermissionEngine.computePermissions({
-                    message: m,
-                    senderPrivacy,
-                    viewerUserId: userId
-                });
-                return {
-                    ...m,
-                    sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
-                    read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
-                    expires_at: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
-                    expiresAt: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
-                    reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
-                    permissions
-                };
-            });
-            return { chatId, messages: normalized };
-        } else {
-            query = `
-                SELECT 
-                    m.*,
-                    u.name as sender_name, 
-                    u.username as sender_username, 
-                    u.avatar_url as sender_avatar,
-                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
-                     FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
-                    rm.content as reply_content,
-                    rm.type as reply_type,
-                    ru.name as reply_sender_name,
-                    ml.title as listing_title,
-                    ml.price as listing_price,
-                    ml.image_url as listing_image
-                FROM messages m
-                JOIN users u ON m.sender_id = u.user_id
-                LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
-                LEFT JOIN users ru ON rm.sender_id = ru.user_id
-                LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
-                WHERE m.chat_id = ?
-                  AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
-                  AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
-                  AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
-                ORDER BY m.sent_at ASC
-            `;
-            const [messages] = await db.query(query, [chatId, userId, userId]);
+        const pageSize = Math.min(Math.max(parseInt(options.limit, 10) || 100, 1), 200);
+        const scopeClause = isPersonal ? '(m.conversation_id = ? OR m.chat_id = ?)' : 'm.chat_id = ?';
+        const scopeParams = isPersonal ? [chatId, chatId] : [chatId];
 
-            const [privacyRows] = await db.query(
-                'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
-                [chatId]
-            );
-            const privacyMap = new Map();
-            (privacyRows || []).forEach(r => privacyMap.set(r.user_id, r));
-
-            const normalized = messages.map(m => {
-                const senderPrivacy = privacyMap.get(m.sender_id) || {};
-                const permissions = PermissionEngine.computePermissions({
-                    message: m,
-                    senderPrivacy,
-                    viewerUserId: userId
-                });
-                return {
-                    ...m,
-                    sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
-                    read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
-                    expires_at: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
-                    expiresAt: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
-                    reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
-                    permissions
-                };
-            });
-            return { chatId, messages: normalized };
+        // Keyset cursor on server_sequence (per-chat monotonic BIGINT, indexed).
+        // Never order by sent_at alone — TIMESTAMP is second-granularity and ties.
+        let cursorClause = '';
+        const cursorParams = [];
+        let fetchAfter = false;
+        if (options.anchor) {
+            cursorClause = 'AND m.server_sequence <= COALESCE((SELECT server_sequence FROM messages WHERE message_id = ?), 0)';
+            cursorParams.push(options.anchor);
+        } else if (options.after !== undefined && options.after !== null && options.after !== '') {
+            cursorClause = 'AND m.server_sequence > ?';
+            cursorParams.push(Number(options.after));
+            fetchAfter = true;
+        } else if (options.before !== undefined && options.before !== null && options.before !== '') {
+            cursorClause = 'AND m.server_sequence < ?';
+            cursorParams.push(Number(options.before));
         }
+
+        const orderClause = fetchAfter
+            ? 'ORDER BY m.server_sequence ASC, m.sent_at ASC, m.message_id ASC'
+            : 'ORDER BY m.server_sequence DESC, m.sent_at DESC, m.message_id DESC';
+
+        const query = `
+            SELECT 
+                m.*,
+                u.name as sender_name, 
+                u.username as sender_username, 
+                u.avatar_url as sender_avatar,
+                (SELECT JSON_ARRAYAGG(JSON_OBJECT('emoji', r.emoji, 'user_id', r.user_id)) 
+                 FROM message_reactions r WHERE r.message_id = m.message_id) as reactions,
+                rm.content as reply_content,
+                rm.type as reply_type,
+                ru.name as reply_sender_name,
+                ml.title as listing_title,
+                ml.price as listing_price,
+                ml.image_url as listing_image
+            FROM messages m
+            JOIN users u ON m.sender_id = u.user_id
+            LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+            LEFT JOIN users ru ON rm.sender_id = ru.user_id
+            LEFT JOIN marketplace_listings ml ON m.marketplace_listing_id = ml.listing_id
+            WHERE ${scopeClause}
+              AND (m.expires_at IS NULL OR m.expires_at > CURRENT_TIMESTAMP)
+              AND m.message_id NOT IN (SELECT message_id FROM message_deletions WHERE user_id = ?)
+              AND m.message_id NOT IN (SELECT message_id FROM message_hidden WHERE user_id = ?)
+              ${cursorClause}
+            ${orderClause}
+            LIMIT ?
+        `;
+        const [rows] = await db.query(query, [...scopeParams, userId, userId, ...cursorParams, pageSize + 1]);
+
+        const hasMore = rows.length > pageSize;
+        let page = hasMore ? rows.slice(0, pageSize) : rows;
+        if (!fetchAfter) page = page.slice().reverse(); // back to ASC for rendering
+
+        const nextCursor = hasMore && page.length
+            ? (fetchAfter ? page[page.length - 1].server_sequence : page[0].server_sequence)
+            : null;
+
+        // Query chat privacy settings for all participants
+        const [privacyRows] = await db.query(
+            'SELECT user_id, allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ?',
+            [chatId]
+        );
+        const privacyMap = new Map();
+        (privacyRows || []).forEach(r => privacyMap.set(r.user_id, r));
+
+        // Ensure all dates are returned as ISO strings and permissions computed by PermissionEngine
+        const normalized = page.map(m => {
+            const senderPrivacy = privacyMap.get(m.sender_id) || {};
+            const permissions = PermissionEngine.computePermissions({
+                message: m,
+                senderPrivacy,
+                viewerUserId: userId
+            });
+            return {
+                ...m,
+                sent_at: (m.sent_at && !isNaN(new Date(m.sent_at).getTime())) ? new Date(m.sent_at).toISOString() : null,
+                read_at: (m.read_at && !isNaN(new Date(m.read_at).getTime())) ? new Date(m.read_at).toISOString() : null,
+                expires_at: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
+                expiresAt: (m.expires_at && !isNaN(new Date(m.expires_at).getTime())) ? new Date(m.expires_at).toISOString() : null,
+                reactions: typeof m.reactions === 'string' ? JSON.parse(m.reactions) : m.reactions,
+                permissions
+            };
+        });
+        return { chatId, messages: normalized, hasMore, nextCursor };
     }
 
     /**

@@ -41,9 +41,11 @@ export default function Connect() {
   const [searchQuery, setSearchQuery]   = useState('');
   const [offset, setOffset]             = useState(0);
   const [hasMore, setHasMore]           = useState(true);
+  const [error, setError]               = useState<string | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInitRef = useRef(false);
   const observer = useRef<IntersectionObserver | null>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   const lastUserRef = useCallback((node: HTMLDivElement) => {
     if (loading) return;
@@ -58,7 +60,12 @@ export default function Connect() {
 
   /* ── Data fetching ── */
   const fetchUsers = useCallback(async (isLoadMore = false) => {
-    if (!isLoadMore) setLoading(true);
+    // Cancel any in-flight request so a slow tab/search response can't clobber a newer one.
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    if (!isLoadMore) { setLoading(true); setError(null); }
     else setLoadingMore(true);
     try {
       const params: Record<string, string | number> = { 
@@ -67,7 +74,7 @@ export default function Connect() {
         limit: 20
       };
       if (searchQuery) params.q = searchQuery;
-      const res = await api.get('/users/suggestions', { params });
+      const res = await api.get('/users/suggestions', { params, signal: controller.signal });
       const newUsers = res.data.suggestions || res.data.users || res.data || [];
       
       if (isLoadMore) {
@@ -80,19 +87,28 @@ export default function Connect() {
         setUsers(newUsers);
       }
       setHasMore(newUsers.length === 20);
-    } catch {
-      if (!isLoadMore) setUsers([]);
+    } catch (err: any) {
+      if (controller.signal.aborted || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') return;
+      if (!isLoadMore) {
+        setUsers([]);
+        setError('Could not load people right now. Check your connection and try again.');
+      }
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (abortRef.current === controller) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   }, [activeTab, searchQuery, offset]);
 
   // Reset and fetch on tab/search change
   useEffect(() => {
+    setUsers([]);
     setOffset(0);
     setHasMore(true);
+    setError(null);
     fetchUsers(false);
+    return () => { abortRef.current?.abort(); };
   }, [activeTab]);
 
   // Load more when offset changes (if > 0)
@@ -106,8 +122,10 @@ export default function Connect() {
     if (!searchInitRef.current) { searchInitRef.current = true; return; } // skip mount — tab effect already fetches
     if (searchTimeout.current) clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => {
+      setUsers([]);
       setOffset(0);
       setHasMore(true);
+      setError(null);
       fetchUsers(false);
     }, 400);
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
@@ -180,15 +198,33 @@ export default function Connect() {
               ))}
             </div>
           ) : users.length === 0 ? (
-            <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
-              <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
-                <Search size={40} className="text-black/20 dark:text-white/10" />
+            error ? (
+              <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
+                <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
+                  <Compass size={40} className="text-black/20 dark:text-white/10" />
+                </div>
+                <div className="space-y-3 px-4">
+                  <h3 className="text-2xl font-black text-black dark:text-white italic">CONNECTION LOST</h3>
+                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
+                </div>
+                <button
+                  onClick={() => fetchUsers(false)}
+                  className="px-8 h-12 bg-primary text-white rounded-full font-black text-[12px] uppercase tracking-widest shadow-lg shadow-primary/20 hover:scale-105 transition-all active:scale-95"
+                >
+                  Retry
+                </button>
               </div>
-              <div className="space-y-3 px-4">
-                <h3 className="text-2xl font-black text-black dark:text-white italic">NO RESULTS FOUND</h3>
-                <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
+            ) : (
+              <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
+                <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
+                  <Search size={40} className="text-black/20 dark:text-white/10" />
+                </div>
+                <div className="space-y-3 px-4">
+                  <h3 className="text-2xl font-black text-black dark:text-white italic">NO RESULTS FOUND</h3>
+                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
+                </div>
               </div>
-            </div>
+            )
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {users.map((u, idx) => (
@@ -219,12 +255,6 @@ export default function Connect() {
           )}
         </div>
       </main>
-
-      <style>{`
-        
-        
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-      `}</style>
     </div>
   );
 }

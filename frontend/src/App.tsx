@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
+import { App as CapApp } from '@capacitor/app';
 import { OtaKit } from '@otakit/capacitor-updater';
 import { useUserStore } from './store/userStore';
 import { authApi } from './api/api';
@@ -19,7 +20,7 @@ import { CameraProvider } from './components/camera/CameraProvider';
 import { NetworkStatusProvider } from './components/NetworkStatusProvider';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { DialogHost } from './components/ui/DialogHost';
-import { MockCallProvider } from './components/MockCallProvider';
+import { CallProvider } from './components/CallProvider';
 import './context/SocketProvider';
 import { SoundProvider, handleNotificationSound } from './context/SoundProvider';
 import { CallOverlay } from './components/CallOverlay';
@@ -309,6 +310,28 @@ function App() {
     });
   }, [hydrated]);
 
+  // ── Android back button: navigate back in-app instead of exiting ──
+  // Guarded: APKs older than the @capacitor/app plugin lack the native
+  // implementation — the call rejects and must not break the session.
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+    const ROOT_PATHS = ['/dashboard', '/login', '/'];
+    let handle: { remove(): Promise<void> } | null = null;
+    CapApp.addListener('backButton', ({ canGoBack }) => {
+      const path = window.location.pathname;
+      const isRoot = ROOT_PATHS.some(p => path === p || path.startsWith(p + '/'));
+      if (!isRoot && canGoBack) {
+        window.history.back();
+      } else {
+        // On root screen: minimize instead of killing the process
+        CapApp.minimizeApp().catch(() => { });
+      }
+    }).then(h => { handle = h; }).catch(err => {
+      logger.warn('[BackButton] plugin unavailable (old APK?):', err);
+    });
+    return () => { handle?.remove().catch(() => { }); };
+  }, []);
+
   // ── Upload Manager: Initialize once after hydration ──
   useEffect(() => {
     if (!hydrated || !isAuthenticated || uploadManagerInitRef.current) return;
@@ -452,7 +475,7 @@ function App() {
           <OfflineIndicator />
           <DialogHost />
           <GlobalThemeProvider>
-            <MockCallProvider>
+            <CallProvider>
               <div className="app no-scrollbar">
                   <LoadingBar />
                   <GlobalEffects />
@@ -537,7 +560,7 @@ function App() {
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
                     <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
-                    <Route path="/admin/storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
+                    <Route path="/admin/storage" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <StorageIntelligencePanel />) : <Navigate to="/login" />} />
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
                     <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id/settings" element={isAuthenticated ? <GroupAdmin /> : <Navigate to="/login" />} />
@@ -620,7 +643,7 @@ function App() {
                     </Routes>
                   </Suspense>
                 </div>
-            </MockCallProvider>
+            </CallProvider>
           </GlobalThemeProvider>
         </NetworkStatusProvider>
       </CameraProvider>

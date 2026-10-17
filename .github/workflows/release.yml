@@ -1,0 +1,135 @@
+# Runs automatically on every push to main that touches the app.
+# - OTA: builds the web bundle and releases it to the OtaKit base channel
+# - APK: builds the APK, attaches it to the rolling "latest" GitHub Release
+#        twice: versioned (sparkle-x.y.z.apk) and fixed-name (sparkle.apk —
+#        the permanent download link for new users' first install).
+#
+# REQUIRED SETUP (one time): add the OTAKIT_TOKEN repo secret.
+#   Repo on GitHub → Settings → Secrets and variables → Actions → New secret
+#   Name: OTAKIT_TOKEN   Value: otakit_sk_... (from your OtaKit dashboard/CLI login)
+#   Without it the OTA step is skipped (APK still builds).
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'android/**'
+      - 'capacitor.config.json'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/release.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      OTAKIT_TOKEN: ${{ secrets.OTAKIT_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root deps (Capacitor CLI)
+        run: npm ci --no-audit --no-fund
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Build web bundle
+        working-directory: frontend
+        env:
+          # Baked into the bundle so APK/OTA builds never fall back to
+          # relative /api (which resolves to localhost in the webview).
+          VITE_API_URL: https://sparkle-version-003-1-f4v3.onrender.com/api
+          VITE_SOCKET_URL: https://sparkle-version-003-1-f4v3.onrender.com
+        run: npx vite build
+
+      - name: Sync Capacitor (picks up new native plugins)
+        run: npx cap sync android
+
+      - name: Release OTA bundle to OtaKit base channel
+        if: env.OTAKIT_TOKEN != ''
+        run: npx -y @otakit/cli upload --release
+
+      - name: Warn when OTA token missing
+        if: env.OTAKIT_TOKEN == ''
+        run: echo "::warning::OTAKIT_TOKEN secret not set — OTA bundle NOT released. Add it in repo Settings → Secrets → Actions."
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      # local.properties is committed with a Windows sdk.dir path; remove it so
+      # the runner's ANDROID_HOME is used instead. gradle.properties carries
+      # required build flags (android.useAndroidX) — assert it's present so a
+      # future .gitignore regression fails loudly here, not deep in gradle.
+      - name: Prepare Android project
+        run: |
+          rm -f android/local.properties
+          chmod +x android/gradlew
+          test -f android/gradle.properties || {
+            echo "android/gradle.properties missing — writing required build flags"
+            printf 'android.useAndroidX=true\nandroid.enableJetifier=true\n' > android/gradle.properties
+          }
+          grep -q 'android.useAndroidX' android/gradle.properties
+
+      - name: Build debug APK
+        working-directory: android
+        run: ./gradlew app:assembleDebug --console=plain
+
+      # The versioned APK keeps the version visible in the filename; the
+      # fixed-name copy gives users a permanent link that never changes:
+      #   .../releases/download/latest/sparkle.apk
+      - name: Create fixed-name copy for the permanent link
+        run: cp android/app/build/outputs/apk/debug/sparkle-*.apk android/app/build/outputs/apk/debug/sparkle.apk
+
+      # The release is rolling: strip previous APK assets so it always holds
+      # exactly one current build (otherwise a versionName bump would leave
+      # the old sparkle-x.y.z.apk sitting next to the new one).
+      - name: Remove previous APK assets from release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          release_id=$(gh api "repos/${{ github.repository }}/releases/tags/latest" --jq .id 2>/dev/null || true)
+          if [ -n "$release_id" ]; then
+            gh api "repos/${{ github.repository }}/releases/$release_id/assets" --jq '.[].id' | \
+              xargs -r -I{} gh api -X DELETE "repos/${{ github.repository }}/releases/assets/{}"
+          fi
+
+      - name: Publish APK to rolling "latest" release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Sparkle – Latest Build
+          prerelease: true
+          body: >
+            Rolling build of Sparkle, rebuilt on every push to main.
+
+            Permanent download link (always the current build):
+            https://github.com/DonBabu-ux/sparkle-version-003/releases/download/latest/sparkle.apk
+
+            Install once — all future updates arrive automatically over the air
+            (OtaKit). Requires Android 8.0+.
+          files: |
+            android/app/build/outputs/apk/debug/sparkle-*.apk
+            android/app/build/outputs/apk/debug/sparkle.apk

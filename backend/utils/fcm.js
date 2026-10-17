@@ -43,6 +43,15 @@ const ANDROID_CHANNEL_BY_TYPE = {
     reminder: 'system',
 };
 
+// ── Tray styling (shared by every push) ──
+// Small icon: drawable/ic_notification.xml — white silhouette; the platform
+// tints it with NOTIFICATION_COLOR on the material circle.
+// Large icon: the Sparkle mark, shown at the right of the expanded
+// notification (this is the "app icon in the notification").
+const NOTIFICATION_ICON = 'ic_notification';
+const NOTIFICATION_COLOR = '#FF1493';
+const BRAND_IMAGE_URL = 'https://sparkleweb.app.vercel.app/sparklelogo.png';
+
 const sendFcmNotification = async (tokens, title, body, data = {}) => {
     if (!admin) {
         logger.warn('FCM: Cannot send notification. Firebase Admin not initialized (Missing serviceAccountKey.json).');
@@ -66,7 +75,16 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
         android: {
             priority: 'high',
             notification: {
-                channel_id: ANDROID_CHANNEL_BY_TYPE[stringifiedData.type] || 'system'
+                channel_id: ANDROID_CHANNEL_BY_TYPE[stringifiedData.type] || 'system',
+                icon: NOTIFICATION_ICON,
+                color: NOTIFICATION_COLOR,
+                image: data.image ? String(data.image) : BRAND_IMAGE_URL,
+                // Hide message content on the lock screen (Android default
+                // for FCM is "public"; keep previews private).
+                visibility: 'private',
+                // Group consecutive notifications of the same event so a
+                // retry doesn't stack duplicates in the tray.
+                tag: stringifiedData.eventId ? String(stringifiedData.eventId) : undefined
             }
         },
         tokens: Array.isArray(tokens) ? tokens : [tokens]

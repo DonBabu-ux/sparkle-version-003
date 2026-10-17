@@ -3,6 +3,7 @@ import { Sparkles, Search } from 'lucide-react';
 import './SparkleAIScreen.css';
 import { useState } from 'react';
 import { useUserStore } from '../../store/userStore';
+import { EnvironmentService } from '../../services/EnvironmentService';
 
 export default function SparkleAIScreen() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function SparkleAIScreen() {
     setMessages((prev) => [...prev, userMsg]);
     setLoading(true);
     try {
-      const res = await fetch('/api/ai/chat', {
+      const res = await fetch(`${EnvironmentService.getApiBaseUrl()}/ai/chat`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

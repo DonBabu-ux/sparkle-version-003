@@ -85,6 +85,12 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
           title: title || 'Sparkle',
           body: body || '',
           channelId: channelForType(type),
+          // Tray styling — mirrors the FCM payload (backend/utils/fcm.js):
+          // white sparkle silhouette tinted brand pink, Sparkle mark as the
+          // large icon on the right of the expanded notification.
+          smallIcon: 'ic_notification',
+          iconColor: '#FF1493',
+          largeIcon: 'https://sparkleweb.app.vercel.app/sparklelogo.png',
           extra,
         },
       ],

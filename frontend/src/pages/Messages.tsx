@@ -56,8 +56,8 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, Orbit, X, User, Palette, Pin, Star, Eraser, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings } from 'lucide-react';
-import { useCall } from '../components/MockCallProvider';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, Orbit, X, User, Palette, Pin, Star, Eraser, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2 } from 'lucide-react';
+import { useCall } from '../components/CallProvider';
 import { getAvatarUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';
@@ -1095,6 +1095,43 @@ async function uploadFileWithProgress(fileOrUrl, onProgress) {
 
 const EMPTY_MESSAGES_ARRAY: any[] = [];
 
+// Incremental chat loading — keep the initial window small so opening a chat
+// never waits on the full history.
+const CHAT_PAGE_SIZE = 30;
+// Max extra pages fetched forward when the first unread message is far below
+// the latest window (unread catch-up stays bounded).
+const MAX_UNREAD_PAGES = 5;
+// Distance from the top of the list (px) that triggers older-page loading.
+const OLDER_PAGE_THRESHOLD_PX = 200;
+
+const messageSortKey = (m: any): number => {
+  const seq = Number(m?.server_sequence);
+  if (Number.isFinite(seq)) return seq;
+  const t = new Date(m?.sent_at || m?.createdAt || m?.created_at || 0).getTime();
+  return Number.isFinite(t) ? t / 1000 : 0;
+};
+
+const sortMessagesAsc = (msgs: any[]): any[] =>
+  [...msgs].sort((a, b) => {
+    const d = messageSortKey(a) - messageSortKey(b);
+    if (d !== 0) return d;
+    return String(a?.message_id || '').localeCompare(String(b?.message_id || ''));
+  });
+
+// Dedupe by message_id (incoming/server wins) then sort ascending.
+const mergeMessageLists = (base: any[], incoming: any[]): any[] => {
+  const map = new Map<string, any>();
+  for (const m of base || []) {
+    const id = m?.message_id ?? m?.id;
+    if (id != null) map.set(String(id), m);
+  }
+  for (const m of incoming || []) {
+    const id = m?.message_id ?? m?.id;
+    if (id != null) map.set(String(id), m);
+  }
+  return sortMessagesAsc(Array.from(map.values()));
+};
+
 export default function Messages() {
   const { user } = useUserStore();
   useModalStore();
@@ -1458,8 +1495,10 @@ export default function Messages() {
 
   const chatId = selectedChat?.chat_id ?? '';
   const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
+  const paging = useChatStore(state => (chatId ? state.chatPaging[chatId] : undefined));
   const socketStatus = useChatStore(state => state.socketStatus);
   const setStoreMessages = useChatStore(state => state.setMessages);
+  const setChatPaging = useChatStore(state => state.setChatPaging);
   useChatStore(state => state.addMessage);
   useChatStore(state => state.editMessage);
   const deleteMessageLocal = useChatStore(state => state.deleteMessageLocal);
@@ -1540,16 +1579,46 @@ export default function Messages() {
   useEffect(() => {
     const handleJumpToMessage = (e: any) => {
       const targetMsgId = e.detail?.messageId;
-      if (targetMsgId) {
-        setTimeout(() => {
-          const el = document.getElementById(`msg-${targetMsgId}`);
-          if (el) {
-            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
-            setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2500);
+      if (!targetMsgId) return;
+
+      const attemptScroll = () => {
+        const el = document.getElementById(`msg-${targetMsgId}`);
+        if (!el) return false;
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+        setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2500);
+        return true;
+      };
+
+      setTimeout(async () => {
+        if (attemptScroll()) return;
+        // Not in the loaded window — fetch the page containing it (anchor) and retry.
+        // Uses the store directly (this handler outlives renders; no stale closures).
+        const store = useChatStore.getState();
+        const currentChatId = store.activeConversationId || '';
+        if (!currentChatId) return;
+        try {
+          const res = await api.get(
+            `/messages/chat/${currentChatId}?limit=${CHAT_PAGE_SIZE}&anchor=${encodeURIComponent(targetMsgId)}`
+          );
+          const page: any[] = Array.isArray(res.data?.data) ? res.data.data : [];
+          if (page.length === 0) return;
+          const current = store.messagesByConversation[currentChatId] || [];
+          store.setMessages(currentChatId, mergeMessageLists(current, page));
+          const seqs = page.map(m => Number(m.server_sequence)).filter(n => Number.isFinite(n));
+          const meta = useChatStore.getState().chatPaging[currentChatId];
+          if (seqs.length) {
+            const minSeq = Math.min(...seqs);
+            store.setChatPaging(currentChatId, {
+              oldestCursor: meta?.oldestCursor != null ? Math.min(meta.oldestCursor, minSeq) : minSeq,
+              hasMoreOlder: meta?.hasMoreOlder ?? !!res.data?.hasMore ?? true,
+            });
           }
-        }, 300);
-      }
+          setTimeout(() => attemptScroll(), 250);
+        } catch (err) {
+          logger.error('jump-to-message anchor fetch failed', err);
+        }
+      }, 300);
     };
     window.addEventListener('sparkle:jump-to-message', handleJumpToMessage);
     return () => window.removeEventListener('sparkle:jump-to-message', handleJumpToMessage);
@@ -1948,6 +2017,7 @@ export default function Messages() {
   
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesListRef = useRef<HTMLDivElement>(null);
 
   
 
@@ -2142,31 +2212,127 @@ export default function Messages() {
   const fetchMessages = async (chatId: string) => {
     setLoadingMessages(true);
     setMessagesError(false);
-    // 1. Show cached messages immediately for instant UI (cache disabled, using empty array)
-    const cached: any[] = [];
-    if (cached && cached.length > 0) {
-      setStoreMessages(chatId, cached);
-      scrollToBottom();
-    }
-
-    // 2. Fetch fresh from network
     try {
-      const res = await api.get(`/messages/chat/${chatId}`);
+      // Latest window only — never the full history.
+      const res = await api.get(`/messages/chat/${chatId}?limit=${CHAT_PAGE_SIZE}`);
       const msgs = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-      // Deduplicate: merge server list with any optimistic local msgs
+      const hasMore = !!res.data?.hasMore;
+      const firstUnreadSeq = res.data?.firstUnreadSeq != null ? Number(res.data.firstUnreadSeq) : null;
+      const firstUnreadId: string | null = res.data?.firstUnreadId || null;
+
+      let windowMsgs: any[] = msgs;
+      let hasMoreOlder = hasMore;
+
+      // Unread-anchor catch-up: if the first unread message is older than the
+      // latest window, page forward from it (bounded) so the chat opens AT the
+      // unread marker instead of at the bottom. The resulting window is kept
+      // hole-free: the latest window is only merged in when the forward fill
+      // actually reaches it.
+      if (firstUnreadSeq != null && firstUnreadId && !msgs.some((m: any) => Number(m.server_sequence) >= firstUnreadSeq)) {
+        try {
+          const anchorRes = await api.get(
+            `/messages/chat/${chatId}?limit=${CHAT_PAGE_SIZE}&anchor=${encodeURIComponent(firstUnreadId)}`
+          );
+          const anchorMsgs = Array.isArray(anchorRes.data?.data) ? anchorRes.data.data : [];
+          if (anchorMsgs.length > 0) {
+            hasMoreOlder = !!anchorRes.data?.hasMore;
+            const latestOldestSeq = msgs.length ? Number(msgs[0].server_sequence) : Infinity;
+            let forward: any[] = [];
+            let contSeq = Number(anchorMsgs[anchorMsgs.length - 1].server_sequence);
+            let reached = anchorMsgs.some((m: any) => Number(m.server_sequence) >= latestOldestSeq);
+            for (let i = 0; i < MAX_UNREAD_PAGES && !reached; i++) {
+              const pageRes = await api.get(`/messages/chat/${chatId}?limit=${CHAT_PAGE_SIZE}&after=${contSeq}`);
+              const page: any[] = Array.isArray(pageRes.data?.data) ? pageRes.data.data : [];
+              if (page.length === 0) break;
+              forward = forward.concat(page);
+              contSeq = Number(page[page.length - 1].server_sequence);
+              reached = page.some((m: any) => Number(m.server_sequence) >= latestOldestSeq);
+              if (!pageRes.data?.hasMore) break;
+            }
+            windowMsgs = reached
+              ? mergeMessageLists(mergeMessageLists(anchorMsgs, forward), msgs)
+              : mergeMessageLists(anchorMsgs, forward);
+          }
+        } catch (anchorErr) {
+          logger.error('Unread-anchor catch-up failed, using latest window', anchorErr);
+        }
+      }
+
+      // Merge server window with any optimistic local msgs still sending/failed
       updateMessages(prev => {
-        const serverIds = new Set(msgs.map((m: any) => m.message_id));
-        const localOnly = prev.filter(m => !serverIds.has(m.message_id));
-        return [...msgs, ...localOnly];
+        const serverIds = new Set(windowMsgs.map((m: any) => m.message_id));
+        const localOnly = prev.filter(
+          m => !serverIds.has(m.message_id) && (m.status === 'sending' || m.status === 'failed')
+        );
+        return mergeMessageLists(windowMsgs, localOnly);
+      });
+      const seqs = windowMsgs.map(m => Number(m.server_sequence)).filter(n => Number.isFinite(n));
+      setChatPaging(chatId, {
+        hasMoreOlder,
+        oldestCursor: seqs.length ? Math.min(...seqs) : null,
+        isLoadingOlder: false,
       });
       setMessagesError(false);
-      scrollToBottom();
+
+      // Land at the first unread message when it's inside the loaded window;
+      // otherwise land at the bottom.
+      if (firstUnreadId && windowMsgs.some((m: any) => m.message_id === firstUnreadId)) {
+        setTimeout(() => {
+          const el = document.getElementById(`msg-${firstUnreadId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'auto', block: 'center' });
+            el.classList.add('ring-2', 'ring-purple-500', 'bg-purple-500/20');
+            setTimeout(() => el.classList.remove('ring-2', 'ring-purple-500', 'bg-purple-500/20'), 2000);
+          } else {
+            scrollToBottom('auto');
+          }
+        }, 350);
+      } else {
+        scrollToBottom();
+      }
     } catch (err) {
       logger.error('Failed to fetch messages', err);
       setMessagesError(true);
     } finally {
       setLoadingMessages(false);
       setLoadedChatId(chatId);
+    }
+  };
+
+  const loadOlderMessages = async () => {
+    if (!chatId) return;
+    const meta = useChatStore.getState().chatPaging[chatId];
+    if (!meta || !meta.hasMoreOlder || meta.isLoadingOlder || meta.oldestCursor == null) return;
+    const container = messagesListRef.current;
+    const prevScrollHeight = container?.scrollHeight ?? 0;
+    const prevScrollTop = container?.scrollTop ?? 0;
+    setChatPaging(chatId, { isLoadingOlder: true });
+    try {
+      const res = await api.get(
+        `/messages/chat/${chatId}?limit=${CHAT_PAGE_SIZE}&before=${meta.oldestCursor}`
+      );
+      const older = Array.isArray(res.data?.data) ? res.data.data : [];
+      if (older.length > 0) {
+        updateMessages(prev => mergeMessageLists(prev, older));
+        const olderSeqs = older.map(m => Number(m.server_sequence)).filter(n => Number.isFinite(n));
+        setChatPaging(chatId, {
+          hasMoreOlder: !!res.data?.hasMore,
+          oldestCursor: olderSeqs.length
+            ? Math.min(meta.oldestCursor, ...olderSeqs)
+            : meta.oldestCursor,
+          isLoadingOlder: false,
+        });
+        // Preserve the viewport: content above grew by the height delta.
+        requestAnimationFrame(() => {
+          const el = messagesListRef.current;
+          if (el) el.scrollTop = el.scrollHeight - prevScrollHeight + prevScrollTop;
+        });
+      } else {
+        setChatPaging(chatId, { hasMoreOlder: false, isLoadingOlder: false });
+      }
+    } catch (err) {
+      logger.error('Failed to load older messages', err);
+      setChatPaging(chatId, { isLoadingOlder: false });
     }
   };
 
@@ -2354,7 +2520,15 @@ export default function Messages() {
   }, [socket, user?.id, user?.user_id]);
 
   const scrollToBottom = (behavior: ScrollBehavior = 'auto') => {
-    messagesEndRef.current?.scrollIntoView({ behavior });
+    // Scroll the message list container directly — scrollIntoView would also
+    // scroll outer ancestors (AppScreen wrapper, window) causing the whole
+    // page to jump when the keyboard opens.
+    const container = messagesListRef.current;
+    if (container) {
+      container.scrollTo({ top: container.scrollHeight, behavior });
+    } else {
+      messagesEndRef.current?.scrollIntoView({ behavior });
+    }
     setUnreadCountInChat(0);
   };
 
@@ -2376,11 +2550,23 @@ export default function Messages() {
     return () => vv.removeEventListener('resize', handleResize);
   }, [selectedChat?.chat_id]);
 
-  // Trigger UI side effects when new messages are added to the store for this active conversation
+  // Trigger UI side effects when a genuinely NEW message is appended for this
+  // active conversation. Keyed on the last message id (not length) so older-
+  // page prepends never re-trigger animations / unread bumps / scroll.
+  const lastMessageId = messages[messages.length - 1]?.message_id;
+  const lastSideEffectRef = useRef<{ chatId?: string; msgId?: string }>({});
   useEffect(() => {
     if (!messages || messages.length === 0 || !selectedChat) return;
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg) return;
+
+    const prev = lastSideEffectRef.current;
+    lastSideEffectRef.current = { chatId: selectedChat.chat_id, msgId: lastMsg.message_id };
+    // Same last message as before — a prepend/paging merge, not a new arrival.
+    if (prev.chatId === selectedChat.chat_id && prev.msgId === lastMsg.message_id) return;
+    // First window for this chat: fetchMessages owns positioning (unread anchor
+    // or bottom) — don't yank the view with a competing smooth scroll.
+    if (prev.chatId !== selectedChat.chat_id) return;
 
     const myId = user?.id || user?.user_id;
     const isMe = lastMsg.sender_id === myId;
@@ -2408,7 +2594,7 @@ export default function Messages() {
     } else if (!isMe) {
       setUnreadCountInChat(prev => prev + 1);
     }
-  }, [messages.length, selectedChat?.chat_id]);
+  }, [lastMessageId, selectedChat?.chat_id]);
 
   const triggerWordEffect = (content: string) => {
     if (!selectedChat) return;
@@ -3049,6 +3235,11 @@ export default function Messages() {
     setShowScrollToBottom(!nearBottom);
     if (nearBottom) setUnreadCountInChat(0);
 
+    // Near the top → page in older messages (guarded + deduped in the store)
+    if (scrollTop < OLDER_PAGE_THRESHOLD_PX) {
+      loadOlderMessages();
+    }
+
     // Mark as scrolling — debounce the stop signal 300ms after last scroll event
     // This dims header presence text ONLY during active scrolling, then restores it.
     // No looping timers: purely reactive to user input.
@@ -3437,7 +3628,7 @@ export default function Messages() {
   };
 
   return (
-    <AppScreen>
+    <AppScreen scrollable={false}>
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
 
@@ -3945,7 +4136,12 @@ export default function Messages() {
                 )}
               </AnimatePresence>
 
-              <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
+              <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
+                {paging?.isLoadingOlder && (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                  </div>
+                )}
                 {(() => {
                   const partnerName = (sanitizePartnerName(selectedChat?.partner_name || selectedChat?.display_name || selectedChat?.name, selectedChat?.partner_username || selectedChat?.username) || '').toLowerCase();
                   const partnerUsername = (selectedChat?.partner_username || selectedChat?.username || '').toLowerCase();

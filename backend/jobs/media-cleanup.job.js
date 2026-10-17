@@ -30,6 +30,43 @@ const expireStories = async () => {
     }
 };
 
+// 1b. Purge expired story ROWS from the database.
+// Stories are publicly invisible after 24h (read-time filter), but nothing
+// ever deleted the rows, so the table and its children grew without bound.
+// A 7-day grace keeps the Archive modal useful right after expiry; after
+// that the rows are removed unless they are kept alive by:
+//   - a highlight (user-curated, must outlive the 24h window)
+//   - a story-reply DM (message thread context)
+//   - save_to_archive = 1 (explicit user opt-in)
+// Children (likes/views/shares/reactions/stickers) cascade via FK.
+// story_comments has no FK and must be deleted manually.
+const purgeExpiredStories = async () => {
+    try {
+        const [expired] = await pool.query(
+            `SELECT s.story_id FROM stories s
+             WHERE s.created_at < NOW() - INTERVAL 7 DAY
+             AND COALESCE(s.save_to_archive, 0) = 0
+             AND NOT EXISTS (SELECT 1 FROM highlight_stories hs WHERE hs.story_id = s.story_id)
+             AND NOT EXISTS (SELECT 1 FROM messages m WHERE m.story_id = s.story_id)
+             LIMIT 500`
+        );
+        if (expired.length === 0) return;
+
+        const ids = expired.map(r => r.story_id);
+        // Chunk to keep the IN() list and packet size sane on large sweeps
+        for (let i = 0; i < ids.length; i += 100) {
+            const chunk = ids.slice(i, i + 100);
+            await pool.query(`DELETE FROM story_comments WHERE story_id IN (?)`, [chunk]);
+            const [del] = await pool.query(`DELETE FROM stories WHERE story_id IN (?)`, [chunk]);
+            if (del.affectedRows > 0) {
+                console.log(`[Media Job] Purged ${del.affectedRows} expired stories (chunk).`);
+            }
+        }
+    } catch (e) {
+        console.error('[Media Job Error] purgeExpiredStories:', e.message);
+    }
+};
+
 // 2. Physical Cleanup
 const executeCleanup = async () => {
     try {
@@ -65,8 +102,9 @@ const initMediaJobs = () => {
         console.log('--- Running Media Lifecycle Engine ---');
         await expireStories();
         await executeCleanup();
+        await purgeExpiredStories();
     });
     console.log('✅ Media Lifecycle Jobs Initialized.');
 };
 
-module.exports = { initMediaJobs };
+module.exports = { initMediaJobs, purgeExpiredStories };

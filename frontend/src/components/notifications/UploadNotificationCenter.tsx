@@ -256,7 +256,7 @@ export default function UploadNotificationCenter() {
                                 <div className="flex items-center gap-2 mt-2">
                                   {job.serverStoryId && (
                                     <button
-                                      onClick={() => navigate(`/stories/${job.serverStoryId}`)}
+                                      onClick={() => navigate(`/story/${job.serverStoryId}`)}
                                       className="inline-flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-[11px] font-black rounded-lg shadow-md transition-all active:scale-95"
                                     >
                                       View Story <span aria-hidden="true">→</span>

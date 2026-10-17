@@ -37,7 +37,10 @@ if (connection) {
                         const tokenList = tokens.map(t => t.token);
                         await sendFcmNotification(tokenList, data.title, data.content, { 
                             type, 
-                            url: data.url || '/' 
+                            url: data.url || '/',
+                            // Stable per-event id → FCM tray `tag` collapses
+                            // retries/duplicates of the same notification.
+                            eventId: eventId || undefined
                         });
                     }
                 } catch (fcmError) {

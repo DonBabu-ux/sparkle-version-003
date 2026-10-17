@@ -5,12 +5,13 @@ import realtimeLogger from '../utils/realtimeTrace';
 import { useUserStore } from '../store/userStore';
 import { refreshTokenOnce, ensureFreshAccessToken } from './tokenRefresh';
 import { decodeTokenPayload } from '../utils/tokenUtils';
+import { EnvironmentService } from './EnvironmentService';
 import { logger } from '../utils/logger';
 
-// Socket URL resolved from env vars at build time. Same-origin by default:
-// prod connects straight to Render; dev goes through the Vite /socket.io proxy.
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL ||
-  (typeof window !== 'undefined' ? window.location.origin : '');
+// Socket URL resolved via EnvironmentService: env var override, absolute Render
+// URL inside the native APK webview, same-origin in the browser (dev server
+// proxies /socket.io to 127.0.0.1:3000).
+const SOCKET_URL = EnvironmentService.getSocketUrl();
 
 let _socket: Socket | null = null;
 

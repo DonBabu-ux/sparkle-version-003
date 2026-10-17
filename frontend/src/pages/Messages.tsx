@@ -8,6 +8,7 @@ import { useChatStore } from '../store/chatStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
+import { clearNotificationForChat } from '../services/PushService';
 import AudioSessionManager from '../audio/managers/AudioSessionManager';
 import Navbar from '../components/Navbar';
 import { useSocket } from '../hooks/useSocket';
@@ -2382,6 +2383,9 @@ export default function Messages() {
       // The controller now stamps read_at, honours privacy settings, and re-emits
       // socket events so senders still get blue ticks after reconnection.
       api.post(`/messages/read/${selectedChat.chat_id}`).catch(() => {/* non-fatal */});
+
+      // Clear any tray/heads-up notifications for this conversation
+      clearNotificationForChat(selectedChat.chat_id);
 
       // Cleanly clear local unread count badge in sidebar list
       setConversations((prev: any[]) => prev.map(c => {

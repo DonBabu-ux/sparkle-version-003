@@ -79,10 +79,12 @@ class DeliveryQueueWorker {
             }
             const [pendingItems] = await db.query(`
                 SELECT dq.queue_id, dq.message_id, dq.recipient_id, dq.session_id, dq.attempts,
-                       m.chat_id, m.conversation_id, m.content, m.type, m.sender_id,
-                       m.sent_at, m.server_sequence
+                       m.chat_id, m.conversation_id, m.content, m.type, m.media_url, m.metadata, m.sender_id,
+                       m.sent_at, m.server_sequence,
+                       u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
                 FROM delivery_queue dq
                 JOIN messages m ON dq.message_id = m.message_id
+                JOIN users u ON m.sender_id = u.user_id
                 WHERE dq.next_retry_at <= NOW()
                 ORDER BY dq.next_retry_at
                 LIMIT 50
@@ -227,16 +229,80 @@ class DeliveryQueueWorker {
                         }
                         cycleAttemptedPush.add(pushKey);
                         const notificationService = require('../services/notification.service');
+                        const { buildMessageNotificationPayload } = require('../utils/notificationPayloadHelper');
+
+                        // Query recipient's notification & preview preferences
+                        let hidePreview = false;
+                        try {
+                            const [prefRows] = await db.query(
+                                'SELECT push_notifications, auto_suppress_notifications FROM users WHERE user_id = ? LIMIT 1',
+                                [item.recipient_id]
+                            );
+                            if (prefRows && prefRows[0]) {
+                                if (prefRows[0].push_notifications === 0 || prefRows[0].push_notifications === false) {
+                                    // User has explicitly turned off push notifications
+                                    await db.query('DELETE FROM delivery_queue WHERE queue_id = ?', [item.queue_id]);
+                                    continue;
+                                }
+                                if (prefRows[0].auto_suppress_notifications === 1) {
+                                    hidePreview = true;
+                                }
+                            }
+                        } catch (_) { }
+
+                        // Query unread count for this specific chat and total chats
+                        let unreadCountInChat = 1;
+                        let totalUnreadChats = 1;
+                        let totalUnreadMessages = 1;
+                        const activeChatId = item.chat_id || item.conversation_id;
+                        try {
+                            const [unreadInChatRows] = await db.query(`
+                                SELECT COUNT(*) as unread_count
+                                FROM messages
+                                WHERE (conversation_id = ? OR chat_id = ? OR personal_chat_id = ?)
+                                  AND recipient_id = ? AND is_read = 0
+                            `, [activeChatId, activeChatId, activeChatId, item.recipient_id]);
+                            unreadCountInChat = unreadInChatRows[0]?.unread_count || 1;
+
+                            const [totalUnreadRows] = await db.query(`
+                                SELECT COUNT(DISTINCT COALESCE(conversation_id, chat_id, personal_chat_id)) as chat_count,
+                                       COUNT(*) as total_count
+                                FROM messages
+                                WHERE recipient_id = ? AND is_read = 0
+                            `, [item.recipient_id]);
+                            totalUnreadChats = totalUnreadRows[0]?.chat_count || 1;
+                            totalUnreadMessages = totalUnreadRows[0]?.total_count || unreadCountInChat;
+                        } catch (_) { }
+
+                        const payload = buildMessageNotificationPayload({
+                            sender: {
+                                user_id: item.sender_id,
+                                name: item.sender_name,
+                                username: item.sender_username,
+                                avatar_url: item.sender_avatar
+                            },
+                            message: {
+                                message_id: item.message_id,
+                                chat_id: activeChatId,
+                                conversation_id: item.conversation_id,
+                                content: item.content,
+                                type: item.type,
+                                media_url: item.media_url,
+                                metadata: item.metadata,
+                                sent_at: item.sent_at,
+                                server_sequence: item.server_sequence
+                            },
+                            unreadCountInChat,
+                            totalUnreadChats,
+                            totalUnreadMessages,
+                            hidePreview
+                        });
+
                         await notificationService.sendPush({
                             token: pushToken,
-                            title: 'New Message',
-                            body: item.type === 'text' ? item.content : `Sent a ${item.type}`,
-                            data: {
-                                type: 'message',
-                                chatId: item.chat_id || item.conversation_id,
-                                messageId: item.message_id,
-                                server_sequence: String(item.server_sequence)
-                            }
+                            title: payload.title,
+                            body: payload.body,
+                            data: payload.data
                         });
                         // Push is fire-and-forget: a successful send must REMOVE
                         // the queue row — never retry an already-delivered push.

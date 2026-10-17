@@ -17,6 +17,48 @@ let lastSyncKey: string | null = null;
  *  while foregrounded — the system tray takes over once the app is backgrounded. */
 const FOREGROUND_HEADS_UP_TYPES = new Set(['message', 'marketplace_contact', 'call']);
 
+// In-memory conversation aggregation for recent messages (Phase 3 & 4)
+interface RecentMessageRecord {
+  senderName: string;
+  preview: string;
+  timestamp: number;
+}
+const recentChatMessages = new Map<string, RecentMessageRecord[]>();
+
+/**
+ * Generate a deterministic, stable 31-bit positive integer ID for a chat notification.
+ * Retries and consecutive messages from the same chat update the existing notification card.
+ */
+function getStableNotificationId(key: string): number {
+  let hash = 0;
+  for (let i = 0; i < key.length; i++) {
+    hash = (hash << 5) - hash + key.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash) % 2_000_000_000 || 1;
+}
+
+const SUMMARY_NOTIFICATION_ID = 999_999_001;
+
+/**
+ * Clear notification(s) for a specific conversation when the user opens or reads it.
+ */
+export async function clearNotificationForChat(chatId: string): Promise<void> {
+  if (!Capacitor.isNativePlatform() || !chatId) return;
+  try {
+    recentChatMessages.delete(chatId);
+    const notifId = getStableNotificationId(`chat_${chatId}`);
+    await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+    
+    // If no more active chat messages, dismiss summary notification as well
+    if (recentChatMessages.size === 0) {
+      await LocalNotifications.cancel({ notifications: [{ id: SUMMARY_NOTIFICATION_ID }] }).catch(() => {});
+    }
+  } catch (err) {
+    logger.warn('[Push] clearNotificationForChat failed:', err);
+  }
+}
+
 /** Deep link target from an FCM/local notification data payload. */
 function urlFromData(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
@@ -27,73 +69,76 @@ function urlFromData(data: unknown): string | null {
   return null;
 }
 
-/** Ask the app router (App.tsx listens for this) to navigate. */
-function openUrl(url: string | null): void {
-  if (!url || !url.startsWith('/')) return;
-  window.dispatchEvent(new CustomEvent('sparkle:navigate', { detail: { url } }));
-}
-
-/** POST the cached device token for the CURRENT account (server reassigns
- *  the token to that account and detaches it from any other). */
-async function registerToken(): Promise<void> {
-  const authToken = useUserStore.getState().token;
-  const fcmToken = typeof localStorage !== 'undefined' ? localStorage.getItem(FCM_TOKEN_KEY) : null;
-  if (!authToken || !fcmToken) return;
-  try {
-    await api.post('/notifications/register-fcm-token', {
-      token: fcmToken,
-      deviceType: Capacitor.getPlatform(),
-    });
-    logger.log('[Push] FCM token registered for current account');
-  } catch (err) {
-    logger.warn('[Push] FCM token registration failed:', err);
-  }
-}
-
-/** Detach this device's token from `authToken`'s account (best-effort).
- *  Called from userStore.logout with the OUTGOING session token captured
- *  before the store is cleared. */
-export async function deregisterPushToken(authToken?: string | null): Promise<void> {
-  const bearer = authToken ?? useUserStore.getState().token;
-  let fcmToken: string | null = null;
-  try {
-    fcmToken = localStorage.getItem(FCM_TOKEN_KEY);
-  } catch { /* storage unavailable */ }
-  if (!bearer || !fcmToken) return;
-  try {
-    await api.post(
-      '/notifications/deregister-fcm-token',
-      { token: fcmToken },
-      { headers: { Authorization: `Bearer ${bearer}` } }
-    );
-    logger.log('[Push] FCM token deregistered for outgoing session');
-  } catch (err) {
-    logger.warn('[Push] FCM token deregistration failed:', err);
-  }
-}
-
 async function showForegroundHeadsUp(title: string | undefined, body: string | undefined, data: unknown): Promise<void> {
-  const type = data && typeof data === 'object' ? String((data as Record<string, unknown>).type || '') : '';
-  const extra: Record<string, unknown> =
-    data && typeof data === 'object' ? { ...(data as Record<string, unknown>) } : {};
+  const d = (data && typeof data === 'object' ? data : {}) as Record<string, unknown>;
+  const type = String(d.type || '');
+  const extra: Record<string, unknown> = { ...d };
   extra.url = urlFromData(data) || '';
+
+  const chatId = String(d.chatId || d.conversationId || '');
+  const senderName = String(d.senderName || title || 'Sparkle');
+  const preview = String(d.preview || body || '');
+  const senderAvatar = typeof d.senderAvatar === 'string' ? d.senderAvatar : undefined;
+  const mediaImage = typeof d.image === 'string' ? d.image : undefined;
+
+  // Track recent messages for this chat (keep up to 5)
+  if (chatId) {
+    const list = recentChatMessages.get(chatId) || [];
+    list.push({ senderName, preview, timestamp: Date.now() });
+    if (list.length > 5) list.shift();
+    recentChatMessages.set(chatId, list);
+  }
+
+  const notificationId = chatId ? getStableNotificationId(`chat_${chatId}`) : Math.floor(Date.now() % 1_000_000);
+  const unreadInChat = Number(d.unreadInChat) || (chatId && recentChatMessages.get(chatId)?.length) || 1;
+
+  // Format inbox list preview lines for expanded Android layout
+  const chatHistory = chatId ? recentChatMessages.get(chatId) || [] : [];
+  const inboxList: string[] = chatHistory.map(m => `${m.senderName}: ${m.preview}`).slice(-5);
+
+  let finalTitle = senderName;
+  let finalBody = preview;
+  if (unreadInChat > 1 && !finalBody.startsWith('(')) {
+    finalBody = `(${unreadInChat}) ${preview}`;
+  }
+
   try {
+    const notificationsToSchedule: any[] = [
+      {
+        id: notificationId,
+        title: finalTitle,
+        body: finalBody,
+        channelId: channelForType(type),
+        smallIcon: 'ic_notification',
+        iconColor: '#FF1493',
+        largeIcon: senderAvatar || 'https://sparkleweb.app.vercel.app/sparklelogo.png',
+        group: 'sparkle_messages',
+        inboxList: inboxList.length > 1 ? inboxList : undefined,
+        attachments: mediaImage ? [{ id: 'media_preview', url: mediaImage }] : undefined,
+        extra,
+      }
+    ];
+
+    // If unread messages arrive across multiple chats, show/update the group summary notification
+    if (recentChatMessages.size > 1) {
+      const totalChats = recentChatMessages.size;
+      let totalMsgs = 0;
+      recentChatMessages.forEach(arr => { totalMsgs += arr.length; });
+      notificationsToSchedule.push({
+        id: SUMMARY_NOTIFICATION_ID,
+        title: 'Sparkle Messages',
+        body: `${totalMsgs} new messages from ${totalChats} chats`,
+        channelId: 'messages',
+        smallIcon: 'ic_notification',
+        iconColor: '#FF1493',
+        group: 'sparkle_messages',
+        groupSummary: true,
+        extra: { url: '/messages' }
+      });
+    }
+
     await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: Math.floor(Date.now() % 1_000_000),
-          title: title || 'Sparkle',
-          body: body || '',
-          channelId: channelForType(type),
-          // Tray styling — mirrors the FCM payload (backend/utils/fcm.js):
-          // white sparkle silhouette tinted brand pink, Sparkle mark as the
-          // large icon on the right of the expanded notification.
-          smallIcon: 'ic_notification',
-          iconColor: '#FF1493',
-          largeIcon: 'https://sparkleweb.app.vercel.app/sparklelogo.png',
-          extra,
-        },
-      ],
+      notifications: notificationsToSchedule
     });
   } catch (err) {
     logger.warn('[Push] Foreground heads-up failed:', err);

@@ -82,9 +82,9 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
                 // Hide message content on the lock screen (Android default
                 // for FCM is "public"; keep previews private).
                 visibility: 'private',
-                // Group consecutive notifications of the same event so a
-                // retry doesn't stack duplicates in the tray.
-                tag: stringifiedData.eventId ? String(stringifiedData.eventId) : undefined
+                // Tag notifications per-chat or event so consecutive messages from the same
+                // conversation update the existing tray card instead of creating duplicate cards.
+                tag: stringifiedData.tag || (stringifiedData.chatId ? `chat_${stringifiedData.chatId}` : (stringifiedData.eventId ? String(stringifiedData.eventId) : undefined))
             }
         },
         tokens: Array.isArray(tokens) ? tokens : [tokens]

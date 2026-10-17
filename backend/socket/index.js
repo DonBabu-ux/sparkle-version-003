@@ -676,12 +676,36 @@ socket.on('get-rooms', () => {
                             // Push Notification queueing for offline recipient
                             const isOnline = userSockets.has(trueRecipientId) && userSockets.get(trueRecipientId).size > 0;
                             if (!isOnline) {
-                                await queuePushNotification(trueRecipientId, {
-                                    type: 'message',
-                                    title: socket.user.name,
-                                    body: type === 'text' ? content : `Sent a ${type}`,
-                                    data: { chatId: finalChatId, messageId }
-                                });
+                                try {
+                                    const { buildMessageNotificationPayload } = require('../utils/notificationPayloadHelper');
+                                    const payload = buildMessageNotificationPayload({
+                                        sender: {
+                                            user_id: socket.userId,
+                                            name: message.sender_name || socket.user?.name,
+                                            username: message.sender_username || socket.user?.username,
+                                            avatar_url: message.sender_avatar || socket.user?.avatar_url
+                                        },
+                                        message: {
+                                            message_id: messageId,
+                                            chat_id: finalChatId,
+                                            conversation_id: message.conversation_id,
+                                            content: message.content,
+                                            type: message.type,
+                                            media_url: message.media_url,
+                                            metadata: message.metadata,
+                                            sent_at: message.sent_at,
+                                            server_sequence: message.server_sequence
+                                        }
+                                    });
+                                    await queuePushNotification(trueRecipientId, {
+                                        type: 'message',
+                                        title: payload.title,
+                                        body: payload.body,
+                                        data: payload.data
+                                    });
+                                } catch (pushQueueErr) {
+                                    logger.warn('[Socket queuePushNotification error]:', pushQueueErr?.message || pushQueueErr);
+                                }
                             }
                         }
 

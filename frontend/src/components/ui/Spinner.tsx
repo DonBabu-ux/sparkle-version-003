@@ -7,10 +7,10 @@ interface SpinnerProps {
 }
 
 const sizeConfig = {
-  small: { box: 20, dot: 4, offset: 8 },
-  medium: { box: 32, dot: 6, offset: 12 },
-  large: { box: 44, dot: 8, offset: 16 },
-  xl: { box: 60, dot: 10, offset: 22 },
+  small: { box: 16, dot: 3, offset: 5 },
+  medium: { box: 22, dot: 4, offset: 7 },
+  large: { box: 30, dot: 5.5, offset: 10 },
+  xl: { box: 40, dot: 7, offset: 14 },
 };
 
 /**

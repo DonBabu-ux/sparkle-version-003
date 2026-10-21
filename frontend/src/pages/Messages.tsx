@@ -4,7 +4,7 @@ import { registerPlugin } from '@capacitor/core';
 
 import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
-import { useChatStore } from '../store/chatStore';
+import { useChatStore, sortMessagesChronologically } from '../store/chatStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
 import api from '../api/api';
@@ -1105,21 +1105,9 @@ const MAX_UNREAD_PAGES = 5;
 // Distance from the top of the list (px) that triggers older-page loading.
 const OLDER_PAGE_THRESHOLD_PX = 200;
 
-const messageSortKey = (m: any): number => {
-  const seq = Number(m?.server_sequence);
-  if (Number.isFinite(seq)) return seq;
-  const t = new Date(m?.sent_at || m?.createdAt || m?.created_at || 0).getTime();
-  return Number.isFinite(t) ? t / 1000 : 0;
-};
+const sortMessagesAsc = (msgs: any[]): any[] => sortMessagesChronologically(msgs);
 
-const sortMessagesAsc = (msgs: any[]): any[] =>
-  [...msgs].sort((a, b) => {
-    const d = messageSortKey(a) - messageSortKey(b);
-    if (d !== 0) return d;
-    return String(a?.message_id || '').localeCompare(String(b?.message_id || ''));
-  });
-
-// Dedupe by message_id (incoming/server wins) then sort ascending.
+// Dedupe by message_id with property merging then sort ascending chronologically.
 const mergeMessageLists = (base: any[], incoming: any[]): any[] => {
   const map = new Map<string, any>();
   for (const m of base || []) {
@@ -1128,9 +1116,27 @@ const mergeMessageLists = (base: any[], incoming: any[]): any[] => {
   }
   for (const m of incoming || []) {
     const id = m?.message_id ?? m?.id;
-    if (id != null) map.set(String(id), m);
+    if (id != null) {
+      const key = String(id);
+      const existing = map.get(key);
+      if (existing) {
+        map.set(key, {
+          ...existing,
+          ...m,
+          reply_to_message_id: m.reply_to_message_id ?? existing.reply_to_message_id,
+          reply_content: m.reply_content ?? existing.reply_content,
+          reply_sender_name: m.reply_sender_name ?? existing.reply_sender_name,
+          reply_type: m.reply_type ?? existing.reply_type,
+          reply_media_url: m.reply_media_url ?? existing.reply_media_url,
+          server_sequence: m.server_sequence ?? existing.server_sequence,
+          is_sparkly_bot: m.is_sparkly_bot ?? existing.is_sparkly_bot,
+        });
+      } else {
+        map.set(key, m);
+      }
+    }
   }
-  return sortMessagesAsc(Array.from(map.values()));
+  return sortMessagesChronologically(Array.from(map.values()));
 };
 
 export default function Messages() {
@@ -2259,14 +2265,8 @@ export default function Messages() {
         }
       }
 
-      // Merge server window with any optimistic local msgs still sending/failed
-      updateMessages(prev => {
-        const serverIds = new Set(windowMsgs.map((m: any) => m.message_id));
-        const localOnly = prev.filter(
-          m => !serverIds.has(m.message_id) && (m.status === 'sending' || m.status === 'failed')
-        );
-        return mergeMessageLists(windowMsgs, localOnly);
-      });
+      // Merge server window with existing local msgs (preserving optimistic, socket echo, and paged msgs)
+      updateMessages(prev => mergeMessageLists(prev, windowMsgs));
       const seqs = windowMsgs.map(m => Number(m.server_sequence)).filter(n => Number.isFinite(n));
       setChatPaging(chatId, {
         hasMoreOlder,
@@ -2765,8 +2765,18 @@ export default function Messages() {
               if (socket?.connected) {
                 socket.emit('send-message', payload, (response: any) => {
                   if (response?.success) {
+                    const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
                     updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                      ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
+                      ? {
+                          ...m,
+                          status: 'sent',
+                          sent_at: response.sentAt || m.sent_at,
+                          server_sequence: serverSeq ?? m.server_sequence,
+                          media_url: finalMediaUrl,
+                          mediaUrl: finalMediaUrl,
+                          message_id: response.messageId || m.message_id,
+                          id: response.messageId || m.id,
+                        }
                       : m
                     ));
                   } else {
@@ -2939,7 +2949,7 @@ export default function Messages() {
     // ── Step 3: Transmit via WebSocket if connected ──
     const emitStartTime = performance.now();
     if (socket?.connected) {
-      socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string }) => {
+      socket.emit('send-message', payload, (response: { success: boolean, messageId?: string, sentAt?: string, error?: string, server_sequence?: number }) => {
         const serverAckMs = Math.round(performance.now() - emitStartTime);
         const totalMs = Math.round(performance.now() - sendStartTime);
         logger.log(`[SPARKLE_MESSAGE_PERFORMANCE] messageId=${messageId} localRenderMs=${localRenderMs}ms serverAckMs=${serverAckMs}ms totalMs=${totalMs}ms STATUS:${response?.success ? 'PASS' : 'FAIL'}`);
@@ -2948,6 +2958,7 @@ export default function Messages() {
           if (selectedChat) {
             useChatStore.getState().setDraft(selectedChat.chat_id, '');
           }
+          const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
           updateMessages(prev => prev.map(m => m.message_id === messageId || m.id === messageId
             ? {
               ...m,
@@ -2955,12 +2966,23 @@ export default function Messages() {
               id: response.messageId!,
               status: 'sent',
               sent_at: response.sentAt || m.sent_at,
-              reply_to_message_id: currentReplyTo?.message_id || null,
-              reply_content: currentReplyTo?.content || null,
-              reply_type: currentReplyTo?.type || null
+              server_sequence: serverSeq ?? m.server_sequence,
+              reply_to_message_id: currentReplyTo?.message_id || m.reply_to_message_id || null,
+              reply_content: currentReplyTo?.content || m.reply_content || null,
+              reply_type: currentReplyTo?.type || m.reply_type || null,
+              reply_sender_name: currentReplyTo?.sender_name || currentReplyTo?.sender_username || m.reply_sender_name || null
             }
             : m
           ));
+          if (selectedChat) {
+            useChatStore.getState().updateMessage(selectedChat.chat_id, messageId, {
+              message_id: response.messageId!,
+              id: response.messageId!,
+              status: 'sent',
+              sent_at: response.sentAt,
+              server_sequence: serverSeq,
+            });
+          }
           setConversations((prev: any[]) => {
             const chatIndex = prev.findIndex(c => c.chat_id === selectedChat.chat_id);
             if (chatIndex >= 0) {
@@ -3139,9 +3161,17 @@ export default function Messages() {
         if (socket && socket.connected) {
           socket.emit('send-message', payload, (response: any) => {
             if (response?.success) {
+              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
               updateMessages(prev => prev.map(m =>
                 (m.message_id === clientMessageId || m.id === clientMessageId)
-                  ? { ...m, status: 'sent', sent_at: response.sentAt || m.sent_at }
+                  ? {
+                      ...m,
+                      status: 'sent',
+                      sent_at: response.sentAt || m.sent_at,
+                      server_sequence: serverSeq ?? m.server_sequence,
+                      message_id: response.messageId || m.message_id,
+                      id: response.messageId || m.id,
+                    }
                   : m
               ));
             } else {
@@ -4373,13 +4403,28 @@ export default function Messages() {
                                           break;
                                       }
                                     }
+                                  } else if (!replyContent) {
+                                    replyContent = 'Replied to a message';
                                   }
                                 }
 
                                 if (!replyContent) return null;
 
                                 return (
-                                  <div className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex items-center gap-2">
+                                  <div
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      if (msg.reply_to_message_id) {
+                                        const el = document.getElementById(`msg-${msg.reply_to_message_id}`);
+                                        if (el) {
+                                          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                          el.classList.add('ring-2', 'ring-purple-400', 'bg-purple-500/20');
+                                          setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400', 'bg-purple-500/20'), 1500);
+                                        }
+                                      }
+                                    }}
+                                    className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex items-center gap-2 cursor-pointer hover:bg-black/30 transition-colors"
+                                  >
                                     {(replyType === 'image' || replyType === 'photo' || replyType === 'gif') && replyMediaUrl && (
                                       <img src={replyMediaUrl} alt="preview" className="w-[30px] h-[30px] object-cover rounded shrink-0" />
                                     )}

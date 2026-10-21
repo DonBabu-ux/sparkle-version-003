@@ -538,8 +538,9 @@ class WalletService {
             }
 
             // Standard failure: mark withdrawal failed, refund balance
+            let connection;
             try {
-                const connection = await pool.getConnection();
+                connection = await pool.getConnection();
                 await connection.beginTransaction();
                 await connection.query(
                     "UPDATE wallet_withdrawals SET status = 'Failed' WHERE withdrawal_id = ?",
@@ -558,9 +559,13 @@ class WalletService {
                     [internalRef]
                 );
                 await connection.commit();
-                connection.release();
             } catch (refundErr) {
+                if (connection) {
+                    try { await connection.rollback(); } catch (_) {}
+                }
                 logger.error('[WalletService] Could not refund failed withdrawal:', refundErr.message);
+            } finally {
+                if (connection) connection.release();
             }
         }
     }

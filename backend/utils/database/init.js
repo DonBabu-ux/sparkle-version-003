@@ -2679,7 +2679,9 @@ const initPerfIndexes = async () => {
         ['capture_notifications', 'idx_cn_recipient', 'recipient_user_id, created_at'],
         ['notifications', 'idx_notif_user_created', 'user_id, created_at'],
         // M15: notification platform category index
-        ['notifications', 'idx_user_category', 'user_id, category']
+        ['notifications', 'idx_user_category', 'user_id, category'],
+        // Performance Phase 4: delivery queue polling & attempt filtering
+        ['delivery_queue', 'idx_dq_attempts_retry', 'attempts, next_retry_at']
     ];
     for (const [table, name, cols] of defs) {
         try {

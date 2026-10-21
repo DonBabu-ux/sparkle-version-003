@@ -1,21 +1,19 @@
 // config/database.js - PRODUCTION VERSION
 const mysql = require('mysql2/promise');
 
-// ── Pool Sizing ──────────────────────────────────────────────────────────────
-// Host budget: MySQL account `lilbee` has max_user_connections = 40 TOTAL across
-// ALL hosts (Render prod + local dev + teammates). Check live usage with:
-//   SELECT COUNT(*) FROM information_schema.processlist WHERE user = 'lilbee';
-// Budget: Render ≤ 24, local dev ≤ 8, reserve 8 for migrations/ops.
-// One pool per Node process; total = pool size × processes on that host.
-// Override via DB_POOL_LIMIT (or legacy DB_CONNECTION_LIMIT); clamped 1–32.
-// NEVER raise blindly — more connections don't fix slow queries.
-// Watch live usage at GET /api/debug/pool (auth) and /api/health.
-const CONNECTION_LIMIT = (() => {
-    const n = parseInt(process.env.DB_POOL_LIMIT || process.env.DB_CONNECTION_LIMIT, 10);
-    return Number.isFinite(n) ? Math.min(Math.max(n, 1), 32) : 8;
-})();
-const QUEUE_LIMIT = 500; // Waiters allowed beyond the pool; cheap memory, avoids burst 503s
-const SLOW_QUERY_MS = 750; // Queries slower than this are logged + surfaced in metrics
+// ── Strict 10-Connection Budget (Phase 2) ──────────────────────────────────
+// Architecture:
+//   - Absolute physical maximum: 10 connections (DB_POOL_LIMIT=10)
+//   - Normal application workload budget: 8 concurrently occupied connections
+//   - Peak-traffic reserve: up to 2 additional connections (only for critical operations:
+//     auth login/token refresh, payments/wallet ledger, active messaging transactions)
+//   - Queue limit: bounded at 250 waiters to prevent memory bloat under extreme load
+//   - Connection acquisition timeout: 5,000ms with fail-fast 503 instead of hanging
+const TOTAL_CONNECTION_LIMIT = 10;
+const NORMAL_CONNECTION_BUDGET = 8;
+const PEAK_RESERVE_BUDGET = 2; // 8 + 2 = 10
+const QUEUE_LIMIT = 250;
+const SLOW_QUERY_MS = 750;
 
 const pool = mysql.createPool({
     host: process.env.NODE_ENV === 'production' ? process.env.DB_HOST_PROD || process.env.DB_HOST : process.env.DB_HOST,
@@ -23,23 +21,211 @@ const pool = mysql.createPool({
     password: process.env.NODE_ENV === 'production' ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
     database: process.env.NODE_ENV === 'production' ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
-    // Connection pool — bounded and shared across ALL requests, sockets, workers
     waitForConnections: true,
-    connectionLimit: CONNECTION_LIMIT,
-    maxIdle: Math.min(2, Math.max(1, Math.floor(CONNECTION_LIMIT / 2))),
-    queueLimit: QUEUE_LIMIT,   // Queue waiters; return error if exceeded
-    connectTimeout: 10000,    // Fail fast — don't hold a slot waiting forever
-    // SSL for remote DBs
+    connectionLimit: TOTAL_CONNECTION_LIMIT, // Hard 10 limit at driver level
+    maxIdle: 2,
+    queueLimit: QUEUE_LIMIT,
+    connectTimeout: 5000,
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
-    // Keep-alive — sends a ping so the remote DB doesn't drop idle conns
     enableKeepAlive: true,
     keepAliveInitialDelay: 30000,
-    // Evict idle connections after 90s (was 30s — too aggressive for remote DB,
-    // caused cold reconnects showing up as 4s+ "SELECT 1" in slow-query logs)
     idleTimeout: 90000,
-    // Timezone
     timezone: 'Z'
 });
+
+// ── Two-Tier Concurrency Gate (8 Normal / 2 Peak Reserve) ─────────────────────
+// Controls concurrency BEFORE checking out or querying on physical MySQL connections.
+class ConnectionBudgetGate {
+    constructor(normalLimit, maxLimit, maxQueue) {
+        this.normalLimit = normalLimit; // 8
+        this.maxLimit = maxLimit;       // 10
+        this.activeCount = 0;           // Current operations actively holding a connection
+        this.peakActiveCount = 0;       // Operations currently using the reserve (slots 9 and 10)
+        this.normalQueue = [];          // Pending standard waiters
+        this.peakQueue = [];            // Pending critical/peak waiters
+        this.maxQueue = maxQueue;
+    }
+
+    /**
+     * Determines whether an operation is critical and eligible for the 2-connection reserve.
+     */
+    isEligibleForPeak(priorityOrContext) {
+        if (priorityOrContext === true || priorityOrContext === 'peak' || priorityOrContext === 'critical') return true;
+        if (typeof priorityOrContext === 'string') {
+            const p = priorityOrContext.toLowerCase();
+            return p.includes('auth') || p.includes('wallet') || p.includes('paystack') ||
+                   p.includes('message') || p.includes('deposit') || p.includes('refresh') ||
+                   p.includes('security');
+        }
+        return false;
+    }
+
+    acquire(priority = false, timeoutMs = 8000, options = {}) {
+        const signal = options instanceof AbortSignal ? options : options?.signal;
+        if (signal?.aborted) {
+            const err = new Error('Database connection acquisition aborted');
+            err.name = 'AbortError';
+            err.code = 'ACQUISITION_ABORTED';
+            err.status = 503;
+            const p = Promise.reject(err);
+            p.cancel = () => {};
+            return p;
+        }
+
+        const isPeak = this.isEligibleForPeak(priority);
+
+        // Can we run immediately?
+        // Normal work runs if active < 8.
+        // Peak-eligible work runs if active < 10.
+        if (!isPeak && this.activeCount < this.normalLimit) {
+            this.activeCount++;
+            const p = Promise.resolve(() => this.release(false));
+            p.cancel = () => {};
+            return p;
+        }
+        if (isPeak && this.activeCount < this.maxLimit) {
+            this.activeCount++;
+            if (this.activeCount > this.normalLimit) {
+                this.peakActiveCount++;
+            }
+            const usedPeak = this.activeCount > this.normalLimit;
+            const p = Promise.resolve(() => this.release(usedPeak));
+            p.cancel = () => {};
+            return p;
+        }
+
+        // Bounded queue check
+        if (this.normalQueue.length + this.peakQueue.length >= this.maxQueue) {
+            const err = new Error('Database connection queue full — operation rejected');
+            err.code = 'POOL_QUEUE_EXHAUSTED';
+            err.status = 503;
+            const p = Promise.reject(err);
+            p.cancel = () => {};
+            return p;
+        }
+
+        let cancelFn;
+        const promise = new Promise((resolve, reject) => {
+            let timer = null;
+            let abortListener = null;
+
+            const cleanup = () => {
+                if (timer) {
+                    clearTimeout(timer);
+                    timer = null;
+                }
+                if (signal && abortListener) {
+                    signal.removeEventListener('abort', abortListener);
+                    abortListener = null;
+                }
+            };
+
+            const waiter = {
+                resolve: (cleanupFn) => {
+                    cleanup();
+                    if (waiter.cancelled) {
+                        // Waiter was already cancelled or timed out — immediately release the slot
+                        // so activeCount and the physical connection are never leaked!
+                        try { cleanupFn(); } catch (_) {}
+                        return;
+                    }
+                    resolve(cleanupFn);
+                },
+                reject: (err) => {
+                    cleanup();
+                    reject(err);
+                },
+                isPeak,
+                cancelled: false
+            };
+
+            cancelFn = (reason = 'cancelled') => {
+                if (waiter.cancelled) return;
+                waiter.cancelled = true;
+                const q = isPeak ? this.peakQueue : this.normalQueue;
+                const idx = q.indexOf(waiter);
+                if (idx !== -1) q.splice(idx, 1);
+                const err = new Error(`Database connection acquisition ${reason}`);
+                err.code = reason === 'aborted' ? 'ACQUISITION_ABORTED' : 'ACQUISITION_CANCELLED';
+                if (reason === 'aborted') err.name = 'AbortError';
+                err.status = 503;
+                waiter.reject(err);
+            };
+
+            if (signal) {
+                abortListener = () => cancelFn('aborted');
+                signal.addEventListener('abort', abortListener, { once: true });
+            }
+
+            if (timeoutMs > 0) {
+                timer = setTimeout(() => {
+                    if (waiter.cancelled) return;
+                    waiter.cancelled = true;
+                    const q = isPeak ? this.peakQueue : this.normalQueue;
+                    const idx = q.indexOf(waiter);
+                    if (idx !== -1) q.splice(idx, 1);
+                    const err = new Error(`Database connection acquisition timed out after ${timeoutMs}ms`);
+                    err.code = 'CONNECTION_ACQUISITION_TIMEOUT';
+                    err.status = 503;
+                    waiter.reject(err);
+                }, timeoutMs);
+            }
+
+            if (isPeak) {
+                this.peakQueue.push(waiter);
+            } else {
+                this.normalQueue.push(waiter);
+            }
+        });
+
+        promise.cancel = () => {
+            if (cancelFn) cancelFn('cancelled');
+        };
+
+        return promise;
+    }
+
+    release(wasPeak = false) {
+        this.activeCount = Math.max(0, this.activeCount - 1);
+        if (wasPeak) {
+            this.peakActiveCount = Math.max(0, this.peakActiveCount - 1);
+        }
+
+        // Next dispatcher: Peak waiters have first claim on reserve or normal slots
+        while (this.peakQueue.length > 0 && this.activeCount < this.maxLimit) {
+            const waiter = this.peakQueue.shift();
+            if (waiter.cancelled) continue;
+            this.activeCount++;
+            const isNowPeak = this.activeCount > this.normalLimit;
+            if (isNowPeak) this.peakActiveCount++;
+            waiter.resolve(() => this.release(isNowPeak));
+            return;
+        }
+
+        // Standard waiters can only take slots 1 through 8
+        while (this.normalQueue.length > 0 && this.activeCount < this.normalLimit) {
+            const waiter = this.normalQueue.shift();
+            if (waiter.cancelled) continue;
+            this.activeCount++;
+            waiter.resolve(() => this.release(false));
+            return;
+        }
+    }
+
+    getStatus() {
+        return {
+            normalLimit: this.normalLimit,
+            maxLimit: this.maxLimit,
+            activeCount: this.activeCount,
+            peakActiveCount: this.peakActiveCount,
+            normalQueueLength: this.normalQueue.length,
+            peakQueueLength: this.peakQueue.length,
+            totalQueued: this.normalQueue.length + this.peakQueue.length
+        };
+    }
+}
+
+const budgetGate = new ConnectionBudgetGate(NORMAL_CONNECTION_BUDGET, TOTAL_CONNECTION_LIMIT, QUEUE_LIMIT);
 
 // ── Pool metrics ─────────────────────────────────────────────────────────────
 // Rolling counters/windows exposed via GET /api/debug/pool (auth-guarded).
@@ -197,68 +383,131 @@ function throttledError(key, message) {
  * @param {Array} [params=[]] - Parameter values for placeholders.
  * @returns {Promise<Array>} Result rows.
  */
-async function safeQuery(sql, params = []) {
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            const [rows] = await pool.query(sql, params);
-            return rows;
-        } catch (error) {
-            if (attempt === 0 && isTransientError(error)) {
-                logger.warn('[DB] ECONNRESET on safeQuery — retrying once...');
-                await new Promise(r => setTimeout(r, 300));
-                continue;
+async function safeQuery(sql, params = [], priority = false) {
+    const releaseGate = await budgetGate.acquire(priority);
+    try {
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const [rows] = await originalQuery(sql, params);
+                return rows;
+            } catch (error) {
+                if (attempt === 0 && isTransientError(error)) {
+                    logger.warn('[DB] ECONNRESET on safeQuery — retrying once...');
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                const message = error?.message || error?.sqlMessage || String(error).slice(0, 200);
+                if (isConnectionLimitError(error)) {
+                    throttledError('connection_limit', 'Connection limit reached — reduce pool size or concurrent queries');
+                } else {
+                    logger.error('[DB] Query error:', message);
+                }
+                throw error;
             }
-            const message = error?.message || error?.sqlMessage || String(error).slice(0, 200);
-            if (isConnectionLimitError(error)) {
-                throttledError('connection_limit', 'Connection limit reached — reduce pool size or concurrent queries');
-            } else {
-                logger.error('[DB] Query error:', message);
-            }
-            throw error;
         }
+    } finally {
+        releaseGate();
     }
 }
 
 // Backward‑compatible wrapper: expose a `query` method on the exported pool that returns [rows, fields].
 // Also instruments every query: duration window, slow-query log, error counters.
 const originalQuery = pool.query.bind(pool);
-pool.query = async (sql, params = []) => {
-    const t0 = process.hrtime.bigint();
-    const label = sqlLabel(sql);
-    if (process.env.DB_QUERY_TRACE === '1') logger.info('[QTRACE] ' + label);
-    for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-            // Return the full [rows, fields] tuple like mysql2/promise does
-            const result = await originalQuery(sql, params);
-            recordQuery(label, elapsedMs(t0), null);
-            return result;
-        } catch (error) {
-            if (attempt === 0 && isTransientError(error)) {
-                logger.warn('[DB] ECONNRESET on pool.query — retrying once...');
-                await new Promise(r => setTimeout(r, 300));
-                continue;
-            }
-            const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
-            const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
+pool.query = async (sql, params = [], priority = false) => {
+    const releaseGate = await budgetGate.acquire(priority);
+    try {
+        const t0 = process.hrtime.bigint();
+        const label = sqlLabel(sql);
+        if (process.env.DB_QUERY_TRACE === '1') logger.info('[QTRACE] ' + label);
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                // Return the full [rows, fields] tuple like mysql2/promise does
+                const result = await originalQuery(sql, params);
+                recordQuery(label, elapsedMs(t0), null);
+                return result;
+            } catch (error) {
+                if (attempt === 0 && isTransientError(error)) {
+                    logger.warn('[DB] ECONNRESET on pool.query — retrying once...');
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
+                const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
 
-            if (isConnectionLimitError(error)) {
-                throttledError('connection_limit', 'ER_TOO_MANY_USER_CONNECTIONS — pool exhausted');
-            } else if (!isDuplicateErr && message.trim().length > 0) {
-                logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
+                if (isConnectionLimitError(error)) {
+                    throttledError('connection_limit', 'ER_TOO_MANY_USER_CONNECTIONS — pool exhausted');
+                } else if (!isDuplicateErr && message.trim().length > 0) {
+                    logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
+                }
+                recordQuery(label, elapsedMs(t0), error);
+                throw error;
             }
-            recordQuery(label, elapsedMs(t0), error);
-            throw error;
         }
+    } finally {
+        releaseGate();
     }
 };
 
-// Transactions: queries on explicitly checked-out connections are timed too
+// Prepared statement execution: also instrumented and guarded by budgetGate
+const originalExecute = pool.execute.bind(pool);
+pool.execute = async (sql, params = [], priority = false) => {
+    const releaseGate = await budgetGate.acquire(priority);
+    try {
+        const t0 = process.hrtime.bigint();
+        const label = sqlLabel(sql);
+        if (process.env.DB_QUERY_TRACE === '1') logger.info('[QTRACE:EXEC] ' + label);
+        for (let attempt = 0; attempt < 2; attempt++) {
+            try {
+                const result = await originalExecute(sql, params);
+                recordQuery(label, elapsedMs(t0), null);
+                return result;
+            } catch (error) {
+                if (attempt === 0 && isTransientError(error)) {
+                    logger.warn('[DB] ECONNRESET on pool.execute — retrying once...');
+                    await new Promise(r => setTimeout(r, 300));
+                    continue;
+                }
+                const message = error?.message || error?.sqlMessage || String(error).slice(0, 200) || '';
+                const isDuplicateErr = message.includes('Duplicate') || message.includes('already exists');
+
+                if (isConnectionLimitError(error)) {
+                    throttledError('connection_limit', 'ER_TOO_MANY_USER_CONNECTIONS — pool exhausted');
+                } else if (!isDuplicateErr && message.trim().length > 0) {
+                    logger.error('[DB] Execute error (wrapped pool.execute): ' + String(message));
+                }
+                recordQuery(label, elapsedMs(t0), error);
+                throw error;
+            }
+        }
+    } finally {
+        releaseGate();
+    }
+};
+
+// Transactions: explicit checkouts acquire a slot on the gate and release on conn.release()
 const originalGetConnection = pool.getConnection.bind(pool);
-pool.getConnection = async (...args) => {
-    const conn = await originalGetConnection(...args);
-    if (conn && typeof conn.query === 'function') conn.query = wrapThenable(conn.query.bind(conn), 'tx:');
-    if (conn && typeof conn.execute === 'function') conn.execute = wrapThenable(conn.execute.bind(conn), 'tx:');
-    return conn;
+pool.getConnection = async (priority = 'critical', timeoutMs = 8000, options = {}) => {
+    const releaseGate = await budgetGate.acquire(priority, timeoutMs, options);
+    try {
+        const conn = await originalGetConnection();
+        if (conn) {
+            const originalRelease = conn.release.bind(conn);
+            let released = false;
+            conn.release = () => {
+                if (!released) {
+                    released = true;
+                    try { releaseGate(); } catch (_) {}
+                    return originalRelease();
+                }
+            };
+            if (typeof conn.query === 'function') conn.query = wrapThenable(conn.query.bind(conn), 'tx:');
+            if (typeof conn.execute === 'function') conn.execute = wrapThenable(conn.execute.bind(conn), 'tx:');
+        }
+        return conn;
+    } catch (err) {
+        releaseGate();
+        throw err;
+    }
 };
 
 /**
@@ -267,21 +516,27 @@ pool.getConnection = async (...args) => {
  */
 function getPoolStatus() {
     try {
-        // mysql2/promise wraps a core Pool; access via pool.pool for the underlying PoolNamespace
         const corePool = pool.pool;
+        const gate = budgetGate.getStatus();
         if (corePool && typeof corePool._allConnections !== 'undefined') {
             return {
-                limit: CONNECTION_LIMIT,
+                limit: TOTAL_CONNECTION_LIMIT,
+                normalBudget: NORMAL_CONNECTION_BUDGET,
+                peakBudget: PEAK_RESERVE_BUDGET,
                 all: corePool._allConnections.length,
                 free: corePool._freeConnections.length,
                 queued: corePool._connectionQueue ? corePool._connectionQueue.length : 0,
                 active: corePool._allConnections.length - corePool._freeConnections.length,
+                gateActive: gate.activeCount,
+                gatePeakActive: gate.peakActiveCount,
+                gateQueued: gate.totalQueued,
+                gatePeakQueued: gate.peakQueueLength
             };
         }
     } catch (_) {
         logger.debug('getPoolStatus failed; returning default connection limit');
     }
-    return { limit: CONNECTION_LIMIT };
+    return { limit: TOTAL_CONNECTION_LIMIT, normalBudget: NORMAL_CONNECTION_BUDGET, peakBudget: PEAK_RESERVE_BUDGET };
 }
 
 // 1-second sampler of live usage (rolling 15-minute window)
@@ -295,9 +550,7 @@ setInterval(() => {
     }
 }, 1000).unref();
 
-// Warm the pool immediately: the first cold connection to a remote DB costs
-// ~1.5-2s (TCP + TLS handshake). Eagerly opening one connection at module load
-// keeps that tax off the first real query / background job.
+// Warm the pool immediately
 setImmediate(() => {
     originalQuery('SELECT 1').catch(() => { /* warm-up is best-effort */ });
 });
@@ -308,22 +561,26 @@ setImmediate(() => {
  */
 function getPoolMetrics() {
     const live = getPoolStatus();
+    const gate = budgetGate.getStatus();
     const d = [...poolMetrics.durations].sort((a, b) => a - b);
     const q = (p) => d.length ? +(d[Math.min(d.length - 1, Math.floor(d.length * p))]).toFixed(1) : null;
     const avg = d.length ? +(d.reduce((a, b) => a + b, 0) / d.length).toFixed(1) : null;
     const s = poolMetrics.samples;
-    const atCap = s.filter((x) => x.a != null && x.a >= CONNECTION_LIMIT).length;
+    const atCap = s.filter((x) => x.a != null && x.a >= TOTAL_CONNECTION_LIMIT).length;
     const maxActive = s.reduce((m, x) => Math.max(m, x.a || 0), 0);
     const maxQueued = s.reduce((m, x) => Math.max(m, x.q || 0), 0);
     return {
         config: {
-            connectionLimit: CONNECTION_LIMIT,
+            connectionLimit: TOTAL_CONNECTION_LIMIT,
+            normalBudget: NORMAL_CONNECTION_BUDGET,
+            peakReserve: PEAK_RESERVE_BUDGET,
             queueLimit: QUEUE_LIMIT,
             slowQueryMs: SLOW_QUERY_MS,
             hostBudget: 40,
             envVar: process.env.DB_POOL_LIMIT || process.env.DB_CONNECTION_LIMIT || null,
         },
         live,
+        gate,
         uptimeSec: Math.round((Date.now() - poolMetrics.startedAt) / 1000),
         counters: {
             queries: poolMetrics.queries,
@@ -361,3 +618,5 @@ module.exports.isConnectionLimitError = isConnectionLimitError;
 module.exports.isDatabaseUnavailableError = isDatabaseUnavailableError;
 module.exports.getPoolStatus = getPoolStatus;
 module.exports.getPoolMetrics = getPoolMetrics;
+module.exports.ConnectionBudgetGate = ConnectionBudgetGate;
+module.exports.budgetGate = budgetGate;

@@ -630,12 +630,15 @@ socket.on('get-rooms', () => {
                 });
                 realtimeLogger.trace(traceId, 'DB_SAVE_SUCCESS', { messageId, alreadyExisted });
 
-                // Retrieve saved message with minimal metadata
+                // Retrieve saved message with complete reply & sender metadata
                 const [fullMessage] = await pool.query(`
                     SELECT m.*, 
-                           u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+                           u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
+                           rm.content as reply_content, rm.type as reply_type, ru.name as reply_sender_name
                     FROM messages m
                     JOIN users u ON m.sender_id = u.user_id
+                    LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
+                    LEFT JOIN users ru ON rm.sender_id = ru.user_id
                     WHERE m.message_id = ?
                 `, [messageId]);
 
@@ -651,7 +654,12 @@ socket.on('get-rooms', () => {
 
                 // 2. Authoritative ACK to Sender
                 if (typeof callback === 'function') {
-                    callback({ success: true, messageId, sentAt: message.sent_at });
+                    callback({ 
+                        success: true, 
+                        messageId, 
+                        sentAt: message.sent_at,
+                        server_sequence: message.server_sequence 
+                    });
                 }
 
                 realtimeLogger.trace(traceId, 'EMIT_TO_SENDER', { messageId });
@@ -1638,22 +1646,111 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
     const botMessageId = 'msg_sparkly_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6);
     const SparklyService = require('../services/sparkly.service');
 
+    // Atomic server_sequence increment for chat order
+    let serverSequence = 1;
+    try {
+        await pool.query(`
+            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+        `, [chatId]);
+        const [seqRow] = await pool.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
+        serverSequence = seqRow[0]?.last_sequence || 1;
+    } catch (seqErr) {
+        logger.warn('[SparklyMention] Sequence increment fallback:', seqErr.message);
+    }
+
+    // Determine personal vs group chat & recipient
+    let personalChatId = null;
+    let groupChatId = null;
+    let recipientId = null;
+    try {
+        const [personalRows] = await pool.query(
+            'SELECT chat_id, participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
+            [chatId]
+        );
+        if (personalRows && personalRows.length > 0) {
+            personalChatId = chatId;
+            const p = personalRows[0];
+            recipientId = (p.participant1_id === senderUserId) ? p.participant2_id : p.participant1_id;
+        } else {
+            groupChatId = chatId;
+        }
+    } catch (chatLookupErr) {
+        personalChatId = chatId;
+    }
+
+    // Lookup reply context if message replies to another
+    let replyContent = null;
+    let replyType = null;
+    let replySenderName = null;
+    if (replyToMessageId) {
+        try {
+            const [replyRows] = await pool.query(`
+                SELECT rm.content, rm.type, ru.name as sender_name, ru.username as sender_username
+                FROM messages rm
+                LEFT JOIN users ru ON rm.sender_id = ru.user_id
+                WHERE rm.message_id = ? LIMIT 1
+            `, [replyToMessageId]);
+            if (replyRows && replyRows.length > 0) {
+                replyContent = replyRows[0].content;
+                replyType = replyRows[0].type;
+                replySenderName = replyRows[0].sender_name || replyRows[0].sender_username || 'User';
+            }
+        } catch (rErr) {
+            logger.warn('[SparklyMention] Reply lookup error:', rErr);
+        }
+    }
+
+    const initialMetadata = JSON.stringify({ source: 'sparkly_bot', streaming: true });
+    const initialSentAt = new Date().toISOString();
+
+    // Persist placeholder in DB immediately so it exists for keyset pagination and replies
+    try {
+        await ensureSparklyBotUserExists();
+        await pool.query(`
+            INSERT INTO messages (
+                message_id, client_message_id, chat_id, conversation_id, personal_chat_id, 
+                sender_id, recipient_id, content, type, status, is_read, sent_at, context, metadata,
+                server_sequence, reply_to_message_id, version
+            ) VALUES (?, ?, ?, ?, ?, 'sparkly_bot', ?, '', 'text', 'sent', 0, NOW(), 'chat', ?, ?, ?, 1)
+        `, [
+            botMessageId,
+            botMessageId,
+            groupChatId,
+            personalChatId,
+            personalChatId,
+            recipientId,
+            initialMetadata,
+            serverSequence,
+            replyToMessageId || null
+        ]);
+    } catch (insertErr) {
+        logger.error('[SparklyMention] Initial placeholder insert error:', insertErr);
+    }
+
     const initialBotMessage = {
         id: botMessageId,
         message_id: botMessageId,
         chatId: chatId,
-        chat_id: chatId,
-        conversation_id: chatId,
+        chat_id: groupChatId,
+        conversation_id: personalChatId,
+        personal_chat_id: personalChatId,
         sender_id: 'sparkly_bot',
         senderId: 'sparkly_bot',
+        recipient_id: recipientId,
         sender_name: 'Sparkly AI',
         sender_username: 'sparkly',
         sender_avatar: '/assets/system/sparkle-logo.svg',
         content: '',
         type: 'text',
-        sent_at: new Date().toISOString(),
+        sent_at: initialSentAt,
+        server_sequence: serverSequence,
+        reply_to_message_id: replyToMessageId || null,
+        reply_content: replyContent,
+        reply_type: replyType,
+        reply_sender_name: replySenderName,
         is_sparkly_bot: true,
-        metadata: JSON.stringify({ source: 'sparkly_bot', streaming: true })
+        metadata: initialMetadata
     };
 
     io.to(`chat:${chatId}`).emit('new-message', initialBotMessage);
@@ -1661,11 +1758,23 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
     let accumulatedContent = '';
     let cards = [];
 
+    // Resolve a valid sparkly_conversations.id for this chat session.
+    // chatId is a messages.chat_id UUID and does NOT exist in sparkly_conversations,
+    // so passing it directly causes ER_NO_REFERENCED_ROW_2 FK violations.
+    let sparklyConversationId = null;
+    try {
+        const SparklyModel = require('../models/sparkly.model');
+        sparklyConversationId = await SparklyModel.getOrCreateConversationForChat(senderUserId, chatId);
+    } catch (convErr) {
+        logger.warn('[SparklyMention] Could not resolve sparkly conversation id, memory save will be skipped:', convErr.message);
+        sparklyConversationId = null;
+    }
+
     try {
         await SparklyService.processMessageStream({
             userId: senderUserId,
             userMessage: cleanPrompt,
-            conversationId: chatId,
+            conversationId: sparklyConversationId,
             replyToMessageId,
             persona: 'friendly',
             responseStyle: 'conversational',
@@ -1693,15 +1802,19 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
                 const finalMetadata = JSON.stringify({ source: 'sparkly_bot', cards: finalCards });
 
                 try {
-                    await ensureSparklyBotUserExists();
                     await pool.query(`
-                        INSERT INTO messages (
-                            message_id, chat_id, conversation_id, personal_chat_id, 
-                            sender_id, content, type, status, is_read, sent_at, context, metadata
-                        ) VALUES (?, ?, ?, ?, 'sparkly_bot', ?, 'text', 'sent', 0, NOW(), 'chat', ?)
-                    `, [botMessageId, chatId, chatId, chatId, finalContent, finalMetadata]);
+                        UPDATE messages 
+                        SET content = ?, metadata = ?
+                        WHERE message_id = ?
+                    `, [finalContent, finalMetadata, botMessageId]);
                 } catch (dbErr) {
-                    logger.error('[SparklyMention] DB save error:', dbErr);
+                    logger.error('[SparklyMention] DB update error:', dbErr);
+                }
+
+                if (personalChatId) {
+                    await pool.query('UPDATE personal_chats SET last_message_time = NOW() WHERE chat_id = ?', [personalChatId]).catch(() => {});
+                } else if (groupChatId) {
+                    await pool.query('UPDATE group_chats SET last_message_at = NOW() WHERE chat_id = ?', [groupChatId]).catch(() => {});
                 }
 
                 io.to(`chat:${chatId}`).emit('sparkly-stream-complete', {
@@ -1714,6 +1827,7 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
                         metadata: finalMetadata
                     }
                 });
+                io.to(`chat:${chatId}`).emit('chat-updated', { chatId });
             }
         });
     } catch (err) {
@@ -1721,15 +1835,13 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
         const errorFallback = "Sparkly couldn't generate a response right now. Please try again in a moment.";
         const fallbackMeta = JSON.stringify({ source: 'sparkly_bot', error: true });
         try {
-            await ensureSparklyBotUserExists();
             await pool.query(`
-                INSERT INTO messages (
-                    message_id, chat_id, conversation_id, personal_chat_id, 
-                    sender_id, content, type, status, is_read, sent_at, context, metadata
-                ) VALUES (?, ?, ?, ?, 'sparkly_bot', ?, 'text', 'sent', 0, NOW(), 'chat', ?)
-            `, [botMessageId, chatId, chatId, chatId, errorFallback, fallbackMeta]);
+                UPDATE messages 
+                SET content = ?, metadata = ?
+                WHERE message_id = ?
+            `, [errorFallback, fallbackMeta, botMessageId]);
         } catch (dbErr) {
-            logger.error('[SparklyMention] Fallback DB save error:', dbErr);
+            logger.error('[SparklyMention] Fallback DB update error:', dbErr);
         }
 
         io.to(`chat:${chatId}`).emit('sparkly-stream-complete', {
@@ -1741,6 +1853,7 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
                 metadata: fallbackMeta
             }
         });
+        io.to(`chat:${chatId}`).emit('chat-updated', { chatId });
     }
 }
 

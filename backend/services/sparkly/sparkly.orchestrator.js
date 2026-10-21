@@ -30,6 +30,10 @@ class SparklyOrchestrator {
         let activeConvId = conversationId;
         let isNewConversation = false;
 
+        // Helper: returns true when the ID is safe to write to sparkly_messages (has a real FK parent)
+        const isValidSparklyConvId = (id) =>
+            id && typeof id === 'string' && !id.startsWith('session-') && !id.startsWith('ephemeral-');
+
         if (!activeConvId && userId) {
             try {
                 const newConv = await SparklyModel.createConversation(userId, cleanMessage.substring(0, 30));
@@ -42,7 +46,7 @@ class SparklyOrchestrator {
         }
 
         // Save user message to MySQL database
-        if (activeConvId && userId && !activeConvId.startsWith('session-')) {
+        if (isValidSparklyConvId(activeConvId) && userId) {
             try {
                 await MemoryService.saveTurn({
                     conversationId: activeConvId,
@@ -81,7 +85,7 @@ class SparklyOrchestrator {
         // Handle safety refusal immediately
         if (route.domain === DOMAIN_TYPES.SAFETY_REFUSAL) {
             const refusalAnswer = route.refusalReason || "I cannot fulfill that request due to Sparkle's privacy and safety policies.";
-            if (activeConvId && userId) {
+            if (isValidSparklyConvId(activeConvId) && userId) {
                 await MemoryService.saveTurn({
                     conversationId: activeConvId,
                     userId,
@@ -251,7 +255,7 @@ class SparklyOrchestrator {
 
         // 10. Persist Assistant Response & Update Conversation
         let savedMessage = null;
-        if (activeConvId && userId) {
+        if (isValidSparklyConvId(activeConvId) && userId) {
             savedMessage = await MemoryService.saveTurn({
                 conversationId: activeConvId,
                 userId,
@@ -323,7 +327,9 @@ class SparklyOrchestrator {
             sendEvent('meta', { type: 'init', conversationId: activeConvId });
 
             // Save user message to database
-            if (activeConvId && userId) {
+            const isValidSparklyConvId = (id) =>
+                id && typeof id === 'string' && !id.startsWith('session-') && !id.startsWith('ephemeral-');
+            if (isValidSparklyConvId(activeConvId) && userId) {
                 await MemoryService.saveTurn({
                     conversationId: activeConvId,
                     userId,
@@ -460,7 +466,7 @@ class SparklyOrchestrator {
 
             // Save completed message
             let savedMessage = null;
-            if (activeConvId && userId) {
+            if (isValidSparklyConvId(activeConvId) && userId) {
                 savedMessage = await MemoryService.saveTurn({
                     conversationId: activeConvId,
                     userId,

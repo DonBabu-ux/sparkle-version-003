@@ -62,20 +62,26 @@ class DeliveryQueueWorker {
             // easy to hold the transaction open across async calls.  Instead we
             // prevent overlapping runs via the self-scheduling loop below.
             // Orphan cleanup is a full LEFT JOIN scan — run it at most once a minute
-            // instead of every 2-5s poll cycle (it was the top slow query).
+            // Orphan cleanup is an anti-join scan — check index first and only DELETE if orphans exist
             const now = Date.now();
-            if (!this._lastOrphanCleanupAt || now - this._lastOrphanCleanupAt > 60000) {
+            if (!this._lastOrphanCleanupAt || now - this._lastOrphanCleanupAt > 300000) { // 5-minute interval
                 this._lastOrphanCleanupAt = now;
-                // Batched anti-join (NOT EXISTS) with LIMIT — avoids the unbounded
-                // multi-table LEFT JOIN DELETE that dominated slow-query logs.
-                await db.query(`
-                    DELETE FROM delivery_queue
-                    WHERE message_id IS NOT NULL
-                      AND NOT EXISTS (
-                        SELECT 1 FROM messages m WHERE m.message_id = delivery_queue.message_id
-                      )
-                    LIMIT 1000
-                `);
+                try {
+                    // Use idx_delivery_message covering index to find any orphan queue rows
+                    const [orphans] = await db.query(`
+                        SELECT dq.queue_id 
+                        FROM delivery_queue dq 
+                        LEFT JOIN messages m ON dq.message_id = m.message_id 
+                        WHERE m.message_id IS NULL AND dq.message_id IS NOT NULL 
+                        LIMIT 50
+                    `);
+                    if (orphans.length > 0) {
+                        const orphanIds = orphans.map(o => o.queue_id);
+                        await db.query('DELETE FROM delivery_queue WHERE queue_id IN (?)', [orphanIds]);
+                    }
+                } catch (orphanErr) {
+                    logger.debug('Orphan cleanup check:', orphanErr?.message);
+                }
             }
             const [pendingItems] = await db.query(`
                 SELECT dq.queue_id, dq.message_id, dq.recipient_id, dq.session_id, dq.attempts,

@@ -395,13 +395,15 @@ export const useMessageSocket = () => {
 
     const handleSparklyStreamChunk = (data: { chatId: string; messageId: string; text: string; fullContent: string }) => {
       getChatStore().updateMessage(data.chatId, data.messageId, {
-        content: data.fullContent
+        content: data.fullContent,
+        is_sparkly_bot: true
       });
     };
 
     const handleSparklyStreamCards = (data: { chatId: string; messageId: string; cards: any[] }) => {
       getChatStore().updateMessage(data.chatId, data.messageId, {
-        structured_data: { cards: data.cards } as any
+        structured_data: { cards: data.cards } as any,
+        is_sparkly_bot: true
       });
     };
 
@@ -410,6 +412,7 @@ export const useMessageSocket = () => {
         ...data.finalMessage,
         is_sparkly_bot: true
       });
+      window.dispatchEvent(new CustomEvent('sparkle_messages_synced', { detail: { chatId: data.chatId } }));
     };
 
     const handleOnlineOrFocus = () => {

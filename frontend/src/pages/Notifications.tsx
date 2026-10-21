@@ -224,19 +224,17 @@ export default function Notifications() {
   };
 
   const handleNotificationClick = async (notif: Notification) => {
-    // 1. Mark as read immediately in UI
+    // 1. Mark as read immediately in UI & sync to server
     markAsRead(notif.notification_id || notif.id || '');
 
-    // 2. Determine target URL
+    // 2. Determine target URL with rich fallback resolution
     let targetUrl = notif.action_url;
 
+    // Check target object first if present
     if (notif.target) {
       const { entity_type, entity_id, sub_entity_id } = notif.target;
-
       switch (entity_type) {
         case 'mention':
-          targetUrl = `/post/${entity_id}`;
-          break;
         case 'post':
         case 'like':
         case 'comment':
@@ -278,9 +276,61 @@ export default function Notifications() {
       }
     }
 
-    // 3. Navigate
+    // If targetUrl not resolved yet, infer from notification type & related identifiers
+    if (!targetUrl) {
+      const type = notif.type;
+      const relId = notif.related_id || (notif as any).related_post_id;
+      const actor = notif.actor_username || notif.actor_id;
+
+      switch (type) {
+        case 'spark':
+        case 'like':
+        case 'spark_post':
+        case 'comment':
+        case 'reply':
+        case 'mention':
+          if (relId) targetUrl = `/post/${relId}`;
+          break;
+        case 'follow':
+        case 'follow_request':
+        case 'poke':
+          if (actor) targetUrl = `/profile/${actor}`;
+          break;
+        case 'message':
+          targetUrl = relId ? `/messages?chat=${relId}` : '/messages';
+          break;
+        case 'moment_like':
+        case 'moment_comment':
+        case 'moment_spark':
+          if (relId) targetUrl = `/moment/${relId}`;
+          break;
+        case 'story_like':
+        case 'story_view':
+          if (relId) targetUrl = `/story/${relId}`;
+          break;
+        case 'marketplace':
+        case 'marketplace_contact':
+        case 'order':
+          if (relId) targetUrl = `/marketplace/listing/${relId}`;
+          break;
+        case 'group_invite':
+        case 'group':
+          if (relId) targetUrl = `/groups/${relId}`;
+          break;
+        case 'confession':
+          if (relId) targetUrl = `/confessions?id=${relId}`;
+          break;
+        case 'capture_attempt':
+          if (relId) targetUrl = `/messages?chat=${relId}`;
+          break;
+      }
+    }
+
+    // 3. Navigate to resolved target or safe fallback
     if (targetUrl) {
       navigate(targetUrl);
+    } else if (notif.actor_username || notif.actor_id) {
+      navigate(`/profile/${notif.actor_username || notif.actor_id}`);
     }
   };
 

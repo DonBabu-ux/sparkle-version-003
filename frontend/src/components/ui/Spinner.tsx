@@ -6,86 +6,93 @@ interface SpinnerProps {
   color?: string;
 }
 
-const config = {
-  small:  { px: 18, tickWidth: 1.5, tickLength: 4 },
-  medium: { px: 28, tickWidth: 2,   tickLength: 6 },
-  large:  { px: 40, tickWidth: 2.5, tickLength: 9 },
-  xl:     { px: 56, tickWidth: 3,   tickLength: 12 },
+const sizeConfig = {
+  small: { box: 20, dot: 4, offset: 8 },
+  medium: { box: 32, dot: 6, offset: 12 },
+  large: { box: 44, dot: 8, offset: 16 },
+  xl: { box: 60, dot: 10, offset: 22 },
 };
 
 /**
- * Radial Segmented Spinner / Tick Spinner
- * Uses multiple short radial line segments/ticks rotating continuously.
- * Identical to Instagram/Threads iOS-style radial activity indicators.
+ * Sparkle Brand Splash Loader / Spinner
+ * Uses 4 orbiting pulsing dots matching the exact splash screen brand animation.
  */
 const Spinner: React.FC<SpinnerProps> = ({
   size = 'medium',
   className = '',
-  color = 'text-primary',
+  color,
 }) => {
-  const { px, tickWidth, tickLength } = config[size];
-  const center = px / 2;
-  const radius = center - 2; // slight padding
-  
-  // 12 ticks arranged radially
-  const ticks = Array.from({ length: 12 }).map((_, i) => {
-    const angle = (i * 30) * (Math.PI / 180);
-    const innerRadius = radius - tickLength;
-    
-    // Calculate coordinates for the line segment
-    const x1 = center + innerRadius * Math.sin(angle);
-    const y1 = center - innerRadius * Math.cos(angle);
-    const x2 = center + radius * Math.sin(angle);
-    const y2 = center - radius * Math.cos(angle);
-    
-    // Opacity fades gracefully around the circle to create the comet tail effect
-    // Fades from 1 down to 0.15
-    const opacity = 1 - (i / 12) * 0.85;
+  const { box, dot, offset } = sizeConfig[size];
+  const center = box / 2;
+  const radius = dot / 2;
 
-    return (
-      <line
-        key={i}
-        x1={x1}
-        y1={y1}
-        x2={x2}
-        y2={y2}
-        stroke="currentColor"
-        strokeWidth={tickWidth}
-        strokeLinecap="round"
-        opacity={opacity}
-      />
-    );
-  });
+  // Determine fill colors: if custom color is passed, use it, else default to brand pink and rose
+  const isClassColor = color && (color.startsWith('text-') || color.startsWith('bg-'));
+  const dotColor1 = color && !isClassColor ? color : '#ff1493';
+  const dotColor2 = color && !isClassColor ? color : '#fb7185';
 
   return (
-    <svg
-      width={px}
-      height={px}
-      viewBox={`0 0 ${px} ${px}`}
-      fill="none"
-      className={`${color} ${className} motion-safe:animate-spin`}
-      style={{
-        animationDuration: '1.2s',
-        animationTimingFunction: 'steps(12, end)',
-      }}
+    <div
+      className={`inline-flex items-center justify-center shrink-0 ${isClassColor ? color : ''} ${className}`}
+      style={{ width: `${box}px`, height: `${box}px` }}
       aria-label="Loading"
       role="status"
     >
-      {ticks}
-    </svg>
+      <svg
+        width={box}
+        height={box}
+        viewBox={`0 0 ${box} ${box}`}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="w-full h-full overflow-visible"
+      >
+        <circle
+          cx={center}
+          cy={center - offset}
+          r={radius}
+          fill={isClassColor ? 'currentColor' : dotColor1}
+          className="animate-dot-pulse"
+          style={{ transformOrigin: `${center}px ${center - offset}px`, animationDelay: '0ms' }}
+        />
+        <circle
+          cx={center + offset}
+          cy={center}
+          r={radius}
+          fill={isClassColor ? 'currentColor' : dotColor2}
+          className="animate-dot-pulse"
+          style={{ transformOrigin: `${center + offset}px ${center}px`, animationDelay: '150ms' }}
+        />
+        <circle
+          cx={center}
+          cy={center + offset}
+          r={radius}
+          fill={isClassColor ? 'currentColor' : dotColor1}
+          className="animate-dot-pulse"
+          style={{ transformOrigin: `${center}px ${center + offset}px`, animationDelay: '300ms' }}
+        />
+        <circle
+          cx={center - offset}
+          cy={center}
+          r={radius}
+          fill={isClassColor ? 'currentColor' : dotColor2}
+          className="animate-dot-pulse"
+          style={{ transformOrigin: `${center - offset}px ${center}px`, animationDelay: '450ms' }}
+        />
+      </svg>
+    </div>
   );
 };
 
 // Named convenience aliases
-export const SpinnerSmall     = () => <Spinner size="small"  />;
-export const SpinnerMedium    = () => <Spinner size="medium" />;
-export const SpinnerLarge     = () => <Spinner size="large"  />;
-export const SpinnerXL        = () => <Spinner size="xl"     />;
-export const ButtonSpinner    = ({ color = 'text-white' }: { color?: string }) => (
+export const SpinnerSmall = () => <Spinner size="small" />;
+export const SpinnerMedium = () => <Spinner size="medium" />;
+export const SpinnerLarge = () => <Spinner size="large" />;
+export const SpinnerXL = () => <Spinner size="xl" />;
+export const ButtonSpinner = ({ color = '#ffffff' }: { color?: string }) => (
   <Spinner size="small" color={color} />
 );
-export const SpinnerFullscreen = ({ color = 'text-primary' }: { color?: string }) => (
-  <div className="fixed inset-0 z-(--z-top) flex items-center justify-center bg-white/80 backdrop-blur-sm">
+export const SpinnerFullscreen = ({ color = '#ff1493' }: { color?: string }) => (
+  <div className="fixed inset-0 z-(--z-top) flex items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm">
     <Spinner size="xl" color={color} />
   </div>
 );

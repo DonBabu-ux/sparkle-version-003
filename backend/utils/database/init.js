@@ -2697,7 +2697,7 @@ const initDB = async () => {
     logger.debug('Testing database connection...');
     let isConnected = false;
     try {
-        isConnected = await retryWithBackoff(testConnection, 5, 2000);
+        isConnected = await retryWithBackoff(async () => { const ok = await testConnection(); if (!ok) throw new Error('Database ping failed'); return true; }, 5, 2000);
     } catch (err) {
         logger.error('❌ Database connection test failed after retries:', err.message);
     }

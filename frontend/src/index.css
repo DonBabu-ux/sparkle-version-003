@@ -590,7 +590,20 @@ html, body { overscroll-behavior-y: none;
 
 @keyframes dashFlow { to { stroke-dashoffset: -28; } }
 
-@keyframes dotPulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
+@keyframes dotPulse {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(0.8);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+.animate-dot-pulse {
+  animation: dotPulse 0.9s infinite ease-in-out;
+}
 
 @keyframes driftOrb { to { transform: translate(70px, 50px) scale(1.15); } }
 

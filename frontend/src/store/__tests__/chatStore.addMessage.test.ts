@@ -59,4 +59,40 @@ describe('addMessage duplicate merge (socket echo path)', () => {
     expect(msgs[0].status).toBe('read');
     expect(msgs[0].is_read).toBe(true);
   });
+
+  it('preserves reply details when merging existing messages', () => {
+    useChatStore.getState().addMessage('c3', msg({
+      message_id: 'm3',
+      reply_to_message_id: 'parent1',
+      reply_content: 'parent message content',
+      reply_sender_name: 'Alice',
+      reply_type: 'text'
+    }));
+
+    // Socket ACK or echo arrives without reply fields
+    useChatStore.getState().addMessage('c3', msg({
+      message_id: 'm3',
+      status: 'delivered'
+    }));
+
+    const msgs = useChatStore.getState().messagesByConversation['c3'];
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].status).toBe('delivered');
+    expect(msgs[0].reply_to_message_id).toBe('parent1');
+    expect(msgs[0].reply_content).toBe('parent message content');
+    expect(msgs[0].reply_sender_name).toBe('Alice');
+  });
+
+  it('maintains strict chronological sequence ordering', async () => {
+    const { sortMessagesChronologically } = await import('../chatStore');
+
+    const mSeq2 = msg({ message_id: 'm-seq2', server_sequence: 2, created_at: '2026-10-05T00:00:02Z' });
+    const mSeq1 = msg({ message_id: 'm-seq1', server_sequence: 1, created_at: '2026-10-05T00:00:01Z' });
+    const mSeq3 = msg({ message_id: 'm-seq3', server_sequence: 3, created_at: '2026-10-05T00:00:03Z' });
+    const mOptimistic = msg({ message_id: 'm-opt', server_sequence: null, created_at: '2026-10-05T00:00:04Z' });
+
+    const sorted = sortMessagesChronologically([mSeq3, mOptimistic, mSeq1, mSeq2]);
+    expect(sorted.map((m: any) => m.message_id)).toEqual(['m-seq1', 'm-seq2', 'm-seq3', 'm-opt']);
+  });
 });
+

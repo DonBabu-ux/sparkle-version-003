@@ -16,11 +16,20 @@ class SparklyModel {
                     id CHAR(36) PRIMARY KEY,
                     user_id VARCHAR(64) NOT NULL,
                     title VARCHAR(255) DEFAULT 'New Chat',
+                    chat_id VARCHAR(64) DEFAULT NULL COMMENT 'The regular chat_id this conversation is pinned to (for in-chat @sparkly sessions)',
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                    INDEX idx_sparkly_conv_user (user_id)
+                    INDEX idx_sparkly_conv_user (user_id),
+                    INDEX idx_sparkly_conv_chat (chat_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             `);
+
+            // Idempotently add chat_id column to pre-existing tables
+            await pool.query(`
+                ALTER TABLE sparkly_conversations
+                ADD COLUMN IF NOT EXISTS chat_id VARCHAR(64) DEFAULT NULL
+                    COMMENT 'The regular chat_id this conversation is pinned to (for in-chat @sparkly sessions)'
+            `).catch(() => {/* column may already exist */});
 
             await pool.query(`
                 CREATE TABLE IF NOT EXISTS sparkly_messages (
@@ -32,7 +41,8 @@ class SparklyModel {
                     structured_data JSON DEFAULT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     INDEX idx_sparkly_msg_conv (conversation_id),
-                    INDEX idx_sparkly_msg_user (user_id)
+                    INDEX idx_sparkly_msg_user (user_id),
+                    CONSTRAINT sparkly_messages_ibfk_1 FOREIGN KEY (conversation_id) REFERENCES sparkly_conversations (id) ON DELETE CASCADE
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
             `);
 
@@ -71,6 +81,40 @@ class SparklyModel {
             logger.warn('[SparklyModel] Auto-table initialization warning:', e.message);
         }
     }
+
+    /**
+     * Get or create a sparkly_conversations row pinned to a specific regular chat room.
+     * This prevents FK violations when @sparkly is invoked inside a normal 1-on-1 / group chat
+     * (where chatId is a messages.chat_id UUID that does NOT exist in sparkly_conversations).
+     *
+     * @param {string} userId  - The user who sent the @sparkly message
+     * @param {string} chatId  - The regular messages.chat_id / personal_chat_id
+     * @returns {Promise<string>} - A valid sparkly_conversations.id
+     */
+    static async getOrCreateConversationForChat(userId, chatId) {
+        await SparklyModel.ensureTablesExist();
+        try {
+            // Look for an existing session for this (user, chat)
+            const [rows] = await pool.query(
+                'SELECT id FROM sparkly_conversations WHERE user_id = ? AND chat_id = ? ORDER BY updated_at DESC LIMIT 1',
+                [userId, chatId]
+            );
+            if (rows.length > 0) return rows[0].id;
+
+            // Create a new pinned session
+            const id = uuidv4();
+            await pool.query(
+                'INSERT INTO sparkly_conversations (id, user_id, title, chat_id) VALUES (?, ?, ?, ?)',
+                [id, userId, 'Chat Session', chatId]
+            );
+            return id;
+        } catch (error) {
+            logger.error('[SparklyModel] getOrCreateConversationForChat error:', error.message);
+            // Return a fallback ephemeral ID that won't collide with real UUIDs
+            return 'ephemeral-' + Date.now();
+        }
+    }
+
 
     /**
      * Create a new conversation session

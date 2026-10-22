@@ -85,7 +85,7 @@ class Message {
         let personalChatId = null;
         let groupChatId = null;
 
-        if (chatId) {
+        if (chatId && !String(chatId).startsWith('temp_')) {
             const [personalRows] = await db.query(
                 'SELECT chat_id, participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
                 [chatId]
@@ -160,18 +160,7 @@ class Message {
         const serverSequence = seqRow[0]?.last_sequence || 1;
 
         const sentAt = new Date();
-        let validReplyToId = replyToId || null;
-        if (validReplyToId) {
-            try {
-                const [checkRows] = await db.query('SELECT message_id FROM messages WHERE message_id = ? LIMIT 1', [validReplyToId]);
-                if (!checkRows || checkRows.length === 0) {
-                    logger.warn(`[Message] replyToId "${validReplyToId}" not found in DB, setting to null to avoid FK error`);
-                    validReplyToId = null;
-                }
-            } catch (chkErr) {
-                validReplyToId = null;
-            }
-        }
+        const validReplyToId = (typeof replyToId === 'string' && replyToId.trim().length > 0) ? replyToId.trim() : null;
 
         // Calculate disappearing expiration if active for this chat
         let expiresAt = null;
@@ -419,7 +408,14 @@ class Message {
                     m.sent_at as last_message_at,
                     m.sender_id as last_message_sender_id,
                     m.status as last_message_status,
-                    COALESCE(ur.unread_count, 0) as unread_count,
+                    COALESCE((
+                        SELECT COUNT(*) 
+                        FROM messages m2 
+                        WHERE m2.conversation_id = pc.chat_id 
+                          AND m2.is_read = 0 
+                          AND m2.status != 'read' 
+                          AND m2.sender_id != ?
+                    ), 0) as unread_count,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_pinned_p1 ELSE pc.is_pinned_p2 END as is_pinned,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_favorite_p1 ELSE pc.is_favorite_p2 END as is_favorite,
                     CASE WHEN pc.participant1_id = ? THEN pc.is_priority_p1 ELSE pc.is_priority_p2 END as is_priority,
@@ -433,13 +429,6 @@ class Message {
                     0 as only_admins_send,
                     'members' as edit_info
                 FROM personal_chats pc
-                LEFT JOIN (
-                    SELECT COALESCE(conversation_id, personal_chat_id) AS cid, COUNT(*) AS unread_count
-                    FROM messages
-                    WHERE sender_id != ? AND status != 'read' AND is_read = 0
-                      AND (conversation_id IS NOT NULL OR personal_chat_id IS NOT NULL)
-                    GROUP BY cid
-                ) ur ON ur.cid = pc.chat_id
                 JOIN users u ON (u.user_id = IF(pc.participant1_id = ?, pc.participant2_id, pc.participant1_id))
                 LEFT JOIN marketplace_listings ml ON pc.marketplace_listing_id = ml.listing_id
                 LEFT JOIN messages m ON m.message_id = (
@@ -493,18 +482,20 @@ class Message {
         `, [userId, userId, userId, userId, userId, userId, userId, userId, userId, userId]);
         };
 
-        // Blocks lookup runs in parallel with the main UNION query (independent,
-        // non-fatal on error) — saves one full round-trip on this hot path.
+        // Blocks lookup runs in parallel with the main UNION query in ONE round-trip (ref key on blocker_id + blocked_id)
         const blocksPromise = (async () => {
             try {
-                const [myBlocks, blocksOfMe] = await Promise.all([
-                    db.query('SELECT blocked_id FROM user_blocks WHERE blocker_id = ?', [userId]),
-                    db.query('SELECT blocker_id FROM user_blocks WHERE blocked_id = ?', [userId]),
-                ]);
-                return [
-                    new Set(((myBlocks && myBlocks[0]) || []).map(b => String(b.blocked_id))),
-                    new Set(((blocksOfMe && blocksOfMe[0]) || []).map(b => String(b.blocker_id))),
-                ];
+                const [allBlocks] = await db.query(
+                    'SELECT blocker_id, blocked_id FROM user_blocks WHERE blocker_id = ? UNION SELECT blocker_id, blocked_id FROM user_blocks WHERE blocked_id = ?',
+                    [userId, userId]
+                );
+                const blockedByMe = new Set();
+                const blockedMe = new Set();
+                for (const b of (allBlocks || [])) {
+                    if (String(b.blocker_id) === String(userId)) blockedByMe.add(String(b.blocked_id));
+                    if (String(b.blocked_id) === String(userId)) blockedMe.add(String(b.blocker_id));
+                }
+                return [blockedByMe, blockedMe];
             } catch (bErr) {
                 // Non-fatal fallback
                 logger.warn(`getUserConversations: user_blocks lookup failed for user ${userId} (blocked status omitted)`, bErr?.message || bErr);

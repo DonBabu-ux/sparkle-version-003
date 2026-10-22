@@ -27,6 +27,25 @@ export const getStatusRank = (status?: string | null): number => {
   }
 };
 
+export const sortMessagesChronologically = <T extends Partial<ChatMessage> | any>(msgs: T[]): T[] => {
+  if (!Array.isArray(msgs)) return [];
+  return [...msgs].sort((a: any, b: any) => {
+    const seqA = a?.server_sequence != null && Number(a.server_sequence) > 0 ? Number(a.server_sequence) : null;
+    const seqB = b?.server_sequence != null && Number(b.server_sequence) > 0 ? Number(b.server_sequence) : null;
+    if (seqA !== null && seqB !== null && seqA !== seqB) {
+      return seqA - seqB;
+    }
+    const timeA = new Date(a?.created_at || a?.createdAt || a?.sent_at || 0).getTime();
+    const timeB = new Date(b?.created_at || b?.createdAt || b?.sent_at || 0).getTime();
+    if (timeA !== timeB) {
+      return timeA - timeB;
+    }
+    const idA = String(a?.message_id || a?.id || '');
+    const idB = String(b?.message_id || b?.id || '');
+    return idA.localeCompare(idB);
+  });
+};
+
 export interface ChatMessage {
   message_id: string;
   sender_id: string;
@@ -44,6 +63,8 @@ export interface ChatMessage {
   reply_to_message_id?: string;
   reply_content?: string;
   reply_type?: string;
+  reply_sender_name?: string;
+  reply_media_url?: string;
   status?: 'sent' | 'delivered' | 'read' | string;
   is_read?: boolean;
   read_at?: string;
@@ -246,6 +267,11 @@ export const useChatStore = create<ChatState>()(
             failed_at: raw.failed_at || null,
             server_sequence: raw.server_sequence ? Number(raw.server_sequence) : undefined,
             status,
+            reply_to_message_id: raw.reply_to_message_id ?? raw.replyToId ?? undefined,
+            reply_content: raw.reply_content ?? raw.replyContent ?? undefined,
+            reply_sender_name: raw.reply_sender_name ?? raw.replySenderName ?? undefined,
+            reply_type: raw.reply_type ?? raw.replyType ?? undefined,
+            reply_media_url: raw.reply_media_url ?? raw.replyMediaUrl ?? undefined,
           } as ChatMessage;
         },
 
@@ -264,10 +290,7 @@ export const useChatStore = create<ChatState>()(
           const msgs = get().messagesByConversation[chatId] || [];
           const visible = msgs.filter((m) => !m.is_deleted_for_everyone && !m.is_deleted);
           if (visible.length === 0) return null;
-          const sorted = [...visible].sort(
-            (a, b) => new Date(a.createdAt || a.created_at || a.sent_at || 0).getTime() -
-                      new Date(b.createdAt || b.created_at || b.sent_at || 0).getTime()
-          );
+          const sorted = sortMessagesChronologically(visible);
           return sorted[sorted.length - 1];
         },
 
@@ -316,10 +339,7 @@ export const useChatStore = create<ChatState>()(
 
           set((state) => {
             const currentMsgs = state.messagesByConversation[chatId] || [];
-            const sortedMsgs = [...currentMsgs].sort(
-              (a, b) => new Date(a.createdAt || a.created_at || a.sent_at || 0).getTime() -
-                        new Date(b.createdAt || b.created_at || b.sent_at || 0).getTime()
-            );
+            const sortedMsgs = sortMessagesChronologically(currentMsgs);
 
             const exists = state.conversations.some((c) => c.chat_id === chatId);
             const isActive = state.activeConversationId === chatId;
@@ -535,10 +555,12 @@ export const useChatStore = create<ChatState>()(
             .map((m) => get().normalizeMessage(m))
             .filter((m) => !deletedSet.has(m.message_id) && !deletedSet.has(m.id));
 
+          const sorted = sortMessagesChronologically(normalized);
+
           set((state) => ({
             messagesByConversation: {
               ...state.messagesByConversation,
-              [chatId]: normalized,
+              [chatId]: sorted,
             },
           }));
           get().refreshConversation(chatId);
@@ -642,6 +664,13 @@ export const useChatStore = create<ChatState>()(
               const merged = {
                 ...existing,
                 ...normalized,
+                reply_to_message_id: normalized.reply_to_message_id ?? existing.reply_to_message_id,
+                reply_content: normalized.reply_content ?? existing.reply_content,
+                reply_sender_name: normalized.reply_sender_name ?? existing.reply_sender_name,
+                reply_type: normalized.reply_type ?? existing.reply_type,
+                reply_media_url: normalized.reply_media_url ?? existing.reply_media_url,
+                server_sequence: normalized.server_sequence ?? existing.server_sequence,
+                is_sparkly_bot: normalized.is_sparkly_bot ?? existing.is_sparkly_bot,
                 status: bestStatus,
                 read_at: bestReadAt,
                 delivered_at: bestDeliveredAt,
@@ -650,7 +679,7 @@ export const useChatStore = create<ChatState>()(
               const updatedMsgs = [...currentMsgs];
               updatedMsgs[exactIndex] = merged;
               return {
-                messagesByConversation: { ...state.messagesByConversation, [chatId]: updatedMsgs },
+                messagesByConversation: { ...state.messagesByConversation, [chatId]: sortMessagesChronologically(updatedMsgs) },
               };
             }
 
@@ -664,7 +693,19 @@ export const useChatStore = create<ChatState>()(
             );
             if (optimisticIndex !== -1) {
               const updatedMsgs = [...currentMsgs];
-              updatedMsgs[optimisticIndex] = { ...updatedMsgs[optimisticIndex], ...normalized, status: normalized.status || 'sent' };
+              const existing = updatedMsgs[optimisticIndex];
+              updatedMsgs[optimisticIndex] = {
+                ...existing,
+                ...normalized,
+                reply_to_message_id: normalized.reply_to_message_id ?? existing.reply_to_message_id,
+                reply_content: normalized.reply_content ?? existing.reply_content,
+                reply_sender_name: normalized.reply_sender_name ?? existing.reply_sender_name,
+                reply_type: normalized.reply_type ?? existing.reply_type,
+                reply_media_url: normalized.reply_media_url ?? existing.reply_media_url,
+                server_sequence: normalized.server_sequence ?? existing.server_sequence,
+                is_sparkly_bot: normalized.is_sparkly_bot ?? existing.is_sparkly_bot,
+                status: normalized.status || 'sent',
+              };
               const isActive = state.activeConversationId === chatId;
               const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
               const isFromMe = String(normalized.sender_id) === String(myId);
@@ -677,7 +718,7 @@ export const useChatStore = create<ChatState>()(
                 };
               });
               return {
-                messagesByConversation: { ...state.messagesByConversation, [chatId]: updatedMsgs },
+                messagesByConversation: { ...state.messagesByConversation, [chatId]: sortMessagesChronologically(updatedMsgs) },
                 conversations: updatedConversations,
               };
             }
@@ -698,7 +739,7 @@ export const useChatStore = create<ChatState>()(
             return {
               messagesByConversation: {
                 ...state.messagesByConversation,
-                [chatId]: [...currentMsgs, normalized],
+                [chatId]: sortMessagesChronologically([...currentMsgs, normalized]),
               },
               conversations: updatedConversations,
               drafts: isFromMe ? { ...state.drafts, [chatId]: '' } : state.drafts,
@@ -707,16 +748,16 @@ export const useChatStore = create<ChatState>()(
           get().refreshConversation(chatId);
         },
 
-
         updateMessage: (chatId, msgId, updates) => {
           set((state) => {
             const currentMsgs = state.messagesByConversation[chatId] || [];
+            const updatedMsgs = currentMsgs.map((m) =>
+              m.message_id === msgId || m.id === msgId ? { ...m, ...updates } : m
+            );
             return {
               messagesByConversation: {
                 ...state.messagesByConversation,
-                [chatId]: currentMsgs.map((m) =>
-                  m.message_id === msgId || m.id === msgId ? { ...m, ...updates } : m
-                ),
+                [chatId]: sortMessagesChronologically(updatedMsgs),
               },
             };
           });

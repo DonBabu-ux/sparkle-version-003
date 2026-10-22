@@ -67,7 +67,17 @@ class SystemMessageService {
     }
 
     // ── Core: ensure system conversation exists for user ─────────────────────
+    // In-memory set of verified user system conversations to eliminate redundant DB lookups on every /inbox request
+    static _ensuredUsers = new Map();
+
     async ensureSystemConversation(userId, systemId = SYSTEM_USER_ID) {
+        if (!userId) return null;
+        const cacheKey = `${userId}:${systemId}`;
+        const cached = SystemMessageService._ensuredUsers.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp < 10 * 60 * 1000)) {
+            return cached.chatId;
+        }
+
         try {
             const existing = await safeQuery(
                 `SELECT chat_id FROM personal_chats
@@ -78,7 +88,11 @@ class SystemMessageService {
                 [systemId, userId, userId, systemId]
             );
 
-            if (existing.length > 0) return existing[0].chat_id;
+            if (existing.length > 0) {
+                const cid = existing[0].chat_id;
+                SystemMessageService._ensuredUsers.set(cacheKey, { chatId: cid, timestamp: Date.now() });
+                return cid;
+            }
 
             await this._ensureSystemUser();
 
@@ -90,6 +104,7 @@ class SystemMessageService {
                 [chatId, systemId, userId]
             );
             logger.info(`[SystemMessage] Created system conversation ${chatId} for user ${userId}`);
+            SystemMessageService._ensuredUsers.set(cacheKey, { chatId, timestamp: Date.now() });
             return chatId;
         } catch (error) {
             logger.error('[SystemMessage] ensureSystemConversation error:', error.message);

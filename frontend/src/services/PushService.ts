@@ -63,9 +63,63 @@ export async function clearNotificationForChat(chatId: string): Promise<void> {
 function urlFromData(data: unknown): string | null {
   if (!data || typeof data !== 'object') return null;
   const d = data as Record<string, unknown>;
+
+  // Direct target URL property (e.g. url, action_url, link, targetUrl)
   if (typeof d.url === 'string' && d.url.startsWith('/')) return d.url;
-  if (d.type === 'message' && d.chatId) return `/messages?chat=${String(d.chatId)}`;
-  if (d.conversationId) return `/marketplace/messages/${String(d.conversationId)}`;
+  if (typeof d.action_url === 'string' && d.action_url.startsWith('/')) return d.action_url;
+  if (typeof d.targetUrl === 'string' && d.targetUrl.startsWith('/')) return d.targetUrl;
+
+  const type = String(d.type || '');
+  const chatId = d.chatId || d.chat_id || d.conversationId || d.conversation_id;
+  if ((type === 'message' || type === 'chat' || type === 'capture_attempt') && chatId) {
+    return `/messages?chat=${String(chatId)}`;
+  }
+  if (d.conversationId) {
+    return `/marketplace/messages/${String(d.conversationId)}`;
+  }
+
+  // Social / Post / Moments / Stories / Profile targets
+  const postId = d.postId || d.post_id || d.related_id;
+  if ((type === 'post' || type === 'like' || type === 'spark' || type === 'comment' || type === 'mention') && postId) {
+    const commentId = d.commentId || d.comment_id;
+    return `/post/${String(postId)}${commentId ? `?commentId=${String(commentId)}` : ''}`;
+  }
+
+  const momentId = d.momentId || d.moment_id;
+  if ((type === 'moment' || type === 'moment_like' || type === 'moment_comment' || type === 'moment_spark') && (momentId || d.related_id)) {
+    return `/moment/${String(momentId || d.related_id)}`;
+  }
+
+  const storyId = d.storyId || d.story_id;
+  if ((type === 'story' || type === 'story_like' || type === 'story_view' || type === 'story_share') && (storyId || d.related_id)) {
+    return `/story/${String(storyId || d.related_id)}`;
+  }
+
+  const userId = d.userId || d.user_id || d.actor_id || d.actor_username;
+  if ((type === 'follow' || type === 'follow_request' || type === 'poke' || type === 'profile') && userId) {
+    return `/profile/${String(userId)}`;
+  }
+
+  const listingId = d.listingId || d.listing_id || d.item_id;
+  if (type === 'marketplace' && (listingId || d.related_id)) {
+    return `/marketplace/listing/${String(listingId || d.related_id)}`;
+  }
+
+  const orderId = d.orderId || d.order_id;
+  if (type === 'order' && (orderId || d.related_id)) {
+    return `/orders/${String(orderId || d.related_id)}`;
+  }
+
+  const groupId = d.groupId || d.group_id;
+  if ((type === 'group' || type === 'group_invite') && (groupId || d.related_id)) {
+    return `/groups/${String(groupId || d.related_id)}`;
+  }
+
+  const confessionId = d.confessionId || d.confession_id;
+  if (type === 'confession' && (confessionId || d.related_id)) {
+    return `/confessions?id=${String(confessionId || d.related_id)}`;
+  }
+
   return null;
 }
 

@@ -75,7 +75,8 @@ export const isWithin12Hours = (
 
 /**
  * Formats recipient activity status with natural relative time:
- * - Online: "Active now"
+ * - Online: null (the chat list shows only the green online indicator —
+ *   never a misleading live "Active" label)
  * - Offline within 1 min: "Active just now"
  * - Offline minutes: "Active 10 mins ago" (singular: "Active 1 min ago")
  * - Offline hours: "Active 10 hrs ago" (singular: "Active 1 hr ago")
@@ -88,7 +89,7 @@ export const formatActivityStatus = (
   referenceTime: number = Date.now()
 ): string | null => {
   if (Boolean(isOnline)) {
-    return 'Active now';
+    return null;
   }
 
   if (!lastSeen) return null;

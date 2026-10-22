@@ -961,7 +961,7 @@ class MessageController {
                 
                 let recipientId = null;
                 if (pc.length > 0) {
-                    recipientId = pc[0].participant1_id === userId ? pc[0].participant2_id : pc[0].participant1_id;
+                    recipientId = String(pc[0].participant1_id) === String(viewerUserId) ? pc[0].participant2_id : pc[0].participant1_id;
                 }
 
                 const newMsgId = crypto.randomUUID();
@@ -981,7 +981,7 @@ class MessageController {
                     groupChatId, 
                     personalChatId, 
                     personalChatId, 
-                    userId, 
+                    viewerUserId, 
                     recipientId, 
                     originalMsg.content, 
                     originalMsg.type, 
@@ -1032,7 +1032,7 @@ class MessageController {
                 LEFT JOIN users pb ON pb.user_id = m.pinned_by
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.pinned = 1
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
             `;
             const params = [chatId, chatId, chatId];
 
@@ -1092,7 +1092,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type IN ('image','video')
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1152,7 +1152,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'document'
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
             `;
             const params = [chatId, chatId, chatId];
 
@@ -1253,7 +1253,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'text'
                   AND m.content REGEXP 'https?://'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1335,7 +1335,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'voice_note'
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1395,7 +1395,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'audio'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1456,7 +1456,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND (m.type = 'story_reply' OR m.story_id IS NOT NULL OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%story%'))
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1517,7 +1517,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND (m.type = 'post_share' OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%post%'))
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1647,7 +1647,7 @@ class MessageController {
                     MIN(sent_at) AS first_message_at
                 FROM messages
                 WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
-                  AND (deleted_for_everyone IS NULL OR deleted_for_everyone = 0)
+                  AND                    (is_deleted_for_everyone IS NULL OR is_deleted_for_everyone = 0)
             `, [chatId, chatId, chatId]);
 
             const statData = stats[0] || {};
@@ -1778,7 +1778,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'system'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                 ORDER BY m.sent_at DESC
             `, [chatId, chatId, chatId]);
 

@@ -70,6 +70,11 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Legacy Downloads write path for API <= 28 (MediaStore needs no
+         permission on 29+) -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
     <!-- Android 13+ runtime notification permission (requested by the
          push/local notifications Capacitor plugins) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

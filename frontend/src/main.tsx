@@ -5,6 +5,7 @@ import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 import OtaService from './services/OtaService';
+import { initSafeAreaInsets } from './services/safeAreaInsets';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { ToastProvider } from './utils/toast';
 import realtimeLogger from './utils/realtimeTrace';
@@ -64,6 +65,11 @@ const showBootFailure = (reason: unknown) => {
 
     // Initialize Capacitor PWA elements
     defineCustomElements(window);
+
+    // Kick off the native inset pipeline before the first React render; the
+    // SparkleInsets plugin resolves exact system-bar/cutout padding and keeps
+    // --safe-area-inset-* live (chat header jump / cutout overlap fix).
+    initSafeAreaInsets();
 
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>

@@ -12,6 +12,7 @@ const PROVIDERS = {
         baseUrl: 'https://api.groq.com/openai/v1/chat/completions',
         getKey: () => process.env.GROQ_API_KEY,
         defaultModel: 'llama-3.1-8b-instant',
+        visionModels: ['meta-llama/llama-4-scout-17b-16e-instruct'],
         available: () => Boolean(process.env.GROQ_API_KEY)
     },
     TOGETHER: {
@@ -19,6 +20,7 @@ const PROVIDERS = {
         baseUrl: 'https://api.together.xyz/v1/chat/completions',
         getKey: () => process.env.TOGETHER_API_KEY,
         defaultModel: 'meta-llama/Llama-3.2-3B-Instruct-Turbo',
+        visionModels: ['meta-llama/Llama-4-Maverick-17B-128E-Instruct-FP8'],
         available: () => Boolean(process.env.TOGETHER_API_KEY)
     },
     OPENROUTER: {
@@ -34,16 +36,63 @@ const PROVIDERS = {
             'liquid/lfm-2.5-2.6b:free',
             'openrouter/free',
         ],
+        visionModels: [
+            'google/gemma-4-31b-it:free',
+            'google/gemma-4-26b-a4b-it:free',
+            'openrouter/free',
+        ],
         available: () => Boolean(process.env.OPENROUTER_API_KEY)
     }
 };
 
-async function callProvider({ provider, messages, maxTokens, temperature }) {
+// Basic SSRF guard: never fetch vision images from loopback/link-local/private
+// address space. Media URLs are public CDN links, so a deny-list is enough.
+function isBlockedInternalHost(hostname) {
+    const host = String(hostname || '').toLowerCase().replace(/^\[|\]$/g, '');
+    if (!host) return true;
+    if (host === 'localhost' || host === '::1' || host === '0.0.0.0' || host.endsWith('.local') || host.endsWith('.internal')) {
+        return true;
+    }
+    if (/^127\./.test(host)) return true;
+    if (/^10\./.test(host)) return true;
+    if (/^192\.168\./.test(host)) return true;
+    if (/^169\.254\./.test(host)) return true;
+    if (/^172\.(1[6-9]|2\d|3[01])\./.test(host)) return true;
+    return false;
+}
+
+async function fetchImageAsDataUrl(url, maxBytes = 8 * 1024 * 1024) {
+    try {
+        const parsed = new URL(url);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+        if (isBlockedInternalHost(parsed.hostname)) {
+            logger.warn('[LLMService] Blocked vision fetch to internal host');
+            return null;
+        }
+        const resp = await axios.get(url, {
+            responseType: 'arraybuffer',
+            timeout: 15000,
+            maxContentLength: maxBytes,
+            maxBodyLength: maxBytes,
+            headers: { 'User-Agent': 'SparkleAI/1.0' }
+        });
+        const mime = String(resp.headers['content-type'] || 'image/jpeg').split(';')[0];
+        if (!mime.startsWith('image/')) return null;
+        return `data:${mime};base64,${Buffer.from(resp.data).toString('base64')}`;
+    } catch (err) {
+        logger.warn(`[LLMService] Vision image fetch failed: ${err.message}`);
+        return null;
+    }
+}
+
+async function callProvider({ provider, messages, maxTokens, temperature, models: modelsOverride }) {
     const apiKey = provider.getKey();
     if (!apiKey) return null;
 
     // Build list of models to try (OpenRouter has fallback free models)
-    const models = provider.freeModels || [provider.defaultModel];
+    const models = (Array.isArray(modelsOverride) && modelsOverride.length)
+        ? modelsOverride
+        : (provider.freeModels || [provider.defaultModel]);
 
     const headers = {
         'Authorization': `Bearer ${apiKey}`,
@@ -162,9 +211,12 @@ class LLMService {
         if (Array.isArray(messages)) {
             for (const m of messages) {
                 if (m?.role && m?.content) {
+                    // Vision messages carry content arrays (text + image_url
+                    // parts); text turns stay plain strings.
+                    const content = Array.isArray(m.content) ? m.content : String(m.content);
                     out.push({
                         role: m.role === 'assistant' ? 'assistant' : (m.role === 'system' ? 'system' : 'user'),
-                        content: String(m.content)
+                        content
                     });
                 }
             }
@@ -203,6 +255,53 @@ class LLMService {
             if (result?.success) return result;
         }
         return { success: false, content: null };
+    }
+
+    /**
+     * Vision analysis for a single image. The image is fetched server-side
+     * (with an SSRF guard) and inlined as a base64 data URL so every provider
+     * (Groq / Together / OpenRouter) can consume it.
+     */
+    static async runVision({
+        prompt = 'Describe this image concisely. If it contains text, transcribe it.',
+        imageUrl,
+        temperature = 0.4,
+        maxTokens = 600
+    }) {
+        if (!imageUrl) return { success: false, content: null, error: 'imageUrl is required' };
+
+        let dataUrl = imageUrl;
+        if (!String(imageUrl).startsWith('data:')) {
+            if (!/^https?:\/\//i.test(imageUrl)) {
+                return { success: false, content: null, error: 'Only http(s) image URLs are supported' };
+            }
+            dataUrl = await fetchImageAsDataUrl(imageUrl);
+            if (!dataUrl) {
+                return { success: false, content: null, error: 'Could not fetch the image for analysis' };
+            }
+        }
+
+        const messages = [
+            {
+                role: 'user',
+                content: [
+                    { type: 'text', text: prompt },
+                    { type: 'image_url', image_url: { url: dataUrl } }
+                ]
+            }
+        ];
+
+        const providers = this.getAvailableProviders();
+        if (providers.length === 0) {
+            return { success: false, content: null, error: 'No AI provider configured' };
+        }
+
+        for (const provider of providers) {
+            const models = provider.visionModels || [provider.defaultModel];
+            const result = await callProvider({ provider, messages, maxTokens, temperature, models });
+            if (result?.success) return result;
+        }
+        return { success: false, content: null, error: 'All vision providers failed' };
     }
 
     static getProviderStatus() {

@@ -33,8 +33,6 @@ import { SparkleStorage } from '../services/SparkleStorageService';
 import { SparkleHorizontalActionBar } from '../components/chat/SparkleHorizontalActionBar';
 import { SparkleSelectionMenu } from '../components/chat/SparkleSelectionMenu';
 import { sanitizePartnerName } from '../utils/nameSanitizer';
-import { SparkleOrbitMenu } from '../components/chat/SparkleOrbitMenu';
-import { SparkleActionSheet } from '../components/chat/SparkleActionSheet';
 import { SparklePeekCard } from '../components/chat/SparklePeekCard';
 import { SparkleSwipeableChatItem } from '../components/chat/SparkleSwipeableChatItem';
 import { useTimeTick } from '../hooks/useTimeTick';
@@ -57,19 +55,19 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, Orbit, X, User, Palette, Pin, Star, Eraser, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2 } from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2 } from 'lucide-react';
 import { useCall } from '../components/CallProvider';
-import { getAvatarUrl } from '../utils/imageUtils';
+import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import CameraModal from '../components/chat/CameraModal';
 import ChatSettingsModal from '../components/chat/ChatSettingsModal';
+import FullscreenMediaViewer from '../components/chat/FullscreenMediaViewer';
 import { PullUpDisappearingGesture } from '../components/chat/PullUpDisappearingGesture';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
 import { useMessageSocket } from '../hooks/useMessageSocket';
 import { logger } from '../utils/logger';
-import { safeHref } from '../utils/safeHref';
 import { fetchGiphyItems } from '../utils/giphyClient';
 import { validateFile, validateFiles } from '../utils/fileValidation';
 
@@ -1074,12 +1072,15 @@ async function uploadFileWithProgress(fileOrUrl, onProgress) {
   } else {
     try {
       const response = await fetch(fileOrUrl);
+      if (!response.ok) throw new Error(`Media fetch failed (${response.status})`);
       const blob = await response.blob();
+      if (!blob || blob.size === 0) throw new Error('Media fetch returned an empty file');
       formData.append('file', blob, 'device_gallery_attachment.jpg');
     } catch (err) {
-      logger.error('Fetch blob failed, sending mock file data', err);
-      const mockBlob = new Blob(['mock content'], { type: 'image/jpeg' });
-      formData.append('file', mockBlob, 'attachment.jpg');
+      // Never fake an upload: surface the failure so the sender sees a real
+      // error instead of a dead attachment URL on the recipient's side.
+      logger.error('Fetch blob failed — aborting upload', err);
+      throw err instanceof Error ? err : new Error('Failed to read media for upload');
     }
   }
 
@@ -1091,7 +1092,11 @@ async function uploadFileWithProgress(fileOrUrl, onProgress) {
     },
   });
 
-  return response.data?.url || response.data?.data?.url || response.data?.secure_url || '';
+  const url = response.data?.url || response.data?.data?.url || response.data?.secure_url || '';
+  if (!url) {
+    throw new Error('Upload succeeded but no media URL was returned');
+  }
+  return url;
 };
 
 const EMPTY_MESSAGES_ARRAY: any[] = [];
@@ -1189,8 +1194,6 @@ export default function Messages() {
   const [selectedChatIds, setSelectedChatIds] = useState<string[]>([]);
   const [showSelectionMenu, setShowSelectionMenu] = useState(false);
   const [deleteConfirmCount, setDeleteConfirmCount] = useState<number | null>(null);
-  const [showOrbitMenu, setShowOrbitMenu] = useState(false);
-  const [showOrbitConstellation, setShowOrbitConstellation] = useState(false);
   const [peekChat, setPeekChat] = useState<any | null>(null);
   const [showOfficialOnboarding, setShowOfficialOnboarding] = useState(true);
   const [showLocationPickerModal, setShowLocationPickerModal] = useState(false);
@@ -1316,32 +1319,12 @@ export default function Messages() {
     });
   };
 
-  // ── Orbit / action-sheet handlers (wired to real APIs & local store) ──
+  // ── Chat actions (wired to real APIs & local store) ──
   const getTargetChatForActions = () => {
     if (selectedChatIds.length === 1) {
       return conversations.find(c => c.chat_id === selectedChatIds[0]) || null;
     }
     return selectedChat || peekChat;
-  };
-
-  const handleOrbitMute = () => {
-    const chat = getTargetChatForActions();
-    if (!chat?.chat_id) return;
-    const targetState = !chat.is_muted;
-    toggleMute(chat.chat_id, targetState);
-    api.post(`/messages/chat/${chat.chat_id}/mute`, { muted: targetState }).catch(() => {
-      api.patch(`/messages/chat/${chat.chat_id}/mute`, { muted: targetState }).catch(logger.error);
-    });
-    showSuccess(targetState ? 'Chat muted' : 'Chat unmuted');
-  };
-
-  const handleMarkUnread = () => {
-    const chat = getTargetChatForActions();
-    if (!chat?.chat_id) return;
-    setConversations(prev => prev.map(c =>
-      c.chat_id === chat.chat_id ? { ...c, unread_count: Math.max(1, c.unread_count || 0) } : c
-    ));
-    showInfo('Marked as Unread');
   };
 
   const handleClearChat = () => {
@@ -1630,7 +1613,11 @@ export default function Messages() {
     window.addEventListener('sparkle:jump-to-message', handleJumpToMessage);
     return () => window.removeEventListener('sparkle:jump-to-message', handleJumpToMessage);
   }, []);
-  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  // Full-screen media viewer: holds the message whose media is open.
+  const [viewerMessage, setViewerMessage] = useState<any | null>(null);
+  // Lets "View all media" from the viewer open chat settings straight to the
+  // Shared Content Explorer tab.
+  const [chatSettingsInitialView, setChatSettingsInitialView] = useState<'main' | 'media'>('main');
   const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
   const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
   const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
@@ -2410,16 +2397,32 @@ export default function Messages() {
   useEffect(() => {
     if (!socket) return;
 
-    const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null }) => {
+    const handleUserStatus = (data: { userId: string; isOnline: boolean; lastSeen: string | null; hidden?: boolean }) => {
+      const statusUserId = String(data.userId);
+      // `hidden` = subject disabled Active Status; treat as offline and drop
+      // last-seen without leaking their real connection state.
+      const online = !data.hidden && !!data.isOnline;
+      // Never clobber a known last-seen with null on "online" events — the
+      // previous timestamp stays authoritative until a real offline stamp lands.
       setConversations((prev: any[]) => prev.map(chat => {
-        if (chat.partner_id === data.userId) {
-          return { ...chat, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline };
+        if (String(chat.partner_id) === statusUserId) {
+          return {
+            ...chat,
+            is_online: online ? 1 : 0,
+            last_seen_at: data.hidden ? null : (data.lastSeen ?? chat.last_seen_at),
+            partner_online: online
+          };
         }
         return chat;
       }));
       const activeChat = selectedChatRef.current;
-      if (activeChat && activeChat.partner_id === data.userId) {
-        setSelectedChat(prev => prev ? { ...prev, is_online: data.isOnline ? 1 : 0, last_seen_at: data.lastSeen, partner_online: data.isOnline } : null);
+      if (activeChat && String(activeChat.partner_id) === statusUserId) {
+        setSelectedChat(prev => prev ? {
+          ...prev,
+          is_online: online ? 1 : 0,
+          last_seen_at: data.hidden ? null : (data.lastSeen ?? prev.last_seen_at),
+          partner_online: online
+        } : null);
       }
     };
 
@@ -2751,7 +2754,10 @@ export default function Messages() {
             setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
             setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
 
-            const finalMediaUrl = uploadedUrl || item.url;
+            // Upload success guarantees a server-hosted URL; never fall back to
+            // a local blob/data URL (that would be a permanently dead link for
+            // the recipient).
+            const finalMediaUrl = uploadedUrl;
             if (selectedChat) {
               const payload = {
                 messageId: tempMessageId,
@@ -3662,7 +3668,16 @@ export default function Messages() {
   };
 
   return (
-    <AppScreen scrollable={false}>
+    <AppScreen
+      scrollable={false}
+      style={{
+        // Paint the status-bar/cutout zone with the active view's theme color so
+        // the Sparkle background reaches the physical top edge of the screen.
+        backgroundColor: selectedChat
+          ? (currentChatTheme?.colors?.backgroundDark || '#000000')
+          : '#13131a'
+      }}
+    >
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
 
@@ -3710,13 +3725,6 @@ export default function Messages() {
                     title="Message Settings"
                   >
                     <Settings size={22} strokeWidth={2.2} />
-                  </button>
-                  <button
-                    onClick={() => setShowOrbitMenu(true)}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
-                    title="Sparkle Options"
-                  >
-                    <Orbit size={22} strokeWidth={2.2} />
                   </button>
                 </div>
               </div>
@@ -3991,7 +3999,7 @@ export default function Messages() {
                                     transition={{ duration: 0.18, ease: 'easeOut' }}
                                     className="text-[11px] font-medium lowercase text-emerald-500 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                                   >
-                                    {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count || 1} online
+                                    {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count ?? 0} online
                                   </motion.p>
                                 ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
                                   <motion.p
@@ -4116,7 +4124,7 @@ export default function Messages() {
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="relative z-20 overflow-hidden border-b border-white/5 bg-[#1b1b24]/95 backdrop-blur-xl shadow-lg"
+                    className="relative z-20 shrink-0 overflow-hidden border-b border-white/5 bg-[#1b1b24]/95 backdrop-blur-xl shadow-lg"
                   >
                     <div className="flex items-center gap-2 px-4 py-2.5 overflow-x-auto no-scrollbar scroll-smooth snap-x">
                       {pinnedMessages.map(msg => (
@@ -4547,39 +4555,75 @@ export default function Messages() {
                                       />
                                     )}
 
-                                    {msg.type === 'image' && (
-                                      <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setLightboxUrl(msg.media_url || msg.mediaUrl || '')}>
-                                        <img src={msg.media_url || msg.mediaUrl} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
-                                        {msg.content && (
-                                          <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
-                                            {msg.content}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                    {msg.type === 'image' && (() => {
+                                      const mediaSrc = getMediaUrl(msg.media_url || msg.mediaUrl);
+                                      return (
+                                        <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setViewerMessage(msg)}>
+                                          {mediaSrc ? (
+                                            <img src={mediaSrc} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
+                                          ) : (
+                                            <div className="w-[240px] h-[140px] flex flex-col items-center justify-center gap-2 bg-white/5 text-white/50">
+                                              <ImageIcon size={28} />
+                                              <span className="text-[11px] font-bold">Image unavailable</span>
+                                            </div>
+                                          )}
+                                          {msg.content && (
+                                            <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
+                                              {msg.content}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
 
-                                    {msg.type === 'video' && (
-                                      <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
-                                        <video src={msg.media_url || msg.mediaUrl} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
-                                        {msg.content && (
-                                          <div className="p-2 text-[13px] text-white/95 font-semibold">
-                                            {msg.content}
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                    {msg.type === 'video' && (() => {
+                                      const mediaSrc = getMediaUrl(msg.media_url || msg.mediaUrl);
+                                      return (
+                                        <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
+                                          {mediaSrc ? (
+                                            <video src={mediaSrc} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
+                                          ) : (
+                                            <div className="w-[240px] h-[140px] flex items-center justify-center text-white/50 text-[11px] font-bold">Video unavailable</div>
+                                          )}
+                                          {mediaSrc && (
+                                            <button
+                                              type="button"
+                                              aria-label="Open video full screen"
+                                              onClick={() => setViewerMessage(msg)}
+                                              className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-black/55 hover:bg-black/75 text-white flex items-center justify-center transition-colors"
+                                            >
+                                              <ArrowUpRight size={14} />
+                                            </button>
+                                          )}
+                                          {msg.content && (
+                                            <div className="p-2 text-[13px] text-white/95 font-semibold">
+                                              {msg.content}
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })()}
 
                                     {(msg.type === 'voice_note' || msg.type === 'audio') && (
-                                      <div className="my-1">
-                                        <VoiceNotePlayer url={msg.media_url || msg.mediaUrl || ''} />
+                                      <div className="my-1 flex items-center gap-2">
+                                        <VoiceNotePlayer url={getMediaUrl(msg.media_url || msg.mediaUrl) || ''} />
+                                        <button
+                                          type="button"
+                                          aria-label="Open voice note full screen"
+                                          onClick={() => setViewerMessage(msg)}
+                                          className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors shrink-0"
+                                        >
+                                          <ArrowUpRight size={14} />
+                                        </button>
                                       </div>
                                     )}
 
                                     {msg.type === 'document' && (
-                                      <a
-                                        href={safeHref(msg.media_url || msg.mediaUrl)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                      <div
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setViewerMessage(msg)}
+                                        onKeyDown={(e) => { if (e.key === 'Enter') setViewerMessage(msg); }}
                                         className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
                                       >
                                         <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
@@ -4596,7 +4640,7 @@ export default function Messages() {
                                         <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
                                           <Download size={16} strokeWidth={2.5} />
                                         </div>
-                                      </a>
+                                      </div>
                                     )}
 
                                     {msg.type === 'location' && (
@@ -4979,9 +5023,9 @@ export default function Messages() {
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" aria-hidden>
-                <Orbit size={400} strokeWidth={0.5} className="animate-spin-slow" />
+                <Sparkles size={400} strokeWidth={0.5} className="animate-spin-slow" />
               </div>
-              <Orbit size={120} strokeWidth={1} className="text-white/5 mb-12 relative z-10" />
+              <Sparkles size={120} strokeWidth={1} className="text-white/5 mb-12 relative z-10" />
               <h2 className="text-5xl font-black text-[#f5f5f5] mb-4 tracking-tighter italic uppercase underline decoration-[#ff1493]/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
               <p className="text-white font-medium opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               <button
@@ -5724,9 +5768,14 @@ export default function Messages() {
         <ChatSettingsModal
           key={selectedChat.chat_id || selectedChat.id}
           chat={selectedChat}
-          onClose={() => setShowChatSettings(false)}
+          initialView={chatSettingsInitialView}
+          onClose={() => {
+            setShowChatSettings(false);
+            setChatSettingsInitialView('main');
+          }}
           onNavigateProfile={() => {
             setShowChatSettings(false);
+            setChatSettingsInitialView('main');
             navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`);
           }}
         />
@@ -6151,7 +6200,9 @@ export default function Messages() {
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
                           setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
 
-                          const finalMediaUrl = uploadedUrl || item.url;
+                          // Server-hosted URL only — never fall back to a
+                          // local blob/data URL (dead link for recipients).
+                          const finalMediaUrl = uploadedUrl;
                           if (selectedChat) {
                             const payload = {
                               messageId: tempMessageId,
@@ -6166,15 +6217,42 @@ export default function Messages() {
                               socket.emit('send-message', payload, (response: any) => {
                                 if (response?.success) {
                                   releaseOwnedUrls([item]);
+                                  PersistentOfflineQueue.acknowledge(tempMessageId);
+                                  const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
+                                  const finalId = response.messageId || tempMessageId;
                                   updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                                    ? { ...m, status: 'sent', media_url: finalMediaUrl, mediaUrl: finalMediaUrl }
+                                    ? {
+                                        ...m,
+                                        status: 'sent',
+                                        sent_at: response.sentAt || m.sent_at,
+                                        server_sequence: serverSeq ?? m.server_sequence,
+                                        media_url: finalMediaUrl,
+                                        mediaUrl: finalMediaUrl,
+                                        message_id: finalId,
+                                        id: finalId,
+                                      }
                                     : m
                                   ));
+                                  if (selectedChat) {
+                                    useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, {
+                                      message_id: finalId,
+                                      id: finalId,
+                                      status: 'sent',
+                                      sent_at: response.sentAt,
+                                      server_sequence: serverSeq,
+                                      media_url: finalMediaUrl,
+                                      mediaUrl: finalMediaUrl,
+                                    });
+                                  }
                                 } else {
+                                  PersistentOfflineQueue.markFailed(tempMessageId);
                                   updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
                                     ? { ...m, status: 'failed' }
                                     : m
                                   ));
+                                  if (selectedChat) {
+                                    useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, { status: 'failed' });
+                                  }
                                 }
                               });
                             } else {
@@ -6184,10 +6262,14 @@ export default function Messages() {
                         } catch (err) {
                           logger.error('[MediaUpload] Upload failed:', err);
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+                          PersistentOfflineQueue.markFailed(tempMessageId);
                           updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
                             ? { ...m, status: 'failed' }
                             : m
                           ));
+                          if (selectedChat) {
+                            useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, { status: 'failed' });
+                          }
                         }
                       })();
                     }
@@ -6454,7 +6536,7 @@ export default function Messages() {
               }}
               className="w-full px-4 py-2.5 text-left text-[13px] font-medium text-white/80 hover:bg-white/[0.05] flex items-center gap-2"
             >
-              <Orbit size={14} className="opacity-60" />
+              <GripVertical size={14} className="opacity-60" />
               Reorder lists
             </button>
           </div>
@@ -6621,69 +6703,48 @@ export default function Messages() {
         )}
       </AnimatePresence>
 
-      {/* ── 4. LIGHTBOX IMAGE VIEW OVERLAY ── */}
-      <AnimatePresence>
-        {lightboxUrl && (
-          <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center select-none bg-black/95 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="absolute inset-0 cursor-pointer"
-              onClick={() => setLightboxUrl(null)}
-            />
-            <motion.div
-              initial={{ scale: 0.92, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.92, opacity: 0 }}
-              className="relative z-10 max-w-[90vw] max-h-[90vh] overflow-hidden"
-            >
-              <img src={lightboxUrl} className="w-full h-auto max-h-[85vh] object-contain rounded-2xl border border-white/10 shadow-2xl" alt="" />
-              <button
-                type="button"
-                onClick={() => setLightboxUrl(null)}
-                className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/60 hover:bg-black text-white flex items-center justify-center shadow-lg active:scale-90 transition-all border border-white/10"
-              >
-                <X size={20} />
-              </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      {/* ── 4. FULL-SCREEN MEDIA VIEWER ── */}
+      <FullscreenMediaViewer
+        message={viewerMessage}
+        chat={selectedChat}
+        currentUserId={String(user?.id ?? user?.user_id ?? '')}
+        onClose={() => setViewerMessage(null)}
+        onForward={(m) => {
+          if (!m) return;
+          if (effectiveMessagePermissions?.canForward === false) {
+            showInfo('Forwarding is disabled in this chat');
+            setViewerMessage(null);
+            return;
+          }
+          setViewerMessage(null);
+          setForwardingMessage(m);
+          setShowForwardModal(true);
+        }}
+        onDelete={(m) => {
+          if (!m) return;
+          setViewerMessage(null);
+          setMessageToDelete(m);
+          setShowDeleteConfirm(true);
+        }}
+        onViewAllMedia={() => {
+          setViewerMessage(null);
+          setChatSettingsInitialView('media');
+          setShowChatSettings(true);
+        }}
+        onStarToggled={(msgId, nextStarred) => {
+          socket?.emit('star-message', {
+            messageId: msgId,
+            chatId: selectedChat?.chat_id,
+            starred: nextStarred,
+          });
+          updateMessages((prev) =>
+            prev.map((m) => ((m.message_id || m.id) === msgId ? { ...m, starred: nextStarred } : m))
+          );
+          showSuccess(nextStarred ? 'Starred' : 'Unstarred');
+        }}
+      />
 
       {/* ── SPARKLE ENTERPRISE UX MODALS & OVERLAYS ── */}
-      <SparkleActionSheet
-        isOpen={showOrbitMenu}
-        onClose={() => setShowOrbitMenu(false)}
-        onViewProfile={() => {
-          const target = peekChat?.partner_username || user?.username || user?.user_id;
-          if (target) navigate(`/profile/${target}`);
-        }}
-        onMarkUnread={handleMarkUnread}
-        onFavorite={handleBatchFavorite}
-        onPin={handleBatchPin}
-        onMute={handleOrbitMute}
-        onClearChat={handleClearChat}
-        onExportChat={handleExportChat}
-        onBlockUser={handleBlockUser}
-        onReportUser={handleReportUser}
-        onMessageSettings={() => navigate('/messages/settings')}
-        isPinned={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_pinned}
-        isFavorite={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_favorite}
-        isMuted={selectedChatIds.length === 1 && !!conversations.find(c => c.chat_id === selectedChatIds[0])?.is_muted}
-      />
-
-      <SparkleOrbitMenu
-        isOpen={showOrbitConstellation}
-        onClose={() => setShowOrbitConstellation(false)}
-        actions={[
-          { id: 'profile', label: 'View Profile', icon: <User size={18} />, onClick: () => navigate(`/profile/${user?.username || user?.user_id}`) },
-          { id: 'fav', label: 'Favorite Chat', icon: <Star size={18} className="text-amber-400 fill-amber-400" />, onClick: handleBatchFavorite },
-          { id: 'pin', label: 'Pin Chat', icon: <Pin size={18} className="text-[#FF008A] fill-[#FF008A]" />, onClick: handleBatchPin },
-          { id: 'clear', label: 'Clear Chat', icon: <Eraser size={18} />, onClick: handleClearChat },
-          { id: 'block', label: 'Block User', icon: <Ban size={18} />, onClick: handleBlockUser },
-          { id: 'export', label: 'Export Chat', icon: <Download size={18} />, onClick: handleExportChat },
-        ]}
-      />
-
       <SparklePeekCard
         chat={peekChat}
         isOpen={!!peekChat}
@@ -6731,6 +6792,8 @@ export default function Messages() {
         onArchive={handleBatchArchive}
         onClearChat={handleClearChat}
         onBlock={handleBlockUser}
+        onReport={handleReportUser}
+        onExportChat={handleExportChat}
         onSearch={() => {
           if (selectedChatIds.length === 1) {
             const targetChat = conversations.find(c => c.chat_id === selectedChatIds[0]);

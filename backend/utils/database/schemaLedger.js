@@ -15,7 +15,8 @@ const MIGRATION_RUN = [
     { file: '20261008_add_users_is_hidden.sql', verify: [] },
     { file: '20261013_account_lifecycle.js', verify: ['account_lifecycle_audit'] },
     { file: '20261013_advanced_settings_enhancement.js', verify: [] },
-    { file: '20261013_data_centre_and_recovery.js', verify: ['data_export_jobs', 'account_recovery_requests', 'account_appeal_cases'] }
+    { file: '20261013_data_centre_and_recovery.js', verify: ['data_export_jobs', 'account_recovery_requests', 'account_appeal_cases'] },
+    { file: '20261021_extend_message_types.sql', verify: [] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

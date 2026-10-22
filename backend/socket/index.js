@@ -26,13 +26,16 @@ const GroupMember = require('../models/GroupMember');
 
 const SessionService = require('../services/session.service');
 const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+const { filterPresenceViewers } = require('../services/presencePrivacy');
 
 let io;
 
 /**
  * Grace period (ms) before a disconnected user is marked offline.
+ * Product requirement: keep the "online" indicator for one full minute after
+ * disconnect so brief network blips don't flicker presence.
  */
-const OFFLINE_GRACE_MS = 30_000;
+const OFFLINE_GRACE_MS = 60_000;
 
 const pendingOfflineTimers = new Map();
 const userSockets = new Map();
@@ -971,12 +974,31 @@ socket.on('get-rooms', () => {
                     }
                 }
                 const stillOnline = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
-                if (!stillOnline) {
-                    await User.setOnlineStatus(socket.userId, false);
-                    await broadcastOnlineStatus(socket, false);
-                } else {
+                if (stillOnline) {
                     logger.info(`📡 User still has active sessions on other devices, staying ONLINE: ${socket.userId}`);
+                    return;
                 }
+                // Respect the same grace window as a transport disconnect so a
+                // rapid reload/reconnect never flickers offline → online.
+                if (pendingOfflineTimers.has(socket.userId)) {
+                    clearTimeout(pendingOfflineTimers.get(socket.userId));
+                    pendingOfflineTimers.delete(socket.userId);
+                }
+                const timer = setTimeout(async () => {
+                    try {
+                        const still = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
+                        if (!still) {
+                            await User.setOnlineStatus(socket.userId, false);
+                            await broadcastOnlineStatus(socket, false);
+                            logger.info(`📴 User offline after grace period (explicit signal): ${socket.userId}`);
+                        }
+                    } catch (e) {
+                        logger.error('Grace offline error (explicit signal):', e);
+                    } finally {
+                        pendingOfflineTimers.delete(socket.userId);
+                    }
+                }, OFFLINE_GRACE_MS);
+                pendingOfflineTimers.set(socket.userId, timer);
             } catch (e) {
                 logger.error('presence:offline error:', e);
             }
@@ -985,8 +1007,14 @@ socket.on('get-rooms', () => {
         // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
         socket.on('sparkle-ping', async () => {
             try {
-                // Update last_seen_at periodically to keep presence status fresh
-                await pool.query('UPDATE users SET last_seen_at = UTC_TIMESTAMP(), is_online = 1 WHERE user_id = ?', [socket.userId]);
+                // Only refresh presence while this socket is still a tracked
+                // session. A socket that already sent presence:offline was
+                // removed from userSockets and must not resurrect is_online.
+                const sessions = userSockets.get(socket.userId);
+                const isActiveSession = sessions && sessions.has(socket);
+                if (isActiveSession) {
+                    await pool.query('UPDATE users SET last_seen_at = UTC_TIMESTAMP(), is_online = 1 WHERE user_id = ?', [socket.userId]);
+                }
             } catch (e) {
                 logger.error('Error updating presence on heartbeat:', e);
             }
@@ -1410,6 +1438,10 @@ socket.on('get-rooms', () => {
                 // Schedule offline transition after grace period for the last disconnected session
                 // This allows brief network blips / transport upgrades to
                 // reconnect without the user appearing offline.
+                if (pendingOfflineTimers.has(socket.userId)) {
+                    clearTimeout(pendingOfflineTimers.get(socket.userId));
+                    pendingOfflineTimers.delete(socket.userId);
+                }
                 const timer = setTimeout(async () => {
                     try {
                         // Verify if the user has any remaining active socket sessions
@@ -1503,23 +1535,29 @@ const broadcastGroupPresence = (io, socket) => {
     }
 };
 
-// Helper: Broadcast online status to followers, group peers, and direct chat partners
+// Helper: Broadcast online status to followers, group peers, and direct chat partners.
+// Privacy-enforced: viewers who are not allowed to see the subject's presence
+// (activity_status_enabled = 0 or last_seen_privacy = no_one/followers) never
+// receive real status; when the subject hides presence entirely, a `hidden`
+// marker is emitted so clients can clear stale online indicators without
+// learning the real connection state.
 const broadcastOnlineStatus = async (socket, isOnline) => {
     try {
+        const subjectId = socket.userId;
         const [followers] = await pool.query(
             'SELECT follower_id FROM follows WHERE following_id = ?',
-            [socket.userId]
+            [subjectId]
         );
 
         // Get Group Peers
-        const groupPeers = await GroupMember.getGroupPeers(socket.userId);
+        const groupPeers = await GroupMember.getGroupPeers(subjectId);
 
         // Direct Chat Partners (personal_chats)
         const [chatPartners] = await pool.query(
             `SELECT IF(participant1_id = ?, participant2_id, participant1_id) AS partner_id
              FROM personal_chats
              WHERE participant1_id = ? OR participant2_id = ?`,
-            [socket.userId, socket.userId, socket.userId]
+            [subjectId, subjectId, subjectId]
         );
 
         // Merge unique IDs
@@ -1528,21 +1566,39 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
             ...groupPeers,
             ...chatPartners.map(p => p.partner_id)
         ]);
-        targetIds.delete(socket.userId);
+        targetIds.delete(subjectId);
+        const candidates = Array.from(targetIds);
+        if (candidates.length === 0 || !io) return;
 
-        const statusData = {
-            userId: socket.userId,
-            username: socket.user ? socket.user.username : undefined,
-            isOnline,
-            lastSeen: isOnline ? null : new Date().toISOString()
-        };
+        const allowed = await filterPresenceViewers(subjectId, candidates);
+        const username = socket.user ? socket.user.username : undefined;
 
-        const rooms = Array.from(targetIds).map(id => `user:${id}`);
-        if (rooms.length > 0 && io) {
+        const statusData = allowed.length === 0
+            // Hidden: clear stale indicators everywhere, leak nothing.
+            ? { userId: subjectId, username, isOnline: false, hidden: true, lastSeen: null }
+            : { userId: subjectId, username, isOnline, hidden: false, lastSeen: isOnline ? null : new Date().toISOString() };
+
+        const emitTargets = allowed.length === 0 ? candidates : allowed;
+        const rooms = emitTargets.map(id => `user:${id}`);
+        if (rooms.length > 0) {
             io.to(rooms).emit('user-status', statusData);
         }
     } catch (error) {
         logger.error('Broadcast status error:', error);
+    }
+};
+
+/**
+ * Re-evaluates and re-broadcasts a user's presence after their Active Status
+ * privacy settings change, using the authoritative session state.
+ */
+const refreshPresenceBroadcast = async (userId, username) => {
+    try {
+        if (!userId) return;
+        const isOnline = userSockets.has(Number(userId)) && userSockets.get(Number(userId)).size > 0;
+        await broadcastOnlineStatus({ userId: Number(userId), user: username ? { username } : undefined }, isOnline);
+    } catch (e) {
+        logger.error('refreshPresenceBroadcast error:', e);
     }
 };
 
@@ -1882,5 +1938,6 @@ module.exports = {
     notifyOrderUpdate, 
     emitMarketplaceMessage, 
     handleSparklyMentionInChat,
-    disconnectUserSockets
+    disconnectUserSockets,
+    refreshPresenceBroadcast
 };

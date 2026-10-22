@@ -39,8 +39,10 @@
   /* P1 tokens (S1) — layout math resolves HERE, not per page.
      --header-h = default mobile glass header: pt-[calc(1rem+env())] + h-10
      children + pb-4 = 72px, plus the device notch. Pages with custom chrome
-     own their height var (chat/marketplace subpage headers) until PageShell. */
-  --header-h: calc(72px + env(safe-area-inset-top, 0px));
+     own their height var (chat/marketplace subpage headers) until PageShell.
+     Routed through --safe-area-inset-* so the native SparkleInsets plugin
+     (exact px on Android) stays the single authoritative source. */
+  --header-h: calc(72px + var(--safe-area-inset-top, 0px));
   --rail-w: 72px; /* collapsed desktop sidebar (H20) */
 
   /* P1 z-scale (S2) — value-exact codemod of the dominant literal families;
@@ -135,20 +137,23 @@ body.note-modal-open nav {
   }
   .animate-float      { animation: float-y 6s ease-in-out infinite; }
 
-  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-  .pl-safe { padding-left: env(safe-area-inset-left, 0px); }
-  .pr-safe { padding-right: env(safe-area-inset-right, 0px); }
+  .pt-safe { padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); }
+  .pb-safe { padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
+  .pl-safe { padding-left: var(--safe-area-inset-left, env(safe-area-inset-left, 0px)); }
+  .pr-safe { padding-right: var(--safe-area-inset-right, env(safe-area-inset-right, 0px)); }
   
-  .mt-safe { margin-top: env(safe-area-inset-top, 0px); }
-  .mb-safe { margin-bottom: env(safe-area-inset-bottom, 0px); }
+  .mt-safe { margin-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px)); }
+  .mb-safe { margin-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)); }
 
-  .h-screen-safe { height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); }
+  .h-screen-safe { height: calc(100dvh - var(--safe-area-inset-top, env(safe-area-inset-top, 0px)) - var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))); }
 
   /* ── Camera edge-to-edge safe area helpers ── */
-  /* These are the class names referenced in CreateStory.tsx & CameraControls.tsx */
+  /* These are the class names referenced in CreateStory.tsx and CameraControls.tsx */
   .safe-area-top {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  }
+  .safe-area-bottom {
+    padding-bottom: var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px));
   }
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);

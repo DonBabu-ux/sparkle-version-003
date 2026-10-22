@@ -12,6 +12,11 @@
 			"style": "DARK",
 			"resizeOnFullScreen": true
 		},
+		"StatusBar": {
+			"overlaysWebView": true,
+			"style": "DARK",
+			"backgroundColor": "#00000000"
+		},
 		"OtaKit": {
 			"appId": "eccc57fa-7ba0-47ee-951f-688f6516afd1"
 		}

@@ -815,7 +815,7 @@ const initMessagesTable = async () => {
                 chat_id CHAR(36) DEFAULT NULL,
                 conversation_id CHAR(36) DEFAULT NULL,
                 sender_id CHAR(36) NOT NULL,
-                type ENUM('text', 'image', 'video', 'voice_note', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply') DEFAULT 'text',
+                type ENUM('text', 'image', 'video', 'voice_note', 'audio', 'document', 'location', 'contact', 'attachment', 'post_share', 'system', 'call', 'marketplace_listing', 'story_reply') DEFAULT 'text',
                 content TEXT DEFAULT NULL,
                 media_url VARCHAR(500) DEFAULT NULL,
                 story_id CHAR(36) DEFAULT NULL,

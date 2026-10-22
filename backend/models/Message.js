@@ -535,6 +535,56 @@ class Message {
         let blockedByMeSet, blockedMeSet;
         [blockedByMeSet, blockedMeSet] = await blocksPromise;
 
+        // ── Presence privacy (Active Status) ──
+        // One batched round-trip for all personal-chat partners: a partner whose
+        // activity_status_enabled = 0 or last_seen_privacy = no_one appears
+        // offline with no last-seen; 'followers' requires the viewer to follow them.
+        const presencePrivacy = (async () => {
+            const hidden = new Set();
+            try {
+                const partnerIds = [...new Set(rows
+                    .map(r => r.partner_id)
+                    .filter(pid => pid !== null && pid !== undefined))];
+                if (partnerIds.length === 0) return hidden;
+
+                const [settingsRows] = await db.query(
+                    'SELECT user_id, activity_status_enabled, last_seen_privacy FROM users WHERE user_id IN (?)',
+                    [partnerIds]
+                );
+                const needsFollowers = (settingsRows || [])
+                    .filter(r => r.last_seen_privacy === 'followers')
+                    .map(r => r.user_id);
+                const followerPairs = new Map();
+                if (needsFollowers.length > 0) {
+                    const [followRows] = await db.query(
+                        'SELECT follower_id, following_id FROM follows WHERE following_id IN (?)',
+                        [needsFollowers]
+                    );
+                    for (const f of followRows || []) {
+                        const key = String(f.following_id);
+                        if (!followerPairs.has(key)) followerPairs.set(key, new Set());
+                        followerPairs.get(key).add(String(f.follower_id));
+                    }
+                }
+                const viewerStr = String(userId);
+                for (const r of settingsRows || []) {
+                    const enabled = r.activity_status_enabled === null || r.activity_status_enabled === undefined
+                        ? 1 : Number(r.activity_status_enabled);
+                    const privacy = r.last_seen_privacy || 'everyone';
+                    let visible = Boolean(enabled) && privacy !== 'no_one';
+                    if (visible && privacy === 'followers') {
+                        visible = (followerPairs.get(String(r.user_id)) || new Set()).has(viewerStr);
+                    }
+                    if (!visible) hidden.add(String(r.user_id));
+                }
+            } catch (e) {
+                logger.warn('getUserConversations: presence privacy lookup failed (presence shown raw)', e?.message || e);
+            }
+            return hidden;
+        })();
+
+        const hiddenPresenceSet = await presencePrivacy;
+
         const { formatSystemUser, isSystemAccount } = require('../helpers/systemAccount.helper');
         return rows.map(conv => {
             const formatted = formatSystemUser(conv);
@@ -543,6 +593,7 @@ class Message {
             const amIBlocked = pid ? blockedMeSet.has(pid) : false;
             const isBlocked = isBlockedByMe || amIBlocked;
             const isSys = Boolean(formatted.is_system_account || isSystemAccount(conv) || conv.is_system);
+            const presenceHidden = pid ? hiddenPresenceSet.has(pid) : false;
 
             return {
                 ...conv,
@@ -556,7 +607,7 @@ class Message {
                 partner_name: isBlocked ? 'Sparkle User' : String(conv.partner_name || conv.partner_username || 'Sparkle User'),
                 partner_username: isBlocked ? '' : String(conv.partner_username || ''),
                 partner_avatar: isBlocked ? null : conv.partner_avatar,
-                is_online: (isBlocked || isSys) ? false : Boolean(conv.is_online),
+                is_online: (isBlocked || isSys || presenceHidden) ? false : Boolean(conv.is_online),
                 last_message_sender_id: conv.last_message_sender_id ? String(conv.last_message_sender_id) : null,
                 last_message_status: conv.last_message_status || 'sent',
                 // Convert all TINYINT(1) DEFAULT 0 columns to proper booleans
@@ -571,7 +622,7 @@ class Message {
                 only_admins_send: Boolean(conv.only_admins_send),
                 disappearing_duration: Number(conv.disappearing_duration) || 0,
                 last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
-                last_seen_at: (isBlocked || isSys) ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
+                last_seen_at: (isBlocked || isSys || presenceHidden) ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
             };
         });
     }

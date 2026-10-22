@@ -24,6 +24,8 @@ interface ChatSettingsModalProps {
   chat: any;
   onClose: () => void;
   onNavigateProfile?: () => void;
+  /** View to open on mount (e.g. 'media' when jumping from the media viewer). */
+  initialView?: 'main' | 'media';
 }
 
 // Removed static EMOJIS and MEMOJIS as we'll use emoji-mart and more realistic avatars
@@ -67,9 +69,9 @@ const generateEncryptionKeys = (chatId: string) => {
   };
 };
 
-export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
+export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, initialView }: ChatSettingsModalProps) {
   const navigate = useNavigate();
-  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>('main');
+  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>(initialView === 'media' ? 'media' : 'main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
 
   // ── Create Group state ──

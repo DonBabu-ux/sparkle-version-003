@@ -7,6 +7,7 @@ import clsx from 'clsx';
 import { Home, Users, Plus, Pen, PlayCircle, History, Store, LayoutGrid, BarChart3, Compass, Search as SearchIcon, Bell } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
+import { useChatStore } from '../store/chatStore';
 import '../utils/imageUtils';
 import Avatar from './Avatar';
 
@@ -65,10 +66,14 @@ export default function Navbar() {
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
   const [showMobileCreate, setShowMobileCreate] = useState(false);
 
+  const activeConversationId = useChatStore((s) => s.activeConversationId);
+
   const isActive = (path: string) => location.pathname === path;
   const isMoments = location.pathname.startsWith('/moments');
   const isMessages = location.pathname.startsWith('/messages');
   const isDarkBase = isMoments || isMessages;
+  const isInsideChat = (location.pathname.startsWith('/messages') && location.pathname !== '/messages') ||
+    (location.pathname === '/messages' && (new URLSearchParams(location.search).has('chat') || Boolean(activeConversationId)));
 
   return (
     <>
@@ -110,7 +115,7 @@ export default function Navbar() {
 
 
       {/* Mobile Bottom Navigation - Only show on main chat list, hide on chats/settings/other subpages */}
-      {!showMobileCreate && !(location.pathname.startsWith('/messages') && location.pathname !== '/messages') && !(location.pathname === '/messages' && new URLSearchParams(location.search).has('chat')) && !location.pathname.includes('/create') && (
+      {!showMobileCreate && !isInsideChat && !location.pathname.includes('/create') && (
       <nav
         aria-label="Primary"
         className={clsx(

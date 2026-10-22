@@ -404,7 +404,7 @@ export default function PollDetail() {
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-black text-gray-900 uppercase italic">Invite Friends</h3>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select nodes to notify</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select people to notify</p>
                 </div>
                 <button onClick={() => setShowInviteSheet(false)} className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={24} strokeWidth={3} />

@@ -63,7 +63,7 @@ export default function GroupAdmin() {
     <div className="flex min-h-dvh bg-[#fafafa]">
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Spinner size="large" color="text-primary" />
-        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Decrypting...</p>
+        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Loading...</p>
       </div>
     </div>
   );
@@ -154,10 +154,10 @@ export default function GroupAdmin() {
                  <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center text-primary">
                     <AlertCircle size={16} />
                  </div>
-                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Protocols</h3>
+                 <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Admin Tools</h3>
               </div>
               <p className="text-[11px] text-gray-400 font-bold italic leading-relaxed uppercase tracking-tight">
-                Additional governance tools are currently being synchronized for the modern administrative hub.
+                More admin tools are coming soon.
               </p>
            </section>
         </div>

@@ -87,7 +87,7 @@ export default function CreatorStudio() {
               {[
                 { title: 'Moment upload', desc: 'Share dynamic short videos.', icon: <Video size={18} />, color: 'from-[#FF1F6D] to-[#ff6b35]', onClick: () => navigate('/moments/create') },
                 { title: 'Create Story', desc: 'Post stories on student wall.', icon: <Sparkles size={18} />, color: 'from-violet-500 to-purple-500', onClick: () => navigate('/afterglow/create') },
-                { title: 'Go Live Stream', desc: 'Sync live feed feeds.', icon: <Radio size={18} />, color: 'from-amber-500 to-orange-500', onClick: () => navigate('/streams') },
+                { title: 'Go Live Stream', desc: 'Go live with your followers.', icon: <Radio size={18} />, color: 'from-amber-500 to-orange-500', onClick: () => navigate('/streams') },
               ].map((act, i) => (
                 <motion.div
                   key={i}

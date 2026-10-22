@@ -81,7 +81,7 @@ export default function StorageIntelligencePanel() {
                                     <HardDrive size={32} className="text-blue-500" />
                                 </div>
                                 <div>
-                                    <p className="text-black/50 text-sm font-bold uppercase tracking-widest mb-1 dark:text-white/40">Total Payload</p>
+                                    <p className="text-black/50 text-sm font-bold uppercase tracking-widest mb-1 dark:text-white/40">Total Storage</p>
                                     <h2 className="text-4xl font-black">{formatBytes(stats.total_bytes)}</h2>
                                     <p className="text-black/60 text-sm mt-1 dark:text-white/60">{stats.total_assets} Indexed Assets</p>
                                 </div>

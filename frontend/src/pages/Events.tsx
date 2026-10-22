@@ -127,7 +127,7 @@ export default function Events() {
               <div className="max-w-4xl space-y-8">
                  <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
                     <Calendar size={18} strokeWidth={3} className="text-primary" />
-                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Village Gatherings</span>
+                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Events</span>
                  </div>
                  <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
                     Village <span className="text-primary">Live</span>
@@ -168,7 +168,7 @@ export default function Events() {
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Scan for event signals..." 
+                placeholder="Search events..."
                 className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
            </div>
@@ -183,7 +183,7 @@ export default function Events() {
           ) : events.length === 0 ? (
              <div className="py-48 flex flex-col items-center text-center px-8 bg-white/20 border-4 border-dashed border-white rounded-[64px] shadow-inner animate-fade-in mx-4">
                 <Ticket size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
-                <h3 className="text-5xl font-black text-black/10 italic mb-8 uppercase tracking-tighter">Quiet Frequency.</h3>
+                <h3 className="text-5xl font-black text-black/10 italic mb-8 uppercase tracking-tighter">No Events Yet.</h3>
                 <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-sm mx-auto mb-12 italic leading-loose">
                    No gathering signals detected in this sector. Initialize a new event pulse!
                 </p>
@@ -238,12 +238,12 @@ export default function Events() {
                                 </div>
                                 <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5">
                                    <Users size={20} strokeWidth={4} className="text-primary" />
-                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">{ev.total_rsvps || 0} CONVERGED</span>
+                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">{ev.total_rsvps || 0} GOING</span>
                                 </div>
                                 {ev.max_attendees && ev.max_attendees > 0 && (
                                    <div className="flex-1 min-w-[250px] pt-2">
                                       <div className="flex items-center justify-between mb-3 text-[9px] font-black uppercase text-black/20 tracking-[0.3em] italic">
-                                         <span>Frequency Load</span>
+                                         <span>Spots Filled</span>
                                          <span>{progress}%</span>
                                       </div>
                                       <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden p-[2px]">
@@ -321,7 +321,7 @@ export default function Events() {
                                 <div className="w-1.5 h-12 bg-primary rounded-full" />
                                 <div>
                                    <h4 className="text-3xl font-black text-black italic uppercase tracking-tighter">Mission Requirements</h4>
-                                   <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Critical gathering harmonics.</p>
+                                   <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Urgent campus events.</p>
                                 </div>
                               </div>
                               <div className="bg-white/40 backdrop-blur-3xl rounded-[40px] p-10 border border-white shadow-inner">

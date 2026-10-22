@@ -41,12 +41,12 @@ export const OfflineIndicator: React.FC = () => {
             </div>
             <div>
               <p className="text-[13px] font-black text-white uppercase tracking-wider leading-none">Offline Mode</p>
-              <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest mt-1">Browsing cached content</p>
+              <p className="text-[11px] text-white/50 font-bold uppercase tracking-widest mt-1">Showing saved content</p>
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-1 bg-white/5 border border-white/10 rounded-lg">
             <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
-            <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">Cached</span>
+            <span className="text-[9px] font-black text-white/60 uppercase tracking-widest">Offline</span>
           </div>
         </motion.div>
       )}

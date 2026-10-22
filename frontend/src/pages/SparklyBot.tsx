@@ -1473,10 +1473,10 @@ export default function SparklyBot() {
                   <div className="space-y-6 text-xs leading-relaxed text-slate-300">
                     <div className="bg-[#17171e] p-5 rounded-3xl border border-white/10 space-y-3">
                       <div className="flex items-center justify-between text-white font-bold">
-                        <span>Engine Status</span>
+                        <span>Status</span>
                         <span className="text-emerald-400 flex items-center gap-1.5 text-xs">
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                          Online & Ready (SSE Active)
+                          Online & Ready
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-slate-400">
@@ -1484,8 +1484,8 @@ export default function SparklyBot() {
                         <span className="font-mono text-purple-300 font-bold">Sparkly v4.5 Enterprise</span>
                       </div>
                       <div className="flex items-center justify-between text-slate-400">
-                        <span>Platform Engine</span>
-                        <span>Sparkle Marketplace AI Router</span>
+                        <span>Platform</span>
+                        <span>Sparkle Assistant</span>
                       </div>
                     </div>
 

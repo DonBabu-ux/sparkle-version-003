@@ -198,7 +198,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
     { id: 'access', label: 'Access Control', icon: Shield, adminOnly: true },
     { id: 'members', label: 'Squad Members', icon: Users, adminOnly: false },
     { id: 'requests', label: 'Admission Gate', icon: UserCheck, adminOnly: true, count: requests.length },
-    { id: 'moderation', label: 'Mod Queue', icon: MessageSquare, adminOnly: true, count: pendingPosts.length },
+    { id: 'moderation', label: 'Pending Review', icon: MessageSquare, adminOnly: true, count: pendingPosts.length },
     { id: 'danger', label: 'Danger Zone', icon: ShieldAlert, adminOnly: false },
   ];
 
@@ -372,12 +372,12 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">Access Control</h3>
-                      <p className="text-gray-500 font-medium text-sm">Entry protocols and contribution rights</p>
+                      <p className="text-gray-500 font-medium text-sm">Who can join and contribute</p>
                    </header>
  
                     <div className="space-y-4">
                        <ToggleCard title="Public Discovery" active={isPublic} onToggle={() => setIsPublic(!isPublic)} icon={Globe} desc="Make this circle visible in search results." />
-                       <ToggleCard title="Vetting Protocol" active={requiresApproval} onToggle={() => setRequiresApproval(!requiresApproval)} icon={Shield} desc="Manual approval for new members." />
+                       <ToggleCard title="Require Approval" active={requiresApproval} onToggle={() => setRequiresApproval(!requiresApproval)} icon={Shield} desc="Manual approval for new members." />
                        <ToggleCard title="Open Contribution" active={allowPosts} onToggle={() => setAllowPosts(!allowPosts)} icon={PenSquare} desc="Allow all members to create posts." />
                        <ToggleCard title="Moderated Posts" active={requirePostApproval} onToggle={() => setRequirePostApproval(!requirePostApproval)} icon={ShieldAlert} desc="Approve posts before they go live." />
                     </div>
@@ -485,11 +485,11 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
 
              {activeTab === 'moderation' && (
                 <div className="space-y-6">
-                   <h3 className="text-xl font-bold text-gray-900 mb-4">Mod Queue</h3>
+                   <h3 className="text-xl font-bold text-gray-900 mb-4">Pending Review</h3>
                    {pendingPosts.length === 0 ? (
                       <div className="py-16 bg-white rounded-2xl border border-gray-100 flex flex-col items-center gap-3">
                          <MessageSquare size={32} className="text-gray-300" />
-                         <p className="text-sm font-medium text-gray-500">Queue is empty</p>
+                         <p className="text-sm font-medium text-gray-500">Nothing to review</p>
                       </div>
                    ) : (
                       <div className="space-y-4">

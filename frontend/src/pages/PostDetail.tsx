@@ -110,8 +110,8 @@ export default function PostDetail() {
       <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
             <Orbit size={120} strokeWidth={1} className="text-black/5" />
-            <h2 className="text-4xl font-black text-black mt-8 mb-4 tracking-tight italic">Signal Lost.</h2>
-            <p className="text-black font-medium max-w-sm mx-auto mb-8">This signal was not found in the village network.</p>
+            <h2 className="text-4xl font-black text-black mt-8 mb-4 tracking-tight italic">Post Not Found.</h2>
+            <p className="text-black font-medium max-w-sm mx-auto mb-8">This post could not be found.</p>
             <button onClick={() => navigate(-1)} className="px-10 py-4 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">Go Back</button>
         </div>
       </div>
@@ -125,7 +125,7 @@ export default function PostDetail() {
 
       <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full pb-40">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-black/40 hover:text-primary transition-all font-bold text-sm mb-12 group">
-          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back to Pulse
+          <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" /> Back to Feed
         </button>
 
         {/* Post Detail Card */}
@@ -170,7 +170,7 @@ export default function PostDetail() {
            <div className="flex items-center justify-between gap-3 px-1 mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-8 bg-primary rounded-full" />
-                <h3 className="text-2xl font-black text-black italic">Channel Signals</h3>
+                <h3 className="text-2xl font-black text-black italic">Comments</h3>
               </div>
               
               <button 
@@ -202,7 +202,7 @@ export default function PostDetail() {
               <textarea 
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Transmit your thoughts..." 
+                placeholder="Write a comment..."
                 className="w-full bg-white/60 backdrop-blur-xl border border-white rounded-[32px] p-6 pr-32 text-md font-bold shadow-xl shadow-primary/5 focus:ring-4 focus:ring-primary/10 transition-all placeholder:text-black/20 resize-none h-28"
               />
               <button 
@@ -210,7 +210,7 @@ export default function PostDetail() {
                 disabled={!commentText.trim() || submitting}
                 className="absolute right-6 bottom-6 px-8 py-3 bg-primary text-white rounded-2xl text-[12px] font-bold uppercase tracking-widest shadow-xl shadow-primary/20 hover:scale-105 transition-all active:scale-95 disabled:opacity-30 disabled:scale-100 flex items-center gap-2"
               >
-                {submitting ? '...' : <><Send size={16} /> Signal</>}
+                {submitting ? '...' : <><Send size={16} /> Send</>}
               </button>
            </form>
 
@@ -222,7 +222,7 @@ export default function PostDetail() {
               )}
               {comments.length === 0 ? (
                 <div className="py-20 text-center bg-white/40 border border-white rounded-[40px] shadow-inner">
-                   <p className="text-black font-medium text-black/20 uppercase tracking-widest">No signals transmitted yet.</p>
+                   <p className="text-black font-medium text-black/20 uppercase tracking-widest">No comments yet.</p>
                 </div>
               ) : (
                 comments.map(comment => (
@@ -263,7 +263,7 @@ export default function PostDetail() {
               <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-8" />
               
               <div className="flex items-center justify-between mb-10">
-                <h3 className="text-2xl font-black text-black italic uppercase tracking-tighter">Sort Signals</h3>
+                <h3 className="text-2xl font-black text-black italic uppercase tracking-tighter">Sort Comments</h3>
                 <button onClick={() => setShowSortModal(false)} className="text-[11px] font-black uppercase tracking-widest text-primary">Done</button>
               </div>
 

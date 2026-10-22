@@ -60,6 +60,7 @@ android/app/sparkle-release.jks
 .env.*
 frontend/.env
 frontend/.env.*
+!frontend/.env.production
 
 # Database files (SQLite, etc.)
 *.sqlite
@@ -101,6 +102,9 @@ frontend/dev-dist/
 
 # Local env backups
 .env.bak
+
+# Local notes
+/features-md.md
 
 # Android signing & build artifacts (NEVER commit)
 *.jks

@@ -324,7 +324,7 @@ export default function Confessions() {
                       />
                     ))}
                   </div>
-                  <span className="text-[8px] font-black text-primary uppercase tracking-[0.18em]">Village Spectrum LIVE</span>
+                  <span className="text-[8px] font-black text-primary uppercase tracking-[0.18em]">Live Confessions</span>
                 </div>
               </div>
             </div>
@@ -373,7 +373,7 @@ export default function Confessions() {
 
                 <div className="relative z-10 pr-12">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/20 border border-primary/20 mb-3">
-                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Pulse of the Hour</span>
+                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Trending Now</span>
                   </div>
 
                   <p className="text-base font-black text-white italic tracking-tight leading-snug mb-5 line-clamp-3">
@@ -411,8 +411,8 @@ export default function Confessions() {
           <div className="overflow-x-auto no-scrollbar px-4 mb-5">
             <div className="flex items-center gap-8 min-w-max pb-1">
               {[
-                { label: 'Village Sync', value: 'ACTIVE',     icon: <Globe size={16} /> },
-                { label: 'Global Pulses', value: '24.8K',     icon: <Orbit size={16} /> },
+                { label: 'Live Now', value: 'ACTIVE',     icon: <Globe size={16} /> },
+                { label: 'Confessions Today', value: '24.8K',     icon: <Orbit size={16} /> },
                 { label: 'Anonymity',    value: '100% SECURE', icon: <ShieldCheck size={16} /> },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-3 group/stat">
@@ -435,7 +435,7 @@ export default function Confessions() {
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.4em] animate-pulse">Scanning Nodes...</p>
+                <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.4em] animate-pulse">Loading confessions...</p>
               </div>
             ) : fetchError ? (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
@@ -443,7 +443,7 @@ export default function Confessions() {
                   <Orbit size={36} strokeWidth={1.5} className="text-black/10 dark:text-white/10" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">Signal Lost</h3>
+                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">Something went wrong</h3>
                   <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest mt-1">Couldn't load confessions. Check your connection.</p>
                 </div>
                 <button
@@ -682,7 +682,7 @@ export default function Confessions() {
                   <Orbit size={36} strokeWidth={1.5} className="text-black/10 dark:text-white/10 animate-spin-slow" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">Sector Vacuum</h3>
+                  <h3 className="text-xl font-black text-black/20 dark:text-white/20 uppercase italic tracking-tight">No Confessions Yet</h3>
                   <p className="text-[10px] font-bold text-black/20 dark:text-white/20 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
                 </div>
                 <button

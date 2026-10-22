@@ -983,11 +983,11 @@ export default function ProfessionalDashboard() {
           </div>
         </motion.div>
 
-        {/* ── Content Engine (distribution) ── */}
+        {/* ── Content Performance (distribution) ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
           className="glass rounded-3xl p-6 shadow-sm border-slate-100">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Content Engine</h2>
+            <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Content Performance</h2>
             <span className="text-[8px] font-black text-slate-500 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
           </div>
           <div className="flex items-center gap-6">

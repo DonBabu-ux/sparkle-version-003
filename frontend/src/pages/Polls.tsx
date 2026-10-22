@@ -139,10 +139,10 @@ export default function Polls() {
               <span className="text-[10px] font-bold text-black uppercase tracking-wider">Polls</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
-              Sparkle <span className="text-primary">Consensus</span>
+              Sparkle <span className="text-primary">Polls</span>
             </h1>
             <p className="text-sm md:text-base font-medium text-black/60 leading-relaxed max-w-xl border-l-4 border-primary/20 pl-4">
-              Cast your vote and synchronize your node with the collective harmonic.
+              Cast your vote and see what your campus thinks.
             </p>
           </div>
 
@@ -189,8 +189,8 @@ export default function Polls() {
             <div className="py-20">
                <ModernOfflineState 
                  type="empty"
-                 title="Consensus Needed"
-                 message="No active polls found in this frequency. Be the first to spark a conversation and gather the village's opinion!"
+                 title="No Polls Yet"
+                 message="No active polls right now. Be the first to start one and see what your campus thinks!"
                  onRetry={() => fetchPolls(false)}
                />
             </div>
@@ -229,7 +229,7 @@ export default function Polls() {
                         )}
                      </div>
                      <div className="px-3 py-1.5 bg-primary/10 text-primary rounded-xl text-[10px] font-bold uppercase tracking-wider">
-                        {poll.total_votes && poll.total_votes > 0 ? `${poll.total_votes} Votes` : 'Initial Node'}
+                        {poll.total_votes && poll.total_votes > 0 ? `${poll.total_votes} Votes` : 'No votes yet'}
                      </div>
                   </div>
 

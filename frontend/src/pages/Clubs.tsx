@@ -72,7 +72,7 @@ export default function Clubs() {
               <div className="max-w-4xl space-y-8">
                  <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-4 shadow-xl shadow-primary/5">
                     <Users size={18} strokeWidth={3} className="text-primary" />
-                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">The Village Communities</span>
+                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Clubs</span>
                  </div>
                  <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
                     Campus <span className="text-primary">Clubs</span>
@@ -112,7 +112,7 @@ export default function Clubs() {
                 type="text" 
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Scan for community signals..." 
+                placeholder="Search clubs..."
                 className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
            </div>
@@ -182,7 +182,7 @@ export default function Clubs() {
                             </div>
                             <div className="flex flex-col">
                                <span className="text-lg font-black text-black leading-none">{club.member_count || 0}</span>
-                               <span className="text-[8px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Synced Signals</span>
+                               <span className="text-[8px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Members</span>
                             </div>
                          </div>
                          <div className="flex items-center gap-3 text-black/10 group-hover:text-primary transition-colors italic">
@@ -204,7 +204,7 @@ export default function Clubs() {
              <div className="p-16 pb-0 flex items-center justify-between">
                 <div>
                    <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Register Circle</h3>
-                   <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] mt-4 italic">Initialize a new campus frequency node.</p>
+                   <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] mt-4 italic">Start a new club on your campus.</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="w-16 h-16 bg-black/5 rounded-3xl flex items-center justify-center text-black/10 hover:text-black transition-all">
                     <X size={28} strokeWidth={4} />
@@ -231,14 +231,14 @@ export default function Clubs() {
                         value={form.name}
                         onChange={e => setForm({...form, name: e.target.value})}
                         className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-8 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic"
-                        placeholder="e.g. Neo-Signal Arts, Quantum Chess..." 
+                        placeholder="e.g. Drama Club, Chess Club..."
                         required 
                       />
                    </div>
 
                    <div className="grid grid-cols-2 gap-10">
                       <div className="space-y-4">
-                         <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 italic">Frequency Band (Category)</label>
+                         <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 italic">Category</label>
                          <select 
                           value={form.category}
                           onChange={e => setForm({...form, category: e.target.value})}
@@ -248,7 +248,7 @@ export default function Clubs() {
                          </select>
                       </div>
                       <div className="space-y-4">
-                         <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 italic">Broadcast Node (Campus)</label>
+                         <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-8 italic">Campus</label>
                          <input type="text" value={form.campus} readOnly className="w-full h-20 bg-black/5 border-none rounded-[28px] px-8 font-black text-black/30 cursor-not-allowed italic" />
                       </div>
                    </div>
@@ -278,7 +278,7 @@ export default function Clubs() {
                     type="submit" 
                     className="flex-[2] h-16 bg-primary text-white rounded-[24px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.02] active:scale-95 transition-all italic"
                    >
-                     {creating ? 'Transmitting...' : 'Initialize Circle'}
+                     {creating ? 'Creating...' : 'Create Club'}
                    </button>
                 </div>
              </form>

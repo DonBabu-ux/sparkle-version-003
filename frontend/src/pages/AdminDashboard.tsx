@@ -156,7 +156,7 @@ export default function AdminDashboard() {
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center bg-white/40 backdrop-blur-xl border-2 border-dashed border-white rounded-[40px] shadow-sm mb-12">
              <Spinner size="large" color="text-primary" />
-             <p className="text-[9px] font-black italic text-gray-400 uppercase tracking-widest mt-4">Decrypting Telemetry...</p>
+             <p className="text-[9px] font-black italic text-gray-400 uppercase tracking-widest mt-4">Loading data...</p>
           </div>
         ) : activeTab === 'overview' ? (
           <div className="space-y-8 animate-fade-in">
@@ -202,7 +202,7 @@ export default function AdminDashboard() {
                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                       <Activity size={16} strokeWidth={3} />
                    </div>
-                   <h3 className="text-lg font-black text-gray-900 italic uppercase tracking-tight">Live Signals</h3>
+                   <h3 className="text-lg font-black text-gray-900 italic uppercase tracking-tight">Live Activity</h3>
                 </div>
                 <div className="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
                   {stats?.recentActivity?.map((act, i) => (
@@ -211,7 +211,7 @@ export default function AdminDashboard() {
                       <div className="flex-1 min-w-0">
                          <p className="text-[11px] font-bold text-gray-700 leading-tight truncate uppercase italic">{act.message}</p>
                          <div className="flex justify-between items-center mt-1">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Sync Protocol</span>
+                            <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Live Now</span>
                             <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">{act.time}</span>
                          </div>
                       </div>
@@ -232,7 +232,7 @@ export default function AdminDashboard() {
                   <textarea 
                      value={announcement}
                      onChange={e => setAnnouncement(e.target.value)}
-                     placeholder="Broadcast consensus to village nodes..." 
+                     placeholder="Send an announcement..."
                      className="w-full min-h-[100px] bg-gray-50 border-none rounded-2xl p-4 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all outline-none italic resize-none"
                   />
                   <button 

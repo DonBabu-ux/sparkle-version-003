@@ -57,7 +57,7 @@ export default function AdvancedSettings() {
     },
     {
       id: 'notifications',
-      title: 'Notification Engine',
+      title: 'Notifications',
       description: 'Quiet hours, notification priorities, sound profiles, and push privacy',
       icon: Bell,
       category: 'Communication',

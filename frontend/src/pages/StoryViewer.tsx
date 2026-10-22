@@ -404,7 +404,7 @@ export default function StoryViewer() {
   if (loading && !userStories) return (
     <div className="h-dvh bg-black flex flex-col items-center justify-center gap-6">
        <Spinner size="large" color="text-primary" />
-       <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Harmonizing Frequency...</p>
+       <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Loading story...</p>
     </div>
   );
 

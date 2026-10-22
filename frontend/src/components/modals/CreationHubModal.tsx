@@ -56,7 +56,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
           <div className="flex items-center justify-between mb-12 px-2">
             <div>
                 <h3 className="font-heading font-black text-4xl text-black dark:text-white tracking-tighter italic uppercase leading-none">Matrix Hub</h3>
-                <p className="text-[10px] font-black text-black/25 dark:text-white/30 uppercase tracking-[0.4em] mt-3 italic">Initiate New Frequency</p>
+                <p className="text-[10px] font-black text-black/25 dark:text-white/30 uppercase tracking-[0.4em] mt-3 italic">Create Something New</p>
             </div>
             <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/20 dark:text-zinc-500 hover:text-black dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:rotate-90">
               <X size={24} strokeWidth={4} />
@@ -66,9 +66,9 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
           {/* Creation Options */}
           <div className="grid grid-cols-1 gap-2">
             {[
-                { name: 'new spark', icon: Pen, action: () => setActiveModal('post'), desc: 'TRANSMIT BROADCAST', color: 'text-black dark:text-white' },
-                { name: 'afterglow', icon: History, action: () => navigate('/afterglow/create'), desc: 'EPHEMERAL FRAGMENT', color: 'text-primary' },
-                { name: 'moment', icon: PlayCircle, action: () => navigate('/moments/create'), desc: 'PULSE TRANSLATION', color: 'text-primary' },
+                { name: 'new spark', icon: Pen, action: () => setActiveModal('post'), desc: 'SHARE A POST', color: 'text-black dark:text-white' },
+                { name: 'afterglow', icon: History, action: () => navigate('/afterglow/create'), desc: 'POST A STORY', color: 'text-primary' },
+                { name: 'moment', icon: PlayCircle, action: () => navigate('/moments/create'), desc: 'SHARE A MOMENT', color: 'text-primary' },
                 { name: 'highlight', icon: Sparkles, action: () => setActiveModal('highlight'), desc: 'VAULT SELECTION', color: 'text-amber-500' },
             ].map((item, idx) => (
                 <button 
@@ -91,11 +91,11 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
             <div className="my-6 border-t-4 border-black/5 dark:border-white/5 mx-6 rounded-full" />
  
             {[
-                { name: 'market signal', icon: Store, action: () => setActiveModal('listing'), desc: 'LIQUIDITY INJECT', color: 'text-black dark:text-white' },
-                { name: 'skill resonance', icon: Hammer, action: () => setActiveModal('skill_offer'), desc: 'EXPERTISE SYNC', color: 'text-black dark:text-white' },
-                { name: 'pulse poll', icon: BarChart3, action: () => setActiveModal('poll'), desc: 'AGGREGATE RESONANCE', color: 'text-black dark:text-white' },
-                { name: 'village rift', icon: Calendar, action: () => setActiveModal('event'), desc: 'TEMPORAL COORDINATE', color: 'text-black dark:text-white' },
-                { name: 'confession', icon: SpyIcon, action: () => setActiveModal('confession'), desc: 'DEEP CORE SYNC', color: 'text-rose-500' },
+                { name: 'marketplace listing', icon: Store, action: () => setActiveModal('listing'), desc: 'SELL AN ITEM', color: 'text-black dark:text-white' },
+                { name: 'skill offer', icon: Hammer, action: () => setActiveModal('skill_offer'), desc: 'OFFER A SKILL', color: 'text-black dark:text-white' },
+                { name: 'poll', icon: BarChart3, action: () => setActiveModal('poll'), desc: 'CREATE A POLL', color: 'text-black dark:text-white' },
+                { name: 'event', icon: Calendar, action: () => setActiveModal('event'), desc: 'CREATE AN EVENT', color: 'text-black dark:text-white' },
+                { name: 'confession', icon: SpyIcon, action: () => setActiveModal('confession'), desc: 'SHARE ANONYMOUSLY', color: 'text-rose-500' },
             ].map((item, idx) => (
                 <button 
                     key={idx}

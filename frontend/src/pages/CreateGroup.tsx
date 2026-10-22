@@ -110,8 +110,8 @@ export default function CreateGroup() {
                          className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
                        >
                          <option value="main">Main Campus</option>
-                         <option value="north">North Sector</option>
-                         <option value="south">South Sector</option>
+                         <option value="north">North Campus</option>
+                         <option value="south">South Campus</option>
                          <option value="virtual">Virtual</option>
                        </select>
                     </div>

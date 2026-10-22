@@ -179,7 +179,7 @@ export default function EventsAdmin() {
               <h1 className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-1">
                 Campus <span className="text-primary">Life.</span>
               </h1>
-              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Manage village gatherings</p>
+              <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">Manage campus events</p>
             </div>
             <div className="flex gap-2">
                <button 
@@ -282,7 +282,7 @@ export default function EventsAdmin() {
           {loading ? (
             <div className="py-20 text-center">
               <Spinner size="medium" color="text-primary" />
-              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest italic">Syncing Gathering State...</p>
+              <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest italic">Loading event...</p>
             </div>
           ) : events.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

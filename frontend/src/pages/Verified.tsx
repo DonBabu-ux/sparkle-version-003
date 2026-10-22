@@ -73,8 +73,8 @@ export default function Verified() {
             <ArrowLeft size={22} strokeWidth={3} />
           </button>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black text-black dark:text-white tracking-tight italic leading-none uppercase">Trust Node</h1>
-            <p className="text-sm md:text-base font-medium text-black/40 dark:text-white/40 mt-2 italic uppercase tracking-widest">Identity & Reputation Evolution</p>
+            <h1 className="text-2xl md:text-4xl font-black text-black dark:text-white tracking-tight italic leading-none uppercase">Verification</h1>
+            <p className="text-sm md:text-base font-medium text-black/40 dark:text-white/40 mt-2 italic uppercase tracking-widest">Identity & Reputation</p>
           </div>
         </header>
 
@@ -128,7 +128,7 @@ export default function Verified() {
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
                               <Zap size={16} className="text-[#FF1F6D]" />
-                              <span className="text-[10px] font-black uppercase italic tracking-widest text-[#FF1F6D]">Engagement Node</span>
+                              <span className="text-[10px] font-black uppercase italic tracking-widest text-[#FF1F6D]">Engagement</span>
                            </div>
                            <span className="text-xs font-black italic text-[#FF1F6D]">{stats.engagement}%/70%</span>
                         </div>
@@ -152,7 +152,7 @@ export default function Verified() {
                            </div>
                            <div className={`flex-1 p-3 rounded-2xl border ${stats.trustLevel >= 3 ? 'bg-white border-emerald-200' : 'bg-slate-50 border-slate-100 opacity-50'} flex flex-col items-center gap-1`}>
                               <TrendingUp size={14} className={stats.trustLevel >= 3 ? 'text-emerald-500' : 'text-slate-300'} />
-                              <span className="text-[7px] font-black uppercase tracking-tighter text-black">Viral Node</span>
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-black">Viral</span>
                            </div>
                         </div>
                      </div>
@@ -191,9 +191,9 @@ export default function Verified() {
               {/* System Perks */}
               <div className="grid grid-cols-2 gap-4">
                  {[
-                   { label: 'Priority Node', icon: <Zap size={18} />, color: 'bg-indigo-50 text-indigo-600' },
+                   { label: 'Priority Support', icon: <Zap size={18} />, color: 'bg-indigo-50 text-indigo-600' },
                    { label: 'Global Search', icon: <Target size={18} />, color: 'text-emerald-600 bg-emerald-50' },
-                   { label: 'Shield Sync', icon: <Shield size={18} />, color: 'text-amber-600 bg-amber-50' },
+                   { label: 'Account Protection', icon: <Shield size={18} />, color: 'text-amber-600 bg-amber-50' },
                    { label: 'Legacy Badge', icon: <Star size={18} />, color: 'text-[#FF1F6D] bg-pink-50' }
                  ].map((perk, i) => (
                    <div key={i} className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-4 rounded-3xl border border-white dark:border-white/10 flex flex-col items-center gap-2 text-center">
@@ -219,19 +219,19 @@ export default function Verified() {
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
                       className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
-                      <option value="">What fits your Node?</option>
+                      <option value="">What best describes you?</option>
                       <option value="creator">Creator Elite</option>
                       <option value="public_figure">Public Entity</option>
-                      <option value="brand">Brand Node</option>
+                      <option value="brand">Brand</option>
                       <option value="community_leader">Community Architect</option>
-                      <option value="other">Other Unique Signal</option>
+                      <option value="other">Other</option>
                     </select>
                     <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Identity Node Auth</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Identity Verification</label>
                   <div className="relative">
                     <select
                       required
@@ -240,16 +240,16 @@ export default function Verified() {
                       className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">Select identity source</option>
-                      <option value="passport">Global Passport</option>
-                      <option value="drivers_license">Driver's Node</option>
-                      <option value="national_id">National Registry ID</option>
+                      <option value="passport">Passport</option>
+                      <option value="drivers_license">Driver's License</option>
+                      <option value="national_id">National ID</option>
                     </select>
                     <ChevronDown size={18} strokeWidth={3} className="absolute right-5 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 pointer-events-none" />
                   </div>
                 </div>
 
                 <div className="space-y-3">
-                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Signal Evidence (Upload)</label>
+                  <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Supporting Document (Upload)</label>
                   <div className="group relative">
                     <input
                       type="file"
@@ -276,7 +276,7 @@ export default function Verified() {
                       <div className="w-14 h-14 rounded-full bg-white dark:bg-[#101217] shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
                         <Upload size={24} strokeWidth={2.5} />
                       </div>
-                      <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Transmit File Signal</span>
+                      <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Upload Document</span>
                       <span className="text-[8px] font-bold text-black/30 dark:text-white/20 mt-1 uppercase italic tracking-widest">JPG, PNG, PDF (10MB MAX)</span>
                       {idFile && (
                         <span className="text-[9px] font-bold text-[#FF1F6D] mt-1 uppercase italic tracking-widest break-all px-4 text-center">
@@ -291,7 +291,7 @@ export default function Verified() {
                   <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Reputation Logic</label>
                   <textarea
                     rows={4}
-                    placeholder="Briefly explain your social signal impact..."
+                    placeholder="Briefly explain why you should be verified..."
                     required
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}

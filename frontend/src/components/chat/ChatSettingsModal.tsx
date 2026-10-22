@@ -967,7 +967,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                       </div>
                       <h3 className="text-2xl font-black text-white mb-4 tracking-tight">Add effects to your chat</h3>
                       <p className="text-sm text-white/60 mb-8 leading-relaxed text-center max-w-sm">
-                        Pair words that have special meaning with fun effects. Everyone will see an animation whenever these words are used. <span className="text-blue-400 font-bold cursor-pointer hover:underline" onClick={() => showSuccess('Word effects are synced across all your devices. Add up to 5 triggers per chat.')}>Learn more</span>
+                        Pair words that have special meaning with fun effects. Everyone will see an animation whenever these words are used. <span className="text-blue-400 font-bold cursor-pointer hover:underline" onClick={() => showSuccess('Word effects apply on all your devices. Add up to 5 triggers per chat.')}>Learn more</span>
                       </p>
                       
                       <div className="w-full max-w-sm flex flex-col gap-3">

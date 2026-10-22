@@ -37,7 +37,7 @@ export default function MarketplaceSafety() {
       title: "User Verification",
       icon: <UserCheck size={28} />,
       content: "Look for the verified badge on seller profiles.",
-      detail: "Verified users have passed our strict identity protocols."
+      detail: "Verified users have passed our strict identity checks."
     },
     {
       title: "Documentation",

@@ -4,6 +4,7 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import OtaService from './services/OtaService';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { ToastProvider } from './utils/toast';

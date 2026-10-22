@@ -166,7 +166,7 @@ export function AutoWithdrawalModal({
                 <Zap className="w-5 h-5 text-amber-100" />
               </div>
               <div>
-                <h3 className="text-lg font-black tracking-tight text-white">Automated Payout Engine</h3>
+                <h3 className="text-lg font-black tracking-tight text-white">Automatic Payouts</h3>
                 <p className="text-xs text-amber-100/90 font-medium">Auto-withdraw Professional Dashboard funds securely</p>
               </div>
             </div>

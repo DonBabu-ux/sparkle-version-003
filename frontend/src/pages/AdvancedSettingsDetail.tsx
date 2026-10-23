@@ -1285,3 +1285,6 @@ export default function AdvancedSettingsDetail() {
     </div>
   );
 }
+
+
+

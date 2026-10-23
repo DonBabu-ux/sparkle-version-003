@@ -448,3 +448,6 @@ export default function PollDetail() {
     </div>
   );
 }
+
+
+

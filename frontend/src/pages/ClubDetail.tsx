@@ -271,3 +271,6 @@ export default function ClubDetail() {
     </div>
   );
 }
+
+
+

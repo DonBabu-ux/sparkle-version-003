@@ -187,17 +187,17 @@ export default function ListingDetail() {
   
 
   return (
-    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-20 max-w-screen-md mx-auto shadow-sm">
+    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
       
       {/* 1. Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
           <h1 className="text-[20px] font-bold text-marketplace-text tracking-tight capitalize">{listing.title}</h1>
         </div>
-        <button onClick={() => navigate('/marketplace')} className="p-1 text-marketplace-text">
+        <button onClick={() => navigate('/marketplace')} className="w-11 h-11 rounded-full flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg transition-colors">
           <Search size={22} strokeWidth={2.5} />
         </button>
       </header>
@@ -256,10 +256,10 @@ export default function ListingDetail() {
               className="w-full bg-transparent outline-none text-[15px] font-medium text-slate-800"
             />
           </div>
-          <button 
-            onClick={handleContact}
-            className="w-full bg-[#1877F2] text-white py-2.5 rounded-lg font-bold text-[15px] hover:bg-blue-600 transition-colors"
-          >
+        <button 
+          onClick={handleContact}
+          className="w-full bg-[#1877F2] text-white py-3 rounded-lg font-bold text-[15px] hover:bg-blue-600 transition-colors"
+        >
             Send
           </button>
         </div>
@@ -451,3 +451,6 @@ export default function ListingDetail() {
     </div>
   );
 }
+
+
+

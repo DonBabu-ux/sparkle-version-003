@@ -231,7 +231,7 @@ export default function Profile() {
 
   if (!profile) {
     return (
-      <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+        <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-[env(safe-area-inset-bottom)]">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState 
              type="error"
@@ -255,8 +255,8 @@ export default function Profile() {
 
       {/* Main Header Wrapper */}
 
-      {/* Top Navigation Bar with Account Switcher */}
-      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 dark:bg-black/40 backdrop-blur-3xl z-[100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
+        {/* Top Navigation Bar with Account Switcher */}
+      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 dark:bg-black/40 backdrop-blur-3xl z-[1100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
         <div className="relative">
           <button 
             onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
@@ -439,7 +439,7 @@ export default function Profile() {
                       {/* Edit Identity — refined Meta-style action button */}
                       <button
                         onClick={() => setShowEditProfileModal(true)}
-                        className="group flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 bg-neutral-100/90 hover:bg-neutral-200/80 active:bg-neutral-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] dark:active:bg-white/[0.06] border border-neutral-200/80 dark:border-white/10 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150"
+                        className="group flex items-center gap-2 h-10 px-4 rounded-xl text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 bg-neutral-100/90 hover:bg-neutral-200/80 active:bg-neutral-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] dark:active:bg-white/[0.06] border border-neutral-200/80 dark:border-white/10 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150"
                       >
                         <svg
                           viewBox="0 0 24 24"
@@ -460,7 +460,7 @@ export default function Profile() {
                       <button
                         onClick={handleOpenChat}
                         disabled={isOpeningChat}
-                        className="group flex items-center gap-2 h-9 px-4 rounded-xl text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 bg-neutral-100/90 hover:bg-neutral-200/80 active:bg-neutral-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] dark:active:bg-white/[0.06] border border-neutral-200/80 dark:border-white/10 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50"
+                        className="group flex items-center gap-2 h-10 px-4 rounded-xl text-xs font-semibold tracking-tight text-neutral-800 dark:text-neutral-100 bg-neutral-100/90 hover:bg-neutral-200/80 active:bg-neutral-200 dark:bg-white/[0.08] dark:hover:bg-white/[0.12] dark:active:bg-white/[0.06] border border-neutral-200/80 dark:border-white/10 shadow-xs hover:shadow-sm active:scale-[0.98] transition-all duration-150 disabled:opacity-50"
                       >
                         {isOpeningChat ? (
                           <>
@@ -488,7 +488,7 @@ export default function Profile() {
                   ) : (
                     <div className="flex items-center gap-2">
                       {isFollowing ? (
-                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
+                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
                           Following
                         </button>
                       ) : isRequested ? (
@@ -496,14 +496,14 @@ export default function Profile() {
                           Requested
                         </button>
                       ) : (
-                        <button onClick={handleFollowToggle} className="px-6 py-2 bg-[#FF1F6D] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#FF1F6D]/20 uppercase tracking-widest">
+                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-[#FF1F6D] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#FF1F6D]/20 uppercase tracking-widest">
                           Follow
                         </button>
                       )}
                       <button 
                         onClick={handleOpenChat}
                         disabled={isOpeningChat}
-                        className="px-6 py-2 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-6 py-3 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
                       >
                         {isOpeningChat ? (
                           <>
@@ -656,7 +656,7 @@ export default function Profile() {
           </div>
 
           {/* Grid Section */}
-          <div className="grid grid-cols-3 gap-1 pb-32 animate-fade-in w-full">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 pb-32 animate-fade-in w-full">
             {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (
               (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map((post) => (
                  <div 
@@ -766,3 +766,6 @@ function formatCount(count: number): string {
   if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
   return count.toString();
 }
+
+
+

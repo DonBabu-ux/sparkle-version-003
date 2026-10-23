@@ -469,3 +469,6 @@ function getAvatarUrl(url: string | undefined, username: string | undefined) {
   if (url) return getMediaUrl(url);
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'U')}&background=random&color=fff`;
 }
+
+
+

@@ -542,16 +542,16 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex bg-app min-h-dvh text-black font-sans">
+    <div className="flex bg-app min-h-dvh text-black font-sans pb-[env(safe-area-inset-bottom)]">
 
-      <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
+      <main className="flex-1 pb-20 max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
         {/* Sticky Header */}
-        <header className="sticky top-[70px] z-30 bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
+        <header className="sticky top-[70px] z-[1100] bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate(-1)}
-                className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
+                className="w-11 h-11 -ml-1 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
               >
                 <ArrowLeft size={20} className="text-slate-800 dark:text-white" />
               </button>
@@ -561,7 +561,7 @@ export default function Notifications() {
               <button
                 onClick={markAllRead}
                 disabled={markingAll || unreadCount === 0}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all select-none ${
+                className={`flex items-center gap-1.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all select-none ${
                   markedFeedback
                     ? 'text-emerald-500 bg-emerald-500/10'
                     : unreadCount > 0
@@ -585,7 +585,7 @@ export default function Notifications() {
               </button>
               <button
                 onClick={() => navigate('/search')}
-                className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-400"
+                className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-400"
                 title="Search"
               >
                 <Search size={18} />
@@ -738,3 +738,6 @@ export default function Notifications() {
     </div>
   );
 }
+
+
+

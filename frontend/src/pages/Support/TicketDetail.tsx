@@ -158,3 +158,6 @@ export default function TicketDetail() {
         </div>
     );
 }
+
+
+

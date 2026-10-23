@@ -147,11 +147,11 @@ export default function SellerProfile() {
   const isOwner = user?.id === seller.user_id || user?.user_id === seller.user_id;
 
   return (
-    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-20">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
           <h1 className="text-[18px] font-black tracking-tight">Seller Profile</h1>
@@ -159,13 +159,13 @@ export default function SellerProfile() {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsShareModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
           >
             <Share2 size={20} />
           </button>
           <button 
             onClick={() => navigate('/marketplace/settings')}
-            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
           >
             <MoreHorizontal size={20} />
           </button>
@@ -398,7 +398,7 @@ export default function SellerProfile() {
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {seller.is_verified && (
                     <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
                         <ShieldCheck size={20} />
                       </div>
                       <div>
@@ -409,7 +409,7 @@ export default function SellerProfile() {
                   )}
                   {!seller.is_verified && (
                     <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
                         <ShieldAlert size={20} />
                       </div>
                       <div>
@@ -419,9 +419,9 @@ export default function SellerProfile() {
                     </div>
                   )}
                   <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
-                      <MapPin size={20} />
-                    </div>
+                      <div className="w-11 h-11 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
+                        <MapPin size={20} />
+                      </div>
                     <div>
                       <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Location</div>
                       <div className="text-sm font-bold">{seller.location || 'Nairobi, Kenya'}</div>
@@ -473,3 +473,6 @@ function InfoIcon({ size }: { size: number }) {
     </svg>
   );
 }
+
+
+

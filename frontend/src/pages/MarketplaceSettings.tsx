@@ -119,7 +119,7 @@ const MarketplaceSettings = () => {
 
   if (!settings) {
     return (
-      <div className="min-h-dvh bg-gray-50 pb-20">
+      <div className="min-h-dvh bg-gray-50 pb-[env(safe-area-inset-bottom)]">
         <div className="bg-white border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft size={20} />
@@ -143,7 +143,7 @@ const MarketplaceSettings = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-gray-50 pb-20">
+    <div className="min-h-dvh bg-gray-50 pb-[env(safe-area-inset-bottom)]">
       {/* Header */}
       <div className="bg-white border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
         <button
@@ -728,3 +728,6 @@ function BlockedUsersView() {
 }
 
 export default MarketplaceSettings;
+
+
+

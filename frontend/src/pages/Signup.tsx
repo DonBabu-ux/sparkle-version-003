@@ -4,6 +4,7 @@ import {
   Mail, ArrowRight, ArrowLeft, Check, Users, Heart, Eye, EyeOff,
   Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase, Gift,
 } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { getPendingReferral, capturePendingReferral, clearPendingReferral } from '../services/referralAttribution';
@@ -109,7 +110,7 @@ export default function Signup() {
           setUsernameAvailable(res.data.available);
           setUsernameSuggestions(res.data.suggestions || []);
         }
-      } catch (err) {
+      } catch {
         setUsernameAvailable(null);
       } finally {
         setCheckingUsername(false);
@@ -131,7 +132,7 @@ export default function Signup() {
         if (res.data) {
           setEmailAvailable(res.data.available);
         }
-      } catch (err) {
+      } catch {
         setEmailAvailable(null);
       } finally {
         setCheckingEmail(false);
@@ -531,7 +532,7 @@ export default function Signup() {
                     {/* Referral Attribution Indicator & Fallback */}
                     {referralCode ? (
                       <div className="su-review__detail" style={{ marginTop: '0.5rem', backgroundColor: '#fdf2f8', padding: '0.6rem 0.8rem', borderRadius: '0.8rem', border: '1px solid #fbcfe8' }}>
-                        <span className="su-review__label" style={{ color: '#db2777', fontWeight: 700, display: 'flex', itemsCenter: 'center', gap: '0.3rem' }}>
+                        <span className="su-review__label" style={{ color: '#db2777', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
                           <Gift size={13} /> Invited By
                         </span>
                         <span className="su-review__value" style={{ color: '#9d174d', fontWeight: 800 }}>
@@ -583,7 +584,7 @@ export default function Signup() {
                   </p>
 
                   <button onClick={handleSubmit} disabled={loading} className="su-btn su-btn--main su-btn--lg" type="button">
-                    {loading ? <span className="su-spin" /> : 'Create my account'}
+                    {loading ? <Spinner size="small" color="#fff" /> : 'Create my account'}
                   </button>
                   <button onClick={prevStep} className="su-back-text" type="button">Make changes</button>
                 </div>
@@ -604,7 +605,7 @@ export default function Signup() {
                     margin: '0 auto 1.5rem auto',
                     boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
                   }}>
-                    <Check size={48} strokeWidth={3} className="su-spin" style={{ animation: 'su-drift 1s ease-in-out infinite' }} />
+                    <Check size={48} strokeWidth={3} className="mx-auto" />
                   </div>
                   <h3 className="su-card__title text-2xl mb-2" style={{ fontFamily: "'Varela Round', sans-serif", fontWeight: 700 }}>Verified!</h3>
                   <p className="su-card__sub text-base">Setting up your profile...</p>
@@ -627,7 +628,7 @@ export default function Signup() {
                   />
 
                   <button onClick={handleVerifyOTP} disabled={verifying} className="su-btn su-btn--main" type="button">
-                    {verifying ? <span className="su-spin" /> : 'Complete signup'}
+                    {verifying ? <Spinner size="small" color="#fff" /> : 'Complete signup'}
                   </button>
                   <button
                     className="su-back-text"
@@ -932,14 +933,6 @@ export default function Signup() {
           box-shadow: 0 0 0 3px rgba(251,113,133,0.12);
         }
         .su-otp-input::placeholder { color: #d4d4d4; }
-
-        .su-spin {
-          width: 18px; height: 18px;
-          border: 2.5px solid rgba(255,255,255,0.3);
-          border-top-color: #fff; border-radius: 50%;
-          animation: su-spin 0.6s linear infinite;
-        }
-
         @media (prefers-reduced-motion: reduce) {
           .su-orb { animation: none; }
           .su-container { transition: none; }
@@ -1046,6 +1039,4 @@ export default function Signup() {
     </div>
   );
 }
-
-
 

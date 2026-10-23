@@ -7,9 +7,10 @@ import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Orbit, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera } from 'lucide-react';
+import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid, List } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
+import SparkleHub from '../components/SparkleHub';
 import Spinner from '../components/ui/Spinner';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { IdentityManager } from '../utils/identityManager';
@@ -33,9 +34,11 @@ export default function Profile() {
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
   const { setActiveModal, refreshCounter } = useModalStore();
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
-  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [isOpeningChat, setIsOpeningChat] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
+  const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showSparkleHub, setShowSparkleHub] = useState(false);
 
   const identity = IdentityManager.resolveIdentity(profile);
 
@@ -194,35 +197,11 @@ export default function Profile() {
     return (
       <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
         <div className="flex-1 flex flex-col items-center justify-center transition-all text-black dark:text-white">
-          <div className="relative mb-20"> {/* Increased margin */}
+          <div className="relative mb-20">
             <Spinner size="xl" color="text-primary" />
           </div>
-          
-          <div className="flex flex-col items-center gap-6"> {/* Increased gap */}
-             {/* Calibration Watermark moved below spinner */}
-             <div className="opacity-10 mb-2">
-                <Orbit size={60} className="animate-spin-slow" />
-             </div>
-             
-             <div className="h-4 overflow-hidden flex flex-col items-center">
-                <motion.div 
-                  animate={{ y: [0, -20, -40, -60] }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", times: [0, 0.33, 0.66, 1] }}
-                  className="flex flex-col items-center"
-                >
-                  {['Loading your profile', 'Getting things ready', 'Fetching your activity', 'Almost there'].map((text, i) => (
-                    <span key={i} className="text-[10px] font-black italic text-black/40 dark:text-white/40 uppercase tracking-[0.4em] h-5">{text}</span>
-                  ))}
-                </motion.div>
-             </div>
-             <div className="w-32 h-[1px] bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                <motion.div 
-                  initial={{ x: "-100%" }}
-                  animate={{ x: "100%" }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                  className="w-full h-full bg-primary/20"
-                />
-             </div>
+          <div className="text-[12px] font-bold text-black/60 dark:text-white/40 uppercase tracking-widest">
+            Loading your profile
           </div>
         </div>
       </div>
@@ -251,85 +230,105 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pt-20">
 
-      {/* Main Header Wrapper */}
-
-        {/* Top Navigation Bar with Account Switcher */}
-      <div className="fixed top-0 left-0 lg:left-72 right-0 bg-white/40 dark:bg-black/40 backdrop-blur-3xl z-[1100] flex items-center justify-center px-4 pt-[env(safe-area-inset-top)] pb-2 transition-all">
-        <div className="relative">
-          <button 
-            onClick={() => setShowAccountSwitcher(!showAccountSwitcher)}
-            className="flex items-center gap-2 px-4 py-1.5 hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all group"
+      {/* Top Navigation Bar */}
+      <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+        <a className="flex items-center gap-2.5 active:scale-95 transition-transform" href="/dashboard" data-discover="true">
+          <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
+        </a>
+        {accounts.length > 1 && (
+          <button
+            type="button"
+            onClick={() => setShowAccountMenu(!showAccountMenu)}
+            className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/30 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 transition-colors active:scale-90"
           >
-            <span className="text-sm font-bold text-black dark:text-white tracking-tight">{profile?.username}</span>
-            <ChevronDown size={16} className="text-black/30 dark:text-white/30 transition-transform" />
+            <img
+              src={getAvatarUrl(currentUser?.avatar_url, currentUser?.username)}
+              alt={currentUser?.username || 'Account'}
+              className="w-full h-full rounded-full object-cover border border-black/5 dark:border-white/5"
+            />
           </button>
-
-          <AnimatePresence>
-            {showAccountSwitcher && (
-              <>
-                <div className="fixed inset-0 z-[-1]" onClick={() => setShowAccountSwitcher(false)} />
-                <motion.div 
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute top-full mt-2 left-1/2 -translate-x-1/2 w-64 bg-white dark:bg-black rounded-lg shadow-2xl border border-black/5 dark:border-white/10 p-2 z-[101]"
+        )}
+        {showAccountMenu && (
+          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-black rounded-xl shadow-2xl border border-black/5 dark:border-white/10 p-2 z-[1001]">
+            <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 mb-2">
+              <span className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Accounts</span>
+            </div>
+            <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
+              {accounts.map((acc) => (
+                <button
+                  key={acc.user.user_id}
+                  onClick={() => {
+                    switchAccount(acc.user.user_id);
+                    setShowAccountMenu(false);
+                    navigate(`/profile/${acc.user.username}`);
+                  }}
+                  className={`w-full p-2.5 flex items-center gap-3 rounded-xl transition-colors text-left ${acc.user.user_id === currentUser?.user_id ? 'bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
                 >
-                  <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 mb-1">
-                    <span className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Switch Identity</span>
+                  <img
+                    src={getAvatarUrl(acc.user.avatar_url, acc.user.username)}
+                    alt={acc.user.username}
+                    className="w-8 h-8 rounded-full object-cover border border-black/5"
+                  />
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>
+                    {acc.user.user_id === currentUser?.user_id && (
+                      <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active account</span>
+                    )}
                   </div>
-                  <div className="space-y-1 max-h-60 overflow-y-auto no-scrollbar">
-                    {/* Assuming 'accounts' and 'switchAccount' are defined/provided in context or state */}
-                    {/* @ts-ignore */}
-                    {accounts.map((acc, idx) => (
-                      <button 
-                        key={acc.user.user_id || `acc-${idx}`}
-                        onClick={() => {
-                          if (acc.user.user_id !== currentUser?.user_id) {
-                            // @ts-ignore
-                            switchAccount(acc.user.user_id);
-                            setShowAccountSwitcher(false);
-                            navigate(`/profile/${acc.user.username}`);
-                          }
-                        }}
-                        className={`w-full p-2 flex items-center gap-3 rounded-xl transition-all ${acc.user.user_id === currentUser?.user_id ? 'bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 cursor-default' : 'hover:bg-black/5 dark:hover:bg-white/5'}`}
-                      >
-                        <img 
-                          src={getAvatarUrl(acc.user.avatar_url, acc.user.username)} 
-                          alt="" 
-                          className="w-8 h-8 rounded-full object-cover border border-black/5" 
-                        />
-                        <div className="flex flex-col text-left">
-                          <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>
-                          {acc.user.user_id === currentUser?.user_id ? (
-                            <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active Account</span>
-                          ) : (
-                            <span className="text-[9px] text-black/20 dark:text-white/20 font-medium uppercase tracking-tight">Switch Account</span>
-                          )}
-                        </div>
-                        {acc.user.user_id === currentUser?.user_id && (
-                          <div className="ml-auto w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-                        )}
-                      </button>
-                    ))}
-                  </div>
-
-                  <button 
-                    onClick={() => { setShowAccountSwitcher(false); navigate('/login'); }}
-                    className="w-full mt-1 p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-colors text-left border-t border-black/5 dark:border-white/5 pt-3"
-                  >
-                    <div className="w-8 h-8 rounded-full border border-dashed border-black/20 dark:border-white/20 flex items-center justify-center">
-                      <Plus size={16} className="text-black/40 dark:text-white/40" />
-                    </div>
-                    <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Add Sparkle Account</span>
+                  {acc.user.user_id === currentUser?.user_id && (
+                    <div className="ml-auto w-2 h-2 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                  )}
                   </button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
+              ))}
+            </div>
+            <div className="border-t border-black/5 dark:border-white/5 pt-2 mt-2">
+              <button
+                onClick={() => { setShowAccountMenu(false); navigate('/settings'); }}
+                className="w-full p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-left"
+              >
+                <ShieldCheck size={16} className="text-black/40 dark:text-white/40" />
+                <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Account Settings</span>
+              </button>
+            </div>
+            <div className="border-t border-black/5 dark:border-white/5 pt-2 mt-2">
+              <button
+                onClick={() => { setShowAccountMenu(false); navigate('/login'); }}
+                className="w-full p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-left"
+              >
+                <Plus size={16} className="text-black/40 dark:text-white/40" />
+                <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Add Sparkle Account</span>
+              </button>
+            </div>
+          </div>
+        )}
+        <div className="flex-1 mx-4">
+          <button type="button" aria-label="Search" onClick={() => navigate('/search')} className="bg-black/5 dark:bg-white/5 h-10 rounded-2xl flex items-center px-4 gap-3 text-black/30 dark:text-white/30 border border-black/5 dark:border-white/5 transition-all active:bg-white dark:active:bg-white/10 w-full min-w-0">
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-search" aria-hidden="true">
+              <path d="m21 21-4.34-4.34"></path>
+              <circle cx="11" cy="11" r="8"></circle>
+            </svg>
+            <span className="text-[12px] font-bold">Search...</span>
+          </button>
         </div>
-      </div>
+        <div className="flex items-center gap-3">
+          <a className="relative w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/30 hover:text-primary transition-all active:scale-90" href="/notifications" data-discover="true">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-bell" aria-hidden="true">
+              <path d="M10.268 21a2 2 0 0 0 3.464 0"></path>
+              <path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"></path>
+            </svg>
+          </a>
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={() => setShowSparkleHub(true)}
+            className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 transition-colors active:scale-90"
+          >
+            <LayoutGrid size={20} strokeWidth={2.5} />
+          </button>
+        </div>
+      </header>
 
       <main className="flex-1 p-4 md:p-8 relative z-10 w-full pb-[calc(5rem+env(safe-area-inset-bottom))]">
         <div className="max-w-4xl mx-auto">
@@ -338,18 +337,27 @@ export default function Profile() {
             <div className="flex items-start gap-6 md:gap-10">
               {/* Avatar Column */}
               <div className="relative shrink-0">
-                <div 
+                <div
                   className={`w-24 h-24 md:w-36 md:h-36 rounded-full shadow-2xl cursor-pointer ${profile?.has_story ? 'p-1 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}
                   onClick={() => {
                     if (profile?.has_story) setShowAvatarMenu(true);
                     else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
                   }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      if (profile?.has_story) setShowAvatarMenu(true);
+                      else setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) });
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                 >
                   <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-white dark:bg-black' : ''}`}>
-                    <img 
-                      src={identity.avatar} 
-                      alt="" 
-                      className="w-full h-full rounded-full object-cover border border-black/5 dark:border-white/5" 
+                    <img
+                      src={identity.avatar}
+                      alt={profile?.username ? `${profile.username}'s profile picture` : 'Profile picture'}
+                      className="w-full h-full rounded-full object-cover border border-black/5 dark:border-white/5"
                     />
                   </div>
                 </div>
@@ -374,26 +382,26 @@ export default function Profile() {
                   {showAvatarMenu && (
                     <>
                       <div className="fixed inset-0 z-(--z-chrome)" onClick={() => setShowAvatarMenu(false)} />
-                      <motion.div 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 20 }}
-                        className="absolute top-0 left-full ml-4 z-[1001] bg-white dark:bg-black rounded-[14px] shadow-2xl border border-black/5 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[180px]"
+                      <motion.div
+                         initial={{ opacity: 0, x: 20 }}
+                         animate={{ opacity: 1, x: 0 }}
+                         exit={{ opacity: 0, x: 20 }}
+                         className="absolute top-0 left-full ml-4 z-[1001] bg-white dark:bg-black rounded-[14px] shadow-2xl border border-black/5 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[180px]"
                       >
-                         <button 
-                          onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); navigate(`/stories/${profile?.id || profile?.user_id}`); }}
-                          className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
-                        >
-                          <History size={18} className="text-primary" />
-                          <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Story</span>
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) }); }}
-                          className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
-                        >
-                          <ImageIcon size={18} className="text-black/40 dark:text-white/40" />
-                          <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Picture</span>
-                        </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); navigate(`/stories/${profile?.id || profile?.user_id}`); }}
+                           className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
+                         >
+                           <History size={18} className="text-primary" />
+                           <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Story</span>
+                         </button>
+                         <button
+                           onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) }); }}
+                           className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
+                         >
+                           <ImageIcon size={18} className="text-black/40 dark:text-white/40" />
+                           <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Picture</span>
+                         </button>
                       </motion.div>
                     </>
                   )}
@@ -409,20 +417,20 @@ export default function Profile() {
                     {identity.displayName}
                     <VerifiedBadge accountType={identity.accountType} isVerified={identity.badge.show} color={identity.badge.color} size="md" />
                   </h1>
-                  
-                   {/* Stats Row Beside Username */}
+
+                  {/* Stats Row Beside Username */}
                   <div className="flex items-center gap-6 ml-4 md:ml-8 border-l border-black/5 dark:border-white/5 pl-4 md:pl-8">
                     <div className="flex flex-col items-center">
-                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{posts.length}</span>
-                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Posts</span>
+                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{posts.length}</span>
+                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Posts</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Followers')}>
-                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.followers_count || 0}</span>
-                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Followers</span>
+                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.followers_count || 0}</span>
+                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Followers</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Following')}>
-                       <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.following_count || 0}</span>
-                       <span className="text-[10px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Following</span>
+                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.following_count || 0}</span>
+                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Following</span>
                     </div>
                   </div>
                 </div>
@@ -433,7 +441,7 @@ export default function Profile() {
                   </p>
                 )}
 
-                <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3">
                   {showOwnerActions ? (
                     <div className="flex items-center gap-2">
                       {/* Edit Identity — refined Meta-style action button */}
@@ -519,56 +527,52 @@ export default function Profile() {
                 </div>
               </div>
             </div>
-              
-            {/* Content Row: Name, Bio, and Professional Dashboard */}
-            <div className="mt-4 md:pl-2">
-              <h2 className="text-base font-black text-black dark:text-white mb-1 tracking-tight">{profile?.name || profile?.username}</h2>
-              
-              {/* Prestige Node & Power Bar */}
-              {/* Prestige Node & Badges (Only visible to owner to hide 'verification criteria') */}
-              {showOwnerActions && (
-                <>
-                  <div className="w-full max-w-[240px] mb-4">
-                     <div className="flex justify-between items-center mb-1 px-0.5">
-                        <span className="text-[9px] font-bold text-black dark:text-white uppercase tracking-widest">Reputation <span className="text-black dark:text-white font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
-                        <span className="text-[9px] font-black text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
-                     </div>
-                     <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10 shadow-inner">
-                        <div 
-                          className="h-full bg-gradient-to-r from-black dark:from-white via-slate-800 dark:via-slate-200 to-black dark:to-white rounded-full shadow-[0_0_8px_rgba(0,0,0,0.15)] transition-all duration-1000" 
-                          style={{ width: `${profile.reputation?.prestigeScore || 10}%` }}
-                        />
-                     </div>
-                  </div>
 
-                  {/* Badges Flowing Horizontally */}
-                  <div className="flex flex-wrap gap-2 mb-8">
-                     {[
-                       { id: 'spark_seed', color: 'from-amber-400 to-orange-500', icon: <Zap size={12} fill="currentColor" />, active: (profile.reputation?.trustLevel || 0) >= 1 },
-                       { id: 'viral_node', color: 'from-emerald-400 to-cyan-500', icon: <TrendingUp size={12} />, active: (profile.reputation?.trustLevel || 0) >= 3 },
-                       { id: 'verified_node', color: 'from-[#FF1F6D] to-purple-600', icon: <Heart size={12} fill="currentColor" />, active: !!profile.is_verified }
-                     ].filter(b => b.active).map((badge, idx) => (
-                       <div 
-                         key={idx}
-                         className={`flex items-center gap-2 px-3 py-1.5 rounded-full bg-gradient-to-tr ${badge.color} text-white shadow-lg border border-white/50`}
-                       >
-                          {badge.icon}
-                          <span className="text-[10px] font-black uppercase tracking-widest">{badge.id.replace('_', ' ')}</span>
-                       </div>
-                     ))}
+            <div className="flex flex-col gap-4 md:gap-6 w-full">
+              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl text-center sm:text-left">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Reputation</span>
+                    <span className="text-xs font-bold text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
                   </div>
-                </>
-              )}
+                  <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-gray-300 dark:from-gray-600 via-gray-400 to-gray-300 rounded-full transition-all duration-700"
+                      style={{ width: `${profile.reputation?.prestigeScore || 0}%` }}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2">
+                  {showOwnerActions && (
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: 'spark_seed', color: 'from-amber-400 to-orange-500', icon: <Zap size={12} fill="currentColor" />, active: (profile.reputation?.trustLevel || 0) >= 1 },
+                        { id: 'viral_node', color: 'from-emerald-400 to-cyan-500', icon: <TrendingUp size={12} />, active: (profile.reputation?.trustLevel || 0) >= 3 },
+                        { id: 'verified_node', color: 'from-[#FF1F6D] to-purple-600', icon: <Heart size={12} fill="currentColor" />, active: !!profile.is_verified }
+                      ].filter(b => b.active).map((badge, idx) => (
+                        <div
+                          key={idx}
+                          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${badge.color} text-white shadow-sm border border-white/20`}
+                        >
+                          {badge.icon}
+                          <span>{badge.id.replace('_', ' ')}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
 
               {(profile?.campus || profile?.major) && (
-                <div className="text-[11px] font-bold text-black dark:text-white mb-3 uppercase tracking-wider flex items-center gap-2">
-                   <div className="w-1 h-1 bg-primary rounded-full" />
-                   {profile.campus} <span className="text-black/10 dark:text-white/10 mx-1">|</span> {profile.major}
+                <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 mb-3">
+                  <span className="w-1 h-1 bg-primary rounded-full" />
+                  {profile.campus} <span className="text-gray-400">|</span> {profile.major}
                 </div>
               )}
 
-              <div className="text-sm font-bold text-black dark:text-white leading-relaxed whitespace-pre-wrap max-w-lg mb-6">
-                {profile?.bio || (showOwnerActions ? 'Initialize your node biography...' : '')}
+              <div className="text-sm text-gray-600 dark:text-gray-300 leading-relaxed mb-4 max-w-xl">
+                {profile?.bio || 'Initialize your node biography...'}
               </div>
 
               {profile?.website && (
@@ -578,9 +582,8 @@ export default function Profile() {
                 </a>
               )}
 
-              {/* Professional Dashboard Node (Clickable Card) */}
               {showOwnerActions && (
-                <div 
+                <div
                   onClick={() => navigate('/professional-dashboard')}
                   className="bg-white/40 dark:bg-black/40 backdrop-blur-sm border border-black/[0.03] dark:border-white/5 rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
                 >
@@ -590,7 +593,7 @@ export default function Profile() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[13px] font-bold text-black dark:text-white tracking-tight">Professional Dashboard</span>
-                      <span className="text-[10px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your performance</span>
+                      <span className="text-[11px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your performance</span>
                     </div>
                   </div>
                   <ChevronDown className="text-black/10 dark:text-white/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
@@ -620,6 +623,14 @@ export default function Profile() {
                 key={h.id}
                 className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
                 onClick={() => openHighlight(h.id, h.title)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    openHighlight(h.id, h.title);
+                  }
+                }}
+                role="button"
+                tabIndex={0}
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 dark:bg-white/10 group-hover:bg-black/20 dark:group-hover:bg-white/20 transition-colors">
                   <div className="w-full h-full bg-white dark:bg-black rounded-full p-0.5 overflow-hidden">
@@ -638,8 +649,9 @@ export default function Profile() {
           </div>
 
           {/* Tabs */}
-          <div className="flex items-center justify-center gap-12 border-t border-black/10 dark:border-white/10 w-full mb-4">
-            {([
+          <div className="relative flex items-center justify-center border-t border-black/10 dark:border-white/10 w-full mb-4">
+            <div className="flex items-center justify-center gap-12">
+              {([
               { id: 'posts',  label: 'POSTS',  icon: Grid },
               { id: 'reels',  label: 'REELS',  icon: Clapperboard },
               ...(showOwnerActions ? ([{ id: 'saved', label: 'SAVED', icon: Bookmark }] as const) : []),
@@ -652,26 +664,49 @@ export default function Profile() {
               >
                 <tab.icon size={14} /> {tab.label}
               </button>
-            ))}
+              ))}
+            </div>
+            <button
+              type="button"
+              aria-label={viewMode === 'grid' ? 'Switch to list view' : 'Switch to grid view'}
+              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              className="absolute right-0 p-2 text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white transition-colors"
+            >
+              {viewMode === 'grid' ? <List size={18} /> : <LayoutGrid size={18} />}
+            </button>
           </div>
 
           {/* Grid Section */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 pb-32 animate-fade-in w-full">
+          <div
+            className={
+              viewMode === 'grid'
+                ? 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1 pb-32 animate-fade-in w-full'
+                : 'flex flex-col gap-2 pb-32 animate-fade-in w-full'
+            }
+          >
             {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (
               (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map((post) => (
-                 <div 
-                  key={post.post_id} 
-                  className="relative aspect-square bg-gray-100 dark:bg-white/5 overflow-hidden group cursor-pointer" 
-                  onClick={() => navigate(`/post/${post.post_id}`)}
+                <div
+                    key={post.post_id}
+                    className={`relative overflow-hidden group cursor-pointer bg-gray-100 dark:bg-white/5 ${viewMode === 'grid' ? 'aspect-square' : 'aspect-[4/3] md:aspect-[3/2] h-48'}`}
+                    onClick={() => navigate(`/post/${post.post_id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        navigate(`/post/${post.post_id}`);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
                 >
                   <div className="w-full h-full relative">
                     {post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) ? (
                       <video src={post.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                     ) : (post.media_url || post.image_url) ? (
-                      <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt="" />
+                      <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt={post.content || "Post image"} />
                     ) : (
                       <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-black dark:text-white">
-                         <p className="font-medium text-[10px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
+                         <p className="font-medium text-[11px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
                            {post.content || 'No Media'}
                          </p>
                       </div>
@@ -702,20 +737,26 @@ export default function Profile() {
             <div className="col-span-full py-12">
                 <ModernOfflineState 
                   type="empty"
-                  title={activeTab === 'posts' ? "Silence is Golden" : activeTab === 'reels' ? "No Motion" : activeTab === 'saved' ? "Vault Empty" : "Nothing Tagged Yet"}
-                  message={activeTab === 'posts' 
-                    ? "This user hasn't sparked any posts yet. Stay tuned!" 
-                    : activeTab === 'reels' ? "No moments have been captured here yet."
-                    : activeTab === 'saved' ? "Nothing saved in this collection yet."
-                    : "When people tag this user in posts, they'll appear here."
+                  title={activeTab === 'posts' ? 'No posts yet' : activeTab === 'reels' ? 'No reels yet' : activeTab === 'saved' ? 'Nothing saved' : 'Tagged posts unavailable'}
+                  message={activeTab === 'posts'
+                    ? showOwnerActions ? 'Create your first post to get started!' : 'This profile has not shared any posts yet.'
+                    : activeTab === 'reels'
+                      ? showOwnerActions ? 'Record your first reel to share moments.' : 'This profile has not shared any reels yet.'
+                      : activeTab === 'saved'
+                        ? 'Save posts you love to see them here.'
+                        : 'Tagged posts are not currently available on profiles.'
                   }
+                  primaryAction={showOwnerActions && (activeTab === 'posts' || activeTab === 'reels') ? {
+                    label: 'Create post',
+                    onClick: () => setActiveModal('post')
+                  } : undefined}
                 />
             </div>
           )}
         </div>
 
         <footer className="py-16 text-center border-t border-black/[0.03] dark:border-white/[0.03] relative">
-          <div className="flex flex-wrap items-center justify-center gap-12 text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mb-12 italic">
+          <div className="flex flex-wrap items-center justify-center gap-12 text-[11px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mb-12 italic">
             {['Community', 'Privacy', 'Safety', 'Terms', 'Connect'].map(item => (
                 <span key={item} className="hover:text-primary transition-colors cursor-pointer">{item}</span>
             ))}
@@ -746,6 +787,8 @@ export default function Profile() {
         }}
       />
 
+      {showSparkleHub && <SparkleHub onClose={() => setShowSparkleHub(false)} />}
+
       <style>{`
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
@@ -766,6 +809,3 @@ function formatCount(count: number): string {
   if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
   return count.toString();
 }
-
-
-

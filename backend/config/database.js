@@ -23,9 +23,9 @@ const pool = mysql.createPool({
     port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: TOTAL_CONNECTION_LIMIT, // Hard 10 limit at driver level
-    maxIdle: 2,
+    maxIdle: process.env.DB_MAX_IDLE ? parseInt(process.env.DB_MAX_IDLE, 10) : 6,
     queueLimit: QUEUE_LIMIT,
-    connectTimeout: 5000,
+    connectTimeout: process.env.DB_CONNECT_TIMEOUT ? parseInt(process.env.DB_CONNECT_TIMEOUT, 10) : 20000,
     ssl: process.env.DB_SSL === 'true' ? { rejectUnauthorized: false } : undefined,
     enableKeepAlive: true,
     keepAliveInitialDelay: 30000,

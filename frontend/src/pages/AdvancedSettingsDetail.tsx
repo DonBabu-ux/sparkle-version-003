@@ -447,7 +447,7 @@ export default function AdvancedSettingsDetail() {
     messaging: { title: 'Messaging Architecture', subtitle: 'Auto-download, link previews & media rules', icon: MessageSquare },
     content: { title: 'Content Intelligence', subtitle: 'Recommendations, AI filters & ranking', icon: Sparkles },
     data: { title: 'Data & Storage', subtitle: 'Data usage breakdown, media cache clearing & exports', icon: Database },
-    notifications: { title: 'Notification Engine', subtitle: 'Quiet hours, sound profiles & priorities', icon: Bell },
+    notifications: { title: 'Notifications', subtitle: 'Quiet hours, sound profiles & priorities', icon: Bell },
     creator: { title: 'Creator Controls', subtitle: 'Remix, comment & audience permissions', icon: Wand2 },
     accessibility: { title: 'Accessibility & Interface', subtitle: 'Motion, fonts, contrast & video autoplay', icon: Sliders },
     developer: { title: 'Developer & Diagnostics', subtitle: 'WebSocket gateway, network quality & version info', icon: Terminal },
@@ -502,7 +502,7 @@ export default function AdvancedSettingsDetail() {
            ======================================================== */}
         {section === 'developer' && (
           <>
-            <SettingCardGroup title="Gateway & Real-Time Engine">
+            <SettingCardGroup title="Connection & Live Updates">
               <SettingRow
                 icon={Activity}
                 title="WebSocket Connection"
@@ -515,17 +515,17 @@ export default function AdvancedSettingsDetail() {
                     if (socket.connected) {
                       socket.disconnect();
                       setTimeout(() => socket.connect(), 400);
-                      showInfo('Re-connecting WebSocket Gateway...');
+                      showInfo('Reconnecting...');
                     } else {
                       socket.connect();
-                      showInfo('Connecting WebSocket Gateway...');
+                      showInfo('Connecting...');
                     }
                   }
                 }}
               />
               <SettingRow
                 icon={Radio}
-                title="Network Quality & Latency"
+                title="Network Quality"
                 description={`Status: ${navigator.onLine ? 'Online' : 'Offline'} • Latency: ${netStats.latencyMs !== null ? netStats.latencyMs + ' ms' : 'Probing...'} (${netStats.quality}) • Connection: ${netStats.effectiveType}`}
                 rightElement="badge"
                 badgeText={netStats.isProbing ? 'PROBING...' : `${netStats.quality.toUpperCase()} ${netStats.latencyMs !== null ? `(${netStats.latencyMs}ms)` : ''}`}
@@ -547,7 +547,7 @@ export default function AdvancedSettingsDetail() {
               <SettingRow
                 icon={Database}
                 title="Application Build"
-                description="Sparkle Social Ecosystem • Client Engine: React 18 / Tailwind v4"
+                description="Sparkle Social Ecosystem • Version 1.2.0"
                 rightElement="badge"
                 badgeText="v1.2.0 (Build 2026.10)"
                 badgeVariant="slate"
@@ -637,8 +637,8 @@ export default function AdvancedSettingsDetail() {
               />
               <SettingRow
                 icon={RefreshCw}
-                title="Background Sync Throttling"
-                description="Throttle periodic chat sync and feed updates when on metered networks or low battery"
+                title="Limit Background Updates"
+                description="Reduce background updates on metered networks or low battery"
                 rightElement="toggle"
                 toggleValue={!!settings.background_sync_throttling}
                 onToggleChange={(val) => handleUpdateSetting('background_sync_throttling', val ? 1 : 0)}
@@ -697,8 +697,8 @@ export default function AdvancedSettingsDetail() {
             <SettingCardGroup title="Personalization Profile Architecture">
               <SettingRow
                 icon={Sparkles}
-                title="Feed Personalization Engine"
-                description="Use your engagement history, likes, and topic affinities to tailor explore rankings"
+                title="Feed Personalization"
+                description="Use your activity, likes, and interests to tailor Explore"
                 rightElement="toggle"
                 toggleValue={!!settings.recommendation_personalization}
                 onToggleChange={(val) => handleUpdateSetting('recommendation_personalization', val ? 1 : 0)}
@@ -772,7 +772,7 @@ export default function AdvancedSettingsDetail() {
               />
               <SettingRow
                 icon={HardDrive}
-                title="Local Client Media Cache"
+                title="Local Client Cached Media"
                 description="Local browser IndexedDB and CacheStorage assets are auto-pruned periodically"
                 rightElement="badge"
                 badgeText="7 DAYS"
@@ -847,7 +847,7 @@ export default function AdvancedSettingsDetail() {
               {/* Sub-breakdown badges */}
               <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800/60 text-center">
                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
-                  <span className="block text-[10px] text-slate-400 uppercase font-semibold">Media Cache</span>
+                  <span className="block text-[10px] text-slate-400 uppercase font-semibold">Cached Media</span>
                   <span className="text-xs font-bold text-slate-800 dark:text-zinc-200">{storageStats.mediaMb} MB</span>
                 </div>
                 <div className="p-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50">
@@ -864,7 +864,7 @@ export default function AdvancedSettingsDetail() {
             <SettingCardGroup title="Cache Management">
               <SettingRow
                 icon={HardDrive}
-                title="Clear Media Cache"
+                title="Clear Cached Media"
                 description="Purge cached post images, moment video chunks, and temporary avatars"
                 rightElement="badge"
                 badgeText="CLEAR CACHE"
@@ -1208,7 +1208,7 @@ export default function AdvancedSettingsDetail() {
           </>
         )}
 
-        {/* SECTION: Notification Engine */}
+        {/* SECTION: Notifications */}
         {section === 'notifications' && (
           <>
             <SettingCardGroup title="Notification Channels">

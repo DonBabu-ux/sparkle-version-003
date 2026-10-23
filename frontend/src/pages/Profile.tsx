@@ -210,7 +210,7 @@ export default function Profile() {
                   transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", times: [0, 0.33, 0.66, 1] }}
                   className="flex flex-col items-center"
                 >
-                  {['Synchronizing Identity', 'Calibrating Frequency', 'Scanning Nodes', 'Authenticating Signature'].map((text, i) => (
+                  {['Loading your profile', 'Getting things ready', 'Fetching your activity', 'Almost there'].map((text, i) => (
                     <span key={i} className="text-[10px] font-black italic text-black/40 dark:text-white/40 uppercase tracking-[0.4em] h-5">{text}</span>
                   ))}
                 </motion.div>
@@ -303,9 +303,9 @@ export default function Profile() {
                         <div className="flex flex-col text-left">
                           <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>
                           {acc.user.user_id === currentUser?.user_id ? (
-                            <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active Node</span>
+                            <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active Account</span>
                           ) : (
-                            <span className="text-[9px] text-black/20 dark:text-white/20 font-medium uppercase tracking-tight">Switch to Node</span>
+                            <span className="text-[9px] text-black/20 dark:text-white/20 font-medium uppercase tracking-tight">Switch Account</span>
                           )}
                         </div>
                         {acc.user.user_id === currentUser?.user_id && (
@@ -530,7 +530,7 @@ export default function Profile() {
                 <>
                   <div className="w-full max-w-[240px] mb-4">
                      <div className="flex justify-between items-center mb-1 px-0.5">
-                        <span className="text-[9px] font-bold text-black dark:text-white uppercase tracking-widest">Node Prestige <span className="text-black dark:text-white font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
+                        <span className="text-[9px] font-bold text-black dark:text-white uppercase tracking-widest">Reputation <span className="text-black dark:text-white font-black ml-1">Lvl {profile.reputation?.trustLevel || 1}</span></span>
                         <span className="text-[9px] font-black text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
                      </div>
                      <div className="h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10 shadow-inner">
@@ -590,7 +590,7 @@ export default function Profile() {
                     </div>
                     <div className="flex flex-col">
                       <span className="text-[13px] font-bold text-black dark:text-white tracking-tight">Professional Dashboard</span>
-                      <span className="text-[10px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your network pulse</span>
+                      <span className="text-[10px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your performance</span>
                     </div>
                   </div>
                   <ChevronDown className="text-black/10 dark:text-white/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
@@ -716,7 +716,7 @@ export default function Profile() {
 
         <footer className="py-16 text-center border-t border-black/[0.03] dark:border-white/[0.03] relative">
           <div className="flex flex-wrap items-center justify-center gap-12 text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.3em] mb-12 italic">
-            {['Village', 'Privacy', 'Safety', 'Terms', 'Connect'].map(item => (
+            {['Community', 'Privacy', 'Safety', 'Terms', 'Connect'].map(item => (
                 <span key={item} className="hover:text-primary transition-colors cursor-pointer">{item}</span>
             ))}
           </div>

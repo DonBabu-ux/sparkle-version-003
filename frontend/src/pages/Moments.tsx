@@ -1314,7 +1314,7 @@ export default function Moments() {
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Synchronizing Stream</p>
+                <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Loading moments...</p>
              </div>
         ) : moments.length === 0 && !loading ? (
             <div className="h-full flex items-center justify-center p-6 md:ml-(--rail-w)">
@@ -1354,7 +1354,7 @@ export default function Moments() {
           <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 md:ml-(--rail-w) transition-all overflow-hidden relative">
             <div className="flex flex-col items-center gap-6">
               <TikTokLoader />
-              <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Syncing Stream</p>
+              <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Loading more...</p>
             </div>
           </div>
         )}

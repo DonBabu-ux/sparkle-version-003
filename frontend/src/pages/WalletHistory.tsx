@@ -87,7 +87,7 @@ export default function WalletHistory() {
           </button>
           <div>
             <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Transaction History</h1>
-            <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Wallet ledger sync</p>
+            <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Your recent transactions</p>
           </div>
         </div>
         <button onClick={fetchHistory} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">

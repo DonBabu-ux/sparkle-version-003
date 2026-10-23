@@ -61,7 +61,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
             <Calendar size={24} strokeWidth={3} />
           </div>
           <div>
-            <h3 className="font-heading font-black text-3xl text-black tracking-tighter uppercase italic leading-none">Temporal rift</h3>
+            <h3 className="font-heading font-black text-3xl text-black tracking-tighter uppercase italic leading-none">New Event</h3>
             <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Schedule Collective Assembly</p>
           </div>
         </div>
@@ -77,11 +77,11 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
         <div className="space-y-6">
           <div className="flex items-center gap-4 px-2">
             <Sparkles size={14} className="text-primary animate-pulse" />
-            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Signal Label</label>
+            <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Event Name</label>
           </div>
           <input 
             type="text" 
-            placeholder="EVENT DESIGNATION..." 
+            placeholder="EVENT NAME..."
             className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
             value={title} 
             onChange={(e) => setTitle(e.target.value)} 
@@ -106,7 +106,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
           <div className="space-y-6">
             <div className="flex items-center gap-4 px-2">
                <Clock size={14} className="text-primary" />
-               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Time Coordinates</label>
+               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Date & Time</label>
             </div>
             <input 
               type="datetime-local" 
@@ -118,11 +118,11 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
           <div className="space-y-6">
             <div className="flex items-center gap-4 px-2">
                <MapPin size={14} className="text-primary" />
-               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Spatial Node</label>
+               <label className="text-[10px] font-black text-black/40 uppercase tracking-[0.3em] font-heading italic">Location</label>
             </div>
             <input 
               type="text" 
-              placeholder="WHERE IN THE GRID?" 
+              placeholder="WHERE IS IT?"
               className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black placeholder:text-black/10 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
               value={location} 
               onChange={(e) => setLocation(e.target.value)} 

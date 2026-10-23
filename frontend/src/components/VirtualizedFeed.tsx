@@ -376,7 +376,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
         <ModernOfflineState 
           type={isOffline ? "offline" : "empty"}
           title={isOffline ? "Connection Lost" : "Campus is Quiet"}
-          message={isOffline ? "You're browsing local cached feed. Reconnect to sync latest content." : "Follow some people or join some circles to see what's happening on campus!"}
+          message={isOffline ? "You're viewing saved posts. Reconnect to load the latest." : "Follow some people or join some circles to see what's happening on campus!"}
           onRetry={() => fetchFeed(true)}
         />
       </div>

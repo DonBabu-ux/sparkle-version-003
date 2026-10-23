@@ -100,7 +100,7 @@ export default function LostFound() {
                        <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
                    </div>
                    <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
-                      Lost & <span className="text-primary italic">Sync'd.</span>
+                      Lost & <span className="text-primary italic">Found.</span>
                    </h1>
                     <p className="text-xl font-bold text-black opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
                       Broadcast missing harmonics or report found signals. Maintaining the village collective organized.
@@ -111,7 +111,7 @@ export default function LostFound() {
                   onClick={() => { setShowReport(true); setStep(1); }}
                   className="h-24 px-16 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6"
                 >
-                  <Plus size={32} strokeWidth={4} /> Initialize Report
+                  <Plus size={32} strokeWidth={4} /> Report an Item
                 </button>
              </div>
           </header>
@@ -156,9 +156,9 @@ export default function LostFound() {
             <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
                <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
                <div className="space-y-6">
-                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Silent Sector.</h3>
+                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
                   <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items intercepted in this harmonic sector yet.</p>
-                  <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Start Broadcast</button>
+                  <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Report an Item</button>
                </div>
             </div>
           ) : (
@@ -183,11 +183,11 @@ export default function LostFound() {
                         ) : (
                           <div className="w-full h-full flex flex-col items-center justify-center text-black/5 opacity-40">
                              <PackageOpen size={80} strokeWidth={1} />
-                             <span className="text-[10px] font-black uppercase tracking-widest italic mt-4">Node Identity Missing</span>
+                             <span className="text-[10px] font-black uppercase tracking-widest italic mt-4">No Photo Added</span>
                           </div>
                         )}
                         <div className={`absolute top-6 left-6 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl italic border border-white/20 ${item.type === 'lost' ? 'bg-black text-white' : 'bg-primary text-white'}`}>
-                           {item.type} Frequency
+                           {item.type === 'lost' ? 'Lost' : 'Found'}
                         </div>
                         
                         <div className="absolute top-6 right-6">
@@ -247,7 +247,7 @@ export default function LostFound() {
                               </div>
                               <div className="flex flex-col">
                                   <span className="text-[12px] font-black text-black leading-none uppercase italic tracking-tighter group-hover:text-primary transition-colors cursor-pointer">@{item.reporter_username}</span>
-                                  <span className="text-[9px] font-black text-black opacity-20 uppercase tracking-[0.2em] mt-2 italic">Node Reporter</span>
+                                  <span className="text-[9px] font-black text-black opacity-20 uppercase tracking-[0.2em] mt-2 italic">Reported by</span>
                               </div>
                            </div>
 
@@ -263,7 +263,7 @@ export default function LostFound() {
                                onClick={() => handleClaim(item)}
                                className="h-14 px-10 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:scale-110 transition-all shadow-2xl shadow-primary/30 active:scale-95"
                              >
-                                {item.type === 'lost' ? "Signal Found" : "Claim Sync"}
+                                {item.type === 'lost' ? "Mark as Found" : "Claim Item"}
                              </button>
                            )}
                         </div>
@@ -290,7 +290,7 @@ export default function LostFound() {
 
              <div className="p-16 pb-0 flex items-center justify-between">
                 <div>
-                   <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Broadcast Report</h3>
+                   <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Report an Item</h3>
                    <div className="flex items-center gap-4 mt-4">
                       <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
                       <div className="flex gap-1.5">
@@ -314,19 +314,19 @@ export default function LostFound() {
                         className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'lost' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
                        >
                          <AlertCircle size={64} strokeWidth={4} className={reportType === 'lost' ? 'animate-pulse' : ''} />
-                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Lost Harmonic</span>
+                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Lost Item</span>
                        </button>
                        <button 
                         onClick={() => setReportType('found')}
                         className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'found' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] -rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
                        >
                          <CheckCircle2 size={64} strokeWidth={4} className={reportType === 'found' ? 'animate-pulse' : ''} />
-                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Captured Sync</span>
+                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Item Found</span>
                        </button>
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Sector Category</label>
+                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Category</label>
                         <select 
                           value={form.category}
                           onChange={e => setForm({...form, category: e.target.value})}
@@ -363,7 +363,7 @@ export default function LostFound() {
                             rows={3} 
                             value={form.description}
                             onChange={e => setForm({...form, description: e.target.value})}
-                            placeholder="Describe unique signals, marks, or specific village resonance..."
+                            placeholder="Describe unique marks, colors, or details..."
                             className="w-full bg-black/5 border-2 border-transparent rounded-[40px] px-10 py-8 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic resize-none shadow-inner"
                           />
                        </div>
@@ -379,14 +379,14 @@ export default function LostFound() {
                 {step === 3 && (
                   <div className="space-y-16 animate-fade-in">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Last Logged Sector</label>
+                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Last Seen Location</label>
                         <div className="relative group">
                           <MapPin className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-all scale-125" size={24} strokeWidth={4} />
                           <input 
                             type="text" 
                             value={form.location}
                             onChange={e => setForm({...form, location: e.target.value})}
-                            placeholder="e.g. Village Core, Sector Blue Cafe..."
+                            placeholder="e.g. Main Library, Blue Cafe..."
                             className="w-full h-24 bg-black/5 border-2 border-transparent rounded-[32px] pl-20 pr-10 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
                           />
                         </div>
@@ -398,19 +398,19 @@ export default function LostFound() {
                        </div>
                        <div className="w-18 h-18 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shrink-0 animate-pulse border border-primary/20"><Sparkles size={32} strokeWidth={4} /></div>
                        <div className="relative z-10">
-                           <h4 className="text-2xl font-black italic text-black uppercase tracking-tighter leading-none mb-3">Sync Optimized</h4>
-                           <p className="text-[10px] font-black text-black opacity-30 uppercase tracking-[0.4em] italic leading-tight">Broadcast vector will be dispersed to all village nodes immediately.</p>
+                           <h4 className="text-2xl font-black italic text-black uppercase tracking-tighter leading-none mb-3">Report Posted</h4>
+                           <p className="text-[10px] font-black text-black opacity-30 uppercase tracking-[0.4em] italic leading-tight">Your report will be shared with the campus immediately.</p>
                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">
-                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Sector Back</button>
+                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Back</button>
                        <button 
                         onClick={handleSubmit} 
                         disabled={submitting} 
                         className="flex-1 h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all"
                        >
-                           {submitting ? 'Transmitting...' : 'Full Broadcast'}
+                           {submitting ? 'Posting...' : 'Post Report'}
                        </button>
                     </div>
                   </div>

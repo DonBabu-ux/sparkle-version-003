@@ -81,7 +81,7 @@ export default function ClubDetail() {
     <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <Spinner size="large" color="text-primary" />
-        <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Syncing Circle Node...</p>
+        <p className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic animate-pulse">Loading club...</p>
       </div>
     </div>
   );
@@ -93,10 +93,10 @@ export default function ClubDetail() {
            <Users size={40} className="text-black opacity-10" />
         </div>
         <div className="space-y-4">
-           <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Node <span className="text-primary">Isolated.</span></h2>
-           <p className="text-base font-bold text-black opacity-30 italic">This circle harmonic is no longer broadcasting.</p>
+           <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Club <span className="text-primary">Not Found.</span></h2>
+           <p className="text-base font-bold text-black opacity-30 italic">This club is no longer available.</p>
         </div>
-        <button onClick={() => navigate('/clubs')} className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-primary/30">Browser Sectors</button>
+        <button onClick={() => navigate('/clubs')} className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-primary/30">Browse Clubs</button>
       </div>
     </div>
   );
@@ -180,7 +180,7 @@ export default function ClubDetail() {
                     disabled={joining}
                     className={`w-full h-20 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${club.is_member ? 'bg-black text-white hover:bg-black/80' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
                   >
-                    {joining ? 'Harmonizing...' : club.is_member ? 'Lock Sync' : 'Initialize Sync'}
+                    {joining ? 'Joining...' : club.is_member ? 'Leave Club' : 'Join Club'}
                   </button>
                 </div>
               </div>
@@ -190,8 +190,8 @@ export default function ClubDetail() {
             <div className="lg:col-span-8 flex flex-col gap-12 pt-16">
               <div className="bg-white/60 backdrop-blur-3xl border border-white/80 p-2.5 rounded-[32px] flex gap-3 w-fit shadow-2xl shadow-primary/5">
                 {[
-                  { id: 'posts', label: 'Signal Stream', icon: MessageSquare },
-                  { id: 'members', label: 'Nodes', icon: Users }
+                  { id: 'posts', label: 'Posts', icon: MessageSquare },
+                  { id: 'members', label: 'Members', icon: Users }
                 ].map(tab => (
                   <button 
                     key={tab.id}
@@ -212,8 +212,8 @@ export default function ClubDetail() {
                         <MessageSquare size={48} strokeWidth={2} />
                      </div>
                      <div className="space-y-6">
-                        <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Static Noise.</h3>
-                        <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No active signals in this circle. Be the first to synchronize your broadcast.</p>
+                        <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">No Posts Yet.</h3>
+                        <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No posts in this club yet. Be the first to share something.</p>
                      </div>
                   </div>
                 ) : (

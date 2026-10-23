@@ -212,7 +212,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
             ) : (
               <div className="flex flex-col items-center justify-center w-full py-4 text-gray-300 gap-1">
                   <Send size={24} className="opacity-20" />
-                  <span className="text-[10px] font-bold uppercase tracking-widest">No signals found</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">No people found</span>
               </div>
             )}
           </div>

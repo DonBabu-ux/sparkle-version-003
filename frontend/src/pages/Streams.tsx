@@ -139,7 +139,7 @@ export default function Streams() {
         </div>
 
         <button 
-          onClick={() => showInfo('Starting Stream Broadcaster Console...')}
+          onClick={() => showInfo('Starting your live stream...')}
           className="bg-gradient-to-r from-[#ff008a] to-[#ff4db8] hover:from-[#ff4db8] hover:to-[#ff66c4] text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#ff008a]/20 hover:shadow-[#ff008a]/40 hover:scale-[1.02] active:scale-95 transition-all"
         >
           <Video size={14} />

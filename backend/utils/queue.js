@@ -12,6 +12,9 @@ if (redisUrl) {
   try {
     connection = new IORedis(redisUrl, {
       maxRetriesPerRequest: null,
+      connectTimeout: parseInt(process.env.REDIS_CONNECT_TIMEOUT || '20000', 10),
+      keepAlive: 30000,
+      enableReadyCheck: false,
       tls: redisUrl.startsWith('rediss://') ? { rejectUnauthorized: false } : undefined,
       // Exponential backoff retry strategy
       retryStrategy(times) {

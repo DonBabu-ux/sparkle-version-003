@@ -2178,7 +2178,7 @@ export default function MessagesSettings() {
               <Trash2 size={18} className="text-red-500" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-bold text-red-500">Clear Local Message Cache</p>
+              <p className="text-sm font-bold text-red-500">Clear Cached Messages</p>
               <p className="text-xs text-gray-500 mt-0.5">
                 Clear locally cached data. Active threads can be re-synced from the server.
               </p>
@@ -2526,7 +2526,7 @@ export default function MessagesSettings() {
         title="Clear Message Cache?"
         message={
           <span>
-            This will clear locally cached conversations. <strong>Server messages are not deleted</strong> and active threads can be re-synced.
+            This clears conversations saved on this device. <strong>Messages on the server are not deleted</strong>, and chats will reload when you reconnect.
           </span>
         }
         confirmLabel="Clear Cache"

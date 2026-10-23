@@ -51,7 +51,7 @@ export const AudioDiagnostics: React.FC = () => {
               <h1 className="text-xl md:text-2xl font-black bg-gradient-to-r from-pink-500 to-rose-400 bg-clip-text text-transparent italic uppercase tracking-wider">
                 Audio Diagnostics
               </h1>
-              <p className="text-xs text-slate-400">Sparkle Experience Audio Engine v3 Metrics</p>
+              <p className="text-xs text-slate-400">Audio performance and playback details</p>
             </div>
           </div>
           <button
@@ -73,17 +73,17 @@ export const AudioDiagnostics: React.FC = () => {
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Active Nodes</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Active Sources</span>
             <p className="text-2xl font-black mt-1 text-pink-400">{stats.activeInstances}</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Average Latency</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Average Delay</span>
             <p className="text-2xl font-black mt-1 text-rose-400">{stats.latency}</p>
           </div>
 
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4 backdrop-blur-md">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Memory Cached</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Cached Audio</span>
             <p className="text-2xl font-black mt-1 text-purple-400">{stats.cachedSize}</p>
           </div>
         </div>

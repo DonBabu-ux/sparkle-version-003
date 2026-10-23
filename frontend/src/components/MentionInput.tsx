@@ -49,7 +49,7 @@ const SPECIALS = [
   {
     id: 'everyone',
     label: 'Everyone',
-    desc: 'Broadcast to the entire community',
+    desc: 'Notify everyone in the community',
     Icon: Radio,
   },
 ];
@@ -208,7 +208,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
                 {/* --- Special broadcasts (only when bare @) --- */}
                 {mentionQuery === '@' && (
                   <div className="mb-2">
-                    <p className="px-5 py-1 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Broadcast</p>
+                    <p className="px-5 py-1 text-[10px] font-black text-gray-400 uppercase tracking-[0.12em]">Everyone</p>
                     {SPECIALS.map(({ id, desc, Icon }) => (
                       <button
                         key={id}

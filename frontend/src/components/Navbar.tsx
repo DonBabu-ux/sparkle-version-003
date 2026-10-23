@@ -149,10 +149,10 @@ export default function Navbar() {
           <Users size={22} strokeWidth={isDarkBase ? 3 : (isActive('/connect') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/connect') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
-        {/* Col 3 — Moments */}
-        <Link to="/moments" aria-label="Moments" aria-current={isActive('/moments') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <PlayCircle size={22} strokeWidth={isDarkBase ? 3 : (isActive('/moments') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/moments') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
+        {/* Col 3 — Explore */}
+        <Link to="/explore" aria-label="Explore" aria-current={isActive('/explore') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
+          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <Compass size={22} strokeWidth={isDarkBase ? 3 : (isActive('/explore') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/explore') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 4 — Plus (column 4 of 7 = exact center) */}
@@ -162,13 +162,7 @@ export default function Navbar() {
           </div>
         </button>
 
-        {/* Col 5 — Explore */}
-        <Link to="/explore" aria-label="Explore" aria-current={isActive('/explore') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
-          {isActive('/explore') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
-          <Compass size={22} strokeWidth={isDarkBase ? 3 : (isActive('/explore') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/explore') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
-        </Link>
-
-        {/* Col 6 — Messages */}
+        {/* Col 5 — Messages */}
         <Link to="/messages" aria-label="Messages" aria-current={isActive('/messages') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
           {isActive('/messages') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" className={isDarkBase ? 'text-white' : (isActive('/messages') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}}>
@@ -176,6 +170,12 @@ export default function Navbar() {
               fill="currentColor" fillOpacity="0.12" stroke="currentColor" strokeWidth={isDarkBase ? 3 : (isActive('/messages') ? 3 : 1.8)} strokeLinejoin="round" />
             <path d="m6.5 14 3.5-4 2.5 2.5L16 9" stroke="currentColor" strokeWidth={isDarkBase ? 3 : (isActive('/messages') ? 3 : 1.8)} strokeLinecap="round" strokeLinejoin="round" />
           </svg>
+        </Link>
+
+        {/* Col 6 — Moments */}
+        <Link to="/moments" aria-label="Moments" aria-current={isActive('/moments') ? 'page' : undefined} className="relative flex items-center justify-center h-full">
+          {isActive('/moments') && <motion.div layoutId="nav-notch" className="absolute inset-x-1 inset-y-1 bg-primary/10 dark:bg-white/20 rounded-2xl -z-10" transition={{ type: 'spring', stiffness: 400, damping: 30 }} />}
+          <PlayCircle size={22} strokeWidth={isDarkBase ? 3 : (isActive('/moments') ? 3 : 1.8)} className={isDarkBase ? 'text-white' : (isActive('/moments') ? 'text-primary' : 'text-slate-500')} style={isDarkBase ? { filter: 'drop-shadow(0 0 1px rgba(255,255,255,0.8))' } : {}} />
         </Link>
 
         {/* Col 7 — Profile */}

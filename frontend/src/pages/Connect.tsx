@@ -221,7 +221,7 @@ export default function Connect() {
                 </div>
                 <div className="space-y-3 px-4">
                   <h3 className="text-2xl font-black text-black dark:text-white italic">NO RESULTS FOUND</h3>
-                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other sectors.</p>
+                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
                 </div>
               </div>
             )

@@ -211,8 +211,8 @@ export default function Ecosystem() {
           {activeTab === 'api' && (
             <div className="flex flex-col gap-6">
               <div className="bg-white dark:bg-zinc-900 p-6 rounded-[28px] border border-gray-100 dark:border-white/5 shadow-sm">
-                <h3 className="text-xl font-black text-gray-900 dark:text-white">Campus Open API Access</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Build custom campus bots, retrieve real-time announcements, or query public skill directories directly from your terminal.</p>
+                <h3 className="text-xl font-black text-gray-900 dark:text-white">Campus API Access</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Build campus bots, fetch announcements, or browse public skill listings from your own tools.</p>
                 
                 <div className="flex gap-2 mt-6 border-b border-gray-100 dark:border-white/5 pb-3">
                   {(['auth', 'posts', 'realtime'] as const).map((cat) => (
@@ -246,18 +246,18 @@ export default function Ecosystem() {
             <div className="flex flex-col gap-6">
               <div className="bg-white dark:bg-zinc-900 p-8 rounded-[32px] border border-gray-100 dark:border-white/5 shadow-sm leading-relaxed text-gray-600 dark:text-gray-300">
                 <h3 className="text-2xl font-black text-gray-900 dark:text-white mb-4">About the Platform</h3>
-                <p className="mb-4">Sparkle is a hyper-local campus collaboration network built from the ground up for students. It unifies high-performance micro-blogging, a verified student-to-student peer marketplace, student freelancer skill acquisition hubs, and structured college societies directories into a fast, beautiful mobile & desktop experience.</p>
-                <p className="mb-4">Our systems are fully federated across distinct university nodes, utilizing a robust Postgres, Redis, and high-frequency Node.js WebSocket engine backend, with CDN image optimization networks providing seamless high-fidelity static media deliveries.</p>
+                <p className="mb-4">Sparkle is a campus network built for students. It brings together social posts, a verified student marketplace, a skills hub, and a directory of campus clubs in one fast, beautiful app.</p>
+                <p className="mb-4">Sparkle runs on reliable, distributed infrastructure so your posts, messages, and media load quickly and stay available across every campus we serve.</p>
                 
                 <h4 className="font-black text-lg text-gray-900 dark:text-white mt-8 mb-4">Platform Infrastructure Overview</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
                   <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl text-center">
                     <div className="text-[#FF3D6D] font-black text-2xl">99.9%</div>
-                    <div className="text-xs text-gray-400 uppercase font-bold mt-1">Uptime SLA</div>
+                    <div className="text-xs text-gray-400 uppercase font-bold mt-1">Uptime</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl text-center">
                     <div className="text-[#FF3D6D] font-black text-2xl">&lt;45ms</div>
-                    <div className="text-xs text-gray-400 uppercase font-bold mt-1">WS Latency</div>
+                    <div className="text-xs text-gray-400 uppercase font-bold mt-1">Realtime Speed</div>
                   </div>
                   <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl text-center">
                     <div className="text-[#FF3D6D] font-black text-2xl">AES-256</div>

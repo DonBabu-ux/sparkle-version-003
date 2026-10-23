@@ -22,7 +22,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
 
           {error && (
             <div className="error-details bg-black/5 dark:bg-white/5 p-[15px] rounded-xl font-mono text-[14px] mb-[30px] break-all text-[#d63031] dark:text-red-400 flex flex-col items-start gap-2 text-left">
-              <div className="flex items-center gap-2 font-bold uppercase"><Bug size={14} /> Error Payload</div>
+              <div className="flex items-center gap-2 font-bold uppercase"><Bug size={14} /> Error Details</div>
               <span className="opacity-80">{error}</span>
             </div>
           )}

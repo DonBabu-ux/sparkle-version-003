@@ -1300,6 +1300,9 @@ export default function Messages() {
 
   // Track last targetChatId we already tried to fetch for (prevents infinite re-fetch loops)
   const lastFetchedTargetRef = useRef<string | null>(null);
+  // Stable mirror of the conversations array — updated on every render but
+  // never used as a useEffect dependency so inbox changes don't re-trigger effects.
+  const conversationsRef = useRef<ChatConversation[]>([]);
 
   // Activate real-time message socket updates
   useMessageSocket();
@@ -1569,6 +1572,10 @@ export default function Messages() {
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
   const setConversations = useChatStore(state => state.setConversations);
+  // Keep conversationsRef in sync with the latest conversations on every render.
+  // This lets socket/navigation effects read the current list without declaring
+  // `conversations` as a dependency (which would cause infinite refetch loops).
+  conversationsRef.current = Array.isArray(conversations) ? conversations : [];
   const referenceTime = useTimeTick(30000);
   const getTabBadgeCount = (tabId: string) => {
     const safeConvs = Array.isArray(conversations) ? conversations : [];
@@ -2453,21 +2460,31 @@ export default function Messages() {
   // The AnimatePresence in the header already handles smooth Online ↔ last-seen transitions
   const showLastSeen = !selectedChat?.partner_online && !(selectedChat?.is_online === 1) && !(selectedChat?.is_online === true);
 
+  // NOTE: `conversations` is intentionally NOT in the dependency array.
+  // We use conversationsRef (a stable ref kept in sync above) to read the
+  // current list without causing this effect to re-run whenever fetchInbox
+  // updates the conversation list — that was the infinite loop root cause.
   useEffect(() => {
     if (targetChatId) {
-      const chat = conversations.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
+      const currentConvs = conversationsRef.current;
+      const chat = currentConvs.find(c => c.chat_id === targetChatId || c.partner_id === targetChatId);
       if (chat) {
         setSelectedChat(chat);
-      } else if (conversations.length > 0 && lastFetchedTargetRef.current !== targetChatId) {
+      } else if (currentConvs.length > 0 && lastFetchedTargetRef.current !== targetChatId) {
         lastFetchedTargetRef.current = targetChatId;
         fetchInbox();
-      } else if (conversations.length > 0) {
+      } else if (currentConvs.length === 0 && lastFetchedTargetRef.current !== targetChatId) {
+        // Conversations not yet loaded — fetch once, then the next render will find the chat
+        lastFetchedTargetRef.current = targetChatId;
+        fetchInbox();
+      } else if (currentConvs.length > 0) {
         setSelectedChat(null);
       }
     } else {
       setSelectedChat(null);
     }
-  }, [targetChatId, conversations]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [targetChatId]);
 
   useEffect(() => {
     const store = useChatStore.getState();
@@ -2916,10 +2933,17 @@ export default function Messages() {
     // are handled centrally by useMessageSocket.ts (writes straight into chatStore).
 
     // Listen for chat-updated events so the sidebar refreshes (debounced —
-    // backend emits this to both parties on EVERY message)
+    // backend emits this to both parties on EVERY message).
+    // Guard: only refetch if the incoming chatId is NOT already in the local
+    // conversations list (which is maintained in real-time by useMessageSocket).
+    // This prevents full inbox refetches on every single message.
     let chatUpdatedTimer: number | undefined;
     const handleChatUpdated = (data: { chatId: string }) => {
       logger.log('[CHAT_UPDATED_RECEIVED]', data);
+      // If we already have this chat in our local list, skip the full refetch —
+      // the optimistic update from useMessageSocket is sufficient.
+      const alreadyKnown = conversationsRef.current.some(c => c.chat_id === data.chatId);
+      if (alreadyKnown) return;
       if (chatUpdatedTimer) window.clearTimeout(chatUpdatedTimer);
       chatUpdatedTimer = window.setTimeout(() => fetchInbox(), 1500);
     };

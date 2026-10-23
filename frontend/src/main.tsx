@@ -4,7 +4,6 @@ import { BrowserRouter as Router } from 'react-router-dom';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
-import '@fortawesome/fontawesome-free/css/all.min.css';
 import OtaService from './services/OtaService';
 import { initSafeAreaInsets } from './services/safeAreaInsets';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';

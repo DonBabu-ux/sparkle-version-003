@@ -16,7 +16,8 @@ const MIGRATION_RUN = [
     { file: '20261013_account_lifecycle.js', verify: ['account_lifecycle_audit'] },
     { file: '20261013_advanced_settings_enhancement.js', verify: [] },
     { file: '20261013_data_centre_and_recovery.js', verify: ['data_export_jobs', 'account_recovery_requests', 'account_appeal_cases'] },
-    { file: '20261021_extend_message_types.sql', verify: [] }
+    { file: '20261023_messaging_reply_edit_forward_gifts.js', verify: ['canonical_media_assets', 'message_forward_deliveries'] },
+    { file: '20261023_chat_nicknames_and_disappearing.js', verify: ['chat_nicknames'] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

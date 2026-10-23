@@ -55,7 +55,7 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2 } from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2, Reply } from 'lucide-react';
 import { useCall } from '../components/CallProvider';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -63,6 +63,7 @@ import CameraModal from '../components/chat/CameraModal';
 import ChatSettingsModal from '../components/chat/ChatSettingsModal';
 import FullscreenMediaViewer from '../components/chat/FullscreenMediaViewer';
 import { PullUpDisappearingGesture } from '../components/chat/PullUpDisappearingGesture';
+import { ForwardModal, type ForwardContact } from '../components/chat/ForwardModal';
 import { clsx } from 'clsx';
 import { motion, AnimatePresence } from 'framer-motion';
 import AppScreen from '../components/AppScreen';
@@ -371,26 +372,139 @@ const MessageBubbleWrapper: React.FC<{
   onLongPress: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
   onClick: (e: React.MouseEvent) => void;
+  onSwipeReply?: () => void;
   className: string;
   style: React.CSSProperties;
   children: React.ReactNode;
-}> = ({ onLongPress, onContextMenu, onClick, className, style, children }) => {
+}> = ({ onLongPress, onContextMenu, onClick, onSwipeReply, className, style, children }) => {
   const lp = useLongPress(onLongPress, 500);
+  const [dragX, setDragX] = useState(0);
+  const [isSwiping, setIsSwiping] = useState(false);
+  const pointerStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
+  const isVerticalScrollRef = useRef(false);
+  const hasVibratedRef = useRef(false);
+
+  const SWIPE_THRESHOLD = 50;
+  const MAX_DRAG = 75;
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (e.button !== undefined && e.button !== 0) return;
+    pointerStartRef.current = { x: e.clientX, y: e.clientY, time: performance.now() };
+    isVerticalScrollRef.current = false;
+    hasVibratedRef.current = false;
+    setIsSwiping(false);
+    lp.onPointerDown(e);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!pointerStartRef.current || isVerticalScrollRef.current) return;
+
+    const dx = e.clientX - pointerStartRef.current.x;
+    const dy = e.clientY - pointerStartRef.current.y;
+
+    // Guard: vertical scroll priority check
+    if (!isSwiping) {
+      if (Math.abs(dy) > 8 && Math.abs(dy) > Math.abs(dx)) {
+        isVerticalScrollRef.current = true;
+        lp.onPointerMove(e);
+        return;
+      }
+      if (onSwipeReply && dx > 12 && dx > Math.abs(dy) * 1.2) {
+        setIsSwiping(true);
+        // Cancel long-press timer because swipe gesture is underway
+        lp.onPointerCancel();
+      } else {
+        lp.onPointerMove(e);
+        return;
+      }
+    }
+
+    if (isSwiping && onSwipeReply) {
+      // Elastic rubber-band drag right
+      const rawDrag = Math.max(0, dx * 0.65);
+      const clamped = Math.min(MAX_DRAG, rawDrag);
+      setDragX(clamped);
+
+      if (clamped >= SWIPE_THRESHOLD && !hasVibratedRef.current) {
+        hasVibratedRef.current = true;
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate(20); } catch (_) {}
+        }
+      } else if (clamped < SWIPE_THRESHOLD) {
+        hasVibratedRef.current = false;
+      }
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    if (isSwiping) {
+      if (dragX >= SWIPE_THRESHOLD && onSwipeReply) {
+        onSwipeReply();
+      }
+      setDragX(0);
+      setIsSwiping(false);
+      pointerStartRef.current = null;
+      isVerticalScrollRef.current = false;
+      hasVibratedRef.current = false;
+      return;
+    }
+    pointerStartRef.current = null;
+    isVerticalScrollRef.current = false;
+    hasVibratedRef.current = false;
+    lp.onPointerUp();
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent) => {
+    setDragX(0);
+    setIsSwiping(false);
+    pointerStartRef.current = null;
+    isVerticalScrollRef.current = false;
+    hasVibratedRef.current = false;
+    lp.onPointerCancel();
+  };
+
+  const replyProgress = Math.min(1, dragX / SWIPE_THRESHOLD);
+
   return (
-    <div
-      onPointerDown={lp.onPointerDown}
-      onPointerMove={lp.onPointerMove}
-      onPointerUp={lp.onPointerUp}
-      onPointerCancel={lp.onPointerCancel}
-      onContextMenu={onContextMenu}
-      onClick={(e) => {
-        lp.onClick(e);
-        onClick(e);
-      }}
-      className={className}
-      style={style}
-    >
-      {children}
+    <div className="relative inline-block select-none" style={{ touchAction: 'pan-y' }}>
+      {/* Swipe to reply indicator */}
+      {onSwipeReply && dragX > 4 && (
+        <div
+          className="absolute left-0 top-1/2 -translate-y-1/2 pointer-events-none z-0 flex items-center justify-center transition-opacity"
+          style={{
+            transform: `translate(-${36 - Math.min(12, dragX * 0.2)}px, -50%) scale(${0.5 + replyProgress * 0.5})`,
+            opacity: Math.min(1, dragX / 25),
+          }}
+        >
+          <div className={clsx(
+            "w-8 h-8 rounded-full flex items-center justify-center shadow-md transition-all duration-150",
+            dragX >= SWIPE_THRESHOLD ? "bg-[#ff1493] text-white scale-110 shadow-pink-500/40" : "bg-white/20 backdrop-blur-md text-white/80"
+          )}>
+            <Reply size={15} strokeWidth={2.6} />
+          </div>
+        </div>
+      )}
+
+      <div
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
+        onContextMenu={onContextMenu}
+        onClick={(e) => {
+          if (isSwiping || dragX > 5) return;
+          lp.onClick(e);
+          onClick(e);
+        }}
+        className={className}
+        style={{
+          ...style,
+          transform: dragX > 0 ? `translateX(${dragX}px)` : undefined,
+          transition: isSwiping ? 'none' : 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+        }}
+      >
+        {children}
+      </div>
     </div>
   );
 };
@@ -522,7 +636,7 @@ const LiveRecordingBar = memo(({
   );
 });
 
-const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending, getQuickReaction, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onFileSelect }: any) => {
+const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending, getQuickReaction, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onFileSelect, onOpenDisappearingSettings }: any) => {
   const drafts = useChatStore(state => state.drafts);
   const setDraft = useChatStore(state => state.setDraft);
   const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
@@ -740,6 +854,16 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
               }
             }}
             messageId={replyToMessage.message_id}
+            message={replyToMessage}
+            chatId={selectedChat?.chat_id}
+            onNavigateToMessage={(id) => {
+              const el = document.getElementById(`msg-${id}`);
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                el.classList.add('ring-2', 'ring-purple-400', 'bg-purple-500/20');
+                setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400', 'bg-purple-500/20'), 1500);
+              }
+            }}
           />
         )}
         {recordingSessionId ? (
@@ -864,7 +988,23 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
             </AnimatePresence>
 
             {/* Input Area — Naturally expands as left icons collapse */}
-            <div className="flex-1 flex items-end bg-white/5 border border-white/10 rounded-3xl px-4 py-2 mx-1 transition-all duration-200 min-w-0">
+            {/* Dotted border signals disappearing messages are active */}
+            <div className={clsx(
+              "flex-1 flex items-end bg-white/5 rounded-3xl px-4 py-2 mx-1 transition-all duration-300 min-w-0 relative",
+              selectedChat?.disappearing_duration > 0
+                ? "border-2 border-dashed border-[#ff1493]/70 shadow-[0_0_10px_rgba(255,20,147,0.18)]"
+                : "border border-white/10"
+            )}>
+              {selectedChat?.disappearing_duration > 0 && (
+                <button
+                  type="button"
+                  onClick={onOpenDisappearingSettings}
+                  className="mr-2 mb-1 shrink-0 flex items-center justify-center cursor-pointer text-[#ff1493] hover:opacity-80 transition-transform active:scale-95"
+                  title="Disappearing messages active — tap to change"
+                >
+                  <Clock size={16} className="text-[#ff1493] animate-pulse" />
+                </button>
+              )}
               <textarea
                 ref={inputRef}
                 rows={1}
@@ -994,7 +1134,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                         whileTap={{ scale: 0.95 }}
                         className="relative h-[110px] bg-white/5 border border-white/5 overflow-hidden cursor-pointer shadow-md"
                         onClick={() => {
-                          onSend(null, JSON.stringify({ type: 'gif', url: item.images.fixed_height.url }));
+                          onSend(null, 'GIF', 'gif', item.images.fixed_height.url);
                           setShowEmojiPicker(false);
                         }}
                       >
@@ -1016,7 +1156,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                         whileTap={{ scale: 0.9 }}
                         className="relative h-[100px] flex items-center justify-center bg-white/5 border border-white/5 overflow-hidden cursor-pointer p-1"
                         onClick={() => {
-                          onSend(null, JSON.stringify({ type: 'sticker', url: item.images.fixed_height.url }));
+                          onSend(null, 'Sticker', 'sticker', item.images.fixed_height.url);
                           setShowEmojiPicker(false);
                         }}
                       >
@@ -1064,31 +1204,32 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
   );
 });
 
-async function uploadFileWithProgress(fileOrUrl, onProgress) {
+async function uploadFileWithProgress(fileOrUrl: any, onProgress?: (p: number) => void, abortSignal?: AbortSignal) {
   const formData = new FormData();
 
   if (fileOrUrl instanceof File) {
     formData.append('file', fileOrUrl);
   } else {
     try {
-      const response = await fetch(fileOrUrl);
+      const response = await fetch(fileOrUrl, { signal: abortSignal });
       if (!response.ok) throw new Error(`Media fetch failed (${response.status})`);
       const blob = await response.blob();
       if (!blob || blob.size === 0) throw new Error('Media fetch returned an empty file');
       formData.append('file', blob, 'device_gallery_attachment.jpg');
-    } catch (err) {
-      // Never fake an upload: surface the failure so the sender sees a real
-      // error instead of a dead attachment URL on the recipient's side.
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || err?.message?.includes('aborted') || abortSignal?.aborted) {
+        throw err;
+      }
       logger.error('Fetch blob failed — aborting upload', err);
       throw err instanceof Error ? err : new Error('Failed to read media for upload');
     }
   }
 
   const response = await api.post('/upload/message', formData, {
-    // Axios sets multipart headers automatically
+    signal: abortSignal,
     onUploadProgress: (progressEvent) => {
       const percent = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
-      onProgress(percent);
+      if (typeof onProgress === 'function') onProgress(percent);
     },
   });
 
@@ -1475,11 +1616,26 @@ export default function Messages() {
       }
     };
 
+    const handleMessageEdited = (e: any) => {
+      const { messageId, chatId: editedChatId, content, is_edited, edited_at } = e.detail || {};
+      if (!messageId) return;
+      // Only update if this event is for the currently open chat
+      if (editedChatId && selectedChat?.chat_id && editedChatId !== selectedChat.chat_id) return;
+      logger.log('✏️ [Messages] sparkle_message_edited event received for messageId:', messageId);
+      updateMessages(prev => prev.map(m =>
+        (m.message_id === messageId || m.id === messageId)
+          ? { ...m, content: content ?? m.content, is_edited: is_edited ?? true, edited: true, edited_at: edited_at ?? m.edited_at }
+          : m
+      ));
+    };
+
     window.addEventListener('sparkle_messages_synced', handleSynced);
     window.addEventListener('sparkle_message_timeout', handleTimeout);
+    window.addEventListener('sparkle_message_edited', handleMessageEdited);
     return () => {
       window.removeEventListener('sparkle_messages_synced', handleSynced);
       window.removeEventListener('sparkle_message_timeout', handleTimeout);
+      window.removeEventListener('sparkle_message_edited', handleMessageEdited);
     };
   }, [selectedChat?.chat_id]);
 
@@ -1617,13 +1773,109 @@ export default function Messages() {
   const [viewerMessage, setViewerMessage] = useState<any | null>(null);
   // Lets "View all media" from the viewer open chat settings straight to the
   // Shared Content Explorer tab.
-  const [chatSettingsInitialView, setChatSettingsInitialView] = useState<'main' | 'media'>('main');
+  const [chatSettingsInitialView, setChatSettingsInitialView] = useState<'main' | 'media' | 'disappearing_selector' | 'nicknames'>('main');
   const [showAttachmentSheet, setShowAttachmentSheet] = useState(false);
   const [attachmentSheetHeight, setAttachmentSheetHeight] = useState<'partial' | 'full'>('partial');
   const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
   const [showMediaComposer, setShowMediaComposer] = useState(false);
   const [mediaCaption, setMediaCaption] = useState('');
   const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
+  const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
+  const uploadPayloadsRef = useRef<Map<string, { file: any; type: string; name?: string; caption?: string }>>(new Map());
+
+  const handleCancelUpload = (messageId: string) => {
+    const ctrl = uploadControllersRef.current.get(messageId);
+    if (ctrl) {
+      ctrl.abort();
+      uploadControllersRef.current.delete(messageId);
+    }
+    uploadPayloadsRef.current.delete(messageId);
+    setUploadQueue(prev => prev.filter(u => !u.id.includes(messageId)));
+    updateMessages(prev => prev.filter(m => m.message_id !== messageId && m.id !== messageId));
+    toast.success('Upload cancelled');
+  };
+
+  const handleRetryUpload = (messageId: string) => {
+    const saved = uploadPayloadsRef.current.get(messageId);
+    if (!saved) {
+      toast.error('File no longer available locally. Please select the file again.');
+      return;
+    }
+    updateMessages(prev => prev.map(m => (m.message_id === messageId || m.id === messageId) ? { ...m, status: 'sending' } : m));
+    executeMediaUpload(messageId, saved.file, saved.type, saved.name, saved.caption);
+  };
+
+  const executeMediaUpload = async (tempMessageId: string, filePayload: any, mediaType: string, name?: string, caption?: string) => {
+    const queueId = `upload_${Date.now()}_${tempMessageId}`;
+    const controller = new AbortController();
+    uploadControllersRef.current.set(tempMessageId, controller);
+    uploadPayloadsRef.current.set(tempMessageId, { file: filePayload, type: mediaType, name, caption });
+
+    setUploadQueue(prev => [...prev.filter(u => !u.id.includes(tempMessageId)), { id: queueId, name: name || 'Media', progress: 0, status: 'uploading' }]);
+
+    try {
+      const uploadedUrl = await uploadFileWithProgress(filePayload, (p: number) => {
+        setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
+      }, controller.signal);
+
+      setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
+      setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
+      uploadControllersRef.current.delete(tempMessageId);
+
+      const finalMediaUrl = uploadedUrl;
+      if (selectedChat) {
+        const payload = {
+          messageId: tempMessageId,
+          chatId: selectedChat.chat_id,
+          partnerId: selectedChat.partner_id,
+          content: caption || name || '',
+          type: mediaType,
+          mediaUrl: finalMediaUrl
+        };
+
+        if (socket?.connected) {
+          socket.emit('send-message', payload, (response: any) => {
+            if (response?.success) {
+              const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
+              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                ? {
+                    ...m,
+                    status: 'sent',
+                    sent_at: response.sentAt || m.sent_at,
+                    server_sequence: serverSeq ?? m.server_sequence,
+                    media_url: finalMediaUrl,
+                    mediaUrl: finalMediaUrl,
+                    message_id: response.messageId || m.message_id,
+                    id: response.messageId || m.id,
+                  }
+                : m
+              ));
+              uploadPayloadsRef.current.delete(tempMessageId);
+            } else {
+              updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+                ? { ...m, status: 'failed' }
+                : m
+              ));
+            }
+          });
+        } else {
+          PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
+        }
+      }
+    } catch (err: any) {
+      if (err?.name === 'AbortError' || err?.message?.includes('aborted') || controller.signal.aborted) {
+        logger.log('[MediaUpload] Upload aborted by user:', tempMessageId);
+        return;
+      }
+      logger.error('[MediaUpload] Upload failed:', err);
+      setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
+      updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
+        ? { ...m, status: 'failed' }
+        : m
+      ));
+      uploadControllersRef.current.delete(tempMessageId);
+    }
+  };
   const [deviceMedia, setDeviceMedia] = useState<any[]>([]);
   // Blob-URL ownership: deviceMedia previews are shared with the composer selection,
   // so only revoke urls the device grid doesn't own (C2.5).
@@ -1649,6 +1901,112 @@ export default function Messages() {
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [peopleHubMode, setPeopleHubMode] = useState<'new_chat' | 'share_contact'>('new_chat');
   const [suggestedContacts, setSuggestedContacts] = useState<any[]>([]);
+
+  const forwardContacts: ForwardContact[] = useMemo(() => {
+    const list: ForwardContact[] = [];
+    const seen = new Set<string>();
+
+    (conversations || []).forEach(c => {
+      if (c.chat_id && !seen.has(c.chat_id)) {
+        seen.add(c.chat_id);
+        list.push({
+          id: c.chat_id,
+          name: sanitizePartnerName(c.partner_name, c.partner_username) || 'Conversation',
+          username: c.partner_username,
+          avatar_url: c.partner_avatar,
+          type: (c.is_group || c.chat_type === 'group') ? 'group' : 'user'
+        });
+      }
+    });
+
+    (suggestedContacts || []).forEach((u: any) => {
+      const uId = u.user_id || u.id;
+      if (uId && !seen.has(uId)) {
+        seen.add(uId);
+        list.push({
+          id: uId,
+          name: u.name || u.username || 'Contact',
+          username: u.username,
+          avatar_url: u.avatar_url,
+          type: 'user'
+        });
+      }
+    });
+
+    return list;
+  }, [conversations, suggestedContacts]);
+
+  const handlePerformForward = async (selectedIds: string[]) => {
+    if (!selectedIds.length) return;
+
+    let msgIds: string[] = [];
+    if (selectedMessageIds.size > 0) {
+      msgIds = messages
+        .filter((m: any) => selectedMessageIds.has(m.message_id || m.id))
+        .map((m: any) => m.message_id || m.id);
+    } else if (forwardingMessage) {
+      msgIds = [forwardingMessage.message_id || forwardingMessage.id].filter(Boolean);
+    }
+
+    if (!msgIds.length) {
+      toast.error('No messages selected to forward');
+      return;
+    }
+
+    const resolvedChatIds: string[] = [];
+    for (const targetId of selectedIds) {
+      const existingConv = conversations.find(c => c.chat_id === targetId);
+      if (existingConv) {
+        resolvedChatIds.push(existingConv.chat_id);
+      } else {
+        try {
+          const res = await api.post('/messages/chat', { partnerId: targetId });
+          if (res.data?.chat_id) {
+            resolvedChatIds.push(res.data.chat_id);
+          }
+        } catch (err) {
+          logger.error('Failed to create/resolve chat for forward target:', targetId, err);
+        }
+      }
+    }
+
+    if (!resolvedChatIds.length) {
+      toast.error('Could not resolve destination conversations');
+      return;
+    }
+
+    const idempotencyKey = `fwd_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+    if (socket && socket.connected) {
+      socket.emit('forward-message', {
+        targetChatIds: resolvedChatIds,
+        messageIds: msgIds,
+        idempotencyKey
+      }, (res: any) => {
+        if (res?.success) {
+          toast.success(`Forwarded to ${resolvedChatIds.length} ${resolvedChatIds.length === 1 ? 'chat' : 'chats'}`);
+        } else {
+          toast.error(res?.error || 'Failed to forward');
+        }
+      });
+    } else {
+      try {
+        await api.post('/messages/forward', {
+          targetChatIds: resolvedChatIds,
+          messageIds: msgIds,
+          idempotencyKey
+        });
+        toast.success(`Forwarded to ${resolvedChatIds.length} ${resolvedChatIds.length === 1 ? 'chat' : 'chats'}`);
+      } catch (err: any) {
+        toast.error(err?.response?.data?.error || 'Failed to forward');
+      }
+    }
+
+    setShowForwardModal(false);
+    setForwardingMessage(null);
+    setIsSelectionMode(false);
+    setSelectedMessageIds(new Set());
+  };
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
   const [showCameraModal, setShowCameraModal] = useState(false);
   const [ ,  ] = useState(false);
@@ -1960,11 +2318,43 @@ export default function Messages() {
     socket.on('conversation_privacy_updated', handlePrivacyUpdated);
     socket.on('global_privacy_updated', handleGlobalPrivacyUpdated);
     socket.on('capture_attempt', handleCaptureAttempt);
+
+    // Disappearing messages duration updated by remote participant
+    const handleDisappearingUpdate = (data: any) => {
+      if (data.chatId === selectedChat.chat_id) {
+        setSelectedChat(prev => prev ? { ...prev, disappearing_duration: data.duration ?? 0, disappearing_version: data.version ?? (prev as any).disappearing_version } : null);
+        useChatStore.getState().setDisappearingDuration(data.chatId, data.duration ?? 0, data.version);
+      }
+    };
+    socket.on('disappearing_messages_update', handleDisappearingUpdate);
+
+    // Nickname updated by remote participant
+    const handleNicknameUpdated = (data: any) => {
+      if (data.chatId === selectedChat.chat_id) {
+        if (data.userId && data.nickname !== undefined) {
+          useChatStore.getState().setChatNickname(data.chatId, data.userId, data.nickname);
+        }
+        // Only update displayed name if the TARGET is the local user's partner
+        const myId = user?.id || user?.user_id;
+        if (data.targetUserId && String(data.targetUserId) !== String(myId)) {
+          setSelectedChat(prev => prev ? { ...prev, partner_name: data.nickname } : null);
+          useChatStore.getState().updateConversation(data.chatId, { partner_name: data.nickname });
+        }
+        // Always dispatch the custom event so ChatSettingsModal can react
+        window.dispatchEvent(new CustomEvent('sparkle:nickname-updated', { detail: { chatId: data.chatId, nickname: data.nickname } }));
+      }
+    };
+    socket.on('nickname_updated', handleNicknameUpdated);
+    socket.on('chat:nickname_updated', handleNicknameUpdated);
+
     return () => {
       socket.off('privacy_updated', handlePrivacyUpdated);
       socket.off('conversation_privacy_updated', handlePrivacyUpdated);
       socket.off('global_privacy_updated', handleGlobalPrivacyUpdated);
       socket.off('capture_attempt', handleCaptureAttempt);
+      socket.off('disappearing_messages_update', handleDisappearingUpdate);
+      socket.off('nickname_updated', handleNicknameUpdated);
+      socket.off('chat:nickname_updated', handleNicknameUpdated);
     };
   }, [socket, selectedChat, activeMessageMenu]);
 
@@ -2130,6 +2520,20 @@ export default function Messages() {
         .catch(err => {
           logger.error('Failed to load chat privacy settings:', err);
         });
+
+      // 3. Fetch authoritative nicknames from server
+      api.get(`/messages/chat/${chatId}/nicknames`)
+        .then(res => {
+          if (res.data?.nicknames) {
+            useChatStore.getState().setChatNicknames(chatId, res.data.nicknames);
+            const pNick = res.data.nicknames[selectedChat.partner_id];
+            if (pNick) {
+              setSelectedChat(prev => prev ? { ...prev, partner_name: pNick } : null);
+              useChatStore.getState().updateConversation(chatId, { partner_name: pNick });
+            }
+          }
+        })
+        .catch(() => { });
     } else {
       setActivePrivacy(null);
       toggleAndroidSecure(false);
@@ -2138,6 +2542,26 @@ export default function Messages() {
     return () => {
       toggleAndroidSecure(false);
     };
+  }, [selectedChat?.chat_id]);
+
+  // Periodic local expiry processing
+  useEffect(() => {
+    if (!selectedChat?.chat_id) return;
+    const cid = selectedChat.chat_id;
+    const checkExpiry = () => {
+      const now = Date.now();
+      const currentMsgs = useChatStore.getState().messagesByConversation[cid] || [];
+      const expiredIds = currentMsgs
+        .filter(m => m.expires_at && !isNaN(new Date(m.expires_at).getTime()) && new Date(m.expires_at).getTime() <= now)
+        .map(m => m.message_id || m.id)
+        .filter(Boolean);
+      if (expiredIds.length > 0) {
+        useChatStore.getState().removeExpiredMessages(cid, expiredIds);
+      }
+    };
+    checkExpiry();
+    const interval = setInterval(checkExpiry, 5000);
+    return () => clearInterval(interval);
   }, [selectedChat?.chat_id]);
 
   // Register native Android screenshot detection listener
@@ -2742,69 +3166,8 @@ export default function Messages() {
         AudioSessionManager.playSound('send');
         if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
 
-        setUploadQueue(prev => [...prev, { id: queueId, name: item.name, progress: 0, status: 'uploading' }]);
-
-        (async () => {
-          try {
-            const filePayload = item.file || item.url;
-            const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
-              setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
-            });
-
-            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
-            setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
-
-            // Upload success guarantees a server-hosted URL; never fall back to
-            // a local blob/data URL (that would be a permanently dead link for
-            // the recipient).
-            const finalMediaUrl = uploadedUrl;
-            if (selectedChat) {
-              const payload = {
-                messageId: tempMessageId,
-                chatId: selectedChat.chat_id,
-                partnerId: selectedChat.partner_id,
-                content: item.name || 'Attachment',
-                type: item.type,
-                mediaUrl: finalMediaUrl
-              };
-
-              if (socket?.connected) {
-                socket.emit('send-message', payload, (response: any) => {
-                  if (response?.success) {
-                    const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-                    updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                      ? {
-                          ...m,
-                          status: 'sent',
-                          sent_at: response.sentAt || m.sent_at,
-                          server_sequence: serverSeq ?? m.server_sequence,
-                          media_url: finalMediaUrl,
-                          mediaUrl: finalMediaUrl,
-                          message_id: response.messageId || m.message_id,
-                          id: response.messageId || m.id,
-                        }
-                      : m
-                    ));
-                  } else {
-                    updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                      ? { ...m, status: 'failed' }
-                      : m
-                    ));
-                  }
-                });
-              } else {
-                PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
-              }
-            }
-          } catch (err) {
-            logger.error('[MediaUpload] Upload failed:', err);
-            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
-            updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-              ? { ...m, status: 'failed' }
-              : m
-            ));
-          }
-        })();
+        const filePayload = item.file || item.url;
+        executeMediaUpload(tempMessageId, filePayload, item.type, item.name);
       }
     } else {
       // Route images / videos into existing Media Composer for preview & captioning
@@ -3020,7 +3383,7 @@ export default function Messages() {
     }
   };
 
-  const handleSendMessageWrapper = (e: any, content: string) => handleSendMessage(e, content);
+  const handleSendMessageWrapper = (e: any, content: string, specialType?: string, mediaUrl?: string) => handleSendMessage(e, content, specialType, mediaUrl);
 
   /**
    * Retry a failed message using its existing UUID — fully idempotent.
@@ -3287,11 +3650,18 @@ export default function Messages() {
     if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
     scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
   };
-  // Memoized filtered messages based on search term
+  // Memoized filtered messages based on search term + local expiry
   const filteredMessages = useMemo(() => {
-    if (!messageSearch.trim()) return messages;
+    const now = Date.now();
+    // Filter out locally expired disappearing messages
+    const unexpired = messages.filter(m => {
+      if (!m.expires_at) return true;
+      const exp = new Date(m.expires_at).getTime();
+      return isNaN(exp) || exp > now;
+    });
+    if (!messageSearch.trim()) return unexpired;
     const term = messageSearch.trim().toLowerCase();
-    return messages.filter(m => (m.content ?? '').toLowerCase().includes(term));
+    return unexpired.filter(m => (m.content ?? '').toLowerCase().includes(term));
   }, [messages, messageSearch]);
 
   const pinnedMessages = useMemo(() => {
@@ -3927,7 +4297,9 @@ export default function Messages() {
                   const headerIdentity = IdentityManager.resolveIdentity(selectedChat);
                   const isSelfHeader = selectedChat.chat_type === 'self' || selectedChat.partner_id === (user?.id || user?.user_id);
                   const isSystemChat = headerIdentity.isSystem;
-                  const headerDisplayName = isSelfHeader ? 'Saved Messages' : headerIdentity.displayName;
+                  const currentNicknames = useChatStore.getState().chatNicknames[selectedChat.chat_id] || {};
+                  const partnerNick = selectedChat.partner_id ? currentNicknames[selectedChat.partner_id] : undefined;
+                  const headerDisplayName = isSelfHeader ? 'Saved Messages' : (partnerNick || headerIdentity.displayName);
 
                   return (
                     <>
@@ -4272,6 +4644,47 @@ export default function Messages() {
                     const msgId = msg.message_id || msg.id;
                     const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
 
+                    // ── System messages render as a centred pill, not a bubble ──
+                    if (msg.type === 'system') {
+                      const isDisappearingNotice = 
+                        msg.system_type === 'disappearing_messages_change' || 
+                        /disappearing message/i.test(msg.content || '');
+
+                      const isNicknameNotice =
+                        msg.system_type === 'nickname_change' ||
+                        /nickname/i.test(msg.content || '');
+
+                      const systemPill = (
+                        <div
+                          key={msgId || `sys-${i}`}
+                          className="flex justify-center items-center my-2 px-4 select-none"
+                        >
+                          <span className="bg-white/[0.07] border border-white/[0.12] text-white/80 text-[11px] font-medium px-3.5 py-1.5 rounded-full tracking-wide text-center max-w-[85%] leading-snug flex items-center justify-center gap-1.5 flex-wrap backdrop-blur-md shadow-sm">
+                            {isDisappearingNotice && (
+                              <Clock size={12} className="text-[#ff1493] shrink-0" />
+                            )}
+                            {isNicknameNotice && (
+                              <SquarePen size={12} className="text-[#ff1493] shrink-0" />
+                            )}
+                            <span>{msg.content || ''}</span>
+                            {isDisappearingNotice && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setChatSettingsInitialView('disappearing_selector');
+                                  setShowChatSettings(true);
+                                }}
+                                className="text-[#ff1493] hover:underline font-bold ml-1 cursor-pointer transition-colors"
+                              >
+                                Change
+                              </button>
+                            )}
+                          </span>
+                        </div>
+                      );
+                      return dateSep ? [dateSep, systemPill] : [systemPill];
+                    }
+
                     const bubble = (
                       <div key={msgId || i} id={`msg-${msg.message_id}`} className={clsx("flex animate-fade-in items-center gap-2", marginTopClass, isMe ? 'justify-end' : 'justify-start')}>
 
@@ -4321,6 +4734,14 @@ export default function Messages() {
                               }
                               setActiveMessageMenu({ msg, type: 'longPress' });
                             }}
+                            onSwipeReply={isSelectionMode || msg.is_deleted_for_everyone ? undefined : () => {
+                              if (selectedChat) {
+                                useChatStore.getState().setReplyTarget(selectedChat.chat_id, msg.message_id);
+                                if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+                                  try { navigator.vibrate(20); } catch (_) {}
+                                }
+                              }
+                            }}
                             onClick={(_e) => {
                               if (isSelectionMode) {
                                 setSelectedMessageIds(prev => {
@@ -4365,22 +4786,52 @@ export default function Messages() {
                             ) : null}
 
                             <div className="relative flex flex-col">
+                              {/* Forwarded indicator */}
+                              {(msg.forwarded || msg.forward_count > 0 || msg.source_message_id) && !msg.is_deleted_for_everyone && (
+                                <div className="flex items-center gap-1 mb-1 select-none text-white/75">
+                                  {(msg.forward_count || 0) > 20 ? (
+                                    <>
+                                      <Forward size={11} strokeWidth={2.2} className="text-white/70" />
+                                      <Forward size={11} strokeWidth={2.2} className="text-white/70 -ml-1.5" />
+                                      <span className="text-[10.5px] text-white/75 italic font-normal tracking-tight">Forwarded many times</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Forward size={11} strokeWidth={2.2} className="text-white/70" />
+                                      <span className="text-[10.5px] text-white/75 italic font-normal tracking-tight">Forwarded</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                               {/* Reply Block */}
                               {(() => {
-                                // Try embedded reply_content first, then fall back to store lookup
                                 let replyContent = msg.reply_content;
                                 let replySenderName = msg.reply_sender_name;
                                 let replyType = msg.reply_type || 'text';
                                 let replyMediaUrl = msg.reply_media_url || msg.reply_mediaUrl;
+                                let isRefDeleted = false;
+                                let isRefExpired = false;
+
+                                const chatIdStr = selectedChat?.chat_id || '';
+                                const currentNicknames = useChatStore.getState().chatNicknames[chatIdStr] || {};
 
                                 if (msg.reply_to_message_id) {
-                                  const refMsg = useChatStore.getState().findMessage(selectedChat?.chat_id || '', msg.reply_to_message_id);
+                                  const refMsg = useChatStore.getState().findMessage(chatIdStr, msg.reply_to_message_id);
                                   if (refMsg) {
-                                    replySenderName = replySenderName || refMsg.sender_name || refMsg.sender_username || 'User';
-                                    replyType = refMsg.type || 'text';
-                                    replyMediaUrl = refMsg.media_url || refMsg.mediaUrl;
+                                    isRefDeleted = !!(refMsg.is_deleted_for_everyone || (refMsg as any).is_deleted);
+                                    isRefExpired = !!(refMsg.expires_at && new Date(refMsg.expires_at).getTime() <= Date.now());
 
-                                    if (refMsg.content && refMsg.content.trim() !== '') {
+                                    const isRefMe = refMsg.sender_id === user?.user_id || refMsg.sender_id === (user as any)?.id;
+                                    const senderNick = refMsg.sender_id ? currentNicknames[refMsg.sender_id] : undefined;
+                                    replySenderName = isRefMe ? 'You' : (senderNick || refMsg.sender_name || refMsg.sender_username || replySenderName || 'User');
+                                    replyType = refMsg.type || 'text';
+                                    replyMediaUrl = refMsg.media_url || (refMsg as any).mediaUrl || replyMediaUrl;
+
+                                    if (isRefDeleted) {
+                                      replyContent = 'Original message deleted';
+                                    } else if (isRefExpired) {
+                                      replyContent = 'This message has expired';
+                                    } else if (refMsg.content && refMsg.content.trim() !== '') {
                                       if (replyType === 'image' || replyType === 'photo') replyContent = `📷 ${refMsg.content}`;
                                       else if (replyType === 'video') replyContent = `🎥 ${refMsg.content}`;
                                       else if (replyType === 'gif') replyContent = `👾 ${refMsg.content}`;
@@ -4411,8 +4862,10 @@ export default function Messages() {
                                           break;
                                       }
                                     }
-                                  } else if (!replyContent) {
-                                    replyContent = 'Replied to a message';
+                                  } else {
+                                    if (!replyContent) {
+                                      replyContent = 'Original message unavailable';
+                                    }
                                   }
                                 }
 
@@ -4422,25 +4875,33 @@ export default function Messages() {
                                   <div
                                     onClick={(e) => {
                                       e.stopPropagation();
+                                      if (isRefDeleted || isRefExpired) return;
                                       if (msg.reply_to_message_id) {
                                         const el = document.getElementById(`msg-${msg.reply_to_message_id}`);
                                         if (el) {
                                           el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                                           el.classList.add('ring-2', 'ring-purple-400', 'bg-purple-500/20');
                                           setTimeout(() => el.classList.remove('ring-2', 'ring-purple-400', 'bg-purple-500/20'), 1500);
+                                        } else {
+                                          window.dispatchEvent(new CustomEvent('sparkle:jump-to-message', {
+                                            detail: { messageId: msg.reply_to_message_id }
+                                          }));
                                         }
                                       }
                                     }}
-                                    className="bg-black/20 rounded-[6px] p-2 mb-1 border-l-[3.5px] border-white/90 flex items-center gap-2 cursor-pointer hover:bg-black/30 transition-colors"
+                                    className="bg-black/25 rounded-[6px] p-2 mb-1.5 border-l-[3.5px] border-[#ff1493] flex items-center gap-2 cursor-pointer hover:bg-black/35 transition-colors"
                                   >
-                                    {(replyType === 'image' || replyType === 'photo' || replyType === 'gif') && replyMediaUrl && (
-                                      <img src={replyMediaUrl} alt="preview" className="w-[30px] h-[30px] object-cover rounded shrink-0" />
+                                    {!isRefDeleted && !isRefExpired && (replyType === 'image' || replyType === 'photo' || replyType === 'gif') && replyMediaUrl && (
+                                      <img src={replyMediaUrl} alt="preview" className="w-[32px] h-[32px] object-cover rounded shrink-0" />
                                     )}
                                     <div className="flex-1 min-w-0 flex flex-col">
-                                      <span className="font-bold text-[11px] text-white/95 leading-tight">
+                                      <span className="font-bold text-[11px] text-[#ff1493] leading-tight">
                                         {replySenderName || 'User'}
                                       </span>
-                                      <span className="text-[12px] text-white/70 line-clamp-1 leading-snug mt-0.5 truncate">
+                                      <span className={clsx(
+                                        "text-[12px] line-clamp-1 leading-snug mt-0.5 truncate",
+                                        isRefDeleted || isRefExpired ? "text-white/40 italic" : "text-white/80"
+                                      )}>
                                         {replyContent}
                                       </span>
                                     </div>
@@ -4531,6 +4992,23 @@ export default function Messages() {
                                         );
                                       }
 
+                                      // GIF message type
+                                      if (msg.type === 'gif') {
+                                        const gifSrc = msg.media_url || msg.mediaUrl || '';
+                                        return (
+                                          <div className="relative inline-block rounded-[10px] overflow-hidden my-1 cursor-pointer" onClick={() => setViewerMessage({ ...msg, type: 'image' })}>
+                                            {gifSrc ? (
+                                              <>
+                                                <img src={gifSrc} alt="GIF" className="max-w-[220px] max-h-[180px] object-cover block" />
+                                                <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]">GIF</span>
+                                              </>
+                                            ) : (
+                                              <div className="w-[180px] h-[120px] flex items-center justify-center bg-white/5 text-white/40 text-[11px] font-bold">GIF unavailable</div>
+                                            )}
+                                          </div>
+                                        );
+                                      }
+
                                       return null;
                                     })()}
 
@@ -4557,14 +5035,72 @@ export default function Messages() {
 
                                     {msg.type === 'image' && (() => {
                                       const mediaSrc = getMediaUrl(msg.media_url || msg.mediaUrl);
+                                      const uploadItem = uploadQueue.find(u => u.id.includes(msg.message_id || msg.id));
+                                      const isUploading = isMe && (msg.status === 'sending' || msg.status === 'uploading');
+                                      const isFailed = isMe && msg.status === 'failed';
+
                                       return (
-                                        <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1" onClick={() => setViewerMessage(msg)}>
+                                        <div
+                                          className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1"
+                                          onClick={() => !isUploading && !isFailed && setViewerMessage(msg)}
+                                        >
                                           {mediaSrc ? (
                                             <img src={mediaSrc} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
                                           ) : (
                                             <div className="w-[240px] h-[140px] flex flex-col items-center justify-center gap-2 bg-white/5 text-white/50">
                                               <ImageIcon size={28} />
                                               <span className="text-[11px] font-bold">Image unavailable</span>
+                                            </div>
+                                          )}
+                                          {isUploading && (
+                                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-20">
+                                              <div className="relative w-12 h-12 flex items-center justify-center">
+                                                <svg className="w-12 h-12 -rotate-90">
+                                                  <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.2)" strokeWidth="3" fill="none" />
+                                                  <circle
+                                                    cx="24" cy="24" r="20"
+                                                    stroke="#ff1493" strokeWidth="3" fill="none"
+                                                    strokeDasharray={125.6}
+                                                    strokeDashoffset={125.6 - (125.6 * (uploadItem?.progress || 0)) / 100}
+                                                    strokeLinecap="round"
+                                                    className="transition-all duration-150"
+                                                  />
+                                                </svg>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCancelUpload(msg.message_id || msg.id);
+                                                  }}
+                                                  className="absolute inset-0 flex items-center justify-center hover:scale-110 active:scale-95 text-white transition-all"
+                                                  title="Cancel upload"
+                                                  aria-label="Cancel upload"
+                                                >
+                                                  <X size={18} strokeWidth={2.5} />
+                                                </button>
+                                              </div>
+                                              {uploadItem && uploadItem.progress > 0 && (
+                                                <span className="text-[11px] font-bold text-white/90 mt-1.5 tabular-nums">
+                                                  {uploadItem.progress}%
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {isFailed && (
+                                            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-1.5 z-20">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRetryUpload(msg.message_id || msg.id);
+                                                }}
+                                                className="px-3 py-1.5 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white flex items-center gap-1.5 text-[12px] font-bold shadow-lg transition-all active:scale-95"
+                                                title="Retry upload"
+                                              >
+                                                <RotateCw size={14} strokeWidth={2.5} />
+                                                <span>Retry</span>
+                                              </button>
+                                              <span className="text-[10px] text-white/70 font-medium">Upload failed</span>
                                             </div>
                                           )}
                                           {msg.content && (
@@ -4578,12 +5114,67 @@ export default function Messages() {
 
                                     {msg.type === 'video' && (() => {
                                       const mediaSrc = getMediaUrl(msg.media_url || msg.mediaUrl);
+                                      const uploadItem = uploadQueue.find(u => u.id.includes(msg.message_id || msg.id));
+                                      const isUploading = isMe && (msg.status === 'sending' || msg.status === 'uploading');
+                                      const isFailed = isMe && msg.status === 'failed';
+
                                       return (
                                         <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
                                           {mediaSrc ? (
                                             <video src={mediaSrc} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
                                           ) : (
                                             <div className="w-[240px] h-[140px] flex items-center justify-center text-white/50 text-[11px] font-bold">Video unavailable</div>
+                                          )}
+                                          {isUploading && (
+                                            <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center z-20">
+                                              <div className="relative w-12 h-12 flex items-center justify-center">
+                                                <svg className="w-12 h-12 -rotate-90">
+                                                  <circle cx="24" cy="24" r="20" stroke="rgba(255,255,255,0.2)" strokeWidth="3" fill="none" />
+                                                  <circle
+                                                    cx="24" cy="24" r="20"
+                                                    stroke="#ff1493" strokeWidth="3" fill="none"
+                                                    strokeDasharray={125.6}
+                                                    strokeDashoffset={125.6 - (125.6 * (uploadItem?.progress || 0)) / 100}
+                                                    strokeLinecap="round"
+                                                    className="transition-all duration-150"
+                                                  />
+                                                </svg>
+                                                <button
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleCancelUpload(msg.message_id || msg.id);
+                                                  }}
+                                                  className="absolute inset-0 flex items-center justify-center hover:scale-110 active:scale-95 text-white transition-all"
+                                                  title="Cancel upload"
+                                                  aria-label="Cancel upload"
+                                                >
+                                                  <X size={18} strokeWidth={2.5} />
+                                                </button>
+                                              </div>
+                                              {uploadItem && uploadItem.progress > 0 && (
+                                                <span className="text-[11px] font-bold text-white/90 mt-1.5 tabular-nums">
+                                                  {uploadItem.progress}%
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                          {isFailed && (
+                                            <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center gap-1.5 z-20">
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRetryUpload(msg.message_id || msg.id);
+                                                }}
+                                                className="px-3 py-1.5 rounded-full bg-rose-500/80 hover:bg-rose-500 text-white flex items-center gap-1.5 text-[12px] font-bold shadow-lg transition-all active:scale-95"
+                                                title="Retry upload"
+                                              >
+                                                <RotateCw size={14} strokeWidth={2.5} />
+                                                <span>Retry</span>
+                                              </button>
+                                              <span className="text-[10px] text-white/70 font-medium">Upload failed</span>
+                                            </div>
                                           )}
                                           {mediaSrc && (
                                             <button
@@ -4618,30 +5209,62 @@ export default function Messages() {
                                       </div>
                                     )}
 
-                                    {msg.type === 'document' && (
-                                      <div
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={() => setViewerMessage(msg)}
-                                        onKeyDown={(e) => { if (e.key === 'Enter') setViewerMessage(msg); }}
-                                        className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
-                                      >
-                                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
-                                          <FileText size={20} strokeWidth={2.5} />
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                          <div className="text-[13px] font-bold text-white truncate leading-tight">
-                                            {msg.content || 'Document attachment'}
+                                    {msg.type === 'document' && (() => {
+                                      const uploadItem = uploadQueue.find(u => u.id.includes(msg.message_id || msg.id));
+                                      const isUploading = isMe && (msg.status === 'sending' || msg.status === 'uploading');
+                                      const isFailed = isMe && msg.status === 'failed';
+
+                                      return (
+                                        <div
+                                          role="button"
+                                          tabIndex={0}
+                                          onClick={() => !isUploading && !isFailed && setViewerMessage(msg)}
+                                          onKeyDown={(e) => { if (e.key === 'Enter' && !isUploading && !isFailed) setViewerMessage(msg); }}
+                                          className="relative flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] hover:bg-white/10 transition-all cursor-pointer select-none my-1"
+                                        >
+                                          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white shrink-0">
+                                            <FileText size={20} strokeWidth={2.5} />
                                           </div>
-                                          <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
-                                            Attachment • FILE
+                                          <div className="flex-1 min-w-0">
+                                            <div className="text-[13px] font-bold text-white truncate leading-tight">
+                                              {msg.content || 'Document attachment'}
+                                            </div>
+                                            <div className="text-[10px] text-white/40 font-bold uppercase tracking-widest mt-0.5">
+                                              Attachment • FILE
+                                            </div>
+                                          </div>
+                                          <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
+                                            {isUploading ? (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleCancelUpload(msg.message_id || msg.id);
+                                                }}
+                                                className="hover:scale-110 active:scale-95 text-white/80"
+                                                title="Cancel upload"
+                                              >
+                                                <X size={16} strokeWidth={2.5} />
+                                              </button>
+                                            ) : isFailed ? (
+                                              <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleRetryUpload(msg.message_id || msg.id);
+                                                }}
+                                                className="text-rose-400 hover:scale-110 active:scale-95"
+                                                title="Retry upload"
+                                              >
+                                                <RotateCw size={16} strokeWidth={2.5} />
+                                              </button>
+                                            ) : (
+                                              <Download size={16} strokeWidth={2.5} />
+                                            )}
                                           </div>
                                         </div>
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white hover:bg-white/20 transition-all shrink-0">
-                                          <Download size={16} strokeWidth={2.5} />
-                                        </div>
-                                      </div>
-                                    )}
+                                      );
+                                    })()}
 
                                     {msg.type === 'location' && (
                                       <div className="rounded-[16px] overflow-hidden max-w-[260px] border border-white/10 bg-black/40 my-1">
@@ -4739,6 +5362,9 @@ export default function Messages() {
 
                             {/* Timestamp & Ticks absolute inside bubble bottom-right */}
                             <div className="absolute bottom-[2px] right-[4px] flex items-center gap-0.5 opacity-90 text-[10.5px] font-medium tracking-tight h-[15px]">
+                              {(msg.is_edited || msg.edited) && !msg.is_deleted_for_everyone && (
+                                <span className="text-[9.5px] text-white/50 italic mr-0.5">Edited</span>
+                              )}
                               <span style={{ color: 'rgba(255,255,255,0.85)' }}>{safeTime(msg.sent_at || msg.created_at || '')}</span>
                               {isMe && (
                                 <div className="flex items-center -ml-0.5">
@@ -4972,23 +5598,47 @@ export default function Messages() {
                   >
                     Cancel
                   </button>
-                  <button
-                    onClick={() => {
-                      if (selectedMessageIds.size > 0) {
-                        handleBulkDeleteForMe();
-                      }
-                    }}
-                    disabled={selectedMessageIds.size === 0}
-                    className={clsx(
-                      'flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
-                      selectedMessageIds.size > 0
-                        ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
-                        : 'bg-white/5 text-white/25 border border-white/5 cursor-not-allowed'
-                    )}
-                  >
-                    <Trash2 size={16} strokeWidth={2.2} />
-                    Delete for you{selectedMessageIds.size > 0 ? ` (${selectedMessageIds.size})` : ''}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => {
+                        if (selectedMessageIds.size > 0) {
+                          const selectedMsgs = messages.filter((m: any) => selectedMessageIds.has(m.message_id || m.id));
+                          if (selectedMsgs.length > 0) {
+                            setForwardingMessage(selectedMsgs[0]);
+                            setSelectedForwardChatIds([]);
+                            setShowForwardModal(true);
+                          }
+                        }
+                      }}
+                      disabled={selectedMessageIds.size === 0}
+                      className={clsx(
+                        'flex items-center gap-2 px-4 py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
+                        selectedMessageIds.size > 0
+                          ? 'bg-[#ff1493]/20 text-[#ff1493] hover:bg-[#ff1493]/30 border border-[#ff1493]/30'
+                          : 'bg-white/5 text-white/25 border border-white/5 cursor-not-allowed'
+                      )}
+                    >
+                      <Forward size={16} strokeWidth={2.2} />
+                      Forward{selectedMessageIds.size > 0 ? ` (${selectedMessageIds.size})` : ''}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (selectedMessageIds.size > 0) {
+                          handleBulkDeleteForMe();
+                        }
+                      }}
+                      disabled={selectedMessageIds.size === 0}
+                      className={clsx(
+                        'flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all active:scale-95',
+                        selectedMessageIds.size > 0
+                          ? 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
+                          : 'bg-white/5 text-white/25 border border-white/5 cursor-not-allowed'
+                      )}
+                    >
+                      <Trash2 size={16} strokeWidth={2.2} />
+                      Delete{selectedMessageIds.size > 0 ? ` (${selectedMessageIds.size})` : ''}
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 selectedChat?.account_type === 'system' ||
@@ -5017,6 +5667,10 @@ export default function Messages() {
                   theme={currentChatTheme}
                   replyToMessage={replyToMessage}
                   onFileSelect={(files: FileList | File[]) => handleMediaSelection({ source: 'file', files })}
+                  onOpenDisappearingSettings={() => {
+                    setChatSettingsInitialView('disappearing_selector');
+                    setShowChatSettings(true);
+                  }}
                 />
               )}
             </PullUpDisappearingGesture>
@@ -5309,160 +5963,15 @@ export default function Messages() {
         }}
       />
 
-      <AnimatePresence>
-        {showForwardModal && (
-          <motion.div
-            initial={{ opacity: 0, x: '100%' }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: '100%' }}
-            transition={{ type: 'tween', duration: 0.25 }}
-            className="fixed inset-0 bg-[#0b141a] text-white z-(--z-modal) flex flex-col"
-          >
-            {/* Header */}
-            <div className="flex items-center px-4 h-16 bg-[#0b141a] border-b border-gray-800 shrink-0 gap-3">
-              <button onClick={() => setShowForwardModal(false)} className="p-2 -ml-2 rounded-full hover:bg-white/10 active:bg-white/20">
-                <ArrowLeft size={24} className="text-white" />
-              </button>
-              <input
-                type="text"
-                placeholder="Forward to..."
-                value={forwardSearchQuery}
-                onChange={e => setForwardSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent border-none outline-none text-white text-[17px] font-medium placeholder:text-white/40 focus:ring-0 px-1"
-              />
-              <div className="flex items-center gap-1">
-                <button onClick={() => { setShowForwardModal(false); setShowNewChatModal(true); }} className="p-2 rounded-full hover:bg-white/10 active:bg-white/20">
-                  <Users size={22} className="text-white" />
-                </button>
-              </div>
-            </div>
-
-            {/* List Area */}
-            <div className="flex-1 overflow-y-auto pb-24">
-
-              {/* Recent Chats Header */}
-              {conversations.length > 0 && (
-                <div className="px-4 py-2 mt-2">
-                  <span className="text-[14px] text-[#8696a0] font-medium">Recent chats</span>
-                </div>
-              )}
-
-              {conversations.slice(0, 4).map(chat => (
-                <div
-                  key={`recent-${chat.chat_id}`}
-                  onClick={() => {
-                    if (socket && forwardingMessage) {
-                      socket.emit('send-message', {
-                        chatId: chat.chat_id,
-                        content: forwardingMessage.content,
-                        type: forwardingMessage.type || 'text',
-                        mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
-                        forwarded: true,
-                        isGroup: chat.is_group || chat.chat_type === 'group'
-                      });
-                      if (navigator.vibrate) navigator.vibrate([50]);
-                      setShowForwardModal(false);
-                      setForwardingMessage(null);
-                    }
-                  }}
-                  className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
-                >
-                  <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden bg-gray-800 relative">
-                    <img src={getAvatarUrl(chat.partner_avatar, chat.partner_name)} className="w-full h-full object-cover" alt="" />
-                    {(chat.partner_online || chat.group_online_count) && (
-                      <div className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 rounded-full border-2 border-[#121212]" />
-                    )}
-                  </div>
-                  <div className="ml-4 flex-1 overflow-hidden flex flex-col justify-center">
-                    <h3 className="text-[16px] text-[#e9edef] truncate">{sanitizePartnerName(chat.partner_name, chat.partner_username)}</h3>
-                    <p className="text-[14px] text-[#8696a0] truncate">{chat.is_group || chat.chat_type === 'group' ? 'Group' : 'User'}</p>
-                  </div>
-                </div>
-              ))}
-
-              {/* All Followers */}
-              {Array.isArray(suggestedContacts) && suggestedContacts.length > 0 && (
-                <div className="px-4 py-2 mt-4">
-                  <span className="text-[14px] text-[#8696a0] font-medium">All followers</span>
-                </div>
-              )}
-
-              {Array.isArray(suggestedContacts) && suggestedContacts
-                .filter(contact => forwardSearchQuery ? (contact.name || contact.username).toLowerCase().includes(forwardSearchQuery.toLowerCase()) : true)
-                .map(contact => (
-                  <div
-                    key={`follower-${contact.user_id || contact.id}`}
-                    onClick={async () => {
-                      if (forwardingMessage) {
-                        try {
-                          const res = await api.post('/messages/chat', { partnerId: contact.user_id || contact.id });
-                          if (res.data?.chat_id && socket) {
-                            socket.emit('send-message', {
-                              chatId: res.data.chat_id,
-                              content: forwardingMessage.content,
-                              type: forwardingMessage.type || 'text',
-                              mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
-                              forwarded: true,
-                              isGroup: false
-                            });
-                            if (navigator.vibrate) navigator.vibrate([50]);
-                            setShowForwardModal(false);
-                            setForwardingMessage(null);
-                          }
-                        } catch (err) {
-                          logger.error('Failed to forward to follower', err);
-                        }
-                      }
-                    }}
-                    className="px-4 py-3 flex items-center hover:bg-[#111b21] cursor-pointer"
-                  >
-                    <div className="w-12 h-12 rounded-full shrink-0 overflow-hidden bg-gray-800 relative">
-                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-full h-full object-cover" alt="" />
-                    </div>
-                    <div className="ml-4 flex-1 overflow-hidden flex flex-col justify-center">
-                      <h3 className="text-[16px] text-[#e9edef] truncate">{contact.name || contact.username}</h3>
-                      <p className="text-[14px] text-[#8696a0] truncate">@{contact.username}</p>
-                    </div>
-                  </div>
-                ))}
-            </div>
-
-            <AnimatePresence>
-              {selectedForwardChatIds.length > 0 && (
-                <motion.div
-                  initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }}
-                  className="absolute bottom-0 left-0 right-0 p-4 bg-[#0b141a] flex justify-end"
-                >
-                  <button
-                    onClick={() => {
-                      selectedForwardChatIds.forEach(chatId => {
-                        const targetChat = conversations.find(c => c.chat_id === chatId);
-                        if (socket && targetChat && forwardingMessage) {
-                          socket.emit('send-message', {
-                            chatId: targetChat.chat_id,
-                            content: forwardingMessage.content,
-                            type: forwardingMessage.type || 'text',
-                            mediaUrl: forwardingMessage.mediaUrl || forwardingMessage.media_url,
-                            forwarded: true,
-                            isGroup: targetChat.is_group || targetChat.chat_type === 'group'
-                          });
-                        }
-                      });
-                      if (navigator.vibrate) navigator.vibrate([50, 50, 50]);
-                      setShowForwardModal(false);
-                      setSelectedForwardChatIds([]);
-                      setForwardingMessage(null);
-                    }}
-                    className="w-14 h-14 rounded-full bg-[#00a884] text-white shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center justify-center"
-                  >
-                    <Forward size={24} strokeWidth={2.5} className="text-white -ml-1" />
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <ForwardModal
+        isOpen={showForwardModal}
+        onClose={() => {
+          setShowForwardModal(false);
+          setForwardingMessage(null);
+        }}
+        contacts={forwardContacts}
+        onForward={handlePerformForward}
+      />
 
       {/* ── Start New Chat — Full-Page Slide-In Interface ── */}
       <NewChatModal
@@ -6186,92 +6695,8 @@ export default function Messages() {
                       AudioSessionManager.playSound('send');
                       if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
 
-                      // 2. Add item to upload progress queue widget
-                      setUploadQueue(prev => [...prev, { id: queueId, name: item.name || `Attachment ${mediaType}`, progress: 0, status: 'uploading' }]);
-
-                      // 3. Perform background file upload & socket transmission
-                      (async () => {
-                        try {
-                          const filePayload = item.file || item.url;
-                          const uploadedUrl = await uploadFileWithProgress(filePayload, (p) => {
-                            setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: p } : u));
-                          });
-
-                          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, progress: 100, status: 'completed' } : u));
-                          setTimeout(() => setUploadQueue(prev => prev.filter(u => u.id !== queueId)), 3000);
-
-                          // Server-hosted URL only — never fall back to a
-                          // local blob/data URL (dead link for recipients).
-                          const finalMediaUrl = uploadedUrl;
-                          if (selectedChat) {
-                            const payload = {
-                              messageId: tempMessageId,
-                              chatId: selectedChat.chat_id,
-                              partnerId: selectedChat.partner_id,
-                              content: caption || '',
-                              type: mediaType,
-                              mediaUrl: finalMediaUrl
-                            };
-
-                            if (socket?.connected) {
-                              socket.emit('send-message', payload, (response: any) => {
-                                if (response?.success) {
-                                  releaseOwnedUrls([item]);
-                                  PersistentOfflineQueue.acknowledge(tempMessageId);
-                                  const serverSeq = response.server_sequence != null ? Number(response.server_sequence) : undefined;
-                                  const finalId = response.messageId || tempMessageId;
-                                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                                    ? {
-                                        ...m,
-                                        status: 'sent',
-                                        sent_at: response.sentAt || m.sent_at,
-                                        server_sequence: serverSeq ?? m.server_sequence,
-                                        media_url: finalMediaUrl,
-                                        mediaUrl: finalMediaUrl,
-                                        message_id: finalId,
-                                        id: finalId,
-                                      }
-                                    : m
-                                  ));
-                                  if (selectedChat) {
-                                    useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, {
-                                      message_id: finalId,
-                                      id: finalId,
-                                      status: 'sent',
-                                      sent_at: response.sentAt,
-                                      server_sequence: serverSeq,
-                                      media_url: finalMediaUrl,
-                                      mediaUrl: finalMediaUrl,
-                                    });
-                                  }
-                                } else {
-                                  PersistentOfflineQueue.markFailed(tempMessageId);
-                                  updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                                    ? { ...m, status: 'failed' }
-                                    : m
-                                  ));
-                                  if (selectedChat) {
-                                    useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, { status: 'failed' });
-                                  }
-                                }
-                              });
-                            } else {
-                              PersistentOfflineQueue.enqueue({ ...payload, senderId: user?.id || user?.user_id || '' });
-                            }
-                          }
-                        } catch (err) {
-                          logger.error('[MediaUpload] Upload failed:', err);
-                          setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
-                          PersistentOfflineQueue.markFailed(tempMessageId);
-                          updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
-                            ? { ...m, status: 'failed' }
-                            : m
-                          ));
-                          if (selectedChat) {
-                            useChatStore.getState().updateMessage(selectedChat.chat_id, tempMessageId, { status: 'failed' });
-                          }
-                        }
-                      })();
+                      const filePayload = item.file || item.url;
+                      executeMediaUpload(tempMessageId, filePayload, mediaType, item.name || `Attachment ${mediaType}`, caption);
                     }
                   }}
                   className="py-3 px-8 rounded-2xl bg-[#ff1493] hover:bg-pink-600 text-white text-[12px] font-black uppercase tracking-widest shadow-xl shadow-pink-500/25 active:scale-95 transition-all shrink-0 ml-4"

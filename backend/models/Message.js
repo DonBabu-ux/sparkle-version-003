@@ -162,6 +162,50 @@ class Message {
         const sentAt = new Date();
         const validReplyToId = (typeof replyToId === 'string' && replyToId.trim().length > 0) ? replyToId.trim() : null;
 
+        if (validReplyToId) {
+            const [refRows] = await db.query(
+                'SELECT message_id, conversation_id, chat_id, personal_chat_id FROM messages WHERE message_id = ?',
+                [validReplyToId]
+            );
+            if (refRows && refRows.length > 0) {
+                const refChatId = refRows[0].conversation_id || refRows[0].chat_id || refRows[0].personal_chat_id;
+                if (refChatId && refChatId !== activeChatId) {
+                    const forbiddenErr = new Error('Cannot reply to a message from a different conversation');
+                    forbiddenErr.code = 'INVALID_REPLY_REFERENCE';
+                    forbiddenErr.statusCode = 400;
+                    throw forbiddenErr;
+                }
+            }
+        }
+
+        // Canonical GIF deduplication: reuse existing canonical asset
+        let finalMediaUrl = mediaUrl;
+        if (type === 'gif' || (content && typeof content === 'string' && content.includes('"type":"gif"'))) {
+            try {
+                const CanonicalAssetService = require('../services/canonicalAssetService');
+                let gifUrl = mediaUrl;
+                if (!gifUrl && content && content.includes('"type":"gif"')) {
+                    const parsed = JSON.parse(content);
+                    if (parsed.url) {
+                        gifUrl = parsed.url;
+                        type = 'gif';
+                    }
+                }
+                if (gifUrl) {
+                    const asset = await CanonicalAssetService.getOrCreateCanonicalAsset({
+                        url: gifUrl,
+                        mediaType: 'gif',
+                        metadata
+                    });
+                    if (asset && asset.mediaUrl) {
+                        finalMediaUrl = asset.mediaUrl;
+                    }
+                }
+            } catch (canonErr) {
+                logger.warn('[Message.sendMessage] Canonical asset warning:', canonErr.message);
+            }
+        }
+
         // Calculate disappearing expiration if active for this chat
         let expiresAt = null;
         try {
@@ -193,7 +237,7 @@ class Message {
                 recipientId || null, 
                 content, 
                 type, 
-                mediaUrl, 
+                finalMediaUrl, 
                 storyId,
                 validReplyToId, 
                 sentAt, 
@@ -331,6 +375,8 @@ class Message {
                 rm.content as reply_content,
                 rm.type as reply_type,
                 ru.name as reply_sender_name,
+                rm.media_url as reply_media_url,
+                rm.is_deleted_for_everyone as reply_is_deleted,
                 ml.title as listing_title,
                 ml.price as listing_price,
                 ml.image_url as listing_image
@@ -782,20 +828,6 @@ class Message {
         return true;
     }
 
-    /**
-     * Edit a message (only by sender, within 5 minutes)
-     */
-    static async editMessage(messageId, userId, newContent) {
-        const [result] = await db.query(
-            `UPDATE messages 
-             SET content = ?, edited_at = NOW(), edited = 1 
-             WHERE message_id = ? AND sender_id = ? 
-               AND is_deleted_for_everyone = 0
-               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 5`,
-            [newContent, messageId, userId]
-        );
-        return result.affectedRows > 0;
-    }
 
     /**
      * Search messages within a conversation
@@ -1341,20 +1373,21 @@ class Message {
         const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
         const sequenceNo = currSeq[0]?.last_sequence || 1;
 
+        const nowIso = new Date().toISOString();
         await db.query(`
             UPDATE messages 
-            SET content = ?, is_edited = 1, edited_at = NOW(), server_sequence = ?
+            SET content = ?, is_edited = 1, edited = 1, edited_at = NOW(), server_sequence = ?
             WHERE message_id = ?
         `, [newContent, sequenceNo, messageId]);
 
         const eventId = crypto.randomUUID();
-        const payload = JSON.stringify({ messageId, userId, content: newContent, chatId, edited_at: new Date().toISOString() });
+        const payload = JSON.stringify({ messageId, userId, content: newContent, chatId, is_edited: true, edited: true, edited_at: nowIso });
         await db.query(`
             INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
             VALUES (?, ?, ?, 'message_edited', ?, ?)
         `, [eventId, chatId, messageId, payload, sequenceNo]);
 
-        return { eventId, sequenceNo, chatId, messageId, content: newContent };
+        return { eventId, sequenceNo, chatId, messageId, content: newContent, is_edited: true, edited: true, edited_at: nowIso };
     }
 
     /**

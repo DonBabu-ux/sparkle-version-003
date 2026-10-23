@@ -235,6 +235,9 @@ export class OtaService {
      * Marks the current update stable if it boots and runs for 12 seconds without throwing fatal unhandled exceptions
      */
     private static startCrashWatchdog(version: string) {
+        // Never install a reload-on-error watchdog in the browser — any thrown
+        // error (e.g. Capacitor plugin stubs) would trigger an infinite reload loop.
+        if (!OtaService.isMobile()) return;
         if (this.isWatchdogActive) return;
         this.isWatchdogActive = true;
 

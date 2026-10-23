@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert } from 'lucide-react';
+import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone } from 'lucide-react';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
 import { getRoleFromToken } from '../utils/tokenUtils';
 import { resolveAdminAccess } from '../utils/adminRoute';
@@ -354,6 +354,13 @@ export default function Settings() {
               onClick={() => navigate('/admin/storage')}
             />
           )}
+          <SettingRow
+            icon={Smartphone}
+            title="App Updates"
+            description="Check for updates, configure OTA preferences, and manage your update channel"
+            rightElement="chevron"
+            onClick={() => navigate('/settings/app-updates')}
+          />
           <SettingRow
             icon={FileText}
             title="Legal & Privacy Policies"

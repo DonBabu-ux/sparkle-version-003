@@ -428,11 +428,109 @@ async function updatePrivacySettings(req, res) {
   const targetDisappearing = disappearingDuration !== undefined ? disappearingDuration : disappearing_duration;
 
   if (targetDisappearing !== undefined) {
-    const durSecs = parseInt(targetDisappearing, 10) || 0;
-    if (isGroup) {
-      await db.query('UPDATE group_chats SET disappearing_duration = ? WHERE chat_id = ?', [durSecs, chatId]);
-    } else {
-      await db.query('UPDATE personal_chats SET disappearing_duration = ? WHERE chat_id = ?', [durSecs, chatId]);
+    const rawNum = parseInt(targetDisappearing, 10) || 0;
+    const durSecs = (rawNum === 24) ? 86400 : (rawNum === 7 ? 604800 : (rawNum === 90 ? 7776000 : rawNum));
+    const table = isGroup ? 'group_chats' : 'personal_chats';
+
+    const [dRow] = await db.query(`SELECT disappearing_duration, disappearing_version FROM ${table} WHERE chat_id = ?`, [chatId]);
+    const prevDuration = dRow && dRow[0] ? (dRow[0].disappearing_duration || 0) : 0;
+    const prevVer = dRow && dRow[0] ? (dRow[0].disappearing_version || 1) : 1;
+    const newVer = prevVer + 1;
+
+    if (prevDuration !== durSecs) {
+      await db.query(
+        `UPDATE ${table} SET disappearing_duration = ?, disappearing_version = ?, disappearing_updated_at = NOW(), disappearing_updated_by = ? WHERE chat_id = ?`,
+        [durSecs, newVer, userId, chatId]
+      );
+
+      // Retroactive evaluation on initial enable
+      if (prevDuration === 0 && durSecs > 0) {
+        await db.query(
+          `UPDATE messages 
+           SET expires_at = DATE_ADD(COALESCE(created_at, sent_at), INTERVAL ? SECOND)
+           WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
+             AND expires_at IS NULL
+             AND (is_deleted_for_everyone IS NULL OR is_deleted_for_everyone = 0)`,
+          [durSecs, chatId, chatId, chatId]
+        );
+      }
+
+      // Format duration label
+      const formatDurationText = (seconds) => {
+        if (!seconds || seconds <= 0) return 'off';
+        if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+        if (seconds < 86400) return `${Math.round(seconds / 3600)} hours`;
+        if (seconds === 86400) return '24 hours';
+        const days = Math.round(seconds / 86400);
+        return `${days} ${days === 1 ? 'day' : 'days'}`;
+      };
+
+      const actorName = user?.name || user?.full_name || user?.username || 'User';
+      let systemContent = '';
+      let actionType = 'disabled';
+      if (durSecs > 0) {
+        if (prevDuration > 0) {
+          actionType = 'changed';
+          systemContent = `${actorName} changed the disappearing-message duration to ${formatDurationText(durSecs)}.`;
+        } else {
+          actionType = 'enabled';
+          systemContent = `${actorName} enabled disappearing messages. Messages will disappear after ${formatDurationText(durSecs)}.`;
+        }
+      } else {
+        actionType = 'disabled';
+        systemContent = `${actorName} turned off disappearing messages.`;
+      }
+
+      const systemMsgId = crypto.randomUUID();
+      const now = new Date();
+      const metadataObj = {
+        system_type: 'disappearing_messages_change',
+        action: actionType,
+        duration: durSecs,
+        previous_duration: prevDuration,
+        actor_id: userId,
+        actor_name: actorName,
+        version: newVer,
+        updated_at: now.toISOString()
+      };
+
+      await db.query(
+        `INSERT INTO messages (
+            message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at, status, is_read
+         ) VALUES (?, ?, ?, ?, ?, 'system', ?, NOW(), 'sent', 1)`,
+        [systemMsgId, chatId, chatId, userId, systemContent, JSON.stringify(metadataObj)]
+      );
+
+      const systemMsg = {
+        message_id: systemMsgId,
+        id: systemMsgId,
+        chat_id: chatId,
+        chatId,
+        sender_id: userId,
+        senderId: userId,
+        content: systemContent,
+        type: 'system',
+        metadata: metadataObj,
+        sent_at: now.toISOString(),
+        status: 'sent'
+      };
+
+      try {
+        const io = getIO();
+        if (io) {
+          io.to(`chat:${chatId}`).emit('disappearing_messages_update', {
+            chatId,
+            duration: durSecs,
+            version: newVer,
+            updatedAt: now.toISOString(),
+            updatedBy: userId,
+            systemMessage: systemMsg
+          });
+          io.to(`chat:${chatId}`).emit('new-message', systemMsg);
+        }
+      } catch (e) {
+        // Log non-fatal
+      }
     }
   }
 

@@ -212,6 +212,10 @@ interface ChatState {
   finishEdit: (chatId: string) => void;
   updateSenderMessagePermissions: (chatId: string, senderId: string, permissions: any, privacyVersion?: number) => void;
   removeExpiredMessages: (chatId: string, messageIds: string[]) => void;
+  chatNicknames: Record<string, Record<string, string>>;
+  setChatNickname: (chatId: string, userId: string, nickname: string | null) => void;
+  setChatNicknames: (chatId: string, nicknames: Record<string, any>) => void;
+  setDisappearingDuration: (chatId: string, duration: number, version?: number) => void;
 }
 
 export const useChatStore = create<ChatState>()(
@@ -229,6 +233,7 @@ export const useChatStore = create<ChatState>()(
         socketStatus: 'disconnected',
         replyTargets: {},
         editing: {},
+        chatNicknames: {},
 
         normalizeMessage: (raw) => {
           if (!raw) return raw;
@@ -972,9 +977,65 @@ export const useChatStore = create<ChatState>()(
             },
           }));
         },
+        setChatNickname: (chatId, userId, nickname) => {
+          set((state) => {
+            const chatNicks = { ...(state.chatNicknames[chatId] || {}) };
+            if (nickname && nickname.trim()) {
+              chatNicks[userId] = nickname.trim();
+            } else {
+              delete chatNicks[userId];
+            }
+            return {
+              chatNicknames: {
+                ...state.chatNicknames,
+                [chatId]: chatNicks,
+              },
+            };
+          });
+        },
+        setChatNicknames: (chatId, rawNicknames) => {
+          const parsed: Record<string, string> = {};
+          if (rawNicknames && typeof rawNicknames === 'object') {
+            Object.entries(rawNicknames).forEach(([uid, val]) => {
+              if (typeof val === 'string' && val.trim()) {
+                parsed[uid] = val.trim();
+              } else if (val && typeof val === 'object' && (val as any).nickname) {
+                parsed[uid] = String((val as any).nickname).trim();
+              }
+            });
+          }
+          set((state) => ({
+            chatNicknames: {
+              ...state.chatNicknames,
+              [chatId]: parsed,
+            },
+          }));
+        },
+        setDisappearingDuration: (chatId, duration, version) => {
+          set((state) => ({
+            conversations: state.conversations.map((c) =>
+              c.chat_id === chatId ? { ...c, disappearing_duration: duration, disappearing_version: version ?? (c as any).disappearing_version } : c
+            ),
+          }));
+        },
         removeExpiredMessages: (chatId, messageIds) => {
           if (!messageIds || messageIds.length === 0) return;
           const idSet = new Set(messageIds.map(String));
+          try {
+            const raw = localStorage.getItem('sparkle_expired_msg_ids');
+            const setIds: string[] = raw ? JSON.parse(raw) : [];
+            let changed = false;
+            messageIds.forEach((id) => {
+              if (!setIds.includes(id)) {
+                setIds.push(id);
+                changed = true;
+              }
+            });
+            if (changed) {
+              localStorage.setItem('sparkle_expired_msg_ids', JSON.stringify(setIds));
+            }
+          } catch (e) {}
+
           set((state) => {
             const currentMsgs = state.messagesByConversation[chatId] || [];
             const remaining = currentMsgs.filter(

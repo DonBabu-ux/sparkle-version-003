@@ -1,7 +1,6 @@
-import { showError } from '../../utils/toast';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Send, CheckCircle, Clock, AlertCircle, ShieldCheck, MessageCircle, Bot } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Clock, AlertCircle, ShieldCheck, MessageCircle, Bot } from 'lucide-react';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 
@@ -28,14 +27,10 @@ export default function TicketDetail() {
     const [ticket, setTicket] = useState<SupportTicket | null>(null);
     const [messages, setMessages] = useState<SupportMessage[]>([]);
     const [loading, setLoading] = useState(true);
-    const [reply, setReply] = useState('');
-    const [sending, setSending] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         fetchTicket();
-        const interval = setInterval(fetchTicket, 10000); // Polling for bot response
-        return () => clearInterval(interval);
     }, [ticketId]);
 
     useEffect(() => {
@@ -55,24 +50,6 @@ export default function TicketDetail() {
             logger.error('Failed to fetch ticket:', err);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handleSend = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!reply.trim() || sending) return;
-
-        setSending(true);
-        try {
-            const res = await api.post(`/support/tickets/${ticketId}/messages`, { content: reply });
-            if (res.data.success) {
-                setReply('');
-                fetchTicket();
-            }
-        } catch (err) {
-            showError('Failed to send message');
-        } finally {
-            setSending(false);
         }
     };
 
@@ -120,25 +97,10 @@ export default function TicketDetail() {
                     </div>
 
                     <footer className="ticket-footer">
-                        {ticket.status === 'closed' || ticket.status === 'resolved' ? (
-                            <div className="closed-info">
-                                <AlertCircle size={20} />
-                                This ticket is {ticket.status}. You cannot send more messages.
-                            </div>
-                        ) : (
-                            <form className="reply-form" onSubmit={handleSend}>
-                                <input 
-                                    type="text" 
-                                    placeholder="Type your message..." 
-                                    value={reply}
-                                    onChange={(e) => setReply(e.target.value)}
-                                    disabled={sending}
-                                />
-                                <button type="submit" disabled={!reply.trim() || sending}>
-                                    <Send size={20} />
-                                </button>
-                            </form>
-                        )}
+                        <div className="closed-info">
+                            <AlertCircle size={20} />
+                            Replies aren't available yet. Your ticket has been saved and our team can follow up by email.
+                        </div>
                     </footer>
                 </main>
             </div>

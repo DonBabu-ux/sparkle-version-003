@@ -412,8 +412,8 @@ export default function Confessions() {
             <div className="flex items-center gap-8 min-w-max pb-1">
               {[
                 { label: 'Live Now', value: 'ACTIVE',     icon: <Globe size={16} /> },
-                { label: 'Confessions Today', value: '24.8K',     icon: <Orbit size={16} /> },
-                { label: 'Anonymity',    value: '100% SECURE', icon: <ShieldCheck size={16} /> },
+                { label: 'Identity', value: 'ALIAS ONLY', icon: <Orbit size={16} /> },
+                { label: 'Moderation', value: 'REPORTS REVIEWED', icon: <ShieldCheck size={16} /> },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-3 group/stat">
                   <div className="w-10 h-10 rounded-2xl bg-white dark:bg-[#101217] shadow-sm border border-black/5 dark:border-white/10 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
@@ -427,6 +427,10 @@ export default function Confessions() {
               ))}
             </div>
           </div>
+
+          <p className="px-4 mb-4 text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-wider">
+            Other people see only an alias. Moderators can see the posting account when reviewing a report.
+          </p>
 
           {/* ── Feed Cards ── */}
           <div className="flex flex-col gap-0 sm:gap-4 px-0 sm:px-4 pb-8">
@@ -487,7 +491,7 @@ export default function Confessions() {
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-[7px] font-black text-emerald-600 dark:text-emerald-400 rounded uppercase tracking-widest border border-emerald-100/60 dark:border-emerald-900/20">
-                          Encrypted
+                          Alias protected
                         </span>
                         {conf.category && (
                           <span className="text-[8px] font-black text-primary uppercase tracking-wider italic">

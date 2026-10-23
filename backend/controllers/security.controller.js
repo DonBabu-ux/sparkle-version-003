@@ -824,7 +824,8 @@ const initiateSecurityTransaction = async (req, res) => {
             'password_reset',
             'pin_reset',
             'recovery_regen',
-            'security_email_change'
+            'security_email_change',
+            'admin_step_up'
         ];
 
         if (!purpose || !VALID_PURPOSES.includes(purpose)) {

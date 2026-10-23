@@ -31,49 +31,30 @@ export default function ListingDetail() {
     const fetchData = async () => {
       try {
         // 1. Fetch main listing
-        try {
-          const listingRes = await api.get(`/marketplace/listings/${id}`);
-          if (listingRes.data.success) {
-            setListing(listingRes.data.listing);
-            setIsWishlisted(listingRes.data.listing.is_wishlisted);
+        const listingRes = await api.get(`/marketplace/listings/${id}`);
+        if (listingRes.data.success) {
+          setListing(listingRes.data.listing);
+          setIsWishlisted(listingRes.data.listing.is_wishlisted);
 
-            if (listingRes.data.listing.seller_id && !String(listingRes.data.listing.seller_id).startsWith('mock-')) {
-              const sellerId = listingRes.data.listing.seller_id;
-              api.get(`/marketplace/sellers/${sellerId}/alert`)
-                .then(alertRes => {
-                  if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
-                })
-                .catch(() => {});
-              // Follow state + real join date (non-blocking, like the alert check)
-              api.get(`/marketplace/sellers/${sellerId}/favorite`)
-                .then(favRes => {
-                  if (favRes.data.success) setIsFollowing(!!favRes.data.favorited);
-                })
-                .catch(() => {});
-              api.get(`/marketplace/sellers/${sellerId}`)
-                .then(profRes => {
-                  if (profRes.data.success && profRes.data.seller?.created_at) {
-                    setSellerJoinedAt(profRes.data.seller.created_at);
-                  }
-                })
-                .catch(() => {});
-            }
-          }
-        } catch (err: any) {
-          if (err.response?.status === 404 && String(id).startsWith('l-')) {
-            // Fallback for mock data
-            setListing({
-              listing_id: id,
-              id: id,
-              seller_id: 'mock-seller',
-              seller_name: 'Mock Seller',
-              title: 'Mock Listing ' + id,
-              price: 1500,
-              description: 'This is a mocked listing.',
-              created_at: new Date().toISOString()
-            } as any);
-          } else {
-            throw err;
+          const sellerId = listingRes.data.listing.seller_id;
+          if (sellerId) {
+            api.get(`/marketplace/sellers/${sellerId}/alert`)
+              .then(alertRes => {
+                if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
+              })
+              .catch(() => {});
+            api.get(`/marketplace/sellers/${sellerId}/favorite`)
+              .then(favRes => {
+                if (favRes.data.success) setIsFollowing(!!favRes.data.favorited);
+              })
+              .catch(() => {});
+            api.get(`/marketplace/sellers/${sellerId}`)
+              .then(profRes => {
+                if (profRes.data.success && profRes.data.seller?.created_at) {
+                  setSellerJoinedAt(profRes.data.seller.created_at);
+                }
+              })
+              .catch(() => {});
           }
         }
 
@@ -120,7 +101,7 @@ export default function ListingDetail() {
   };
 
   const handleFollow = async () => {
-    if (!listing?.seller_id || String(listing.seller_id).startsWith('mock-')) return;
+    if (!listing?.seller_id) return;
     try {
       const res = await api.post('/marketplace/seller/favorite', { sellerId: listing.seller_id });
       if (res.data.success) {

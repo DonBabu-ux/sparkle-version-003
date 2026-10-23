@@ -35,21 +35,30 @@ export default function MyListings() {
   }, [fetchMyListings]);
 
   const handleDelete = async (id: string) => {
-    if (!await confirmDialog('Are you sure you want to delete this listing?')) return;
+    if (!await confirmDialog('Are you sure you want to remove this listing?')) return;
     try {
       await api.delete(`/marketplace/listings/${id}`);
-      setListings(l => l.filter(item => item.listing_id !== id));
-    } catch {
-      showError('Failed to delete listing');
+      await fetchMyListings();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to remove listing');
     }
   };
 
   const handleMarkSold = async (id: string) => {
     try {
-      await api.patch(`/marketplace/listings/${id}/status`, { status: 'sold' });
-      setListings(l => l.map(item => item.listing_id === id ? { ...item, status: 'sold' } : item));
-    } catch {
-      showError('Failed to update status');
+      await api.put(`/marketplace/listings/${id}/sold`);
+      await fetchMyListings();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to mark listing as sold');
+    }
+  };
+
+  const handleRelist = async (id: string) => {
+    try {
+      await api.post(`/marketplace/listings/${id}/relist`);
+      await fetchMyListings();
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Failed to relist item');
     }
   };
 
@@ -76,7 +85,7 @@ export default function MyListings() {
         ) : listings.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-center">
             <Package size={64} className="text-marketplace-muted/30 mb-6" />
-            <h3 className="text-2xl font-black mb-2">No active listings</h3>
+            <h3 className="text-2xl font-black mb-2">No listings yet</h3>
             <p className="text-marketplace-muted font-medium mb-8">You haven't posted any items for sale yet.</p>
             <button 
               onClick={() => navigate('/marketplace/sell')} 
@@ -93,7 +102,9 @@ export default function MyListings() {
                 variant="manage"
                 listing={item}
                 onClick={() => navigate(`/marketplace/listings/${item.listing_id}`)}
+                onEdit={() => navigate(`/marketplace/sell?edit=${item.listing_id}`)}
                 onMarkSold={() => handleMarkSold(item.listing_id)}
+                onRelist={() => handleRelist(item.listing_id)}
                 onDelete={() => handleDelete(item.listing_id)}
               />
             ))}

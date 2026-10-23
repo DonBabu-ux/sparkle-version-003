@@ -46,11 +46,26 @@ module.exports = async function up() {
             expires_at TIMESTAMP NOT NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
             verified_at TIMESTAMP NULL DEFAULT NULL,
+            verified_token_hash VARCHAR(128) DEFAULT NULL,
             INDEX idx_recovery_user (user_id, action_type),
             INDEX idx_recovery_contact (contact_identifier),
-            INDEX idx_recovery_token (verified_token)
+            INDEX idx_recovery_token (verified_token),
+            INDEX idx_recovery_token_hash (verified_token_hash)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
     `);
+
+    // Backfill verified_token_hash column on existing databases
+    try {
+        await pool.query("ALTER TABLE account_recovery_requests ADD COLUMN verified_token_hash VARCHAR(128) DEFAULT NULL");
+    } catch (e) {
+        if (String(e.code || '') !== 'ER_DUP_FIELD') logger.debug(`[Migration] verified_token_hash column already present or add failed: ${e.message}`);
+    }
+    try {
+        await pool.query("CREATE INDEX idx_recovery_token_hash_backfill ON account_recovery_requests (verified_token_hash)");
+    } catch (e) {
+        if (String(e.code || '') !== 'ER_DUP_KEY') logger.debug(`[Migration] verified_token_hash index already present or add failed: ${e.message}`);
+    }
 
     // 3. account_appeal_cases table (for platform-initiated terminations)
     await pool.query(`

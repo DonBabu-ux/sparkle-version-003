@@ -32,35 +32,9 @@ const MarketplaceSettings = () => {
   const [viewData, setViewData] = useState<any>(null);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
 
-  const fetchAnalytics = async () => {
-    setViewLoading(true);
-    setActiveView('analytics');
-    try {
-      const res = await api.get('/marketplace/analytics');
-      if (res.data.success) setViewData(res.data.data);
-    } catch (err) {
-      logger.error(err);
-    } finally {
-      setViewLoading(false);
-    }
-  };
-
-  const fetchPayouts = async () => {
-    setViewLoading(true);
-    setActiveView('payouts');
-    try {
-      const res = await api.get('/marketplace/settings/payouts');
-      if (res.data.success) setViewData(res.data.payouts);
-    } catch (err) {
-      logger.error(err);
-    } finally {
-      setViewLoading(false);
-    }
-  };
-
   const sections = [
-    {
-      title: 'Trust & Safety',
+      {
+        title: 'Trust & Safety',
       items: [
         { id: 'verification', icon: <UserCheck className="text-blue-600" />, label: 'Marketplace Verification', desc: 'Get your blue checkmark', action: () => setIsVerificationOpen(true) },
         { id: 'security', icon: <Lock className="text-emerald-600" />, label: 'Account Security', desc: 'Manage your login & keys', action: () => showInfo('Security settings enabled') },
@@ -70,8 +44,8 @@ const MarketplaceSettings = () => {
     {
       title: 'Business Tools',
       items: [
-        { id: 'analytics', icon: <BarChart3 className="text-indigo-600" />, label: 'Performance Stats', desc: 'Views, clicks & engagement', action: fetchAnalytics },
-        { id: 'payouts', icon: <CreditCard className="text-amber-600" />, label: 'Payout Settings', desc: 'Manage where you get paid', action: fetchPayouts },
+        { id: 'analytics', icon: <BarChart3 className="text-indigo-600" />, label: 'Performance Stats', desc: 'Views, clicks & engagement (coming soon)', action: () => showInfo('Performance stats are not available yet.'), disabled: true },
+        { id: 'payouts', icon: <CreditCard className="text-amber-600" />, label: 'Payout Settings', desc: 'Payout setup is not available yet.', action: () => showInfo('Payouts are not available yet.'), disabled: true },
         { id: 'seller_tools', icon: <Settings className="text-slate-600" />, label: 'Seller Tools', desc: 'Bulk actions & auto-replies', action: () => showInfo('Auto-replies enabled. Bulk actions coming later.') }
       ]
     },
@@ -213,21 +187,22 @@ const MarketplaceSettings = () => {
                   {section.items.map((item) => (
                     <button
                       key={item.id}
-                      onClick={() => item.action()}
-                      className="w-full flex items-center justify-between p-4 rounded-lg transition-all group bg-slate-50 hover:bg-slate-100 active:scale-[0.98]"
+                      onClick={item.disabled ? undefined : item.action}
+                      disabled={item.disabled}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98]'}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                           {item.icon}
                         </div>
                         <div className="text-left">
-                          <div className="font-black text-slate-800 flex items-center gap-2">
+                          <div className={`font-black flex items-center gap-2 ${item.disabled ? 'text-slate-400' : 'text-slate-800'}`}>
                             {item.label}
                           </div>
-                          <div className="text-xs font-bold text-slate-500">{item.desc}</div>
+                          <div className={`text-xs font-bold ${item.disabled ? 'text-slate-400' : 'text-slate-500'}`}>{item.desc}</div>
                         </div>
                       </div>
-                      <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-600 transition-colors" />
+                      <ChevronRight size={18} className={`text-slate-300 group-hover:text-slate-600 transition-colors ${item.disabled ? 'text-slate-400 cursor-not-allowed' : ''}`} />
                     </button>
                   ))}
                 </div>

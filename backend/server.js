@@ -16,6 +16,12 @@ require('dotenv').config();
 
 const { PORT } = require('./config/constants');
 const { initDB } = require('./utils/database/init');
+
+// Readiness gate: the server is not considered ready until database
+// initialization completes. Until then, /health reports 503 so load
+// balancers / orchestrator probes do not route traffic to an uninitialized
+// instance.
+let dbReady = false;
 const momentsController = require('./controllers/moments.controller');
 const apiRoutes = require('./routes/api');
 
@@ -105,9 +111,24 @@ app.get('/.well-known/assetlinks.json', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', '.well-known', 'assetlinks.json'));
 });
 app.get('/health', (req, res) => {
+    if (!dbReady) {
+        return res.status(503).json({
+            status: 'initializing',
+            service: 'sparkle-api',
+            uptime_s: Math.round(process.uptime()),
+            timestamp: new Date().toISOString()
+        });
+    }
     res.json({ status: 'ok', service: 'sparkle-api', uptime_s: Math.round(process.uptime()), timestamp: new Date().toISOString() });
 });
 app.get('/health/db', async (req, res) => {
+    if (!dbReady) {
+        return res.status(503).json({
+            status: 'initializing',
+            database: 'not_ready',
+            timestamp: new Date().toISOString()
+        });
+    }
     const pool = require('./config/database');
     try {
         await pool.query('SELECT 1');
@@ -352,6 +373,7 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
 
         // Initialize database tables and prewarm moments feed
         initDB().then(() => {
+            dbReady = true;
             momentsController.prewarm();
             try {
                 const { startAutoWithdrawalScheduler } = require('./services/autoWithdrawalScheduler.service');
@@ -364,6 +386,12 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
                 startBoostScheduler();
             } catch (err) {
                 logger.warn('Failed to start boost scheduler:', err.message);
+            }
+            try {
+                const { startWalletRecoveryScheduler } = require('./services/walletRecoveryScheduler.service');
+                startWalletRecoveryScheduler();
+            } catch (err) {
+                logger.warn('Failed to start wallet recovery scheduler:', err.message);
             }
         }).catch(err => logger.error('Failed to initialize database:', err));
     });

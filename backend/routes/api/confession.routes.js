@@ -1,19 +1,20 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const confessionController = require('../../controllers/confession.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload } = require('../../middleware/upload.middleware');
+const { mutationRateLimiter } = require('../../middleware/security.middleware');
 
-// Public — browse confessions (optionally by affiliation)
-router.get('/', confessionController.getConfessionsByAffiliation);                                   // affiliation filter via ?campus=X
-router.get('/community/:campus', confessionController.getConfessionsByAffiliation);                  // NEW — explicit affiliation filter
-router.get('/:id', confessionController.getConfessionById);                                          // single confession (deep links)
+// Public - browse confessions (optionally by affiliation)
+router.get('/', confessionController.getConfessionsByAffiliation);
+router.get('/community/:campus', confessionController.getConfessionsByAffiliation);
+router.get('/:id', confessionController.getConfessionById);
 
 // Protected
-router.post('/', authMiddleware, upload.single('image'), confessionController.createConfession);  // Post anonymous confession (image optional)
-router.post('/:id/react', authMiddleware, confessionController.reactToConfession);              // Like / react
-router.post('/:id/report', authMiddleware, confessionController.reportConfession);              // NEW — report confession
-router.post('/:id/comments', authMiddleware, confessionController.commentAnonymously);          // NEW — anonymous comment
-router.get('/:id/comments', confessionController.getComments);                                  // NEW — get comments
+router.post('/', authMiddleware, mutationRateLimiter, upload.single('image'), confessionController.createConfession);
+router.post('/:id/react', authMiddleware, mutationRateLimiter, confessionController.reactToConfession);
+router.post('/:id/report', authMiddleware, mutationRateLimiter, confessionController.reportConfession);
+router.post('/:id/comments', authMiddleware, mutationRateLimiter, confessionController.commentAnonymously);
+router.get('/:id/comments', confessionController.getComments);
 
 module.exports = router;

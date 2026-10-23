@@ -330,13 +330,6 @@ export default function Signup() {
               {/* Step 1: Welcome */}
               {step === 1 && (
                 <div className="su-step">
-                  <button className="su-google" type="button" onClick={() => showError("Google sign-in isn't available yet — continue with your email.")}>
-                    <img src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" className="su-google__img" alt="" />
-                    <span>Continue with Google</span>
-                  </button>
-
-                  <div className="su-sep"><span>or</span></div>
-
                   <button onClick={nextStep} className="su-btn su-btn--main" type="button">
                     Get started
                     <ArrowRight size={18} strokeWidth={2.5} />
@@ -904,26 +897,6 @@ export default function Signup() {
           transition: border-color 0.2s ease, color 0.2s ease;
         }
         .su-nav-back:hover { border-color: #fda4af; color: #e11d48; }
-
-        .su-google {
-          display: flex; align-items: center; justify-content: center; gap: 0.6rem;
-          width: 100%; padding: 0.75rem; border-radius: 12px;
-          border: 1.5px solid #fecdd3; background: #fff;
-          font-size: 0.88rem; font-weight: 700; color: #44403c;
-          cursor: pointer; transition: border-color 0.2s ease, box-shadow 0.2s ease;
-          text-transform: none; font-style: normal;
-        }
-        .su-google:hover { border-color: #fda4af; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
-        .su-google__img { width: 20px; height: 20px; }
-
-        .su-sep {
-          display: flex; align-items: center; gap: 0.8rem; margin: 0.25rem 0;
-        }
-        .su-sep::before, .su-sep::after { content: ''; flex: 1; height: 1px; background: #fecdd3; }
-        .su-sep span {
-          font-size: 0.7rem; font-weight: 700; color: #d6d3d1;
-          text-transform: uppercase; letter-spacing: 0.1em; font-style: normal;
-        }
 
         .su-link-row {
           text-align: center; font-size: 0.85rem; color: #78716c;

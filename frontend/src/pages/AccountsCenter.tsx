@@ -48,7 +48,7 @@ export default function AccountsCenter() {
                Account <span className="text-primary italic">Center.</span>
             </h1>
             <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic border-l-8 border-primary/20 pl-8 mx-auto xl:mx-0 uppercase tracking-tighter">
-               Manage profiles, security protocols, and connected harmonics across the village.
+               Manage your profile, security, and connected devices.
             </p>
           </div>
           
@@ -114,7 +114,7 @@ export default function AccountsCenter() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-16 border-t-8 border-black/[0.03]">
             {sections?.map(section => (
               <div key={section.title} className="space-y-12">
-                <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] italic ml-10">{section.title} Protocol</h2>
+                <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] italic ml-10">{section.title}</h2>
                 <div className="flex flex-col gap-6">
                   {section.items.map(item => (
                     <button 

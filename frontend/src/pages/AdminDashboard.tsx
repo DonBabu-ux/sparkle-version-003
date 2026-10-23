@@ -1,8 +1,8 @@
-import { showError, showInfo, showSuccess } from '../utils/toast';
+import { showInfo, showSuccess } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type FormEvent } from 'react';
 import api from '../api/api';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database } from 'lucide-react';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database, KeyRound, Mail, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
@@ -40,6 +40,13 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview');
   const [content, setContent] = useState<AdminContentItem[]>([]);
   const [announcement, setAnnouncement] = useState('');
+  const [stepUp, setStepUp] = useState<{ kind: 'action' | 'announcement'; id?: string; action?: string } | null>(null);
+  const [factor, setFactor] = useState<'password' | 'email'>('password');
+  const [secret, setSecret] = useState('');
+  const [txId, setTxId] = useState<string | null>(null);
+  const [emailSent, setEmailSent] = useState(false);
+  const [stepUpError, setStepUpError] = useState('');
+  const [stepUpBusy, setStepUpBusy] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -58,27 +65,99 @@ export default function AdminDashboard() {
     }
   };
 
+  const resetStepUp = () => {
+    setStepUp(null);
+    setFactor('password');
+    setSecret('');
+    setTxId(null);
+    setEmailSent(false);
+    setStepUpError('');
+    setStepUpBusy(false);
+  };
+
   const handleAdminAction = async (id: string, action: string) => {
     if (!await confirmDialog(`Are you sure you want to ${action} this item?`)) return;
+    setSecret('');
+    setTxId(null);
+    setEmailSent(false);
+    setStepUpError('');
+    setFactor('password');
+    setStepUp({ kind: 'action', id, action });
+  };
+
+  const handleSendAnnouncement = () => {
+    if (!announcement.trim()) return;
+    setSecret('');
+    setTxId(null);
+    setEmailSent(false);
+    setStepUpError('');
+    setFactor('password');
+    setStepUp({ kind: 'announcement' });
+  };
+
+  const requestEmailCode = async () => {
+    setStepUpBusy(true);
+    setStepUpError('');
     try {
-      await api.post(`/admin/actions`, { id, action, type: activeTab });
-      showSuccess(`Action ${action} successful`);
-      const response = await api.get(`/admin/${activeTab}`);
-      if (activeTab === 'users') setContent(response.data.users || []);
-      else if (activeTab === 'reports') setContent(response.data.reports || []);
-    } catch {
-      showError(`Failed to perform ${action}`);
+      const res = await api.post('/security/transaction/initiate', {
+        purpose: 'admin_step_up',
+        factor_type: 'email'
+      });
+      setTxId(res.data.data.transaction_id);
+      setEmailSent(true);
+    } catch (err: any) {
+      setStepUpError(err.response?.data?.message || 'Could not send the email code.');
+    } finally {
+      setStepUpBusy(false);
     }
   };
 
-  const handleSendAnnouncement = async () => {
-    if (!announcement.trim()) return;
+  const applyStepUp = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!stepUp || !secret) return;
+    setStepUpBusy(true);
+    setStepUpError('');
     try {
-      await api.post('/admin/announcements', { message: announcement });
-      showInfo('Announcement broadcasted!');
-      setAnnouncement('');
-    } catch {
-      showError('Failed to broadcast announcement');
+      let transactionId = txId;
+      if (!transactionId) {
+        const init = await api.post('/security/transaction/initiate', {
+          purpose: 'admin_step_up',
+          factor_type: factor
+        });
+        transactionId = init.data.data.transaction_id;
+        setTxId(transactionId);
+      }
+
+      const verified = await api.post('/security/transaction/verify', {
+        transaction_id: transactionId,
+        code: secret,
+        factor_type: factor
+      });
+      const verificationToken = verified.data.data.verification_token;
+
+      if (stepUp.kind === 'action') {
+        await api.post('/admin/actions', {
+          id: stepUp.id,
+          action: stepUp.action,
+          type: activeTab,
+          verification_token: verificationToken
+        });
+        showSuccess(`Action ${stepUp.action} successful`);
+        const response = await api.get(`/admin/${activeTab}`);
+        if (activeTab === 'users') setContent(response.data.users || []);
+        else if (activeTab === 'reports') setContent(response.data.reports || []);
+      } else {
+        await api.post('/admin/announcements', {
+          message: announcement,
+          verification_token: verificationToken
+        });
+        showInfo('Announcement sent.');
+        setAnnouncement('');
+      }
+      resetStepUp();
+    } catch (err: any) {
+      setStepUpError(err.response?.data?.message || err.response?.data?.error || 'Verification failed. Please try again.');
+      setStepUpBusy(false);
     }
   };
 
@@ -129,7 +208,7 @@ export default function AdminDashboard() {
               Admin <span className="text-primary">Council.</span>
             </h1>
             <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest max-w-md mx-auto md:mx-0">
-              Synchronize village metrics & harmony protocols.
+              View key metrics and activity.
             </p>
           </div>
         </header>
@@ -273,7 +352,7 @@ export default function AdminDashboard() {
                           ) : (
                             <div className="flex flex-col">
                               <span className="text-[12px] font-black italic uppercase tracking-tight text-gray-900 leading-none mb-1">{item.title || item.type || item.action}</span>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[150px] italic">{item.details || 'System Signal'}</span>
+                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[150px] italic">                              {item.details || 'No details'}</span>
                             </div>
                           )}
                         </div>
@@ -310,6 +389,71 @@ export default function AdminDashboard() {
           </div>
         )}
       </main>
+
+      {stepUp && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-xl font-black text-gray-900">Confirm it's you</h2>
+                <p className="text-xs font-bold text-gray-400 mt-1">Sensitive admin actions need a fresh identity check.</p>
+              </div>
+              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500" aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => { setFactor('password'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
+                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}
+              >
+                <KeyRound size={14} /> Password
+              </button>
+              <button
+                type="button"
+                onClick={() => { setFactor('email'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
+                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}
+              >
+                <Mail size={14} /> Email code
+              </button>
+            </div>
+
+            {factor === 'email' && !emailSent ? (
+              <button
+                type="button"
+                onClick={requestEmailCode}
+                disabled={stepUpBusy}
+                className="w-full h-12 rounded-xl bg-primary text-white font-black text-sm disabled:opacity-50"
+              >
+                {stepUpBusy ? 'Sending...' : 'Send code to my email'}
+              </button>
+            ) : (
+              <form onSubmit={applyStepUp} className="space-y-3">
+                <input
+                  autoFocus
+                  type={factor === 'password' ? 'password' : 'text'}
+                  inputMode={factor === 'password' ? undefined : 'numeric'}
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  placeholder={factor === 'password' ? 'Current password' : 'Email verification code'}
+                  className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 px-4 font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                />
+                <button
+                  type="submit"
+                  disabled={stepUpBusy || !secret}
+                  className="w-full h-12 rounded-xl bg-primary text-white font-black text-sm disabled:opacity-50"
+                >
+                  {stepUpBusy ? 'Checking...' : 'Verify and continue'}
+                </button>
+              </form>
+            )}
+
+            {stepUpError && <p className="text-xs font-bold text-rose-600 mt-3">{stepUpError}</p>}
+          </div>
+        </div>
+      )}
 
       <style>{`
         

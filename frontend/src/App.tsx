@@ -69,6 +69,7 @@ const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail'));
 const Orders = lazyWithRetry(() => import('./pages/Orders'));
+const OrderDetail = lazyWithRetry(() => import('./pages/OrderDetail'));
 const MyListings = lazyWithRetry(() => import('./pages/MyListings'));
 const ReportListing = lazyWithRetry(() => import('./pages/ReportListing'));
 const MarketplaceOrder = lazyWithRetry(() => import('./pages/MarketplaceOrder'));
@@ -573,6 +574,7 @@ function App() {
                     <Route path="/marketplace/report/:id" element={isAuthenticated ? <ReportListing /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/my-shop" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/orders" element={isAuthenticated ? <Orders /> : <Navigate to="/login" />} />
+                    <Route path="/marketplace/orders/:orderId" element={isAuthenticated ? <OrderDetail /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/my-listings" element={isAuthenticated ? <MyListings /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/listings/:id" element={isAuthenticated ? <ListingDetail /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/order" element={isAuthenticated ? <MarketplaceOrder /> : <Navigate to="/login" />} />

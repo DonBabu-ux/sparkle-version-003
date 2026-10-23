@@ -1,6 +1,7 @@
 import { lockScroll, unlockScroll } from '../components/AppScreen';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showError } from '../utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
@@ -92,7 +93,12 @@ export default function Settings() {
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    api.put('/users/settings', { dark_mode_enabled: nextTheme === 'dark' }).catch(() => {});
+    api.put('/users/settings', { dark_mode_enabled: nextTheme === 'dark' }).catch(() => {
+      // Persistence failed: restore the previous theme so the UI doesn't
+      // claim a change that was not saved.
+      setTheme(theme);
+      showError("Theme change wasn't saved. Try again.");
+    });
   };
 
   

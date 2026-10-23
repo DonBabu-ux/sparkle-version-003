@@ -10,8 +10,7 @@ import {
   Search, 
   Ticket, 
   Sparkles, 
-  X, 
-  Orbit
+  X
 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -19,7 +18,7 @@ import { useModalStore } from '../store/modalStore';
 import { logger } from '../utils/logger';
 import { showError } from '../utils/toast';
 
-const TABS = ['all', 'my campus', 'my events', 'trending'];
+const TABS = ['all', 'my campus', 'my events'];
 
 interface CampusEvent {
   event_id: string;
@@ -77,10 +76,21 @@ export default function Events() {
   useEffect(() => { fetchEvents(); }, [activeTab, fetchEvents]);
 
   const handleRSVP = async (eventId: string, status: string) => {
+    const prev = events.find(e => e.event_id === eventId);
+    const prevStatus = prev?.user_status ?? null;
+    // Optimistic update
+    setEvents(ev => ev.map(e =>
+      e.event_id === eventId ? { ...e, user_status: status as CampusEvent['user_status'] } : e
+    ));
     try {
       await api.post(`/events/${eventId}/rsvp`, { status });
       fetchEvents();
     } catch (err) {
+      // Revert to last confirmed state on failure
+      setEvents(ev => ev.map(e =>
+        e.event_id === eventId ? { ...e, user_status: prevStatus } : e
+      ));
+      showError('RSVP failed. Please try again.');
       logger.error('RSVP error:', err);
     }
   };
@@ -156,7 +166,7 @@ export default function Events() {
                   onClick={() => setActiveTab(tab)}
                   className={`px-10 py-4.5 rounded-[22px] font-black text-[11px] uppercase tracking-widest transition-all duration-500 whitespace-nowrap shadow-lg border flex items-center gap-3 italic ${activeTab === tab ? 'bg-white border-primary text-primary scale-105 shadow-primary/5' : 'bg-white/40 border-white text-black/20 hover:bg-white hover:text-black'}`}
                  >
-                   <span className={activeTab === tab ? 'text-primary' : 'text-black/10'}>{activeTab === tab ? <Orbit size={18} strokeWidth={3} className="animate-spin-slow" /> : <Calendar size={18} strokeWidth={3} />}</span>
+                   <span className={activeTab === tab ? 'text-primary' : 'text-black/10'}><Calendar size={18} strokeWidth={3} /></span>
                    {tab}
                  </button>
               ))}

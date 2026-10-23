@@ -20,7 +20,7 @@
         "release:ota": "cd frontend && npx vite build && cd .. && npx cap sync android && otakit upload --release",
         "build:apk": "cd frontend && npx vite build && cd .. && npx cap sync android && cd android && gradlew.bat app:assembleDebug --console=plain",
         "release:full": "npm run release:ota && npm run build:apk",
-        "test": "echo \"Error: no test specified\" && exit 1"
+        "test": "node --test tests/p0-contracts.test.cjs"
     },
     "keywords": [],
     "author": "",

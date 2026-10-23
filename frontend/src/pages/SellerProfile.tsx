@@ -2,7 +2,7 @@ import { showError, showInfo } from '../utils/toast';
 import { promptDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Check, Star, AlertCircle, ShoppingBag, Send, Share2, MoreHorizontal, ShieldCheck, Calendar, MapPin, MessageSquare, Award, Bell } from 'lucide-react';
+import { ChevronLeft, Check, Star, AlertCircle, ShoppingBag, Send, Share2, MoreHorizontal, ShieldCheck, ShieldAlert, Calendar, MapPin, MessageSquare, Award, Bell } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
@@ -60,9 +60,15 @@ export default function SellerProfile() {
 
   const handleMessageSeller = async () => {
     if (!seller) return;
+    const listingId = seller.listings?.[0]?.listing_id;
+    if (!listingId) {
+      showInfo("This seller has no active listings to message about.");
+      return;
+    }
     try {
-      const res = await api.post(`/marketplace/listings/contact`, {
+      const res = await api.post(`/marketplace/listings/${listingId}/contact`, {
         sellerId: seller.user_id,
+        listingId,
         message: "Hello! I am interested in your listings on Sparkle Marketplace."
       });
       const convId = res.data.chatId || res.data.conversationId || res.data.id;
@@ -193,7 +199,7 @@ export default function SellerProfile() {
               <div className="text-center sm:text-left pb-2">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <h2 className="text-2xl sm:text-4xl font-black tracking-tighter">{seller.name || seller.username}</h2>
-                  <ShieldCheck size={24} className="text-blue-500" />
+                  {seller.is_verified && <ShieldCheck size={24} className="text-blue-500" />}
                 </div>
                 <p className="text-marketplace-muted font-bold text-base sm:text-lg">@{seller.username}</p>
               </div>
@@ -234,8 +240,14 @@ export default function SellerProfile() {
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Reliability</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black">{seller.average_rating ? Number(seller.average_rating).toFixed(1) : '5.0'}</span>
-                <span className="text-sm font-bold text-marketplace-muted">/ 5.0 rating</span>
+                <span className="text-2xl font-black">
+                  {seller.total_reviews && seller.total_reviews > 0
+                    ? Number(seller.average_rating || 0).toFixed(1)
+                    : 'No ratings yet'}
+                </span>
+                <span className="text-sm font-bold text-marketplace-muted">
+                  {seller.total_reviews && seller.total_reviews > 0 ? '/ 5.0 rating' : ''}
+                </span>
               </div>
             </div>
 
@@ -260,7 +272,7 @@ export default function SellerProfile() {
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Experience</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black">2024</span>
+                <span className="text-2xl font-black">{seller.created_at ? new Date(seller.created_at).getFullYear() : '—'}</span>
                 <span className="text-sm font-bold text-marketplace-muted">joined sparkle</span>
               </div>
             </div>
@@ -380,19 +392,32 @@ export default function SellerProfile() {
               <div className="p-8 bg-marketplace-bg border border-marketplace-border rounded-[40px]">
                 <h3 className="text-lg font-black mb-4">About the Seller</h3>
                 <p className="text-marketplace-text leading-relaxed font-medium">
-                  {seller.bio || "This seller hasn't added a bio yet. They are a verified member of the Sparkle community and follow our safe trading guidelines."}
+                  {seller.bio || "This seller hasn't added a bio yet."}
                 </p>
                 
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                      <ShieldCheck size={20} />
+                  {seller.is_verified && (
+                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Account Verification</div>
+                        <div className="text-sm font-bold">Identity verified</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Verification</div>
-                      <div className="text-sm font-bold">Email & Phone Verified</div>
+                  )}
+                  {!seller.is_verified && (
+                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                      <div className="w-10 h-10 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                        <ShieldAlert size={20} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Account Verification</div>
+                        <div className="text-sm font-bold text-slate-600">Not verified</div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
                     <div className="w-10 h-10 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
                       <MapPin size={20} />

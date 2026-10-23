@@ -66,6 +66,17 @@ export default function Marketplace() {
   const filteredListings = listings.filter(item => !reportedListings.includes(item.listing_id));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadMoreLoading, setLoadMoreLoading] = useState(false);
+
+  // Reset the page whenever the active filters/search/location/sort change so
+  // paging starts from the first stable, ordered result set.
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    setListings([]);
+  }, [searchQuery, categoryId, filterLocation, radiusKm, minPrice, maxPrice, sortBy]);
 
   // Sync route param with store category
   useEffect(() => {
@@ -95,18 +106,20 @@ export default function Marketplace() {
     setIsFallback(v);
   }, []);
 
-  const fetchListings = useCallback(async (isRetry = false) => {
-    if (!isRetry) setLoading(true);
-    setError(false);
+  const fetchListings = useCallback(async (isRetry = false, append = false) => {
+    if (!append && !isRetry) setLoading(true);
+    if (!append) setError(false);
     // Track whether THIS invocation hands off to the radius-expanded retry;
-    // the retry's own finally() clears the spinner — see the end of this fn.
+    // the retry's own finally() clears the spinner �?" see the end of this fn.
     let recursed = false;
     try {
       const currentCategory = categoryId || 'all';
       const params = new URLSearchParams({
         category: currentCategory !== 'all' ? currentCategory : '',
         search: searchQuery,
-        sort: sortBy
+        sort: sortBy,
+        limit: '20',
+        offset: ((append ? page : 1) - 1).toString()
       });
 
       // Apply location filters only if not in "Global Fallback" mode
@@ -144,10 +157,16 @@ export default function Marketplace() {
         if (maxPrice) globalParams.append('maxPrice', maxPrice.toString());
         const globalRes = await api.get(`/marketplace/listings?${globalParams.toString()}`);
         setListings(globalRes.data.listings || []);
+        setHasMore(false);
         return;
       }
 
-      setListings(list);
+      if (append) {
+        setListings(prev => [...prev, ...list]);
+      } else {
+        setListings(list);
+      }
+      setHasMore(!!resData.pagination?.hasMore);
       // Only reset fallback if we actually found items with the original filters
       if (!isRetry && list.length > 0) setIsFallbackTracked(false);
     } catch (err) {
@@ -159,7 +178,18 @@ export default function Marketplace() {
       // of the empty grid mid-retry.
       if (!isRetry && !recursed) setLoading(false);
     }
-  }, [searchQuery, categoryId, filterLocation, radiusKm, sortBy, minPrice, maxPrice, setIsFallbackTracked]);
+  }, [searchQuery, categoryId, filterLocation, radiusKm, sortBy, minPrice, maxPrice, setIsFallbackTracked, page]);
+
+  const loadMore = async () => {
+    if (loadMoreLoading || !hasMore) return;
+    setLoadMoreLoading(true);
+    try {
+      await fetchListings(false, true);
+      setPage(p => p + 1);
+    } finally {
+      setLoadMoreLoading(false);
+    }
+  };
 
   useEffect(() => {
     fetchListings();
@@ -409,7 +439,7 @@ export default function Marketplace() {
                 </div>
               ) : error ? (
                 <ErrorRetry onRetry={() => fetchListings()} />
-              ) : (
+              ) : (<>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px]">
                   {filteredListings.length > 0 ? (
                     filteredListings.map((item) => (
@@ -431,9 +461,25 @@ export default function Marketplace() {
                     </div>
                   )}
                 </div>
-              )}
+                {filteredListings.length > 0 && hasMore && (
+                  <div className="px-4 py-4 text-center">
+                    <button
+                      onClick={loadMore}
+                      disabled={loadMoreLoading}
+                      className="w-full py-3 rounded-2xl border border-marketplace-border font-black text-sm hover:bg-marketplace-bg transition-colors disabled:opacity-50"
+                    >
+                      {loadMoreLoading ? 'Loading more…' : 'Load more'}
+                    </button>
+                  </div>
+                )}
+                {filteredListings.length > 0 && !hasMore && (
+                  <div className="px-4 py-6 text-center text-marketplace-muted text-sm font-bold uppercase tracking-wider">
+                    No more results
+                  </div>
+                )}
+              </>)})
             </>
-          )}
+          )} 
         </main>
       </div>
 

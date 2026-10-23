@@ -14,6 +14,10 @@ interface Order {
   listing_title?: string;
   amount?: number;
   price?: number;
+  price_at_time?: number;
+  agreed_price?: number;
+  currency?: string;
+  other_username?: string;
   status?: string;
   created_at: string;
 }
@@ -82,7 +86,7 @@ export default function Orders() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.05 }}
                 key={order.order_id} 
-                onClick={() => navigate(`/marketplace/listings/${order.listing_id}`)}
+                onClick={() => navigate(`/marketplace/orders/${order.order_id}`)}
                 className="bg-white p-5 rounded-[32px] border border-marketplace-border shadow-sm flex items-center gap-5 cursor-pointer hover:bg-marketplace-bg transition-colors group"
               >
                 <div className="w-16 h-16 rounded-2xl bg-marketplace-bg flex items-center justify-center text-marketplace-muted group-hover:bg-white transition-colors">
@@ -94,15 +98,18 @@ export default function Orders() {
                     <span className="text-[11px] font-black text-marketplace-muted uppercase tracking-[0.2em]">#{order.order_id.slice(-6).toUpperCase()}</span>
                     <span className={clsx(
                       "text-[10px] font-black uppercase px-2 py-1 rounded-lg",
-                      order.status?.toLowerCase() === 'completed' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
+                      order.status?.toLowerCase() === 'completed' ? "bg-emerald-50 text-emerald-600"
+                        : ['cancelled', 'rejected', 'disputed'].includes(order.status?.toLowerCase() || '') ? "bg-rose-50 text-rose-600"
+                        : "bg-blue-50 text-blue-600"
                     )}>
                       {order.status || 'Pending'}
                     </span>
                   </div>
                   <h3 className="font-black text-lg text-marketplace-text truncate mb-2 leading-tight">{order.listing_title || 'Marketplace Item'}</h3>
-                  <div className="flex items-center gap-4 text-xs font-bold text-marketplace-muted">
-                    <span className="flex items-center gap-1.5"><CreditCard size={14} className="text-marketplace-text" /> KES {parseFloat((order.amount || order.price || 0).toString()).toLocaleString()}</span>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-marketplace-muted">
+                    <span className="flex items-center gap-1.5"><CreditCard size={14} className="text-marketplace-text" /> {order.currency || 'KES'} {parseFloat((order.agreed_price ?? order.price_at_time ?? order.amount ?? order.price ?? 0).toString()).toLocaleString()}</span>
                     <span className="flex items-center gap-1.5"><Clock size={14} /> {new Date(order.created_at).toLocaleDateString()}</span>
+                    {order.other_username && <span>With @{order.other_username}</span>}
                   </div>
                 </div>
 

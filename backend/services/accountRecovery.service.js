@@ -2,6 +2,7 @@
 'use strict';
 
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const redisService = require('./redis.service');
@@ -70,12 +71,13 @@ class AccountRecoveryService {
             };
         }
 
-        // Generate 6-digit numeric OTP code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // Generate 6-digit numeric OTP code with CSPRNG
+        const code = crypto.randomInt(100000, 999999).toString();
         const requestId = crypto.randomUUID();
         const ttlSeconds = 15 * 60; // 15 mins
+        const challengeCodeHash = await bcrypt.hash(code, 10);
 
-        // Store challenge in DB
+        // Store challenge in DB. Only a hash of the user-entered code is persisted.
         await pool.query(`
             INSERT INTO account_recovery_requests (
                 request_id, user_id, contact_identifier, contact_type,
@@ -86,17 +88,9 @@ class AccountRecoveryService {
             user.user_id,
             contact,
             contact.includes('@') ? 'email' : 'phone',
-            code,
+            challengeCodeHash,
             actionType
         ]);
-
-        // Non-blocking Redis write with fallback
-        redisService.set(`recovery_otp:${requestId}`, {
-            userId: user.user_id,
-            code,
-            actionType,
-            contact
-        }, ttlSeconds).catch(err => logger.debug(`[AccountRecovery] Redis set non-fatal: ${err.message}`));
 
         // Send challenge via email in background (do NOT block HTTP response on SMTP roundtrip)
         const actionLabels = {
@@ -149,21 +143,23 @@ class AccountRecoveryService {
             throw new Error('Too many incorrect verification attempts. Challenge voided.');
         }
 
-        if (reqRecord.challenge_code !== String(code).trim()) {
+        const codeMatch = await bcrypt.compare(String(code).trim(), reqRecord.challenge_code);
+        if (!codeMatch) {
             await pool.query('UPDATE account_recovery_requests SET attempts = attempts + 1 WHERE request_id = ?', [requestId]);
             throw new Error('Incorrect verification code. Please check and try again.');
         }
 
-        // Issue single-use scoped verification token valid for 30 minutes
+        // Issue single-use scoped verification token valid for 15 minutes. Store only a hash.
         const verifiedToken = crypto.randomBytes(32).toString('hex');
+        const verifiedTokenHash = crypto.createHash('sha256').update(verifiedToken).digest('hex');
 
         await pool.query(`
             UPDATE account_recovery_requests
             SET status = 'VERIFIED',
-                verified_token = ?,
+                verified_token_hash = ?,
                 verified_at = NOW()
             WHERE request_id = ?
-        `, [verifiedToken, requestId]);
+        `, [verifiedTokenHash, requestId]);
 
         return {
             success: true,
@@ -178,14 +174,16 @@ class AccountRecoveryService {
      * Step 3A: Execute Cancel Deletion (Requires verifiedToken)
      */
     async executeCancelDeletion({ verifiedToken }) {
+        const verifiedTokenHash = crypto.createHash('sha256').update(verifiedToken).digest('hex');
+
         const [requests] = await pool.query(`
             SELECT r.*, u.name, u.email, u.account_status, u.deletion_scheduled_at
             FROM account_recovery_requests r
             JOIN users u ON r.user_id = u.user_id
-            WHERE r.verified_token = ? AND r.status = 'VERIFIED'
+            WHERE r.verified_token_hash = ? AND r.status = 'VERIFIED'
               AND r.action_type = 'CANCEL_DELETION'
-              AND r.expires_at > DATE_SUB(NOW(), INTERVAL 30 MINUTE)
-        `, [verifiedToken]);
+              AND r.verified_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        `, [verifiedTokenHash]);
 
         if (requests.length === 0) {
             throw new Error('Invalid, consumed, or expired recovery session token.');
@@ -193,8 +191,14 @@ class AccountRecoveryService {
 
         const r = requests[0];
 
-        // Consume token immediately
-        await pool.query('UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ?', [r.request_id]);
+        // Consume token immediately, exactly once
+        const [consumeResult] = await pool.query(
+            'UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ? AND status = "VERIFIED"',
+            [r.request_id]
+        );
+        if (consumeResult.affectedRows !== 1) {
+            throw new Error('Invalid, consumed, or expired recovery session token.');
+        }
 
         // Authoritatively restore account via AccountLifecycleService
         const restoreResult = await accountLifecycleService.cancelDeletion({
@@ -223,13 +227,16 @@ class AccountRecoveryService {
      * Step 3B: Submit Appeal for Platform-Initiated Termination
      */
     async submitAppeal({ verifiedToken, reasonCategory, explanation, attachments = null }) {
+        const verifiedTokenHash = crypto.createHash('sha256').update(verifiedToken).digest('hex');
+
         const [requests] = await pool.query(`
             SELECT r.*, u.name, u.email, u.account_status
             FROM account_recovery_requests r
             JOIN users u ON r.user_id = u.user_id
-            WHERE r.verified_token = ? AND r.status = 'VERIFIED'
+            WHERE r.verified_token_hash = ? AND r.status = 'VERIFIED'
               AND r.action_type = 'APPEAL_TERMINATION'
-        `, [verifiedToken]);
+              AND r.verified_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        `, [verifiedTokenHash]);
 
         if (requests.length === 0) throw new Error('Invalid or expired appeal session token.');
         const r = requests[0];
@@ -239,10 +246,16 @@ class AccountRecoveryService {
         }
 
         // Consume verification token
-        await pool.query('UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ?', [r.request_id]);
+        const [consumeResult] = await pool.query(
+            'UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ? AND status = "VERIFIED"',
+            [r.request_id]
+        );
+        if (consumeResult.affectedRows !== 1) {
+            throw new Error('Invalid or expired appeal session token.');
+        }
 
-        // Generate Appeal Case Reference: SPK-APL-XXXXXX
-        const refNumber = 'SPK-APL-' + Math.floor(100000 + Math.random() * 900000);
+        // Generate Appeal Case Reference: SPK-APL-XXXXXX (CSPRNG)
+        const refNumber = 'SPK-APL-' + crypto.randomInt(100000, 999999);
         const caseId = crypto.randomUUID();
 
         await pool.query(`
@@ -283,18 +296,27 @@ class AccountRecoveryService {
      * Step 3C: Emergency Data Export Request from Recovery Portal
      */
     async executeEmergencyExport({ verifiedToken, format = 'pdf', categories = [] }) {
+        const verifiedTokenHash = crypto.createHash('sha256').update(verifiedToken).digest('hex');
+
         const [requests] = await pool.query(`
             SELECT r.*, u.email
             FROM account_recovery_requests r
             JOIN users u ON r.user_id = u.user_id
-            WHERE r.verified_token = ? AND r.status = 'VERIFIED'
+            WHERE r.verified_token_hash = ? AND r.status = 'VERIFIED'
               AND r.action_type = 'DATA_EXPORT'
-        `, [verifiedToken]);
+              AND r.verified_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+        `, [verifiedTokenHash]);
 
         if (requests.length === 0) throw new Error('Invalid or expired recovery session token.');
         const r = requests[0];
 
-        await pool.query('UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ?', [r.request_id]);
+        const [consumeResult] = await pool.query(
+            'UPDATE account_recovery_requests SET status = "CONSUMED" WHERE request_id = ? AND status = "VERIFIED"',
+            [r.request_id]
+        );
+        if (consumeResult.affectedRows !== 1) {
+            throw new Error('Invalid or expired recovery session token.');
+        }
 
         const exportResult = await dataExportService.requestExport({
             userId: r.user_id,

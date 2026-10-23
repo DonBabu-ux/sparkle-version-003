@@ -50,7 +50,6 @@ router.post('/reactivate', authRateLimiter, authController.reactivateAccount);
 router.post('/cancel-deletion', authRateLimiter, authController.cancelDeletion);
 
 // Unified Supabase Auth Routes
-router.post('/google/sync', supabaseController.syncSocialUser);
 router.post('/otp/verify/sync', supabaseController.syncVerifiedOTP);
 
 // Token Validation

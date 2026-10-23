@@ -49,6 +49,17 @@ function relativeTime(dateStr: string): string {
   } catch { return ''; }
 }
 
+// Map legacy notification paths to routes that actually exist in App.tsx
+function normalizeTargetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  let next = url;
+  next = next.replace(/^\/posts\//, '/post/');
+  next = next.replace(/^\/moment\//, '/moments/');
+  next = next.replace(/^\/marketplace\/listing\//, '/marketplace/listings/');
+  next = next.replace(/^\/orders(?:\/[^/?#]+)?(?=$|[?#])/, '/marketplace/orders');
+  return next;
+}
+
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,34 +67,36 @@ export default function Notifications() {
   const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const [markedFeedback, setMarkedFeedback] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
   const [, setTick] = useState(0); // clock tick for live relative timestamps
   const navigate = useNavigate();
   const unreadRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const observerRef = useRef<IntersectionObserver | null>(null);
 
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await api.get('/notifications');
-        if (response.data.success || response.data) {
-          const raw = response.data.notifications || response.data || [];
-          const fetchedNotifs: Notification[] = (Array.isArray(raw) ? raw : []).map((n: any) => ({
-            ...n,
-            notification_id: n.notification_id || n.id,
-            id: n.id || n.notification_id,
-            is_read: (n.is_read === 1 || n.is_read === true || n.isRead === true) ? 1 : 0,
-            isRead: !!(n.is_read === 1 || n.is_read === true || n.isRead === true)
-          }));
-          setNotifications(fetchedNotifs);
-        }
-      } catch (err) {
-        logger.error('Failed to fetch notifications:', err);
-      } finally {
-        setLoading(false);
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await api.get('/notifications');
+      if (response.data.success || response.data) {
+        const raw = response.data.notifications || response.data || [];
+        const fetchedNotifs: Notification[] = (Array.isArray(raw) ? raw : []).map((n: any) => ({
+          ...n,
+          notification_id: n.notification_id || n.id,
+          id: n.id || n.notification_id,
+          is_read: (n.is_read === 1 || n.is_read === true || n.isRead === true) ? 1 : 0,
+          isRead: !!(n.is_read === 1 || n.is_read === true || n.isRead === true)
+        }));
+        setNotifications(fetchedNotifs);
       }
-    };
-    fetchNotifications();
+    } catch (err) {
+      logger.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   // Live timestamp tick — update every 60s
   useEffect(() => {
@@ -93,11 +106,16 @@ export default function Notifications() {
 
   // Auto-mark-as-read on scroll into view (IntersectionObserver)
   const markAsReadCb = useCallback((id: string) => {
+    const previous = notifications;
     setNotifications(prev =>
       prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
     );
-    api.put(`/notifications/${id}/read`).catch(() => {});
-  }, []);
+    // Auto mark-on-scroll must never leave a stale "read" mark if the server
+    // rejects it: revert silently so the card can be retried on the next pass.
+    api.put(`/notifications/${id}/read`)
+      .catch(() => api.post(`/notifications/${id}/read`))
+      .catch(() => setNotifications(previous));
+  }, [notifications]);
 
   useEffect(() => {
     if (loading) return;
@@ -142,12 +160,16 @@ export default function Notifications() {
   }, []);
 
   const markAsRead = async (id: string) => {
+    const previous = notifications;
+    setNotifications(prev =>
+      prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
+    );
+    setReadError(null);
     try {
-      setNotifications(prev =>
-        prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
-      );
       await api.put(`/notifications/${id}/read`).catch(() => api.post(`/notifications/${id}/read`));
     } catch (err) {
+      setNotifications(previous);
+      setReadError("Couldn't mark as read. Try again.");
       logger.error('Failed to mark read:', err);
     }
   };
@@ -156,16 +178,23 @@ export default function Notifications() {
     if (markingAll) return;
     try {
       setMarkingAll(true);
+      const previous = notifications;
       // Optimistic update
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));
+      setReadError(null);
       unreadRefs.current.clear();
       window.dispatchEvent(new Event('notifications_all_read'));
 
       // Call API
-      await api.put('/notifications/read-all').catch(() => api.post('/notifications/read-all'));
-
-      setMarkedFeedback(true);
-      setTimeout(() => setMarkedFeedback(false), 2000);
+      try {
+        await api.put('/notifications/read-all').catch(() => api.post('/notifications/read-all'));
+        setMarkedFeedback(true);
+        setTimeout(() => setMarkedFeedback(false), 2000);
+      } catch (err) {
+        setNotifications(previous);
+        setReadError("Couldn't mark all as read. Try again.");
+        logger.error('Failed to mark all read:', err);
+      }
     } catch (err) {
       logger.error('Failed to mark all read:', err);
     } finally {
@@ -228,7 +257,7 @@ export default function Notifications() {
     markAsRead(notif.notification_id || notif.id || '');
 
     // 2. Determine target URL with rich fallback resolution
-    let targetUrl = notif.action_url;
+    let targetUrl = normalizeTargetUrl(notif.action_url);
 
     // Check target object first if present
     if (notif.target) {
@@ -242,7 +271,7 @@ export default function Notifications() {
           targetUrl = `/post/${entity_id}${sub_entity_id ? `?commentId=${sub_entity_id}` : ''}`;
           break;
         case 'moment':
-          targetUrl = `/moment/${entity_id}`;
+          targetUrl = `/moments/${entity_id}`;
           break;
         case 'profile':
         case 'user':
@@ -255,8 +284,10 @@ export default function Notifications() {
           break;
         case 'marketplace':
         case 'marketplace_contact':
+          targetUrl = `/marketplace/listings/${entity_id}`;
+          break;
         case 'order':
-          targetUrl = entity_type === 'order' ? `/orders/${entity_id}` : `/marketplace/listing/${entity_id}`;
+          targetUrl = '/marketplace/orders';
           break;
         case 'story':
         case 'story_like':
@@ -302,7 +333,7 @@ export default function Notifications() {
         case 'moment_like':
         case 'moment_comment':
         case 'moment_spark':
-          if (relId) targetUrl = `/moment/${relId}`;
+          if (relId) targetUrl = `/moments/${relId}`;
           break;
         case 'story_like':
         case 'story_view':
@@ -310,8 +341,10 @@ export default function Notifications() {
           break;
         case 'marketplace':
         case 'marketplace_contact':
+          if (relId) targetUrl = `/marketplace/listings/${relId}`;
+          break;
         case 'order':
-          if (relId) targetUrl = `/marketplace/listing/${relId}`;
+          targetUrl = '/marketplace/orders';
           break;
         case 'group_invite':
         case 'group':
@@ -327,6 +360,7 @@ export default function Notifications() {
     }
 
     // 3. Navigate to resolved target or safe fallback
+    targetUrl = normalizeTargetUrl(targetUrl);
     if (targetUrl) {
       navigate(targetUrl);
     } else if (notif.actor_username || notif.actor_id) {
@@ -559,6 +593,23 @@ export default function Notifications() {
             </div>
           </div>
         </header>
+
+        {readError && (
+          <div className="px-4 py-3 bg-rose-50 border border-rose-200">
+            <div className="flex items-start gap-3">
+              <AlertOctagon size={16} className="text-rose-600 mt-0.5" />
+              <div>
+                <p className="text-[12px] font-bold text-rose-800">{readError}</p>
+                <button
+                  onClick={() => { setReadError(null); fetchNotifications(); }}
+                  className="text-[11px] font-bold text-[#ff1493] underline mt-1"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications list */}
         <div className="bg-white dark:bg-[#101217]">

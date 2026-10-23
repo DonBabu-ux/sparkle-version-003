@@ -1071,17 +1071,17 @@ async function uploadFileWithProgress(fileOrUrl, onProgress) {
 
   if (fileOrUrl instanceof File) {
     formData.append('file', fileOrUrl);
-  } else {
-    try {
-      const response = await fetch(fileOrUrl);
-      const blob = await response.blob();
-      formData.append('file', blob, 'device_gallery_attachment.jpg');
-    } catch (err) {
-      logger.error('Fetch blob failed, sending mock file data', err);
-      const mockBlob = new Blob(['mock content'], { type: 'image/jpeg' });
-      formData.append('file', mockBlob, 'attachment.jpg');
+    } else {
+      try {
+        const response = await fetch(fileOrUrl);
+        if (!response.ok) throw new Error(`Fetch failed: ${response.status}`);
+        const blob = await response.blob();
+        formData.append('file', blob, 'device_gallery_attachment.jpg');
+      } catch (err) {
+        logger.error('Fetch blob failed, aborting upload', err);
+        throw new Error('Could not read the selected media. Please choose another file and try again.');
+      }
     }
-  }
 
   const response = await api.post('/upload/message', formData, {
     // Axios sets multipart headers automatically
@@ -1688,6 +1688,7 @@ export default function Messages() {
   // Tracks whether the user is actively scrolling — used to subtly dim header presence text
   const [isScrollingMessages, setIsScrollingMessages] = useState(false);
   const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingExpiryTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const isTypingRef = useRef(false);
@@ -2792,6 +2793,7 @@ export default function Messages() {
             }
           } catch (err) {
             logger.error('[MediaUpload] Upload failed:', err);
+            showError(err?.message || 'Upload failed. Please try again.');
             setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
             updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
               ? { ...m, status: 'failed' }
@@ -3192,8 +3194,9 @@ export default function Messages() {
       }
     } catch (err) {
       logger.error('Failed to upload voice/audio note:', err);
+      showError(err?.message || 'Upload failed. Please try again.');
       setUploadQueue(prev => prev.map(item => item.id === queueId ? { ...item, status: 'failed' } : item));
-      updateMessages(prev => prev.map(m =>
+      updateMessages(prev => prev.map(m => 
         (m.message_id === clientMessageId || m.id === clientMessageId) ? { ...m, status: 'failed' } : m
       ));
     }
@@ -5901,28 +5904,29 @@ export default function Messages() {
                     <div className="p-5 rounded-2xl bg-white/5 border border-white/5 flex flex-col items-center text-center gap-3.5 backdrop-blur-md relative overflow-hidden">
                       <div className="w-10 h-10 rounded-full bg-[#ff1493]/15 text-[#ff1493] flex items-center justify-center"><ImageIcon size={20} strokeWidth={2} /></div>
                       <div className="flex flex-col gap-1 z-10">
-                        <span className="text-[12px] font-bold text-white">Access Recent Media</span>
+                        <span className="text-[12px] font-bold text-white">Choose photos &amp; videos</span>
                         <p className="text-[10px] text-white/50 leading-relaxed max-w-[280px]">
-                          Sparkle requests access to your device storage to display photos, videos, and screenshots for rapid sharing.
+                          Select photos or videos from your device to share in this conversation. Sparkle does not access your storage without you picking a file.
                         </p>
                       </div>
                       <div className="flex gap-2 w-full mt-1.5 z-10">
-                        <button
+                        <label
                           type="button"
-                          onClick={() => setMediaPermission('granted')}
+                          onClick={() => fileInputRef.current?.click()}
                           className="flex-1 py-2 px-3 bg-[#ff1493] hover:bg-pink-600 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 shadow-md shadow-pink-500/10"
                         >
-                          Allow Access
-                        </button>
+                          Choose from device
+                        </label>
                         <label className="flex-1 py-2 px-3 bg-white/5 hover:bg-white/10 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all active:scale-95 border border-white/5 flex items-center justify-center cursor-pointer">
                           <input
+                            ref={fileInputRef}
                             type="file"
                             multiple
                             accept="image/*,video/*"
                             className="hidden"
                             onChange={handleDeviceImport}
                           />
-                          Scan Storage
+                          Browse files
                         </label>
                       </div>
                     </div>
@@ -6183,6 +6187,7 @@ export default function Messages() {
                           }
                         } catch (err) {
                           logger.error('[MediaUpload] Upload failed:', err);
+                          showError(err?.message || 'Upload failed. Please try again.');
                           setUploadQueue(prev => prev.map(u => u.id === queueId ? { ...u, status: 'failed' } : u));
                           updateMessages(prev => prev.map(m => (m.message_id === tempMessageId || m.id === tempMessageId)
                             ? { ...m, status: 'failed' }

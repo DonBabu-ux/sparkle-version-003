@@ -1,21 +1,20 @@
-import { showError } from '../utils/toast';
+﻿import { showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { ChevronLeft, ShieldAlert, CheckCircle2, ShieldCheck } from 'lucide-react';
 import api from '../api/api';
-import { useMarketplaceStore } from '../store/marketplaceStore';
 import { motion, AnimatePresence } from 'framer-motion';
 import { logger } from '../utils/logger';
 
 export default function ReportListing() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const reportListingStore = useMarketplaceStore(state => state.reportListing);
   const [ , setListing ] = useState<any>(null);
   const [reason, setReason] = useState('');
   const [details, setDetails] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     const fetchListing = async () => {
@@ -32,38 +31,28 @@ export default function ReportListing() {
   }, [id]);
 
   const reportReasons = [
-    { id: 'scam', label: 'Prohibited items', description: 'Listing contains items that are banned on Sparkle.' },
-    { id: 'fake', label: 'Misleading or Scam', description: 'Item is not as described or a fraudulent listing.' },
+    { id: 'scam', label: 'Scam or fraud', description: 'The seller or listing appears to be trying to defraud buyers.' },
+    { id: 'misleading', label: 'Misleading listing', description: 'The item is not as described or the photos are misleading.' },
     { id: 'inappropriate', label: 'Inappropriate content', description: 'Offensive images or text that violates community standards.' },
-    { id: 'wrong_category', label: 'Incorrect Category', description: 'Item is listed in a completely unrelated section.' },
-    { id: 'stolen', label: 'Stolen Property', description: 'Suspicion that the item was acquired illegally.' }
+    { id: 'duplicate', label: 'Duplicate listing', description: 'The same item has been posted more than once.' },
+    { id: 'spam', label: 'Spam', description: 'The listing is repetitive, promotional, or irrelevant.' },
+    { id: 'other', label: 'Something else', description: 'Another issue that does not fit the options above.' }
   ];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reason) return;
+    if (!reason || saving) return;
 
+    setSaving(true);
     try {
-      // Execute official report submission to backend
-      await api.post(`/marketplace/listings/${id}/report`, { 
-        listingId: id,
-        reason, 
-        description: details 
-      });
-      
-      // Real-time Automated Moderation: 
-      // Immediately hide this listing from the current user's view to prevent further exposure
-      // In a high-traffic production environment, this is standard protocol.
-      reportListingStore(id!);
+      await api.post(`/marketplace/listings/${id}/report`, { reason, details });
       setSubmitted(true);
-      
-      // Redirect to safety after a short confirmation period
-      setTimeout(() => {
-        navigate('/marketplace');
-      }, 3500);
-    } catch (err) {
+      setTimeout(() => navigate('/marketplace'), 3500);
+    } catch (err: any) {
       logger.error(err);
-      showError('Failed to submit report. Please try again.');
+      showError(err.response?.data?.message || 'Failed to submit report. Please try again.');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -94,7 +83,7 @@ export default function ReportListing() {
                 <div className="flex-1">
                   <h2 className="font-black text-red-600">Sparkle Safety Center</h2>
                   <p className="text-[11px] font-bold text-red-400 uppercase tracking-wider">
-                    Protecting Your Community •{' '}
+                    Protecting Your Community -{' '}
                     <Link to="/legal/community-guidelines" target="_blank" className="underline hover:text-red-600">
                       Community Guidelines
                     </Link>
@@ -132,7 +121,7 @@ export default function ReportListing() {
                   <textarea 
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
-                    placeholder="Provide any specific details that will help our automated system take action..."
+                    placeholder="Add details that will help our moderation team review this listing..."
                     className="w-full bg-marketplace-bg rounded-[24px] p-5 font-bold text-sm h-32 outline-none focus:ring-2 ring-red-500/20 transition-all border border-transparent focus:border-red-100"
                   />
                 </div>
@@ -143,9 +132,9 @@ export default function ReportListing() {
                       <ShieldCheck size={18} />
                     </div>
                     <div>
-                      <h4 className="font-black text-sm text-slate-800 mb-1">Immediate Action Guaranteed</h4>
+                      <h4 className="font-black text-sm text-slate-800 mb-1">Reports are reviewed by people</h4>
                       <p className="text-[11px] font-bold text-slate-400 leading-relaxed uppercase tracking-wider">
-                        Submitting this report instantly removes this item from your feed. Our real-time safety layer uses your feedback to protect the Sparkle community by flagging suspicious listings for immediate review.
+                        Your report is private. A moderator will review the listing. We cannot promise an immediate removal, and the seller will not see who reported them.
                       </p>
                     </div>
                   </div>
@@ -153,10 +142,10 @@ export default function ReportListing() {
 
                 <button 
                   type="submit"
-                  disabled={!reason}
+                  disabled={!reason || saving}
                   className="w-full py-5 bg-red-500 text-white font-black rounded-[24px] shadow-xl shadow-red-100 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:hover:scale-100"
                 >
-                  Submit Official Report
+                  {saving ? 'Submitting...' : 'Submit Report'}
                 </button>
               </form>
             </motion.div>
@@ -172,11 +161,11 @@ export default function ReportListing() {
               </div>
               <h2 className="text-3xl font-black mb-4 tracking-tight">Report Received</h2>
               <p className="text-marketplace-muted font-bold text-lg mb-8 max-w-sm">
-                Our automated safety system is now analyzing this listing. Thank you for protecting the Sparkle community.
+                Thank you for protecting the Sparkle community. Our moderation team will review this listing.
               </p>
               <div className="flex items-center gap-2 px-6 py-3 bg-emerald-50 rounded-full border border-emerald-100 text-emerald-600">
                 <ShieldCheck size={18} />
-                <span className="text-xs font-black uppercase tracking-widest">Automation Engaged</span>
+                <span className="text-xs font-black uppercase tracking-widest">Under Review</span>
               </div>
             </motion.div>
           )}

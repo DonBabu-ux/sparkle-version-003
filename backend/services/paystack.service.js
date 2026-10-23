@@ -238,6 +238,20 @@ class PaystackService {
             throw new Error(this._errMsg(error, 'Failed to fetch transfer status'));
         }
     }
+
+    /**
+     * Verify a transfer by the reference we supplied. Used to recover from a
+     * crash between the provider creating the transfer and our DB write.
+     * @param {string} reference  Our stable internal transfer reference
+     */
+    async verifyTransfer(reference) {
+        try {
+            const response = await this.client.get(`/transfer/verify/${encodeURIComponent(reference)}`);
+            return response.data;
+        } catch (error) {
+            throw new Error(this._errMsg(error, 'Failed to verify transfer'));
+        }
+    }
 }
 
 module.exports = new PaystackService();

@@ -7,6 +7,8 @@ import {
   ExternalLink,
   Trash2,
   ChevronRight,
+  Pencil,
+  RotateCcw,
 } from 'lucide-react';
 import MarketplaceImageSlider from './MarketplaceImageSlider';
 
@@ -45,6 +47,7 @@ export interface ListingCardData {
   distance_km?: number | null;
   created_at?: string;
   status?: string;
+  is_sold?: boolean | number;
   media?: (ListingCardMedia | string)[];
   image_urls?: string[];
 }
@@ -58,7 +61,11 @@ interface ListingCardProps {
   onRemove?: () => void;
   /** manage: "Mark Sold" button. */
   onMarkSold?: () => void;
-  /** manage: "Delete" button (shown when sold). */
+  /** manage: "Edit" button. */
+  onEdit?: () => void;
+  /** manage: "Relist" button (shown when sold). */
+  onRelist?: () => void;
+  /** manage: "Delete" button (shown when sold/removed). */
   onDelete?: () => void;
   /** grid: renders the vehicle-style stacked price/title block. */
   isVehicle?: boolean;
@@ -70,9 +77,14 @@ export default function ListingCard({
   onClick,
   onRemove,
   onMarkSold,
+  onEdit,
+  onRelist,
   onDelete,
   isVehicle,
 }: ListingCardProps) {
+  const isSold = listing.status === 'sold' || listing.is_sold === true;
+  const isRemoved = listing.status === 'deleted';
+
   switch (variant) {
     case 'grid':
       return (
@@ -125,11 +137,11 @@ export default function ListingCard({
               fallbackUrl={listing.image_url}
               alt={listing.title}
               aspectRatio="aspect-[16/10]"
-              className={listing.status === 'sold' ? 'grayscale opacity-60' : ''}
+              className={isSold || isRemoved ? 'grayscale opacity-60' : ''}
             />
-            {listing.status === 'sold' && (
+            {(isSold || isRemoved) && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-                <div className="bg-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">Sold</div>
+                <div className="bg-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">{isRemoved ? 'Removed' : 'Sold'}</div>
               </div>
             )}
           </div>
@@ -144,7 +156,7 @@ export default function ListingCard({
               <span className="flex items-center gap-1.5"><Clock size={12} /> {new Date(listing.created_at || Date.now()).toLocaleDateString()}</span>
               <span className={clsx(
                 "flex items-center gap-1.5",
-                listing.status === 'sold' ? "text-emerald-500" : "text-blue-500"
+                isRemoved ? "text-rose-500" : isSold ? "text-emerald-500" : "text-blue-500"
               )}>
                 <CheckCircle2 size={12} /> {listing.status || 'Active'}
               </span>
@@ -157,14 +169,31 @@ export default function ListingCard({
               >
                 <ExternalLink size={16} /> View
               </button>
-              {listing.status !== 'sold' ? (
+              {!isRemoved && (
+                <button
+                  onClick={onEdit}
+                  className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-blue-50 text-blue-600 font-black text-sm hover:bg-blue-100 transition-all border border-blue-100"
+                >
+                  <Pencil size={16} /> Edit
+                </button>
+              )}
+              {!isSold && !isRemoved && (
                 <button
                   onClick={onMarkSold}
                   className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-emerald-50 text-emerald-600 font-black text-sm hover:bg-emerald-100 transition-all border border-emerald-100"
                 >
                   <CheckCircle2 size={16} /> Mark Sold
                 </button>
-              ) : (
+              )}
+              {isSold && (
+                <button
+                  onClick={onRelist}
+                  className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-amber-50 text-amber-600 font-black text-sm hover:bg-amber-100 transition-all border border-amber-100"
+                >
+                  <RotateCcw size={16} /> Relist
+                </button>
+              )}
+              {(isSold || isRemoved) && (
                 <button
                   onClick={onDelete}
                   className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-red-50 text-red-500 font-black text-sm hover:bg-red-100 transition-all border border-red-100"

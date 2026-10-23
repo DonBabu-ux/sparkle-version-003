@@ -1862,13 +1862,37 @@ const initWalletTables = async () => {
                 account_number      VARCHAR(50)  DEFAULT NULL,
                 bank_code           VARCHAR(20)  DEFAULT NULL,
                 phone               VARCHAR(20)  DEFAULT NULL COMMENT 'M-Pesa number',
+                internal_reference  VARCHAR(100) DEFAULT NULL COMMENT 'Stable provider reference for retries',
                 requested_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                last_attempt_at     TIMESTAMP    NULL DEFAULT NULL,
                 processed_at        TIMESTAMP    NULL DEFAULT NULL,
+                failure_reason      TEXT         DEFAULT NULL,
                 metadata            JSON         DEFAULT NULL,
                 CONSTRAINT fk_withdrawal_wallet FOREIGN KEY (wallet_id) REFERENCES wallets(wallet_id) ON DELETE CASCADE,
                 INDEX idx_withdrawal_wallet (wallet_id),
-                INDEX idx_withdrawal_status (status)
+                INDEX idx_withdrawal_status (status),
+                INDEX idx_withdrawal_internal_ref (internal_reference)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Payout requests — deduct from pending_balance until processed'
+        `);
+
+        // ── wallet_webhook_events: durable provider event queue ───────────────
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS wallet_webhook_events (
+                event_id        CHAR(36)     PRIMARY KEY,
+                provider        VARCHAR(30)  NOT NULL DEFAULT 'paystack',
+                event_type      VARCHAR(100) NOT NULL,
+                paystack_ref    VARCHAR(255) NOT NULL,
+                payload         JSON         NOT NULL,
+                status          ENUM('Pending','Processing','Processed','Failed') NOT NULL DEFAULT 'Pending',
+                attempts        INT          NOT NULL DEFAULT 0,
+                last_error      TEXT         DEFAULT NULL,
+                received_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                next_retry_at   TIMESTAMP    NULL DEFAULT NULL,
+                processed_at    TIMESTAMP    NULL DEFAULT NULL,
+                UNIQUE INDEX idx_whe_ref_event (provider, paystack_ref, event_type),
+                INDEX idx_whe_status_retry (status, next_retry_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='Durable queue for provider webhooks; completed only after ledger commit'
         `);
 
         // ── wallet_webhook_log: idempotency guard for Paystack webhooks ───────
@@ -2578,12 +2602,16 @@ const RECOVERED_TABLES = [
         name: 'support_requests',
         sql: `CREATE TABLE IF NOT EXISTS support_requests (
             id INT AUTO_INCREMENT PRIMARY KEY,
+            ticket_id VARCHAR(32) DEFAULT NULL,
+            user_id CHAR(36) DEFAULT NULL,
             name VARCHAR(255) DEFAULT NULL,
             email VARCHAR(255) DEFAULT NULL,
             type VARCHAR(50) DEFAULT NULL,
             message TEXT,
+            status VARCHAR(20) NOT NULL DEFAULT 'open',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_sr_created (created_at)
+            INDEX idx_sr_created (created_at),
+            INDEX idx_sr_user (user_id, created_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
     }
 ];
@@ -2609,6 +2637,14 @@ const RECOVERED_COLUMNS = [
     // push logging writes notification_id + created_at (older table shape lacks them)
     { table: 'push_notifications', column: 'notification_id', ddl: 'CHAR(36) NULL AFTER id' },
     { table: 'push_notifications', column: 'created_at', ddl: 'TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP AFTER data' },
+    // durable withdrawal retries
+    { table: 'wallet_withdrawals', column: 'internal_reference', ddl: 'VARCHAR(100) NULL' },
+    { table: 'wallet_withdrawals', column: 'last_attempt_at', ddl: 'TIMESTAMP NULL DEFAULT NULL' },
+    { table: 'wallet_withdrawals', column: 'failure_reason', ddl: 'TEXT NULL' },
+    // support ticket ownership, identifiers and status
+    { table: 'support_requests', column: 'ticket_id', ddl: 'VARCHAR(32) NULL AFTER id' },
+    { table: 'support_requests', column: 'user_id', ddl: 'CHAR(36) NULL AFTER ticket_id' },
+    { table: 'support_requests', column: 'status', ddl: "VARCHAR(20) NOT NULL DEFAULT 'open' AFTER message" },
     // admin identity-verification review flow (admin.controller)
     { table: 'verification_requests', column: 'status', ddl: "ENUM('pending','approved','rejected','expired') DEFAULT 'pending'" },
     { table: 'verification_requests', column: 'id_document_url', ddl: 'VARCHAR(255) NULL' },
@@ -2652,7 +2688,8 @@ const repairRecoveredSchemas = async () => {
     // Missing indexes from canonical schema / migrations
     const recoveredIndexes = [
         { table: 'verification_requests', name: 'idx_verif_requests_user_time', cols: 'user_id, type, requested_at' },
-        { table: 'sparks', name: 'idx_sparks_post_user', cols: 'post_id, user_id' }
+        { table: 'sparks', name: 'idx_sparks_post_user', cols: 'post_id, user_id' },
+        { table: 'support_requests', name: 'idx_sr_user', cols: 'user_id, created_at' }
     ];
     for (const idx of recoveredIndexes) {
         try {

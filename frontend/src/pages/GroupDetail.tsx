@@ -50,6 +50,7 @@ export default function GroupDetail() {
 
   const fetchGroupData = useCallback(async () => {
     if (!id) return;
+    let apiRole, apiStatus, isCreator;
     try {
       const [groupRes, membersRes, postsRes] = await Promise.all([
         api.get(`/groups/${id}`),
@@ -63,19 +64,26 @@ export default function GroupDetail() {
       setPosts(postsRes.data.posts || postsRes.data || []);
       
       // Use roles directly from backend for maximum authority
-      const apiRole = g.userRole;
-      const apiStatus = g.memberStatus;
-      const isCreator = g.creator_id === user?.user_id;
+      apiRole = g.userRole;
+      apiStatus = g.memberStatus;
+      isCreator = g.creator_id === user?.user_id;
 
       logger.log('Group Detail Permissions:', { apiRole, apiStatus, isCreator, userId: user?.user_id });
       
       setIsMember(apiStatus === 'active' || isCreator);
       setIsOwner(apiRole === 'owner' || isCreator);
       setIsAdmin(apiRole === 'admin' || apiRole === 'owner' || apiRole === 'moderator' || isCreator);
-      
+
+      // My-join-request status is non-fatal: not every group exposes a
+      // /my-request endpoint; default to not pending if unavailable.
       if (apiStatus !== 'active' && !isCreator) {
-        const reqRes = await api.get(`/groups/${id}/my-request`);
-        setPendingJoin(reqRes.data?.status === 'pending');
+        try {
+          const reqRes = await api.get(`/groups/${id}/my-request`);
+          setPendingJoin(reqRes.data?.status === 'pending');
+        } catch (err) {
+          logger.debug('My group request unavailable:', err?.message || err);
+          setPendingJoin(false);
+        }
       }
     } catch (err) {
       logger.error('Failed to fetch group data:', err);
@@ -119,7 +127,7 @@ export default function GroupDetail() {
     fd.append(type === 'icon' ? 'icon' : 'cover', file);
 
     try {
-      await api.put(`/groups/${id}/branding`, fd, {
+      await api.post(`/groups/${id}/update`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       fetchGroupData();

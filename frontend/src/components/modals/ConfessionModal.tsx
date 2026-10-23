@@ -143,7 +143,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           </div>
           <div>
             <h3 className="font-black text-xl text-gray-900 tracking-tight uppercase italic leading-none">New Confession</h3>
-            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-0.5">Always Anonymous · Identity Shielded</p>
+            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-0.5">Posted under an alias</p>
           </div>
         </div>
         <button
@@ -247,7 +247,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
               <SpyIcon size={16} className="text-emerald-500" />
             </div>
             <span className="text-[10px] font-bold text-emerald-600/80 uppercase tracking-widest leading-relaxed">
-              Identity shielded by Sparkle's anonymity layer.
+              Other users see only your alias. Sparkle staff can see which account posted this when reviewing a report.
             </span>
           </div>
         </div>

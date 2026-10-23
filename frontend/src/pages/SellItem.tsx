@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import { validateFiles } from '../utils/fileValidation';
 import { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   ChevronLeft, Camera, X, ChevronRight, MapPin, 
   Car, Home, Key, Sofa, Laptop, Shirt, Watch, 
@@ -36,6 +36,9 @@ const CATEGORIES = [
 
 export default function SellItem() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEditing = Boolean(editId);
   const storeLocation = useMarketplaceStore(state => state.location);
   const [loading, setLoading] = useState(false);
   const [media, setMedia] = useState<File[]>([]);
@@ -59,6 +62,38 @@ export default function SellItem() {
   });
 
   const selectedCategory = CATEGORIES.find(c => c.id === formData.category);
+
+  useEffect(() => {
+    if (!editId) return;
+    let cancelled = false;
+    const loadListing = async () => {
+      try {
+        const res = await api.get(`/marketplace/listings/${editId}`);
+        if (cancelled) return;
+        const listing = res.data.listing;
+        if (!listing) throw new Error('Listing unavailable');
+        setFormData({
+          title: listing.title || '',
+          description: listing.description || '',
+          price: String(listing.price ?? ''),
+          category: listing.category || '',
+          condition: listing.condition || 'used_good',
+          location: listing.location || storeLocation.name || 'Nairobi, Kenya',
+          campus: listing.campus || 'Main Campus'
+        });
+        const urls = Array.isArray(listing.media)
+          ? listing.media.map((m: any) => m.media_url || m.url).filter(Boolean)
+          : [];
+        setPreviews(urls);
+      } catch (err) {
+        logger.error('Failed to load listing for editing:', err);
+        showError('This listing is unavailable for editing.');
+        navigate('/marketplace/my-listings');
+      }
+    };
+    loadListing();
+    return () => { cancelled = true; };
+  }, [editId, navigate, storeLocation.name]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -98,19 +133,23 @@ export default function SellItem() {
     media.forEach(file => data.append('media', file));
 
     try {
-      const res = await api.post('/marketplace/listings', data, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      const res = isEditing
+        ? await api.put(`/marketplace/listings/${editId}`, data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          })
+        : await api.post('/marketplace/listings', data, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
       if (res.data.success) {
-        navigate(`/marketplace/listings/${res.data.listing_id || res.data.id}`);
+        navigate(`/marketplace/listings/${isEditing ? editId : (res.data.listing_id || res.data.id)}`);
       }
     } catch (err: any) {
-      logger.error('Failed to create listing:', err);
+      logger.error('Failed to save listing:', err);
       // Fallback for 401: if unauthorized, maybe token expired
       if (err.response?.status === 401) {
         showError('Your session has expired. Please log in again.');
       } else {
-        showError('Failed to create listing. Please check all fields.');
+        showError(err.response?.data?.message || `Failed to ${isEditing ? 'update' : 'create'} listing. Please check all fields.`);
       }
     } finally {
       setLoading(false);
@@ -125,7 +164,7 @@ export default function SellItem() {
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
-          <h1 className="text-[19px] font-bold">Create listing</h1>
+          <h1 className="text-[19px] font-bold">{isEditing ? 'Edit listing' : 'Create listing'}</h1>
         </div>
         <button 
           onClick={handleSubmit}
@@ -137,7 +176,7 @@ export default function SellItem() {
               : "text-white bg-[#1877F2] shadow-lg shadow-blue-500/30 hover:scale-105 active:scale-95"
           )}
         >
-          {loading ? 'Posting...' : 'Post'}
+          {loading ? 'Saving...' : isEditing ? 'Save' : 'Post'}
         </button>
       </header>
 

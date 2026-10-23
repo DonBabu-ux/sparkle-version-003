@@ -1,20 +1,31 @@
 const pool = require('../config/database');
 const { getIO } = require('../socket');
 const logger = require('../utils/logger');
+const { canViewPresence } = require('../services/presencePrivacy');
 
 // Get online friends
 const getOnlineFriends = async (req, res) => {
     try {
+        const viewerId = req.user.userId || req.user.user_id;
         const [onlineUsers] = await pool.query(
             `SELECT u.user_id, u.username, u.name, u.avatar_url, u.is_online, u.last_seen_at
              FROM users u
              INNER JOIN follows f ON (f.following_id = u.user_id)
              WHERE f.follower_id = ? AND u.is_online = true
              ORDER BY u.last_seen_at DESC`,
-            [req.user.userId || req.user.user_id]
+            [viewerId]
         );
 
-        res.json({ status: 'success', data: onlineUsers });
+        // Enforce each friend's Active Status privacy before returning presence.
+        const visible = [];
+        for (const row of onlineUsers) {
+            // eslint-disable-next-line no-await-in-loop
+            if (await canViewPresence(viewerId, row.user_id)) {
+                visible.push(row);
+            }
+        }
+
+        res.json({ status: 'success', data: visible });
     } catch (error) {
         logger.error('Get online friends error:', error);
         res.status(500).json({ error: error.message });
@@ -25,6 +36,7 @@ const getOnlineFriends = async (req, res) => {
 const getUserPresence = async (req, res) => {
     try {
         const { userId } = req.params;
+        const viewerId = req.user.userId || req.user.user_id;
 
         const [users] = await pool.query(
             'SELECT is_online, last_seen_at FROM users WHERE user_id = ?',
@@ -35,12 +47,20 @@ const getUserPresence = async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        // Server-authoritative privacy: users who hide Active Status appear
+        // offline with no last-seen, to everyone but themselves.
+        const allowed = await canViewPresence(viewerId, userId);
         res.json({
             status: 'success',
-            data: {
-                is_online: users[0].is_online,
-                last_seen_at: users[0].last_seen_at
-            }
+            data: allowed
+                ? {
+                    is_online: users[0].is_online,
+                    last_seen_at: users[0].last_seen_at
+                }
+                : {
+                    is_online: 0,
+                    last_seen_at: null
+                }
         });
     } catch (error) {
         logger.error('Get user presence error:', error);

@@ -114,8 +114,8 @@ export const KeyboardSafeContainer: React.FC<{
 }> = ({ children, className = '', style }) => {
   // Use static full viewport height to allow browser to handle keyboard overlays.
   const containerStyle: React.CSSProperties = {
-    height: '100dvh',
-    maxHeight: '100dvh',
+    height: '100%',
+    maxHeight: '100%',
     overflow: 'hidden',
     position: 'relative',
     ...style,
@@ -175,7 +175,7 @@ export const ChatInputDock: React.FC<{
       className={`w-full shrink-0 border-t border-white/5 z-30 transition-all duration-150 ${className}`}
       style={{
         backgroundColor: backgroundColor || defaultBg,
-        paddingBottom: isKeyboardOpen ? '6px' : 'calc(env(safe-area-inset-bottom) + 8px)',
+        paddingBottom: isKeyboardOpen ? '6px' : 'calc(var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + 8px)',
         boxSizing: 'border-box',
         ...style
       }}

@@ -13,6 +13,7 @@ import {
   CheckSquare,
   Sparkles,
   Eye,
+  Download,
 } from 'lucide-react';
 
 export interface SparkleSelectionMenuProps {
@@ -36,6 +37,7 @@ export interface SparkleSelectionMenuProps {
   onArchive?: () => void;
   onSearch?: () => void;
   onReport?: () => void;
+  onExportChat?: () => void;
 }
 
 export const SparkleSelectionMenu: React.FC<SparkleSelectionMenuProps> = ({
@@ -60,6 +62,7 @@ export const SparkleSelectionMenu: React.FC<SparkleSelectionMenuProps> = ({
   onArchive,
   onSearch,
   onReport,
+  onExportChat,
 }) => {
   if (!isOpen) return null;
 
@@ -216,6 +219,19 @@ export const SparkleSelectionMenu: React.FC<SparkleSelectionMenuProps> = ({
               >
                 <Search size={17} className="text-sky-400 shrink-0" />
                 <span>Search Messages</span>
+              </button>
+            )}
+
+            {onExportChat && (
+              <button
+                onClick={() => {
+                  onExportChat();
+                  onClose();
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-white flex items-center gap-3 text-[14px] font-semibold transition-all text-left"
+              >
+                <Download size={17} className="text-teal-400 shrink-0" />
+                <span>Export Chat</span>
               </button>
             )}
 

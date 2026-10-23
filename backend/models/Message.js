@@ -162,6 +162,50 @@ class Message {
         const sentAt = new Date();
         const validReplyToId = (typeof replyToId === 'string' && replyToId.trim().length > 0) ? replyToId.trim() : null;
 
+        if (validReplyToId) {
+            const [refRows] = await db.query(
+                'SELECT message_id, conversation_id, chat_id, personal_chat_id FROM messages WHERE message_id = ?',
+                [validReplyToId]
+            );
+            if (refRows && refRows.length > 0) {
+                const refChatId = refRows[0].conversation_id || refRows[0].chat_id || refRows[0].personal_chat_id;
+                if (refChatId && refChatId !== activeChatId) {
+                    const forbiddenErr = new Error('Cannot reply to a message from a different conversation');
+                    forbiddenErr.code = 'INVALID_REPLY_REFERENCE';
+                    forbiddenErr.statusCode = 400;
+                    throw forbiddenErr;
+                }
+            }
+        }
+
+        // Canonical GIF deduplication: reuse existing canonical asset
+        let finalMediaUrl = mediaUrl;
+        if (type === 'gif' || (content && typeof content === 'string' && content.includes('"type":"gif"'))) {
+            try {
+                const CanonicalAssetService = require('../services/canonicalAssetService');
+                let gifUrl = mediaUrl;
+                if (!gifUrl && content && content.includes('"type":"gif"')) {
+                    const parsed = JSON.parse(content);
+                    if (parsed.url) {
+                        gifUrl = parsed.url;
+                        type = 'gif';
+                    }
+                }
+                if (gifUrl) {
+                    const asset = await CanonicalAssetService.getOrCreateCanonicalAsset({
+                        url: gifUrl,
+                        mediaType: 'gif',
+                        metadata
+                    });
+                    if (asset && asset.mediaUrl) {
+                        finalMediaUrl = asset.mediaUrl;
+                    }
+                }
+            } catch (canonErr) {
+                logger.warn('[Message.sendMessage] Canonical asset warning:', canonErr.message);
+            }
+        }
+
         // Calculate disappearing expiration if active for this chat
         let expiresAt = null;
         try {
@@ -193,7 +237,7 @@ class Message {
                 recipientId || null, 
                 content, 
                 type, 
-                mediaUrl, 
+                finalMediaUrl, 
                 storyId,
                 validReplyToId, 
                 sentAt, 
@@ -331,6 +375,8 @@ class Message {
                 rm.content as reply_content,
                 rm.type as reply_type,
                 ru.name as reply_sender_name,
+                rm.media_url as reply_media_url,
+                rm.is_deleted_for_everyone as reply_is_deleted,
                 ml.title as listing_title,
                 ml.price as listing_price,
                 ml.image_url as listing_image
@@ -535,6 +581,56 @@ class Message {
         let blockedByMeSet, blockedMeSet;
         [blockedByMeSet, blockedMeSet] = await blocksPromise;
 
+        // ── Presence privacy (Active Status) ──
+        // One batched round-trip for all personal-chat partners: a partner whose
+        // activity_status_enabled = 0 or last_seen_privacy = no_one appears
+        // offline with no last-seen; 'followers' requires the viewer to follow them.
+        const presencePrivacy = (async () => {
+            const hidden = new Set();
+            try {
+                const partnerIds = [...new Set(rows
+                    .map(r => r.partner_id)
+                    .filter(pid => pid !== null && pid !== undefined))];
+                if (partnerIds.length === 0) return hidden;
+
+                const [settingsRows] = await db.query(
+                    'SELECT user_id, activity_status_enabled, last_seen_privacy FROM users WHERE user_id IN (?)',
+                    [partnerIds]
+                );
+                const needsFollowers = (settingsRows || [])
+                    .filter(r => r.last_seen_privacy === 'followers')
+                    .map(r => r.user_id);
+                const followerPairs = new Map();
+                if (needsFollowers.length > 0) {
+                    const [followRows] = await db.query(
+                        'SELECT follower_id, following_id FROM follows WHERE following_id IN (?)',
+                        [needsFollowers]
+                    );
+                    for (const f of followRows || []) {
+                        const key = String(f.following_id);
+                        if (!followerPairs.has(key)) followerPairs.set(key, new Set());
+                        followerPairs.get(key).add(String(f.follower_id));
+                    }
+                }
+                const viewerStr = String(userId);
+                for (const r of settingsRows || []) {
+                    const enabled = r.activity_status_enabled === null || r.activity_status_enabled === undefined
+                        ? 1 : Number(r.activity_status_enabled);
+                    const privacy = r.last_seen_privacy || 'everyone';
+                    let visible = Boolean(enabled) && privacy !== 'no_one';
+                    if (visible && privacy === 'followers') {
+                        visible = (followerPairs.get(String(r.user_id)) || new Set()).has(viewerStr);
+                    }
+                    if (!visible) hidden.add(String(r.user_id));
+                }
+            } catch (e) {
+                logger.warn('getUserConversations: presence privacy lookup failed (presence shown raw)', e?.message || e);
+            }
+            return hidden;
+        })();
+
+        const hiddenPresenceSet = await presencePrivacy;
+
         const { formatSystemUser, isSystemAccount } = require('../helpers/systemAccount.helper');
         return rows.map(conv => {
             const formatted = formatSystemUser(conv);
@@ -543,6 +639,7 @@ class Message {
             const amIBlocked = pid ? blockedMeSet.has(pid) : false;
             const isBlocked = isBlockedByMe || amIBlocked;
             const isSys = Boolean(formatted.is_system_account || isSystemAccount(conv) || conv.is_system);
+            const presenceHidden = pid ? hiddenPresenceSet.has(pid) : false;
 
             return {
                 ...conv,
@@ -556,7 +653,7 @@ class Message {
                 partner_name: isBlocked ? 'Sparkle User' : String(conv.partner_name || conv.partner_username || 'Sparkle User'),
                 partner_username: isBlocked ? '' : String(conv.partner_username || ''),
                 partner_avatar: isBlocked ? null : conv.partner_avatar,
-                is_online: (isBlocked || isSys) ? false : Boolean(conv.is_online),
+                is_online: (isBlocked || isSys || presenceHidden) ? false : Boolean(conv.is_online),
                 last_message_sender_id: conv.last_message_sender_id ? String(conv.last_message_sender_id) : null,
                 last_message_status: conv.last_message_status || 'sent',
                 // Convert all TINYINT(1) DEFAULT 0 columns to proper booleans
@@ -571,7 +668,7 @@ class Message {
                 only_admins_send: Boolean(conv.only_admins_send),
                 disappearing_duration: Number(conv.disappearing_duration) || 0,
                 last_message_at: (conv.last_message_at && !isNaN(new Date(conv.last_message_at).getTime())) ? new Date(conv.last_message_at).toISOString() : null,
-                last_seen_at: (isBlocked || isSys) ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
+                last_seen_at: (isBlocked || isSys || presenceHidden) ? null : ((conv.last_seen_at && !isNaN(new Date(conv.last_seen_at).getTime())) ? new Date(conv.last_seen_at).toISOString() : null)
             };
         });
     }
@@ -731,20 +828,6 @@ class Message {
         return true;
     }
 
-    /**
-     * Edit a message (only by sender, within 5 minutes)
-     */
-    static async editMessage(messageId, userId, newContent) {
-        const [result] = await db.query(
-            `UPDATE messages 
-             SET content = ?, edited_at = NOW(), edited = 1 
-             WHERE message_id = ? AND sender_id = ? 
-               AND is_deleted_for_everyone = 0
-               AND TIMESTAMPDIFF(MINUTE, sent_at, NOW()) <= 5`,
-            [newContent, messageId, userId]
-        );
-        return result.affectedRows > 0;
-    }
 
     /**
      * Search messages within a conversation
@@ -1290,20 +1373,21 @@ class Message {
         const [currSeq] = await db.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [chatId]);
         const sequenceNo = currSeq[0]?.last_sequence || 1;
 
+        const nowIso = new Date().toISOString();
         await db.query(`
             UPDATE messages 
-            SET content = ?, is_edited = 1, edited_at = NOW(), server_sequence = ?
+            SET content = ?, is_edited = 1, edited = 1, edited_at = NOW(), server_sequence = ?
             WHERE message_id = ?
         `, [newContent, sequenceNo, messageId]);
 
         const eventId = crypto.randomUUID();
-        const payload = JSON.stringify({ messageId, userId, content: newContent, chatId, edited_at: new Date().toISOString() });
+        const payload = JSON.stringify({ messageId, userId, content: newContent, chatId, is_edited: true, edited: true, edited_at: nowIso });
         await db.query(`
             INSERT INTO interaction_events (event_id, chat_id, message_id, event_type, payload, sequence_no)
             VALUES (?, ?, ?, 'message_edited', ?, ?)
         `, [eventId, chatId, messageId, payload, sequenceNo]);
 
-        return { eventId, sequenceNo, chatId, messageId, content: newContent };
+        return { eventId, sequenceNo, chatId, messageId, content: newContent, is_edited: true, edited: true, edited_at: nowIso };
     }
 
     /**

@@ -1,5 +1,6 @@
 const socketIO = require('socket.io');
 const perms = require('../services/messagePermission');
+const PermissionEngine = require('../services/PermissionEngine');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const pool = require('../config/database');
@@ -26,13 +27,16 @@ const GroupMember = require('../models/GroupMember');
 
 const SessionService = require('../services/session.service');
 const DeliveryQueueWorker = require('../workers/deliveryQueueWorker');
+const { filterPresenceViewers } = require('../services/presencePrivacy');
 
 let io;
 
 /**
  * Grace period (ms) before a disconnected user is marked offline.
+ * Product requirement: keep the "online" indicator for one full minute after
+ * disconnect so brief network blips don't flicker presence.
  */
-const OFFLINE_GRACE_MS = 30_000;
+const OFFLINE_GRACE_MS = 60_000;
 
 const pendingOfflineTimers = new Map();
 const userSockets = new Map();
@@ -343,32 +347,45 @@ socket.on('get-rooms', () => {
             }
         });
 
-        socket.on('edit-message', async (data) => {
+        socket.on('edit-message', async (data, callback) => {
             try {
                 const { messageId, content } = data || {};
-                if (!messageId || !content) return;
-                const result = await Message.editMessage(messageId, socket.userId, content);
-                if (!result) return socket.emit('operation-failed', { operationId: data.operationId, error: 'Cannot edit message' });
+                if (!messageId || !content || !content.trim()) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'MessageId and content are required' });
+                    return;
+                }
+                const result = await Message.editMessage(messageId, socket.userId, content.trim());
+                if (!result) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Cannot edit message (not yours or past 15 min)' });
+                    return socket.emit('operation-failed', { operationId: data?.operationId, error: 'Cannot edit message' });
+                }
                 // Sender ACK
                 socket.emit('operation-confirmed', {
-                    operationId: data.operationId || result.eventId,
+                    operationId: data?.operationId || result.eventId,
                     event_id: result.eventId,
                     sequence_no: result.sequenceNo,
                     type: 'edit-message',
                     messageId,
-                    content
+                    content: content.trim(),
+                    is_edited: true,
+                    edited: true,
+                    edited_at: result.edited_at
                 });
                 // Broadcast to room
                 io.to(`chat:${result.chatId}`).emit('message-edited', {
                     chatId: result.chatId,
                     messageId,
-                    content,
-                    is_edited: 1,
+                    content: content.trim(),
+                    is_edited: true,
+                    edited: true,
+                    edited_at: result.edited_at,
                     event_id: result.eventId,
                     sequence_no: result.sequenceNo
                 });
+                if (typeof callback === 'function') callback({ success: true, data: result });
             } catch (err) {
                 logger.error('Socket edit-message error:', err);
+                if (typeof callback === 'function') callback({ success: false, error: err.message });
                 socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
             }
         });
@@ -634,7 +651,8 @@ socket.on('get-rooms', () => {
                 const [fullMessage] = await pool.query(`
                     SELECT m.*, 
                            u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar,
-                           rm.content as reply_content, rm.type as reply_type, ru.name as reply_sender_name
+                           rm.content as reply_content, rm.type as reply_type, ru.name as reply_sender_name,
+                           rm.media_url as reply_media_url, rm.is_deleted_for_everyone as reply_is_deleted
                     FROM messages m
                     JOIN users u ON m.sender_id = u.user_id
                     LEFT JOIN messages rm ON m.reply_to_message_id = rm.message_id
@@ -971,12 +989,31 @@ socket.on('get-rooms', () => {
                     }
                 }
                 const stillOnline = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
-                if (!stillOnline) {
-                    await User.setOnlineStatus(socket.userId, false);
-                    await broadcastOnlineStatus(socket, false);
-                } else {
+                if (stillOnline) {
                     logger.info(`📡 User still has active sessions on other devices, staying ONLINE: ${socket.userId}`);
+                    return;
                 }
+                // Respect the same grace window as a transport disconnect so a
+                // rapid reload/reconnect never flickers offline → online.
+                if (pendingOfflineTimers.has(socket.userId)) {
+                    clearTimeout(pendingOfflineTimers.get(socket.userId));
+                    pendingOfflineTimers.delete(socket.userId);
+                }
+                const timer = setTimeout(async () => {
+                    try {
+                        const still = userSockets.has(socket.userId) && userSockets.get(socket.userId).size > 0;
+                        if (!still) {
+                            await User.setOnlineStatus(socket.userId, false);
+                            await broadcastOnlineStatus(socket, false);
+                            logger.info(`📴 User offline after grace period (explicit signal): ${socket.userId}`);
+                        }
+                    } catch (e) {
+                        logger.error('Grace offline error (explicit signal):', e);
+                    } finally {
+                        pendingOfflineTimers.delete(socket.userId);
+                    }
+                }, OFFLINE_GRACE_MS);
+                pendingOfflineTimers.set(socket.userId, timer);
             } catch (e) {
                 logger.error('presence:offline error:', e);
             }
@@ -985,8 +1022,14 @@ socket.on('get-rooms', () => {
         // Custom heartbeat ping-pong (supplements socket.io's built-in ping)
         socket.on('sparkle-ping', async () => {
             try {
-                // Update last_seen_at periodically to keep presence status fresh
-                await pool.query('UPDATE users SET last_seen_at = UTC_TIMESTAMP(), is_online = 1 WHERE user_id = ?', [socket.userId]);
+                // Only refresh presence while this socket is still a tracked
+                // session. A socket that already sent presence:offline was
+                // removed from userSockets and must not resurrect is_online.
+                const sessions = userSockets.get(socket.userId);
+                const isActiveSession = sessions && sessions.has(socket);
+                if (isActiveSession) {
+                    await pool.query('UPDATE users SET last_seen_at = UTC_TIMESTAMP(), is_online = 1 WHERE user_id = ?', [socket.userId]);
+                }
             } catch (e) {
                 logger.error('Error updating presence on heartbeat:', e);
             }
@@ -1191,183 +1234,420 @@ socket.on('get-rooms', () => {
             }
         });
 
-        // Edit Message
-        socket.on('edit-message', async (data, callback) => {
-            const { messageId, chatId, content } = data;
-            try {
-                const msg = await Message.getById(messageId);
-                if (!msg) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
-                    return;
-                }
-                // Compare message.sender_id with socket.userId
-                if (msg.sender_id !== socket.userId) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied' });
-                    return;
-                }
-                // Verify edit time limit: 5 minutes (300,000 ms)
-                const sentTime = new Date(msg.sent_at).getTime();
-                if (Date.now() - sentTime > 300000) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Edit expired' });
-                    return;
-                }
-                const success = await Message.editMessage(messageId, socket.userId, content);
-                if (success) {
-                    io.to(`chat:${chatId}`).emit('message-edited', { messageId, chatId, content, editedAt: new Date().toISOString() });
-                    if (typeof callback === 'function') callback({ success: true });
-                } else {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Failed to edit message.' });
-                }
-            } catch (error) {
-                logger.error('Edit message error:', error);
-                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
-            }
-        });
-
         // Forward Message
         socket.on('forward-message', async (data, callback) => {
-            const { messageId, targetChatIds } = data;
+            const { targetChatIds } = data || {};
+            const rawMessageIds = data.messageIds && Array.isArray(data.messageIds)
+                ? data.messageIds
+                : [data.messageId].filter(Boolean);
 
-            if (!Array.isArray(targetChatIds) || targetChatIds.length > 5) {
-                if (typeof callback === 'function') callback({ success: false, error: 'Cannot forward to more than 5 people at a time.' });
+            if (!Array.isArray(targetChatIds) || targetChatIds.length === 0 || targetChatIds.length > 5) {
+                if (typeof callback === 'function') callback({ success: false, error: 'Cannot forward to more than 5 recipients at a time.' });
+                return;
+            }
+
+            if (!rawMessageIds || rawMessageIds.length === 0) {
+                if (typeof callback === 'function') callback({ success: false, error: 'At least one message is required to forward.' });
                 return;
             }
 
             try {
-                const originalMsg = await Message.getById(messageId);
-                if (!originalMsg) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Original message not found' });
-                    return;
-                }
-
                 const forwardedMessages = [];
-                for (const targetChatId of targetChatIds) {
-                    const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
 
-                    let recipientId = null;
-                    if (pc.length > 0) {
-                        recipientId = pc[0].participant1_id === socket.userId ? pc[0].participant2_id : pc[0].participant1_id;
-                    }
+                for (const srcMsgId of rawMessageIds) {
+                    const originalMsg = await Message.getById(srcMsgId);
+                    if (!originalMsg) continue;
 
-                    const messageId = crypto.randomUUID();
-                    const sentAt = new Date();
-                    const personalChatId = pc.length > 0 ? targetChatId : null;
-                    const groupChatId = pc.length > 0 ? null : targetChatId;
-
-                    await pool.query(`
-                        INSERT INTO messages (
-                            message_id, chat_id, conversation_id, personal_chat_id, 
-                            sender_id, recipient_id, content, type, media_url, 
-                            status, is_read, sent_at, context,
-                            forwarded, forwarded_from
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?)
-                    `, [
-                        messageId,
-                        groupChatId,
-                        personalChatId,
-                        personalChatId,
-                        socket.userId,
-                        recipientId,
-                        originalMsg.content,
-                        originalMsg.type,
-                        originalMsg.media_url,
-                        sentAt,
-                        socket.user.username
-                    ]);
-
-                    if (personalChatId) {
-                        await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
-                    } else if (groupChatId) {
-                        await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
-                    }
-
-                    const [fullMessage] = await pool.query(`
-                        SELECT m.*, 
-                               u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
-                        FROM messages m
-                        JOIN users u ON m.sender_id = u.user_id
-                        WHERE m.message_id = ?
-                    `, [messageId]);
-
-                    const message = {
-                    ...fullMessage[0],
-                    sent_at: fullMessage[0].sent_at ? new Date(fullMessage[0].sent_at).toISOString() : null,
-                    read_at: fullMessage[0].read_at ? new Date(fullMessage[0].read_at).toISOString() : null,
-                    // Unified chat identifier for frontend consumption
-                    chatId: fullMessage[0].conversation_id || fullMessage[0].chat_id || fullMessage[0].personal_chat_id,
-                };
-                // Ensure legacy field 'chat_id' reflects the same identifier
-                message.chat_id = message.chatId;
-                const finalChatId = message.chatId;
-
-                    console.log(
-                        '[ROOM_CHECK]',
-                        targetChatId,
-                        Array.from(io.sockets.adapter.rooms.get(`chat:${targetChatId}`) || [])
+                    const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
+                    const [privacyRows] = await pool.query(
+                        'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                        [sourceChatId, originalMsg.sender_id || originalMsg.senderId]
                     );
-                    console.log('[MESSAGE_EMIT]', message);
+                    const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+                    const permissions = PermissionEngine.computePermissions({
+                        message: originalMsg,
+                        senderPrivacy,
+                        viewerUserId: socket.userId
+                    });
 
-                    socket.emit('new-message', message);
-                    socket.emit('message-sent', message);
-                    socket.to(`chat:${targetChatId}`).emit('new-message', message);
-                    forwardedMessages.push(message);
+                    if (!permissions.canForward) {
+                        continue;
+                    }
+
+                    // Root lineage and authoritative forward count
+                    const rootMessageId = originalMsg.forward_lineage_id || originalMsg.source_message_id || originalMsg.message_id;
+                    await pool.query(
+                        'UPDATE messages SET forward_count = IFNULL(forward_count, 0) + 1 WHERE message_id = ?',
+                        [rootMessageId]
+                    );
+                    const [fcRows] = await pool.query('SELECT forward_count FROM messages WHERE message_id = ?', [rootMessageId]);
+                    const forwardCount = fcRows[0]?.forward_count || 1;
+
+                    for (const targetChatId of targetChatIds) {
+                        const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
+
+                        let recipientId = null;
+                        if (pc.length > 0) {
+                            recipientId = pc[0].participant1_id === socket.userId ? pc[0].participant2_id : pc[0].participant1_id;
+                        }
+
+                        const newMsgId = crypto.randomUUID();
+                        const sentAt = new Date();
+                        const personalChatId = pc.length > 0 ? targetChatId : null;
+                        const groupChatId = pc.length > 0 ? null : targetChatId;
+
+                        await pool.query(`
+                            INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+                            ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+                        `, [targetChatId]);
+                        const [seqRow] = await pool.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [targetChatId]);
+                        const serverSequence = seqRow[0]?.last_sequence || 1;
+
+                        await pool.query(`
+                            INSERT INTO messages (
+                                message_id, chat_id, conversation_id, personal_chat_id, 
+                                sender_id, recipient_id, content, type, media_url, 
+                                status, is_read, sent_at, context,
+                                forwarded, forwarded_from, source_message_id, forward_lineage_id, forward_count,
+                                server_sequence
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?, ?, ?, ?, ?)
+                        `, [
+                            newMsgId,
+                            groupChatId,
+                            personalChatId,
+                            personalChatId,
+                            socket.userId,
+                            recipientId,
+                            originalMsg.content,
+                            originalMsg.type,
+                            originalMsg.media_url,
+                            sentAt,
+                            socket.user?.username || socket.user?.name || 'user',
+                            rootMessageId,
+                            rootMessageId,
+                            forwardCount,
+                            serverSequence
+                        ]);
+
+                        try {
+                            const deliveryId = crypto.randomUUID();
+                            await pool.query(`
+                                INSERT INTO message_forward_deliveries (delivery_id, source_message_id, forwarded_message_id, destination_chat_id, forwarded_by_user_id)
+                                VALUES (?, ?, ?, ?, ?)
+                            `, [deliveryId, rootMessageId, newMsgId, targetChatId, socket.userId]);
+                        } catch (e) {
+                            // Table note
+                        }
+
+                        if (personalChatId) {
+                            await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
+                        } else if (groupChatId) {
+                            await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
+                        }
+
+                        const [fullMessage] = await pool.query(`
+                            SELECT m.*, 
+                                   u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+                            FROM messages m
+                            JOIN users u ON m.sender_id = u.user_id
+                            WHERE m.message_id = ?
+                        `, [newMsgId]);
+
+                        if (fullMessage && fullMessage[0]) {
+                            const message = {
+                                ...fullMessage[0],
+                                sent_at: sentAt.toISOString(),
+                                chatId: targetChatId,
+                                chat_id: targetChatId,
+                                forwarded: true,
+                                forwarded_from: socket.user?.username || socket.user?.name || 'user',
+                                source_message_id: rootMessageId,
+                                forward_lineage_id: rootMessageId,
+                                forward_count: forwardCount
+                            };
+
+                            socket.emit('new-message', message);
+                            socket.emit('message-sent', message);
+                            socket.to(`chat:${targetChatId}`).emit('new-message', message);
+                            forwardedMessages.push(message);
+                        }
+                    }
                 }
 
                 if (typeof callback === 'function') callback({ success: true, messages: forwardedMessages });
             } catch (error) {
                 logger.error('Forward message error:', error);
-                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
             }
         });
 
-        // Disappearing Messages toggle
-        socket.on('disappearing_messages', async (data) => {
-            const { chatId, duration } = data; // duration in hours
+        // Helper: format duration text (e.g. "24 hours", "7 days")
+        const formatDurationText = (seconds) => {
+            if (!seconds || seconds <= 0) return 'off';
+            if (seconds < 3600) return `${Math.round(seconds / 60)} minutes`;
+            if (seconds < 86400) return `${Math.round(seconds / 3600)} hours`;
+            if (seconds === 86400) return '24 hours';
+            const days = Math.round(seconds / 86400);
+            return `${days} ${days === 1 ? 'day' : 'days'}`;
+        };
+
+        const normalizeDisappearingSeconds = (val) => {
+            const num = parseInt(val, 10) || 0;
+            if (num <= 0) return 0;
+            if (num === 24) return 86400;
+            if (num === 7) return 604800;
+            if (num === 90) return 7776000;
+            return num;
+        };
+
+        // Disappearing Messages toggle (Authoritative Server Synchronization)
+        socket.on('disappearing_messages', async (data, callback) => {
+            const { chatId, duration: rawDuration, clientVersion } = data || {};
             try {
-                // Update DB
+                if (!chatId) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'chatId is required' });
+                    return;
+                }
+
+                // Verify participant
+                const [pcRows] = await pool.query(
+                    'SELECT chat_id, disappearing_duration, disappearing_version, participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?',
+                    [chatId]
+                );
+                const [gcRows] = pcRows.length === 0 ? await pool.query(
+                    'SELECT gc.chat_id, gc.disappearing_duration, gc.disappearing_version FROM group_chats gc JOIN group_chat_members gcm ON gc.chat_id = gcm.chat_id WHERE gc.chat_id = ? AND gcm.user_id = ?',
+                    [chatId, socket.userId]
+                ) : [[]];
+
+                const isPersonal = pcRows.length > 0;
+                const chatRow = isPersonal ? pcRows[0] : gcRows[0];
+                if (!chatRow) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Unauthorized: not a member of this chat' });
+                    return;
+                }
+
+                if (isPersonal && chatRow.participant1_id !== socket.userId && chatRow.participant2_id !== socket.userId) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Unauthorized' });
+                    return;
+                }
+
+                const prevDuration = chatRow.disappearing_duration || 0;
+                const prevVersion = chatRow.disappearing_version || 1;
+                const newDuration = normalizeDisappearingSeconds(rawDuration);
+
+                // Concurrency control: if client passed older version than authoritative, reject
+                if (clientVersion && clientVersion < prevVersion) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Stale configuration version', currentVersion: prevVersion, duration: prevDuration });
+                    return;
+                }
+
+                const newVersion = prevVersion + 1;
+                const table = isPersonal ? 'personal_chats' : 'group_chats';
+                const now = new Date();
+
+                // Update authoritative chat settings
                 await pool.query(
-                    'UPDATE personal_chats SET disappearing_duration = ? WHERE chat_id = ?',
-                    [duration, chatId]
+                    `UPDATE ${table} SET disappearing_duration = ?, disappearing_version = ?, disappearing_updated_at = NOW(), disappearing_updated_by = ? WHERE chat_id = ?`,
+                    [newDuration, newVersion, socket.userId, chatId]
                 );
 
-                // Broadcast update to chat room
-                io.to(`chat:${chatId}`).emit('disappearing_messages_update', { chatId, duration });
+                // 4.2 Expiry Semantics:
+                // When disappearing messages are first enabled, existing eligible messages are
+                // evaluated using their original authoritative creation timestamps.
+                // Subsequent duration changes do not reset the expiry deadline of existing messages.
+                if (prevDuration === 0 && newDuration > 0) {
+                    await pool.query(
+                        `UPDATE messages 
+                         SET expires_at = DATE_ADD(COALESCE(created_at, sent_at), INTERVAL ? SECOND)
+                         WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
+                           AND expires_at IS NULL
+                           AND (is_deleted_for_everyone IS NULL OR is_deleted_for_everyone = 0)`,
+                        [newDuration, chatId, chatId, chatId]
+                    );
+                }
 
-                // System message notice
-                const systemMsg = duration > 0
-                    ? `Disappearing messages turned on (${duration === 24 ? '24 hours' : duration / 24 + ' days'})`
-                    : 'Disappearing messages turned off';
+                const actorName = socket.user?.name || socket.user?.username || 'User';
+                let systemContent = '';
+                let actionType = 'disabled';
 
-                await Message.sendMessage({
+                if (newDuration > 0) {
+                    if (prevDuration > 0) {
+                        actionType = 'changed';
+                        systemContent = `${actorName} changed the disappearing-message duration to ${formatDurationText(newDuration)}.`;
+                    } else {
+                        actionType = 'enabled';
+                        systemContent = `${actorName} enabled disappearing messages. Messages will disappear after ${formatDurationText(newDuration)}.`;
+                    }
+                } else {
+                    actionType = 'disabled';
+                    systemContent = `${actorName} turned off disappearing messages.`;
+                }
+
+                const systemMsgId = crypto.randomUUID();
+                const metadataObj = {
+                    system_type: 'disappearing_messages_change',
+                    action: actionType,
+                    duration: newDuration,
+                    previous_duration: prevDuration,
+                    actor_id: socket.userId,
+                    actor_name: actorName,
+                    version: newVersion,
+                    updated_at: now.toISOString()
+                };
+
+                await pool.query(
+                    `INSERT INTO messages (
+                        message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at, status, is_read
+                     ) VALUES (?, ?, ?, ?, ?, 'system', ?, NOW(), 'sent', 1)`,
+                    [systemMsgId, chatId, chatId, socket.userId, systemContent, JSON.stringify(metadataObj)]
+                );
+
+                const systemMsg = {
+                    message_id: systemMsgId,
+                    id: systemMsgId,
+                    chat_id: chatId,
                     chatId,
+                    sender_id: socket.userId,
                     senderId: socket.userId,
-                    content: systemMsg,
-                    type: 'system'
-                });
+                    content: systemContent,
+                    type: 'system',
+                    metadata: metadataObj,
+                    sent_at: now.toISOString(),
+                    status: 'sent'
+                };
 
-                console.log(
-                    '[ROOM_CHECK]',
+                // Broadcast authoritative update to chat room
+                io.to(`chat:${chatId}`).emit('disappearing_messages_update', {
                     chatId,
-                    Array.from(io.sockets.adapter.rooms.get(`chat:${chatId}`) || [])
-                );
-                console.log('[MESSAGE_EMIT]', {
-                    chat_id: chatId,
-                    sender_id: socket.userId,
-                    content: systemMsg,
-                    type: 'system',
-                    sent_at: new Date().toISOString()
+                    duration: newDuration,
+                    version: newVersion,
+                    updatedAt: now.toISOString(),
+                    updatedBy: socket.userId,
+                    systemMessage: systemMsg
                 });
+                io.to(`chat:${chatId}`).emit('new-message', systemMsg);
 
-                io.to(`chat:${chatId}`).emit('new-message', {
-                    chat_id: chatId,
-                    sender_id: socket.userId,
-                    content: systemMsg,
-                    type: 'system',
-                    sent_at: new Date().toISOString()
-                });
-
+                if (typeof callback === 'function') {
+                    callback({ success: true, duration: newDuration, version: newVersion, systemMessage: systemMsg });
+                }
             } catch (error) {
                 logger.error('Disappearing messages error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Internal server error' });
+            }
+        });
+
+        // Set Chat Nickname (Authoritative Server Synchronization)
+        socket.on('set_chat_nickname', async (data, callback) => {
+            const { chatId, targetUserId, nickname: rawNickname } = data || {};
+            try {
+                if (!chatId || !targetUserId) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'chatId and targetUserId are required' });
+                    return;
+                }
+
+                // Verify membership
+                const [pc] = await pool.query(
+                    'SELECT 1 FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?) UNION SELECT 1 FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
+                    [chatId, socket.userId, socket.userId, chatId, socket.userId]
+                );
+                if (pc.length === 0) {
+                    if (typeof callback === 'function') callback({ success: false, error: 'Unauthorized: not a member of this chat' });
+                    return;
+                }
+
+                // Get target user display name
+                const [targetRows] = await pool.query('SELECT user_id, name, username FROM users WHERE user_id = ?', [targetUserId]);
+                const targetUser = targetRows[0] || {};
+                const targetDisplayName = targetUser.name || targetUser.username || 'User';
+                const actorName = socket.user?.name || socket.user?.username || 'User';
+
+                // Get current nickname
+                const [curNick] = await pool.query('SELECT nickname, version FROM chat_nicknames WHERE chat_id = ? AND user_id = ?', [chatId, targetUserId]);
+                const prevNickname = curNick[0]?.nickname || null;
+                const curVer = curNick[0]?.version || 0;
+                const newVersion = curVer + 1;
+
+                const cleanNickname = typeof rawNickname === 'string' ? rawNickname.trim().slice(0, 64) : '';
+
+                if (cleanNickname) {
+                    const nickId = crypto.randomUUID();
+                    await pool.query(
+                        `INSERT INTO chat_nicknames (id, chat_id, user_id, nickname, set_by_id, version)
+                         VALUES (?, ?, ?, ?, ?, ?)
+                         ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), set_by_id = VALUES(set_by_id), version = version + 1`,
+                        [nickId, chatId, targetUserId, cleanNickname, socket.userId, newVersion]
+                    );
+                } else {
+                    await pool.query('DELETE FROM chat_nicknames WHERE chat_id = ? AND user_id = ?', [chatId, targetUserId]);
+                }
+
+                let systemContent = '';
+                if (cleanNickname) {
+                    if (prevNickname && prevNickname !== cleanNickname) {
+                        systemContent = `${actorName} changed ${targetDisplayName}'s nickname from ${prevNickname} to ${cleanNickname}.`;
+                    } else {
+                        systemContent = `${actorName} set ${targetDisplayName}'s nickname to ${cleanNickname}.`;
+                    }
+                } else {
+                    systemContent = `${actorName} removed ${targetDisplayName}'s nickname.`;
+                }
+
+                const systemMsgId = crypto.randomUUID();
+                const now = new Date();
+                const metadataObj = {
+                    system_type: 'nickname_change',
+                    actor_id: socket.userId,
+                    actor_name: actorName,
+                    target_user_id: targetUserId,
+                    target_name: targetDisplayName,
+                    previous_nickname: prevNickname,
+                    new_nickname: cleanNickname || null,
+                    version: newVersion,
+                    updated_at: now.toISOString()
+                };
+
+                await pool.query(
+                    `INSERT INTO messages (
+                        message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at, status, is_read
+                     ) VALUES (?, ?, ?, ?, ?, 'system', ?, NOW(), 'sent', 1)`,
+                    [systemMsgId, chatId, chatId, socket.userId, systemContent, JSON.stringify(metadataObj)]
+                );
+
+                const systemMsg = {
+                    message_id: systemMsgId,
+                    id: systemMsgId,
+                    chat_id: chatId,
+                    chatId,
+                    sender_id: socket.userId,
+                    senderId: socket.userId,
+                    content: systemContent,
+                    type: 'system',
+                    metadata: metadataObj,
+                    sent_at: now.toISOString(),
+                    status: 'sent'
+                };
+
+                io.to(`chat:${chatId}`).emit('new-message', systemMsg);
+                io.to(`chat:${chatId}`).emit('chat:nickname_updated', {
+                    chatId,
+                    targetUserId,
+                    nickname: cleanNickname || null,
+                    setById: socket.userId,
+                    version: newVersion
+                });
+                io.to(`chat:${chatId}`).emit('nickname_updated', {
+                    chatId,
+                    targetUserId,
+                    nickname: cleanNickname || null,
+                    setById: socket.userId,
+                    version: newVersion
+                });
+
+                if (typeof callback === 'function') {
+                    callback({ success: true, targetUserId, nickname: cleanNickname || null, version: newVersion });
+                }
+            } catch (error) {
+                logger.error('Set chat nickname error:', error);
+                if (typeof callback === 'function') callback({ success: false, error: 'Internal server error' });
             }
         });
 
@@ -1410,6 +1690,10 @@ socket.on('get-rooms', () => {
                 // Schedule offline transition after grace period for the last disconnected session
                 // This allows brief network blips / transport upgrades to
                 // reconnect without the user appearing offline.
+                if (pendingOfflineTimers.has(socket.userId)) {
+                    clearTimeout(pendingOfflineTimers.get(socket.userId));
+                    pendingOfflineTimers.delete(socket.userId);
+                }
                 const timer = setTimeout(async () => {
                     try {
                         // Verify if the user has any remaining active socket sessions
@@ -1503,23 +1787,29 @@ const broadcastGroupPresence = (io, socket) => {
     }
 };
 
-// Helper: Broadcast online status to followers, group peers, and direct chat partners
+// Helper: Broadcast online status to followers, group peers, and direct chat partners.
+// Privacy-enforced: viewers who are not allowed to see the subject's presence
+// (activity_status_enabled = 0 or last_seen_privacy = no_one/followers) never
+// receive real status; when the subject hides presence entirely, a `hidden`
+// marker is emitted so clients can clear stale online indicators without
+// learning the real connection state.
 const broadcastOnlineStatus = async (socket, isOnline) => {
     try {
+        const subjectId = socket.userId;
         const [followers] = await pool.query(
             'SELECT follower_id FROM follows WHERE following_id = ?',
-            [socket.userId]
+            [subjectId]
         );
 
         // Get Group Peers
-        const groupPeers = await GroupMember.getGroupPeers(socket.userId);
+        const groupPeers = await GroupMember.getGroupPeers(subjectId);
 
         // Direct Chat Partners (personal_chats)
         const [chatPartners] = await pool.query(
             `SELECT IF(participant1_id = ?, participant2_id, participant1_id) AS partner_id
              FROM personal_chats
              WHERE participant1_id = ? OR participant2_id = ?`,
-            [socket.userId, socket.userId, socket.userId]
+            [subjectId, subjectId, subjectId]
         );
 
         // Merge unique IDs
@@ -1528,21 +1818,39 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
             ...groupPeers,
             ...chatPartners.map(p => p.partner_id)
         ]);
-        targetIds.delete(socket.userId);
+        targetIds.delete(subjectId);
+        const candidates = Array.from(targetIds);
+        if (candidates.length === 0 || !io) return;
 
-        const statusData = {
-            userId: socket.userId,
-            username: socket.user ? socket.user.username : undefined,
-            isOnline,
-            lastSeen: isOnline ? null : new Date().toISOString()
-        };
+        const allowed = await filterPresenceViewers(subjectId, candidates);
+        const username = socket.user ? socket.user.username : undefined;
 
-        const rooms = Array.from(targetIds).map(id => `user:${id}`);
-        if (rooms.length > 0 && io) {
+        const statusData = allowed.length === 0
+            // Hidden: clear stale indicators everywhere, leak nothing.
+            ? { userId: subjectId, username, isOnline: false, hidden: true, lastSeen: null }
+            : { userId: subjectId, username, isOnline, hidden: false, lastSeen: isOnline ? null : new Date().toISOString() };
+
+        const emitTargets = allowed.length === 0 ? candidates : allowed;
+        const rooms = emitTargets.map(id => `user:${id}`);
+        if (rooms.length > 0) {
             io.to(rooms).emit('user-status', statusData);
         }
     } catch (error) {
         logger.error('Broadcast status error:', error);
+    }
+};
+
+/**
+ * Re-evaluates and re-broadcasts a user's presence after their Active Status
+ * privacy settings change, using the authoritative session state.
+ */
+const refreshPresenceBroadcast = async (userId, username) => {
+    try {
+        if (!userId) return;
+        const isOnline = userSockets.has(Number(userId)) && userSockets.get(Number(userId)).size > 0;
+        await broadcastOnlineStatus({ userId: Number(userId), user: username ? { username } : undefined }, isOnline);
+    } catch (e) {
+        logger.error('refreshPresenceBroadcast error:', e);
     }
 };
 
@@ -1882,5 +2190,6 @@ module.exports = {
     notifyOrderUpdate, 
     emitMarketplaceMessage, 
     handleSparklyMentionInChat,
-    disconnectUserSockets
+    disconnectUserSockets,
+    refreshPresenceBroadcast
 };

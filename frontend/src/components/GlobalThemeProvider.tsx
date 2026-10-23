@@ -64,13 +64,11 @@ export const GlobalThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
         const isLegacyTheme = LEGACY_THEME_ROUTES.some(rx => rx.test(pathname));
         root.classList.toggle('theme-legacy', isLegacyTheme);
 
-        // 2. Set dynamic CSS variables for safe area insets to prevent double padding gaps!
-        if (OtaService.isMobile()) {
-            // Native mobile safe status bar padding - evaluate dynamically from browser!
-            root.style.setProperty('--safe-area-inset-top', 'env(safe-area-inset-top, 24px)');
-            root.style.setProperty('--safe-area-inset-bottom', 'env(safe-area-inset-bottom, 12px)');
-        } else {
-            // Web / Chrome preview standard boundaries
+        // 2. Safe-area insets: on native the SparkleInsets plugin owns
+        //    --safe-area-inset-* (exact px, live updates); only web needs the
+        //    zeroed baseline here. Never rewrite the vars on native — doing so
+        //    raced the plugin and caused the chat header to jump on mount.
+        if (!OtaService.isMobile()) {
             root.style.setProperty('--safe-area-inset-top', '0px');
             root.style.setProperty('--safe-area-inset-bottom', '0px');
         }

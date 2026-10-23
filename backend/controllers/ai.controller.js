@@ -25,6 +25,43 @@ function normalizeUser(reqUser) {
 }
 
 const SparklyController = require('./sparkly.controller');
+const LLMService = require('../services/sparkly/llm.service');
+
+/**
+ * POST /api/ai/analyze-media
+ * Sparkle AI media (vision) analysis for the full-screen media viewer.
+ * Body: { url: string, prompt?: string }
+ */
+async function analyzeMedia(req, res) {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const { url, prompt } = req.body || {};
+        if (!url || typeof url !== 'string') {
+            return res.status(400).json({ success: false, message: 'url is required' });
+        }
+
+        const result = await LLMService.runVision({
+            imageUrl: url.trim(),
+            prompt: (typeof prompt === 'string' && prompt.trim())
+                ? prompt.trim().slice(0, 500)
+                : 'Describe this image concisely. If it contains text, transcribe it.'
+        });
+
+        if (!result?.success) {
+            return res.status(502).json({
+                success: false,
+                message: result?.error || 'Media analysis is unavailable right now. Try again later.'
+            });
+        }
+
+        res.json({ success: true, text: result.content, provider: result.provider, model: result.model });
+    } catch (err) {
+        logger.error('Analyze media error:', err);
+        res.status(500).json({ success: false, message: 'Failed to analyze media' });
+    }
+}
 
 /**
  * POST /api/ai/sparkly/chat
@@ -250,6 +287,7 @@ async function branchConversation(req, res) {
 module.exports = {
     sparklyChat,
     sparklyChatStream,
+    analyzeMedia,
     getConversations,
     searchConversations,
     createConversation,

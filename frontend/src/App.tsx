@@ -47,6 +47,7 @@ const ChangePassword = lazyWithRetry(() => import('./pages/ChangePassword'));
 import CrossDeviceSecurityAlertOverlay from './components/security/CrossDeviceSecurityAlertOverlay';
 const AdvancedSettings = lazyWithRetry(() => import('./pages/AdvancedSettings'));
 const AdvancedSettingsDetail = lazyWithRetry(() => import('./pages/AdvancedSettingsDetail'));
+const AppUpdates = lazyWithRetry(() => import('./pages/AppUpdates'));
 const Notifications = lazyWithRetry(() => import('./pages/Notifications'));
 const Search = lazyWithRetry(() => import('./pages/Search'));
 const SearchHistory = lazyWithRetry(() => import('./pages/SearchHistory'));
@@ -143,9 +144,15 @@ const AccountRecoveryPortal = lazyWithRetry(() => import('./pages/AccountRecover
 
 function App() {
   const { isAuthenticated, token } = useUserStore();
-  const [hydrated, setHydrated] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
-  const [navigationCompleted, setNavigationCompleted] = useState(false);
+  // Zustand persist hydrates synchronously from localStorage on subsequent
+  // loads — check immediately so the splash NEVER appears on SPA navigation
+  // or page reloads where the user is already logged in.
+  const [hydrated, setHydrated] = useState(() => {
+    try { return useUserStore.persist.hasHydrated(); } catch { return false; }
+  });
+  const [navigationCompleted, setNavigationCompleted] = useState(() => {
+    try { return useUserStore.persist.hasHydrated(); } catch { return false; }
+  });
   const navigate = useNavigate();
   const uploadManagerInitRef = useRef(false);
   const pushInitRef = useRef(false);
@@ -166,10 +173,8 @@ function App() {
 
     logger.log(`[Navigation] Target: ${target}, Current: ${currentPath}, isPublic: ${isPublic}`);
 
-    // Ensure state transitions occur so component renders fully
+    // Ensure hydration state is set
     setHydrated(true);
-    setShowSplash(false);
-    logger.log('SPLASH HIDDEN');
 
     if (isPublic) {
       logger.log(`[Navigation] Preserving public path: ${currentPath}`);
@@ -260,7 +265,7 @@ function App() {
           // H21: rotate the token BEFORE validate + mount effects fire, so a
           // stale session doesn't produce a 401 burst (and a slow refresh can't
           // trip the validation timeout → login bounce while still authenticated).
-          await ensureFreshAccessToken(30_000);
+          await ensureFreshAccessToken(8_000);
           async function runWithTimeout<T>(p: Promise<T>, timeoutMs: number): Promise<T> {
             return Promise.race([
               p,
@@ -417,7 +422,7 @@ function App() {
   }, [theme]);
 
   // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
-  if (!hydrated || showSplash) {
+  if (!hydrated) {
     return (
       <div className="flex flex-col items-center justify-center min-h-dvh bg-[#ffe6f2] transition-colors duration-500">
         <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
@@ -556,6 +561,7 @@ function App() {
                     <Route path="/settings/advanced/:section" element={isAuthenticated ? <AdvancedSettingsDetail /> : <Navigate to="/login" />} />
                     <Route path="/settings/blocked" element={isAuthenticated ? <BlockedUsers /> : <Navigate to="/login" />} />
                     <Route path="/settings/audio-diagnostics" element={isAuthenticated ? <AudioDiagnostics /> : <Navigate to="/login" />} />
+                    <Route path="/settings/app-updates" element={isAuthenticated ? <AppUpdates /> : <Navigate to="/login" />} />
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />

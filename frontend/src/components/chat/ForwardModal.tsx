@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, ArrowLeft, Check, X, Forward } from 'lucide-react';
+import { Search, ArrowLeft, Check, X, Forward, AlertCircle } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
-interface ForwardContact {
+export interface ForwardContact {
   id: string;
   name: string;
   username?: string;
@@ -37,7 +38,13 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, con
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => {
       if (prev.includes(id)) return prev.filter(i => i !== id);
-      if (prev.length >= MAX_SELECT) return prev;
+      if (prev.length >= MAX_SELECT) {
+        toast.error(`You can only forward to up to ${MAX_SELECT} chats at once`);
+        if (typeof window !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate?.([30, 30]); } catch (e) {}
+        }
+        return prev;
+      }
       return [...prev, id];
     });
   };
@@ -99,9 +106,16 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, con
               </button>
               <h2 className="text-[17px] font-semibold text-white ml-3 flex-1">Forward to...</h2>
               {selectedIds.length > 0 && (
-                <span className="text-[12px] font-bold text-[#ff1493]">
-                  {selectedIds.length}/{MAX_SELECT}
-                </span>
+                <div className="flex items-center gap-2">
+                  {selectedIds.length >= MAX_SELECT && (
+                    <span className="text-[11px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full border border-amber-400/20">
+                      Max 5 reached
+                    </span>
+                  )}
+                  <span className="text-[12px] font-bold text-[#ff1493]">
+                    {selectedIds.length}/{MAX_SELECT}
+                  </span>
+                </div>
               )}
             </div>
 

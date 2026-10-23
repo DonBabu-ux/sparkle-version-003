@@ -92,7 +92,10 @@ router.get('/chat/:chatId/music', messageController.getChatMusic);
 router.get('/chat/:chatId/stories', messageController.getChatStories);
 router.get('/chat/:chatId/posts', messageController.getChatPosts);
 router.get('/chat/:chatId/stats', messageController.getChatStats);
+router.get('/chat/:chatId/nicknames', messageController.getChatNicknames);
+router.get('/:chatId/nicknames', messageController.getChatNicknames);
 router.post('/chat/:chatId/nickname', messageController.setChatNickname);
+router.post('/:chatId/nickname', messageController.setChatNickname);
 router.get('/chat/:chatId/nickname-history', messageController.getChatNicknameHistory);
 
 // Conversation messages (Keep these at the end to avoid route conflicts)

@@ -369,6 +369,19 @@ const updateSettings = async (req, res) => {
                     logger.warn('Failed to emit global_privacy_updated: ' + (socketErr?.message || socketErr));
                 }
             }
+
+            // Active Status changes must take effect immediately across all
+            // viewers: re-evaluate privacy and re-broadcast (or hide) presence.
+            if ('last_seen_privacy' in updates || 'activity_status_enabled' in updates) {
+                try {
+                    const { refreshPresenceBroadcast } = require('../socket');
+                    const viewer = await User.findById(userId);
+                    refreshPresenceBroadcast(userId, viewer ? viewer.username : undefined)
+                        .catch((pErr) => logger.warn('presence refresh failed: ' + (pErr?.message || pErr)));
+                } catch (socketErr) {
+                    logger.warn('Failed to refresh presence broadcast: ' + (socketErr?.message || socketErr));
+                }
+            }
         }
 
         res.json({ message: 'Settings updated successfully', updates });

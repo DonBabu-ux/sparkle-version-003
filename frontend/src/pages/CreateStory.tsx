@@ -105,6 +105,8 @@ export default function CreateStory() {
   
   const searchParams = new URLSearchParams(location.search);
   const parentId = searchParams.get('parent');
+  // Shared chat media: /afterglow/create?imageUrl=<https-url>
+  const sharedImageUrl = searchParams.get('imageUrl');
 
   const [phase, setPhase] = useState<Phase>('entry');
   const [returnPhase, setReturnPhase] = useState<Phase>('entry');
@@ -159,6 +161,34 @@ export default function CreateStory() {
       setMode('story');
     }
   }, [parentId]);
+
+  // Seed the editor from a shared chat-media URL (Share to story).
+  useEffect(() => {
+    if (!sharedImageUrl || !/^https?:\/\//i.test(sharedImageUrl)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(sharedImageUrl, { mode: 'cors' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!blob || blob.size === 0) throw new Error('empty media');
+        if (cancelled) return;
+        const mimeType = blob.type || 'image/jpeg';
+        const ext = mimeType.includes('png') ? 'png' : mimeType.includes('webp') ? 'webp' : 'jpg';
+        const sharedFile = new File([blob], `shared-media.${ext}`, { type: mimeType });
+        setFile(sharedFile);
+        setPreviewUrl(URL.createObjectURL(sharedFile));
+        setMode('story');
+        setPhase('editor');
+      } catch (err) {
+        logger.warn('[CreateStory] Failed to load shared imageUrl', err);
+        showError('Could not load media for your story');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedImageUrl]);
 
   // Leaving the composer mid-preview must stop the music preview.
   useEffect(() => {

@@ -14,6 +14,8 @@ router.use(authMiddleware);
 router.post('/sparkly/chat', feedRateLimiter, aiController.sparklyChat);
 router.post('/sparkly/chat/stream', feedRateLimiter, aiController.sparklyChatStream);
 router.post('/sparkly/stream', feedRateLimiter, aiController.sparklyChatStream);
+// Media (vision) analysis used by the full-screen chat media viewer
+router.post('/analyze-media', feedRateLimiter, aiController.analyzeMedia);
 router.get('/sparkly/conversations', aiController.getConversations);
 router.get('/sparkly/conversations/search', aiController.searchConversations);
 router.post('/sparkly/conversations', aiController.createConversation);

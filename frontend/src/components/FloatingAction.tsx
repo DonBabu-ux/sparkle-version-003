@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useModalStore } from '../store/modalStore';
+import { Handshake, Store, PenTool, PlayCircle, ShieldAlert, X, Plus, Send } from 'lucide-react';
 
 export default function FloatingAction() {
   const [isOpen, setIsOpen] = useState(false);
@@ -16,11 +17,11 @@ export default function FloatingAction() {
   if (isChatOpen) return null;
 
   const actions = [
-    { icon: <i className="fas fa-sign-language text-lg"></i>, label: 'Confession', color: 'bg-rose-500', onClick: () => setActiveModal('confession') },
-    { icon: <i className="fas fa-store text-lg"></i>, label: 'Sell Item', color: 'bg-emerald-500', onClick: () => setActiveModal('listing') },
-    { icon: <i className="fas fa-pen-nib text-lg"></i>, label: 'New Post', color: 'bg-indigo-500', onClick: () => setActiveModal('post') },
-    { icon: <i className="fas fa-play-circle text-lg"></i>, label: 'Moment', color: 'bg-orange-500', onClick: () => navigate('/moments/create') },
-    { icon: <i className="fas fa-shield-halved text-lg"></i>, label: 'Urgent', color: 'bg-amber-500', onClick: () => navigate('/support') },
+    { icon: <Handshake className="w-5 h-5" />, label: 'Confession', color: 'bg-rose-500', onClick: () => setActiveModal('confession') },
+    { icon: <Store className="w-5 h-5" />, label: 'Sell Item', color: 'bg-emerald-500', onClick: () => setActiveModal('listing') },
+    { icon: <PenTool className="w-5 h-5" />, label: 'New Post', color: 'bg-indigo-500', onClick: () => setActiveModal('post') },
+    { icon: <PlayCircle className="w-5 h-5" />, label: 'Moment', color: 'bg-orange-500', onClick: () => navigate('/moments/create') },
+    { icon: <ShieldAlert className="w-5 h-5" />, label: 'Urgent', color: 'bg-amber-500', onClick: () => navigate('/support') },
   ];
 
   return (
@@ -50,7 +51,7 @@ export default function FloatingAction() {
       <button 
         onClick={() => {
             if (!isMessagesPage) {
-                navigate('/messages');
+                 navigate('/messages');
             } else {
                 setIsOpen(!isOpen);
             }
@@ -65,9 +66,9 @@ export default function FloatingAction() {
         }}
       >
         {isOpen ? (
-            <i className="fas fa-times text-2xl"></i>
+            <X className="w-6 h-6" />
         ) : (
-            isMessagesPage ? <i className="fas fa-plus text-2xl"></i> : <i className="fas fa-paper-plane text-2xl"></i>
+            isMessagesPage ? <Plus className="w-6 h-6" /> : <Send className="w-6 h-6" />
         )}
       </button>
 

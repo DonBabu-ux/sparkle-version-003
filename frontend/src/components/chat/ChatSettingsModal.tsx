@@ -19,11 +19,15 @@ import { PinnedMessagesView } from './PinnedMessagesView';
 import { ChatSearchModal } from './ChatSearchModal';
 import PrivacySettingsModal from './PrivacySettingsModal';
 import { useModalA11y } from '../../hooks/useModalA11y';
+import { useUserStore } from '../../store/userStore';
+import { useChatStore } from '../../store/chatStore';
 
 interface ChatSettingsModalProps {
   chat: any;
   onClose: () => void;
   onNavigateProfile?: () => void;
+  /** View to open on mount (e.g. 'media', 'disappearing_selector', 'nicknames'). */
+  initialView?: 'main' | 'media' | 'disappearing_selector' | 'nicknames';
 }
 
 // Removed static EMOJIS and MEMOJIS as we'll use emoji-mart and more realistic avatars
@@ -67,9 +71,9 @@ const generateEncryptionKeys = (chatId: string) => {
   };
 };
 
-export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: ChatSettingsModalProps) {
+export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, initialView }: ChatSettingsModalProps) {
   const navigate = useNavigate();
-  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>('main');
+  const [view, setView] = useState<'main' | 'customize' | 'preview_theme' | 'ai_generator' | 'custom_photo' | 'nicknames' | 'media' | 'pinned' | 'search_chat' | 'share_contact' | 'create_group' | 'word_emoji_picker' | 'notifications_sounds' | 'encryption_verification' | 'disappearing_selector'>(initialView || 'main');
   const [customizeTab, setCustomizeTab] = useState<'themes' | 'reaction' | 'words'>('themes');
 
   // ── Create Group state ──
@@ -156,6 +160,23 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
       fetchNicknameHistory();
     }
   }, [view, showNicknameHistory, fetchNicknameHistory]);
+
+  useEffect(() => {
+    if (view === 'nicknames') {
+      const chatId = chat.chat_id || chat.id;
+      api.get(`/messages/chat/${chatId}/nicknames`).then(res => {
+        if (res.data?.nicknames) {
+          useChatStore.getState().setChatNicknames(chatId, res.data.nicknames);
+          const pNick = res.data.nicknames[chat.partner_id];
+          if (pNick) setNicknameInput(pNick);
+          const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
+          if (myId && res.data.nicknames[myId]) {
+            setMyNicknameInput(res.data.nicknames[myId]);
+          }
+        }
+      }).catch(() => {});
+    }
+  }, [view, chat.chat_id, chat.id, chat.partner_id]);
   
   // Settings state
   const [isMuted, setIsMuted] = useState(chat.is_muted ?? false);
@@ -816,15 +837,19 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     <button
                       key={opt.value}
                       onClick={async () => {
+                        const previousDuration = disappearingDuration;
                         setDisappearingDuration(opt.value);
+                        useChatStore.getState().setDisappearingDuration(chat.chat_id || chat.id, opt.value);
                         try {
-                          // Only send disappearingDuration — do NOT include privacy booleans here
-                          // (sending them would overwrite NULL/DEFAULT-inherited DB rows with explicit values)
                           await api.patch(`/messages/${chat.chat_id || chat.id}/privacy`, {
                             disappearingDuration: opt.value,
                           });
+                          showSuccess(opt.value > 0 ? `Disappearing messages set to ${opt.label}` : 'Disappearing messages turned off');
                         } catch (e) {
                           logger.error('Failed to update disappearing duration:', e);
+                          setDisappearingDuration(previousDuration);
+                          useChatStore.getState().setDisappearingDuration(chat.chat_id || chat.id, previousDuration);
+                          showError('Failed to update disappearing messages');
                         }
                         setView('main');
                       }}
@@ -1294,32 +1319,31 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile }: 
                     const chatId = chat.chat_id || chat.id;
                     const cleanPartnerNick = nicknameInput.trim();
                     const cleanMyNick = myNicknameInput.trim();
-
-                    // Create local history entry
-                    const historyRecord = {
-                      id: 'nick_' + Date.now(),
-                      content: cleanPartnerNick ? `You set ${displayPartnerName}'s nickname to ${cleanPartnerNick}` : `You updated nicknames`,
-                      set_by_name: 'You',
-                      target_name: displayPartnerName,
-                      nickname: cleanPartnerNick || cleanMyNick,
-                      sent_at: new Date().toISOString()
-                    };
-
-                    const existingHistory = JSON.parse(localStorage.getItem(`sparkle_nicknames_history_${chatId}`) || '[]');
-                    localStorage.setItem(`sparkle_nicknames_history_${chatId}`, JSON.stringify([historyRecord, ...existingHistory]));
-
-                    if (cleanPartnerNick) {
-                      // Update displayed name after nickname change\n                      const updatedName = cleanPartnerNick || displayPartnerName;\n                      // Note: actual chat object may be updated elsewhere\n                      // This line preserves UI consistency\n                      // No direct assignment to chat.partner_name needed\n                      // (if needed, update state elsewhere)
-                    }
+                    const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
 
                     try {
-                      await api.post(`/messages/chat/${chatId}/nickname`, {
-                        targetUserId: chat.partner_id,
-                        targetName: chat.partner_name,
-                        nickname: cleanPartnerNick || cleanMyNick
-                      });
+                      if (chat.partner_id) {
+                        await api.post(`/messages/chat/${chatId}/nickname`, {
+                          targetUserId: chat.partner_id,
+                          targetName: displayPartnerName,
+                          nickname: cleanPartnerNick
+                        });
+                        useChatStore.getState().setChatNickname(chatId, chat.partner_id, cleanPartnerNick);
+                      }
+
+                      if (myId && cleanMyNick && cleanMyNick !== 'You') {
+                        await api.post(`/messages/chat/${chatId}/nickname`, {
+                          targetUserId: myId,
+                          targetName: 'You',
+                          nickname: cleanMyNick
+                        });
+                        useChatStore.getState().setChatNickname(chatId, myId, cleanMyNick);
+                      }
+
+                      showSuccess('Nicknames updated');
                     } catch (err) {
-                      logger.log('Saved nickname locally');
+                      logger.error('Failed to save nickname on server:', err);
+                      showError('Failed to save nickname on server');
                     }
 
                     window.dispatchEvent(new CustomEvent('sparkle:nickname-updated', { 

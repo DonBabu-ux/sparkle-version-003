@@ -267,8 +267,9 @@ export const useMessageSocket = () => {
       getChatStore().updateMessage(data.chatId, data.messageId, { pinned: false, pinned_by: null, pinned_at: undefined });
     };
 
-    const handleMessageEdited = (data: { messageId: string; chatId: string; content: string; editedAt: string }) => {
+    const handleMessageEdited = (data: { messageId: string; chatId: string; content: string; editedAt?: string; edited_at?: string; is_edited?: boolean }) => {
       getChatStore().editMessage(data.chatId, data.messageId, data.content);
+      window.dispatchEvent(new CustomEvent('sparkle_message_edited', { detail: data }));
     };
 
     const handleMessageDeletedEveryone = (data: { messageId: string; chatId: string }) => {
@@ -532,9 +533,26 @@ export const useMessageSocket = () => {
       window.dispatchEvent(new CustomEvent('sparkle_live_location_stopped', { detail: data }));
     };
 
+    const handleDisappearingMessagesUpdate = (data: { chatId: string; duration: number; version?: number; systemMessage?: any }) => {
+      if (data?.chatId) {
+        getChatStore().setDisappearingDuration(data.chatId, data.duration, data.version);
+        window.dispatchEvent(new CustomEvent('sparkle_disappearing_update', { detail: data }));
+      }
+    };
+
+    const handleNicknameUpdated = (data: { chatId: string; targetUserId: string; nickname?: string | null; version?: number }) => {
+      if (data?.chatId && data?.targetUserId) {
+        getChatStore().setChatNickname(data.chatId, data.targetUserId, data.nickname || null);
+        window.dispatchEvent(new CustomEvent('sparkle_nickname_updated', { detail: data }));
+      }
+    };
+
     socket.on('live_location_started', handleLiveLocationStarted);
     socket.on('live_location_update', handleLiveLocationUpdate);
     socket.on('live_location_stopped', handleLiveLocationStopped);
+    socket.on('disappearing_messages_update', handleDisappearingMessagesUpdate);
+    socket.on('chat:nickname_updated', handleNicknameUpdated);
+    socket.on('nickname_updated', handleNicknameUpdated);
 
     return () => {
       window.removeEventListener('online', handleOnlineOrFocus);
@@ -575,6 +593,9 @@ export const useMessageSocket = () => {
       socket.off('live_location_started', handleLiveLocationStarted);
       socket.off('live_location_update', handleLiveLocationUpdate);
       socket.off('live_location_stopped', handleLiveLocationStopped);
+      socket.off('disappearing_messages_update', handleDisappearingMessagesUpdate);
+      socket.off('chat:nickname_updated', handleNicknameUpdated);
+      socket.off('nickname_updated', handleNicknameUpdated);
     };
   }, [socket]);
 };

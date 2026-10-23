@@ -2,6 +2,8 @@ const { Message, GroupChat, GroupMember } = require('../models');
 const pool = require('../config/database');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+const PermissionEngine = require('../services/PermissionEngine');
+const { getIO } = require('../socket');
 
 class MessageController {
     /**
@@ -544,6 +546,24 @@ class MessageController {
             if (!updated) {
                 return res.status(403).json({ status: 'error', error: 'Cannot edit message (not yours or past 15 min)' });
             }
+
+            try {
+                const io = req.app.get('io') || global.io;
+                if (io && updated.chatId) {
+                    io.to(`chat:${updated.chatId}`).emit('message-edited', {
+                        chatId: updated.chatId,
+                        messageId,
+                        content: content.trim(),
+                        is_edited: true,
+                        edited: true,
+                        edited_at: updated.edited_at || new Date().toISOString(),
+                        sequence_no: updated.sequenceNo
+                    });
+                }
+            } catch (sockErr) {
+                logger.warn('[messages.controller:editMessage] socket broadcast error:', sockErr.message);
+            }
+
             res.json({ status: 'success', data: updated });
         } catch (error) {
             res.status(500).json({ status: 'error', error: error.message });
@@ -918,85 +938,173 @@ class MessageController {
 
     async forwardMessage(req, res) {
         try {
-            const { messageId } = req.params;
             const { targetChatIds } = req.body;
+            const rawMessageIds = req.body.messageIds && Array.isArray(req.body.messageIds)
+                ? req.body.messageIds
+                : [req.params.messageId || req.body.messageId].filter(Boolean);
             const viewerUserId = req.user ? (req.user.user_id || req.user.userId || req.user.id) : null;
+            const baseIdempotencyKey = req.body.idempotencyKey || req.headers['idempotency-key'] || null;
 
-            if (!targetChatIds || !Array.isArray(targetChatIds)) {
+            if (!targetChatIds || !Array.isArray(targetChatIds) || targetChatIds.length === 0) {
                 return res.status(400).json({ status: 'error', error: 'targetChatIds array is required' });
             }
 
-            const originalMsg = await Message.getById(messageId);
-            if (!originalMsg) {
-                return res.status(404).json({ status: 'error', error: 'Original message not found' });
+            // Strictly enforce max 5 recipients
+            if (targetChatIds.length > 5) {
+                return res.status(400).json({ status: 'error', error: 'Cannot forward to more than 5 recipients in a single operation' });
             }
 
-            const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
-            
-            // Fetch policy owner's privacy settings
-            const [privacyRows] = await pool.query(
-                'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
-                [sourceChatId, originalMsg.sender_id || originalMsg.senderId]
-            );
-
-            const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
-            const permissions = PermissionEngine.computePermissions({
-                message: originalMsg,
-                senderPrivacy,
-                viewerUserId
-            });
-
-            if (!permissions.canForward) {
-                return res.status(403).json({
-                    status: 'error',
-                    code: 'MESSAGE_PERMISSION_DENIED',
-                    permission: 'forward',
-                    error: 'Forwarding is disabled by message owner privacy settings'
-                });
+            if (!rawMessageIds || rawMessageIds.length === 0) {
+                return res.status(400).json({ status: 'error', error: 'At least one messageId is required' });
             }
 
             const forwardedMessages = [];
-            for (const targetChatId of targetChatIds) {
-                const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
+            const io = req.app.get('io') || global.io;
+
+            for (let msgIdx = 0; msgIdx < rawMessageIds.length; msgIdx++) {
+                const sourceMsgId = rawMessageIds[msgIdx];
+                const originalMsg = await Message.getById(sourceMsgId);
+                if (!originalMsg) continue;
+
+                const sourceChatId = originalMsg.chat_id || originalMsg.conversation_id || originalMsg.personal_chat_id;
                 
-                let recipientId = null;
-                if (pc.length > 0) {
-                    recipientId = pc[0].participant1_id === userId ? pc[0].participant2_id : pc[0].participant1_id;
+                // Fetch policy owner's privacy settings
+                const [privacyRows] = await pool.query(
+                    'SELECT allow_forward, allow_copy, block_screenshot, blur_screen_recording, privacy_version FROM chat_privacy_settings WHERE chat_id = ? AND user_id = ?',
+                    [sourceChatId, originalMsg.sender_id || originalMsg.senderId]
+                );
+
+                const senderPrivacy = (privacyRows && privacyRows[0]) ? privacyRows[0] : {};
+                const permissions = PermissionEngine.computePermissions({
+                    message: originalMsg,
+                    senderPrivacy,
+                    viewerUserId
+                });
+
+                if (!permissions.canForward) {
+                    return res.status(403).json({
+                        status: 'error',
+                        code: 'MESSAGE_PERMISSION_DENIED',
+                        permission: 'forward',
+                        error: 'Forwarding is disabled by message owner privacy settings'
+                    });
                 }
 
-                const newMsgId = crypto.randomUUID();
-                const sentAt = new Date();
-                const personalChatId = pc.length > 0 ? targetChatId : null;
-                const groupChatId = pc.length > 0 ? null : targetChatId;
+                // Reference-based forwarding: identify root lineage
+                const rootMessageId = originalMsg.forward_lineage_id || originalMsg.source_message_id || originalMsg.message_id;
 
-                await pool.query(`
-                    INSERT INTO messages (
-                        message_id, chat_id, conversation_id, personal_chat_id, 
-                        sender_id, recipient_id, content, type, media_url, 
-                        status, is_read, sent_at, context,
-                        forwarded, forwarded_from
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?)
-                `, [
-                    newMsgId, 
-                    groupChatId, 
-                    personalChatId, 
-                    personalChatId, 
-                    userId, 
-                    recipientId, 
-                    originalMsg.content, 
-                    originalMsg.type, 
-                    originalMsg.media_url, 
-                    sentAt, 
-                    req.user.username || 'user'
-                ]);
+                // Atomically increment root lineage forward_count
+                await pool.query(
+                    'UPDATE messages SET forward_count = IFNULL(forward_count, 0) + 1 WHERE message_id = ?',
+                    [rootMessageId]
+                );
+                const [fcRows] = await pool.query('SELECT forward_count FROM messages WHERE message_id = ?', [rootMessageId]);
+                const forwardCount = fcRows[0]?.forward_count || 1;
 
-                if (personalChatId) {
-                    await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
-                } else if (groupChatId) {
-                    await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
+                for (const targetChatId of targetChatIds) {
+                    const deliveryKey = baseIdempotencyKey ? `${baseIdempotencyKey}_${sourceMsgId}_${targetChatId}` : null;
+                    if (deliveryKey) {
+                        const [existingDeliv] = await pool.query(
+                            'SELECT delivery_id, forwarded_message_id FROM message_forward_deliveries WHERE idempotency_key = ?',
+                            [deliveryKey]
+                        );
+                        if (existingDeliv && existingDeliv.length > 0) {
+                            forwardedMessages.push({ messageId: existingDeliv[0].forwarded_message_id, chatId: targetChatId });
+                            continue;
+                        }
+                    }
+
+                    const [pc] = await pool.query('SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?', [targetChatId]);
+                    
+                    let recipientId = null;
+                    if (pc.length > 0) {
+                        recipientId = String(pc[0].participant1_id) === String(viewerUserId) ? pc[0].participant2_id : pc[0].participant1_id;
+                    }
+
+                    const newMsgId = crypto.randomUUID();
+                    const sentAt = new Date();
+                    const personalChatId = pc.length > 0 ? targetChatId : null;
+                    const groupChatId = pc.length > 0 ? null : targetChatId;
+
+                    // Sequence tracking for destination conversation
+                    await pool.query(`
+                        INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)
+                        ON DUPLICATE KEY UPDATE last_sequence = last_sequence + 1
+                    `, [targetChatId]);
+                    const [seqRow] = await pool.query('SELECT last_sequence FROM chat_sequences WHERE chat_id = ?', [targetChatId]);
+                    const serverSequence = seqRow[0]?.last_sequence || 1;
+
+                    await pool.query(`
+                        INSERT INTO messages (
+                            message_id, chat_id, conversation_id, personal_chat_id, 
+                            sender_id, recipient_id, content, type, media_url, 
+                            status, is_read, sent_at, context,
+                            forwarded, forwarded_from, source_message_id, forward_lineage_id, forward_count,
+                            server_sequence, idempotency_key
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?, ?, ?, ?, ?, ?)
+                    `, [
+                        newMsgId, 
+                        groupChatId, 
+                        personalChatId, 
+                        personalChatId, 
+                        viewerUserId, 
+                        recipientId, 
+                        originalMsg.content, 
+                        originalMsg.type, 
+                        originalMsg.media_url, 
+                        sentAt, 
+                        req.user?.username || req.user?.name || 'user',
+                        rootMessageId,
+                        rootMessageId,
+                        forwardCount,
+                        serverSequence,
+                        deliveryKey
+                    ]);
+
+                    // Record in message_forward_deliveries
+                    try {
+                        const deliveryId = crypto.randomUUID();
+                        await pool.query(`
+                            INSERT INTO message_forward_deliveries (delivery_id, source_message_id, forwarded_message_id, destination_chat_id, forwarded_by_user_id, idempotency_key)
+                            VALUES (?, ?, ?, ?, ?, ?)
+                        `, [deliveryId, rootMessageId, newMsgId, targetChatId, viewerUserId, deliveryKey]);
+                    } catch (e) {
+                        // Idempotency or table note
+                    }
+
+                    if (personalChatId) {
+                        await pool.query('UPDATE personal_chats SET last_message_time = ? WHERE chat_id = ?', [sentAt, personalChatId]);
+                    } else if (groupChatId) {
+                        await pool.query('UPDATE group_chats SET last_message_at = ? WHERE chat_id = ?', [sentAt, groupChatId]);
+                    }
+
+                    // Query formatted message for socket emission
+                    const [msgRows] = await pool.query(`
+                        SELECT m.*, u.name as sender_name, u.username as sender_username, u.avatar_url as sender_avatar
+                        FROM messages m
+                        JOIN users u ON m.sender_id = u.user_id
+                        WHERE m.message_id = ?
+                    `, [newMsgId]);
+
+                    if (msgRows && msgRows.length > 0) {
+                        const liveMsg = {
+                            ...msgRows[0],
+                            sent_at: sentAt.toISOString(),
+                            chatId: targetChatId,
+                            chat_id: targetChatId,
+                            forwarded: true,
+                            forwarded_from: req.user?.username || req.user?.name || 'user',
+                            source_message_id: rootMessageId,
+                            forward_lineage_id: rootMessageId,
+                            forward_count: forwardCount
+                        };
+                        if (io) {
+                            io.to(`chat:${targetChatId}`).emit('new-message', liveMsg);
+                        }
+                    }
+
+                    forwardedMessages.push({ messageId: newMsgId, chatId: targetChatId });
                 }
-
-                forwardedMessages.push({ messageId: newMsgId, chatId: targetChatId });
             }
 
             res.json({ status: 'success', data: forwardedMessages });
@@ -1032,7 +1140,7 @@ class MessageController {
                 LEFT JOIN users pb ON pb.user_id = m.pinned_by
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.pinned = 1
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
             `;
             const params = [chatId, chatId, chatId];
 
@@ -1092,7 +1200,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type IN ('image','video')
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1152,7 +1260,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'document'
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
             `;
             const params = [chatId, chatId, chatId];
 
@@ -1253,7 +1361,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'text'
                   AND m.content REGEXP 'https?://'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1335,7 +1443,7 @@ class MessageController {
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'voice_note'
                   AND m.media_url IS NOT NULL
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1395,7 +1503,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'audio'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1456,7 +1564,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND (m.type = 'story_reply' OR m.story_id IS NOT NULL OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%story%'))
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1517,7 +1625,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND (m.type = 'post_share' OR (m.metadata LIKE '%"attachment"%' AND m.metadata LIKE '%post%'))
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                   ${cursorClause}
                 ORDER BY m.sent_at DESC
                 LIMIT ?
@@ -1647,7 +1755,7 @@ class MessageController {
                     MIN(sent_at) AS first_message_at
                 FROM messages
                 WHERE (chat_id = ? OR conversation_id = ? OR personal_chat_id = ?)
-                  AND (deleted_for_everyone IS NULL OR deleted_for_everyone = 0)
+                  AND                    (is_deleted_for_everyone IS NULL OR is_deleted_for_everyone = 0)
             `, [chatId, chatId, chatId]);
 
             const statData = stats[0] || {};
@@ -1711,6 +1819,42 @@ class MessageController {
         }
     }
 
+    // ─── Get Chat Nicknames (Authoritative Source of Truth) ─────────────────────
+    async getChatNicknames(req, res) {
+        try {
+            const { chatId } = req.params;
+            const userId = req.user.user_id || req.user.userId;
+
+            const [isPart] = await pool.query(
+                'SELECT 1 FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?) UNION SELECT 1 FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
+                [chatId, userId, userId, chatId, userId]
+            );
+            if (!isPart || isPart.length === 0) {
+                return res.status(403).json({ status: 'error', error: 'Not a member of this chat' });
+            }
+
+            const [rows] = await pool.query(
+                'SELECT user_id, nickname, set_by_id, version, updated_at FROM chat_nicknames WHERE chat_id = ?',
+                [chatId]
+            );
+
+            const nicknames = {};
+            for (const r of rows) {
+                nicknames[r.user_id] = {
+                    nickname: r.nickname,
+                    setById: r.set_by_id,
+                    version: r.version,
+                    updatedAt: r.updated_at
+                };
+            }
+
+            return res.json({ status: 'success', data: nicknames });
+        } catch (error) {
+            logger.error('[getChatNicknames]', error);
+            return res.status(500).json({ status: 'error', error: error.message });
+        }
+    }
+
     // ─── Set Nickname & Emit System Message ─────────────────────────────────────
     async setChatNickname(req, res) {
         try {
@@ -1719,24 +1863,75 @@ class MessageController {
             const userId = req.user.user_id || req.user.userId;
             const senderName = req.user.name || req.user.full_name || req.user.username || 'User';
 
-            if (!nickname || !nickname.trim()) {
-                return res.status(400).json({ status: 'error', error: 'Nickname is required' });
+            if (!targetUserId) {
+                return res.status(400).json({ status: 'error', error: 'targetUserId is required' });
             }
 
-            const cleanNickname = nickname.trim();
-            const isSelf = targetUserId ? (String(targetUserId) === String(userId)) : false;
+            // Verify membership
+            const [isPart] = await pool.query(
+                'SELECT 1 FROM personal_chats WHERE chat_id = ? AND (participant1_id = ? OR participant2_id = ?) UNION SELECT 1 FROM group_chat_members WHERE chat_id = ? AND user_id = ?',
+                [chatId, userId, userId, chatId, userId]
+            );
+            if (!isPart || isPart.length === 0) {
+                return res.status(403).json({ status: 'error', error: 'Not a member of this chat' });
+            }
 
-            const messageContent = isSelf
-                ? `You set your nickname to ${cleanNickname}`
-                : `You set ${targetName || 'partner'}'s nickname to ${cleanNickname}`;
+            // Get target user info
+            const [targetRows] = await pool.query('SELECT user_id, name, username FROM users WHERE user_id = ?', [targetUserId]);
+            const targetUser = targetRows[0] || {};
+            const targetDisplayName = targetUser.name || targetName || targetUser.username || 'User';
 
-            const messageId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            // Get current nickname
+            const [curNick] = await pool.query('SELECT nickname, version FROM chat_nicknames WHERE chat_id = ? AND user_id = ?', [chatId, targetUserId]);
+            const prevNickname = curNick[0]?.nickname || null;
+            const curVer = curNick[0]?.version || 0;
+            const newVersion = curVer + 1;
+
+            const cleanNickname = typeof nickname === 'string' ? nickname.trim().slice(0, 64) : '';
+
+            if (cleanNickname) {
+                const nickId = crypto.randomUUID();
+                await pool.query(
+                    `INSERT INTO chat_nicknames (id, chat_id, user_id, nickname, set_by_id, version)
+                     VALUES (?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE nickname = VALUES(nickname), set_by_id = VALUES(set_by_id), version = version + 1`,
+                    [nickId, chatId, targetUserId, cleanNickname, userId, newVersion]
+                );
+            } else {
+                await pool.query('DELETE FROM chat_nicknames WHERE chat_id = ? AND user_id = ?', [chatId, targetUserId]);
+            }
+
+            let messageContent = '';
+            if (cleanNickname) {
+                if (prevNickname && prevNickname !== cleanNickname) {
+                    messageContent = `${senderName} changed ${targetDisplayName}'s nickname from ${prevNickname} to ${cleanNickname}.`;
+                } else {
+                    messageContent = `${senderName} set ${targetDisplayName}'s nickname to ${cleanNickname}.`;
+                }
+            } else {
+                messageContent = `${senderName} removed ${targetDisplayName}'s nickname.`;
+            }
+
+            const messageId = crypto.randomUUID();
+            const now = new Date();
+            const metadataObj = {
+                system_type: 'nickname_change',
+                actor_id: userId,
+                actor_name: senderName,
+                target_user_id: targetUserId,
+                target_name: targetDisplayName,
+                previous_nickname: prevNickname,
+                new_nickname: cleanNickname || null,
+                version: newVersion,
+                updated_at: now.toISOString()
+            };
+
             await pool.query(`
-                INSERT INTO messages (message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at)
-                VALUES (?, ?, ?, ?, ?, 'system', ?, NOW())
+                INSERT INTO messages (message_id, chat_id, conversation_id, sender_id, content, type, metadata, sent_at, status, is_read)
+                VALUES (?, ?, ?, ?, ?, 'system', ?, NOW(), 'sent', 1)
             `, [
                 messageId, chatId, chatId, userId, messageContent,
-                JSON.stringify({ system_type: 'nickname_change', target_user_id: targetUserId, target_name: targetName, nickname: cleanNickname, set_by_name: senderName })
+                JSON.stringify(metadataObj)
             ]);
 
             const historyEntry = {
@@ -1745,18 +1940,58 @@ class MessageController {
                 set_by_id: userId,
                 set_by_name: senderName,
                 target_user_id: targetUserId,
-                target_name: targetName,
+                target_name: targetDisplayName,
                 nickname: cleanNickname,
-                created_at: new Date().toISOString()
+                created_at: now.toISOString()
             };
+
+            const systemMsg = {
+                message_id: messageId,
+                id: messageId,
+                chat_id: chatId,
+                chatId,
+                sender_id: userId,
+                senderId: userId,
+                content: messageContent,
+                type: 'system',
+                metadata: metadataObj,
+                sent_at: now.toISOString(),
+                status: 'sent'
+            };
+
+            // Broadcast the system message to both participants in real time
+            try {
+                const io = getIO();
+                if (io) {
+                    io.to(`chat:${chatId}`).emit('new-message', systemMsg);
+                    io.to(`chat:${chatId}`).emit('chat:nickname_updated', {
+                        chatId,
+                        targetUserId,
+                        nickname: cleanNickname || null,
+                        setById: userId,
+                        version: newVersion
+                    });
+                    io.to(`chat:${chatId}`).emit('nickname_updated', {
+                        chatId,
+                        targetUserId,
+                        targetName: targetDisplayName,
+                        nickname: cleanNickname,
+                        setByName: senderName,
+                        version: newVersion
+                    });
+                }
+            } catch (emitErr) {
+                logger.warn('[setChatNickname] Socket emit failed (non-fatal):', emitErr?.message || emitErr);
+            }
 
             res.json({
                 status: 'success',
                 message: 'Nickname updated',
                 data: {
-                    nickname: cleanNickname,
+                    nickname: cleanNickname || null,
                     system_message_id: messageId,
-                    history_entry: historyEntry
+                    history_entry: historyEntry,
+                    version: newVersion
                 }
             });
         } catch (error) {
@@ -1778,7 +2013,7 @@ class MessageController {
                 LEFT JOIN users u ON u.user_id = m.sender_id
                 WHERE (m.chat_id = ? OR m.conversation_id = ? OR m.personal_chat_id = ?)
                   AND m.type = 'system'
-                  AND (m.deleted_for_everyone IS NULL OR m.deleted_for_everyone = 0)
+                  AND (m.is_deleted_for_everyone IS NULL OR m.is_deleted_for_everyone = 0)
                 ORDER BY m.sent_at DESC
             `, [chatId, chatId, chatId]);
 

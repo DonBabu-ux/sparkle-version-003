@@ -200,7 +200,7 @@ describe('Chat List Unread Indicators, Receipts & Activity Status', () => {
   });
 
   describe('3. Recipient Activity Status After 12 Hours', () => {
-    it('displays "Active now" when recipient is currently online after 12 hours', () => {
+    it('shows NO live "Active" label when recipient is online (green indicator only)', () => {
       const fourteenHoursAgo = new Date(BASE_NOW - 14 * 60 * 60 * 1000).toISOString();
       const chat = {
         chat_id: 'chat_6',
@@ -218,10 +218,36 @@ describe('Chat List Unread Indicators, Receipts & Activity Status', () => {
         referenceTime: BASE_NOW,
       });
 
-      expect(result.mode).toBe('activity_status');
-      expect(result.middleLabel).toBe('Active now');
-      expect(result.middleLabelType).toBe('activity');
+      // Online presence is communicated exclusively via the green indicator;
+      // the row must never show a misleading live "Active now" label.
+      expect(result.middleLabel).toBeNull();
+      expect(result.middleLabelType).toBeNull();
       expect(result.senderPrefix).toBe('You: ');
+    });
+
+    it('shows relative last-seen after the disconnect grace period', () => {
+      const fourteenHoursAgo = new Date(BASE_NOW - 14 * 60 * 60 * 1000).toISOString();
+      const oneMinAgo = new Date(BASE_NOW - 60 * 1000).toISOString();
+      const chat = {
+        chat_id: 'chat_6b',
+        partner_id: PARTNER_ID,
+        last_message_sender_id: CURRENT_USER_ID,
+        last_message: 'Good morning',
+        last_message_time: fourteenHoursAgo,
+        last_message_status: 'sent',
+        is_online: 0,
+        last_seen_at: oneMinAgo,
+      };
+
+      const result = resolveChatListDisplay({
+        chat,
+        currentUserId: CURRENT_USER_ID,
+        referenceTime: BASE_NOW,
+      });
+
+      expect(result.mode).toBe('activity_status');
+      expect(result.middleLabel).toBe('Active 1 min ago');
+      expect(result.middleLabelType).toBe('activity');
     });
 
     it('formats offline relative activity status accurately', () => {
@@ -240,6 +266,9 @@ describe('Chat List Unread Indicators, Receipts & Activity Status', () => {
       // 2 days ago
       const twoDaysAgo = new Date(BASE_NOW - 2 * 24 * 60 * 60 * 1000).toISOString();
       expect(formatActivityStatus(twoDaysAgo, false, BASE_NOW)).toBe('Active 2 days ago');
+
+      // Online → no label (green indicator only)
+      expect(formatActivityStatus(null, true, BASE_NOW)).toBeNull();
     });
 
     it('displays recipient last-seen relative status after 12 hours', () => {

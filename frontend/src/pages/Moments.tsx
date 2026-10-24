@@ -13,7 +13,7 @@ import { useUserStore } from '../store/userStore';
 import { useInteractionStore } from '../store/interactionStore';
 import { FeedPaginationAudit } from '../services/feedPaginationAudit';
 import '../services/TrackingService';
-import { getMediaUrl } from '../utils/imageUtils';
+import { getMediaUrl, getSafeVideoUrl } from '../utils/imageUtils';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -296,6 +296,9 @@ const ReelItem = React.memo(({
   // Only load src when this card is active or immediately adjacent (preload 1 ahead)
   const rawSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
   const mediaSrc = getMediaUrl(rawSrc);
+  // Device-safe rendition (1080p-capped) for Android WebView decode limits;
+  // mediaSrc stays as the guaranteed fallback if the safe URL 404s.
+  const safeMediaSrc = rawSrc ? getSafeVideoUrl(rawSrc) : '';
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url || !!(moment.video_url || moment.media_url || moment.streaming_url)?.match(/\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
@@ -336,10 +339,10 @@ const ReelItem = React.memo(({
         {/* Primary Content Layer */}
         <div className="relative w-full h-full flex items-center justify-center z-10">
           {isVideo ? (
-            <HlsVideoPlayer 
+            <HlsVideoPlayer
               ref={videoRef}
-              streamingSrc={moment.streaming_url}
-              src={mediaSrc || undefined}
+              src={safeMediaSrc || mediaSrc || undefined}
+              fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : undefined}
               poster={moment.thumbnail_url}
               active={active && !userPaused}
               muted={muted}
@@ -533,6 +536,21 @@ const ReelItem = React.memo(({
     </div>
   );
 });
+
+/**
+ * Feed/grid video fallback: if the device-safe rendition fails (e.g. a Pexels
+ * halved variant that doesn't exist for a given id), retry the original URL
+ * once. The global handler in GlobalEffects keeps the final placeholder.
+ */
+function handleMomentVideoError(e: React.SyntheticEvent<HTMLVideoElement>) {
+  const el = e.currentTarget;
+  if (el.dataset.videoFallbackTried === '1') return;
+  const original = el.dataset.originalSrc;
+  if (!original) return;
+  el.dataset.videoFallbackTried = '1';
+  logger.warn('[Moments] safe rendition failed, retrying original:', el.currentSrc || el.src, '->', original);
+  el.src = original;
+}
 
 export default function Moments() {
   const { id } = useParams();
@@ -1275,10 +1293,12 @@ export default function Moments() {
                           ) : (
                             <>
                                 {moment.media_type === 'video' ? (
-                                    <video 
-                                    src={getMediaUrl(moment.video_url || moment.media_url) || undefined} 
-                                    muted 
-                                    autoPlay={false} 
+                                    <video
+                                    src={getSafeVideoUrl(moment.video_url || moment.media_url) || undefined}
+                                    data-original-src={getMediaUrl(moment.video_url || moment.media_url) || undefined}
+                                    onError={handleMomentVideoError}
+                                    muted
+                                    autoPlay={false}
                                     loop
                                     playsInline
                                     className="w-full h-full object-cover"

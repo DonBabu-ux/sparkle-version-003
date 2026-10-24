@@ -6,6 +6,11 @@ import { logger } from '../utils/logger';
 interface HlsVideoPlayerProps {
   src?: string;
   streamingSrc?: string;
+  /**
+   * Original (untransformed) URL to retry when `src` fails — e.g. the
+   * device-safe rendition 404s or the Pexels halved variant is missing.
+   */
+  fallbackSrc?: string;
   poster?: string;
   active?: boolean;
   muted?: boolean;
@@ -19,6 +24,7 @@ interface HlsVideoPlayerProps {
 const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   src,
   streamingSrc,
+  fallbackSrc,
   poster,
   active = true,
   muted = false,
@@ -132,6 +138,24 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
         onWaiting={() => {}}
         onPlaying={() => {}}
         onLoadedData={onLoadedData}
+        onError={() => {
+          const video = localVideoRef.current;
+          if (!video) return;
+          // hls.js owns the media element while attached — destroy it first so
+          // setting a plain MP4 src actually takes effect.
+          if (hlsRef.current) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+          }
+          if (fallbackSrc && video.dataset.fallbackTried !== '1') {
+            video.dataset.fallbackTried = '1';
+            logger.warn('[HlsVideoPlayer] rendition failed, retrying original:', video.currentSrc || video.src, '->', fallbackSrc);
+            video.src = fallbackSrc;
+            if (active) video.play().catch(() => {});
+          } else {
+            logger.warn('[HlsVideoPlayer] playback failed with no usable fallback:', video.currentSrc || video.src);
+          }
+        }}
         className={`w-full h-full object-cover`}
       />
       {/* Buffering overlay removed */}

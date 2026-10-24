@@ -84,10 +84,14 @@ export default function ForgotPassword() {
                     <input
                       id="fp-email"
                       type="email"
+                      name="email"
                       value={email}
                       onChange={(e) => { setEmail(e.target.value);  }}
                       className="fp-input"
                       placeholder="you@university.edu"
+                      autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
                       autoFocus
                     />
                   </div>

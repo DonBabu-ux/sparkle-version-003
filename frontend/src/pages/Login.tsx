@@ -427,11 +427,14 @@ export default function Login() {
                     <input
                       id="login-email"
                       type="text"
+                      name="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       className="login-input"
                       placeholder="you@university.edu"
                       autoComplete="username"
+                      autoCapitalize="none"
+                      spellCheck={false}
                     />
                   </div>
 
@@ -547,8 +550,10 @@ export default function Login() {
                         <input
                           key={i}
                           id={`pin-${i}`}
+                          name={`pin-${i}`}
                           type="text"
                           inputMode="numeric"
+                          autoComplete="one-time-code"
                           value={digit}
                           onChange={(e) => handlePinInput(i, e)}
                           onKeyDown={(e) => handlePinKeyDown(i, e)}

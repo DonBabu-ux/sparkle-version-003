@@ -272,6 +272,8 @@ export default function ResetPassword() {
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                name="newPassword"
+                autoComplete="new-password"
                 value={newProtocolCode}
                 onChange={(e) => setNewProtocolCode(e.target.value)}
                 className="security-input pr-12"
@@ -331,6 +333,8 @@ export default function ResetPassword() {
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                autoComplete="new-password"
                 value={repeatCode}
                 onChange={(e) => setRepeatCode(e.target.value)}
                 className="security-input pr-12"

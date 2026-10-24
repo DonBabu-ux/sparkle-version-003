@@ -349,7 +349,7 @@ export default function Signup() {
                   <div className="su-grid-2">
                     <div className="su-field">
                       <label className="su-label">Full name</label>
-                      <input type="text" value={form.name} onChange={(e) => update('name', e.target.value)} className="su-input" placeholder="Jane Doe" />
+                      <input type="text" name="name" autoComplete="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="su-input" placeholder="Jane Doe" />
                     </div>
                     <div className="su-field">
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -358,7 +358,7 @@ export default function Signup() {
                         {!checkingUsername && usernameAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
                         {!checkingUsername && usernameAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Taken</span>}
                       </div>
-                      <input type="text" value={form.username} onChange={(e) => update('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))} className="su-input" placeholder="janedoe" />
+                      <input type="text" name="username" autoComplete="username" value={form.username} onChange={(e) => update('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))} className="su-input" placeholder="janedoe" />
                     </div>
                   </div>
                   
@@ -395,19 +395,22 @@ export default function Signup() {
                       {!checkingEmail && emailAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
                       {!checkingEmail && emailAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Registered</span>}
                     </div>
-                    <input type="email" value={form.email} onChange={(e) => update('email', e.target.value)} className="su-input" placeholder="you@university.edu" />
+                    <input type="email" name="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={form.email} onChange={(e) => update('email', e.target.value)} className="su-input" placeholder="you@university.edu" />
                   </div>
 
                   <div className="su-field">
                     <label className="su-label">Password</label>
                     <div style={{ position: 'relative' }}>
-                      <input
-                        type={showPassword ? "text" : "password"}
-                        value={form.password}
-                        onChange={(e) => update('password', e.target.value)}
-                        className="su-input"
-                        placeholder="At least 8 characters"
-                      />
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          name="password"
+                          autoComplete="new-password"
+                          value={form.password}
+                          onChange={(e) => update('password', e.target.value)}
+                          className="su-input"
+                          placeholder="At least 8 characters"
+                          spellCheck={false}
+                        />
                       <button
                         type="button"
                         onClick={() => setShowPassword((v) => !v)}
@@ -621,7 +624,7 @@ export default function Signup() {
                   </p>
 
                   <input
-                    type="text" value={otpCode} maxLength={6}
+                    type="text" name="otp" inputMode="numeric" autoComplete="one-time-code" value={otpCode} maxLength={6}
                     onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
                     className="su-otp-input"
                     placeholder="000000"

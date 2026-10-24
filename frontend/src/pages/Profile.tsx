@@ -218,7 +218,7 @@ export default function Profile() {
   if (!profile) {
     const isGenuinelyMissing = profileError === 'not_found';
     return (
-        <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-[env(safe-area-inset-bottom)]">
+        <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState
              type="error"
@@ -245,7 +245,7 @@ export default function Profile() {
     <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pt-20">
 
       {/* Top Navigation Bar */}
-      <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+      <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top)))] pb-4 transition-all">
         <a className="flex items-center gap-2.5 active:scale-95 transition-transform" href="/dashboard" data-discover="true">
           <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
         </a>
@@ -342,7 +342,7 @@ export default function Profile() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pb-[calc(5rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pb-[calc(5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom)))]">
         <div className="max-w-4xl mx-auto">
           <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
             {/* Main Header Row: Avatar + Basic Info */}

@@ -172,9 +172,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
     try {
       const currentOffset = isInitial ? 0 : offsetRef.current;
       
-      const [dashRes, suggestionsRes] = await Promise.all([
+      const [dashRes, suggestionsRes, trendingRes] = await Promise.all([
         api.get(`/posts/feed?offset=${currentOffset}&limit=10&seed=${deviceSeed}&device_id=${deviceId}${force ? '&force=true' : ''}`),
-        isInitial ? api.get(`/users/suggestions?seed=${deviceSeed}${force ? '&force=true' : ''}`).catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } })
+        isInitial ? api.get(`/users/suggestions?seed=${deviceSeed}${force ? '&force=true' : ''}`).catch(() => ({ data: { suggestions: [] } })) : Promise.resolve({ data: { suggestions: [] } }),
+        isInitial ? api.get(`/search/trending`).catch(() => ({ data: [] })) : Promise.resolve({ data: [] })
       ]);
       
       const newPosts = Array.isArray(dashRes.data) ? dashRes.data : (dashRes.data.feed || dashRes.data.posts || []);
@@ -183,12 +184,15 @@ const posts = orderedPostIds.map(id => postsById[id]);
         setPosts(newPosts);
         lastSyncTime.current = Date.now();
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
-        setTrendingTags([
-          { tag: 'campus_life', count: '12.4k' },
-          { tag: 'campus_talk', count: '8.8k' },
-          { tag: 'announcements', count: '5.1k' },
-          { tag: 'campus_vibes', count: '942' }
-        ]);
+        const realTrending = Array.isArray(trendingRes.data) ? trendingRes.data : [];
+        if (realTrending.length > 0) {
+          setTrendingTags(realTrending.map((t: any) => ({
+            tag: t.name?.replace(/^#/, '') || t.tag || t.name,
+            count: String(t.count ?? 0)
+          })));
+        } else {
+          setTrendingTags([]);
+        }
       } else {
         appendPosts(newPosts);
       }
@@ -660,16 +664,22 @@ const posts = orderedPostIds.map(id => postsById[id]);
             <div className="bg-white dark:bg-[#121212] rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
                <div className="flex flex-col gap-6">
                   <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Hot Right Now</h3>
-                  <div className="space-y-3">{trendingTags.map(tag => (
-                      <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary/20 rounded-2xl transition-all group/tag">
-                         <div className="flex items-center justify-between">
-                            <p className="text-[15px] font-black text-black dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
-                            <TrendingUp size={14} className="text-primary opacity-0 group-hover/tag:opacity-100 transition-opacity" />
-                         </div>
-                         <p className="text-[10px] font-bold text-black/30 dark:text-white/30 mt-1 uppercase tracking-widest">{tag.count} Sparks</p>
-                      </Link>
-                    ))}</div>
-                  <Link to="/explore" className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all group/more uppercase tracking-widest">Explore More <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
+                   {trendingTags.length === 0 ? (
+                     <p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center py-4">No trending tags yet</p>
+                   ) : (
+                     <>
+                       <div className="space-y-3">{trendingTags.map(tag => (
+                         <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary/20 rounded-2xl transition-all group/tag">
+                           <div className="flex items-center justify-between">
+                             <p className="text-[15px] font-black text-black dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
+                             <TrendingUp size={14} className="text-primary opacity-0 group-hover/tag:opacity-100 transition-opacity" />
+                          </div>
+                          <p className="text-[10px] font-bold text-black/30 dark:text-white/30 mt-1 uppercase tracking-widest">{tag.count} Sparks</p>
+                       </Link>
+                     ))}</div>
+                       <Link to="/explore" className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all group/more uppercase tracking-widest">Explore More <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
+                     </>
+                   )}
                </div>
             </div>
           </aside>
@@ -696,3 +706,6 @@ export default function Dashboard() {
     </PullToRefreshProvider>
   );
 }
+
+
+

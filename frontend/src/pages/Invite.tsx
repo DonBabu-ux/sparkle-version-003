@@ -727,7 +727,7 @@ export default function Invite() {
               </button>
             </div>
 
-            <div className="grid grid-cols-4 gap-3 py-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 py-2">
               <button
                 onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(inviteMessage)}`)}
                 className="flex flex-col items-center gap-1.5 p-2 rounded-2xl hover:bg-slate-50 dark:hover:bg-zinc-800 transition-colors"
@@ -918,3 +918,6 @@ export default function Invite() {
     </div>
   );
 }
+
+
+

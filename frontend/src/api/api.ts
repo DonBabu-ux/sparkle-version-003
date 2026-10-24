@@ -35,7 +35,7 @@ const fetchCsrfToken = async (): Promise<string | null> => {
   }
 };
 
-logger.log('🚀 Sparkle API initialized at:', api.defaults.baseURL);
+logger.log('Sparkle API initialized at:', api.defaults.baseURL);
 
 // Interceptor to add auth token, CSRF token, and device info
 api.interceptors.request.use(
@@ -104,7 +104,7 @@ api.interceptors.response.use(
       // If it's a network error and we haven't retried this specific request yet
       if (!originalRequest._networkRetry || originalRequest._networkRetry < 2) {
         originalRequest._networkRetry = (originalRequest._networkRetry || 0) + 1;
-        logger.warn(`🌐 Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
+        logger.warn(`❌ Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);
         await new Promise(r => setTimeout(r, 500 * originalRequest._networkRetry));
         return api(originalRequest);
       }

@@ -18,6 +18,7 @@ const crypto = require('crypto');
 const logger = require('../utils/logger');
 const paystackService = require('./paystack.service');
 const systemMessageService = require('./systemMessage.service');
+const { reconcileDepositAmount } = require('../utils/walletReconciliation');
 
 // Supported transaction types (mirrors DB ENUM)
 const TXN_TYPES = {
@@ -220,7 +221,7 @@ class WalletService {
      * @param {string} reference  Paystack transaction reference
      * @returns {object} { status, walletSummary }
      */
-    async processDepositConfirmation(reference) {
+    async processDepositConfirmation(reference, userId) {
         // Find the deposit record
         const [deposits] = await pool.query(
             'SELECT * FROM wallet_deposits WHERE paystack_ref = ? LIMIT 1',
@@ -232,6 +233,15 @@ class WalletService {
         }
 
         const deposit = deposits[0];
+
+        // Owner scope: a verification reference must belong to the signed-in account.
+        const [w] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [deposit.wallet_id]);
+        if (!w.length) {
+            return { status: 'not_found' };
+        }
+        if (userId !== undefined && w[0].user_id !== userId) {
+            return { status: 'not_authorized' };
+        }
 
         // Idempotency: already processed
         if (deposit.status === 'Completed') {
@@ -255,10 +265,45 @@ class WalletService {
             return { status: 'payment_failed', paystackStatus };
         }
 
-        // Paystack amount is in kobo/cents already — trust server-side value
-        const confirmedCents = verification.data.amount;
+        // Reconcile the provider's confirmed amount/currency with what we asked
+        // for. A mismatch must never reach the ledger or the balance.
+        const reconciliation = reconcileDepositAmount({
+            expectedCents: Number(deposit.amount_cents),
+            expectedCurrency: deposit.currency,
+            confirmedCents: Number(verification?.data?.amount),
+            confirmedCurrency: verification?.data?.currency
+        });
+
+        if (!reconciliation.ok) {
+            logger.error(
+                `[WalletService] Deposit reconciliation rejected ref=${reference}: ${reconciliation.reason} ` +
+                `(expected ${deposit.amount_cents} ${deposit.currency}, confirmed ${verification?.data?.amount} ${verification?.data?.currency})`
+            );
+            await pool.query(
+                `UPDATE wallet_deposits
+                 SET status = 'Failed',
+                     metadata = JSON_SET(COALESCE(metadata, '{}'), '$.reconciliation', CAST(? AS JSON))
+                 WHERE paystack_ref = ? AND status = 'Pending'`,
+                [JSON.stringify({
+                    reason: reconciliation.reason,
+                    expectedCents: Number(deposit.amount_cents),
+                    expectedCurrency: deposit.currency,
+                    confirmedCents: verification?.data?.amount ?? null,
+                    confirmedCurrency: verification?.data?.currency ?? null,
+                    at: new Date().toISOString()
+                }), reference]
+            );
+            return {
+                status: 'amount_mismatch',
+                reason: reconciliation.reason,
+                expectedCents: Number(deposit.amount_cents),
+                confirmedCents: Number(verification?.data?.amount)
+            };
+        }
+
+        const confirmedCents = reconciliation.amountCents;
         const channel = verification.data.channel || 'card';
-        const currency = verification.data.currency || 'KES';
+        const currency = reconciliation.currency;
 
         const transactionId = crypto.randomUUID();
         const connection = await pool.getConnection();
@@ -319,9 +364,8 @@ class WalletService {
             connection.release();
         }
 
-        // Fetch user for notification
+        // Fetch user for notification (ownership already verified above)
         const [[wallet]] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [deposit.wallet_id]);
-        const userId = wallet.user_id;
 
         // Send rich notification (async, non-blocking)
         setImmediate(() => {
@@ -339,23 +383,130 @@ class WalletService {
         return { status: 'completed', walletSummary: await this.getWalletSummary(userId) };
     }
 
-    // ── Webhook Idempotency Guard ─────────────────────────────────────────────
+    // ── Durable Webhook Queue ─────────────────────────────────────────────────
 
     /**
-     * Mark a webhook event as processed.
-     * Returns false if already processed (skip), true if newly recorded.
+     * Persist a provider event before doing any ledger work. The unique key on
+     * (provider, reference, event_type) makes this safe to call repeatedly.
      */
-    async markWebhookProcessed(reference, eventType) {
+    async enqueueWebhookEvent({ eventType, reference, payload }) {
+        if (!eventType || !reference) throw new Error('eventType and reference are required');
+
+        await pool.query(
+            `INSERT INTO wallet_webhook_events
+                (event_id, provider, event_type, paystack_ref, payload, status)
+             VALUES (?, 'paystack', ?, ?, ?, 'Pending')
+             ON DUPLICATE KEY UPDATE event_id = event_id`,
+            [crypto.randomUUID(), eventType, reference, JSON.stringify(payload || {})]
+        );
+
+        const [rows] = await pool.query(
+            `SELECT event_id, status, attempts
+               FROM wallet_webhook_events
+              WHERE provider = 'paystack' AND paystack_ref = ? AND event_type = ?
+              LIMIT 1`,
+            [reference, eventType]
+        );
+        return rows[0] || null;
+    }
+
+    async _claimWebhookEvent(eventId) {
+        const [result] = await pool.query(
+            `UPDATE wallet_webhook_events
+                SET status = 'Processing', attempts = attempts + 1
+              WHERE event_id = ? AND status IN ('Pending', 'Failed')`,
+            [eventId]
+        );
+        return result.affectedRows === 1;
+    }
+
+    /**
+     * Process one durable event. The event is only marked Processed after the
+     * wallet ledger transaction has committed (or the event is a no-op).
+     */
+    async processWebhookEvent(eventId) {
+        const [rows] = await pool.query(
+            'SELECT * FROM wallet_webhook_events WHERE event_id = ? LIMIT 1',
+            [eventId]
+        );
+        if (!rows.length) return { status: 'not_found' };
+
+        const event = rows[0];
+        if (event.status === 'Processed') return { status: 'already_processed' };
+
+        if (!await this._claimWebhookEvent(eventId)) {
+            return { status: 'skipped' };
+        }
+
+        const payload = typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload;
+
         try {
+            let result = { status: 'ignored' };
+
+            if (event.event_type === 'charge.success') {
+                result = await this.processDepositConfirmation(event.paystack_ref);
+                if (result.status === 'pending') {
+                    throw new Error('Provider still reports the deposit as pending');
+                }
+            } else if (event.event_type === 'charge.failed') {
+                await pool.query(
+                    "UPDATE wallet_deposits SET status = 'Failed' WHERE paystack_ref = ? AND status = 'Pending'",
+                    [event.paystack_ref]
+                );
+                result = { status: 'payment_failed' };
+            } else if (event.event_type === 'transfer.success') {
+                result = await this.handleTransferWebhook('transfer.success', payload?.data || {});
+            } else if (event.event_type === 'transfer.failed' || event.event_type === 'transfer.reversed') {
+                result = await this.handleTransferWebhook(event.event_type, payload?.data || {});
+            }
+
             await pool.query(
-                'INSERT INTO wallet_webhook_log (paystack_ref, event_type) VALUES (?, ?)',
-                [reference, eventType]
+                `UPDATE wallet_webhook_events
+                    SET status = 'Processed', processed_at = NOW(), last_error = NULL, next_retry_at = NULL
+                  WHERE event_id = ?`,
+                [eventId]
             );
-            return true; // new
+            return result;
         } catch (err) {
-            if (err.code === 'ER_DUP_ENTRY') return false; // already processed
+            logger.error(`[WalletService] Webhook event ${eventId} (${event.event_type} ${event.paystack_ref}) failed:`, err.message);
+            await pool.query(
+                `UPDATE wallet_webhook_events
+                    SET status = 'Failed', last_error = ?,
+                        next_retry_at = DATE_ADD(NOW(), INTERVAL 60 SECOND)
+                  WHERE event_id = ?`,
+                [String(err.message || err).slice(0, 1000), eventId]
+            ).catch((dbErr) => logger.error('[WalletService] Could not record webhook failure:', dbErr.message));
             throw err;
         }
+    }
+
+    /** Retry pending/failed/stale events; safe to call on a timer. */
+    async processPendingWebhookEvents(limit = 20) {
+        await pool.query(
+            `UPDATE wallet_webhook_events
+                SET status = 'Failed', last_error = COALESCE(last_error, 'stale processing lease')
+              WHERE status = 'Processing' AND updated_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)`
+        ).catch(() => {});
+
+        const [rows] = await pool.query(
+            `SELECT event_id FROM wallet_webhook_events
+              WHERE status IN ('Pending', 'Failed')
+                AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+              ORDER BY received_at ASC
+              LIMIT ?`,
+            [limit]
+        );
+
+        const results = [];
+        for (const row of rows) {
+            try {
+                results.push(await this.processWebhookEvent(row.event_id));
+            } catch (_) {
+                // Failure is already recorded on the event row.
+                results.push({ status: 'retry_scheduled' });
+            }
+        }
+        return results;
     }
 
     // ── Withdrawals ───────────────────────────────────────────────────────────
@@ -402,15 +553,16 @@ class WalletService {
             await connection.query(
                 `INSERT INTO wallet_withdrawals
                     (withdrawal_id, wallet_id, amount_cents, currency, method, status,
-                     account_name, account_number, bank_code, phone, metadata)
-                 VALUES (?, ?, ?, 'KES', ?, 'Pending', ?, ?, ?, ?, ?)`,
+                     account_name, account_number, bank_code, phone, internal_reference, metadata)
+                 VALUES (?, ?, ?, 'KES', ?, 'Pending', ?, ?, ?, ?, ?, ?)`,
                 [
                     withdrawalId, walletId, amountCents, method,
                     details.accountName || null,
                     details.accountNumber || null,
                     details.bankCode || null,
                     details.phone || null,
-                    JSON.stringify({ method, ...details }),
+                    internalRef,
+                    JSON.stringify({ method, ...details, internalRef }),
                 ]
             );
 
@@ -434,8 +586,13 @@ class WalletService {
 
             await connection.commit();
 
-            // Initiate Paystack transfer asynchronously
-            setImmediate(() => this._executePaystackTransfer(withdrawalId, walletId, amountCents, method, details, internalRef));
+            // Kick off provider execution; the recovery scheduler also owns
+            // any withdrawal left Pending/Processing by a process exit.
+            setImmediate(() => {
+                this._executePaystackTransfer(withdrawalId).catch((err) => {
+                    logger.error(`[WalletService] Withdrawal ${withdrawalId} execution error:`, err.message);
+                });
+            });
 
             // Notify user
             setImmediate(() => {
@@ -464,110 +621,373 @@ class WalletService {
     }
 
     /**
-     * Internal: execute Paystack transfer after withdrawal is committed.
-     * Runs asynchronously via setImmediate — failures do not bubble to user.
+     * Internal: execute a queued withdrawal. Safe to retry after a crash or
+     * process exit because the provider reference is stable on the row.
      */
-    async _executePaystackTransfer(withdrawalId, walletId, amountCents, method, details, internalRef) {
-        try {
-            let recipientCode;
+    async _executePaystackTransfer(withdrawalId) {
+        const [rows] = await pool.query(
+            'SELECT * FROM wallet_withdrawals WHERE withdrawal_id = ? LIMIT 1',
+            [withdrawalId]
+        );
+        if (!rows.length) return { status: 'not_found' };
 
-            if (method === 'mpesa') {
-                // M-Pesa recipient: Paystack expects digits only (e.g. 0712345678 or 254712345678)
-                const cleanPhone = (details.phone || '').replace(/[^0-9]/g, '');
-                const recipientRes = await paystackService.createTransferRecipient({
-                    type: 'mobile_money',
-                    name: details.accountName || 'Sparkle Creator',
-                    account_number: cleanPhone,
-                    bank_code: 'MPESA',
-                    currency: 'KES',
-                    description: `Sparkle withdrawal ${withdrawalId}`,
-                });
-                recipientCode = recipientRes.data?.recipient_code;
-            } else {
-                // Bank transfer recipient
-                const cleanAccount = (details.accountNumber || '').replace(/[^0-9]/g, '');
-                const recipientRes = await paystackService.createTransferRecipient({
-                    type: 'nuban',
-                    name: details.accountName || 'Sparkle Creator',
-                    account_number: cleanAccount,
-                    bank_code: details.bankCode,
-                    currency: 'KES',
-                    description: `Sparkle withdrawal ${withdrawalId}`,
-                });
-                recipientCode = recipientRes.data?.recipient_code;
+        const withdrawal = rows[0];
+        if (['Completed', 'Failed', 'Cancelled'].includes(withdrawal.status)) {
+            return { status: String(withdrawal.status).toLowerCase() };
+        }
+        if (withdrawal.paystack_transfer) {
+            return this._refreshTransfer(withdrawal);
+        }
+
+        const [claim] = await pool.query(
+            `UPDATE wallet_withdrawals
+                SET status = 'Processing', last_attempt_at = NOW()
+              WHERE withdrawal_id = ? AND status = 'Pending'`,
+            [withdrawalId]
+        );
+        if (!claim.affectedRows) return { status: 'busy' };
+
+        const metadata = typeof withdrawal.metadata === 'string'
+            ? JSON.parse(withdrawal.metadata || '{}')
+            : (withdrawal.metadata || {});
+        const method = withdrawal.method;
+        const internalRef = withdrawal.internal_reference || metadata.internalRef;
+
+        if (!internalRef) {
+            await this.failWithdrawalAndRefund(withdrawalId, 'Missing provider reference');
+            return { status: 'failed' };
+        }
+
+        try {
+            let recipientCode = withdrawal.paystack_recipient;
+
+            if (!recipientCode) {
+                if (method === 'mpesa') {
+                    const cleanPhone = (withdrawal.phone || '').replace(/[^0-9]/g, '');
+                    const recipientRes = await paystackService.createTransferRecipient({
+                        type: 'mobile_money',
+                        name: withdrawal.account_name || 'Sparkle Creator',
+                        account_number: cleanPhone,
+                        bank_code: 'MPESA',
+                        currency: 'KES',
+                        description: `Sparkle withdrawal ${withdrawalId}`,
+                    });
+                    recipientCode = recipientRes.data?.recipient_code;
+                } else {
+                    const cleanAccount = (withdrawal.account_number || '').replace(/[^0-9]/g, '');
+                    const recipientRes = await paystackService.createTransferRecipient({
+                        type: 'nuban',
+                        name: withdrawal.account_name || 'Sparkle Creator',
+                        account_number: cleanAccount,
+                        bank_code: withdrawal.bank_code,
+                        currency: 'KES',
+                        description: `Sparkle withdrawal ${withdrawalId}`,
+                    });
+                    recipientCode = recipientRes.data?.recipient_code;
+                }
             }
 
             if (!recipientCode) throw new Error('No recipient_code returned from Paystack');
 
             const transferRes = await paystackService.createTransfer({
-                amountCents,
+                amountCents: Number(withdrawal.amount_cents),
                 recipientCode,
                 reference: internalRef,
                 reason: 'Sparkle Creator Payout',
             });
 
             const transferCode = transferRes.data?.transfer_code;
-            const transferStatus = transferRes.data?.status;
-
-            await pool.query(
-                `UPDATE wallet_withdrawals
-                 SET status = ?, paystack_recipient = ?, paystack_transfer = ?, metadata = JSON_SET(COALESCE(metadata,'{}'), '$.transferCode', ?)
-                 WHERE withdrawal_id = ?`,
-                [transferStatus === 'success' ? 'Processing' : 'Processing', recipientCode, transferCode, transferCode, withdrawalId]
-            );
+            await this._persistTransferInitiated(withdrawalId, recipientCode, transferCode);
 
             logger.info(`[WalletService] Paystack transfer initiated: ${transferCode} for withdrawal ${withdrawalId}`);
+            return { status: 'processing' };
         } catch (err) {
             logger.error(`[WalletService] _executePaystackTransfer failed for ${withdrawalId}:`, err.message);
-            const errMsg = (err.message || '').toLowerCase();
-            const isStarterBusinessError = errMsg.includes('starter business') || errMsg.includes('third party payouts');
 
+            // The provider may already have accepted this reference from a
+            // previous attempt whose DB write failed. Recover instead of
+            // creating a second payout.
+            if (err.providerInitiated) {
+                logger.error(
+                    `[WalletService] Provider transfer for ${withdrawalId} was initiated but not persisted; ` +
+                    'leaving it for the recovery worker.'
+                );
+                return { status: 'processing_unconfirmed' };
+            }
+
+            const errMsg = (err.message || '').toLowerCase();
+            const isDuplicateReference = errMsg.includes('duplicate') || errMsg.includes('already') || errMsg.includes('reference');
+            if (isDuplicateReference) {
+                try {
+                    const verified = await paystackService.verifyTransfer(internalRef);
+                    const data = verified?.data || {};
+                    if (data.transfer_code) {
+                        await this._persistTransferInitiated(withdrawalId, data.recipient || recipientCode, data.transfer_code);
+                        if (data.status === 'success') {
+                            await this.finalizeWithdrawalSuccess(withdrawalId, data.transfer_code);
+                        } else if (data.status === 'failed' || data.status === 'reversed') {
+                            await this.failWithdrawalAndRefund(withdrawalId, `Provider status: ${data.status}`);
+                        }
+                        return { status: data.status || 'processing' };
+                    }
+                } catch (verifyErr) {
+                    logger.warn('[WalletService] Could not verify duplicate transfer reference:', verifyErr.message);
+                }
+            }
+
+            const isStarterBusinessError = errMsg.includes('starter business') || errMsg.includes('third party payouts');
             if (isStarterBusinessError) {
                 logger.warn(`[WalletService] Paystack Starter Business restriction detected for withdrawal ${withdrawalId}. Payout queued for manual admin processing.`);
-                try {
-                    await pool.query(
-                        `UPDATE wallet_withdrawals
-                         SET status = 'Pending', metadata = JSON_SET(COALESCE(metadata,'{}'), '$.starterBusinessNote', 'Paystack API requires registered business for automatic API transfers. Payout queued for admin processing.')
-                         WHERE withdrawal_id = ?`,
-                        [withdrawalId]
-                    );
-                } catch (dbErr) {
-                    logger.error('[WalletService] Could not update starter business withdrawal status:', dbErr.message);
-                }
-                return;
+                await pool.query(
+                    `UPDATE wallet_withdrawals
+                     SET status = 'Pending',
+                         failure_reason = 'Manual review required (provider payout restriction)',
+                         metadata = JSON_SET(COALESCE(metadata,'{}'), '$.manualReview', TRUE,
+                             '$.starterBusinessNote', 'Paystack API requires registered business for automatic API transfers. Payout queued for admin processing.')
+                     WHERE withdrawal_id = ?`,
+                    [withdrawalId]
+                ).catch((dbErr) => logger.error('[WalletService] Could not update starter business withdrawal status:', dbErr.message));
+                return { status: 'manual_review' };
             }
 
-            // Standard failure: mark withdrawal failed, refund balance
-            let connection;
+            await this.failWithdrawalAndRefund(withdrawalId, err.message);
+            return { status: 'failed' };
+        }
+    }
+
+    async _persistTransferInitiated(withdrawalId, recipientCode, transferCode) {
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
             try {
-                connection = await pool.getConnection();
-                await connection.beginTransaction();
-                await connection.query(
-                    "UPDATE wallet_withdrawals SET status = 'Failed' WHERE withdrawal_id = ?",
-                    [withdrawalId]
+                await pool.query(
+                    `UPDATE wallet_withdrawals
+                     SET status = 'Processing',
+                         paystack_recipient = COALESCE(paystack_recipient, ?),
+                         paystack_transfer = COALESCE(paystack_transfer, ?),
+                         last_attempt_at = NOW(),
+                         metadata = JSON_SET(COALESCE(metadata,'{}'), '$.transferCode', ?)
+                     WHERE withdrawal_id = ?`,
+                    [recipientCode || null, transferCode || null, transferCode || null, withdrawalId]
                 );
-                await connection.query(
-                    `UPDATE wallets
-                     SET available_balance = available_balance + ?,
-                         pending_balance   = pending_balance   - ?,
-                         updated_at        = NOW()
-                     WHERE wallet_id = ?`,
-                    [amountCents, amountCents, walletId]
-                );
-                await connection.query(
-                    "UPDATE wallet_transactions SET status = 'Failed' WHERE reference = ? AND type = 'Withdrawal'",
-                    [internalRef]
-                );
-                await connection.commit();
-            } catch (refundErr) {
-                if (connection) {
-                    try { await connection.rollback(); } catch (_) {}
-                }
-                logger.error('[WalletService] Could not refund failed withdrawal:', refundErr.message);
-            } finally {
-                if (connection) connection.release();
+                return;
+            } catch (err) {
+                lastErr = err;
+                await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)));
             }
         }
+        // Do not refund: the provider has already been asked to pay out.
+        lastErr.providerInitiated = true;
+        throw lastErr;
+    }
+
+    async _refreshTransfer(withdrawal) {
+        try {
+            const res = await paystackService.fetchTransfer(withdrawal.paystack_transfer);
+            const status = res?.data?.status;
+            if (status === 'success') {
+                await this.finalizeWithdrawalSuccess(withdrawal.withdrawal_id, withdrawal.paystack_transfer);
+                return { status: 'completed' };
+            }
+            if (status === 'failed' || status === 'reversed' || status === 'abandoned') {
+                await this.failWithdrawalAndRefund(withdrawal.withdrawal_id, `Provider status: ${status}`);
+                return { status: 'failed' };
+            }
+            return { status: status || 'processing' };
+        } catch (err) {
+            logger.warn(`[WalletService] Could not refresh transfer ${withdrawal.paystack_transfer}:`, err.message);
+            return { status: 'processing' };
+        }
+    }
+
+    /**
+     * Finalize a successful payout exactly once: clear pending, count lifetime
+     * withdrawals, complete the ledger entry and the withdrawal row together.
+     */
+    async finalizeWithdrawalSuccess(withdrawalId, transferCode = null) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            const [[row]] = await connection.query(
+                'SELECT * FROM wallet_withdrawals WHERE withdrawal_id = ? FOR UPDATE',
+                [withdrawalId]
+            );
+            if (!row) {
+                await connection.rollback();
+                return { status: 'not_found' };
+            }
+            if (row.status === 'Completed') {
+                await connection.rollback();
+                return { status: 'already_completed' };
+            }
+            if (row.status === 'Failed' || row.status === 'Cancelled') {
+                await connection.rollback();
+                return { status: 'already_closed' };
+            }
+
+            const amountCents = Number(row.amount_cents);
+            await connection.query(
+                `UPDATE wallet_withdrawals
+                 SET status = 'Completed', processed_at = NOW(), paystack_transfer = COALESCE(paystack_transfer, ?)
+                 WHERE withdrawal_id = ?`,
+                [transferCode, withdrawalId]
+            );
+
+            const [walletUpdate] = await connection.query(
+                `UPDATE wallets
+                 SET pending_balance      = pending_balance - ?,
+                     lifetime_withdrawals = lifetime_withdrawals + ?,
+                     updated_at           = NOW()
+                 WHERE wallet_id = ? AND pending_balance >= ?`,
+                [amountCents, amountCents, row.wallet_id, amountCents]
+            );
+            if (!walletUpdate.affectedRows) {
+                throw new Error(`Wallet ${row.wallet_id} pending balance is lower than withdrawal ${withdrawalId}`);
+            }
+
+            await connection.query(
+                `UPDATE wallet_transactions
+                 SET status = 'Completed'
+                 WHERE type = 'Withdrawal' AND (reference = ? OR JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.withdrawalId')) = ?)`,
+                [row.internal_reference, withdrawalId]
+            );
+
+            await connection.commit();
+            return { status: 'completed' };
+        } catch (err) {
+            await connection.rollback();
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    /**
+     * Fail a withdrawal and return the reserved funds exactly once. The status
+     * check under FOR UPDATE prevents double refunds on retried events.
+     */
+    async failWithdrawalAndRefund(withdrawalId, reason) {
+        const connection = await pool.getConnection();
+        try {
+            await connection.beginTransaction();
+            const [[row]] = await connection.query(
+                'SELECT * FROM wallet_withdrawals WHERE withdrawal_id = ? FOR UPDATE',
+                [withdrawalId]
+            );
+            if (!row) {
+                await connection.rollback();
+                return { status: 'not_found' };
+            }
+            if (row.status === 'Failed' || row.status === 'Cancelled' || row.status === 'Completed') {
+                await connection.rollback();
+                return { status: 'already_closed' };
+            }
+
+            const amountCents = Number(row.amount_cents);
+            const [[wallet]] = await connection.query(
+                'SELECT pending_balance FROM wallets WHERE wallet_id = ? FOR UPDATE',
+                [row.wallet_id]
+            );
+            const refundable = Math.min(amountCents, Number(wallet?.pending_balance || 0));
+            if (refundable !== amountCents) {
+                logger.error(
+                    `[WalletService] Withdrawal ${withdrawalId} pending balance mismatch: ` +
+                    `expected ${amountCents}, found ${wallet?.pending_balance || 0}. Refunding ${refundable}.`
+                );
+            }
+
+            await connection.query(
+                `UPDATE wallet_withdrawals
+                 SET status = 'Failed', failure_reason = ?, processed_at = NOW()
+                 WHERE withdrawal_id = ?`,
+                [String(reason || 'Withdrawal failed').slice(0, 2000), withdrawalId]
+            );
+            await connection.query(
+                `UPDATE wallets
+                 SET available_balance = available_balance + ?,
+                     pending_balance   = pending_balance   - ?,
+                     updated_at        = NOW()
+                 WHERE wallet_id = ?`,
+                [refundable, refundable, row.wallet_id]
+            );
+            await connection.query(
+                `UPDATE wallet_transactions
+                 SET status = 'Failed'
+                 WHERE type = 'Withdrawal' AND (reference = ? OR JSON_UNQUOTE(JSON_EXTRACT(metadata,'$.withdrawalId')) = ?)`,
+                [row.internal_reference, withdrawalId]
+            );
+
+            await connection.commit();
+            return { status: 'failed' };
+        } catch (err) {
+            await connection.rollback();
+            logger.error(`[WalletService] Could not fail/refund withdrawal ${withdrawalId}:`, err.message);
+            throw err;
+        } finally {
+            connection.release();
+        }
+    }
+
+    /**
+     * Apply a transfer webhook to the withdrawal ledger, even if this process
+     * never initiated the transfer (for example after a restart).
+     */
+    async handleTransferWebhook(eventType, data = {}) {
+        const reference = data.reference || null;
+        const transferCode = data.transfer_code || null;
+
+        const [rows] = await pool.query(
+            `SELECT withdrawal_id FROM wallet_withdrawals
+              WHERE withdrawal_id = ? OR internal_reference = ? OR paystack_transfer = ?
+              LIMIT 1`,
+            [reference || '', reference || '', transferCode || '']
+        );
+        if (!rows.length) return { status: 'not_found' };
+
+        const withdrawalId = rows[0].withdrawal_id;
+        if (eventType === 'transfer.success') {
+            return this.finalizeWithdrawalSuccess(withdrawalId, transferCode);
+        }
+        return this.failWithdrawalAndRefund(withdrawalId, `Provider reported ${eventType}`);
+    }
+
+    /** Recovery worker: retry queued/stale withdrawals and refresh in-flight ones. */
+    async processPendingWithdrawals(limit = 20) {
+        await pool.query(
+            `UPDATE wallet_withdrawals
+                SET status = 'Pending'
+              WHERE status = 'Processing'
+                AND paystack_transfer IS NULL
+                AND last_attempt_at < DATE_SUB(NOW(), INTERVAL 5 MINUTE)`
+        ).catch(() => {});
+
+        const [rows] = await pool.query(
+            `SELECT withdrawal_id, status, paystack_transfer
+               FROM wallet_withdrawals
+              WHERE ((status = 'Pending'
+                      AND (last_attempt_at IS NULL OR last_attempt_at < DATE_SUB(NOW(), INTERVAL 30 SECOND))
+                      AND COALESCE(JSON_EXTRACT(metadata, '$.manualReview'), FALSE) = FALSE)
+                  OR (status = 'Processing'
+                      AND paystack_transfer IS NOT NULL
+                      AND (last_attempt_at IS NULL OR last_attempt_at < DATE_SUB(NOW(), INTERVAL 2 MINUTE))))
+              ORDER BY requested_at ASC
+              LIMIT ?`,
+            [limit]
+        );
+
+        const results = [];
+        for (const row of rows) {
+            try {
+                if (row.status === 'Processing' && row.paystack_transfer) {
+                    results.push(await this._refreshTransfer(row));
+                } else {
+                    results.push(await this._executePaystackTransfer(row.withdrawal_id));
+                }
+            } catch (err) {
+                logger.error(`[WalletService] Withdrawal recovery failed for ${row.withdrawal_id}:`, err.message);
+                results.push({ status: 'retry_scheduled' });
+            }
+        }
+        return results;
     }
 
     // ── Bank Utilities (pass-through) ─────────────────────────────────────────

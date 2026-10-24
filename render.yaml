@@ -1,0 +1,78 @@
+# Render Blueprint — infrastructure-as-code for the Sparkle API.
+#
+# Before applying: set `region` below to the region your service is ALREADY in
+# (Render dashboard → your service → Settings → Region). Region is immutable per
+# service; this file cannot move an existing service, only recreate it in the
+# region named here.
+#
+# Secrets use `sync: false`: they are never written to this file. Render prompts
+# for them once in the dashboard. Do not inline JWT_SECRET, DB credentials, or
+# API tokens.
+
+services:
+  - type: web
+    name: sparkle-api
+    runtime: node
+    # TODO: verify against your live service. One of:
+    #   oregon | virginia | ohio | frankfurt | singapore
+    region: oregon
+    branch: main
+    plan: free
+    buildCommand: cd backend && npm ci --omit=dev
+    startCommand: cd backend && node --dns-result-order=ipv4first server.js
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      # --- Secrets: prompt once in the dashboard, never commit ---
+      - key: JWT_SECRET
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_PORT
+        value: "3306"
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false
+      - key: FCM_KEY
+        sync: false
+
+      # --- Database pool: now honoured by config/database.js (was hardcoded) ---
+      - key: DB_CONNECTION_LIMIT
+        value: "10"
+      - key: DB_POOL_LIMIT
+        value: "10"
+
+      # --- Redis cache: native TCP adapter (was dormant while unset) ---
+      # Set to the same rediss:// value as REDIS_URL to activate it.
+      - key: REDIS_CACHE_URL
+        sync: false
+
+      # --- L1 in-process cache TTL; 3000ms default, 0 disables ---
+      - key: REDIS_L1_TTL_MS
+        value: "3000"
+
+# Optional — uncomment to let Render also manage a Redis instance for the
+# cache tier, in the same region as the service above.
+#
+# databases:
+#   - name: sparkle-cache
+#     type: redis
+#     region: oregon
+#     plan: free

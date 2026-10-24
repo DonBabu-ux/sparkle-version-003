@@ -54,6 +54,10 @@ jobs:
         working-directory: frontend
         run: npm ci --no-audit --no-fund
 
+      # Blocking gate: a failing test must stop OTA/APK publication.
+      - name: Run release gate tests
+        run: npm test
+
       - name: Build web bundle
         working-directory: frontend
         run: npx vite build

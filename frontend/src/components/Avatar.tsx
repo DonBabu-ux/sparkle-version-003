@@ -1,6 +1,5 @@
 import React from 'react';
 import { getAvatarUrl } from '../utils/imageUtils';
-import defaultAvatar from '../assets/avatar-default.svg';
 
 interface AvatarProps {
   src?: string | null;
@@ -62,9 +61,7 @@ const Avatar: React.FC<AvatarProps> = ({ src, name, size = 'md', className = '' 
 
   // If we have a valid image and no error, render the image
   const avatarUrl = getAvatarUrl(src);
-  const isDefault = avatarUrl === defaultAvatar || error;
-
-  if (!isDefault && !error) {
+  if (!error) {
     return (
       <img 
         src={avatarUrl} 

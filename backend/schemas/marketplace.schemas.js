@@ -65,6 +65,13 @@ exports.updateOrderStatusSchema = Joi.object({
   })
 });
 
+exports.disputeOrderSchema = Joi.object({
+  reason: Joi.string().valid(
+    'item_not_as_described', 'no_show', 'payment_issue', 'safety_concern', 'other'
+  ).required(),
+  description: Joi.string().max(2000).optional().allow('', null)
+});
+
 /**
  * Confirm meetup schema
  */
@@ -93,9 +100,13 @@ exports.contactSellerSchema = Joi.object({
 
 exports.reportListingSchema = Joi.object({
   reason: Joi.string().valid(
-    'fake_item', 'wrong_category', 'prohibited', 'spam', 'offensive', 'other'
+    'spam', 'inappropriate', 'scam', 'misleading', 'duplicate', 'other'
   ).required(),
-  details: Joi.string().max(1000).optional().allow('')
+  details: Joi.string().max(1000).optional().allow('', null)
+});
+
+exports.replyToReviewSchema = Joi.object({
+  reply: Joi.string().trim().max(1000).required()
 });
 
 // ==================== FAVORITE SCHEMAS ====================

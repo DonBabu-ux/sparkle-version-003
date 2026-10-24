@@ -7,6 +7,7 @@ interface ModernOfflineStateProps {
   title?: string;
   message?: string;
   onRetry?: () => void;
+  primaryAction?: { label: string; onClick: () => void; };
   type?: 'offline' | 'empty' | 'error';
 }
 
@@ -14,6 +15,7 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
   title,
   message,
   onRetry,
+  primaryAction,
   type = 'offline'
 }) => {
   const navigate = useNavigate();
@@ -104,6 +106,14 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
           <Home size={18} />
           Go Home
         </button>
+        {primaryAction && (
+          <button
+            onClick={primaryAction.onClick}
+            className="flex-1 px-8 py-4 bg-primary text-white font-black rounded-2xl italic uppercase tracking-widest shadow-lg shadow-primary/30 hover:shadow-xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2"
+          >
+            {primaryAction.label}
+          </button>
+        )}
       </motion.div>
 
       {/* Decorative Elements */}

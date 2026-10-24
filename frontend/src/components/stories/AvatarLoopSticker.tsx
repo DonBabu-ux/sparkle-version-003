@@ -26,7 +26,7 @@ const AvatarLoopSticker: React.FC<AvatarLoopStickerProps> = ({ config }) => {
           {avatars.map((av, i) => (
             <img 
               key={i} 
-              src={av || '/uploads/avatars/default.png'} 
+              src={av || '/uploads/avatars/no-profile.png'}
               className="w-8 h-8 rounded-full border border-white/20 object-cover shrink-0" 
               alt=""
             />

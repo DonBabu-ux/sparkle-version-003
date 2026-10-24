@@ -38,7 +38,7 @@ const AddYoursSticker: React.FC<AddYoursStickerProps> = ({ config, onInteract })
           {(config.avatars || []).slice(0, 3).map((av, i) => (
             <div key={i} className="w-12 h-12 rounded-full border-4 border-white overflow-hidden shadow-xl bg-gray-100" style={{ zIndex: 20 - i }}>
                <img 
-                src={av || '/uploads/avatars/default.png'} 
+                src={av || '/uploads/avatars/no-profile.png'}
                 className="w-full h-full object-cover" 
                 alt=""
               />

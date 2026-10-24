@@ -184,3 +184,6 @@ export default function SearchHistory() {
     </div>
   );
 }
+
+
+

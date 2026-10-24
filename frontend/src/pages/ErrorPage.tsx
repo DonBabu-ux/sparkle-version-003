@@ -46,3 +46,6 @@ export default function ErrorPage({ error }: ErrorPageProps) {
     </>
   );
 }
+
+
+

@@ -2,6 +2,7 @@ import { showSuccess } from '../utils/toast';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import {
@@ -392,7 +393,7 @@ export default function Login() {
                   margin: '0 auto 1.5rem auto',
                   boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
                 }}>
-                  <ShieldCheck size={48} strokeWidth={2} className="su-spin" style={{ animation: 'su-drift 1s ease-in-out infinite' }} />
+                  <ShieldCheck size={48} strokeWidth={2} />
                 </div>
                 <h3 className="login-card__title text-2xl mb-2" style={{ fontFamily: "'Varela Round', sans-serif", fontWeight: 700 }}>Welcome Back!</h3>
                 <p className="login-card__sub text-base">Signing you in securely...</p>
@@ -478,7 +479,7 @@ export default function Login() {
                   </div>
 
                   <button type="submit" disabled={loading} className="login-btn login-btn--main">
-                    {loading ? <span className="login-spin" /> : <><span>Sign in</span><ArrowRight size={18} strokeWidth={2.5} /></>}
+                    {loading ? <Spinner size="small" color="#fff" /> : <><span>Sign in</span><ArrowRight size={18} strokeWidth={2.5} /></>}
                   </button>
                 </form>
 
@@ -609,7 +610,7 @@ export default function Login() {
 
                 <button onClick={handleVerify2FA} disabled={loading} className="login-btn login-btn--main">
                   {loading ? (
-                    <span className="login-spin" />
+                    <Spinner size="small" color="#fff" />
                   ) : (
                     <>
                       <span>{useRecoveryCode ? 'Verify recovery code' : 'Verify code'}</span>
@@ -1020,15 +1021,6 @@ export default function Login() {
           font-style: normal;
         }
 
-        /* Spinner */
-        .login-spin {
-          width: 18px; height: 18px;
-          border: 2.5px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #fff;
-          border-radius: 50%;
-          animation: spin 0.6s linear infinite;
-        }
-
         /* 2FA */
         .login-2fa {
           text-align: center;
@@ -1168,3 +1160,5 @@ export default function Login() {
     </div>
   );
 }
+
+

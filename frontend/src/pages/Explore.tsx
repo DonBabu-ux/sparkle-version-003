@@ -28,6 +28,7 @@ export default function Explore() {
   const [activeCategory, setActiveCategory] = useState('For You');
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [fetchError, setFetchError] = useState<{ posts: boolean; moments: boolean } | null>(null);
   const reqSeqRef = useRef(0);
 
   const categories = ['For You', 'Trending', 'Campus', 'Style', 'Events', 'Music', 'Sports'];
@@ -67,14 +68,39 @@ export default function Explore() {
       const postsMode = activeCategory === 'For You' ? 'for_you' : activeCategory === 'Trending' ? 'trending' : `explore_${categorySlug}`;
       const momentsQuery = activeCategory === 'For You' || activeCategory === 'Trending' ? '' : `&query=${encodeURIComponent(activeCategory.toLowerCase())}`;
 
-      // Fetch from both endpoints
+      // Fetch from both endpoints. Distinguish "empty result" from "request failed"
+      // so we never show a failed request as an empty feed.
+      let postsFailed = false;
+      let momentsFailed = false;
+
       const [postsRes, momentsRes] = await Promise.all([
-        api.get(`/posts/feed?limit=15&offset=${(pageNum - 1) * 15}&mode=${postsMode}`).catch(() => ({ data: [] })),
-        api.get(`/moments/stream?limit=15&page=${pageNum - 1}${momentsQuery}`).catch(() => ({ data: { moments: [] } }))
+        api.get(`/posts/feed?limit=15&offset=${(pageNum - 1) * 15}&mode=${postsMode}`).catch((e) => {
+          postsFailed = true;
+          logger.error('Explore posts fetch failed:', e.message);
+          return { data: [] };
+        }),
+        api.get(`/moments/stream?limit=15&page=${pageNum - 1}${momentsQuery}`).catch((e) => {
+          momentsFailed = true;
+          logger.error('Explore moments fetch failed:', e.message);
+          return { data: { moments: [] } };
+        })
       ]);
 
       const postsData = Array.isArray(postsRes.data) ? postsRes.data : (postsRes.data.posts || []);
       const momentsData = momentsRes.data.moments || momentsRes.data || [];
+
+      // Report total failure when both sources fail on the first page
+      if (pageNum === 1 && postsFailed && momentsFailed) {
+        setFetchError({ posts: true, moments: true });
+        setLoading(false);
+        setLoadingMore(false);
+        return;
+      }
+
+      // Clear error if we got any data
+      if (pageNum === 1 && (postsData.length > 0 || momentsData.length > 0)) {
+        setFetchError(null);
+      }
 
       // Normalize items
       const normalizedPosts = postsData.map((p: any) => ({
@@ -211,6 +237,15 @@ export default function Explore() {
                 <Skeleton key={i} className="aspect-square border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl" />
               ))}
             </div>
+          ) : fetchError && mediaItems.length === 0 ? (
+            <div className="py-20">
+              <ModernOfflineState 
+                type="error"
+                title="Couldn't load your feed"
+                message="Both post and moment feeds failed to load. Please check your connection and try again."
+                onRetry={() => { setFetchError(null); fetchExploreMedia(1); }}
+              />
+            </div>
           ) : filteredItems.length === 0 ? (
             <div className="py-20">
                <ModernOfflineState 
@@ -279,7 +314,7 @@ export default function Explore() {
                       </div>
                       
                       <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-                        <img src={m.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-md" alt="" />
+                        <img src={m.avatar_url || '/uploads/avatars/no-profile.png'} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-md" alt="" />
                         <span className="text-white font-semibold text-sm truncate drop-shadow-md">@{m.username}</span>
                       </div>
                     </div>
@@ -324,3 +359,6 @@ function formatCount(count: number): string {
   if (count >= 1000) return (count / 1000).toFixed(1) + 'K';
   return count.toString();
 }
+
+
+

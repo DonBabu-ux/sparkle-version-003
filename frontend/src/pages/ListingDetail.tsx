@@ -31,49 +31,30 @@ export default function ListingDetail() {
     const fetchData = async () => {
       try {
         // 1. Fetch main listing
-        try {
-          const listingRes = await api.get(`/marketplace/listings/${id}`);
-          if (listingRes.data.success) {
-            setListing(listingRes.data.listing);
-            setIsWishlisted(listingRes.data.listing.is_wishlisted);
+        const listingRes = await api.get(`/marketplace/listings/${id}`);
+        if (listingRes.data.success) {
+          setListing(listingRes.data.listing);
+          setIsWishlisted(listingRes.data.listing.is_wishlisted);
 
-            if (listingRes.data.listing.seller_id && !String(listingRes.data.listing.seller_id).startsWith('mock-')) {
-              const sellerId = listingRes.data.listing.seller_id;
-              api.get(`/marketplace/sellers/${sellerId}/alert`)
-                .then(alertRes => {
-                  if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
-                })
-                .catch(() => {});
-              // Follow state + real join date (non-blocking, like the alert check)
-              api.get(`/marketplace/sellers/${sellerId}/favorite`)
-                .then(favRes => {
-                  if (favRes.data.success) setIsFollowing(!!favRes.data.favorited);
-                })
-                .catch(() => {});
-              api.get(`/marketplace/sellers/${sellerId}`)
-                .then(profRes => {
-                  if (profRes.data.success && profRes.data.seller?.created_at) {
-                    setSellerJoinedAt(profRes.data.seller.created_at);
-                  }
-                })
-                .catch(() => {});
-            }
-          }
-        } catch (err: any) {
-          if (err.response?.status === 404 && String(id).startsWith('l-')) {
-            // Fallback for mock data
-            setListing({
-              listing_id: id,
-              id: id,
-              seller_id: 'mock-seller',
-              seller_name: 'Mock Seller',
-              title: 'Mock Listing ' + id,
-              price: 1500,
-              description: 'This is a mocked listing.',
-              created_at: new Date().toISOString()
-            } as any);
-          } else {
-            throw err;
+          const sellerId = listingRes.data.listing.seller_id;
+          if (sellerId) {
+            api.get(`/marketplace/sellers/${sellerId}/alert`)
+              .then(alertRes => {
+                if (alertRes.data.success) setIsAlerted(alertRes.data.alerted);
+              })
+              .catch(() => {});
+            api.get(`/marketplace/sellers/${sellerId}/favorite`)
+              .then(favRes => {
+                if (favRes.data.success) setIsFollowing(!!favRes.data.favorited);
+              })
+              .catch(() => {});
+            api.get(`/marketplace/sellers/${sellerId}`)
+              .then(profRes => {
+                if (profRes.data.success && profRes.data.seller?.created_at) {
+                  setSellerJoinedAt(profRes.data.seller.created_at);
+                }
+              })
+              .catch(() => {});
           }
         }
 
@@ -120,7 +101,7 @@ export default function ListingDetail() {
   };
 
   const handleFollow = async () => {
-    if (!listing?.seller_id || String(listing.seller_id).startsWith('mock-')) return;
+    if (!listing?.seller_id) return;
     try {
       const res = await api.post('/marketplace/seller/favorite', { sellerId: listing.seller_id });
       if (res.data.success) {
@@ -206,17 +187,17 @@ export default function ListingDetail() {
   
 
   return (
-    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-20 max-w-screen-md mx-auto shadow-sm">
+    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
       
       {/* 1. Header */}
-      <header className="sticky top-0 z-40 bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
           <h1 className="text-[20px] font-bold text-marketplace-text tracking-tight capitalize">{listing.title}</h1>
         </div>
-        <button onClick={() => navigate('/marketplace')} className="p-1 text-marketplace-text">
+        <button onClick={() => navigate('/marketplace')} className="w-11 h-11 rounded-full flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg transition-colors">
           <Search size={22} strokeWidth={2.5} />
         </button>
       </header>
@@ -275,10 +256,10 @@ export default function ListingDetail() {
               className="w-full bg-transparent outline-none text-[15px] font-medium text-slate-800"
             />
           </div>
-          <button 
-            onClick={handleContact}
-            className="w-full bg-[#1877F2] text-white py-2.5 rounded-lg font-bold text-[15px] hover:bg-blue-600 transition-colors"
-          >
+        <button 
+          onClick={handleContact}
+          className="w-full bg-[#1877F2] text-white py-3 rounded-lg font-bold text-[15px] hover:bg-blue-600 transition-colors"
+        >
             Send
           </button>
         </div>
@@ -338,7 +319,7 @@ export default function ListingDetail() {
 
         <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => navigate(`/marketplace/seller/${listing.seller_id}`)}>
           <div className="flex items-center gap-3">
-            <img src={listing.seller_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
+            <img src={listing.seller_avatar || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
             <div>
               <h4 className="font-bold text-[15px] text-marketplace-text flex items-center gap-1">
                 {listing.seller_name || listing.seller_username}
@@ -451,7 +432,7 @@ export default function ListingDetail() {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-6 h-6 rounded-full bg-marketplace-bg overflow-hidden">
-                    <img src={item.seller_avatar || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+                    <img src={item.seller_avatar || '/uploads/avatars/no-profile.png'} className="w-full h-full object-cover" alt="" />
                   </div>
                   <span className="text-[13px] font-bold text-marketplace-text truncate">{item.seller_name || item.seller_username}</span>
                   <MoreHorizontal size={14} className="text-marketplace-muted ml-auto" />
@@ -470,3 +451,6 @@ export default function ListingDetail() {
     </div>
   );
 }
+
+
+

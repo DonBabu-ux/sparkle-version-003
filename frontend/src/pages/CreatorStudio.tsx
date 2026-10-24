@@ -22,17 +22,11 @@ interface UploadedContent {
   created_at: string;
 }
 
-const MOCK_CONTENT: UploadedContent[] = [
-  { id: '1', type: 'Video', title: 'Life at Main Campus - Vibe Check!', reach: 4120, comments: 45, sparks: 380, created_at: '2026-07-05' },
-  { id: '2', type: 'Image', title: 'Checkout my new study aesthetic setup.', reach: 2450, comments: 20, sparks: 190, created_at: '2026-07-03' },
-  { id: '3', type: 'Text',  title: 'Is it just me or is the new library librarying?', reach: 1890, comments: 85, sparks: 310, created_at: '2026-07-01' },
-];
-
 export default function CreatorStudio() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StudioStats | null>(null);
-  const [ content,  ] = useState<UploadedContent[]>(MOCK_CONTENT);
+  const [content] = useState<UploadedContent[]>([]);
 
   const fetchStats = useCallback(async () => {
     try {
@@ -81,7 +75,7 @@ export default function CreatorStudio() {
             <Spinner size="large" color="text-[#FF1F6D]" />
           </div>
         ) : (
-          <>
+          <div className="relative z-0">
             {/* Quick Actions Panel */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
@@ -130,43 +124,54 @@ export default function CreatorStudio() {
               {/* Uploaded Portfolio Content List */}
               <div className="md:col-span-2 glass-card rounded-3xl p-6 shadow-sm space-y-4">
                 <h3 className="text-sm font-black text-slate-900 italic uppercase">Recent Publications</h3>
-                <div className="space-y-3">
-                  {content.map((item) => (
-                    <div key={item.id} className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
-                          {item.type === 'Video' ? <Video size={16} className="text-[#FF1F6D]" /> :
-                           item.type === 'Image' ? <ImageIcon size={16} className="text-pink-500" /> :
-                           <FileText size={16} className="text-purple-500" />}
+                {content.length > 0 ? (
+                  <div className="space-y-3">
+                    {content.map((item) => (
+                      <div key={item.id} className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+                            {item.type === 'Video' ? <Video size={16} className="text-[#FF1F6D]" /> :
+                             item.type === 'Image' ? <ImageIcon size={16} className="text-pink-500" /> :
+                            <FileText size={16} className="text-purple-500" />}
+                          </div>
+                          <div>
+                            <h4 className="text-xs font-black text-slate-800 uppercase italic leading-none">{item.title}</h4>
+                            <p className="text-[8px] text-slate-400 font-bold uppercase italic tracking-wider mt-1.5 flex items-center gap-2">
+                              <span>{item.type}</span>
+                              <span>•</span>
+                              <span>{new Date(item.created_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</span>
+                            </p>
+                          </div>
                         </div>
-                        <div>
-                          <h4 className="text-xs font-black text-slate-800 uppercase italic leading-none">{item.title}</h4>
-                          <p className="text-[8px] text-slate-400 font-bold uppercase italic tracking-wider mt-1.5 flex items-center gap-2">
-                            <span>{item.type}</span>
-                            <span>•</span>
-                            <span>{new Date(item.created_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</span>
-                          </p>
-                        </div>
-                      </div>
 
-                      <div className="flex gap-4 items-center">
-                        <div className="text-right">
-                          <p className="text-[10px] font-black text-slate-800 italic">{item.reach.toLocaleString()}</p>
-                          <p className="text-[8px] font-black text-slate-400 uppercase italic">reach</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-black text-slate-800 italic">{item.sparks.toLocaleString()}</p>
-                          <p className="text-[8px] font-black text-slate-400 uppercase italic">sparks</p>
+                        <div className="flex gap-4 items-center">
+                          <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-800 italic">{item.reach.toLocaleString()}</p>
+                            <p className="text-[8px] font-black text-slate-400 uppercase italic">reach</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] font-black text-slate-800 italic">{item.sparks.toLocaleString()}</p>
+                            <p className="text-[8px] font-black text-slate-400 uppercase italic">sparks</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
+                    <FileText size={32} className="text-slate-400 mb-3" />
+                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No publications yet</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Your uploaded content will appear here.</p>
+                  </div>
+                )}
               </div>
             </div>
-          </>
-        )}
+            </div>
+          )}
       </main>
     </div>
   );
 }
+
+
+

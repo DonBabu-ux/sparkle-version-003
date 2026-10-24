@@ -6,7 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
 
 const getSafeAvatarUrl = (url) => {
-    if (!url) return '/uploads/avatars/default.png';
+    if (!url) return '/uploads/avatars/no-profile.png';
     if (url.startsWith('http')) return url;
     return url.startsWith('/') ? url : `/${url}`;
 };
@@ -23,6 +23,15 @@ const getPolls = async (req, res) => {
         const filter = req.query.filter || 'for_you'; // 'for_you', 'trending', 'friends', 'new'
         const limit = Math.min(parseInt(req.query.limit) || 20, 50);
         const offset = parseInt(req.query.offset) || 0;
+        // creator=me returns the caller's own polls regardless of what the
+        // browse feed happens to contain. A creator's own polls must never be
+        // dependent on landing on the right page of somebody else's feed.
+        const creatorMe = req.query.creator === 'me';
+        // Resolved view. creator=me wins over whatever feed was asked for, so
+        // the shared LIMIT block at the bottom must see 'creator_me' and not
+        // 'for_you' — otherwise a for_you custom LIMIT fires alongside this
+        // branch's own and emits two LIMIT clauses.
+        const view = creatorMe ? 'creator_me' : filter;
         
         let query = `
             SELECT p.*, u.username, u.name as creator_name, u.avatar_url as creator_avatar,
@@ -30,8 +39,9 @@ const getPolls = async (req, res) => {
                    (p.expires_at IS NOT NULL AND p.expires_at > NOW() AND p.expires_at < DATE_ADD(NOW(), INTERVAL 6 HOUR)) as is_ending_soon,
                    (SELECT option_id FROM poll_votes WHERE poll_id = p.poll_id AND user_id = ?) as user_voted_option
             FROM polls p 
-            JOIN users u ON p.creator_id = u.user_id 
+            JOIN users u ON p.creator_id = u.user_id
             WHERE 1=1
+              AND p.deleted_at IS NULL
         `;
         
         const params = [currentUserId];
@@ -40,7 +50,13 @@ const getPolls = async (req, res) => {
             params.push(affiliation);
         }
 
-        if (filter === 'friends' && currentUserId) {
+        if (creatorMe && currentUserId) {
+            query += ' AND p.creator_id = ?';
+            params.push(currentUserId);
+            query += ' ORDER BY p.created_at DESC';
+            // LIMIT is applied by the shared block below, which keys off `view`
+            // so it sees 'creator_me' and appends exactly one LIMIT.
+        } else if (filter === 'friends' && currentUserId) {
             query += ' AND p.creator_id IN (SELECT following_id FROM follows WHERE follower_id = ?)';
             params.push(currentUserId);
             query += ' ORDER BY p.created_at DESC';
@@ -62,7 +78,7 @@ const getPolls = async (req, res) => {
         }
 
         // Apply SQL limit if not for_you (for_you has custom limit above)
-        if (filter !== 'for_you') {
+        if (view !== 'for_you') {
             query += ` LIMIT ${limit} OFFSET ${offset}`;
         }
 
@@ -650,19 +666,160 @@ const getPollResults = async (req, res) => {
     }
 };
 
-// Create a live (text) stream
+const updatePoll = async (req, res) => {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+        const { question, options, description, category, expires_in, allow_invites, is_anonymous } = req.body;
+
+        // Ownership check first. A poll the caller does not own must be
+        // indistinguishable from one that does not exist.
+        const [existing] = await connection.query(
+            'SELECT poll_id, created_at, is_expired FROM polls WHERE poll_id = ? AND creator_id = ?',
+            [id, userId]
+        );
+        if (existing.length === 0) {
+            await connection.rollback();
+            return res.status(404).json({ error: 'Poll not found.' });
+        }
+
+        // An expired poll is a closed record: its vote counts already shaped
+        // results, so allowing an edit would rewrite history others voted on.
+        if (existing[0].is_expired) {
+            await connection.rollback();
+            return res.status(409).json({ error: 'This poll has closed and can no longer be edited.' });
+        }
+
+        const updates = [];
+        const params = [];
+
+        if (typeof question === 'string') {
+            const q = question.trim();
+            if (q.length < 3 || q.length > 255) {
+                await connection.rollback();
+                return res.status(400).json({ error: 'Question must be 3-255 characters.' });
+            }
+            updates.push('question = ?');
+            params.push(q);
+        }
+
+        if (typeof description === 'string') {
+            updates.push('description = ?');
+            params.push(description.trim() || null);
+        }
+
+        if (typeof category === 'string') {
+            updates.push('category = ?');
+            params.push(category.trim() || null);
+        }
+
+        if (typeof is_anonymous === 'boolean') {
+            updates.push('is_anonymous = ?');
+            params.push(is_anonymous ? 1 : 0);
+        }
+
+        if (typeof allow_invites === 'boolean') {
+            updates.push('allow_invites = ?');
+            params.push(allow_invites ? 1 : 0);
+        }
+
+        if (typeof expires_in === 'number' && expires_in > 0) {
+            updates.push('expires_at = DATE_ADD(NOW(), INTERVAL ? HOUR)');
+            params.push(expires_in);
+        }
+
+        // Options are the one destructive edit: someone may already have voted
+        // on the set they saw. Only allow it before any vote lands.
+        if (Array.isArray(options)) {
+            const clean = [...new Set(options.map(o => (typeof o === 'string' ? o.trim() : '')).filter(o => o.length > 0))];
+            if (clean.length < 2 || clean.length > 5) {
+                await connection.rollback();
+                return res.status(400).json({ error: 'Polls need 2-5 unique options.' });
+            }
+            const [voteCount] = await connection.query(
+                'SELECT COUNT(*) AS count FROM poll_votes WHERE poll_id = ?',
+                [id]
+            );
+            if (voteCount[0].count > 0) {
+                await connection.rollback();
+                return res.status(409).json({ error: 'Options cannot change once the poll has votes.' });
+            }
+
+            await connection.query('DELETE FROM poll_options WHERE poll_id = ?', [id]);
+            for (let i = 0; i < clean.length; i++) {
+                await connection.query(
+                    'INSERT INTO poll_options (poll_id, option_text, option_order) VALUES (?, ?, ?)',
+                    [id, clean[i], i]
+                );
+            }
+            updates.push('total_votes = 0');
+        }
+
+        if (updates.length === 0) {
+            await connection.rollback();
+            return res.status(400).json({ error: 'Nothing to update.' });
+        }
+
+        params.push(id);
+        await connection.query(`UPDATE polls SET ${updates.join(', ')} WHERE poll_id = ?`, params);
+        await connection.commit();
+
+        res.json({ success: true, message: 'Poll updated.' });
+    } catch (error) {
+        await connection.rollback().catch(() => { });
+        res.status(500).json({ error: error.message });
+    } finally {
+        connection.release();
+    }
+};
+
+const deletePoll = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id || req.user.userId;
+
+        // Soft delete: keep the poll and its poll_votes rows so other people's
+        // vote history stays intact. The row simply stops appearing anywhere.
+        const [result] = await pool.query(
+            'UPDATE polls SET deleted_at = NOW() WHERE poll_id = ? AND creator_id = ? AND deleted_at IS NULL',
+            [id, userId]
+        );
+
+        if (!result || result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Poll not found or already taken down.' });
+        }
+
+        res.json({ success: true, message: 'Poll taken down.' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Create a live stream. Live streams live in live_streams ONLY — they are never
+// written to moments. That is deliberate: a live is an event, not a post, and
+// persists after the broadcast ends only as an ended stream record (TikTok-style).
 const createStream = async (req, res) => {
     try {
-        const { title, description, campus, category } = req.body;
+        const { title, description, campus, category, stream_url } = req.body;
         const streamerId = req.user.user_id || req.user.userId;
         const stream_id = require('crypto').randomUUID();
 
+        // stream_url is NOT NULL in live_streams. A client integrating a real
+        // streaming provider passes its ingest/playback URL here; without one we
+        // still create a usable record with a deterministic placeholder so the
+        // live session exists and can be ended, viewed, and cleaned up.
+        const resolvedStreamUrl = (stream_url && String(stream_url).trim())
+            || `https://stream.sparkle.app/${Date.now()}`;
+        const resolvedCampus = campus || req.user.campus || 'General';
+
         await pool.query(
-            'INSERT INTO live_streams (stream_id, streamer_id, title, description, campus, category, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            [stream_id, streamerId, title, description || null, campus || req.user.campus, category || null, 'live']
+            'INSERT INTO live_streams (stream_id, streamer_id, title, description, campus, category, stream_url, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [stream_id, streamerId, title, description || null, resolvedCampus, category || null, resolvedStreamUrl, 'live']
         );
 
-        res.status(201).json({ message: 'Stream created', stream_id });
+        res.status(201).json({ message: 'Stream created', stream_id, stream_url: resolvedStreamUrl });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
@@ -951,6 +1108,8 @@ module.exports = {
     createEvent,
     rsvpEvent,
     createPoll,
+    updatePoll,
+    deletePoll,
     votePoll,
     getPollResults,
     createStream,

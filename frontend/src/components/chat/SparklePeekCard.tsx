@@ -107,7 +107,7 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
               <span className="text-[10px] text-white/40 font-medium">Unread state preserved</span>
             </div>
             <p className="text-sm font-medium text-white/90 line-clamp-3 leading-relaxed">
-              {chat.last_message || (chat.last_message_type === 'attachment' ? '🎬 Story reply / Media attachment' : 'No recent message text available.')}
+              {chat.last_message || (chat.last_message_type === 'attachment' ? 'Story reply / Media attachment' : 'No recent message text available.')}
             </p>
           </div>
 

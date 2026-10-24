@@ -450,7 +450,7 @@ export default function CreateStory() {
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      logger.log('📂 File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
+      logger.log('File selected:', selectedFile.name, selectedFile.type, selectedFile.size);
 
       const check = validateFile(selectedFile, { kind: 'any', maxSizeMB: 20 });
       if (!check.ok) {
@@ -602,7 +602,7 @@ export default function CreateStory() {
 
   const handleSubmit = async () => {
       if (!file && !selectedMusic && phase !== 'text_story') return;
-      logger.log('🚀 Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
+      logger.log('Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
       setUploading(true);
       try {
           // ── STORY MODE: Background queue (instant close) ──
@@ -724,7 +724,7 @@ export default function CreateStory() {
               // Wake the upload manager to pick up the new job
               UploadManager.wake();
 
-              logger.log(`✨ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
+              logger.log(`✅ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
               sessionStorage.setItem('sparkle_story_posted', '1');
               navigate('/dashboard');
               return; // Exit early — upload happens in background
@@ -733,7 +733,7 @@ export default function CreateStory() {
           // ── POST / REEL / LIVE: Traditional upload (unchanged) ──
           const formData = new FormData();
           if (file) {
-              logger.log('📎 Appending media to FormData:', file.name);
+              logger.log('Appending media to FormData:', file.name);
               formData.append('media', file);
           }
           if (phase === 'text_story') {
@@ -1133,16 +1133,16 @@ export default function CreateStory() {
                         muted 
                         loop 
                         playsInline
-                        onLoadedData={() => logger.log('📽️ Video preview ready')}
-                        onError={(e) => logger.error('📽️ Video Preview Error:', e)}
+                        onLoadedData={() => logger.log('✅ Video preview ready')}
+                        onError={(e) => logger.error('❌ Video Preview Error:', e)}
                         className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`}
                     />
                   ) : (
                     <img 
                         key={previewUrl}
                         src={previewUrl} 
-                        onLoad={() => logger.log('🖼️ Image preview ready')}
-                        onError={(e) => logger.error('🖼️ Image Preview Error:', e)}
+                        onLoad={() => logger.log('✅ Image preview ready')}
+                        onError={(e) => logger.error('❌ Image Preview Error:', e)}
                         className={`w-full h-full object-cover transition-all duration-700 ${isMagicOn ? 'sepia-[0.4] saturate-[1.2] contrast-[1.1]' : ''}`} 
                         alt="Preview" 
                     />
@@ -1253,3 +1253,6 @@ export default function CreateStory() {
 }
 
 // Pixabay music search now powers the music picker — MOCK_MUSIC removed.
+
+
+

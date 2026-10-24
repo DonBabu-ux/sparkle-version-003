@@ -5,12 +5,15 @@ const locationController = require('../../controllers/location.controller');
 const { authMiddleware, optionalAuthMiddleware } = require('../../middleware/auth.middleware');
 const { upload, marketplaceUpload } = require('../../utils/fileUpload');
 const { feedRateLimiter, mutationRateLimiter } = require('../../middleware/security.middleware');
+const { validate } = require('../../middleware/validation.middleware');
+const marketplaceSchemas = require('../../schemas/marketplace.schemas');
 
 // ── Listings ──────────────────────────────────────────────────────────────────
 router.get('/marketplace/listings',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getListings);
 router.get('/marketplace/categories',            optionalAuthMiddleware, feedRateLimiter, marketplaceController.getCategories);
 router.get('/marketplace/trending',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getTrending);
 router.get('/marketplace/wishlist', authMiddleware, marketplaceController.getWishlist);
+router.get('/marketplace/my-listings', authMiddleware, marketplaceController.getMyListings);
 router.get('/marketplace/listings/recommended',  optionalAuthMiddleware, feedRateLimiter, marketplaceController.getRecommendations);
 router.get('/marketplace/listings/:id',          optionalAuthMiddleware, marketplaceController.getListingById);
 router.post('/marketplace/listings',             authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
@@ -24,7 +27,7 @@ router.post('/marketplace/listings/:id/favorite',authMiddleware, mutationRateLim
 router.post('/marketplace/listings/:id/wishlist',authMiddleware, mutationRateLimiter, marketplaceController.toggleWishlist);
 router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
 router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
-router.post('/marketplace/listings/:id/report',  authMiddleware, mutationRateLimiter, marketplaceController.reportListing);
+router.post('/marketplace/listings/:id/report',  authMiddleware, mutationRateLimiter, validate(marketplaceSchemas.reportListingSchema, 'body'), marketplaceController.reportListing);
 router.post('/marketplace/listings/:id/boost',   authMiddleware, mutationRateLimiter, ...marketplaceController.boostListing);
 router.post('/marketplace/listings/:id/relist',  authMiddleware, mutationRateLimiter, marketplaceController.relistItem);
 
@@ -41,6 +44,7 @@ router.get('/marketplace/orders',                            authMiddleware, mar
 router.get('/marketplace/orders/:orderId',                   authMiddleware, marketplaceController.getOrderById);
 router.patch('/marketplace/orders/:orderId/status',          authMiddleware, ...marketplaceController.updateOrderStatus);
 router.post('/marketplace/orders/:orderId/confirm-meetup',   authMiddleware, marketplaceController.confirmMeetup);
+router.post('/marketplace/orders/:orderId/dispute',          authMiddleware, mutationRateLimiter, ...marketplaceController.disputeOrder);
 
 // ── Chats ─────────────────────────────────────────────────────────────────────
 router.get('/marketplace/chats',                   authMiddleware, marketplaceController.getUserChats);
@@ -51,6 +55,7 @@ router.post('/marketplace/chats/:chatId/messages', authMiddleware, marketplaceCo
 router.post('/marketplace/users/:id/block',        authMiddleware, ...marketplaceController.blockUser);
 router.post('/marketplace/users/:id/review',       authMiddleware, ...marketplaceController.createReview);
 router.post('/marketplace/reviews',                authMiddleware, ...marketplaceController.createReview);
+router.post('/marketplace/reviews/:reviewId/reply',authMiddleware, mutationRateLimiter, ...marketplaceController.replyToReview);
 router.get('/marketplace/users/:id/reviews',       authMiddleware, marketplaceController.getUserReviews);
 
 // ── Lost & Found / Skills ─────────────────────────────────────────────────────

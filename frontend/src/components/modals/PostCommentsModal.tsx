@@ -308,7 +308,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       <div className="flex-1 overflow-y-auto p-4 space-y-6 bg-white dark:bg-[#101217] custom-scrollbar">
         {/* Original Post Context */}
         <div className="flex gap-3 pb-4 border-b border-black/5 dark:border-white/10">
-          <img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-9 h-9 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0" alt="" />
+          <img src={post.avatar_url || '/uploads/avatars/no-profile.png'} className="w-9 h-9 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0" alt="" />
           <div className="min-w-0">
             <div className="font-bold text-black dark:text-white text-[15px]">
               {post.name || post.username}
@@ -377,7 +377,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       <div className="p-3 pb-8 md:pb-6 bg-transparent flex items-center gap-2.5 min-w-0">
         {/* Profile Avatar - Edge anchored */}
         <div className="w-8 h-8 rounded-full overflow-hidden border border-black/5 dark:border-white/10 shrink-0">
-            <img src={user?.avatar_url || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+            <img src={user?.avatar_url || '/uploads/avatars/no-profile.png'} className="w-full h-full object-cover" alt="" />
         </div>
 
         {/* Unified Input Pill - High-density interactions on the right */}
@@ -575,7 +575,7 @@ function CommentItem({
   return (
     <div className="flex gap-2 w-full pb-1">
       <img 
-        src={comment.avatar_url || '/uploads/avatars/default.png'} 
+        src={comment.avatar_url || '/uploads/avatars/no-profile.png'}
         className="w-8 h-8 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0 mt-1 cursor-pointer" 
         onClick={handleProfileClick}
         alt="" 

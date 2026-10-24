@@ -9,9 +9,16 @@ const mysql = require('mysql2/promise');
 //     auth login/token refresh, payments/wallet ledger, active messaging transactions)
 //   - Queue limit: bounded at 250 waiters to prevent memory bloat under extreme load
 //   - Connection acquisition timeout: 5,000ms with fail-fast 503 instead of hanging
-const TOTAL_CONNECTION_LIMIT = 10;
-const NORMAL_CONNECTION_BUDGET = 8;
-const PEAK_RESERVE_BUDGET = 2; // 8 + 2 = 10
+// Budget is read from env (was hardcoded to 10/8/2 and ignored DB_CONNECTION_LIMIT
+// and DB_POOL_LIMIT entirely). DB_CONNECTION_LIMIT wins; DB_POOL_LIMIT is the
+// legacy alias. Unset → 10, preserving prior behaviour.
+const _envInt = (name, fallback) => {
+    const parsed = parseInt(process.env[name], 10);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+const TOTAL_CONNECTION_LIMIT = _envInt('DB_CONNECTION_LIMIT', _envInt('DB_POOL_LIMIT', 10));
+const PEAK_RESERVE_BUDGET = Math.min(2, Math.max(1, TOTAL_CONNECTION_LIMIT - 1));
+const NORMAL_CONNECTION_BUDGET = Math.max(1, TOTAL_CONNECTION_LIMIT - PEAK_RESERVE_BUDGET);
 const QUEUE_LIMIT = 250;
 const SLOW_QUERY_MS = 750;
 

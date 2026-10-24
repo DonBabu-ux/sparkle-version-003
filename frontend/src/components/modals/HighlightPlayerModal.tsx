@@ -160,7 +160,7 @@ export default function HighlightPlayerModal({
         <div className="absolute top-5 left-0 right-0 z-20 flex items-center justify-between px-4 pt-2">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-full border-2 border-white/80 overflow-hidden shrink-0">
-              <img src={ownerAvatar || '/uploads/avatars/default.png'} alt="" className="w-full h-full object-cover" />
+              <img src={ownerAvatar || '/uploads/avatars/no-profile.png'} alt="" className="w-full h-full object-cover" />
             </div>
             <div className="flex flex-col">
               <span className="text-white font-semibold text-sm leading-none">{ownerUsername || 'User'}</span>

@@ -70,6 +70,7 @@ const ForgotPassword = lazyWithRetry(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazyWithRetry(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazyWithRetry(() => import('./pages/VerifyEmail'));
 const Orders = lazyWithRetry(() => import('./pages/Orders'));
+const OrderDetail = lazyWithRetry(() => import('./pages/OrderDetail'));
 const MyListings = lazyWithRetry(() => import('./pages/MyListings'));
 const ReportListing = lazyWithRetry(() => import('./pages/ReportListing'));
 const MarketplaceOrder = lazyWithRetry(() => import('./pages/MarketplaceOrder'));
@@ -93,6 +94,7 @@ const PollDetail = lazyWithRetry(() => import('./pages/PollDetail'));
 const Hashtag = lazyWithRetry(() => import('./pages/Hashtag'));
 const Explore = lazyWithRetry(() => import('./pages/Explore'));
 const Moments = lazyWithRetry(() => import('./pages/Moments'));
+const MomentStudio = lazyWithRetry(() => import('./pages/MomentStudio'));
 const CreateMoment = lazyWithRetry(() => import('./pages/CreateMoment'));
 const CreateStory = lazyWithRetry(() => import('./pages/CreateStory'));
 const StorySnapshot = lazyWithRetry(() => import('./pages/StorySnapshot'));
@@ -247,7 +249,7 @@ function App() {
           ]);
         }
       } catch (hydrationError) {
-        logger.warn('⚠️ Hydration validation failed (falling back):', hydrationError);
+        logger.warn('❌ Hydration validation failed (falling back):', hydrationError);
         setHydrated(true);
       }
 
@@ -284,11 +286,11 @@ function App() {
           // session to the login screen — boot optimistically instead;
           // later 401s run the normal refresh → logout flow.
           if (isDefinitiveAuthFailure(err) || !useUserStore.getState().isAuthenticated) {
-            logger.warn('⚠️ Initial auth validation failed (fallback to Login):', err);
+            logger.warn('❌ Initial auth validation failed (fallback to Login):', err);
             logger.log('TOKEN NOT FOUND');
             performStartupNavigation('/login');
           } else {
-            logger.warn('⚠️ Initial auth validation transient failure (continuing boot):', err);
+            logger.warn('❌ Initial auth validation transient failure (continuing boot):', err);
             performStartupNavigation('/dashboard');
           }
         }
@@ -519,6 +521,9 @@ function App() {
 
                     {/* ── Phase 3: Content & Discovery ── */}
                     <Route path="/moments" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
+                    {/* MUST stay above '/moments/:id' — React Router matches in
+                        order, so ':id' would otherwise capture 'studio'. */}
+                    <Route path="/moments/studio" element={isAuthenticated ? <MomentStudio /> : <Navigate to="/login" />} />
                     <Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
                     <Route path="/story/:storyId" element={isAuthenticated ? <StorySnapshot /> : <Navigate to="/login" />} />
                     <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
@@ -579,6 +584,7 @@ function App() {
                     <Route path="/marketplace/report/:id" element={isAuthenticated ? <ReportListing /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/my-shop" element={isAuthenticated ? <SellerProfile /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/orders" element={isAuthenticated ? <Orders /> : <Navigate to="/login" />} />
+                    <Route path="/marketplace/orders/:orderId" element={isAuthenticated ? <OrderDetail /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/my-listings" element={isAuthenticated ? <MyListings /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/listings/:id" element={isAuthenticated ? <ListingDetail /> : <Navigate to="/login" />} />
                     <Route path="/marketplace/order" element={isAuthenticated ? <MarketplaceOrder /> : <Navigate to="/login" />} />

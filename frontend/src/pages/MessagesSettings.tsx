@@ -1962,7 +1962,7 @@ export default function MessagesSettings() {
                   {i > 0 && <Divider />}
                   <div className="px-4 py-3.5 flex items-center gap-3">
                     <img
-                      src={u.avatar_url || '/uploads/avatars/default.png'}
+                      src={u.avatar_url || '/uploads/avatars/no-profile.png'}
                       className="w-10 h-10 rounded-full object-cover border border-gray-100"
                       alt=""
                     />
@@ -2557,3 +2557,6 @@ export default function MessagesSettings() {
       />    </div>
   );
 }
+
+
+

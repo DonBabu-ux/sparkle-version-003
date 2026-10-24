@@ -136,7 +136,7 @@ export default function PostDetail() {
                   heading
                   username={post.username}
                   name={post.name}
-                  avatar={<img src={post.avatar_url || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-[24px] object-cover border border-white/65 shadow-sm" alt="" />}
+                  avatar={<img src={post.avatar_url || '/uploads/avatars/no-profile.png'} className="w-16 h-16 rounded-[24px] object-cover border border-white/65 shadow-sm" alt="" />}
                   nameClassName="text-xl font-bold text-black leading-tight"
                   meta={<p className="text-[11px] font-bold text-primary uppercase tracking-widest">@{post.username} • {new Date(post.created_at).toLocaleDateString()}</p>}
                 />
@@ -227,7 +227,7 @@ export default function PostDetail() {
               ) : (
                 comments.map(comment => (
                   <div key={comment.comment_id} className="bg-white/60 backdrop-blur-xl border border-white p-6 md:p-8 rounded-[32px] flex gap-6 shadow-sm hover:bg-white/80 transition-all group">
-                     <img src={comment.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-2xl object-cover border border-white/65 shadow-sm" alt="" />
+                     <img src={comment.avatar_url || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-2xl object-cover border border-white/65 shadow-sm" alt="" />
                      <div className="flex-1 min-w-0 pt-1">
                         <div className="flex justify-between items-start mb-2">
                           <span className="text-sm font-black text-black">{comment.name || comment.username}</span>
@@ -311,3 +311,6 @@ export default function PostDetail() {
     </div>
   );
 }
+
+
+

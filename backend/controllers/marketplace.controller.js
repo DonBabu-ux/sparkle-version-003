@@ -29,7 +29,7 @@ const normalizeUser = (user) => {
 
     // Ensure avatar_url exists
     if (!normalized.avatar_url) {
-        normalized.avatar_url = '/uploads/avatars/default.png';
+        normalized.avatar_url = '/uploads/avatars/no-profile.png';
     }
 
     // Ensure user_id exists (some controllers might use id)
@@ -467,7 +467,7 @@ const deleteListing = async (req, res) => {
             });
         }
 
-        const { listingId } = req.params;
+        const listingId = req.params.id || req.params.listingId;
         await Marketplace.deleteListing(listingId, user.user_id);
 
         res.json({
@@ -498,6 +498,18 @@ const contactSeller = [
             }
 
             const buyerId = user.user_id || user.id;
+
+            // Block check: neither party may contact the other if a block exists in either direction
+            const [blockRows] = await pool.query(
+                `SELECT id FROM marketplace_user_blocks
+                 WHERE (blocker_id = ? AND blocked_id = ?)
+                    OR (blocker_id = ? AND blocked_id = ?)
+                 LIMIT 1`,
+                [buyerId, sellerId, sellerId, buyerId]
+            );
+            if (blockRows.length > 0) {
+                return res.status(403).json({ success: false, message: 'You cannot contact this user.' });
+            }
 
             // Check if thread exists in marketplace_conversations
             const [existingConv] = await pool.query(
@@ -602,6 +614,27 @@ const sendMessage = async (req, res) => {
         if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
         const { chatId } = req.params;
         const { content } = req.body;
+
+        // Block check: look up the other participant in this personal chat
+        const [chatRows] = await pool.query(
+            `SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ?`,
+            [chatId]
+        );
+        if (chatRows.length > 0) {
+            const chat = chatRows[0];
+            const otherId = chat.participant1_id === user.user_id ? chat.participant2_id : chat.participant1_id;
+            const [blockRows] = await pool.query(
+                `SELECT id FROM marketplace_user_blocks
+                 WHERE (blocker_id = ? AND blocked_id = ?)
+                    OR (blocker_id = ? AND blocked_id = ?)
+                 LIMIT 1`,
+                [user.user_id, otherId, otherId, user.user_id]
+            );
+            if (blockRows.length > 0) {
+                return res.status(403).json({ success: false, message: 'You cannot contact this user.' });
+            }
+        }
+
         const messageId = await Marketplace.sendMessage(chatId, user.user_id, content);
         res.json({ success: true, messageId });
     } catch (error) {
@@ -640,10 +673,21 @@ const placeOrder = [
             
         } catch (error) {
             logger.error('Place order error:', error);
-            const status = error.status || 500;
+            const messages = {
+                LISTING_NOT_FOUND: 'This listing is no longer available.',
+                LISTING_NOT_AVAILABLE: 'This listing is no longer available.',
+                LISTING_SOLD: 'This item has already been sold.',
+                CANNOT_BUY_OWN: 'You cannot place an order on your own listing.',
+                ORDER_EXISTS: 'You already have an active order for this listing.'
+            };
+            const status = error.message === 'LISTING_NOT_FOUND' ? 404
+                : ['LISTING_NOT_AVAILABLE', 'LISTING_SOLD', 'ORDER_EXISTS'].includes(error.message) ? 409
+                : error.message === 'CANNOT_BUY_OWN' ? 400
+                : 500;
             res.status(status).json({
                 success: false,
-                message: error.message || 'Failed to place order'
+                message: messages[error.message] || 'Failed to place order',
+                code: error.message
             });
         }
     }
@@ -671,11 +715,17 @@ const updateOrderStatus = [
             });
         } catch (error) {
             logger.error('Update order status error:', error);
+            const messages = {
+                ORDER_NOT_FOUND: 'Order not found.',
+                UNAUTHORIZED: 'You are not allowed to change this order.',
+                INVALID_TRANSITION: 'This action is not available for the order in its current state.',
+                MEETUP_NOT_CONFIRMED: 'Both people must confirm the meetup before the order can be completed.'
+            };
             const msg = error.message;
-            res.status(msg === 'UNAUTHORIZED' ? 403 : 400).json({ 
-                success: false, 
-                message: msg,
-                code: msg 
+            res.status(msg === 'ORDER_NOT_FOUND' ? 404 : msg === 'UNAUTHORIZED' ? 403 : 409).json({
+                success: false,
+                message: messages[msg] || 'Could not update this order.',
+                code: msg
             });
         }
     }
@@ -708,6 +758,46 @@ const confirmMeetup = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
+const disputeOrder = [
+    validate(marketplaceSchemas.disputeOrderSchema, 'body'),
+    async (req, res) => {
+        try {
+            const user = normalizeUser(req.user);
+            if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+            const { orderId } = req.params;
+            const { reason, description } = req.body;
+
+            const disputeId = await Marketplace.createDispute({
+                order_id: orderId,
+                raised_by: user.user_id,
+                reason,
+                description
+            });
+
+            res.status(201).json({
+                success: true,
+                disputeId,
+                message: 'Dispute opened. Our team will review the order.'
+            });
+        } catch (error) {
+            logger.error('Dispute order error:', error);
+            const messages = {
+                ORDER_NOT_FOUND: 'Order not found.',
+                UNAUTHORIZED: 'You are not part of this order.',
+                INVALID_TRANSITION: 'This order cannot be disputed in its current state.'
+            };
+            const status = error.message === 'ORDER_NOT_FOUND' ? 404
+                : error.message === 'UNAUTHORIZED' ? 403 : 400;
+            res.status(status).json({
+                success: false,
+                message: messages[error.message] || 'Failed to open dispute',
+                code: error.message
+            });
+        }
+    }
+];
 
 const getOrderById = async (req, res) => {
     try {
@@ -988,11 +1078,15 @@ const createSkillOffer = [
 const getRecommendations = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        const { listings } = await Marketplace.getListings({ 
-            limit: 6, 
-            campus: user?.campus || 'all',
-            sort: 'popular'
-        }, user?.user_id);
+        const { limit = 20, campus } = req.query;
+        // 'Recommended' uses real user signals (favorites, purchases, category,
+        // price band, condition) with a non-personalized fallback for new or
+        // anonymous users. It is never just the newest listings.
+        const listings = await Marketplace.getRecommendations(
+            user?.user_id,
+            campus || (user?.campus || 'all'),
+            parseInt(limit, 10) || 20
+        );
         res.json({ success: true, listings: listings || [] });
     } catch (error) {
         logger.error('Get recommendations error:', error);
@@ -1018,6 +1112,27 @@ const createReview = [
         } catch (error) {
             logger.error('Create review error:', error);
             res.status(500).json({ success: false, message: error.message });
+        }
+    }
+];
+
+const replyToReview = [
+    validate(marketplaceSchemas.replyToReviewSchema, 'body'),
+    async (req, res) => {
+        try {
+            const user = normalizeUser(req.user);
+            if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+            const { reviewId } = req.params;
+            const { reply } = req.body;
+
+            await Marketplace.replyToReview(reviewId, user.user_id, reply);
+
+            res.json({ success: true, message: 'Reply posted' });
+        } catch (error) {
+            logger.error('Reply to review error:', error);
+            const status = error.message === 'Review not found or not yours' ? 404 : 400;
+            res.status(status).json({ success: false, message: error.message || 'Failed to post reply' });
         }
     }
 ];
@@ -1142,10 +1257,46 @@ const blockUser = [
 const reportListing = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        const { listingId, reason, description } = req.body;
-        // Basic report implementation (in real world, save to reports table)
-        logger.warn(`Listing ${listingId} reported by ${user.user_id}: ${reason}`);
-        res.json({ success: true, message: 'Report submitted' });
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const listingId = req.params.id || req.body.listingId;
+        const { reason, details } = req.body;
+
+        const [[listing]] = await pool.query(
+            'SELECT listing_id FROM marketplace_listings WHERE listing_id = ?',
+            [listingId]
+        );
+        if (!listing) {
+            return res.status(404).json({ success: false, message: 'Listing not found' });
+        }
+
+        const [[recent]] = await pool.query(
+            `SELECT report_id FROM listing_reports
+             WHERE listing_id = ? AND reporter_id = ? AND status = 'pending'
+               AND created_at > DATE_SUB(NOW(), INTERVAL 24 HOUR)
+             LIMIT 1`,
+            [listingId, user.user_id]
+        );
+        if (recent) {
+            return res.status(429).json({
+                success: false,
+                message: 'You already reported this listing. Our team is reviewing it.'
+            });
+        }
+
+        const reportId = crypto.randomUUID();
+        await pool.query(
+            `INSERT INTO listing_reports
+             (report_id, listing_id, reporter_id, reason, details, status)
+             VALUES (?, ?, ?, ?, ?, 'pending')`,
+            [reportId, listingId, user.user_id, reason, details || null]
+        );
+
+        res.status(201).json({
+            success: true,
+            reportId,
+            message: 'Report received. Our moderation team will review it.'
+        });
     } catch (error) {
         logger.error('Report listing error:', error);
         res.status(500).json({ success: false, message: 'Failed to submit report' });
@@ -1155,12 +1306,17 @@ const reportListing = async (req, res) => {
 const markAsSold = async (req, res) => {
     try {
         const user = normalizeUser(req.user);
-        const { id } = req.params;
-        await Marketplace.updateListing(id, user.user_id, { status: 'sold' });
+        if (!user) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const listingId = req.params.id || req.params.listingId;
+        const updated = await Marketplace.updateListingStatus(listingId, user.user_id, true);
+        if (!updated) {
+            return res.status(404).json({ success: false, message: 'Listing not found or not yours' });
+        }
         res.json({ success: true, message: 'Item marked as sold' });
     } catch (error) {
         logger.error('Mark as sold error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        res.status(500).json({ success: false, message: 'Failed to mark listing as sold' });
     }
 };
 
@@ -1312,10 +1468,24 @@ const getWishlist = async (req, res) => {
     }
 };
 
+const getMyListings = async (req, res) => {
+    try {
+        const user = normalizeUser(req.user);
+        if (!user || !user.user_id) return res.status(401).json({ success: false, message: 'Unauthorized' });
+
+        const listings = await Marketplace.getUserListings(user.user_id);
+        res.json({ success: true, listings: listings || [] });
+    } catch (error) {
+        logger.error('Get my listings error:', error);
+        res.status(500).json({ success: false, message: 'Failed to load your listings' });
+    }
+};
+
 module.exports = {
     // API Routes
     getListings,
     getWishlist,
+    getMyListings,
     getCategories,
     getTrending,
     getListingById,
@@ -1339,6 +1509,7 @@ module.exports = {
     placeOrder,
     updateOrderStatus,
     confirmMeetup,
+    disputeOrder,
     getOrderById,
     getOrders,
 
@@ -1347,6 +1518,7 @@ module.exports = {
     reportListing,
     blockUser,
     createReview,
+    replyToReview,
     getUserReviews,
     boostListing,
     markAsSold,

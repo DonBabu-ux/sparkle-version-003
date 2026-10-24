@@ -18,7 +18,7 @@ const LEGACY_THEME_ROUTES = [
   '/settings/accounts', '/settings/blocked',
   '/groups/create', '/groups/:id/settings', '/groups/:id',
   '/marketplace', '/marketplace/category/:categoryId', '/marketplace/inbox', '/marketplace/sell',
-  '/marketplace/report/:id', '/marketplace/my-shop', '/marketplace/orders', '/marketplace/my-listings',
+  '/marketplace/report/:id', '/marketplace/my-shop', '/marketplace/orders', '/marketplace/orders/:orderId', '/marketplace/my-listings',
   '/marketplace/listings/:id', '/marketplace/order', '/marketplace/safety', '/marketplace/seller/:id',
   '/marketplace/messages/:conversationId', '/marketplace/settings', '/marketplace/sparkly',
   '/wishlist', '/skill-market', '/skill-market/hub',

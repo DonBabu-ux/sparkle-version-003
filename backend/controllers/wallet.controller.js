@@ -21,7 +21,6 @@
 
 const walletService = require('../services/wallet.service');
 const paystackService = require('../services/paystack.service');
-const pool = require('../config/database');
 const logger = require('../utils/logger');
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -35,14 +34,21 @@ const logger = require('../utils/logger');
  */
 function parseAmountCents(body) {
     if (body.amountCents !== undefined) {
-        const c = parseInt(body.amountCents, 10);
-        if (!Number.isInteger(c) || c <= 0) throw new Error('amountCents must be a positive integer');
+        const c = Number(body.amountCents);
+        if (!Number.isFinite(c) || !Number.isInteger(c) || c <= 0 || c > Number.MAX_SAFE_INTEGER) {
+            throw new Error('amountCents must be a positive integer');
+        }
         return c;
     }
     if (body.amount !== undefined) {
-        const kes = parseFloat(body.amount);
-        if (isNaN(kes) || kes <= 0) throw new Error('amount must be a positive number');
-        return Math.round(kes * 100);
+        const kes = Number(body.amount);
+        if (!Number.isFinite(kes) || kes <= 0) throw new Error('amount must be a positive number');
+        const cents = kes * 100;
+        // Require valid minor units: reject fractional cents (more than 2 decimals).
+        if (!Number.isFinite(cents) || cents !== Math.round(cents) || cents > Number.MAX_SAFE_INTEGER) {
+            throw new Error('amount must use whole minor units (no fractional cents)');
+        }
+        return Math.round(cents);
     }
     throw new Error('amount or amountCents is required');
 }
@@ -122,7 +128,7 @@ exports.verifyDeposit = async (req, res) => {
             return res.status(400).json({ success: false, message: 'reference is required' });
         }
 
-        const result = await walletService.processDepositConfirmation(reference);
+        const result = await walletService.processDepositConfirmation(reference, userId);
         res.json({ success: true, ...result });
     } catch (err) {
         logger.error('[WalletController] verifyDeposit:', err.message);
@@ -215,7 +221,8 @@ exports.updateAutoWithdrawalConfig = async (req, res) => {
 
 // ── POST /api/wallet/webhook/paystack ─────────────────────────────────────────
 // IMPORTANT: This endpoint must receive the raw body for HMAC verification.
-// The body is also verified against wallet_webhook_log for idempotency.
+// Events are persisted before any ledger work and marked Processed only after
+// the corresponding wallet transaction commits.
 
 exports.handleWebhook = async (req, res) => {
     const signature = req.headers['x-paystack-signature'];
@@ -232,64 +239,40 @@ exports.handleWebhook = async (req, res) => {
         return res.status(401).json({ message: 'Invalid signature' });
     }
 
-    // Acknowledge immediately (Paystack expects 200 within 5s)
-    res.status(200).json({ received: true });
-
-    // Process asynchronously
     const event = req.body;
     const eventType = event.event;
     const reference = event.data?.reference;
 
     if (!reference) {
         logger.warn('[WalletWebhook] No reference in payload:', eventType);
-        return;
+        return res.status(200).json({ received: true });
     }
 
     logger.info(`[WalletWebhook] Event: ${eventType} | Ref: ${reference}`);
 
-    if (eventType === 'charge.success') {
-        // Idempotency check
-        const isNew = await walletService.markWebhookProcessed(reference, eventType).catch(() => false);
-        if (!isNew) {
-            logger.info(`[WalletWebhook] Duplicate event skipped: ${reference}`);
-            return;
+    try {
+        // Durable enqueue happens before acknowledgement so a crash cannot
+        // lose a provider event that we told Paystack we received.
+        const queued = await walletService.enqueueWebhookEvent({
+            eventType,
+            reference,
+            payload: event
+        });
+
+        // Acknowledge immediately (Paystack expects 200 within 5s).
+        res.status(200).json({ received: true });
+
+        if (!queued) return;
+
+        if (queued.status !== 'Processed') {
+            walletService.processWebhookEvent(queued.event_id).catch((err) => {
+                logger.error(`[WalletWebhook] Event ${queued.event_id} processing failed:`, err.message);
+            });
         }
-        try {
-            const result = await walletService.processDepositConfirmation(reference);
-            logger.info(`[WalletWebhook] Deposit processed: ${reference} → ${result.status}`);
-        } catch (err) {
-            logger.error(`[WalletWebhook] Error processing charge.success for ${reference}:`, err.message);
+    } catch (err) {
+        logger.error('[WalletWebhook] Could not persist event:', err.message);
+        if (!res.headersSent) {
+            return res.status(500).json({ message: 'Could not persist webhook event' });
         }
-    } else if (eventType === 'charge.failed') {
-        try {
-            await pool.query(
-                "UPDATE wallet_deposits SET status = 'Failed' WHERE paystack_ref = ?",
-                [reference]
-            );
-            logger.info(`[WalletWebhook] Deposit marked as Failed for reference: ${reference}`);
-        } catch (err) {
-            logger.error(`[WalletWebhook] Error processing charge.failed for ${reference}:`, err.message);
-        }
-    } else if (eventType === 'transfer.success') {
-        logger.info(`[WalletWebhook] Transfer success for ref: ${reference}`);
-        // Update withdrawal status
-        try {
-            await pool.query(
-                `UPDATE wallet_withdrawals
-                 SET status = 'Completed', processed_at = NOW()
-                 WHERE paystack_transfer = ? OR withdrawal_id = ?`,
-                [event.data?.transfer_code, reference]
-            );
-            await pool.query(
-                "UPDATE wallet_transactions SET status = 'Completed' WHERE reference = ? AND type = 'Withdrawal'",
-                [reference]
-            );
-        } catch (e) {
-            logger.error('[WalletWebhook] transfer.success update failed:', e.message);
-        }
-    } else if (eventType === 'transfer.failed' || eventType === 'transfer.reversed') {
-        logger.warn(`[WalletWebhook] Transfer failed/reversed: ${reference}`);
-        // Handled by _executePaystackTransfer's catch block
     }
-    // Other events acknowledged but not processed
 };

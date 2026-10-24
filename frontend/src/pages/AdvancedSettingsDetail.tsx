@@ -506,7 +506,7 @@ export default function AdvancedSettingsDetail() {
               <SettingRow
                 icon={Activity}
                 title="WebSocket Connection"
-                description={`Socket.IO Gateway • Transport: ${socket?.io?.engine?.transport?.name || 'websocket'} • ${socket?.id ? 'ID: ' + socket.id.slice(0, 8) + '...' : 'Connecting'}`}
+                description="Real-time connection to Sparkle servers"
                 rightElement="badge"
                 badgeText={socket?.connected ? 'CONNECTED' : 'DISCONNECTED'}
                 badgeVariant={socket?.connected ? 'green' : 'amber'}
@@ -1285,3 +1285,6 @@ export default function AdvancedSettingsDetail() {
     </div>
   );
 }
+
+
+

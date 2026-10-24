@@ -1,166 +1,186 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, UserCircle, Lock, Smartphone, Mail, Key, ChevronRight, Plus, Orbit, Zap } from 'lucide-react';
+import {
+  ArrowLeft, Lock, Smartphone, Mail, Key, ChevronRight, Plus, ShieldCheck, LogOut, Check
+} from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import Avatar from '../components/Avatar';
+import Spinner from '../components/ui/Spinner';
+
+/**
+ * zustand persist hydrates from localStorage after the first render. Until it
+ * finishes, `accounts` is still the initial `[]` — showing the empty dashboard
+ * that window would flash "no accounts" on every cold start.
+ */
+function useStoreHydrated(): boolean {
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => {
+    const persistApi = (useUserStore as unknown as { persist?: { hasHydrated?: () => boolean; onFinishHydration?: (cb: () => void) => () => void } }).persist;
+    if (!persistApi) { setHydrated(true); return; }
+    if (persistApi.hasHydrated?.()) { setHydrated(true); return; }
+    const unsub = persistApi.onFinishHydration?.(() => setHydrated(true));
+    return () => { unsub?.(); };
+  }, []);
+  return hydrated;
+}
+
+interface Row {
+  label: string;
+  sub: string;
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number | string; className?: string }>;
+  path: string;
+}
 
 export default function AccountsCenter() {
   const navigate = useNavigate();
   const { user, accounts, switchAccount } = useUserStore();
+  const hydrated = useStoreHydrated();
 
-  const sections = [
+  const sections: { title: string; rows: Row[] }[] = [
     {
-      title: 'Profiles',
-      items: [
-        { label: 'Manage Profiles', icon: UserCircle, sub: 'Switch, add or remove accounts', path: '/settings' }
+      title: 'Security',
+      rows: [
+        { label: 'Password and 2FA', sub: 'Change password, saved logins', icon: Lock, path: '/settings/security' },
+        { label: 'Devices', sub: 'Where you are logged in', icon: Smartphone, path: '/settings/security' },
+        { label: 'Recovery codes', sub: 'Generate or reset recovery keys', icon: Key, path: '/settings/change-password' }
       ]
     },
     {
-      title: 'Account Settings',
-      items: [
-        { label: 'Password and security', icon: Lock, sub: 'Change password, 2FA, saved logins', path: '/settings/security' },
-        { label: 'Personal details', icon: UserCircle, sub: 'Contact info, identity verification', path: '/settings' },
-        { label: 'Ad preferences', icon: Smartphone, sub: 'Manage what you see', path: '/settings/advanced/privacy' }
-      ]
-    },
-    {
-      title: 'Login & Security',
-      items: [
-        { label: 'Recent emails', icon: Mail, sub: 'View communications from Sparkle', path: '/settings' },
-        { label: 'Devices', icon: Smartphone, sub: 'Where you are logged in', path: '/settings/security' },
-        { label: 'Recovery codes', icon: Key, sub: 'Generate or reset recovery keys', path: '/settings/change-password' }
+      title: 'Profile',
+      rows: [
+        { label: 'Personal details', sub: 'Name, bio, campus and course', icon: ShieldCheck, path: '/settings' },
+        { label: 'Messages settings', sub: 'Chat themes and notifications', icon: Mail, path: '/messages/settings' }
       ]
     }
   ];
 
+  if (!hydrated) {
+    return (
+      <div className="flex bg-white dark:bg-black min-h-dvh items-center justify-center text-marketplace-text">
+        <Spinner size="xl" color="text-primary" />
+      </div>
+    );
+  }
+
+  const accountList = accounts ?? [];
+
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
+    <div className="flex flex-col bg-white dark:bg-black min-h-dvh text-marketplace-text font-sans overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
 
-      {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
-
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full">
-        <header className="flex flex-col xl:flex-row items-center justify-between gap-16 mb-24 animate-fade-in px-4">
-          <div className="max-w-2xl space-y-8 text-center xl:text-left">
-            <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5 mx-auto xl:mx-0">
-                <span className="text-[10px] font-bold text-black uppercase tracking-[0.4em]">Security & Accounts</span>
-            </div>
-            <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
-               Account <span className="text-primary italic">Center.</span>
-            </h1>
-            <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic border-l-8 border-primary/20 pl-8 mx-auto xl:mx-0 uppercase tracking-tighter">
-               Manage profiles, security protocols, and connected harmonics across the village.
-            </p>
-          </div>
-          
-          <button 
-            onClick={() => navigate(-1)}
-            className="flex items-center gap-6 h-20 px-12 bg-white/60 border border-white backdrop-blur-3xl text-black hover:bg-black hover:text-white transition-all rounded-[28px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl active:scale-95 group"
-          >
-            <ArrowLeft size={24} strokeWidth={4} className="group-hover:-translate-x-2 transition-transform" /> 
-            Back Vector
-          </button>
-        </header>
-
-        <div className="space-y-24 animate-fade-in relative z-10 w-full mb-64 px-4 text-left">
-          {/* Linked Profiles */}
-          <section>
-            <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] mb-12 ml-10 italic">Your Accounts</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-              {accounts?.map(acc => (
-                <div key={acc.user.user_id} className={`p-10 rounded-[56px] border-4 transition-all duration-700 flex items-center justify-between group ${acc.user.user_id === user?.user_id ? 'bg-black border-black text-white shadow-2xl' : 'bg-white border-white text-black hover:shadow-2xl'}`}>
-                  <div className="flex items-center gap-8">
-                    <div className="relative">
-                      <img 
-                        src={acc.user.avatar_url || '/uploads/avatars/default.png'} 
-                        className={`w-20 h-20 rounded-[28px] object-cover border-4 transition-all duration-700 ${acc.user.user_id === user?.user_id ? 'border-primary' : 'border-black/5 group-hover:border-black'}`} 
-                        alt="" 
-                      />
-                      {acc.user.user_id === user?.user_id && (
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full border-4 border-white shadow-lg"></div>
-                      )}
-                    </div>
-                    <div className="flex flex-col gap-1">
-                      <span className="font-black text-xl italic uppercase tracking-tighter leading-none group-hover:text-primary transition-colors">{acc.user.name}</span>
-                      <span className={`text-[10px] font-black uppercase tracking-widest ${acc.user.user_id === user?.user_id ? 'text-primary' : 'text-black/30'}`}>@{acc.user.username}</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    {acc.user.user_id === user?.user_id ? (
-                      <span className="px-6 py-2 bg-primary/10 text-primary border border-primary/20 rounded-full text-[9px] font-black uppercase tracking-widest italic group-hover:bg-primary group-hover:text-white transition-all shadow-xl">Active</span>
-                    ) : (
-                      <button 
-                        onClick={() => { switchAccount(acc.user.user_id); navigate('/dashboard'); }}
-                        className="h-14 px-8 border-2 border-black/10 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black hover:text-white transition-all active:scale-95 italic"
-                      >
-                        Switch
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
-              <button 
-                onClick={() => navigate('/login')} 
-                className="p-10 rounded-[56px] border-4 border-dashed border-black/5 hover:border-primary/20 hover:bg-white transition-all flex items-center justify-center gap-8 group"
-              >
-                <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
-                  <Plus size={32} strokeWidth={4} />
-                </div>
-                <span className="text-xl font-black italic uppercase tracking-tighter text-black opacity-10 group-hover:opacity-100 transition-all">Add Account</span>
-              </button>
-            </div>
-          </section>
-
-          {/* System Fragments */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 pt-16 border-t-8 border-black/[0.03]">
-            {sections?.map(section => (
-              <div key={section.title} className="space-y-12">
-                <h2 className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.5em] italic ml-10">{section.title} Protocol</h2>
-                <div className="flex flex-col gap-6">
-                  {section.items.map(item => (
-                    <button 
-                      key={item.label}
-                      onClick={() => navigate(item.path)}
-                      className="w-full p-10 rounded-[48px] bg-white border-2 border-transparent hover:border-primary/10 text-left transition-all duration-700 group hover:-translate-y-2 shadow-2xl shadow-primary/5 relative overflow-hidden"
-                    >
-                      <div className="absolute top-0 right-0 p-10 text-primary opacity-[0.01] pointer-events-none group-hover:opacity-[0.05] transition-all group-hover:rotate-12 group-hover:scale-150">
-                         <Orbit size={140} strokeWidth={1} />
-                      </div>
-                      <div className="flex items-center justify-between mb-8 relative z-10">
-                        <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 group-hover:bg-primary group-hover:text-white transition-all duration-700 shadow-inner">
-                          <item.icon size={28} strokeWidth={4} />
-                        </div>
-                        <ChevronRight size={28} strokeWidth={4} className="text-black/5 group-hover:text-primary group-hover:translate-x-4 transition-all duration-700" />
-                      </div>
-                      <div className="text-3xl font-black text-black italic uppercase tracking-tighter leading-none mb-4 group-hover:text-primary transition-colors relative z-10">
-                        {item.label}
-                      </div>
-                      <div className="text-[10px] font-black text-black opacity-20 leading-relaxed uppercase tracking-[0.2em] mb-2 group-hover:text-black transition-colors relative z-10 italic">
-                        {item.sub}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-          
-          <footer className="pt-48 pb-24 text-center space-y-10 relative z-10">
-            <div className="flex justify-center gap-12">
-              {['Manifesto', 'Stealth', 'Codex'].map(link => (
-                <span key={link} className="text-[10px] font-black uppercase tracking-[0.5em] text-black/10 hover:text-primary transition-colors italic leading-none">{link}</span>
-              ))}
-            </div>
-            <div className="flex flex-col items-center gap-4">
-               <Zap size={24} className="text-primary opacity-20 animate-pulse" />
-               <p className="text-[10px] font-black uppercase tracking-[0.6em] text-black/5">© 2026 SPARKLE COLLECTIVE</p>
-            </div>
-          </footer>
+      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-marketplace-border px-4 py-3 flex items-center gap-3">
+        <button
+          onClick={() => navigate(-1)}
+          aria-label="Go back"
+          className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+        >
+          <ArrowLeft size={24} strokeWidth={2.5} />
+        </button>
+        <div>
+          <h1 className="text-[17px] font-black tracking-tight leading-none">Account Center</h1>
+          <p className="text-[11px] text-marketplace-muted font-medium mt-0.5">
+            {accountList.length} {accountList.length === 1 ? 'account' : 'accounts'} · security and profile
+          </p>
         </div>
-      </main>
+      </header>
 
-      <style>{`
-        
-      `}</style>
+      <main className="flex-1 max-w-2xl mx-auto w-full px-4 py-6">
+
+        {/* ── Accounts ─────────────────────────────────────────── */}
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marketplace-muted mb-3 px-1">
+          Your accounts
+        </p>
+        <div className="flex flex-col gap-2 mb-10">
+          {accountList.map((acc) => {
+            const isActive = acc.user.user_id === user?.user_id;
+            return (
+              <div
+                key={acc.user.user_id}
+                className={`flex items-center gap-3.5 p-3.5 rounded-2xl border transition-colors ${
+                  isActive
+                    ? 'bg-marketplace-bg border-marketplace-border'
+                    : 'bg-white dark:bg-white/[0.03] border-marketplace-border'
+                }`}
+              >
+                <Avatar
+                  src={acc.user.avatar_url}
+                  name={acc.user.username}
+                  className="w-12 h-12 rounded-xl shrink-0 border border-marketplace-border"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">
+                    {acc.user.name || acc.user.username}
+                  </p>
+                  <p className="text-[11px] text-marketplace-muted font-medium truncate">@{acc.user.username}</p>
+                </div>
+                {isActive ? (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest shrink-0">
+                    <Check size={12} strokeWidth={3} /> Active
+                  </span>
+                ) : (
+                  <button
+                    onClick={() => { switchAccount(acc.user.user_id); navigate('/dashboard'); }}
+                    className="px-4 py-2 rounded-xl bg-[#FF1F6D] hover:bg-[#ff3d80] text-white text-[11px] font-black uppercase tracking-widest transition-colors active:scale-95 shrink-0"
+                  >
+                    Switch
+                  </button>
+                )}
+              </div>
+            );
+          })}
+
+          <button
+            onClick={() => navigate('/login')}
+            className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-dashed border-marketplace-border hover:bg-marketplace-bg transition-colors text-left group"
+          >
+            <div className="w-12 h-12 rounded-xl bg-marketplace-bg group-hover:bg-[#FF1F6D] flex items-center justify-center text-marketplace-muted group-hover:text-white transition-colors shrink-0">
+              <Plus size={20} strokeWidth={2.5} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[13px] font-bold text-black dark:text-white tracking-tight">Add account</p>
+              <p className="text-[11px] text-marketplace-muted font-medium">Sign in with another Sparkle account</p>
+            </div>
+          </button>
+        </div>
+
+        {/* ── Setting rows ─────────────────────────────────────── */}
+        {sections.map((section) => (
+          <div key={section.title} className="mb-10">
+            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marketplace-muted mb-3 px-1">
+              {section.title}
+            </p>
+            <div className="rounded-2xl bg-white dark:bg-white/[0.03] border border-marketplace-border divide-y divide-marketplace-border overflow-hidden">
+              {section.rows.map((row) => (
+                <button
+                  key={row.label}
+                  onClick={() => navigate(row.path)}
+                  className="w-full flex items-center gap-3.5 p-3.5 hover:bg-marketplace-bg transition-colors text-left"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-marketplace-bg flex items-center justify-center text-marketplace-text shrink-0">
+                    <row.icon size={18} strokeWidth={2.2} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">{row.label}</p>
+                    <p className="text-[11px] text-marketplace-muted font-medium truncate">{row.sub}</p>
+                  </div>
+                  <ChevronRight size={16} className="text-marketplace-muted shrink-0" />
+                </button>
+              ))}
+            </div>
+          </div>
+        ))}
+
+        <button
+          onClick={() => navigate('/login')}
+          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl border border-marketplace-border text-marketplace-muted hover:text-[#FF1F6D] hover:border-[#FF1F6D]/30 transition-colors text-left"
+        >
+          <LogOut size={18} strokeWidth={2.2} />
+          <span className="text-[13px] font-bold tracking-tight">Sign out of this account</span>
+        </button>
+
+        <p className="mt-10 text-center text-[10px] font-black uppercase tracking-[0.3em] text-marketplace-muted/60">
+          Sparkle © 2026
+        </p>
+      </main>
     </div>
   );
 }

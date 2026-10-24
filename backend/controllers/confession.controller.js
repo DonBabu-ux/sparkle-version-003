@@ -45,7 +45,7 @@ const reactToConfession = async (req, res) => {
         await Confession.addReaction(id, userId, type);
 
         // Batch 3: Anonymous Notifications
-        const confession = await Confession.findById(id);
+        const confession = await Confession.findByIdInternal(id);
         if (confession && confession.user_id && confession.user_id !== userId) {
             const notificationController = require('./notification.controller');
             await notificationController.createInternalNotification(
@@ -93,7 +93,7 @@ const commentAnonymously = async (req, res) => {
         const commentId = await Confession.addComment(id, userId, content.trim(), parent_id);
 
         // Batch 3: Anonymous Notifications
-        const confession = await Confession.findById(id);
+        const confession = await Confession.findByIdInternal(id);
         const notificationController = require('./notification.controller');
 
         // 1. Notify Confession Author

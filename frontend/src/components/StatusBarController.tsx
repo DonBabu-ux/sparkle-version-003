@@ -36,7 +36,7 @@ export const applyStatusBarStyle = async (style: StatusBarStyleType, customBg?: 
             await StatusBar.setBackgroundColor({ color: '#00000000' });
         }
     } catch (err) {
-        logger.warn('⚠️ StatusBarController: Failed to apply native style:', err);
+        logger.warn('❌ StatusBarController: Failed to apply native style:', err);
     }
 };
 

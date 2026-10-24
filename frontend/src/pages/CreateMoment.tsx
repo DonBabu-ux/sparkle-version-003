@@ -22,6 +22,7 @@ export default function CreateMoment() {
   };
   const [caption, setCaption] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isVideo, setIsVideo] = useState(false);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -34,6 +35,7 @@ export default function CreateMoment() {
       return;
     }
     setFile(f);
+    setUploadProgress(0);
     setIsVideo(f.type.startsWith('video/'));
     revokePreview(previewRef.current);
     const url = URL.createObjectURL(f);
@@ -49,7 +51,13 @@ export default function CreateMoment() {
       fd.append('media', file);
       fd.append('caption', caption);
       fd.append('type', isVideo ? 'video' : 'image');
-      await api.post('/moments', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post('/moments', fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        onUploadProgress: (ev) => {
+          if (!ev.total) return; // length-computable responses only
+          setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+        }
+      });
       navigate('/moments');
     } catch (err) {
       logger.error('Upload error:', err);
@@ -121,9 +129,19 @@ export default function CreateMoment() {
               <div className="cm-actions">
                 <button type="button" className="cm-cancel-btn" onClick={() => navigate('/moments')}>Cancel</button>
                 <button type="submit" className="cm-submit-btn" disabled={!file || uploading}>
-                  {uploading ? 'Uploading...' : '✦ Share Moment'}
+                  {uploading ? `Uploading ${uploadProgress}%` : 'Share Moment'}
                 </button>
               </div>
+
+              {/* Upload progress — same track/fill treatment as the story composer */}
+              {uploading && (
+                <div className="cm-progress" role="progressbar" aria-valuenow={uploadProgress} aria-valuemin={0} aria-valuemax={100} aria-label="Upload progress">
+                  <div className="cm-progress-track">
+                    <div className="cm-progress-fill" style={{ width: `${uploadProgress}%` }} />
+                  </div>
+                  <span className="cm-progress-label">{uploadProgress}%</span>
+                </div>
+              )}
             </form>
           </div>
         </main>
@@ -158,6 +176,11 @@ export default function CreateMoment() {
 
         .cm-field { margin-bottom: 20px; }
         .cm-field label { display: block; font-weight: 700; font-size: 0.88rem; color: rgba(255,255,255,0.7); margin-bottom: 10px; }
+
+        .cm-progress { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
+        .cm-progress-track { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
+        .cm-progress-fill { height: 100%; background: linear-gradient(90deg, #FF6B8B, #FF3D6D); border-radius: 999px; transition: width 0.3s ease; }
+        .cm-progress-label { font-size: 0.78rem; font-weight: 800; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
         .cm-field textarea { width: 100%; padding: 14px 16px; border: 2px solid rgba(255,255,255,0.1); border-radius: 16px; font-size: 0.95rem; color: white; background: rgba(255,255,255,0.05); transition: 0.2s; box-sizing: border-box; font-family: inherit; resize: none; }
         .cm-field textarea:focus { border-color: #FF6B8B; outline: none; background: rgba(255,107,139,0.05); }
         .cm-char-count { font-size: 12px; color: rgba(255,255,255,0.3); text-align: right; margin-top: 6px; font-weight: 600; }
@@ -206,3 +229,6 @@ export default function CreateMoment() {
     </div>
   );
 }
+
+
+

@@ -8,6 +8,10 @@ const { upload, momentsUpload } = require('../../middleware/upload.middleware');
 // Stream endpoints
 router.get('/stream', authMiddleware, momentsController.getMomentsStream);
 
+// Creator dashboard — MUST stay above '/:id': Express matches in registration
+// order, so '/:id' would otherwise capture 'my' as an id.
+router.get('/my/moments', authMiddleware, momentsController.getMyMoments);
+
 // CRUD operations
 router.get('/:id', authMiddleware, momentsController.getMomentById);
 router.post('/',
@@ -31,6 +35,10 @@ router.post('/comment/:id/like', authMiddleware, momentsController.likeComment);
 
 // User interaction
 router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);
+
+// Creator dashboard (own moments + takedown)
+router.delete('/:id', authMiddleware, momentsController.deleteMoment);
+router.post('/:id/restore', authMiddleware, momentsController.restoreMoment);
 
 // DashboardAPI Compatibility
 router.get('/users/:userId/moments', authMiddleware, momentsController.getMomentsStream); // Filter by user_id in controller

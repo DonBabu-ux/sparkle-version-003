@@ -123,13 +123,13 @@ const notificationController = {
                         n.created_at AS created_at,
                         n.is_read AS is_read,
                         u.avatar_url AS actor_avatar,
-                        COALESCE(n.related_user_id, n.actor_id) AS actor_id,
+                        n.actor_id AS actor_id,
                         u.name AS actor_name,
                         u.username AS actor_username,
                         n.action_url AS action_url,
                         n.aggregation_count AS aggregation_count,
                         n.related_id AS related_post_id,
-                        COALESCE(n.related_user_id, n.actor_id) AS sender_id,
+                        n.actor_id AS sender_id,
                         n.icon AS icon,
                         n.entities AS entities,
                         n.actions AS actions,
@@ -137,7 +137,7 @@ const notificationController = {
                         n.category AS category,
                         n.is_official AS is_official
                     FROM notifications n
-                    LEFT JOIN users u ON u.user_id = COALESCE(n.related_user_id, n.actor_id)
+                    LEFT JOIN users u ON u.user_id = n.actor_id
                     WHERE n.user_id = ?${bSql1}
                     ORDER BY n.created_at DESC LIMIT ${pageCap}
                     )
@@ -447,7 +447,7 @@ const notificationController = {
                     );
 
                     // Re-fetch actor info for socket (same as standard flow)
-                    let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/default.png', actor_username: '' };
+                    let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/no-profile.png', actor_username: '' };
                     if (data.actor_id) {
                         try {
                             const [[actor]] = await pool.query(
@@ -500,7 +500,7 @@ const notificationController = {
             ]);
 
             // Fetch actor info for the socket payload
-            let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/default.png', actor_username: '' };
+            let actorInfo = { actor_name: data.actor_name || '', actor_avatar: '/uploads/avatars/no-profile.png', actor_username: '' };
             if (data.actor_id) {
                 try {
                     const [[actor]] = await pool.query(
@@ -620,7 +620,7 @@ const notificationController = {
                     action_url: actionUrl,
                     actor_id: null,
                     actor_name: 'Sparkle',
-                    actor_avatar: '/uploads/avatars/default.png',
+                    actor_avatar: '/uploads/avatars/no-profile.png',
                     is_read: false,
                     created_at: new Date().toISOString()
                 });

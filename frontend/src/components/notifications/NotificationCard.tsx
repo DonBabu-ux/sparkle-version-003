@@ -67,7 +67,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
   const navigate = useNavigate();
   const { Icon: TypeIcon, color: iconColor } = getTypeIcon(notification.type);
 
-  const avatarUrl     = notification.related_user?.avatar || notification.actor_avatar || '/uploads/avatars/default.png';
+  const avatarUrl     = notification.related_user?.avatar || notification.actor_avatar || '/uploads/avatars/no-profile.png';
   const actorUsername = notification.related_user?.username || notification.actor_username;
   const actorName     = notification.related_user?.name     || notification.actor_name;
   const displayName   = actorName || actorUsername || '';
@@ -303,7 +303,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
           {notifications.map((n) => {
             const username = n.related_user?.username || n.actor_username;
             const name     = n.related_user?.name     || n.actor_name     || username;
-            const avatar   = n.related_user?.avatar   || n.actor_avatar   || '/uploads/avatars/default.png';
+            const avatar   = n.related_user?.avatar   || n.actor_avatar   || '/uploads/avatars/no-profile.png';
             return (
               <div
                 key={n.id}

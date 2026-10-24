@@ -357,7 +357,7 @@ export default function Search() {
                                                     <Hash size={24} className="text-primary" />
                                                 </div>
                                             ) : (
-                                                <img src={g.image || '/uploads/avatars/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
+                                                <img src={g.image || '/uploads/groups/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-lg font-bold text-gray-900 dark:text-white leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
@@ -415,7 +415,7 @@ export default function Search() {
                     {actionItem.type === 'user' ? (
                         <>
                             <div className="relative mb-6">
-                                <img src={actionItem.avatar_url || '/uploads/avatars/default.png'} className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-2xl" alt="" />
+                                <img src={actionItem.avatar_url || '/uploads/avatars/no-profile.png'} className="w-24 h-24 rounded-[32px] object-cover border-4 border-white shadow-2xl" alt="" />
                                 <div className="absolute -bottom-2 -right-2 bg-primary p-2.5 rounded-2xl text-white shadow-xl">
                                     <Sparkles size={18} strokeWidth={3} />
                                 </div>
@@ -505,3 +505,5 @@ export default function Search() {
     </div>
   );
 }
+
+

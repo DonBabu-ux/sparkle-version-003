@@ -104,7 +104,8 @@ const ensureMomentColumns = async () => {
         { name: 'streaming_url', def: 'VARCHAR(500) DEFAULT NULL' },
         { name: 'thumbnail_url', def: 'VARCHAR(500) DEFAULT NULL' },
         { name: 'resolution', def: 'VARCHAR(50) DEFAULT "1080p"' },
-        { name: 'bitrate', def: 'INT DEFAULT 0' }
+        { name: 'bitrate', def: 'INT DEFAULT 0' },
+        { name: 'deleted_at', def: 'TIMESTAMP NULL DEFAULT NULL' }
     ];
     // Check 'moment_comments' table
     const commentCols = [
@@ -332,6 +333,15 @@ const createMoment = async (req, res) => {
 
         const momentId = require('crypto').randomUUID();
         const media_type = detected_mimetype ? detected_mimetype.split('/')[0] : (media_url.includes('video') ? 'video' : 'image');
+
+        // Cloudinary's `fetch_format: auto` can return a transport-stream (.ts)
+        // or other non-container extension on some uploads. Persisting that URL
+        // verbatim leaves the player with a 0-byte response and "media
+        // unavailable". Normalise the delivery URL back to the source container.
+        const MOMENT_VIDEO_EXTENSIONS = /\.(mp4|mov|avi|webm|mkv)$/i;
+        if (media_type === 'video' && !MOMENT_VIDEO_EXTENSIONS.test(media_url)) {
+            media_url = media_url.replace(/\.[^/.]+$/, '.mp4');
+        }
 
         // Extract HD/Streaming URLs from Cloudinary metadata
         let streaming_url = null;
@@ -691,6 +701,136 @@ const trackEngagement = async (req, res) => {
 };
 
 /**
+ * Creator dashboard: the signed-in user's own moments with engagement stats.
+ * Read-only. Soft-deleted rows are excluded — a takedown removes it from the
+ * creator's dashboard, not from the database.
+ */
+const getMyMoments = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const page = Math.max(parseInt(req.query.page, 10) || 0, 0);
+        const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
+        const offset = page * limit;
+
+        // Single round-trip: the page plus real lifetime aggregates. The
+        // dashboard previously summed the returned rows client-side, which
+        // silently under-reported the moment anyone passed the page limit.
+        const [rows] = await pool.query(
+            `SELECT moment_id, caption, media_url, thumbnail_url, media_type,
+                    like_count, comment_count, share_count, view_count, created_at,
+                    COUNT(*) OVER ()          AS total_count,
+                    SUM(like_count)    OVER () AS total_likes,
+                    SUM(comment_count) OVER () AS total_comments,
+                    SUM(share_count)   OVER () AS total_shares,
+                    SUM(view_count)    OVER () AS total_views
+               FROM moments
+              WHERE user_id = ? AND deleted_at IS NULL
+              ORDER BY created_at DESC
+              LIMIT ? OFFSET ?`,
+            [userId, limit, offset]
+        );
+
+        const first = rows?.[0];
+
+        // Recently taken-down moments for the restore UI.
+        const [deletedRows] = await pool.query(
+            `SELECT moment_id, caption, thumbnail_url, media_type, deleted_at
+               FROM moments
+              WHERE user_id = ? AND deleted_at IS NOT NULL
+              ORDER BY deleted_at DESC
+              LIMIT 25`, [userId]
+        );
+
+        res.json({
+            success: true,
+            moments: rows || [],
+            deleted: deletedRows || [],
+            total: first?.total_count || 0,
+            totals: {
+                views: first?.total_views || 0,
+                sparks: first?.total_likes || 0,
+                comments: first?.total_comments || 0,
+                shares: first?.total_shares || 0
+            },
+            page,
+            limit
+        });
+    } catch (error) {
+        logger.error('[Moments] getMyMoments failed:', error.message);
+        res.status(500).json({ error: 'Failed to load your moments' });
+    }
+};
+
+/**
+ * Takedown. Soft-delete: sets deleted_at, keeps the row and the media file so
+ * the action is recoverable. Hard-deleting user content on a single request
+ * with no restore path is not something to do by default.
+ */
+const deleteMoment = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const { id } = req.params;
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        // Ownership check is part of the WHERE clause, so a moment belonging to
+        // someone else updates zero rows and reports not-found rather than
+        // leaking its existence.
+        const [result] = await pool.query(
+            `UPDATE moments SET deleted_at = NOW()
+              WHERE moment_id = ? AND user_id = ? AND deleted_at IS NULL`,
+            [id, userId]
+        );
+
+        if (!result || result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Moment not found or already taken down' });
+        }
+
+        // Best-effort cache invalidation — a stale ranked feed serving a taken-down
+        // moment is the visible bug, so clear it. Never fails the request.
+        try {
+            const momentsRankingService = require('../services/momentsRanking.service');
+            await momentsRankingService.invalidateFeedForOwner?.(userId);
+        } catch (_) { /* cache is an optimisation; takedown already succeeded */ }
+
+        res.json({ success: true, message: 'Moment taken down' });
+    } catch (error) {
+        logger.error('[Moments] deleteMoment failed:', error.message);
+        res.status(500).json({ error: 'Failed to take down moment' });
+    }
+};
+
+/** Undo a takedown — restores the moment to the creator's dashboard. */
+const restoreMoment = async (req, res) => {
+    try {
+        const userId = req.user.user_id || req.user.userId;
+        const { id } = req.params;
+        if (!userId) return res.status(401).json({ error: 'Unauthorized' });
+
+        const [result] = await pool.query(
+            `UPDATE moments SET deleted_at = NULL
+              WHERE moment_id = ? AND user_id = ? AND deleted_at IS NOT NULL`,
+            [id, userId]
+        );
+
+        if (!result || result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Moment not found or not taken down' });
+        }
+
+        try {
+            const momentsRankingService = require('../services/momentsRanking.service');
+            await momentsRankingService.invalidateFeedForOwner?.(userId);
+        } catch (_) { /* non-fatal */ }
+
+        res.json({ success: true, message: 'Moment restored' });
+    } catch (error) {
+        logger.error('[Moments] restoreMoment failed:', error.message);
+        res.status(500).json({ error: 'Failed to restore moment' });
+    }
+};
+
+/**
  * Called once at server startup to run migrations and pre-warm the feed cache.
  * Keeps the hot API path clean of setup overhead.
  */
@@ -720,5 +860,8 @@ module.exports = {
     getShareData,
     likeComment,
     getMomentById,
+    getMyMoments,
+    deleteMoment,
+    restoreMoment,
     prewarm
 };

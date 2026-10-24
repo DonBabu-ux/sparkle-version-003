@@ -851,10 +851,10 @@ res.render('view-name', { title: 'Page Title', user: req.user, data: [], error: 
 ```javascript
 // Always use this helper before passing avatar_url to views
 const getSafeAvatarUrl = (url) => {
-    if (!url) return '/uploads/avatars/default.png';
+    if (!url) return '/uploads/avatars/no-profile.png';
     if (url.startsWith('/uploads/')) return url;
     if (url.startsWith('http')) return url;
-    return '/uploads/avatars/default.png';
+    return '/uploads/avatars/no-profile.png';
 };
 ```
 

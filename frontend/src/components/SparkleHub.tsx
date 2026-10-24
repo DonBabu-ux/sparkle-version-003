@@ -15,7 +15,6 @@ import {
   Send, 
   CheckCircle2, 
   Briefcase, 
-  Settings, 
   LifeBuoy, 
   HelpCircle, 
   User, 
@@ -257,12 +256,12 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
     { name: 'Share App', icon: Send, color: 'text-teal-500 dark:text-teal-400', path: '/invite' },
     { name: 'Get Verified', icon: CheckCircle2, color: 'text-sky-500 dark:text-sky-400', path: '/verified' },
     { name: 'Professional Dashboard', icon: Briefcase, color: 'text-orange-500 dark:text-orange-400', path: '/professional-dashboard' },
-    { name: 'Chat Settings', icon: Settings, color: 'text-slate-600 dark:text-zinc-300', path: '/messages/settings' },
-    { name: 'Support', icon: LifeBuoy, color: 'text-pink-500 dark:text-pink-400', path: '/help' },
+    { name: 'Moment Studio', icon: BarChart3, color: 'text-fuchsia-500 dark:text-fuchsia-400', path: '/moments/studio' },
   ];
 
   const ACCOUNT_ITEMS = [
     { name: 'Account Settings', icon: User, path: '/settings' },
+    { name: 'Account Center', icon: Users, path: '/settings/accounts' },
     { name: 'Help Center', icon: HelpCircle, path: '/help' },
     { name: 'Contact Support', icon: LifeBuoy, path: '/support' },
   ];

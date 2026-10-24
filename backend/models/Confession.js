@@ -2,6 +2,12 @@ const pool = require('../config/database');
 const crypto = require('crypto');
 
 class Confession {
+    static toPublic(row) {
+        if (!row) return null;
+        const { user_id, ...publicRow } = row;
+        return publicRow;
+    }
+
     /**
      * Get recent confessions
      */
@@ -23,7 +29,7 @@ class Confession {
         params.push(limit);
 
         const [confessions] = await pool.query(query, params);
-        return confessions;
+        return confessions.map((row) => this.toPublic(row));
     }
 
     /**
@@ -48,7 +54,7 @@ class Confession {
         params.push(limit);
 
         const [confessions] = await pool.query(query, params);
-        return confessions;
+        return confessions.map((row) => this.toPublic(row));
     }
 
     /**
@@ -159,6 +165,14 @@ class Confession {
      * Get confession with reactions
      */
     static async findById(confessionId) {
+        const row = await this.findByIdInternal(confessionId);
+        return this.toPublic(row);
+    }
+
+    /**
+     * Internal-only lookup. Never return this object from a public API.
+     */
+    static async findByIdInternal(confessionId) {
         const [confessions] = await pool.query(
             'SELECT * FROM confessions WHERE confession_id = ?',
             [confessionId]

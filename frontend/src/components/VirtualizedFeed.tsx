@@ -157,7 +157,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
         {suggestions.slice(0, 6).map((s) => (
           <div key={s.user_id} className="flex-shrink-0 w-32 flex flex-col items-center text-center gap-2.5 p-3 rounded-lg bg-black/[0.02] dark:bg-white/5 border border-black/5 dark:border-white/5 transition-transform hover:scale-[1.02]">
             <img 
-              src={s.avatar_url || '/uploads/avatars/default.png'} 
+              src={s.avatar_url || '/uploads/avatars/no-profile.png'}
               className="w-16 h-16 rounded-full object-cover border-2 border-white dark:border-black shadow-md cursor-pointer" 
               alt=""
               onClick={() => navigate(`/profile/${s.username}`)}
@@ -414,7 +414,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
 
       {!hasMore && posts.length > 0 && (
         <p className="text-center text-[10px] font-black text-black/20 dark:text-white/20 uppercase tracking-[0.2em] italic py-8">
-          You're all caught up ✨
+          You're all caught up
         </p>
       )}
 

@@ -631,7 +631,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full overflow-hidden border border-neutral-200 dark:border-neutral-700">
                     <img
-                      src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/default.png'}
+                      src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/no-profile.png'}
                       alt=""
                       className="w-full h-full object-cover"
                     />
@@ -1334,7 +1334,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
               <div className="text-center space-y-1.5 pb-2">
                 <div className="w-24 h-24 rounded-full overflow-hidden mx-auto border-2 border-pink-500/30 p-1">
                   <img
-                    src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/default.png'}
+                    src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/no-profile.png'}
                     alt=""
                     className="w-full h-full rounded-full object-cover"
                   />
@@ -1424,7 +1424,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             <div className="flex flex-col items-center justify-center py-6 space-y-4">
               <div className="w-64 h-64 md:w-80 md:h-80 rounded-2xl overflow-hidden shadow-2xl border border-neutral-200 dark:border-neutral-800 bg-neutral-900">
                 <img
-                  src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/default.png'}
+                  src={draft.avatar_url || user?.avatar_url || '/uploads/avatars/no-profile.png'}
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />

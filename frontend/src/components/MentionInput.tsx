@@ -264,7 +264,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
                 >
                   <div className="relative shrink-0">
                     <img
-                      src={u.avatar_url || '/uploads/avatars/default.png'}
+                      src={u.avatar_url || '/uploads/avatars/no-profile.png'}
                       className="w-11 h-11 rounded-full object-cover border border-gray-100"
                       alt=""
                     />

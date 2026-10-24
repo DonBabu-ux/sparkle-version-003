@@ -3181,7 +3181,6 @@ export default function Messages() {
     if (firstItem.type === 'document' || firstItem.type === 'audio') {
       setShowAttachmentSheet(false);
       for (const item of normalizedItems) {
-        const queueId = `upload_${Date.now()}_${item.id}`;
         const tempMessageId = crypto.randomUUID();
         logger.log(`[MEDIA_UPLOAD_START] mediaId=${item.id}`);
 
@@ -6714,7 +6713,6 @@ export default function Messages() {
 
                     // Trigger concurrent background media uploads & optimistic messaging
                     for (const item of items) {
-                      const queueId = `upload_${Date.now()}_${item.id}`;
                       const mediaType = item.type || 'image';
 
                       // 1. Display optimistic media bubble in chat IMMEDIATELY

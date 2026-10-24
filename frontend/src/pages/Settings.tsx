@@ -1,6 +1,7 @@
 import { lockScroll, unlockScroll } from '../components/AppScreen';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { showError } from '../utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
@@ -92,7 +93,12 @@ export default function Settings() {
   const handleToggleTheme = () => {
     const nextTheme = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
-    api.put('/users/settings', { dark_mode_enabled: nextTheme === 'dark' }).catch(() => {});
+    api.put('/users/settings', { dark_mode_enabled: nextTheme === 'dark' }).catch(() => {
+      // Persistence failed: restore the previous theme so the UI doesn't
+      // claim a change that was not saved.
+      setTheme(theme);
+      showError("Theme change wasn't saved. Try again.");
+    });
   };
 
   
@@ -202,15 +208,15 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-24 transition-colors">
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 pb-[env(safe-area-inset-bottom)] transition-colors">
 
       <main className="max-w-2xl mx-auto px-4 pt-4 sm:pt-6">
         {/* Navigation Header */}
         <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="w-9 h-9 rounded-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-300 hover:scale-105 active:scale-95 transition-all shadow-sm"
-          >
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-11 h-11 rounded-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-700 dark:text-zinc-300 hover:scale-105 active:scale-95 transition-all shadow-sm"
+              >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
@@ -241,7 +247,7 @@ export default function Settings() {
         {/* User Card Overview */}
         <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 shadow-sm flex items-center gap-4">
           <img
-            src={user?.avatar_url || user?.avatar || '/uploads/avatars/default.png'}
+            src={user?.avatar_url || user?.avatar || '/uploads/avatars/no-profile.png'}
             alt={user?.name || 'User'}
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-500/20 shadow-sm"
           />
@@ -452,12 +458,12 @@ export default function Settings() {
                 {/* Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-zinc-800/60">
                   <div className="flex items-center gap-3">
-                    {acTab !== 'menu' && (
-                      <button
-                        onClick={() => { setAcTab('menu'); setAcError(null); setAcSuccess(null); }}
-                        className="w-8 h-8 rounded-full flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
-                        title="Back to Account Control"
-                      >
+                      {acTab !== 'menu' && (
+                        <button
+                          onClick={() => { setAcTab('menu'); setAcError(null); setAcSuccess(null); }}
+                          className="w-11 h-11 rounded-full flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 transition-colors"
+                          title="Back to Account Control"
+                        >
                         <ArrowLeft size={18} />
                       </button>
                     )}
@@ -924,3 +930,6 @@ export default function Settings() {
     </div>
   );
 }
+
+
+

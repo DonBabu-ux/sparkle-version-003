@@ -1,12 +1,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BarChart2, Plus, ChevronRight, Calendar, Sparkles, Zap, Users } from 'lucide-react';
+import { BarChart2, Plus, ChevronRight, Calendar, Sparkles, Zap, Users, Trash2, Pencil } from 'lucide-react';
+import PollModal from '../components/modals/PollModal';
 import api from '../api/api';
 import CountdownTimer from '../components/ui/CountdownTimer';
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { logger } from '../utils/logger';
+import { showSuccess, showError } from '../utils/toast';
 
 interface PollOption {
   option_id: string;
@@ -16,6 +18,7 @@ interface PollOption {
 
 interface Poll {
   poll_id: string;
+  creator_id?: string;
   question: string;
   creator_name?: string;
   username?: string;
@@ -34,10 +37,13 @@ interface Poll {
 }
 
 export default function Polls() {
-  useUserStore();
+  const { user } = useUserStore();
   const { setActiveModal } = useModalStore();
   const navigate = useNavigate();
   const [polls, setPolls] = useState<Poll[]>([]);
+  const [myPolls, setMyPolls] = useState<Poll[]>([]);
+  const [loadingMyPolls, setLoadingMyPolls] = useState(true);
+  const [busyPollId, setBusyPollId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [filter, setFilter] = useState('for_you');
@@ -45,6 +51,41 @@ export default function Polls() {
   const [isInitialLoad, setIsInitialBurst] = useState(true);
   const offsetRef = useRef(0);
   const inFlightRef = useRef(false);
+
+  // Own polls are fetched independently of the browse feed. Depending on the
+  // feed to contain them means a creator's own polls can vanish from the
+  // section entirely once they scroll past the page those polls landed on.
+  const loadMyPolls = useCallback(async () => {
+    try {
+      setLoadingMyPolls(true);
+      const { data } = await api.get('/polls', { params: { creator: 'me', limit: 50 } });
+      setMyPolls(Array.isArray(data.polls) ? data.polls : []);
+    } catch (err) {
+      logger.error('Failed to load own polls:', err);
+    } finally {
+      setLoadingMyPolls(false);
+    }
+  }, []);
+
+  const [editingPoll, setEditingPoll] = useState<Poll | null>(null);
+
+  const takeDownPoll = async (pollId: string) => {
+    setBusyPollId(pollId);
+    const previous = myPolls;
+    // Optimistic: the row leaves immediately. A failed takedown puts it back,
+    // because the poll is still live.
+    setMyPolls(prev => prev.filter(p => p.poll_id !== pollId));
+    try {
+      await api.delete(`/polls/${pollId}`);
+      showSuccess('Poll taken down.');
+    } catch (err: any) {
+      logger.error('Poll takedown failed:', err);
+      setMyPolls(previous);
+      showError(err?.response?.data?.error || 'Could not take that poll down. It is still live.');
+    } finally {
+      setBusyPollId(null);
+    }
+  };
 
   const fetchPolls = useCallback(async (isLoadMore = false) => {
     if (inFlightRef.current) return;
@@ -101,6 +142,10 @@ export default function Polls() {
     setIsInitialBurst(true);
     fetchPolls(false);
   }, [filter]); // Clear list and re-fetch when filter changes
+
+  useEffect(() => {
+    loadMyPolls();
+  }, [loadMyPolls]);
 
   // Infinite Scroll Observer
   useEffect(() => {
@@ -195,7 +240,61 @@ export default function Polls() {
                />
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pb-24">
+            <div className="pb-24">
+              {/* My Polls — creator surface, takedown only */}
+              {!loadingMyPolls && (() => {
+                const mine = myPolls;
+                if (mine.length === 0) return null;
+                return (
+                  <section className="mb-12">
+                    <div className="flex items-center gap-2 mb-4 px-1">
+                      <BarChart2 size={13} className="text-primary" strokeWidth={3} />
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-black/40">Your Polls</h3>
+                      <span className="text-[10px] font-bold text-black/40">{mine.length}</span>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      {mine.map((poll, idx) => {
+                        const busy = busyPollId === poll.poll_id;
+                        return (
+                          <div
+                            key={poll.poll_id}
+                            onClick={() => navigate(`/polls/${poll.poll_id}`)}
+                            className="group flex items-center gap-4 p-4 rounded-xl bg-white border border-white/60 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer shadow-sm animate-scale-in"
+                            style={{ animationDelay: `${idx * 50}ms` }}
+                          >
+                            <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                              <BarChart2 size={16} strokeWidth={2.5} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] font-bold text-black tracking-tight truncate">{poll.question}</p>
+                              <p className="text-[11px] text-black/40 font-medium mt-0.5">
+                                {poll.total_votes || 0} votes · {poll.is_expired ? 'Closed' : 'Open'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setEditingPoll(poll); }}
+                              aria-label={`Edit ${poll.question}`}
+                              className="w-9 h-9 flex items-center justify-center rounded-lg text-black/50 dark:text-white/50 hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+                            >
+                              <Pencil size={16} strokeWidth={2.5} />
+                            </button>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); takeDownPoll(poll.poll_id); }}
+                              disabled={busy}
+                              aria-label={`Take down ${poll.question}`}
+                              className="w-9 h-9 flex items-center justify-center rounded-lg text-red-600 hover:bg-red-50 transition-colors disabled:opacity-40 shrink-0"
+                            >
+                              <Trash2 size={16} strokeWidth={2.5} />
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {polls.map((poll, idx) => (
                 <div 
                   key={poll.poll_id} 
@@ -239,7 +338,7 @@ export default function Polls() {
 
                   <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500">
                      {!poll.is_anonymous && (
-                       <img src={poll.creator_avatar || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full" alt="" />
+                       <img src={poll.creator_avatar || '/uploads/avatars/no-profile.png'} className="w-4 h-4 rounded-full" alt="" />
                      )}
                      {poll.is_anonymous && (
                        <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black text-gray-400">?</div>
@@ -309,9 +408,21 @@ export default function Polls() {
                 </div>
               ) : null}
             </div>
+            </div>
           )}
         </div>
       </main>
+
+      {editingPoll && (
+        <PollModal
+          poll={editingPoll}
+          onClose={() => setEditingPoll(null)}
+          onSuccess={() => { setEditingPoll(null); loadMyPolls(); }}
+        />
+      )}
     </div>
   );
 }
+
+
+

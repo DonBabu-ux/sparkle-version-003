@@ -49,6 +49,17 @@ function relativeTime(dateStr: string): string {
   } catch { return ''; }
 }
 
+// Map legacy notification paths to routes that actually exist in App.tsx
+function normalizeTargetUrl(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  let next = url;
+  next = next.replace(/^\/posts\//, '/post/');
+  next = next.replace(/^\/moment\//, '/moments/');
+  next = next.replace(/^\/marketplace\/listing\//, '/marketplace/listings/');
+  next = next.replace(/^\/orders(?:\/[^/?#]+)?(?=$|[?#])/, '/marketplace/orders');
+  return next;
+}
+
 export default function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,34 +67,34 @@ export default function Notifications() {
   const [selectedNotif, setSelectedNotif] = useState<Notification | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
   const [markedFeedback, setMarkedFeedback] = useState(false);
+  const [readError, setReadError] = useState<string | null>(null);
   const [, setTick] = useState(0); // clock tick for live relative timestamps
   const navigate = useNavigate();
-  const unreadRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const response = await api.get('/notifications');
+      if (response.data.success || response.data) {
+        const raw = response.data.notifications || response.data || [];
+        const fetchedNotifs: Notification[] = (Array.isArray(raw) ? raw : []).map((n: any) => ({
+          ...n,
+          notification_id: n.notification_id || n.id,
+          id: n.id || n.notification_id,
+          is_read: (n.is_read === 1 || n.is_read === true || n.isRead === true) ? 1 : 0,
+          isRead: !!(n.is_read === 1 || n.is_read === true || n.isRead === true)
+        }));
+        setNotifications(fetchedNotifs);
+      }
+    } catch (err) {
+      logger.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const response = await api.get('/notifications');
-        if (response.data.success || response.data) {
-          const raw = response.data.notifications || response.data || [];
-          const fetchedNotifs: Notification[] = (Array.isArray(raw) ? raw : []).map((n: any) => ({
-            ...n,
-            notification_id: n.notification_id || n.id,
-            id: n.id || n.notification_id,
-            is_read: (n.is_read === 1 || n.is_read === true || n.isRead === true) ? 1 : 0,
-            isRead: !!(n.is_read === 1 || n.is_read === true || n.isRead === true)
-          }));
-          setNotifications(fetchedNotifs);
-        }
-      } catch (err) {
-        logger.error('Failed to fetch notifications:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchNotifications();
-  }, []);
+  }, [fetchNotifications]);
 
   // Live timestamp tick — update every 60s
   useEffect(() => {
@@ -91,63 +102,21 @@ export default function Notifications() {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-mark-as-read on scroll into view (IntersectionObserver)
-  const markAsReadCb = useCallback((id: string) => {
+  // Read state is explicit only. Not a notification is marked read by
+  // scrolling it into view or by opening it — only the "Mark as read"
+  // action in the detail sheet (or "Mark all as read") changes it.
+
+  const markAsRead = async (id: string) => {
+    const previous = notifications;
     setNotifications(prev =>
       prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
     );
-    api.put(`/notifications/${id}/read`).catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    if (loading) return;
-    const timers = new Map<string, ReturnType<typeof setTimeout>>();
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          const id = (entry.target as HTMLElement).dataset.notifId;
-          if (!id) return;
-          if (entry.isIntersecting) {
-            // Mark read after 1.5s of being visible
-            timers.set(id, setTimeout(() => markAsReadCb(id), 1500));
-          } else {
-            clearTimeout(timers.get(id));
-            timers.delete(id);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-
-    // Observe all currently-mounted unread refs
-    unreadRefs.current.forEach(el => observerRef.current!.observe(el));
-
-    return () => {
-      observerRef.current?.disconnect();
-      timers.forEach(t => clearTimeout(t));
-    };
-  }, [loading, markAsReadCb]);
-
-  // Helper to register/unregister an unread card ref
-  const setUnreadRef = useCallback((id: string, el: HTMLDivElement | null) => {
-    if (el) {
-      unreadRefs.current.set(id, el);
-      observerRef.current?.observe(el);
-    } else {
-      const prev = unreadRefs.current.get(id);
-      if (prev) observerRef.current?.unobserve(prev);
-      unreadRefs.current.delete(id);
-    }
-  }, []);
-
-  const markAsRead = async (id: string) => {
+    setReadError(null);
     try {
-      setNotifications(prev =>
-        prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
-      );
       await api.put(`/notifications/${id}/read`).catch(() => api.post(`/notifications/${id}/read`));
     } catch (err) {
+      setNotifications(previous);
+      setReadError("Couldn't mark as read. Try again.");
       logger.error('Failed to mark read:', err);
     }
   };
@@ -156,16 +125,22 @@ export default function Notifications() {
     if (markingAll) return;
     try {
       setMarkingAll(true);
+      const previous = notifications;
       // Optimistic update
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));
-      unreadRefs.current.clear();
+      setReadError(null);
       window.dispatchEvent(new Event('notifications_all_read'));
 
       // Call API
-      await api.put('/notifications/read-all').catch(() => api.post('/notifications/read-all'));
-
-      setMarkedFeedback(true);
-      setTimeout(() => setMarkedFeedback(false), 2000);
+      try {
+        await api.put('/notifications/read-all').catch(() => api.post('/notifications/read-all'));
+        setMarkedFeedback(true);
+        setTimeout(() => setMarkedFeedback(false), 2000);
+      } catch (err) {
+        setNotifications(previous);
+        setReadError("Couldn't mark all as read. Try again.");
+        logger.error('Failed to mark all read:', err);
+      }
     } catch (err) {
       logger.error('Failed to mark all read:', err);
     } finally {
@@ -224,11 +199,9 @@ export default function Notifications() {
   };
 
   const handleNotificationClick = async (notif: Notification) => {
-    // 1. Mark as read immediately in UI & sync to server
-    markAsRead(notif.notification_id || notif.id || '');
-
-    // 2. Determine target URL with rich fallback resolution
-    let targetUrl = notif.action_url;
+    // Open the thing the notification points at. Read state is NOT changed
+    // here — that only happens from the explicit "Mark as read" action.
+    let targetUrl = normalizeTargetUrl(notif.action_url);
 
     // Check target object first if present
     if (notif.target) {
@@ -242,7 +215,7 @@ export default function Notifications() {
           targetUrl = `/post/${entity_id}${sub_entity_id ? `?commentId=${sub_entity_id}` : ''}`;
           break;
         case 'moment':
-          targetUrl = `/moment/${entity_id}`;
+          targetUrl = `/moments/${entity_id}`;
           break;
         case 'profile':
         case 'user':
@@ -255,8 +228,10 @@ export default function Notifications() {
           break;
         case 'marketplace':
         case 'marketplace_contact':
+          targetUrl = `/marketplace/listings/${entity_id}`;
+          break;
         case 'order':
-          targetUrl = entity_type === 'order' ? `/orders/${entity_id}` : `/marketplace/listing/${entity_id}`;
+          targetUrl = '/marketplace/orders';
           break;
         case 'story':
         case 'story_like':
@@ -302,7 +277,7 @@ export default function Notifications() {
         case 'moment_like':
         case 'moment_comment':
         case 'moment_spark':
-          if (relId) targetUrl = `/moment/${relId}`;
+          if (relId) targetUrl = `/moments/${relId}`;
           break;
         case 'story_like':
         case 'story_view':
@@ -310,8 +285,10 @@ export default function Notifications() {
           break;
         case 'marketplace':
         case 'marketplace_contact':
+          if (relId) targetUrl = `/marketplace/listings/${relId}`;
+          break;
         case 'order':
-          if (relId) targetUrl = `/marketplace/listing/${relId}`;
+          targetUrl = '/marketplace/orders';
           break;
         case 'group_invite':
         case 'group':
@@ -327,6 +304,7 @@ export default function Notifications() {
     }
 
     // 3. Navigate to resolved target or safe fallback
+    targetUrl = normalizeTargetUrl(targetUrl);
     if (targetUrl) {
       navigate(targetUrl);
     } else if (notif.actor_username || notif.actor_id) {
@@ -378,7 +356,7 @@ export default function Notifications() {
     return (
       <div
         key={notif.notification_id || notif.id}
-        ref={isUnread ? (el) => setUnreadRef(notif.notification_id || notif.id || '', el) : undefined}
+          data-notif-id={notif.notification_id || notif.id}
         data-notif-id={isUnread ? (notif.notification_id || notif.id) : undefined}
         onClick={() => handleNotificationClick(notif)}
         className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-black/[0.04] dark:border-white/[0.04] last:border-0 relative active:scale-[0.995] ${
@@ -508,16 +486,16 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex bg-app min-h-dvh text-black font-sans">
+    <div className="flex bg-app min-h-dvh text-black font-sans pb-[env(safe-area-inset-bottom)]">
 
-      <main className="flex-1 pb-24 max-w-2xl mx-auto w-full">
+      <main className="flex-1 pb-20 max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
         {/* Sticky Header */}
-        <header className="sticky top-[70px] z-30 bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
+        <header className="sticky top-[70px] z-[1100] bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => navigate(-1)}
-                className="w-9 h-9 -ml-1 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
+                className="w-11 h-11 -ml-1 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
               >
                 <ArrowLeft size={20} className="text-slate-800 dark:text-white" />
               </button>
@@ -527,7 +505,7 @@ export default function Notifications() {
               <button
                 onClick={markAllRead}
                 disabled={markingAll || unreadCount === 0}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all select-none ${
+                className={`flex items-center gap-1.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all select-none ${
                   markedFeedback
                     ? 'text-emerald-500 bg-emerald-500/10'
                     : unreadCount > 0
@@ -551,7 +529,7 @@ export default function Notifications() {
               </button>
               <button
                 onClick={() => navigate('/search')}
-                className="w-9 h-9 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-400"
+                className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-400"
                 title="Search"
               >
                 <Search size={18} />
@@ -559,6 +537,23 @@ export default function Notifications() {
             </div>
           </div>
         </header>
+
+        {readError && (
+          <div className="px-4 py-3 bg-rose-50 border border-rose-200">
+            <div className="flex items-start gap-3">
+              <AlertOctagon size={16} className="text-rose-600 mt-0.5" />
+              <div>
+                <p className="text-[12px] font-bold text-rose-800">{readError}</p>
+                <button
+                  onClick={() => { setReadError(null); fetchNotifications(); }}
+                  className="text-[11px] font-bold text-[#ff1493] underline mt-1"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Notifications list */}
         <div className="bg-white dark:bg-[#101217]">
@@ -629,6 +624,24 @@ export default function Notifications() {
 
             {/* Actions */}
             <div className="px-3 py-2 flex flex-col gap-0.5">
+              {!isNotificationRead(selectedNotif) && (
+                <button
+                  onClick={() => {
+                    markAsRead(selectedNotif.notification_id || selectedNotif.id || '');
+                    setSelectedNotif(null);
+                  }}
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={17} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Mark as read</p>
+                    <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Keeps it in your list, clears the unread badge</p>
+                  </div>
+                </button>
+              )}
+
               <button
                 onClick={() => deleteNotification(selectedNotif.notification_id || selectedNotif.id || '')}
                 className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
@@ -687,3 +700,6 @@ export default function Notifications() {
     </div>
   );
 }
+
+
+

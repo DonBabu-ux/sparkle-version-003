@@ -54,12 +54,12 @@ class User {
      * Helper to ensure avatar URLs are properly formatted
      */
     static getSafeAvatarUrl(url) {
-        if (!url) return '/uploads/avatars/default.png';
+        if (!url) return '/uploads/avatars/no-profile.png';
         if (url.startsWith('http')) return url;
         if (url.includes('uploads/')) {
             return url.startsWith('/') ? url : `/${url}`;
         }
-        return '/uploads/avatars/default.png';
+        return '/uploads/avatars/no-profile.png';
     }
 
     /**
@@ -162,7 +162,7 @@ class User {
                 userData.password_hash,
                 userData.affiliation || userData.campus || null,
                 userData.interests || userData.major || null,
-                userData.avatar_url || '/uploads/avatars/default.png'
+                userData.avatar_url || '/uploads/avatars/no-profile.png'
             ]
         );
         return userId;

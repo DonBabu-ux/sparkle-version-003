@@ -42,19 +42,28 @@ export default function ClubDetail() {
   const fetchClub = useCallback(async () => {
     setLoading(true);
     try {
-      const [clubRes, postsRes, membersRes] = await Promise.all([
-        api.get(`/clubs/${id}`),
-        api.get(`/clubs/${id}/posts`),
-        api.get(`/clubs/${id}/members`),
-      ]);
+      const clubRes = await api.get(`/clubs/${id}`);
       setClub(clubRes.data.club || clubRes.data);
-      setPosts(postsRes.data.posts || postsRes.data || []);
-      setMembers(membersRes.data.members || membersRes.data || []);
     } catch (err) {
       logger.error('Club detail error:', err);
-    } finally {
-      setLoading(false);
     }
+    // Posts are non-fatal: the club detail must still load even if the posts
+    // endpoint is not yet registered for this club.
+    try {
+      const postsRes = await api.get(`/clubs/${id}/posts`);
+      setPosts(postsRes.data.posts || postsRes.data || []);
+    } catch (err) {
+      logger.debug('Club posts unavailable:', err?.message || err);
+      setPosts([]);
+    }
+    try {
+      const membersRes = await api.get(`/clubs/${id}/members`);
+      setMembers(membersRes.data.members || membersRes.data || []);
+    } catch (err) {
+      logger.debug('Club members unavailable:', err?.message || err);
+      setMembers([]);
+    }
+    setLoading(false);
   }, [id]);
 
   useEffect(() => { if (id) fetchClub(); }, [id, fetchClub]);
@@ -64,7 +73,7 @@ export default function ClubDetail() {
     setJoining(true);
     try {
       if (club.is_member) {
-        await api.delete(`/clubs/${id}/leave`);
+        await api.post(`/clubs/${id}/leave`);
         setClub(prev => prev ? { ...prev, is_member: false, member_count: prev.member_count - 1 } : prev);
       } else {
         await api.post(`/clubs/${id}/join`);
@@ -230,7 +239,7 @@ export default function ClubDetail() {
                       <div className="flex items-center gap-6">
                         <div className="p-0.5 rounded-[20px] bg-white shadow-xl border border-black/5 overflow-hidden group-hover:rotate-6 transition-transform">
                           <img 
-                            src={m.avatar_url || '/uploads/avatars/default.png'} 
+                            src={m.avatar_url || '/uploads/avatars/no-profile.png'}
                             className="w-16 h-16 rounded-2xl object-cover" 
                             alt="" 
                           />
@@ -262,3 +271,6 @@ export default function ClubDetail() {
     </div>
   );
 }
+
+
+

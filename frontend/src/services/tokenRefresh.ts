@@ -45,7 +45,7 @@ export function refreshTokenOnce(): Promise<string> {
         const { refreshToken, accounts } = useUserStore.getState();
         const multiAccount = accounts.length > 1;
         const postRefresh = (body?: { refreshToken: string }) =>
-            axios.post(`${API_BASE}/auth/refresh`, body ?? {});
+            axios.post(`${API_BASE}/auth/refresh`, body ?? {}, { withCredentials: true });
 
         try {
             let data: { token?: string; accessToken?: string; refreshToken?: string };
@@ -66,11 +66,7 @@ export function refreshTokenOnce(): Promise<string> {
                 if (refreshToken) {
                     ({ data } = await postRefresh({ refreshToken }));
                 } else {
-                    try {
-                        ({ data } = await postRefresh());
-                    } catch (err) {
-                        throw err;
-                    }
+                    ({ data } = await postRefresh());
                 }
             }
             const newToken = data?.token || data?.accessToken;
@@ -85,6 +81,14 @@ export function refreshTokenOnce(): Promise<string> {
                 sessionDead = true;
                 deadToken = useUserStore.getState().token;
                 useUserStore.getState().logout();
+                // A definitive 4xx ends this session. logout() switches to another
+                // stored account when one exists (isAuthenticated stays true); if it
+                // didn't, the app is now unauthenticated and every further request
+                // would just 401 against the dead-session latch. Send the user to
+                // login instead of leaving them on a dead page.
+                if (!useUserStore.getState().isAuthenticated && typeof window !== 'undefined') {
+                    window.location.assign('/login');
+                }
                 throw err instanceof Error ? err : new Error('Session expired. Please log in again.');
             }
             throw err instanceof Error ? err : new Error(String(err));

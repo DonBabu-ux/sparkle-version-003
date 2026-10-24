@@ -80,9 +80,13 @@ export default function MarketplaceInbox() {
 
     if (activeFilter === 'Pinned') return !!chat.is_pinned;
     
+    // Conversation filters use the listing/conversation state, which is kept
+    // separate from order statuses. Order creation uses 'pending'; align the
+    // 'Pending' conversation filter to that same term rather than
+    // 'payment_pending' so the two status vocabularies stay consistent.
     if (activeFilter !== 'All') {
       const status = chat.status?.toLowerCase();
-      if (activeFilter === 'Pending' && status !== 'payment_pending') return false;
+      if (activeFilter === 'Pending' && status !== 'pending') return false;
       if (activeFilter === 'Completed' && status !== 'completed') return false;
     }
     

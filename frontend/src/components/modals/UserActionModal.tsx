@@ -64,7 +64,7 @@ export default function UserActionModal({ user, onClose }: Props) {
                     >
                         <div className="flex flex-col items-center text-center pt-4 pb-2 px-3">
                             <div className="relative mb-2">
-                                <img src={user.avatar_url || user.avatar || '/uploads/avatars/default.png'} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-[#121212] shadow-sm" alt="" />
+                                <img src={user.avatar_url || user.avatar || '/uploads/avatars/no-profile.png'} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-[#121212] shadow-sm" alt="" />
                                 <div className="absolute -bottom-0.5 -right-0.5 bg-blue-500 p-0.5 rounded-full text-white border-2 border-white dark:border-[#121212] shadow-sm">
                                     <UserIcon size={8} strokeWidth={3} />
                                 </div>

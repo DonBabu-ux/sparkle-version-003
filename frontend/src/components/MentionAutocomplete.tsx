@@ -50,7 +50,7 @@ function DefaultOptionRow({
       {...optionProps}
       className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-indigo-50 transition-colors border-b border-slate-50 last:border-none${active ? ' bg-indigo-50' : ''}`}
     >
-      <img src={option.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full" alt="" />
+      <img src={option.avatar_url || '/uploads/avatars/no-profile.png'} className="w-8 h-8 rounded-full" alt="" />
       <div className="text-left">
         <p className="font-bold text-slate-800 text-sm">@{option.username}</p>
         <p className="text-xs text-slate-500">{option.name}</p>

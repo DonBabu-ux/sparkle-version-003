@@ -2,7 +2,7 @@ import { showError, showInfo } from '../utils/toast';
 import { promptDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Check, Star, AlertCircle, ShoppingBag, Send, Share2, MoreHorizontal, ShieldCheck, Calendar, MapPin, MessageSquare, Award, Bell } from 'lucide-react';
+import { ChevronLeft, Check, Star, AlertCircle, ShoppingBag, Send, Share2, MoreHorizontal, ShieldCheck, ShieldAlert, Calendar, MapPin, MessageSquare, Award, Bell } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import clsx from 'clsx';
@@ -60,9 +60,15 @@ export default function SellerProfile() {
 
   const handleMessageSeller = async () => {
     if (!seller) return;
+    const listingId = seller.listings?.[0]?.listing_id;
+    if (!listingId) {
+      showInfo("This seller has no active listings to message about.");
+      return;
+    }
     try {
-      const res = await api.post(`/marketplace/listings/contact`, {
+      const res = await api.post(`/marketplace/listings/${listingId}/contact`, {
         sellerId: seller.user_id,
+        listingId,
         message: "Hello! I am interested in your listings on Sparkle Marketplace."
       });
       const convId = res.data.chatId || res.data.conversationId || res.data.id;
@@ -141,11 +147,11 @@ export default function SellerProfile() {
   const isOwner = user?.id === seller.user_id || user?.user_id === seller.user_id;
 
   return (
-    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-20">
+    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
+          <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
           </button>
           <h1 className="text-[18px] font-black tracking-tight">Seller Profile</h1>
@@ -153,13 +159,13 @@ export default function SellerProfile() {
         <div className="flex items-center gap-2">
           <button 
             onClick={() => setIsShareModalOpen(true)}
-            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
           >
             <Share2 size={20} />
           </button>
           <button 
             onClick={() => navigate('/marketplace/settings')}
-            className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
+            className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors"
           >
             <MoreHorizontal size={20} />
           </button>
@@ -179,7 +185,7 @@ export default function SellerProfile() {
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
               <div className="relative group">
                 <img 
-                  src={seller.avatar_url || '/uploads/avatars/default.png'} 
+                  src={seller.avatar_url || '/uploads/avatars/no-profile.png'}
                   alt={seller.username}
                   className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl border-[6px] border-white shadow-2xl object-cover bg-white"
                 />
@@ -193,7 +199,7 @@ export default function SellerProfile() {
               <div className="text-center sm:text-left pb-2">
                 <div className="flex items-center justify-center sm:justify-start gap-2">
                   <h2 className="text-2xl sm:text-4xl font-black tracking-tighter">{seller.name || seller.username}</h2>
-                  <ShieldCheck size={24} className="text-blue-500" />
+                  {seller.is_verified && <ShieldCheck size={24} className="text-blue-500" />}
                 </div>
                 <p className="text-marketplace-muted font-bold text-base sm:text-lg">@{seller.username}</p>
               </div>
@@ -234,8 +240,14 @@ export default function SellerProfile() {
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Reliability</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black">{seller.average_rating ? Number(seller.average_rating).toFixed(1) : '5.0'}</span>
-                <span className="text-sm font-bold text-marketplace-muted">/ 5.0 rating</span>
+                <span className="text-2xl font-black">
+                  {seller.total_reviews && seller.total_reviews > 0
+                    ? Number(seller.average_rating || 0).toFixed(1)
+                    : 'No ratings yet'}
+                </span>
+                <span className="text-sm font-bold text-marketplace-muted">
+                  {seller.total_reviews && seller.total_reviews > 0 ? '/ 5.0 rating' : ''}
+                </span>
               </div>
             </div>
 
@@ -260,7 +272,7 @@ export default function SellerProfile() {
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Experience</span>
               </div>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-black">2024</span>
+                <span className="text-2xl font-black">{seller.created_at ? new Date(seller.created_at).getFullYear() : '—'}</span>
                 <span className="text-sm font-bold text-marketplace-muted">joined sparkle</span>
               </div>
             </div>
@@ -327,7 +339,7 @@ export default function SellerProfile() {
                   <div key={i} className="p-6 bg-white border border-marketplace-border rounded-[32px] shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <img src={rv.reviewer_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-2xl object-cover" />
+                        <img src={rv.reviewer_avatar || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-2xl object-cover" />
                         <div>
                           <div className="font-black text-[15px]">{rv.reviewer_name}</div>
                           <div className="text-[11px] font-bold text-marketplace-muted uppercase tracking-widest">
@@ -380,23 +392,36 @@ export default function SellerProfile() {
               <div className="p-8 bg-marketplace-bg border border-marketplace-border rounded-[40px]">
                 <h3 className="text-lg font-black mb-4">About the Seller</h3>
                 <p className="text-marketplace-text leading-relaxed font-medium">
-                  {seller.bio || "This seller hasn't added a bio yet. They are a verified member of the Sparkle community and follow our safe trading guidelines."}
+                  {seller.bio || "This seller hasn't added a bio yet."}
                 </p>
                 
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {seller.is_verified && (
+                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                      <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                        <ShieldCheck size={20} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Account Verification</div>
+                        <div className="text-sm font-bold">Identity verified</div>
+                      </div>
+                    </div>
+                  )}
+                  {!seller.is_verified && (
+                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                        <ShieldAlert size={20} />
+                      </div>
+                      <div>
+                        <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Account Verification</div>
+                        <div className="text-sm font-bold text-slate-600">Not verified</div>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
-                      <ShieldCheck size={20} />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Verification</div>
-                      <div className="text-sm font-bold">Email & Phone Verified</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                    <div className="w-10 h-10 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
-                      <MapPin size={20} />
-                    </div>
+                      <div className="w-11 h-11 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
+                        <MapPin size={20} />
+                      </div>
                     <div>
                       <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Location</div>
                       <div className="text-sm font-bold">{seller.location || 'Nairobi, Kenya'}</div>
@@ -448,3 +473,6 @@ function InfoIcon({ size }: { size: number }) {
     </svg>
   );
 }
+
+
+

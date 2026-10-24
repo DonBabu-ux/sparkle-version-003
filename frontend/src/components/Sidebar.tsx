@@ -94,6 +94,8 @@ export default function Sidebar() {
           <div key={item.name} className="flex flex-col">
             <Link 
               to={item.path !== '#' ? item.path : location.pathname} 
+              aria-label={item.name === 'Create' ? 'Create content' : undefined}
+              title={item.name === 'Create' ? 'Create content' : undefined}
               className={cn(
                 "flex items-center gap-4 p-3 rounded-lg transition-all duration-200 whitespace-nowrap group relative",
                 item.name === 'Create'

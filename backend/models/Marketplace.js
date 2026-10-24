@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const { v4: uuidv4 } = require('uuid');
 const admin = require('../config/firebase-admin');
+const { evaluateOrderPlacement } = require('../utils/marketplaceOrderRules');
 
 class Marketplace {
     /**
@@ -399,7 +400,9 @@ class Marketplace {
                     0 as review_count,
                     CASE WHEN f.favorite_id IS NOT NULL THEN 1 ELSE 0 END as is_favorited,
                     CASE WHEN w.wishlist_id IS NOT NULL THEN 1 ELSE 0 END as is_wishlisted,
-                    0 as order_count
+                    (SELECT COUNT(*) FROM marketplace_orders mo
+                     WHERE mo.listing_id = l.listing_id
+                       AND mo.status IN ('accepted','completed')) as order_count
                     ${distanceSelect}
                 FROM marketplace_listings l
                 JOIN users u ON l.seller_id = u.user_id
@@ -444,6 +447,24 @@ class Marketplace {
             if (userLat && userLng && searchRadius && !isNaN(parseFloat(searchRadius))) {
                 query += ` HAVING (distance IS NULL OR distance <= ?)`;
                 params.push(parseFloat(searchRadius));
+            }
+
+            // 'Recommended' is a personalized feed, not newest/random.
+            // Logged-in users get recommendations based on favorited/purchased
+            // categories, price band and condition; new/anonymous users get the
+            // non-personalized fallback (views then recency) from the model.
+            if (sort === 'recommended') {
+                const recs = await Marketplace.getRecommendations(sessionUserId, campus || 'all', parseInt(limit));
+                await Marketplace.populateListingsMedia(recs);
+                return {
+                    listings: recs,
+                    pagination: {
+                        total: recs.length,
+                        limit: parseInt(limit),
+                        offset: parseInt(offset),
+                        hasMore: false
+                    }
+                };
             }
 
             // Sorting
@@ -904,18 +925,18 @@ class Marketplace {
             if (listings.length === 0) throw new Error('LISTING_NOT_FOUND');
             const listing = listings[0];
 
-            if (listing.is_sold) throw new Error('LISTING_SOLD');
-            if (listing.status !== 'active' && listing.status !== 'pending') {
-                throw new Error('LISTING_NOT_AVAILABLE');
-            }
-            if (listing.seller_id === buyerId) throw new Error('CANNOT_BUY_OWN');
-
-            // 2. Check for existing active orders
+            // 2. Enforce one active order per listing. The listing row is locked
+            // above, so concurrent buyers serialize here and only one can pass.
             const [existing] = await connection.query(
-                "SELECT order_id FROM marketplace_orders WHERE listing_id = ? AND buyer_id = ? AND status IN ('pending', 'accepted')",
-                [listingId, buyerId]
+                "SELECT order_id, buyer_id FROM marketplace_orders WHERE listing_id = ? AND status IN ('pending', 'accepted') LIMIT 1",
+                [listingId]
             );
-            if (existing.length > 0) throw new Error('ORDER_EXISTS');
+            const placementError = evaluateOrderPlacement({
+                listing,
+                activeOrder: existing[0] || null,
+                buyerId
+            });
+            if (placementError) throw new Error(placementError);
 
             const orderId = uuidv4();
             const finalPrice = agreedPrice || listing.price;
@@ -1278,9 +1299,9 @@ class Marketplace {
         try {
             const [result] = await pool.query(
                 `UPDATE marketplace_listings 
-                 SET is_sold = ?, sold_at = ?, updated_at = CURRENT_TIMESTAMP 
+                 SET is_sold = ?, status = ?, sold_at = ?, updated_at = CURRENT_TIMESTAMP 
                  WHERE listing_id = ? AND seller_id = ?`,
-                [isSold ? 1 : 0, soldAt, listingId, sellerId]
+                [isSold ? 1 : 0, isSold ? 'sold' : 'active', soldAt, listingId, sellerId]
             );
 
             return result.affectedRows > 0;
@@ -1298,10 +1319,9 @@ class Marketplace {
         try {
             await connection.beginTransaction();
 
-            // Mark as sold instead of status change
             const [result] = await connection.query(
                 `UPDATE marketplace_listings 
-                 SET is_sold = TRUE, updated_at = CURRENT_TIMESTAMP 
+                 SET is_sold = TRUE, status = 'deleted', updated_at = CURRENT_TIMESTAMP 
                  WHERE listing_id = ? AND seller_id = ?`,
                 [listingId, sellerId]
             );
@@ -1329,7 +1349,7 @@ class Marketplace {
             const [listings] = await pool.query(
                 `SELECT ml.*
                  FROM marketplace_listings ml 
-                 WHERE ml.seller_id = ? AND ml.is_sold = FALSE
+                 WHERE ml.seller_id = ?
                  ORDER BY ml.created_at DESC`,
                 [userId]
             );
@@ -1910,10 +1930,11 @@ class Marketplace {
                 [...values, orderId]
             );
 
-            // Reactivate/finalize listing
+            // Reactivate/finalize listing. Only restore a listing that is still
+            // pending and unsold, so a manually sold item is not resurrected.
             if (['rejected', 'cancelled'].includes(newStatus)) {
                 await connection.query(
-                    "UPDATE marketplace_listings SET status = 'active' WHERE listing_id = ?",
+                    "UPDATE marketplace_listings SET status = 'active' WHERE listing_id = ? AND status = 'pending' AND is_sold = 0",
                     [order.listing_id]
                 );
             } else if (newStatus === 'completed') {
@@ -2082,26 +2103,34 @@ class Marketplace {
         try {
             await connection.beginTransaction();
 
-            const dispute_id = uuidv4();
+            const [[order]] = await connection.query(
+                'SELECT * FROM marketplace_orders WHERE order_id = ? FOR UPDATE',
+                [order_id]
+            );
+            if (!order) throw new Error('ORDER_NOT_FOUND');
+            if (order.buyer_id !== raised_by && order.seller_id !== raised_by) {
+                throw new Error('UNAUTHORIZED');
+            }
+            if (order.status !== 'accepted') throw new Error('INVALID_TRANSITION');
 
-            // Insert dispute
+            const dispute_id = uuidv4();
+            const oldStatus = order.status;
+
             await connection.query(
                 `INSERT INTO order_disputes (dispute_id, order_id, raised_by, reason, description, status) 
                  VALUES (?, ?, ?, ?, ?, 'open')`,
-                [dispute_id, order_id, raised_by, reason, description]
+                [dispute_id, order_id, raised_by, reason, description || null]
             );
 
-            // Transition order status to 'disputed'
             await connection.query(
                 "UPDATE marketplace_orders SET status = 'disputed', disputed_at = NOW(), last_action_by = ?, last_action_at = NOW() WHERE order_id = ?",
                 [raised_by, order_id]
             );
 
-            // Audit log
             await connection.query(
                 `INSERT INTO order_audit_log (log_id, order_id, actor_id, action, old_status, new_status, changes)
-                 VALUES (?, ?, ?, 'DISPUTE_RAISED', (SELECT status FROM marketplace_orders WHERE order_id = ?), 'disputed', ?)`,
-                [uuidv4(), order_id, raised_by, order_id, JSON.stringify({ dispute_id, reason })]
+                 VALUES (?, ?, ?, 'DISPUTE_RAISED', ?, 'disputed', ?)`,
+                [uuidv4(), order_id, raised_by, oldStatus, JSON.stringify({ dispute_id, reason })]
             );
 
             await connection.commit();

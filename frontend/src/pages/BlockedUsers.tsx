@@ -94,7 +94,7 @@ export default function BlockedUsers() {
                 <div key={user.user_id} className="p-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
                   <div className="flex items-center gap-3">
                     <img 
-                      src={user.avatar_url || '/uploads/avatars/default.png'} 
+                      src={user.avatar_url || '/uploads/avatars/no-profile.png'}
                       alt={user.username} 
                       className="w-10 h-10 rounded-full object-cover border border-slate-100"
                     />
@@ -136,3 +136,6 @@ export default function BlockedUsers() {
     </div>
   );
 }
+
+
+

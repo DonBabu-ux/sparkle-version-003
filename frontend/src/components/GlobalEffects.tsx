@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import defaultAvatar from '../assets/avatar-default.svg';
+import defaultAvatar from '../assets/avatar-default.png';
 import { getMediaUrl } from '../utils/imageUtils';
 
 export default function GlobalEffects() {

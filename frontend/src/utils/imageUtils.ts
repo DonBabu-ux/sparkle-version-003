@@ -1,4 +1,4 @@
-import defaultAvatar from '../assets/avatar-default.svg';
+import defaultAvatar from '../assets/avatar-default.png';
 import { EnvironmentService } from '../services/EnvironmentService';
 
 // API URL resolved via EnvironmentService: env var override, absolute Render
@@ -31,7 +31,7 @@ const rewriteToImageKit = (url: string): string => {
 };
 
 // Backend-shipped default avatar paths — route them to the bundled
-// professional SVG so the UI never shows the old clipart PNG.
+// grey PNG so the UI never shows the old clipart image.
 const isBackendDefaultAvatar = (url: string) =>
   url.includes('avatars/default') || url.includes('avatar_default');
 
@@ -48,7 +48,7 @@ export const getAvatarUrl = (url?: string | null, _seed?: string | null): string
   if (url && url !== 'null' && url !== 'undefined' && url.trim() !== '') {
     // Dead Cloudinary account — fall back to the bundled default
     if (isDeadCloudinaryUrl(url)) return defaultAvatar;
-    // Backend default avatar file — use the bundled professional version
+    // Backend default avatar file — use the bundled grey version
     if (isBackendDefaultAvatar(url)) return defaultAvatar;
     // If it's already a full URL — route live Cloudinary images via ImageKit
     if (url.startsWith('http')) {

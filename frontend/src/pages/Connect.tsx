@@ -235,7 +235,7 @@ export default function Connect() {
                   style={{ animationDelay: `${(idx % 20) * 30}ms` }}
                 >
                   <UserCard
-                    u={u}
+                    u={{ ...u, avatar_url: u.avatar_url || '/uploads/avatars/default.png' }}
                     onRemove={id => setUsers(prev => prev.filter(user => (user.user_id || user.id) !== id))}
                   />
                 </div>
@@ -258,6 +258,5 @@ export default function Connect() {
     </div>
   );
 }
-
 
 

@@ -65,7 +65,7 @@ export default function AccountsCenter() {
   const accountList = accounts ?? [];
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-dvh text-marketplace-text font-sans overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
+    <div className="flex flex-col bg-white dark:bg-black min-h-dvh text-marketplace-text font-sans overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
 
       <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-marketplace-border px-4 py-3 flex items-center gap-3">
         <button

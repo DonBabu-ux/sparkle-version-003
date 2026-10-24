@@ -65,6 +65,9 @@ function deriveMessagePreview({ type = 'text', content = '', metadata = null, hi
         case 'gif':
             return 'Sent a GIF';
 
+        case 'gift':
+            return '🎁 Sent a gift';
+
         case 'location':
             return '📍 Shared a location';
 
@@ -199,11 +202,12 @@ function buildMessageNotificationPayload({
         totalUnreadChats: String(totalUnreadChats),
         totalUnreadMessages: String(totalUnreadMessages),
         preview: String(preview),
-        url: `/messages?chat=${encodeURIComponent(chatId)}`
+        url: `/messages?chat=${encodeURIComponent(chatId)}`,
+        image: String(mediaThumbnail || senderAvatar || BRAND_LOGO_URL)
     };
 
     if (mediaThumbnail) {
-        data.image = String(mediaThumbnail);
+        data.mediaThumbnail = String(mediaThumbnail);
     }
 
     return {

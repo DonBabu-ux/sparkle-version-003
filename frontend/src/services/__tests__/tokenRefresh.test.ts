@@ -27,7 +27,7 @@ vi.stubGlobal('window', { localStorage: new MemoryStorage() });
 vi.mock('axios');
 import axios from 'axios';
 
-const { refreshTokenOnce, ensureFreshAccessToken } = await import('../tokenRefresh');
+const { refreshTokenOnce, ensureFreshAccessToken, _resetSessionDeadForTesting } = await import('../tokenRefresh');
 const { useUserStore } = await import('../../store/userStore');
 
 const mockedPost = vi.mocked(axios.post);
@@ -39,6 +39,7 @@ const okResponse = (token: string, refreshToken: string) => ({
 describe('tokenRefresh.refreshTokenOnce (single-flight)', () => {
     beforeEach(() => {
         mockedPost.mockReset();
+        _resetSessionDeadForTesting();
         useUserStore.setState({
             token: 'old-access',
             refreshToken: 'refresh-1',
@@ -67,26 +68,17 @@ describe('tokenRefresh.refreshTokenOnce (single-flight)', () => {
         expect(useUserStore.getState().refreshToken).toBe('refresh-2');
     });
 
-    it('cookie-first: single-account posts WITHOUT a body token (A.4 #2)', async () => {
+    it('single-account sends stored refreshToken directly in body', async () => {
         mockedPost.mockResolvedValue(okResponse('t2', 'refresh-3'));
         await refreshTokenOnce();
-        expect(mockedPost.mock.calls[0][1]).toEqual({});
+        expect(mockedPost.mock.calls[0][1]).toEqual({ refreshToken: 'refresh-1' });
         expect(mockedPost.mock.calls[0][0]).toContain('/auth/refresh');
         // rotation still adopted from the response
         expect(useUserStore.getState().refreshToken).toBe('refresh-3');
         mockedPost.mockResolvedValueOnce(okResponse('t3', 'refresh-4'));
         await refreshTokenOnce();
-        expect(mockedPost.mock.calls[1][1]).toEqual({});
+        expect(mockedPost.mock.calls[1][1]).toEqual({ refreshToken: 'refresh-3' });
         expect(useUserStore.getState().refreshToken).toBe('refresh-4');
-    });
-
-    it('cookie attempt 400 → falls back to the stored body token', async () => {
-        mockedPost.mockRejectedValueOnce({ response: { status: 400 } });
-        mockedPost.mockResolvedValueOnce(okResponse('t2', 'refresh-3'));
-        await expect(refreshTokenOnce()).resolves.toBe('t2');
-        expect(mockedPost).toHaveBeenCalledTimes(2);
-        expect(mockedPost.mock.calls[0][1]).toEqual({});
-        expect(mockedPost.mock.calls[1][1]).toEqual({ refreshToken: 'refresh-1' });
     });
 
     it('multi-account sessions always send the body token (names the account)', async () => {
@@ -114,9 +106,10 @@ describe('tokenRefresh.refreshTokenOnce (single-flight)', () => {
         expect(useUserStore.getState().isAuthenticated).toBe(true);
     });
 
-    it('missing refresh token AND unusable cookie → rejects and logs out', async () => {
-        useUserStore.setState({ refreshToken: null });
-        // cookie-first attempt happens (no stored secret), server says no cookie
+    it('missing refresh token → cookie-only empty body sent, rejects and logs out on 400', async () => {
+        // Set token=null so the dead-session auto-clear (token !== deadToken) doesn't skip the latch
+        useUserStore.setState({ token: null, refreshToken: null });
+        // no stored token: falls through to empty-body cookie request
         mockedPost.mockRejectedValue({ response: { status: 400 } });
         await expect(refreshTokenOnce()).rejects.toThrow();
         expect(useUserStore.getState().isAuthenticated).toBe(false);
@@ -131,19 +124,17 @@ describe('tokenRefresh.refreshTokenOnce (single-flight)', () => {
     });
 
     it('a rejected flight does not poison later refreshes', async () => {
-        useUserStore.setState({ refreshToken: null });
+        useUserStore.setState({ token: null, refreshToken: null });
         mockedPost.mockRejectedValue({ response: { status: 400 } });
         await expect(refreshTokenOnce()).rejects.toThrow();
         expect(useUserStore.getState().isAuthenticated).toBe(false);
-        // relogin restores the session: cookie attempt fails (no cookie yet),
-        // stored-token fallback succeeds
-        useUserStore.setState({ refreshToken: 'refresh-after-relogin', isAuthenticated: true });
+        // relogin restores the session: new token differs from deadToken so latch auto-clears
+        useUserStore.setState({ token: 'new-access', refreshToken: 'refresh-after-relogin', isAuthenticated: true });
         mockedPost.mockReset();
-        mockedPost.mockRejectedValueOnce({ response: { status: 400 } });
         mockedPost.mockResolvedValueOnce(okResponse('fresh', 'refresh-x'));
         await expect(refreshTokenOnce()).resolves.toBe('fresh');
-        expect(mockedPost).toHaveBeenCalledTimes(2);
-        expect(mockedPost.mock.calls[1][1]).toEqual({ refreshToken: 'refresh-after-relogin' });
+        expect(mockedPost).toHaveBeenCalledTimes(1);
+        expect(mockedPost.mock.calls[0][1]).toEqual({ refreshToken: 'refresh-after-relogin' });
     });
 });
 

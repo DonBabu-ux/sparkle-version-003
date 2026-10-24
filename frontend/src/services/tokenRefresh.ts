@@ -21,10 +21,22 @@ let deadToken: string | null = null;
  * - 4xx response → logout (session is definitively dead)
  * - network/5xx  → throw WITHOUT logout (transient; callers may retry)
  */
+/** For testing only — resets the module-level dead-session latch. */
+export function _resetSessionDeadForTesting(): void {
+    sessionDead = false;
+    deadToken = null;
+    inflight = null;
+}
+
 export function refreshTokenOnce(): Promise<string> {
     if (inflight) return inflight;
 
     const preToken = useUserStore.getState().token;
+    // If a new token has been placed in the store (e.g. after re-login), clear the latch.
+    if (sessionDead && preToken && preToken !== deadToken) {
+        sessionDead = false;
+        deadToken = null;
+    }
     if (sessionDead && (!preToken || preToken === deadToken)) {
         return Promise.reject(new Error('Session expired. Please log in again.'));
     }
@@ -46,17 +58,19 @@ export function refreshTokenOnce(): Promise<string> {
                 }
                 ({ data } = await postRefresh({ refreshToken }));
             } else {
-                // A.4 #2 cookie-first: single-account sessions refresh through
-                // the httpOnly sparkleRefresh cookie so JS never touches the
-                // secret. The stored body token is the fallback for legacy
-                // sessions (no cookie yet) and cookie eviction.
-                try {
-                    ({ data } = await postRefresh());
-                } catch (err) {
-                    const status = (err as { response?: { status?: number } })?.response?.status;
-                    const noUsableCookie = status === 400 || status === 401 || status === 403;
-                    if (!noUsableCookie || !refreshToken) throw err;
+                // If a stored refreshToken exists in the user store, pass it directly —
+                // this avoids the 400 that the backend returns when the body is empty and
+                // there is no httpOnly sparkleRefresh cookie (our backend requires the token
+                // in the body). Only use an empty-body cookie request when no stored token
+                // is present (cookie-only session created by an older login flow).
+                if (refreshToken) {
                     ({ data } = await postRefresh({ refreshToken }));
+                } else {
+                    try {
+                        ({ data } = await postRefresh());
+                    } catch (err) {
+                        throw err;
+                    }
                 }
             }
             const newToken = data?.token || data?.accessToken;

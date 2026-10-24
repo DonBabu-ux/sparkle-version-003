@@ -66,10 +66,13 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
         stringifiedData[key] = String(data[key]);
     }
 
+    const resolvedImage = stringifiedData.senderAvatar ? String(stringifiedData.senderAvatar) : (stringifiedData.image ? String(stringifiedData.image) : BRAND_IMAGE_URL);
+
     const message = {
         notification: {
             title: title,
-            body: body
+            body: body,
+            image: resolvedImage
         },
         data: stringifiedData,
         android: {
@@ -78,7 +81,7 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
                 channel_id: ANDROID_CHANNEL_BY_TYPE[stringifiedData.type] || 'system',
                 icon: NOTIFICATION_ICON,
                 color: NOTIFICATION_COLOR,
-                image: data.image ? String(data.image) : BRAND_IMAGE_URL,
+                image: resolvedImage,
                 // Hide message content on the lock screen (Android default
                 // for FCM is "public"; keep previews private).
                 visibility: 'private',

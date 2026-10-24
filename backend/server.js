@@ -365,6 +365,12 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
             } catch (err) {
                 logger.warn('Failed to start boost scheduler:', err.message);
             }
+            try {
+                const SessionService = require('./services/session.service');
+                SessionService.resetAllPresenceOnStartup();
+            } catch (err) {
+                logger.warn('Failed to reset presence on startup:', err.message);
+            }
         }).catch(err => logger.error('Failed to initialize database:', err));
     });
     

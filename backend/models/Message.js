@@ -178,23 +178,26 @@ class Message {
             }
         }
 
-        // Canonical GIF deduplication: reuse existing canonical asset
+        // Canonical GIF/Gift deduplication: reuse existing canonical asset
         let finalMediaUrl = mediaUrl;
-        if (type === 'gif' || (content && typeof content === 'string' && content.includes('"type":"gif"'))) {
+        const isGifOrGift = type === 'gif' || type === 'gift' || (content && typeof content === 'string' && (content.includes('"type":"gif"') || content.includes('"type":"gift"')));
+        if (isGifOrGift) {
             try {
                 const CanonicalAssetService = require('../services/canonicalAssetService');
                 let gifUrl = mediaUrl;
-                if (!gifUrl && content && content.includes('"type":"gif"')) {
-                    const parsed = JSON.parse(content);
-                    if (parsed.url) {
-                        gifUrl = parsed.url;
-                        type = 'gif';
-                    }
+                if (!gifUrl && content && typeof content === 'string') {
+                    try {
+                        const parsed = JSON.parse(content);
+                        if (parsed.url) {
+                            gifUrl = parsed.url;
+                            if (parsed.type) type = parsed.type;
+                        }
+                    } catch (_) {}
                 }
                 if (gifUrl) {
                     const asset = await CanonicalAssetService.getOrCreateCanonicalAsset({
                         url: gifUrl,
-                        mediaType: 'gif',
+                        mediaType: type || 'gif',
                         metadata
                     });
                     if (asset && asset.mediaUrl) {
@@ -203,6 +206,7 @@ class Message {
                 }
             } catch (canonErr) {
                 logger.warn('[Message.sendMessage] Canonical asset warning:', canonErr.message);
+                if (!finalMediaUrl && mediaUrl) finalMediaUrl = mediaUrl;
             }
         }
 

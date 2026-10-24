@@ -368,6 +368,17 @@ const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
   return null;
 };
 
+const isLegitimateCaption = (content?: string, mediaUrl?: string): boolean => {
+  if (!content || typeof content !== 'string') return false;
+  const trimmed = content.trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('blob:')) return false;
+  if (mediaUrl && (trimmed === mediaUrl.trim() || trimmed.includes(mediaUrl.trim()))) return false;
+  if (/^Attachment\s+(image|video|audio|document)/i.test(trimmed)) return false;
+  if (/^[a-zA-Z0-9_\-.]+\.(jpg|jpeg|png|webp|gif|mp4|mov|webm|avi|pdf|zip)$/i.test(trimmed)) return false;
+  return true;
+};
+
 const MessageBubbleWrapper: React.FC<{
   onLongPress: () => void;
   onContextMenu: (e: React.MouseEvent) => void;
@@ -438,14 +449,17 @@ const MessageBubbleWrapper: React.FC<{
 
   const handlePointerUp = (e: React.PointerEvent) => {
     if (isSwiping) {
-      if (dragX >= SWIPE_THRESHOLD && onSwipeReply) {
-        onSwipeReply();
-      }
+      const shouldReply = dragX >= SWIPE_THRESHOLD && !!onSwipeReply;
       setDragX(0);
       setIsSwiping(false);
       pointerStartRef.current = null;
       isVerticalScrollRef.current = false;
       hasVibratedRef.current = false;
+      if (shouldReply && onSwipeReply) {
+        setTimeout(() => {
+          onSwipeReply();
+        }, 0);
+      }
       return;
     }
     pointerStartRef.current = null;
@@ -1835,7 +1849,7 @@ export default function Messages() {
           messageId: tempMessageId,
           chatId: selectedChat.chat_id,
           partnerId: selectedChat.partner_id,
-          content: caption || name || '',
+          content: caption || '',
           type: mediaType,
           mediaUrl: finalMediaUrl
         };
@@ -4408,7 +4422,7 @@ export default function Messages() {
                                   >
                                     online
                                   </motion.p>
-                                ) : showLastSeen ? (
+                                ) : (showLastSeen && selectedChat.last_seen_at) ? (
                                   <motion.p
                                     key="lastseen"
                                     initial={{ opacity: 0, y: 4 }}
@@ -4417,7 +4431,7 @@ export default function Messages() {
                                     transition={{ duration: 0.18, ease: 'easeOut' }}
                                     className="text-[11px] font-medium lowercase text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                                   >
-                                    last seen {formatLastSeenChat(selectedChat.last_seen_at || selectedChat.last_message_time || selectedChat.last_message_at || '')}
+                                    last seen {formatLastSeenChat(selectedChat.last_seen_at)}
                                   </motion.p>
                                 ) : null}
                               </AnimatePresence>
@@ -5016,18 +5030,21 @@ export default function Messages() {
                                         );
                                       }
 
-                                      // GIF message type
-                                      if (msg.type === 'gif') {
-                                        const gifSrc = msg.media_url || msg.mediaUrl || '';
+                                      // GIF and Gift message types
+                                      if (msg.type === 'gif' || msg.type === 'gift') {
+                                        const gifSrc = getMediaUrl(msg.media_url || msg.mediaUrl || (typeof msg.content === 'string' && msg.content.startsWith('http') ? msg.content : ''));
+                                        const isGift = msg.type === 'gift';
                                         return (
-                                          <div className="relative inline-block rounded-[10px] overflow-hidden my-1 cursor-pointer" onClick={() => setViewerMessage({ ...msg, type: 'image' })}>
+                                          <div className="relative inline-block rounded-[12px] overflow-hidden my-1 cursor-pointer border border-white/10 bg-black/20" onClick={() => setViewerMessage({ ...msg, type: 'image' })}>
                                             {gifSrc ? (
                                               <>
-                                                <img src={gifSrc} alt="GIF" className="max-w-[220px] max-h-[180px] object-cover block" />
-                                                <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]">GIF</span>
+                                                <img src={gifSrc} alt={isGift ? "Gift" : "GIF"} className="max-w-[260px] max-h-[240px] w-auto h-auto object-contain rounded-[10px] block" />
+                                                <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-[4px]">
+                                                  {isGift ? "🎁 GIFT" : "GIF"}
+                                                </span>
                                               </>
                                             ) : (
-                                              <div className="w-[180px] h-[120px] flex items-center justify-center bg-white/5 text-white/40 text-[11px] font-bold">GIF unavailable</div>
+                                              <div className="w-[180px] h-[120px] flex items-center justify-center bg-white/5 text-white/40 text-[11px] font-bold">{isGift ? "Gift unavailable" : "GIF unavailable"}</div>
                                             )}
                                           </div>
                                         );
@@ -5065,11 +5082,11 @@ export default function Messages() {
 
                                       return (
                                         <div
-                                          className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 group cursor-pointer my-1"
+                                          className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/20 group cursor-pointer my-1 inline-block"
                                           onClick={() => !isUploading && !isFailed && setViewerMessage(msg)}
                                         >
                                           {mediaSrc ? (
-                                            <img src={mediaSrc} className="w-full h-auto max-h-[220px] object-cover transition-transform duration-500 group-hover:scale-105" alt="Image attachment" />
+                                            <img src={mediaSrc} className="w-auto max-w-full max-h-[320px] object-contain rounded-[10px] mx-auto block transition-transform duration-500 group-hover:scale-[1.02]" alt="Image attachment" />
                                           ) : (
                                             <div className="w-[240px] h-[140px] flex flex-col items-center justify-center gap-2 bg-white/5 text-white/50">
                                               <ImageIcon size={28} />
@@ -5127,7 +5144,7 @@ export default function Messages() {
                                               <span className="text-[10px] text-white/70 font-medium">Upload failed</span>
                                             </div>
                                           )}
-                                          {msg.content && (
+                                          {isLegitimateCaption(msg.content, msg.media_url || msg.mediaUrl) && (
                                             <div className="p-2 text-[13px] bg-black/40 text-white/95 border-t border-white/5 font-semibold">
                                               {msg.content}
                                             </div>
@@ -5143,9 +5160,9 @@ export default function Messages() {
                                       const isFailed = isMe && msg.status === 'failed';
 
                                       return (
-                                        <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1">
+                                        <div className="relative rounded-[12px] overflow-hidden max-w-[280px] border border-white/10 bg-black/40 my-1 inline-block">
                                           {mediaSrc ? (
-                                            <video src={mediaSrc} controls className="w-full h-auto max-h-[220px] rounded-[12px] object-cover" />
+                                            <video src={mediaSrc} controls className="w-auto max-w-full max-h-[320px] rounded-[10px] object-contain mx-auto block" />
                                           ) : (
                                             <div className="w-[240px] h-[140px] flex items-center justify-center text-white/50 text-[11px] font-bold">Video unavailable</div>
                                           )}
@@ -5210,7 +5227,7 @@ export default function Messages() {
                                               <ArrowUpRight size={14} />
                                             </button>
                                           )}
-                                          {msg.content && (
+                                          {isLegitimateCaption(msg.content, msg.media_url || msg.mediaUrl) && (
                                             <div className="p-2 text-[13px] text-white/95 font-semibold">
                                               {msg.content}
                                             </div>

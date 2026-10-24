@@ -70,6 +70,15 @@ const initializeSocket = (server) => {
     // Initialize marketplace messaging namespace
     require('./marketplaceChat')(io);
 
+    // Periodic stale-session cleanup: evict dead sessions that missed heartbeats
+    setInterval(async () => {
+        try {
+            await SessionService.expireStalePresence();
+        } catch (err) {
+            logger.warn('Stale presence cleanup interval error:', err.message);
+        }
+    }, 45_000).unref();
+
 
     // Authentication middleware
     io.use(async (socket, next) => {
@@ -595,7 +604,8 @@ socket.on('get-rooms', () => {
             try {
                 const MESSAGE_TRACE_ID = crypto.randomUUID();
                 secureLogger.messageTrace(MESSAGE_TRACE_ID, 'client_send', { chatId: data.chatId, senderId: socket.userId, recipientId: data.recipientId || data.partnerId });
-                const { chatId, content, type = 'text', mediaUrl, storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment, messageId: clientMessageId } = data;
+                const { chatId, content, type = 'text', storyId, replyToId, marketplaceListingId, viewPolicy = 'unlimited', attachment, messageId: clientMessageId } = data;
+                const mediaUrl = data.mediaUrl || data.media_url || null;
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
 

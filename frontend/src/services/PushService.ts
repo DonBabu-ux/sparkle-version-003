@@ -202,6 +202,7 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
   }
 
   try {
+    const isChatMessage = type === 'message' || type === 'chat_message' || !type;
     const notificationsToSchedule: any[] = [
       {
         id: notificationId,
@@ -211,6 +212,7 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
         smallIcon: 'ic_notification',
         iconColor: '#FF1493',
         largeIcon: senderAvatar || 'https://sparkleweb.app.vercel.app/logo.png',
+        actionTypeId: isChatMessage ? 'SPARKLE_CHAT_ACTIONS' : undefined,
         group: 'sparkle_messages',
         inboxList: inboxList.length > 1 ? inboxList : undefined,
         attachments: mediaImage ? [{ id: 'media_preview', url: mediaImage }] : undefined,
@@ -269,6 +271,29 @@ export async function initPushNotifications(): Promise<void> {
     // the local plugin's own permission state is granted on Android 13+.
     await LocalNotifications.requestPermissions().catch(() => {});
 
+    await LocalNotifications.registerActionTypes({
+      types: [
+        {
+          id: 'SPARKLE_CHAT_ACTIONS',
+          actions: [
+            {
+              id: 'reply',
+              title: 'Reply',
+              input: true,
+              inputButtonTitle: 'Send',
+              inputPlaceholder: 'Type a message...',
+            },
+            {
+              id: 'mark_read',
+              title: 'Mark as read',
+            },
+          ],
+        },
+      ],
+    }).catch(err => {
+      logger.warn('[Push] Failed to register action types:', err);
+    });
+
     if (!listenersReady) {
       listenersReady = true;
 
@@ -292,14 +317,77 @@ export async function initPushNotifications(): Promise<void> {
         void showForegroundHeadsUp(n.title, n.body, n.data);
       });
 
-      // Tap on a system-tray push (background → app).
-      await PushNotifications.addListener('pushNotificationActionPerformed', (n) => {
+      // Tap or action on a system-tray push (background → app).
+      await PushNotifications.addListener('pushNotificationActionPerformed', async (n) => {
+        const data = (n.notification?.data || {}) as Record<string, unknown>;
+        const actionId = (n as any).actionId;
+        const inputValue = (n as any).inputValue;
+        const chatId = String(data.chatId || data.conversationId || '');
+
+        if (actionId === 'mark_read' && chatId) {
+          try {
+            await api.post(`/messages/read/${chatId}`);
+          } catch (e) {
+            logger.warn('[Push] Failed to mark as read from push notification:', e);
+          }
+          return;
+        }
+
+        if (actionId === 'reply' && chatId && inputValue?.trim()) {
+          try {
+            await api.post('/messages/send', {
+              chatId,
+              content: inputValue.trim(),
+              type: 'text',
+              partnerId: data.partnerId || data.senderId
+            });
+          } catch (e) {
+            logger.warn('[Push] Failed to send quick reply from push notification:', e);
+          }
+          return;
+        }
+
         openUrl(urlFromData(n.notification?.data));
       });
 
-      // Tap on a heads-up we scheduled ourselves while foregrounded.
-      await LocalNotifications.addListener('localNotificationActionPerformed', (n) => {
-        const extra = n.notification?.extra as Record<string, unknown> | undefined;
+      // Tap or action on a heads-up / local notification.
+      await LocalNotifications.addListener('localNotificationActionPerformed', async (n) => {
+        const extra = (n.notification?.extra || {}) as Record<string, unknown>;
+        const actionId = n.actionId;
+        const inputValue = (n as any).inputValue;
+        const chatId = String(extra.chatId || extra.conversationId || '');
+
+        if (actionId === 'mark_read' && chatId) {
+          try {
+            await api.post(`/messages/read/${chatId}`);
+            recentChatMessages.delete(chatId);
+            const notifId = getStableNotificationId(`chat_${chatId}`);
+            await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+          } catch (e) {
+            logger.warn('[Push] Failed to mark as read from local notification action:', e);
+          }
+          return;
+        }
+
+        if (actionId === 'reply' && chatId && inputValue?.trim()) {
+          try {
+            await api.post('/messages/send', {
+              chatId,
+              content: inputValue.trim(),
+              type: 'text',
+              partnerId: extra.partnerId || extra.senderId
+            });
+            const list = recentChatMessages.get(chatId) || [];
+            list.push({ senderName: 'You', preview: inputValue.trim(), timestamp: Date.now() });
+            recentChatMessages.set(chatId, list);
+            const notifId = getStableNotificationId(`chat_${chatId}`);
+            await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+          } catch (e) {
+            logger.warn('[Push] Failed to quick reply from local notification action:', e);
+          }
+          return;
+        }
+
         openUrl(urlFromData(extra));
       });
     }

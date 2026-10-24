@@ -80,8 +80,8 @@ const DEFAULT_PREFERENCES: UpdatePreferences = {
 };
 
 const CANONICAL_FALLBACK = {
-  version: '1.0.2',
-  versionCode: 3,
+  version: '1.0.5',
+  versionCode: 6,
   appId: 'com.sparkleapp',
   otaAppId: 'eccc57fa-7ba0-47ee-951f-688f6516afd1',
   channel: 'base',

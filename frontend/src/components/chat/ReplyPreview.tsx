@@ -2,6 +2,8 @@ import React from 'react';
 import { X, Image as ImageIcon, Video, Mic, FileText, Sparkles, AlertCircle, Clock } from 'lucide-react';
 import { useChatStore, ChatMessage } from '../../store/chatStore';
 
+const EMPTY_NICKNAMES_MAP: Record<string, string> = {};
+
 export interface ReplyPreviewProps {
   messageId: string;
   message?: ChatMessage | null;
@@ -24,20 +26,14 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
   const storeMessage = useChatStore(s => {
     if (propMessage) return propMessage;
     if (effectiveChatId) {
-      const found = s.findMessage(effectiveChatId, messageId);
-      if (found) return found;
-    }
-    // Deep fallback: search across all cached conversations
-    for (const cid in s.messagesByConversation) {
-      const msgs = s.messagesByConversation[cid];
-      const match = msgs?.find(m => m.message_id === messageId || m.id === messageId);
-      if (match) return match;
+      return s.findMessage(effectiveChatId, messageId);
     }
     return undefined;
   });
 
   const message = propMessage || storeMessage;
-  const chatNicknames = useChatStore(s => s.chatNicknames[effectiveChatId] || {});
+  const rawNicknames = useChatStore(s => (effectiveChatId ? s.chatNicknames[effectiveChatId] : undefined));
+  const chatNicknames = rawNicknames || EMPTY_NICKNAMES_MAP;
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,7 +108,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
         />
       );
     }
-    if (type === 'gif' && mediaUrl) {
+    if ((type === 'gif' || type === 'gift') && mediaUrl) {
       return (
         <img
           src={mediaUrl}
@@ -174,7 +170,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
     if (content) {
       if (type === 'image' || type === 'photo') return `📷 ${content}`;
       if (type === 'video') return `🎥 ${content}`;
-      if (type === 'gif') return `👾 ${content}`;
+      if (type === 'gif' || type === 'gift') return `👾 ${content}`;
       if (type === 'audio' || type === 'voice') return `🎵 Voice Note: ${content}`;
       if (type === 'file' || type === 'document') return `📄 ${content}`;
       return content;
@@ -187,6 +183,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
       case 'video':
         return '🎥 Video';
       case 'gif':
+      case 'gift':
         return '👾 GIF';
       case 'audio':
       case 'voice':

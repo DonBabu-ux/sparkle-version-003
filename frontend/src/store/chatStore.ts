@@ -875,6 +875,9 @@ export const useChatStore = create<ChatState>()(
           get().refreshConversation(chatId);
         },
         setReplyTarget: (chatId, msgId) => set((state) => {
+          if ((!msgId && !state.replyTargets[chatId]) || state.replyTargets[chatId] === msgId) {
+            return state;
+          }
           const updated = { ...state.replyTargets };
           if (msgId) {
             updated[chatId] = msgId;

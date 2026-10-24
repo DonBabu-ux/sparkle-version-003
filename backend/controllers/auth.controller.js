@@ -969,17 +969,28 @@ const switchAccount = async (req, res) => {
 
 const refreshToken = async (req, res) => {
     try {
-        const { refreshToken: oldToken } = req.body;
+        const oldToken = req.body?.refreshToken || req.cookies?.sparkleRefresh;
         if (!oldToken) {
             return res.status(400).json({ error: 'Refresh token is required' });
         }
 
-        const { accessToken, refreshToken } = await authService.refreshAccessToken(oldToken);
+        const { accessToken, refreshToken: newRefreshToken } = await authService.refreshAccessToken(oldToken);
+
+        // Also refresh the cookie if present or requested
+        if (req.cookies && req.cookies.sparkleToken) {
+            res.cookie('sparkleToken', accessToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'strict',
+                maxAge: 24 * 60 * 60 * 1000,
+                path: '/'
+            });
+        }
 
         res.json({
             status: 'success',
             token: accessToken,
-            refreshToken: refreshToken
+            refreshToken: newRefreshToken
         });
     } catch (error) {
         logger.error('Token refresh failed:', error.message);

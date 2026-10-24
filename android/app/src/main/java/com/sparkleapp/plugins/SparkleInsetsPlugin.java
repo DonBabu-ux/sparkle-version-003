@@ -26,7 +26,7 @@ public class SparkleInsetsPlugin extends Plugin {
     private static final int INSET_TYPES =
             WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
 
-    private final JSObject lastSent = new JSObject();
+    private String lastSentJson = "";
 
     @Override
     public void load() {
@@ -37,11 +37,9 @@ public class SparkleInsetsPlugin extends Plugin {
         webView.post(() -> {
             ViewCompat.setOnApplyWindowInsetsListener(webView, (view, windowInsets) -> {
                 JSObject data = toJs(windowInsets);
-                if (!data.toString().equals(lastSent.toString())) {
-                    lastSent.clear();
-                    for (String key : data.keySet()) {
-                        lastSent.put(key, data.getValue(key));
-                    }
+                String json = data.toString();
+                if (!json.equals(lastSentJson)) {
+                    lastSentJson = json;
                     notifyListeners("insetsChanged", data);
                 }
                 return windowInsets;

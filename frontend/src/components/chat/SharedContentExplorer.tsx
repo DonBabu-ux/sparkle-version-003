@@ -528,8 +528,8 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
                       </div>
                       <p className="text-xs text-white/80 line-clamp-2">{post.preview_text}</p>
                       <div className="flex items-center justify-between text-[11px] text-white/50 border-t border-white/10 pt-2">
-                        <span>❤️ {post.likes_count} likes</span>
-                        <span>💬 {post.comments_count} comments</span>
+                        <span>{post.likes_count} likes</span>
+                        <span>{post.comments_count} comments</span>
                         <button 
                           onClick={() => { onJumpToMessage(post.message_id); onClose(); }}
                           className="font-bold hover:underline flex items-center gap-1"

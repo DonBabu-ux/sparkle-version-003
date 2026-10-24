@@ -362,7 +362,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
             }`}
           >
             <Sparkles size={15} />
-            <span>✨ SPARKLE ({mutualUsers.length})</span>
+            <span>SPARKLE ({mutualUsers.length})</span>
           </button>
 
           <button
@@ -455,7 +455,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-[#ff1493]">
                         <Sparkles size={14} />
-                        <span>✨ YOU ALREADY KNOW</span>
+                        <span>YOU ALREADY KNOW</span>
                       </div>
 
                       <div className="space-y-2">
@@ -479,7 +479,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
                   {recentMutuals.length > 0 && (
                     <div className="space-y-2">
                       <div className="flex items-center gap-2 text-xs font-black uppercase tracking-wider text-white/50">
-                        <span>✨ RECENT CONNECTIONS</span>
+                        <span>RECENT CONNECTIONS</span>
                       </div>
 
                       <div className="space-y-2">
@@ -487,7 +487,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
                           <UserRowCard
                             key={`recent-${user.user_id}`}
                             user={user}
-                            badgeLabel="✨ Mutual connection"
+                            badgeLabel="Mutual connection"
                             badgeColor="text-pink-400 bg-pink-500/10 border-pink-500/20"
                             isStarting={startingChatId === user.user_id}
                             onMessage={() => handleMessageClick(user)}
@@ -568,7 +568,7 @@ export const SparklePeopleHubModal: React.FC<SparklePeopleHubModalProps> = ({
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-black uppercase tracking-wider text-[#ff1493] flex items-center gap-1.5">
                         <Sparkles size={14} />
-                        <span>✨ ON SPARKLE ({filteredMatchedContacts.length})</span>
+                            <span>ON SPARKLE ({filteredMatchedContacts.length})</span>
                       </span>
                     </div>
 

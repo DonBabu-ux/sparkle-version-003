@@ -137,7 +137,7 @@ export const SparkleSelectionMenu: React.FC<SparkleSelectionMenuProps> = ({
                 className="w-full px-3.5 py-2.5 rounded-xl hover:bg-white/10 text-white flex items-center gap-3 text-[14px] font-semibold transition-all text-left"
               >
                 <Sparkles size={17} className="text-pink-400 shrink-0" />
-                <span>🚀 Smart Recall</span>
+                <span>Smart Recall</span>
               </button>
             )}
 

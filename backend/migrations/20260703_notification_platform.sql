@@ -9,14 +9,19 @@
 -- ── 1. Upgrade `notifications` table ─────────────────────────────────────────
 -- Add structured columns if they don't already exist
 
+-- NOTE: utils/database/init.js declares the authoritative column set for
+-- `notifications` — it runs on every boot. That set includes `related_user_id`,
+-- which was absent here, so a database built from this file ended up with a
+-- different schema than one built by init.js. Keep the two in sync.
 ALTER TABLE notifications
-  ADD COLUMN IF NOT EXISTS sender_id   VARCHAR(36)  NULL COMMENT 'NULL = platform itself, UUID = actor user',
-  ADD COLUMN IF NOT EXISTS icon        VARCHAR(100) NULL COMMENT 'Icon key (e.g. shield, bell, party)',
-  ADD COLUMN IF NOT EXISTS entities    JSON         NOT NULL DEFAULT ('[]') COMMENT 'Rich-text entity spans [{type,id,text}]',
-  ADD COLUMN IF NOT EXISTS actions     JSON         NOT NULL DEFAULT ('[]') COMMENT 'CTA buttons [{label,route,style}]',
-  ADD COLUMN IF NOT EXISTS priority    ENUM('critical','high','normal','low') NOT NULL DEFAULT 'normal',
-  ADD COLUMN IF NOT EXISTS category    ENUM('security','social','system','announcement','onboarding','commerce','community') NOT NULL DEFAULT 'social',
-  ADD COLUMN IF NOT EXISTS is_official BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE = sent by Sparkle platform';
+  ADD COLUMN IF NOT EXISTS related_user_id CHAR(36)  NULL COMMENT 'Actor user who triggered this; fallback is actor_id' AFTER actor_id,
+  ADD COLUMN IF NOT EXISTS sender_id   VARCHAR(36)  NULL COMMENT 'NULL = platform itself, UUID = actor user' AFTER related_user_id,
+  ADD COLUMN IF NOT EXISTS icon        VARCHAR(100) NULL COMMENT 'Icon key (e.g. shield, bell, party)' AFTER sender_id,
+  ADD COLUMN IF NOT EXISTS entities    JSON         NOT NULL DEFAULT ('[]') COMMENT 'Rich-text entity spans [{type,id,text}]' AFTER icon,
+  ADD COLUMN IF NOT EXISTS actions     JSON         NOT NULL DEFAULT ('[]') COMMENT 'CTA buttons [{label,route,style}]' AFTER entities,
+  ADD COLUMN IF NOT EXISTS priority    ENUM('critical','high','normal','low') NOT NULL DEFAULT 'normal' AFTER actions,
+  ADD COLUMN IF NOT EXISTS category    ENUM('security','social','system','announcement','onboarding','commerce','community') NOT NULL DEFAULT 'social' AFTER priority,
+  ADD COLUMN IF NOT EXISTS is_official BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'TRUE = sent by Sparkle platform' AFTER category;
 
 -- Index for fast unread + category queries
 ALTER TABLE notifications

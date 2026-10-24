@@ -487,7 +487,7 @@ const getDiscovery = async (req, res) => {
                 user_id: 'mock-1',
                 username: 'sparkle_team',
                 name: 'Sparkle Team',
-                avatar_url: '/uploads/avatars/default.png',
+                avatar_url: '/uploads/avatars/no-profile.png',
                 has_story: 1,
                 updates: ['3 new posts', 'Posted a story', '12 new comments']
             }];
@@ -507,12 +507,12 @@ const getDiscovery = async (req, res) => {
             status: 'success', 
             data: { 
                 creators: [], 
-                groups: [{ id: 'g1', title: 'Sparkle Global', image: '/uploads/avatars/default.png', subtitle: '99k Members' }], 
+                groups: [{ id: 'g1', title: 'Sparkle Global', image: '/uploads/groups/default.png', subtitle: '99k Members' }],
                 historyUpdates: [{
                     user_id: 'mock-1',
                     username: 'sparkle_team',
                     name: 'Sparkle Team',
-                    avatar_url: '/uploads/avatars/default.png',
+                    avatar_url: '/uploads/avatars/no-profile.png',
                     has_story: 1,
                     updates: ['System Recovery Mode', 'Discovery Active']
                 }] 
@@ -530,7 +530,7 @@ const getVirtualProfile = async (req, res) => {
                 user_id: 'mock-1',
                 username: 'sparkle_team',
                 name: 'Sparkle Team',
-                avatar_url: '/uploads/avatars/default.png',
+                avatar_url: '/uploads/avatars/no-profile.png',
                 bio: 'The creators of Sparkle. We are here to help you discover the magic! ✨',
                 is_verified: 1,
                 follower_count: 1000000,

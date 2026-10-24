@@ -239,7 +239,7 @@ export default function ClubDetail() {
                       <div className="flex items-center gap-6">
                         <div className="p-0.5 rounded-[20px] bg-white shadow-xl border border-black/5 overflow-hidden group-hover:rotate-6 transition-transform">
                           <img 
-                            src={m.avatar_url || '/uploads/avatars/default.png'} 
+                            src={m.avatar_url || '/uploads/avatars/no-profile.png'}
                             className="w-16 h-16 rounded-2xl object-cover" 
                             alt="" 
                           />

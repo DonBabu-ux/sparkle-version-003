@@ -29,7 +29,7 @@ const normalizeUser = (user) => {
 
     // Ensure avatar_url exists
     if (!normalized.avatar_url) {
-        normalized.avatar_url = '/uploads/avatars/default.png';
+        normalized.avatar_url = '/uploads/avatars/no-profile.png';
     }
 
     // Ensure user_id exists (some controllers might use id)

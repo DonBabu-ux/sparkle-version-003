@@ -46,7 +46,7 @@ export default function About() {
       <section style={{ background: 'linear-gradient(135deg, #fff 0%, #f5f3ff 100%)', padding: '100px 24px 80px', textAlign: 'center' }}>
         <div style={{ maxWidth: 720, margin: '0 auto' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', padding: '6px 16px', borderRadius: 20, color: '#16a34a', fontSize: 13, fontWeight: 700, marginBottom: 24 }}>
-            ✦ Built for students, by students
+              Built for students, by students
           </div>
           <h1 style={{ fontSize: 'clamp(3rem, 7vw, 5rem)', fontWeight: 900, color: '#0f172a', margin: '0 0 20px', letterSpacing: '-2px', lineHeight: 1.05 }}>
             Connecting campus,<br />

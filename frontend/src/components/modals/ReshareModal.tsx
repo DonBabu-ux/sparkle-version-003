@@ -95,7 +95,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
 
         <div className="original-post-preview group hover:border-indigo-200 transition-colors">
           <div className="preview-header">
-            <img src={originalPost.avatar_url || '/uploads/avatars/default.png'} alt="" className="preview-avatar" />
+            <img src={originalPost.avatar_url || '/uploads/avatars/no-profile.png'} alt="" className="preview-avatar" />
             <span className="preview-username">{originalPost.username}</span>
             <span className="text-slate-400 text-xs font-medium ml-auto">Original Post</span>
           </div>

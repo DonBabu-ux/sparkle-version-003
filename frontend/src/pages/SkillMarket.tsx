@@ -204,7 +204,7 @@ export default function SkillMarket() {
                       <div className="skm-card__author">
                         <div className="skm-card__avatar-wrap">
                           <img
-                            src={skill.avatar_url || '/uploads/avatars/default.png'}
+                            src={skill.avatar_url || '/uploads/avatars/no-profile.png'}
                             className="skm-card__avatar"
                             alt=""
                           />

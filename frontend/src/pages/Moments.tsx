@@ -2,7 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp } from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -50,7 +50,7 @@ const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (
   return (
     <div className="flex gap-3 mb-6 group animate-fade-in items-start">
       <img 
-        src={getMediaUrl(comment.avatar_url) || '/uploads/avatars/default.png'} 
+        src={getMediaUrl(comment.avatar_url) || '/uploads/avatars/no-profile.png'}
         className="w-9 h-9 rounded-full object-cover border border-gray-100 shadow-sm shrink-0" 
         alt={comment.username}
       />
@@ -327,7 +327,7 @@ const ReelItem = React.memo(({
         {/* Background Blur Layer — static image only, NEVER a playing video */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <img 
-            src={moment.thumbnail_url || (isVideo ? undefined : mediaSrc) || '/uploads/avatars/default.png'} 
+            src={moment.thumbnail_url || (isVideo ? undefined : mediaSrc) || '/uploads/defaults/no-image.png'}
             className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
             alt=""
           />
@@ -381,7 +381,7 @@ const ReelItem = React.memo(({
       <div className="absolute right-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4 z-20">
         <div className="relative mb-2 group/avatar">
           <img 
-            src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} 
+            src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/no-profile.png'}
             className="w-11 h-11 rounded-full border-2 border-white object-cover cursor-pointer shadow-xl transition-all group-hover/avatar:scale-110" 
             alt=""
             onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}
@@ -1065,30 +1065,39 @@ export default function Moments() {
         </div>
       )}
 
-      {/* Top Navigation Bar Overlay (Minimalist) */}
+      {/* Top Navigation Bar Overlay — TikTok layout: search inline in the feed
+          header, action icons to the right. Buttons carry their own opaque
+          background so they stay legible over bright frames. */}
       {!isSearchOpen && (
-        <div className="fixed top-0 left-0 right-0 p-5 flex justify-between items-center z-(--z-header) pointer-events-none md:ml-(--rail-w)">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => navigate(-1)}
-              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
-            >
-              <X size={20} />
-            </button>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-black text-primary uppercase tracking-[0.2em] drop-shadow-lg">Sparkle</span>
-              <span className="text-[14px] font-bold text-white flex items-center gap-1.5 drop-shadow-md">
-                Live Stream
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]" />
-              </span>
-            </div>
+        <div className="fixed top-0 left-0 right-0 p-4 flex items-center gap-2.5 z-(--z-header) pointer-events-none md:ml-(--rail-w)">
+          <button
+            onClick={() => navigate(-1)}
+            aria-label="Go back"
+            className="w-10 h-10 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
+          >
+            <X size={20} />
+          </button>
+
+          {/* Inline search — sits in the feed header, not a separate screen */}
+          <div className="flex-1 relative min-w-0 pointer-events-auto">
+            <input
+              readOnly
+              onFocus={() => setIsSearchOpen(true)}
+              value=""
+              placeholder="Search moments"
+              aria-label="Search moments"
+              className="w-full h-10 rounded-full bg-black/55 border border-white/10 pl-10 pr-4 text-sm font-medium text-white placeholder-white/50 outline-none focus:border-white/25 transition-colors cursor-pointer"
+            />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
           </div>
+
           <div className="flex items-center gap-2 pointer-events-auto">
-            <button 
-              onClick={() => setIsSearchOpen(true)}
-              className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-md flex items-center justify-center text-white active:scale-90 transition-transform"
+            <button
+              onClick={() => navigate('/moments/studio')}
+              aria-label="Moment Studio"
+              className="w-10 h-10 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform"
             >
-              <Search size={18} />
+              <BarChart3 size={18} />
             </button>
           </div>
         </div>
@@ -1256,7 +1265,7 @@ export default function Moments() {
                         >
                           {moment.media_type === 'user' ? (
                             <>
-                                <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
+                                <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/no-profile.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
                                 <div className="text-center">
                                     <p className="text-sm font-black text-white leading-none">@{moment.username}</p>
                                     <p className="text-[10px] text-white/40 mt-1 font-bold uppercase tracking-widest">{moment.follower_count || 0} Followers</p>
@@ -1279,7 +1288,7 @@ export default function Moments() {
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                 <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-                                    <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/default.png'} className="w-4 h-4 rounded-full border border-white/20" />
+                                    <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/no-profile.png'} className="w-4 h-4 rounded-full border border-white/20" />
                                     <span className="text-[10px] font-bold text-white/90">@{moment.username}</span>
                                 </div>
                                 <div className="absolute top-2 right-2 flex items-center gap-1 text-[10px] font-bold text-white">
@@ -1536,6 +1545,5 @@ export default function Moments() {
     </div>
   );
 }
-
 
 

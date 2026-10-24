@@ -227,7 +227,7 @@ class Post {
                     END as user_name,
                     CASE 
                         WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
-                        WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
+                        WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png'
                         ELSE u.avatar_url 
                     END as avatar_url,
 
@@ -855,7 +855,7 @@ class Post {
             `SELECT p.*, 
                     CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' ELSE u.username END as username,
                     CASE WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' ELSE u.name END as user_name,
-                    CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' ELSE u.avatar_url END as avatar_url,
+                    CASE WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png' ELSE u.avatar_url END as avatar_url,
                     g.name as group_name, g.icon_url as group_icon,
                     COALESCE(p.spark_count, 0) as sparks,
                     COALESCE(p.comment_count, 0) as comments
@@ -1022,7 +1022,7 @@ class Post {
                    END as name,
                    CASE 
                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
-                       WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/default.png' 
+                       WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png'
                        ELSE u.avatar_url 
                    END as avatar_url,
 

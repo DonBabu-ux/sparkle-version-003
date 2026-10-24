@@ -509,7 +509,7 @@ class AccountLifecycleService {
                     name = 'Deleted User',
                     display_name = 'Deleted User',
                     bio = NULL,
-                    avatar_url = '/uploads/avatars/default.png',
+                    avatar_url = '/uploads/avatars/no-profile.png',
                     phone_number = NULL,
                     account_status = 'deleted',
                     deletion_completed_at = NOW(),

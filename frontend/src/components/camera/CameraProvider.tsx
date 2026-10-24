@@ -115,7 +115,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
       streamRef.current = newStream;
       setStream(newStream);
       setHasPermission(true);
-      logger.log(`🎉 In-app camera stream ready (facing: ${facing}).`);
+      logger.log(`✅ In-app camera stream ready (facing: ${facing}).`);
     } catch (err) {
       logger.error('[CameraProvider] Failed to start stream:', err);
       setHasPermission(false);
@@ -162,7 +162,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
-        logger.log('📴 App backgrounded — pausing camera.');
+        logger.log('App backgrounded — pausing camera.');
         stopCamera();
       }
       // Foreground recovery: CreateStory's phase-based useEffect handles restart.
@@ -236,7 +236,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
       recordingIntervalRef.current = setInterval(
         () => setRecordingSeconds(s => s + 1), 1000
       );
-      logger.log(`🎥 Recording started (${mimeType || 'default codec'}).`);
+      logger.log(`Recording started (${mimeType || 'default codec'}).`);
     } catch (err) {
       logger.error('[CameraProvider] MediaRecorder init failed:', err);
     }
@@ -253,7 +253,7 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
         });
         const ext  = recorder.mimeType?.includes('mp4') ? 'mp4' : 'webm';
         const file = new File([blob], `sparkle-${Date.now()}.${ext}`, { type: blob.type });
-        logger.log(`🎬 Recording saved: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
+        logger.log(`✅ Recording saved: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`);
         resolve(file);
       };
 

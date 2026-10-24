@@ -185,7 +185,7 @@ export default function SellerProfile() {
             <div className="flex flex-col sm:flex-row items-center sm:items-end gap-4 sm:gap-6">
               <div className="relative group">
                 <img 
-                  src={seller.avatar_url || '/uploads/avatars/default.png'} 
+                  src={seller.avatar_url || '/uploads/avatars/no-profile.png'}
                   alt={seller.username}
                   className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl border-[6px] border-white shadow-2xl object-cover bg-white"
                 />
@@ -339,7 +339,7 @@ export default function SellerProfile() {
                   <div key={i} className="p-6 bg-white border border-marketplace-border rounded-[32px] shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <img src={rv.reviewer_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-2xl object-cover" />
+                        <img src={rv.reviewer_avatar || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-2xl object-cover" />
                         <div>
                           <div className="font-black text-[15px]">{rv.reviewer_name}</div>
                           <div className="text-[11px] font-bold text-marketplace-muted uppercase tracking-widest">

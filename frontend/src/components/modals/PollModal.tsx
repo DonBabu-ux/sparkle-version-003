@@ -6,17 +6,30 @@ import Spinner from '../ui/Spinner';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
 
+interface EditablePoll {
+  poll_id: string;
+  question: string;
+  options?: { option_text: string }[];
+  is_anonymous?: boolean;
+  allow_invites?: boolean;
+}
+
 interface PollModalProps {
   onClose: () => void;
   onSuccess: () => void;
+  /** When present the modal edits this poll instead of creating one. */
+  poll?: EditablePoll;
 }
 
-export default function PollModal({ onClose, onSuccess }: PollModalProps) {
-  const [question, setQuestion] = useState('');
-  const [options, setOptions] = useState(['', '']);
-  const [isAnonymous, setIsAnonymous] = useState(false);
+export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) {
+  const isEdit = !!poll;
+  const [question, setQuestion] = useState(poll?.question ?? '');
+  const [options, setOptions] = useState<string[]>(
+    poll?.options?.length ? poll.options.map(o => o.option_text) : ['', '']
+  );
+  const [isAnonymous, setIsAnonymous] = useState(poll?.is_anonymous ?? false);
   const [expiresIn, setExpiresIn] = useState('24h');
-  const [allowInvites, setAllowInvites] = useState(true);
+  const [allowInvites, setAllowInvites] = useState(poll?.allow_invites ?? true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Conditionally mounted by its parent: open whenever rendered.
@@ -51,19 +64,24 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
     setSubmitting(true);
     setError(null);
     try {
-      await api.post('/polls', {
+      const payload = {
         question: question.trim(),
         options: validOptions,
         is_anonymous: isAnonymous,
-        expires_in: expiresIn,
-        allow_invites: allowInvites
-      });
+        allow_invites: allowInvites,
+        ...(isEdit ? {} : { expires_in: expiresIn })
+      };
+      if (poll) {
+        await api.put(`/polls/${poll.poll_id}`, payload);
+      } else {
+        await api.post('/polls', payload);
+      }
       onSuccess();
       onClose();
     } catch (err: any) {
-      logger.error('Poll creation failed:', err);
+      logger.error(isEdit ? 'Poll update failed:' : 'Poll creation failed:', err);
       const msg = err?.response?.data?.error;
-      setError(typeof msg === 'string' && msg ? msg : 'Could not create the poll. Please try again.');
+      setError(typeof msg === 'string' && msg ? msg : (isEdit ? 'Could not update the poll. Please try again.' : 'Could not create the poll. Please try again.'));
     } finally {
       setSubmitting(false);
     }
@@ -89,7 +107,7 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
             <BarChart3 size={24} strokeWidth={2.5} />
           </div>
           <div>
-            <h3 className="text-2xl font-black text-gray-900 tracking-tight leading-none uppercase">Create Poll</h3>
+            <h3 className="text-2xl font-black text-gray-900 tracking-tight leading-none uppercase">{isEdit ? 'Edit Poll' : 'Create Poll'}</h3>
             <p className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em] mt-2">Start a conversation</p>
           </div>
         </div>
@@ -232,7 +250,7 @@ export default function PollModal({ onClose, onSuccess }: PollModalProps) {
           <div className="absolute inset-0 bg-white/10 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000" />
           {submitting ? <Spinner size="medium" color="text-white" /> : (
             <>
-                Create Poll
+                {isEdit ? 'Save Changes' : 'Create Poll'}
                 <ArrowRight size={20} strokeWidth={3} className="group-hover:translate-x-2 transition-transform" />
             </>
           )}

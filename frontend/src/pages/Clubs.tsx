@@ -152,7 +152,7 @@ export default function Clubs() {
                  >
                    <div className="relative aspect-video overflow-hidden mt-3 mx-3 rounded-[42px] border border-black/5">
                       <img 
-                        src={club.banner_url || '/uploads/avatars/default.png'} 
+                        src={club.banner_url || '/uploads/groups/default.png'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                         alt="" 
                       />
@@ -164,7 +164,7 @@ export default function Clubs() {
                       <div className="mb-8">
                          <div className="p-1 rounded-[32px] bg-white shadow-2xl inline-block group-hover:-rotate-6 transition-transform duration-700 border border-black/5">
                            <img 
-                               src={club.logo_url || '/uploads/avatars/default.png'}
+                               src={club.logo_url || '/uploads/groups/default.png'}
                                className="w-24 h-24 rounded-[28px] object-cover"
                                alt=""
                            />
@@ -297,6 +297,5 @@ export default function Clubs() {
     </div>
   );
 }
-
 
 

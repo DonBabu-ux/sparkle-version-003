@@ -314,7 +314,7 @@ export default function Explore() {
                       </div>
                       
                       <div className="absolute bottom-4 left-4 right-4 flex items-center gap-3 transform translate-y-4 group-hover:translate-y-0 transition-transform duration-300 opacity-0 group-hover:opacity-100">
-                        <img src={m.avatar_url || '/uploads/avatars/default.png'} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-md" alt="" />
+                        <img src={m.avatar_url || '/uploads/avatars/no-profile.png'} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-md" alt="" />
                         <span className="text-white font-semibold text-sm truncate drop-shadow-md">@{m.username}</span>
                       </div>
                     </div>

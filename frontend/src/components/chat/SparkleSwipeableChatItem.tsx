@@ -263,7 +263,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                 }
 
                 const rawText = chat.last_message_type === 'attachment'
-                  ? '🎬 Story reply'
+                   ? 'Story reply'
                   : chat.last_message
                   ? formatMessageText(chat.last_message)
                   : 'Sent a photo';

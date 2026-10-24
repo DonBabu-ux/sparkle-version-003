@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 // Profile logic helper
 const getSafeAvatarUrl = (url) => {
-    if (!url) return '/uploads/avatars/default.png';
+    if (!url) return '/uploads/avatars/no-profile.png';
     if (url.startsWith('http')) return url;
     return url.startsWith('/') ? url : '/' + url;
 };

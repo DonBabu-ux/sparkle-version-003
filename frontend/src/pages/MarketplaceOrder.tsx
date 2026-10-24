@@ -124,7 +124,7 @@ export default function MarketplaceOrder() {
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
           <div className="flex gap-4">
             <img 
-              src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/defaults/no-image.png'} 
+              src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/defaults/no-image.png'}
               className="w-24 h-24 rounded-2xl object-cover" 
               alt={listing.title} 
             />

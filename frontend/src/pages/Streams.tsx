@@ -1,9 +1,10 @@
-import { showInfo } from '../utils/toast';
+import { showInfo, showSuccess, showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Eye, Video, ArrowLeft, Radio, Award } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
+import api from '../api/api';
 import LockedLivePage from './LockedLivePage';
 import Spinner from '../components/ui/Spinner';
 
@@ -12,6 +13,38 @@ export default function Streams() {
   const user = useUserStore(state => state.user);
   const followers = user?.followers_count ?? 0;
   const [loading, setLoading] = useState(true);
+  const [goLiveOpen, setGoLiveOpen] = useState(false);
+  const [liveTitle, setLiveTitle] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [streams, setStreams] = useState<any[]>([]);
+
+  const loadStreams = async () => {
+    try {
+      setLoading(true);
+      const { data } = await api.get('/streams');
+      setStreams(Array.isArray(data) ? data : (data.streams || []));
+    } catch (err) {
+      showError('Could not load live streams.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const goLive = async () => {
+    const title = liveTitle.trim() || 'Untitled live';
+    setCreating(true);
+    try {
+      await api.post('/streams', { title, stream_url: null });
+      setGoLiveOpen(false);
+      setLiveTitle('');
+      showSuccess('You are live!');
+      loadStreams();
+    } catch (err: any) {
+      showError(err?.response?.data?.error || 'Could not start your live stream.');
+    } finally {
+      setCreating(false);
+    }
+  };
 
   // Mock streams with real image references for high fidelity
   const mockStreams = [
@@ -22,7 +55,7 @@ export default function Streams() {
       viewer_count: 342,
       category: 'Study',
       thumbnail_url: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800',
-      avatar_url: '/uploads/avatars/default.png'
+      avatar_url: '/uploads/avatars/no-profile.png'
     },
     {
       id: 2,
@@ -31,7 +64,7 @@ export default function Streams() {
       viewer_count: 1205,
       category: 'Music',
       thumbnail_url: 'https://images.unsplash.com/photo-1516280440502-a2fe018c6426?w=800',
-      avatar_url: '/uploads/avatars/default.png'
+      avatar_url: '/uploads/avatars/no-profile.png'
     },
     {
       id: 3,
@@ -40,7 +73,7 @@ export default function Streams() {
       viewer_count: 89,
       category: 'Tech',
       thumbnail_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800',
-      avatar_url: '/uploads/avatars/default.png'
+      avatar_url: '/uploads/avatars/no-profile.png'
     }
   ];
 
@@ -48,6 +81,10 @@ export default function Streams() {
     // Simulate loading for the premium transition feel
     const timer = setTimeout(() => setLoading(false), 800);
     return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    loadStreams();
   }, []);
 
   // Background particles ambiance
@@ -138,13 +175,42 @@ export default function Streams() {
           </div>
         </div>
 
-        <button 
-          onClick={() => showInfo('Starting your live stream...')}
+        <button
+          onClick={() => setGoLiveOpen(true)}
           className="bg-gradient-to-r from-[#ff008a] to-[#ff4db8] hover:from-[#ff4db8] hover:to-[#ff66c4] text-white px-5 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-[#ff008a]/20 hover:shadow-[#ff008a]/40 hover:scale-[1.02] active:scale-95 transition-all"
         >
           <Video size={14} />
           <span>Go Live</span>
         </button>
+
+        {/* Go Live composer — a live is a session, not a post */}
+        {goLiveOpen && (
+          <div className="mt-4 bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+            <input
+              autoFocus
+              value={liveTitle}
+              onChange={(e) => setLiveTitle(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && goLive()}
+              placeholder="What are you live about?"
+              className="flex-1 bg-black/30 border border-white/10 rounded-xl py-2.5 px-4 text-sm font-medium text-white placeholder-white/40 outline-none focus:border-[#ff4db8]/50 transition-colors"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => { setGoLiveOpen(false); setLiveTitle(''); }}
+                className="px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-white/60 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={goLive}
+                disabled={creating}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-[#ff008a] to-[#ff4db8] text-white text-xs font-bold uppercase tracking-wider disabled:opacity-50 flex items-center gap-2 active:scale-95 transition-all"
+              >
+                {creating ? 'Starting...' : 'Go Live'}
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Main Content Grid */}

@@ -1,4 +1,4 @@
-import defaultAvatar from '../assets/avatar-default.png';
+import defaultAvatar from '../assets/no-profile.png';
 import { EnvironmentService } from '../services/EnvironmentService';
 
 // API URL resolved via EnvironmentService: env var override, absolute Render
@@ -33,7 +33,7 @@ const rewriteToImageKit = (url: string): string => {
 // Backend-shipped default avatar paths — route them to the bundled
 // grey PNG so the UI never shows the old clipart image.
 const isBackendDefaultAvatar = (url: string) =>
-  url.includes('avatars/default') || url.includes('avatar_default');
+  url.includes('avatars/default') || url.includes('avatars/no-profile') || url.includes('avatar_default');
 
 /**
  * Returns a reliable avatar URL.

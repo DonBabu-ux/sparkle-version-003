@@ -137,7 +137,7 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
                 className="flex flex-col items-center gap-1 group cursor-pointer min-w-[70px] active:scale-95 transition-transform"
               >
                 <div className="relative">
-                    <img src={r.avatar_url || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" />
+                    <img src={r.avatar_url || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" />
                     {r.is_online && <div className="absolute bottom-0 right-0 bg-green-500 w-3 h-3 rounded-full border-2 border-white dark:border-black"></div>}
                 </div>
                 <span className="text-[11px] font-semibold text-black/60 dark:text-white/60 truncate w-16">{r.username}</span>

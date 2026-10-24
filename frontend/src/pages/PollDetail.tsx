@@ -44,7 +44,7 @@ interface PollDetailData {
 }
 
 const getSafeAvatarUrl = (url: string | undefined) => {
-  if (!url) return '/uploads/avatars/default.png';
+  if (!url) return '/uploads/avatars/no-profile.png';
   if (url.startsWith('http')) return url;
   return url.startsWith('/') ? url : `/${url}`;
 };

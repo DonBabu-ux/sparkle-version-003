@@ -70,8 +70,6 @@ export default function Notifications() {
   const [readError, setReadError] = useState<string | null>(null);
   const [, setTick] = useState(0); // clock tick for live relative timestamps
   const navigate = useNavigate();
-  const unreadRefs = useRef<Map<string, HTMLDivElement>>(new Map());
-  const observerRef = useRef<IntersectionObserver | null>(null);
 
   const fetchNotifications = useCallback(async () => {
     try {
@@ -104,60 +102,9 @@ export default function Notifications() {
     return () => clearInterval(id);
   }, []);
 
-  // Auto-mark-as-read on scroll into view (IntersectionObserver)
-  const markAsReadCb = useCallback((id: string) => {
-    const previous = notifications;
-    setNotifications(prev =>
-      prev.map(n => (n.notification_id === id || n.id === id) ? { ...n, is_read: 1, isRead: true } : n)
-    );
-    // Auto mark-on-scroll must never leave a stale "read" mark if the server
-    // rejects it: revert silently so the card can be retried on the next pass.
-    api.put(`/notifications/${id}/read`)
-      .catch(() => api.post(`/notifications/${id}/read`))
-      .catch(() => setNotifications(previous));
-  }, [notifications]);
-
-  useEffect(() => {
-    if (loading) return;
-    const timers = new Map<string, ReturnType<typeof setTimeout>>();
-
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach(entry => {
-          const id = (entry.target as HTMLElement).dataset.notifId;
-          if (!id) return;
-          if (entry.isIntersecting) {
-            // Mark read after 1.5s of being visible
-            timers.set(id, setTimeout(() => markAsReadCb(id), 1500));
-          } else {
-            clearTimeout(timers.get(id));
-            timers.delete(id);
-          }
-        });
-      },
-      { threshold: 0.6 }
-    );
-
-    // Observe all currently-mounted unread refs
-    unreadRefs.current.forEach(el => observerRef.current!.observe(el));
-
-    return () => {
-      observerRef.current?.disconnect();
-      timers.forEach(t => clearTimeout(t));
-    };
-  }, [loading, markAsReadCb]);
-
-  // Helper to register/unregister an unread card ref
-  const setUnreadRef = useCallback((id: string, el: HTMLDivElement | null) => {
-    if (el) {
-      unreadRefs.current.set(id, el);
-      observerRef.current?.observe(el);
-    } else {
-      const prev = unreadRefs.current.get(id);
-      if (prev) observerRef.current?.unobserve(prev);
-      unreadRefs.current.delete(id);
-    }
-  }, []);
+  // Read state is explicit only. Not a notification is marked read by
+  // scrolling it into view or by opening it — only the "Mark as read"
+  // action in the detail sheet (or "Mark all as read") changes it.
 
   const markAsRead = async (id: string) => {
     const previous = notifications;
@@ -182,7 +129,6 @@ export default function Notifications() {
       // Optimistic update
       setNotifications(prev => prev.map(n => ({ ...n, is_read: 1, isRead: true })));
       setReadError(null);
-      unreadRefs.current.clear();
       window.dispatchEvent(new Event('notifications_all_read'));
 
       // Call API
@@ -253,10 +199,8 @@ export default function Notifications() {
   };
 
   const handleNotificationClick = async (notif: Notification) => {
-    // 1. Mark as read immediately in UI & sync to server
-    markAsRead(notif.notification_id || notif.id || '');
-
-    // 2. Determine target URL with rich fallback resolution
+    // Open the thing the notification points at. Read state is NOT changed
+    // here — that only happens from the explicit "Mark as read" action.
     let targetUrl = normalizeTargetUrl(notif.action_url);
 
     // Check target object first if present
@@ -412,7 +356,7 @@ export default function Notifications() {
     return (
       <div
         key={notif.notification_id || notif.id}
-        ref={isUnread ? (el) => setUnreadRef(notif.notification_id || notif.id || '', el) : undefined}
+          data-notif-id={notif.notification_id || notif.id}
         data-notif-id={isUnread ? (notif.notification_id || notif.id) : undefined}
         onClick={() => handleNotificationClick(notif)}
         className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-black/[0.04] dark:border-white/[0.04] last:border-0 relative active:scale-[0.995] ${
@@ -680,6 +624,24 @@ export default function Notifications() {
 
             {/* Actions */}
             <div className="px-3 py-2 flex flex-col gap-0.5">
+              {!isNotificationRead(selectedNotif) && (
+                <button
+                  onClick={() => {
+                    markAsRead(selectedNotif.notification_id || selectedNotif.id || '');
+                    setSelectedNotif(null);
+                  }}
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                >
+                  <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                    <CheckCircle2 size={17} className="text-emerald-500" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Mark as read</p>
+                    <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Keeps it in your list, clears the unread badge</p>
+                  </div>
+                </button>
+              )}
+
               <button
                 onClick={() => deleteNotification(selectedNotif.notification_id || selectedNotif.id || '')}
                 className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"

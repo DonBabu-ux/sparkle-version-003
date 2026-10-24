@@ -270,7 +270,7 @@ export default function ListingCard({
           onClick={onClick}
           className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
         >
-          <img src={listing.image || '/uploads/avatars/default.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
+          <img src={listing.image || '/uploads/defaults/no-image.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold text-gray-900 leading-none mb-2 italic uppercase tracking-tight truncate">{listing.title}</div>
             <div className="flex items-center gap-3">

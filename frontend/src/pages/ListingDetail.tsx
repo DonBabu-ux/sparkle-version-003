@@ -319,7 +319,7 @@ export default function ListingDetail() {
 
         <div className="flex items-center justify-between mb-4 cursor-pointer" onClick={() => navigate(`/marketplace/seller/${listing.seller_id}`)}>
           <div className="flex items-center gap-3">
-            <img src={listing.seller_avatar || '/uploads/avatars/default.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
+            <img src={listing.seller_avatar || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-full object-cover border border-marketplace-border" alt={listing.seller_name} />
             <div>
               <h4 className="font-bold text-[15px] text-marketplace-text flex items-center gap-1">
                 {listing.seller_name || listing.seller_username}
@@ -432,7 +432,7 @@ export default function ListingDetail() {
               >
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-6 h-6 rounded-full bg-marketplace-bg overflow-hidden">
-                    <img src={item.seller_avatar || '/uploads/avatars/default.png'} className="w-full h-full object-cover" alt="" />
+                    <img src={item.seller_avatar || '/uploads/avatars/no-profile.png'} className="w-full h-full object-cover" alt="" />
                   </div>
                   <span className="text-[13px] font-bold text-marketplace-text truncate">{item.seller_name || item.seller_username}</span>
                   <MoreHorizontal size={14} className="text-marketplace-muted ml-auto" />

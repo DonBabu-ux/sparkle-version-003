@@ -127,7 +127,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
                     <div className={`w-12 h-12 rounded-full shrink-0 ${u.has_story ? 'p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}>
                       <div className={`w-full h-full rounded-full ${u.has_story ? 'p-[2px] bg-[#262626]' : ''}`}>
                         <img 
-                          src={u.profile_picture || '/uploads/avatars/default.png'} 
+                          src={u.profile_picture || '/uploads/avatars/no-profile.png'}
                           alt="" 
                           className="w-full h-full rounded-full object-cover" 
                         />

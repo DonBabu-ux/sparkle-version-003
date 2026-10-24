@@ -418,7 +418,7 @@ export default function LockedLivePage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-white/50 font-bold">{remaining > 0 ? `${remaining.toLocaleString()} followers remaining` : 'Milestone achieved ✨'}</p>
+               <p className="text-xs text-white/50 font-bold">{remaining > 0 ? `${remaining.toLocaleString()} followers remaining` : 'Milestone achieved'}</p>
               <div className="h-1 bg-white/10 rounded-full w-full mt-2 overflow-hidden">
                 <div className="h-full bg-white/20 rounded-full" style={{ width: `${Math.min(100, Math.round((followers / nextMilestone) * 100))}%` }} />
               </div>

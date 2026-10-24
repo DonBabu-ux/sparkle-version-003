@@ -24,6 +24,9 @@ export default function Profile() {
   const navigate = useNavigate();
   
   const [profile, setProfile] = useState<User | null>(null);
+  // null = loaded fine. 'not_found' = 404, the account genuinely doesn't exist.
+  // 'unavailable' = 500/network/timeout, transient — the account may well be fine.
+  const [profileError, setProfileError] = useState<'not_found' | 'unavailable' | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [reels, setReels] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
@@ -32,7 +35,7 @@ export default function Profile() {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
-  const { setActiveModal, refreshCounter } = useModalStore();
+  const { setActiveModal } = useModalStore();
   const [showAvatarMenu, setShowAvatarMenu] = useState(false);
   const [isOpeningChat, setIsOpeningChat] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
@@ -97,6 +100,10 @@ export default function Profile() {
       }
     } catch (err) {
       logger.error('Failed to fetch profile:', err);
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      // Only a 404 means the account truly doesn't exist. A 500, network error,
+      // or timeout is transient and must NOT be presented as "vanished".
+      setProfileError(status === 404 ? 'not_found' : 'unavailable');
       setProfile(null);
     } finally {
       setLoading(false);
@@ -123,7 +130,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (currentUser) fetchProfile();
-  }, [fetchProfile, currentUser, refreshCounter]);
+  }, [fetchProfile, currentUser]);
 
   // Fetch highlights when profile is loaded
   useEffect(() => {
@@ -209,14 +216,19 @@ export default function Profile() {
   }
 
   if (!profile) {
+    const isGenuinelyMissing = profileError === 'not_found';
     return (
         <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-[env(safe-area-inset-bottom)]">
         <div className="flex-1 flex items-center justify-center p-12">
-           <ModernOfflineState 
+           <ModernOfflineState
              type="error"
-             title="Ghost Profile"
-             message="This sparkle account seems to have vanished or never existed in our campus directory."
-             onRetry={() => window.location.reload()}
+             title={isGenuinelyMissing ? 'Ghost Profile' : "Can't load this profile"}
+             message={
+               isGenuinelyMissing
+                 ? 'This sparkle account seems to have vanished or never existed in our campus directory.'
+                 : "We're having trouble reaching Sparkle's servers right now. This doesn't mean the account is gone — try again in a moment."
+             }
+             onRetry={() => fetchProfile()}
            />
         </div>
       </div>
@@ -519,7 +531,7 @@ export default function Profile() {
                             <span>Opening...</span>
                           </>
                         ) : (
-                          <span>💬 Message</span>
+                          <span>Message</span>
                         )}
                       </button>
                     </div>

@@ -47,7 +47,7 @@ socket.on('connect', () => {
 });
 
 socket.on('alert', (data) => {
-  console.log('🚨 Live Campus Alert Received:', data.message);
+    console.log('Live Campus Alert Received:', data.message);
 });`
 };
 

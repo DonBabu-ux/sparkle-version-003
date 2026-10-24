@@ -379,7 +379,7 @@ const createGroup = async (req, res) => {
 
         await connection.beginTransaction();
 
-        const icon_url = req.file ? req.file.path : (req.body.photo_url || '/uploads/avatars/default.png');
+        const icon_url = req.file ? req.file.path : (req.body.photo_url || '/uploads/groups/default.png');
         const groupId = require('crypto').randomUUID();
         const requiresApproval = (is_public === 'true' || is_public === true) ? 0 : 1;
 

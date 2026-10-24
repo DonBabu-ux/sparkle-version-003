@@ -780,7 +780,7 @@ export default function SparklyBot() {
                 <SparklyAvatar size={64} pulse={isThinking} />
               </div>
               <div>
-                <h3 className="text-xl font-black text-white">Hello! I'm Sparkly ✨</h3>
+                 <h3 className="text-xl font-black text-white">Hello! I'm Sparkly</h3>
                 <p className="text-xs text-slate-400 max-w-md mx-auto mt-2 leading-relaxed">
                   Your intelligent Sparkle assistant. Ask me to search Marketplace deals, check live web news, compare prices, or guide you through campus selling rules!
                 </p>

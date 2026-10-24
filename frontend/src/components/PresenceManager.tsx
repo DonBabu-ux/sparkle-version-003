@@ -106,12 +106,12 @@ export default function PresenceManager() {
 
     // ── Network events ──
     const handleOnline = () => {
-      logger.log('🌐 Network restored — reconnecting socket');
+      logger.log('✅ Network restored — reconnecting socket');
       if (!socket.connected) socket.connect();
     };
 
     const handleOffline = () => {
-      logger.warn('🌐 Network lost — socket will auto-recover on reconnect');
+      logger.warn('❌ Network lost — socket will auto-recover on reconnect');
     };
 
     // ── Unload (tab/window close) ──

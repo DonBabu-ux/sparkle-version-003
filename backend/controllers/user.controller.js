@@ -46,7 +46,7 @@ const searchUsers = async (req, res) => {
         const sanitizedUsers = users.map(u => ({
             ...u,
             id: u.user_id,
-            avatar: u.avatar_url || '/uploads/avatars/default.png',
+            avatar: u.avatar_url || '/uploads/avatars/no-profile.png',
             affiliation: u.affiliation || u.campus,
             interests: u.interests || u.major,
             experience_level: u.experience_level || u.year_of_study
@@ -444,7 +444,7 @@ const uploadAvatar = async (req, res) => {
         let avatarUrl = req.file ? (req.file.path || req.file.filename) : req.body.avatar_url;
 
         if (!avatarUrl && !req.file) {
-            avatarUrl = '/uploads/avatars/default.png';
+            avatarUrl = '/uploads/avatars/no-profile.png';
         }
 
         // If it's an external URL, download it locally
@@ -456,7 +456,7 @@ const uploadAvatar = async (req, res) => {
                 logger.error('Failed to download external avatar:', dlError);
                 // Fallback to default if download fails and it was a CDN link known to be problematic
                 if (avatarUrl.includes('fbcdn.net') || avatarUrl.includes('fbsbx.com')) {
-                    avatarUrl = '/uploads/avatars/default.png';
+                    avatarUrl = '/uploads/avatars/no-profile.png';
                 }
             }
         }
@@ -977,7 +977,7 @@ const getFollowers = async (req, res) => {
         const mappedFollowers = followers.map(f => ({
             ...f,
             id: f.user_id,
-            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
             is_followed_by_me: !!f.is_followed_by_me
         }));
 
@@ -996,7 +996,7 @@ const getMyFollowers = async (req, res) => {
         const mappedFollowers = followers.map(f => ({
             ...f,
             id: f.user_id,
-            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
             is_followed_by_me: !!f.is_followed_by_me
         }));
 
@@ -1016,7 +1016,7 @@ const getFollowing = async (req, res) => {
         const mappedFollowing = following.map(f => ({
             ...f,
             id: f.user_id,
-            profile_picture: f.avatar_url || '/uploads/avatars/default.png',
+            profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
             is_followed_by_me: !!f.is_followed_by_me
         }));
 
@@ -1038,8 +1038,8 @@ const getUserProfile = async (req, res) => {
                 id: 'mock-1',
                 username: 'sparkle_team',
                 name: 'Sparkle Team',
-                profile_picture: '/uploads/avatars/default.png',
-                avatar: '/uploads/avatars/default.png',
+                profile_picture: '/uploads/avatars/no-profile.png',
+                avatar: '/uploads/avatars/no-profile.png',
                 bio: 'The creators of Sparkle. We are here to help you discover the magic! ✨',
                 is_verified: 1,
                 followers: 1000000,
@@ -1076,8 +1076,8 @@ const getUserProfile = async (req, res) => {
             id: user.user_id,
             username: user.username,
             name: user.name,
-            profile_picture: user.avatar_url || '/uploads/avatars/default.png',
-            avatar: user.avatar_url || '/uploads/avatars/default.png',
+            profile_picture: user.avatar_url || '/uploads/avatars/no-profile.png',
+            avatar: user.avatar_url || '/uploads/avatars/no-profile.png',
             bio: user.bio || '',
             followers_count: user.followers_count || 0,
             following_count: user.following_count || 0,
@@ -1095,7 +1095,7 @@ const getUserProfile = async (req, res) => {
             is_requested_by_me: !!user.is_requested_by_me,
             note: user.note || '',
             has_story: !!user.has_story,
-            avatar_url: user.avatar_url || '/uploads/avatars/default.png',
+            avatar_url: user.avatar_url || '/uploads/avatars/no-profile.png',
             reputation: user.reputation
         };
 
@@ -1119,7 +1119,7 @@ const getUserPosts = async (req, res) => {
                 content: 'Welcome to Sparkle! This is where discovery happens. ✨',
                 username: 'sparkle_team',
                 user_name: 'Sparkle Team',
-                avatar_url: '/uploads/avatars/default.png',
+                avatar_url: '/uploads/avatars/no-profile.png',
                 sparks: 9999,
                 comments: 123,
                 created_at: new Date()
@@ -1178,8 +1178,8 @@ const getSuggestions = async (req, res) => {
         const sanitizedSuggestions = suggestions.map(u => ({
             ...u,
             id: u.user_id,
-            avatar: u.avatar_url || '/uploads/avatars/default.png',
-            profile_picture: u.avatar_url || '/uploads/avatars/default.png',
+            avatar: u.avatar_url || '/uploads/avatars/no-profile.png',
+            profile_picture: u.avatar_url || '/uploads/avatars/no-profile.png',
             affiliation: u.affiliation || u.campus,
             interests: u.interests || u.major,
             experience_level: u.experience_level || u.year_of_study
@@ -1249,7 +1249,7 @@ const getActiveFriends = async (req, res) => {
             user_id: u.user_id, // for compatibility
             username: u.username,
             name: u.name,
-            avatar_url: u.avatar_url || '/uploads/avatars/default.png',
+            avatar_url: u.avatar_url || '/uploads/avatars/no-profile.png',
             campus: u.campus,
             affiliation: u.affiliation || u.campus,
             is_online: u.is_online,
@@ -1553,9 +1553,9 @@ const getHubRelevanceBadges = async (req, res) => {
         // --- G. FIND FRIENDS: Pending follow requests or suggestions ---
         try {
             const [fRows] = await pool.query(
-                `SELECT COUNT(*) as count 
-                 FROM follow_requests 
-                 WHERE target_id = ? AND status = 'pending'`,
+                `SELECT COUNT(*) as count
+                 FROM follow_requests
+                 WHERE target_user_id = ? AND status = 'pending'`,
                 [userId]
             );
             relevance['Find Friends'] = fRows[0]?.count || 0;

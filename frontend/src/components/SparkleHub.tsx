@@ -256,6 +256,7 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
     { name: 'Share App', icon: Send, color: 'text-teal-500 dark:text-teal-400', path: '/invite' },
     { name: 'Get Verified', icon: CheckCircle2, color: 'text-sky-500 dark:text-sky-400', path: '/verified' },
     { name: 'Professional Dashboard', icon: Briefcase, color: 'text-orange-500 dark:text-orange-400', path: '/professional-dashboard' },
+    { name: 'Moment Studio', icon: BarChart3, color: 'text-fuchsia-500 dark:text-fuchsia-400', path: '/moments/studio' },
   ];
 
   const ACCOUNT_ITEMS = [

@@ -42,7 +42,7 @@ export const OnboardingProgressCard: React.FC = () => {
             <CheckCircle2 size={32} />
           </div>
           <h4 role="heading" aria-level={4} className="font-extrabold text-zinc-900 dark:text-white text-base sm:text-lg">
-            🎉 Profile Completed!
+             Profile Completed!
           </h4>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
             You're all set up! Find people to follow and share your first Spark.

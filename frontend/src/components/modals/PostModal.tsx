@@ -191,7 +191,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
           {/* User row + post type */}
           <div className="flex items-center gap-3 px-5 py-4">
             <img
-              src={user?.avatar_url || '/uploads/avatars/default.png'}
+              src={user?.avatar_url || '/uploads/avatars/no-profile.png'}
               className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0"
               alt=""
             />

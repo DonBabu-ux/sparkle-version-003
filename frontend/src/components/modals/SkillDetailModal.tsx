@@ -150,7 +150,7 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           <div className="sdm-hero">
             <div className="sdm-hero__avatar-wrap">
               <img
-                src={offer.avatar_url || '/uploads/avatars/default.png'}
+                src={offer.avatar_url || '/uploads/avatars/no-profile.png'}
                 className="sdm-hero__avatar"
                 alt={offer.name}
               />

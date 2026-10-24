@@ -247,7 +247,7 @@ export default function Settings() {
         {/* User Card Overview */}
         <div className="mb-6 p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 shadow-sm flex items-center gap-4">
           <img
-            src={user?.avatar_url || user?.avatar || '/uploads/avatars/default.png'}
+            src={user?.avatar_url || user?.avatar || '/uploads/avatars/no-profile.png'}
             alt={user?.name || 'User'}
             className="w-14 h-14 rounded-full object-cover border-2 border-pink-500/20 shadow-sm"
           />

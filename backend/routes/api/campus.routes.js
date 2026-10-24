@@ -6,6 +6,8 @@ const { authMiddleware, optionalAuthMiddleware } = require('../../middleware/aut
 // ---- Polls ----
 router.get('/polls', optionalAuthMiddleware, campusController.getPolls);                                                // Browse (supports ?campus= filter)
 router.post('/polls', authMiddleware, campusController.createPoll);                             // Create poll (with duration via expires_at)
+router.put('/polls/:id', authMiddleware, campusController.updatePoll);                          // Edit own poll
+router.delete('/polls/:id', authMiddleware, campusController.deletePoll);                       // Take down own poll (soft delete)
 router.post('/polls/:id/vote', authMiddleware, campusController.votePoll);                      // Vote
 router.get('/polls/:id/results', optionalAuthMiddleware, campusController.getPollResults);                              // View results
 router.post('/polls/:id/invite', authMiddleware, campusController.inviteToPoll);                    // NEW - Invite others

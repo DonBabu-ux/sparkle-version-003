@@ -89,10 +89,10 @@ export default function FollowRequests() {
                 >
                   <div className="fr-user-info" onClick={() => navigate(`/profile/${req.username}`)}>
                     <img
-                      src={req.avatar_url || '/uploads/avatars/default.png'}
+                      src={req.avatar_url || '/uploads/avatars/no-profile.png'}
                       className="fr-avatar"
                       alt={req.username}
-                      onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/default.png'; }}
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/uploads/avatars/no-profile.png'; }}
                     />
                     <div className="fr-details">
                       <h4>{req.username}</h4>

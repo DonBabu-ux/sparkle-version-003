@@ -127,8 +127,8 @@ describe('Login Error Handling Matrix', () => {
       const err = createMockAxiosError(403, { code: 'ACCOUNT_SUSPENDED' });
       const result = classifyLoginError(err);
       expect(result.type).toBe('ACCOUNT_SUSPENDED');
-      expect(result.title).toBe('Account unavailable');
-      expect(result.actionLabel).toBe('Contact Support');
+      expect(result.title).toBe('Account Suspended');
+      expect(result.actionLabel).toBe('Reactivate or Support');
     });
 
     it('handles ACCOUNT_DISABLED', () => {

@@ -428,24 +428,60 @@ socket.on('get-rooms', () => {
 
         socket.on('pin-message', async (data) => {
             try {
-                const { messageId, pinned } = data || {};
+                const { messageId, chatId, pinned } = data || {};
                 if (!messageId) return;
-                const result = await Message.pinMessage(messageId, socket.userId, pinned !== false);
+                const pinning = pinned !== false;
+
+                // Guardrails that used to live only in the legacy (duplicate)
+                // handler: permission check, pin cap, denormalised flag sync.
+                const msg = await Message.getById(messageId);
+                if (!msg) {
+                    socket.emit('operation-failed', { operationId: data?.operationId, error: 'Message not found' });
+                    return;
+                }
+                const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
+                const conv = { type: (groupExists.length > 0) ? 'group' : 'private' };
+                if (!perms.canPinMessage(socket.user, msg, conv)) {
+                    socket.emit('message-error', { error: 'You do not have permission to pin this message' });
+                    socket.emit('operation-failed', { operationId: data?.operationId, error: 'Permission denied' });
+                    return;
+                }
+                if (pinning) {
+                    const [pinnedCount] = await pool.query(
+                        'SELECT COUNT(*) as count FROM messages WHERE (chat_id = ? OR conversation_id = ?) AND pinned = 1',
+                        [chatId, chatId]
+                    );
+                    if (pinnedCount[0].count >= 5) {
+                        socket.emit('message-error', { error: 'Pin limit reached (maximum 5 pinned messages allowed)' });
+                        socket.emit('operation-failed', { operationId: data?.operationId, error: 'Pin limit reached (max 5)' });
+                        return;
+                    }
+                }
+
+                const result = await Message.pinMessage(messageId, socket.userId, pinning);
+                // Keep the denormalised messages.pinned flag in sync for readers
+                // that do not join message_pins (and for the cap query above).
+                await pool.query(
+                    'UPDATE messages SET pinned = ?, pinned_at = NOW(), pinned_by = ? WHERE message_id = ?',
+                    [pinning ? 1 : 0, socket.userId, messageId]
+                );
                 socket.emit('operation-confirmed', {
                     operationId: data.operationId || result.eventId,
                     event_id: result.eventId,
                     sequence_no: result.sequenceNo,
                     type: 'pin-message',
                     messageId,
-                    pinned: pinned !== false
+                    pinned: pinning
                 });
                 io.to(`chat:${result.chatId}`).emit('message-pinned-updated', {
                     chatId: result.chatId,
                     messageId,
-                    pinned: pinned !== false,
+                    pinned: pinning,
                     event_id: result.eventId,
                     sequence_no: result.sequenceNo
                 });
+                // Legacy broadcast kept for old listeners of 'message-pinned'
+                io.to(`chat:${result.chatId}`).emit('message-pinned', { messageId, chatId: result.chatId, pinnedBy: socket.userId });
             } catch (err) {
                 logger.error('Socket pin-message error:', err);
                 socket.emit('operation-failed', { operationId: data?.operationId, error: err.message });
@@ -1046,38 +1082,6 @@ socket.on('get-rooms', () => {
             socket.emit('sparkle-pong', { ts: Date.now() });
         });
 
-        // Add Reaction
-        socket.on('add-reaction', async (data) => {
-            const { messageId, chatId, emoji } = data;
-            try {
-                await Message.addReaction(messageId, socket.userId, emoji);
-                io.to(`chat:${chatId}`).emit('new-reaction', {
-                    messageId,
-                    chatId,
-                    userId: socket.userId,
-                    emoji
-                });
-            } catch (error) {
-                logger.error('Add reaction error:', error);
-            }
-        });
-
-        // Remove Reaction
-        socket.on('remove-reaction', async (data) => {
-            const { messageId, chatId, emoji } = data;
-            try {
-                await Message.removeReaction(messageId, socket.userId, emoji);
-                io.to(`chat:${chatId}`).emit('reaction-removed', {
-                    messageId,
-                    chatId,
-                    userId: socket.userId,
-                    emoji
-                });
-            } catch (error) {
-                logger.error('Remove reaction error:', error);
-            }
-        });
-
         // Delete message for everyone (strictly server-authoritative)
         socket.on('delete-for-everyone', async (data, callback) => {
             const { messageId, chatId, operationId } = data;
@@ -1160,52 +1164,6 @@ socket.on('get-rooms', () => {
                 if (typeof callback === 'function') callback({ success: true, operationId });
             } catch (error) {
                 logger.error('Delete for me bulk error:', error);
-                if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
-            }
-        });
-
-        // Pin Message
-        socket.on('pin-message', async (data, callback) => {
-            const { messageId, chatId } = data;
-            try {
-                const [groupExists] = await pool.query('SELECT chat_id FROM group_chats WHERE chat_id = ?', [chatId]);
-                // Determine conversation type for permission check
-                const conv = { type: (groupExists.length > 0) ? 'group' : 'private' };
-                const msg = await Message.getById(messageId);
-                if (!msg) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
-                    return;
-                }
-                if (!perms.canPinMessage(socket.user, msg, conv)) {
-                    socket.emit('message-error', { error: 'You do not have permission to pin this message' });
-                    if (typeof callback === 'function') callback({ success: false, error: 'Permission denied' });
-                    return;
-                }
-
-                // Check pin limit: maximum 5 pinned messages per chat
-                const [pinnedCount] = await pool.query(
-                    'SELECT COUNT(*) as count FROM messages WHERE (chat_id = ? OR conversation_id = ?) AND pinned = 1',
-                    [chatId, chatId]
-                );
-                if (pinnedCount[0].count >= 5) {
-                    socket.emit('message-error', { error: 'Pin limit reached (maximum 5 pinned messages allowed)' });
-                    if (typeof callback === 'function') callback({ success: false, error: 'Pin limit reached (max 5)' });
-                    return;
-                }
-
-                const [result] = await pool.query(
-                    'UPDATE messages SET pinned = 1, pinned_at = NOW(), pinned_by = ? WHERE message_id = ?',
-                    [socket.userId, messageId]
-                );
-
-                if (result.affectedRows > 0) {
-                    io.to(`chat:${chatId}`).emit('message-pinned', { messageId, chatId, pinnedBy: socket.userId });
-                    if (typeof callback === 'function') callback({ success: true });
-                } else {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Message not found' });
-                }
-            } catch (error) {
-                logger.error('Pin message error:', error);
                 if (typeof callback === 'function') callback({ success: false, error: 'Server error' });
             }
         });

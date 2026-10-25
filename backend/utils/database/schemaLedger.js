@@ -41,7 +41,12 @@ const MIGRATION_NOTES = {
     'add-username-normalized.js': 'applied - users.username_normalized live with unique index',
     'migrate-enterprise-messaging.js': 'applied - idx_server_seq, user_sessions, delivery_queue, message_reactions (+idx_msg_reactions, updated_at) live',
     'migrate-official-onboarding.js': 'applied - users.official_onboarding_status + messages.is_hidden/hidden_reason/message_type/archive_after_completion live',
-    'migrate-privacy-versioning.js': 'applied - chat_privacy_settings.privacy_version, capture_attempts/notifications/audit_log live'
+    'migrate-privacy-versioning.js': 'applied - chat_privacy_settings.privacy_version, capture_attempts/notifications/audit_log live',
+    '20261006_add_performance_indexes.js': 'applied - same hot-path indexes are created idempotently by initPerfIndexes on boot (live)',
+    '20261008_create_production_referrals.js': 'applied - referral_codes/referral_clicks/referrals/referral_rewards verified live',
+    '20261021_extend_message_types.sql': 'applied earlier/superseded - messages.type is varchar(32) live and accepts every client type; this file would NARROW it back to a fixed ENUM - do not run',
+    '20261024_fix_moments_media_url.js': 'manual repair script, NOT a boot migration - dry-run by default and self-terminating (calls pool.end()); run explicitly: node migrations/20261024_fix_moments_media_url.js --apply',
+    '20261025_add_polls_deleted_at.js': 'applied - polls.deleted_at verified live'
 };
 
 const listMigrationFiles = () => fs

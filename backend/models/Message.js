@@ -8,24 +8,8 @@ class Message {
     /**
      * Get single message by ID
      */
-    static async getById(messageId) {
-        const [rows] = await db.query(`
-            SELECT m.*, 
-                   IFNULL(m.conversation_id, m.chat_id) as conversationId,
-                   m.sender_id as senderId,
-                   m.chat_id as chatId
-            FROM messages m 
-            WHERE m.message_id = ?
-        `, [messageId]);
-        if (!rows || rows.length === 0) return null;
-        const msg = rows[0];
-        return {
-            ...msg,
-            conversationId: msg.conversationId || msg.chatId,
-            senderId: msg.senderId || msg.sender_id,
-            conversationType: msg.conversation_id ? 'personal' : 'group',
-        };
-    }
+    // NOTE: an earlier duplicate getById definition was removed — a class body
+    // silently keeps only the LAST definition; the live version is below.
 
     /**
      * Start or get conversation
@@ -808,29 +792,10 @@ class Message {
         return result.affectedRows > 0 || true;
     }
 
-    /**
-     * Add/Update Reaction
-     */
-    static async addReaction(messageId, userId, emoji) {
-        const reactionId = crypto.randomUUID();
-        await db.query(`
-            INSERT INTO message_reactions (reaction_id, message_id, user_id, emoji)
-            VALUES (?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE emoji = VALUES(emoji)
-        `, [reactionId, messageId, userId, emoji]);
-        return true;
-    }
+    // NOTE: earlier duplicate definitions of addReaction/removeReaction were
+    // removed — a class body silently keeps only the LAST definition, and the
+    // enterprise versions further down this file are the live ones.
 
-    /**
-     * Remove Reaction
-     */
-    static async removeReaction(messageId, userId, emoji) {
-        await db.query(`
-            DELETE FROM message_reactions 
-            WHERE message_id = ? AND user_id = ? AND emoji = ?
-        `, [messageId, userId, emoji]);
-        return true;
-    }
 
 
     /**

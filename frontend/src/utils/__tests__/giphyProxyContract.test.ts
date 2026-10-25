@@ -33,18 +33,18 @@ describe('C2.1 — Giphy key stays server-side', () => {
     });
 
     it('backend proxy reads the key from env only (no hardcoded fallback)', () => {
-        const route = read(join(ROOT, 'routes', 'api', 'giphy.routes.js'));
+        const route = read(join(ROOT, 'backend', 'routes', 'api', 'giphy.routes.js'));
         expect(route).not.toContain(HARD_KEY);
         expect(route).toContain('process.env.GIPHY_API_KEY');
     });
 
     it('backend proxy honours type and limit query params', () => {
-        const route = read(join(ROOT, 'routes', 'api', 'giphy.routes.js'));
+        const route = read(join(ROOT, 'backend', 'routes', 'api', 'giphy.routes.js'));
         expect(route).toContain('req.query.type');
         expect(route).toContain('req.query.limit');
     });
 
     it('server.js no longer exposes giphyKey to a dead view layer', () => {
-        expect(read(join(ROOT, 'server.js'))).not.toContain('giphyKey');
+        expect(read(join(ROOT, 'backend', 'server.js'))).not.toContain('giphyKey');
     });
 });

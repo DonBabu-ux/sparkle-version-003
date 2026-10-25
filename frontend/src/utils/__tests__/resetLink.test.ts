@@ -42,13 +42,13 @@ describe('parseResetLinkParams', () => {
 
 describe('C2.2 contracts — generated links use fragments', () => {
     it('auth controller builds reset links with #, not ?', () => {
-        const ctrl = read('controllers/auth.controller.js');
+        const ctrl = read('backend/controllers/auth.controller.js');
         expect(ctrl).toContain('/reset-password#email=');
         expect(ctrl).not.toContain('/reset-password?email=');
     });
 
     it('auth controller builds verify links with #, not ?', () => {
-        const ctrl = read('controllers/auth.controller.js');
+        const ctrl = read('backend/controllers/auth.controller.js');
         expect(ctrl).toContain('/verify-email#email=');
         expect(ctrl).not.toMatch(/\/verify-email\?/);
     });

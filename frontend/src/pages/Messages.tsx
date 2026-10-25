@@ -723,7 +723,7 @@ const LiveRecordingBar = memo(({
 
   return (
     <div className="flex items-center w-full max-w-[1200px] mx-auto px-1 py-2">
-      <div className="flex items-center w-full bg-[#121212]/95 border border-white/20 rounded-full px-4 py-2 justify-between backdrop-blur-xl shadow-2xl">
+      <div className="flex items-center w-full chat-overlay-bg border border-white/20 rounded-full px-4 py-2 justify-between backdrop-blur-xl shadow-2xl">
         <button
           type="button"
           onClick={onDiscard}
@@ -1169,7 +1169,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                 onKeyDown={handleComposerKeyDown}
                 onFocus={() => setShowEmojiPicker(false)}
                 placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
-                className="flex-1 bg-transparent text-[15px] font-medium text-[#f5f5f5] placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
+                className="flex-1 bg-transparent text-[15px] font-medium chat-input-text placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
                 autoComplete="off"
                 aria-label="Message text"
               />
@@ -1443,6 +1443,8 @@ const mergeMessageLists = (base: any[], incoming: any[]): any[] => {
 
 export default function Messages() {
   const { user } = useUserStore();
+  // The chat shell mirrors the app's light/dark choice (app default: light).
+  const appThemeMode = useUserStore((s) => s.theme);
   useModalStore();
   const socket = useSocket();
   const { startCall } = useCall();
@@ -4320,10 +4322,13 @@ export default function Messages() {
       <Navbar />
       <WordEffectBubbles emoji={playingEffectEmoji} active={!!playingEffectEmoji} />
 
-      <KeyboardAwareChatLayout className="flex flex-col md:flex-row flex-1 overflow-hidden relative bg-[#111118]">
+      <KeyboardAwareChatLayout
+        className="flex flex-col md:flex-row flex-1 overflow-hidden relative chat-shell-bg"
+        data-chat-mode={appThemeMode === 'dark' ? 'dark' : 'light'}
+      >
         {/* SIDEBAR */}
         <aside className={clsx(
-          "w-full md:w-[360px] lg:w-[420px] bg-[#13131a] border-r border-white/[0.06] flex flex-col transition-all duration-300 min-h-0 h-full",
+          "w-full md:w-[360px] lg:w-[420px] chat-panel-bg border-r border-white/[0.06] flex flex-col transition-all duration-300 min-h-0 h-full",
           selectedChat ? 'hidden md:flex' : 'flex flex-1 md:flex-initial'
         )}>
           {selectedChatIds.length > 0 ? (
@@ -4340,7 +4345,7 @@ export default function Messages() {
               onMore={() => setShowSelectionMenu(true)}
             />
           ) : (
-            <header className="px-5 pt-4 pb-2 overflow-visible bg-[#13131a]">
+            <header className="px-5 pt-4 pb-2 overflow-visible chat-panel-bg">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username || user?.user_id}`)}>
@@ -4449,7 +4454,7 @@ export default function Messages() {
           <div
             ref={scrollContainerRef}
             onScroll={handleScroll}
-            className="flex-1 overflow-y-auto pb-24 md:pb-6 no-scrollbar scroll-smooth bg-[#13131a]"
+            className="flex-1 overflow-y-auto pb-24 md:pb-6 no-scrollbar scroll-smooth chat-panel-bg"
           >
             {Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
               <div className="py-12 px-4">
@@ -5979,7 +5984,7 @@ export default function Messages() {
                 <Sparkles size={400} strokeWidth={0.5} className="animate-spin-slow" />
               </div>
               <Sparkles size={120} strokeWidth={1} className="text-white/5 mb-12 relative z-10" />
-              <h2 className="text-5xl font-black text-[#f5f5f5] mb-4 tracking-tighter italic uppercase underline decoration-[#ff1493]/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
+              <h2 className="text-5xl font-black chat-input-text mb-4 tracking-tighter italic uppercase underline decoration-[#ff1493]/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
               <p className="text-white font-medium opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               <button
                 onClick={() => setShowNewChatModal(true)}
@@ -6619,7 +6624,7 @@ export default function Messages() {
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 220 }}
               className={clsx(
-                "relative z-10 w-full max-w-[540px] bg-[#121212]/95 border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[28px] overflow-hidden backdrop-blur-xl flex flex-col",
+                "relative z-10 w-full max-w-[540px] chat-overlay-bg border-t sm:border border-white/10 rounded-t-[32px] sm:rounded-[28px] overflow-hidden backdrop-blur-xl flex flex-col",
                 attachmentSheetHeight === 'full' ? 'h-[92vh] sm:h-[min(640px,86vh)]' : 'h-[56vh] sm:h-[min(640px,86vh)]'
               )}
               style={{
@@ -6907,7 +6912,7 @@ export default function Messages() {
       {/* ── 2. MULTIPLE SELECTION MEDIA COMPOSER ── */}
       <AnimatePresence>
         {showMediaComposer && (
-          <div className="fixed inset-0 z-(--z-modal) bg-[#0c0c0c] flex flex-col select-none">
+          <div className="fixed inset-0 z-(--z-modal) chat-overlay-bg flex flex-col select-none">
             {/* Header */}
             <div className="p-4 border-b border-white/5 flex justify-between items-center backdrop-blur-md bg-black/20 shrink-0">
               <span className="text-[11px] font-black uppercase tracking-widest text-white/50">Media Composer</span>
@@ -6973,7 +6978,7 @@ export default function Messages() {
             </div>
 
             {/* Footer Form with Caption & Concurrent Queue Send */}
-            <div className="p-6 border-t border-white/5 bg-[#121212]/90 backdrop-blur-xl shrink-0 flex flex-col gap-4">
+            <div className="p-6 border-t border-white/5 chat-overlay-bg backdrop-blur-xl shrink-0 flex flex-col gap-4">
               <div className="flex items-center gap-3 bg-white/5 rounded-2xl px-4 py-3 border border-white/5">
                 <input
                   type="text"
@@ -7067,7 +7072,7 @@ export default function Messages() {
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
-            className="fixed bottom-24 left-6 z-(--z-modal) p-4 bg-[#121212]/95 border border-white/10 rounded-3xl w-[280px] backdrop-blur-xl shadow-2xl flex flex-col gap-3"
+            className="fixed bottom-24 left-6 z-(--z-modal) p-4 chat-overlay-bg border border-white/10 rounded-3xl w-[280px] backdrop-blur-xl shadow-2xl flex flex-col gap-3"
           >
             <div className="flex justify-between items-center border-b border-white/5 pb-2">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#ff1493]">
@@ -7112,7 +7117,7 @@ export default function Messages() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) chat-shell-bg flex flex-col"
           >
             <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-white/[0.07]">
               <button onClick={() => { setShowNewListFlow('none'); setNewListName(''); setEditingListId(null); }} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.07] text-white/70 transition-all">
@@ -7171,7 +7176,7 @@ export default function Messages() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 40 }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) chat-shell-bg flex flex-col"
           >
             <div className="flex items-center gap-3 px-4 pt-14 pb-3 border-b border-white/[0.07]">
               <button onClick={() => setShowNewListFlow('name')} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/[0.07] text-white/70 transition-all">
@@ -7327,7 +7332,7 @@ export default function Messages() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 60 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-(--z-modal) bg-[#111118] flex flex-col"
+            className="fixed inset-0 z-(--z-modal) chat-shell-bg flex flex-col"
           >
             <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-white/[0.07]">
               <button

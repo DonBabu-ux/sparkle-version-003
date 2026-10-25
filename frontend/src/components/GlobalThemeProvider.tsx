@@ -27,7 +27,7 @@ const LEGACY_THEME_ROUTES = [
   '/professional-dashboard', '/ads', '/studio', '/analytics', '/wallet/history',
   '/lost-found', '/support', '/support/ticket/:ticketId',
   '/gallery', '/invite', '/help', '/learn-more',
-  '/messages', '/messages/:targetId', '/messages/settings',
+  '/messages/settings',
   '/story/:storyId', '/stories/:userId', '/moments', '/moments/:id', '/moments/create', '/streams',
   '/search/history',
   '/sparkly', '/sparkly/*', '/sparklybot', '/sparkly-bot', '/sparkly-bot/*',

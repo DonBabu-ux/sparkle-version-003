@@ -45,7 +45,7 @@ export const SparklePeekCard: React.FC<SparklePeekCardProps> = ({
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
           transition={{ duration: 0.15 }}
-          className="w-full max-w-[280px] bg-[#1a1626]/95 border border-white/10 rounded-2xl p-4 shadow-xl relative select-none"
+          className="w-full max-w-[280px] chat-panel-bg border border-white/10 rounded-2xl p-4 shadow-xl relative select-none"
           onClick={(e) => e.stopPropagation()}
         >
           <button

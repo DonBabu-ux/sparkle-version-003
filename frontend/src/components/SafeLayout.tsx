@@ -195,10 +195,15 @@ export const KeyboardAwareChatLayout: React.FC<{
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-}> = ({ children, className = '', style }) => {
+  /** Mirrors the app's light/dark choice onto the chat shell (see index.css). */
+  'data-chat-mode'?: 'light' | 'dark';
+}> = ({ children, className = '', style, 'data-chat-mode': chatMode }) => {
   return (
     <KeyboardSafeContainer className={`flex-1 w-full bg-transparent ${className}`} style={style}>
-      {children}
+      {/* display:contents wrapper: carries the theme scope without affecting layout */}
+      <div data-chat-mode={chatMode} className="contents">
+        {children}
+      </div>
     </KeyboardSafeContainer>
   );
 };

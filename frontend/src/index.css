@@ -31,6 +31,16 @@
 
 :root {
   --bg-main: #f0f2f5;
+
+  /* ---- Messaging shell theming ----
+     The chat screen was authored dark-only while the app default is LIGHT.
+     `data-chat-mode` on the chat root mirrors the user's light/dark choice;
+     these semantic surfaces flip with it. Keep dark as the dark-mode value
+     so existing screens are pixel-identical when the app is dark. */
+  --chat-shell-bg: #eef1f6;
+  --chat-panel-bg: #ffffff;
+  --chat-overlay-bg: #f7f8fb;
+  --chat-input-text: #0f172a;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -59,6 +69,37 @@
   --z-toast: 10000;   /* toast layer */
   --z-max: 99999;     /* unmissable top layer (TikTok hearts, loading bar) */
 }
+
+/* Messaging: dark scope mirrors the authored values so dark mode is unchanged */
+[data-chat-mode="dark"] {
+  --chat-shell-bg: #111118;
+  --chat-panel-bg: #13131a;
+  --chat-overlay-bg: #121212;
+  --chat-input-text: #f5f5f5;
+}
+
+.chat-shell-bg { background-color: var(--chat-shell-bg); }
+.chat-panel-bg { background-color: var(--chat-panel-bg); }
+.chat-overlay-bg { background-color: var(--chat-overlay-bg); }
+.chat-input-text { color: var(--chat-input-text); }
+
+/* Long tail: the chat screen's dark-only alpha utilities. Scoped to the chat
+   root — the attribute selector keeps specificity above the single-class
+   utility, so no !important is needed. Pure `text-white` on colored chips and
+   buttons is intentionally left alone; only muted-on-transparent families flip. */
+[data-chat-mode="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.045); }
+[data-chat-mode="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.07); }
+[data-chat-mode="light"] .bg-white\/20 { background-color: rgba(15, 23, 42, 0.1); }
+[data-chat-mode="light"] .text-white\/40 { color: rgba(15, 23, 42, 0.5); }
+[data-chat-mode="light"] .text-white\/50 { color: rgba(15, 23, 42, 0.55); }
+[data-chat-mode="light"] .text-white\/70 { color: rgba(15, 23, 42, 0.66); }
+[data-chat-mode="light"] .text-white\/80 { color: rgba(15, 23, 42, 0.78); }
+[data-chat-mode="light"] .text-white\/90 { color: rgba(15, 23, 42, 0.88); }
+[data-chat-mode="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
+[data-chat-mode="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.11); }
+[data-chat-mode="light"] .border-white\/\[0\.06\] { border-color: rgba(15, 23, 42, 0.09); }
+[data-chat-mode="light"] .placeholder\:text-white\/20::placeholder { color: rgba(15, 23, 42, 0.4); }
+[data-chat-mode="light"] .placeholder\:text-white\/40::placeholder { color: rgba(15, 23, 42, 0.45); }
 
 .dark {
   --color-surface-bg: var(--color-surface-bg-dark);

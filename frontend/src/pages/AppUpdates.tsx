@@ -20,7 +20,8 @@ import {
   Shield,
   Radio,
 } from 'lucide-react';
-import UpdateService, {
+import UpdateService from '../services/UpdateService';
+import type {
   UpdateStatus,
   VersionInfo,
   UpdatePreferences,

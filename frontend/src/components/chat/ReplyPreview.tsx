@@ -1,6 +1,7 @@
 import React from 'react';
 import { X, Image as ImageIcon, Video, Mic, FileText, Sparkles, AlertCircle, Clock } from 'lucide-react';
-import { useChatStore, ChatMessage } from '../../store/chatStore';
+import { useChatStore } from '../../store/chatStore';
+import type { ChatMessage } from '../../store/chatStore';
 
 const EMPTY_NICKNAMES_MAP: Record<string, string> = {};
 

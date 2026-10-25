@@ -135,6 +135,7 @@ const WalletHistory = lazyWithRetry(() => import('./pages/WalletHistory'));
 import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
+import { useAppPermissions } from './hooks/useAppPermissions';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
@@ -209,6 +210,10 @@ function App() {
   useEffect(() => {
     logger.log('SPLASH MOUNTED');
   }, []);
+
+  // One-time app-open permission pass (notifications, camera, microphone) —
+  // runs after the first authenticated boot, never blocks startup.
+  useAppPermissions();
 
   // 2️⃣ Hard Fail-safe Watchdog Timer
   useEffect(() => {

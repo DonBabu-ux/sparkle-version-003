@@ -55,7 +55,7 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2, Reply } from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useCall } from '../components/CallProvider';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -105,6 +105,35 @@ interface ChatConversation {
 }
 
 
+// Real voice-note waveforms: peaks are decoded once per URL and cached.
+const voiceWaveformCache = new Map<string, number[]>();
+const SYNTHETIC_BARS = Array.from({ length: 32 }, (_, i) => 0.15 + Math.abs(Math.sin(i * 0.4)) * 0.85);
+
+/** Decodes an audio URL into normalised amplitude peaks (0..1) for rendering. */
+async function computeVoicePeaks(url: string, buckets = 32): Promise<number[]> {
+  const res = await fetch(url);
+  const buf = await res.arrayBuffer();
+  const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+  const ctx = new AudioCtx();
+  try {
+    const audio = await ctx.decodeAudioData(buf);
+    const data = audio.getChannelData(0);
+    const step = Math.max(1, Math.floor(data.length / buckets));
+    const peaks: number[] = [];
+    for (let b = 0; b < buckets; b++) {
+      let max = 0;
+      const start = b * step;
+      const end = Math.min(start + step, data.length);
+      for (let j = start; j < end; j++) max = Math.max(max, Math.abs(data[j]));
+      peaks.push(max);
+    }
+    const loudest = Math.max(...peaks, 0.0001);
+    return peaks.map((p) => Math.max(0.08, p / loudest));
+  } finally {
+    ctx.close().catch(() => {});
+  }
+}
+
 const VoiceNotePlayer = ({ url }: { url: string }) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const waveformRef = useRef<HTMLDivElement | null>(null);
@@ -112,6 +141,8 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [peaks, setPeaks] = useState<number[] | null>(() => voiceWaveformCache.get(url) ?? null);
+  const [audioError, setAudioError] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -152,6 +183,26 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
     setPlaybackRate(nextRate);
   };
 
+  // Decode the real waveform once per URL; synthetic bars remain as fallback
+  // when decoding is unavailable (CORS-blocked, exotic codec, decoding error).
+  useEffect(() => {
+    let cancelled = false;
+    const cached = voiceWaveformCache.get(url);
+    if (cached) {
+      setPeaks(cached);
+      return;
+    }
+    computeVoicePeaks(url)
+      .then((p) => {
+        voiceWaveformCache.set(url, p);
+        if (!cancelled) setPeaks(p);
+      })
+      .catch(() => {
+        if (!cancelled) setPeaks(null);
+      });
+    return () => { cancelled = true; };
+  }, [url]);
+
   const handleWaveformClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!waveformRef.current || !audioRef.current || duration <= 0) return;
     const rect = waveformRef.current.getBoundingClientRect();
@@ -169,11 +220,33 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
     return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  if (audioError) {
+    return (
+      <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none">
+        <AlertCircle size={18} className="text-white/40 shrink-0" />
+        <span className="flex-1 text-[11px] font-bold text-white/50">Voice note unavailable</span>
+        <button
+          type="button"
+          onClick={() => {
+            setAudioError(false);
+            setPeaks(voiceWaveformCache.get(url) ?? null);
+            if (audioRef.current) audioRef.current.load();
+          }}
+          className="px-2 py-1 rounded-lg bg-white/10 text-white text-[10px] font-black border border-white/5 hover:bg-white/20 transition-all"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex items-center gap-3 bg-white/5 border border-white/10 rounded-2xl p-3 min-w-[240px] max-w-[300px] select-none">
       <audio
         ref={audioRef}
         src={url}
+        preload="metadata"
+        onError={() => setAudioError(true)}
         onPlay={() => {
           setIsPlaying(true);
           if (audioRef.current) AudioSessionManager.registerVoicePlayback(audioRef.current);
@@ -192,11 +265,11 @@ const VoiceNotePlayer = ({ url }: { url: string }) => {
       </button>
       <div className="flex-1 flex flex-col gap-1 min-w-0 cursor-pointer" onClick={handleWaveformClick}>
         <div ref={waveformRef} className="flex items-end gap-[3px] h-[22px] px-1 overflow-hidden">
-          {[...Array(24)].map((_, i) => {
+          {(peaks ?? SYNTHETIC_BARS).map((peak, i) => {
             const progress = duration > 0 ? currentTime / duration : 0;
-            const barIndex = i / 24;
+            const barIndex = i / (peaks?.length ?? SYNTHETIC_BARS.length);
             const isActive = progress >= barIndex;
-            const height = 4 + Math.abs(Math.sin(i * 0.4)) * 14;
+            const height = 4 + peak * 16;
             return (
               <div
                 key={i}
@@ -271,6 +344,48 @@ const AttachmentCard = ({ metadata }: { metadata: string }) => {
 };
 
 // --- Components ---
+
+/**
+ * WhatsApp-style multi-image bubble: one grid for a run of consecutive photos
+ * from the same sender (see albumGroups). Tapping any cell opens the existing
+ * fullscreen viewer with that message. Albums cap at 9 cells with a +N badge.
+ */
+const MediaAlbumBubble = ({ items, isMe, onOpen }: { items: any[]; isMe: boolean; onOpen: (msg: any) => void }) => {
+  const visible = items.slice(0, 9);
+  const overflow = items.length - visible.length;
+  const cols = items.length === 2 ? 2 : 3;
+
+  return (
+    <div className={`flex animate-fade-in mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+      <div
+        className="grid gap-[2px] rounded-[18px] overflow-hidden border border-white/10 bg-black/20 max-w-[300px]"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      >
+        {visible.map((m, idx) => (
+          <button
+            key={m.message_id || idx}
+            type="button"
+            onClick={() => onOpen(m)}
+            className="relative aspect-square overflow-hidden bg-black/30 active:opacity-80 transition-opacity"
+            aria-label={`Open image ${idx + 1} of ${items.length}`}
+          >
+            <img
+              src={getMediaUrl(m.media_url || m.mediaUrl) || undefined}
+              className="w-full h-full object-cover"
+              alt=""
+              loading="lazy"
+            />
+            {overflow > 0 && idx === visible.length - 1 && (
+              <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white font-black text-lg">
+                +{overflow}
+              </div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 const WordEffectBubbles = ({ emoji, active }: { emoji: string | null, active: boolean }) => {
   if (!active || !emoji) return null;
@@ -1800,6 +1915,11 @@ export default function Messages() {
   const [selectedMediaItems, setSelectedMediaItems] = useState<any[]>([]);
   const [showMediaComposer, setShowMediaComposer] = useState(false);
   const [mediaCaption, setMediaCaption] = useState('');
+  // Index of the item shown in the composer's big preview (multi-select swiper)
+  const [composerPreviewIndex, setComposerPreviewIndex] = useState(0);
+  useEffect(() => {
+    if (showMediaComposer) setComposerPreviewIndex(0);
+  }, [showMediaComposer]);
   const [uploadQueue, setUploadQueue] = useState<{ id: string; name: string; progress: number; status: 'uploading' | 'completed' | 'failed' }[]>([]);
   const uploadControllersRef = useRef<Map<string, AbortController>>(new Map());
   const uploadPayloadsRef = useRef<Map<string, { file: any; type: string; name?: string; caption?: string }>>(new Map());
@@ -3702,6 +3822,48 @@ export default function Messages() {
     return unexpired.filter(m => (m.content ?? '').toLowerCase().includes(term));
   }, [messages, messageSearch]);
 
+  // Multi-image album plan: consecutive plain-image messages from the same
+  // sender within 5 minutes render as ONE grid bubble instead of a burst of
+  // single-image bubbles (GIFs, videos, voice notes and replies excluded).
+  const albumGroups = useMemo(() => {
+    const plan = new Map<string, { head: boolean; size: number }>();
+    const isPlainImage = (m: any) =>
+      !m.is_video &&
+      !m.reply_to_message_id &&
+      (m.type === 'image' || m.media_type === 'image') &&
+      !!(m.media_url || m.mediaUrl) &&
+      !String(m.media_url || m.mediaUrl || '').includes('giphy');
+
+    let run: any[] = [];
+    const flush = () => {
+      if (run.length >= 2) {
+        run.forEach((m, idx) => plan.set(m.message_id, { head: idx === 0, size: run.length }));
+      }
+      run = [];
+    };
+
+    for (const m of filteredMessages) {
+      if (isPlainImage(m) && run.length > 0) {
+        const prev = run[run.length - 1];
+        const sameSender = String(prev.sender_id) === String(m.sender_id);
+        const dt = Math.abs(
+          new Date(m.sent_at || m.created_at).getTime() - new Date(prev.sent_at || prev.created_at).getTime()
+        );
+        if (sameSender && dt <= 5 * 60 * 1000) {
+          run.push(m);
+          continue;
+        }
+      }
+      if (isPlainImage(m)) {
+        run = [m];
+        continue;
+      }
+      flush();
+    }
+    flush();
+    return plan;
+  }, [filteredMessages]);
+
   const pinnedMessages = useMemo(() => {
     return messages.filter(m => m.pinned);
   }, [messages]);
@@ -4678,6 +4840,26 @@ export default function Messages() {
                         <div className="flex-1 h-px bg-white/[0.07]" />
                       </div>
                     ) : null;
+
+                    // Multi-image album: consecutive same-sender photos collapse
+                    // into one grid bubble; non-head members render nothing.
+                    const albumInfo = albumGroups.get(msg.message_id);
+                    if (albumInfo) {
+                      if (!albumInfo.head) return [];
+                      const groupMessages: any[] = [];
+                      for (let k = i; k < i + albumInfo.size && k < filteredMessages.length; k++) {
+                        groupMessages.push(filteredMessages[k]);
+                      }
+                      return [
+                        ...(dateSep ? [dateSep] : []),
+                        <MediaAlbumBubble
+                          key={`album-${msg.message_id}`}
+                          items={groupMessages}
+                          isMe={isMe}
+                          onOpen={(m: any) => setViewerMessage(m)}
+                        />,
+                      ];
+                    }
 
                     const msgId = msg.message_id || msg.id;
                     const isSelected = isSelectionMode && selectedMessageIds.has(msgId);
@@ -6662,7 +6844,45 @@ export default function Messages() {
             <div className="flex-1 flex flex-col items-center justify-center p-6 min-h-0 relative overflow-hidden bg-black/40">
               <div className="w-full max-w-[480px] h-[340px] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
                 {selectedMediaItems.length > 0 && (
-                  <img src={selectedMediaItems[0].url} className="w-full h-full object-cover" alt="Previewing asset" />
+                  <img
+                    src={selectedMediaItems[Math.min(composerPreviewIndex, selectedMediaItems.length - 1)].url}
+                    className="w-full h-full object-cover"
+                    alt="Previewing asset"
+                  />
+                )}
+                {selectedMediaItems.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Previous image"
+                      onClick={() => setComposerPreviewIndex(i => (i - 1 + selectedMediaItems.length) % selectedMediaItems.length)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition-all active:scale-90"
+                    >
+                      <ChevronLeft size={18} strokeWidth={3} />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Next image"
+                      onClick={() => setComposerPreviewIndex(i => (i + 1) % selectedMediaItems.length)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/50 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-sm transition-all active:scale-90"
+                    >
+                      <ChevronRight size={18} strokeWidth={3} />
+                    </button>
+                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {selectedMediaItems.map((it, dotIdx) => (
+                        <button
+                          key={it.id}
+                          type="button"
+                          aria-label={`Preview image ${dotIdx + 1}`}
+                          onClick={() => setComposerPreviewIndex(dotIdx)}
+                          className={`h-1.5 rounded-full transition-all ${dotIdx === composerPreviewIndex ? 'w-4 bg-white' : 'w-1.5 bg-white/40'}`}
+                        />
+                      ))}
+                    </div>
+                    <span className="absolute top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[10px] font-black">
+                      {composerPreviewIndex + 1} / {selectedMediaItems.length}
+                    </span>
+                  </>
                 )}
               </div>
             </div>
@@ -6682,8 +6902,12 @@ export default function Messages() {
               <div className="flex items-center justify-between">
                 {/* Thumbnails grid */}
                 <div className="flex gap-2.5 overflow-x-auto no-scrollbar py-1">
-                  {selectedMediaItems.map((item, _idx) => (
-                    <div key={item.id} className="relative w-12 h-12 rounded-xl overflow-hidden border border-white/10 shrink-0">
+                  {selectedMediaItems.map((item, thumbIdx) => (
+                    <div
+                      key={item.id}
+                      onClick={() => setComposerPreviewIndex(thumbIdx)}
+                      className={`relative w-12 h-12 rounded-xl overflow-hidden border shrink-0 cursor-pointer transition-all ${thumbIdx === composerPreviewIndex ? 'border-[#ff1493] ring-2 ring-[#ff1493]/35' : 'border-white/10 hover:border-white/25'}`}
+                    >
                       <img src={item.url} className="w-full h-full object-cover" alt="" />
                       <button
                         type="button"
@@ -6712,8 +6936,10 @@ export default function Messages() {
                     setSelectedMediaItems([]);
                     setMediaCaption('');
 
-                    // Trigger concurrent background media uploads & optimistic messaging
-                    for (const item of items) {
+                    // Trigger concurrent background media uploads & optimistic messaging.
+                    // The caption rides on the FIRST image only — not every
+                    // message in a multi-photo send.
+                    items.forEach((item, itemIndex) => {
                       const mediaType = item.type || 'image';
 
                       // 1. Display optimistic media bubble in chat IMMEDIATELY
@@ -6722,7 +6948,7 @@ export default function Messages() {
                         message_id: tempMessageId,
                         id: tempMessageId,
                         sender_id: user?.id || user?.user_id || '',
-                        content: caption || '',
+                        content: itemIndex === 0 ? (caption || '') : '',
                         status: 'sending',
                         sent_at: new Date().toISOString(),
                         created_at: new Date().toISOString(),
@@ -6736,8 +6962,8 @@ export default function Messages() {
                       if (isNearBottom) setTimeout(() => scrollToBottom('smooth'), 50);
 
                       const filePayload = item.file || item.url;
-                      executeMediaUpload(tempMessageId, filePayload, mediaType, item.name || `Attachment ${mediaType}`, caption);
-                    }
+                      executeMediaUpload(tempMessageId, filePayload, mediaType, item.name || `Attachment ${mediaType}`, itemIndex === 0 ? caption : '');
+                    });
                   }}
                   className="py-3 px-8 rounded-2xl bg-[#ff1493] hover:bg-pink-600 text-white text-[12px] font-black uppercase tracking-widest shadow-xl shadow-pink-500/25 active:scale-95 transition-all shrink-0 ml-4"
                 >

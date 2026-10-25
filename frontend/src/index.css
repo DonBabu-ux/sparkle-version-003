@@ -41,6 +41,7 @@
   --chat-panel-bg: #ffffff;
   --chat-overlay-bg: #f7f8fb;
   --chat-input-text: #0f172a;
+  --chat-text: #0f172a;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -76,6 +77,7 @@
   --chat-panel-bg: #13131a;
   --chat-overlay-bg: #121212;
   --chat-input-text: #f5f5f5;
+  --chat-text: #f0f0f5;
 }
 
 .chat-shell-bg { background-color: var(--chat-shell-bg); }
@@ -100,6 +102,62 @@
 [data-chat-mode="light"] .border-white\/\[0\.06\] { border-color: rgba(15, 23, 42, 0.09); }
 [data-chat-mode="light"] .placeholder\:text-white\/20::placeholder { color: rgba(15, 23, 42, 0.4); }
 [data-chat-mode="light"] .placeholder\:text-white\/40::placeholder { color: rgba(15, 23, 42, 0.45); }
+
+/* ---- Chat component subsystem (rows, modals, location, action bar) ----
+   These live in components/chat/* and were authored dark-only with the same
+   families. They render inside the chat scope, so the same flip covers them
+   without per-file churn. Brand #ff1493 is left alone (works on both). */
+[data-chat-mode="light"] .text-\[\#f5f5f5\] { color: var(--chat-text); }
+[data-chat-mode="light"] .text-\[\#f5f5f5\]\/90 { color: color-mix(in srgb, var(--chat-text) 90%, transparent); }
+[data-chat-mode="light"] .text-\[\#f5f5f5\]\/60 { color: color-mix(in srgb, var(--chat-text) 60%, transparent); }
+[data-chat-mode="light"] .bg-\[\#13131a\],
+[data-chat-mode="light"] .bg-\[\#0f0f14\],
+[data-chat-mode="light"] .bg-\[\#0b141a\] { background-color: var(--chat-panel-bg); }
+[data-chat-mode="light"] .bg-\[\#13131a\]\/98 { background-color: color-mix(in srgb, var(--chat-panel-bg) 98%, transparent); }
+[data-chat-mode="light"] .bg-\[\#13131a\]\/95 { background-color: color-mix(in srgb, var(--chat-panel-bg) 95%, transparent); }
+[data-chat-mode="light"] .bg-\[\#13131a\]\/90 { background-color: color-mix(in srgb, var(--chat-panel-bg) 92%, transparent); }
+[data-chat-mode="light"] .bg-\[\#13131a\]\/85 { background-color: color-mix(in srgb, var(--chat-panel-bg) 87%, transparent); }
+[data-chat-mode="light"] .bg-\[\#13131a\]\/80 { background-color: color-mix(in srgb, var(--chat-panel-bg) 82%, transparent); }
+[data-chat-mode="light"] .bg-\[\#111118\] { background-color: var(--chat-shell-bg); }
+[data-chat-mode="light"] .bg-\[\#121212\]\/95,
+[data-chat-mode="light"] .bg-\[\#121212\]\/90 { background-color: color-mix(in srgb, var(--chat-overlay-bg) 95%, transparent); }
+[data-chat-mode="light"] .border-\[\#13131a\],
+[data-chat-mode="light"] .border-\[\#0b141a\],
+[data-chat-mode="light"] .border-\[\#111118\] { border-color: var(--chat-panel-bg); }
+
+/* Remaining alpha families used across the chat surface */
+[data-chat-mode="light"] .text-white\/5 { color: rgba(15, 23, 42, 0.05); }
+[data-chat-mode="light"] .text-white\/20 { color: rgba(15, 23, 42, 0.35); }
+[data-chat-mode="light"] .text-white\/25 { color: rgba(15, 23, 42, 0.38); }
+[data-chat-mode="light"] .text-white\/30 { color: rgba(15, 23, 42, 0.42); }
+[data-chat-mode="light"] .text-white\/35 { color: rgba(15, 23, 42, 0.46); }
+[data-chat-mode="light"] .text-white\/55 { color: rgba(15, 23, 42, 0.58); }
+[data-chat-mode="light"] .text-white\/60 { color: rgba(15, 23, 42, 0.6); }
+[data-chat-mode="light"] .text-white\/75 { color: rgba(15, 23, 42, 0.72); }
+[data-chat-mode="light"] .text-white\/85 { color: rgba(15, 23, 42, 0.82); }
+[data-chat-mode="light"] .text-white\/95 { color: rgba(15, 23, 42, 0.92); }
+[data-chat-mode="light"] .bg-white\/15 { background-color: rgba(15, 23, 42, 0.08); }
+[data-chat-mode="light"] .bg-white\/40 { background-color: rgba(15, 23, 42, 0.2); }
+[data-chat-mode="light"] .bg-white\/\[0\.02\] { background-color: rgba(15, 23, 42, 0.02); }
+[data-chat-mode="light"] .bg-white\/\[0\.03\] { background-color: rgba(15, 23, 42, 0.03); }
+[data-chat-mode="light"] .bg-white\/\[0\.04\] { background-color: rgba(15, 23, 42, 0.04); }
+[data-chat-mode="light"] .bg-white\/\[0\.07\] { background-color: rgba(15, 23, 42, 0.055); }
+[data-chat-mode="light"] .bg-white\/\[0\.08\] { background-color: rgba(15, 23, 42, 0.06); }
+[data-chat-mode="light"] .bg-white\/\[0\.15\] { background-color: rgba(15, 23, 42, 0.08); }
+[data-chat-mode="light"] .bg-white\/\[0\.16\] { background-color: rgba(15, 23, 42, 0.085); }
+[data-chat-mode="light"] .bg-white\/\[0\.25\] { background-color: rgba(15, 23, 42, 0.13); }
+[data-chat-mode="light"] .border-white\/15 { border-color: rgba(15, 23, 42, 0.12); }
+[data-chat-mode="light"] .border-white\/20 { border-color: rgba(15, 23, 42, 0.16); }
+[data-chat-mode="light"] .border-white\/25 { border-color: rgba(15, 23, 42, 0.2); }
+[data-chat-mode="light"] .border-white\/30 { border-color: rgba(15, 23, 42, 0.24); }
+[data-chat-mode="light"] .border-white\/40 { border-color: rgba(15, 23, 42, 0.3); }
+[data-chat-mode="light"] .border-white\/50 { border-color: rgba(15, 23, 42, 0.36); }
+[data-chat-mode="light"] .border-white\/\[0\.04\] { border-color: rgba(15, 23, 42, 0.05); }
+[data-chat-mode="light"] .border-white\/\[0\.05\] { border-color: rgba(15, 23, 42, 0.06); }
+[data-chat-mode="light"] .border-white\/\[0\.07\] { border-color: rgba(15, 23, 42, 0.08); }
+[data-chat-mode="light"] .border-white\/\[0\.08\] { border-color: rgba(15, 23, 42, 0.09); }
+[data-chat-mode="light"] .border-white\/\[0\.10\] { border-color: rgba(15, 23, 42, 0.11); }
+[data-chat-mode="light"] .border-white\/\[0\.12\] { border-color: rgba(15, 23, 42, 0.12); }
 
 .dark {
   --color-surface-bg: var(--color-surface-bg-dark);

@@ -1796,8 +1796,11 @@ const broadcastOnlineStatus = async (socket, isOnline) => {
 const refreshPresenceBroadcast = async (userId, username) => {
     try {
         if (!userId) return;
-        const isOnline = userSockets.has(Number(userId)) && userSockets.get(Number(userId)).size > 0;
-        await broadcastOnlineStatus({ userId: Number(userId), user: username ? { username } : undefined }, isOnline);
+        // userSockets is keyed by the raw id (UUID string) — Number() produced
+        // NaN and every lookup missed, so privacy-change broadcasts always
+        // reported "offline".
+        const isOnline = userSockets.has(userId) && userSockets.get(userId).size > 0;
+        await broadcastOnlineStatus({ userId, user: username ? { username } : undefined }, isOnline);
     } catch (e) {
         logger.error('refreshPresenceBroadcast error:', e);
     }

@@ -890,11 +890,11 @@ socket.on('get-rooms', () => {
                         recipientUserId: socket.userId,
                         deliveredAt: new Date().toISOString()
                     };
+                    // Single canonical event: 'message-delivered-update' carries
+                    // the same payload the legacy 'messages-delivered' duplicate did.
                     io.to(`chat:${chatId}`).emit('message-delivered-update', payload);
-                    io.to(`chat:${chatId}`).emit('messages-delivered', payload);
                     if (msg.sender_id) {
                         io.to(`user:${msg.sender_id}`).emit('message-delivered-update', payload);
-                        io.to(`user:${msg.sender_id}`).emit('messages-delivered', payload);
                     }
                 }
                 if (typeof callback === 'function') callback({ success: true });
@@ -919,8 +919,9 @@ socket.on('get-rooms', () => {
                         userId: socket.userId,
                         readAt
                     };
+                    // Single canonical event: 'message-read-update' (the legacy
+                    // 'messages-read' duplicate carried the same payload).
                     io.to(`chat:${chatId}`).emit('message-read-update', payload);
-                    io.to(`chat:${chatId}`).emit('messages-read', payload);
 
                     // Also broadcast to the other participant's personal user room if 1-on-1 chat
                     const [chatRows] = await pool.query(
@@ -959,39 +960,10 @@ socket.on('get-rooms', () => {
             }
         });
 
-        // Legacy mark-read & mark-delivered compatibility wrappers
-        socket.on('mark-read', async (chatId) => {
-            try {
-                const { readReceiptsEnabled } = await Message.markReadTriCondition(chatId, null, socket.userId);
-                if (readReceiptsEnabled) {
-                    const readAt = new Date().toISOString();
-                    const payload = {
-                        chatId,
-                        readerUserId: socket.userId,
-                        userId: socket.userId,
-                        readAt
-                    };
-                    io.to(`chat:${chatId}`).emit('message-read-update', payload);
-                    io.to(`chat:${chatId}`).emit('messages-read', payload);
+        // NOTE: legacy 'mark-read' handler removed — the client emits only the
+        // enterprise 'message-read-ack' now (same tri-condition + richer payload),
+        // which eliminated a duplicate DB pass and duplicate broadcasts per focus.
 
-                    const [chatRows] = await pool.query(
-                        'SELECT participant1_id, participant2_id FROM personal_chats WHERE chat_id = ? LIMIT 1',
-                        [chatId]
-                    );
-                    if (chatRows && chatRows.length > 0) {
-                        const partnerId = String(chatRows[0].participant1_id) === String(socket.userId)
-                            ? chatRows[0].participant2_id
-                            : chatRows[0].participant1_id;
-                        if (partnerId) {
-                            io.to(`user:${partnerId}`).emit('message-read-update', payload);
-                            io.to(`user:${partnerId}`).emit('messages-read', payload);
-                        }
-                    }
-                }
-            } catch (error) {
-                logger.error('Mark read error:', error);
-            }
-        });
 
         socket.on('mark-delivered', async (data) => {
             try {

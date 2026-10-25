@@ -71,6 +71,9 @@ export const OUTBOX_CONFIG = {
 };
 
 class PersistentOfflineQueueService {
+  private static readonly MAX_INTERACTIONS = 50;
+  private static readonly INTERACTION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+
   private memoryCache: OutgoingMessage[] | null = null;
   private attemptTimers = new Map<string, any>();
 
@@ -104,8 +107,11 @@ class PersistentOfflineQueueService {
     this.clearMessageTimeout(messageId);
     const timer = setTimeout(() => {
       this.attemptTimers.delete(messageId);
-      logger.log(`⏰ [PersistentOfflineQueue] 10s sync timeout expired for messageId=${messageId}`);
-      this.updateStatus(messageId, 'failed');
+      logger.log(`⏱️ [PersistentOfflineQueue] 10s sync timeout expired for messageId=${messageId}`);
+      // Route through markFailed so the item accrues an attempt and the
+      // backoff ladder eventually DROPS it. updateStatus alone left zombie
+      // entries in the outbox that were re-emitted on every reconnect forever.
+      this.markFailed(messageId);
       if (onTimeout) onTimeout();
       window.dispatchEvent(new CustomEvent('sparkle_message_timeout', { detail: { messageId } }));
     }, OUTBOX_CONFIG.SYNC_TIMEOUT_MS);
@@ -251,14 +257,34 @@ class PersistentOfflineQueueService {
   }
 
   enqueueInteraction(item: Omit<OutgoingInteraction, 'operationId' | 'queuedAt' | 'attempts'>): OutgoingInteraction {
-    const queue = this.loadInteractions();
+    const now = Date.now();
+    let queue = this.loadInteractions().filter(
+      (i) => now - new Date(i.queuedAt).getTime() < PersistentOfflineQueueService.INTERACTION_MAX_AGE_MS
+    );
+
+    // Last-write-wins on the same target: repeated reactions/pins on one
+    // message replace the pending op instead of stacking duplicates that
+    // would ALL replay on reconnect.
+    const existingIdx = queue.findIndex(
+      (i) => i.type === item.type && i.chatId === item.chatId &&
+             i.messageId === item.messageId && i.emoji === item.emoji
+    );
+    if (existingIdx !== -1) queue.splice(existingIdx, 1);
+
     const interaction: OutgoingInteraction = {
       ...item,
       operationId: uuidv4(),
-      queuedAt: new Date().toISOString(),
+      queuedAt: new Date(now).toISOString(),
       attempts: 0,
     };
     queue.push(interaction);
+
+    // Hard cap: drop the oldest so a pathological offline session cannot
+    // grow the queue unbounded (it only ever drains on server acks).
+    if (queue.length > PersistentOfflineQueueService.MAX_INTERACTIONS) {
+      queue = queue.slice(queue.length - PersistentOfflineQueueService.MAX_INTERACTIONS);
+    }
+
     this.saveInteractions(queue);
     return interaction;
   }
@@ -269,7 +295,10 @@ class PersistentOfflineQueueService {
   }
 
   getDueInteractions(): OutgoingInteraction[] {
-    return this.loadInteractions();
+    const now = Date.now();
+    return this.loadInteractions().filter(
+      (i) => now - new Date(i.queuedAt).getTime() < PersistentOfflineQueueService.INTERACTION_MAX_AGE_MS
+    );
   }
 }
 

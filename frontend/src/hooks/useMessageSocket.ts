@@ -227,37 +227,9 @@ export const useMessageSocket = () => {
       chatStore.updateConversationReceipt(data.chatId, 'read', readTime);
     };
 
-    const handleMessagesDelivered = (data: { chatId: string; messageId?: string; userId?: string }) => {
-      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      if (data.userId && myId && String(data.userId).toLowerCase() === String(myId).toLowerCase()) return;
-
-      const chatStore = getChatStore();
-      const msgs = chatStore.messagesByConversation[data.chatId] || [];
-      const deliveredAt = new Date().toISOString();
-      msgs.forEach((m) => {
-        const msgSenderId = m.sender_id || (m as any).senderId;
-        const isFromMe = msgSenderId && myId && String(msgSenderId).toLowerCase() === String(myId).toLowerCase();
-        if (isFromMe && m.status !== 'read' && (m.message_id === data.messageId || !data.messageId)) {
-          chatStore.updateMessage(data.chatId, m.message_id || (m as any).id, {
-            status: 'delivered',
-            delivered_at: deliveredAt,
-          });
-        }
-      });
-      // Advance chat-list status ratchet
-      chatStore.updateConversationReceipt(data.chatId, 'delivered', deliveredAt);
-    };
-
-    const handleMessagesRead = (data: { chatId: string; readAt?: string; userId?: string; readerUserId?: string }) => {
-      const myId = useUserStore.getState().user?.user_id || useUserStore.getState().user?.id;
-      const readerId = data.readerUserId || data.userId;
-
-      if (readerId && myId && String(readerId).toLowerCase() !== String(myId).toLowerCase()) {
-        handleMessageReadUpdate(data);
-      } else {
-        getChatStore().markRead(data.chatId, '');
-      }
-    };
+    // NOTE: legacy 'messages-delivered'/'messages-read' listeners removed —
+    // the server now emits only the canonical 'message-delivered-update' /
+    // 'message-read-update' events (identical payloads, single broadcast).
 
     const handleMessagePinned = (data: { messageId: string; chatId: string; pinnedBy: string }) => {
       getChatStore().updateMessage(data.chatId, data.messageId, { pinned: true, pinned_by: data.pinnedBy, pinned_at: new Date().toISOString() });
@@ -496,8 +468,6 @@ export const useMessageSocket = () => {
     socket.on('receive_message', handleNewMessage);
     socket.on('message-delivered-update', handleMessageDeliveredUpdate);
     socket.on('message-read-update', handleMessageReadUpdate);
-    socket.on('messages-delivered', handleMessagesDelivered);
-    socket.on('messages-read', handleMessagesRead);
     socket.on('messages_expired', handleMessagesExpired);
     socket.on('message-pinned', handleMessagePinned);
     socket.on('message-unpinned', handleMessageUnpinned);
@@ -565,8 +535,6 @@ export const useMessageSocket = () => {
       socket.off('receive_message', handleNewMessage);
       socket.off('message-delivered-update', handleMessageDeliveredUpdate);
       socket.off('message-read-update', handleMessageReadUpdate);
-      socket.off('messages-delivered', handleMessagesDelivered);
-      socket.off('messages-read', handleMessagesRead);
       socket.off('messages_expired', handleMessagesExpired);
       socket.off('message-pinned', handleMessagePinned);
       socket.off('message-unpinned', handleMessageUnpinned);

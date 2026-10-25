@@ -634,8 +634,9 @@ class MessageController {
                     if (io) {
                         const readAt = new Date().toISOString();
                         const payload = { chatId, readerUserId: userId, userId, readAt };
+                        // Single canonical event: 'message-read-update' (the legacy
+                        // 'messages-read' duplicate carried the same payload).
                         io.to(`chat:${chatId}`).emit('message-read-update', payload);
-                        io.to(`chat:${chatId}`).emit('messages-read', payload);
 
                         // For 1-on-1 chats: also push to the partner's personal user room
                         const [chatRows] = await pool.query(
@@ -647,8 +648,7 @@ class MessageController {
                                 ? chatRows[0].participant2_id
                                 : chatRows[0].participant1_id;
                             if (partnerId) {
-                                io.to(`user:${partnerId}`).emit('message-read-update', payload);
-                                io.to(`user:${partnerId}`).emit('messages-read', payload);
+                            io.to(`user:${partnerId}`).emit('message-read-update', payload);
                             }
                         }
                     }

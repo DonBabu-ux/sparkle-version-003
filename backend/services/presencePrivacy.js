@@ -14,10 +14,14 @@ const pool = require('../config/database');
  * rules where those already exist (chat queries null out blocked partners).
  */
 
+// User ids in this schema are CHAR(36) UUID strings (see utils/database/init.js),
+// so normalising through Number() turned every id into NaN/null and made
+// canViewPresence return false for everyone — presence was silently disabled
+// app-wide. Compare identifiers as opaque strings instead.
 function normalizeId(id) {
-    if (id === null || id === undefined || id === '') return null;
-    const n = Number(id);
-    return Number.isFinite(n) ? n : null;
+    if (id === null || id === undefined) return null;
+    const s = String(id).trim();
+    return s === '' ? null : s;
 }
 
 async function fetchPresenceSettings(subjectId) {

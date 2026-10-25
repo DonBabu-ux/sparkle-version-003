@@ -37,17 +37,19 @@ async function getMessagePermissions(req, res) {
     let message = await Message.getById(messageId);
     if (!message) {
       if (messageId && (messageId.startsWith('msg_sparkly_') || messageId.startsWith('temp_'))) {
+        // Local-only ids never exist server-side; fail CLOSED — only
+        // delete-for-me and reacting are client-local anyway.
         return res.json({
           permissions: {
             isSender: false,
             canEdit: false,
             canDeleteForMe: true,
-            canDeleteForEveryone: true,
+            canDeleteForEveryone: false,
             canPin: false,
             canReact: true,
-            canForward: true,
+            canForward: false,
             canReply: true,
-            canCopy: true
+            canCopy: false
           }
         });
       }
@@ -95,6 +97,7 @@ async function getMessagePermissions(req, res) {
     return res.json({ permissions });
   } catch (err) {
     console.error('getMessagePermissions error:', err?.message || err);
+    // Fail CLOSED: a DB blip must not unlock copy/forward/delete-for-everyone.
     return res.json({
       permissions: {
         isSender: false,
@@ -103,9 +106,9 @@ async function getMessagePermissions(req, res) {
         canDeleteForEveryone: false,
         canPin: false,
         canReact: true,
-        canForward: true,
+        canForward: false,
         canReply: true,
-        canCopy: true
+        canCopy: false
       },
       fallback: true
     });

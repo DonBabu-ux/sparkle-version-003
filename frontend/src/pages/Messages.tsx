@@ -1526,7 +1526,7 @@ export default function Messages() {
     const partnerId = chat?.partner_id || chat?.partner_username;
     if (!partnerId) return;
     try {
-      await api.post(`/user/block/${partnerId}`);
+      await api.post(`/users/block/${partnerId}`);
       showSuccess('User blocked');
     } catch (err) {
       logger.error('Block user failed', err);
@@ -1539,7 +1539,7 @@ export default function Messages() {
     const partnerId = chat?.partner_id || chat?.partner_username;
     if (!partnerId) return;
     try {
-      await api.post(`/user/${partnerId}/report`, {});
+      await api.post(`/users/${partnerId}/report`, {});
       showInfo('Thank you for reporting. Our moderation team will review this user shortly.');
     } catch (err) {
       logger.error('Report user failed', err);
@@ -2817,7 +2817,8 @@ export default function Messages() {
     if (!socket || !selectedChat) return;
 
     if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
-      socket.emit('mark-read', selectedChat.chat_id);
+      // Single canonical read-receipt emit: 'message-read-ack' (same
+      // tri-condition write + partner broadcast as the legacy 'mark-read').
       socket.emit('message-read-ack', { chatId: selectedChat.chat_id });
       setUnreadCountInChat(0);
 

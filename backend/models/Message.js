@@ -1333,7 +1333,11 @@ class Message {
         if (msg.sender_id !== userId || msg.is_deleted_for_everyone) return null;
 
         const timeDiffMins = (Date.now() - new Date(msg.sent_at).getTime()) / 60000;
-        if (timeDiffMins > 15) return null; // 15 min limit
+        if (timeDiffMins > 15) {
+            // Distinguishable failure so callers can tell the user WHY instead of
+            // a generic "cannot edit" (null still means not-found / not-owner).
+            return { code: 'EDIT_WINDOW_EXPIRED', minutesElapsed: Math.round(timeDiffMins) };
+        }
 
         await db.query(`
             INSERT INTO chat_sequences (chat_id, last_sequence) VALUES (?, 1)

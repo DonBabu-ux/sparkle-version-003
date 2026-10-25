@@ -543,8 +543,15 @@ class MessageController {
             }
 
             const updated = await Message.editMessage(messageId, userId, content.trim());
+            if (updated && updated.code === 'EDIT_WINDOW_EXPIRED') {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'EDIT_WINDOW_EXPIRED',
+                    error: 'Editing window expired — messages can only be edited within 15 minutes'
+                });
+            }
             if (!updated) {
-                return res.status(403).json({ status: 'error', error: 'Cannot edit message (not yours or past 15 min)' });
+                return res.status(403).json({ status: 'error', error: 'Cannot edit message (not yours)' });
             }
 
             try {

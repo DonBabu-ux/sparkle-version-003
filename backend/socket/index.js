@@ -364,8 +364,13 @@ socket.on('get-rooms', () => {
                     return;
                 }
                 const result = await Message.editMessage(messageId, socket.userId, content.trim());
+                if (result && result.code === 'EDIT_WINDOW_EXPIRED') {
+                    const expiredMsg = 'Editing window expired — messages can only be edited within 15 minutes';
+                    if (typeof callback === 'function') callback({ success: false, code: 'EDIT_WINDOW_EXPIRED', error: expiredMsg });
+                    return socket.emit('operation-failed', { operationId: data?.operationId, code: 'EDIT_WINDOW_EXPIRED', error: expiredMsg });
+                }
                 if (!result) {
-                    if (typeof callback === 'function') callback({ success: false, error: 'Cannot edit message (not yours or past 15 min)' });
+                    if (typeof callback === 'function') callback({ success: false, error: 'Cannot edit message (not yours)' });
                     return socket.emit('operation-failed', { operationId: data?.operationId, error: 'Cannot edit message' });
                 }
                 // Sender ACK
@@ -658,7 +663,11 @@ socket.on('get-rooms', () => {
                             }
                         }
                     } catch (moderationErr) {
-                        logger.warn(`[Socket] GroupMember moderation check failed for chatId=${chatId}, allowing message: ${moderationErr.message}`);
+                        // Fail CLOSED: if the admin-only check cannot be
+                        // evaluated (DB blip), the message must not go through —
+                        // a transient error is not proof the sender may post.
+                        logger.error(`[Socket] GroupMember moderation check failed for chatId=${chatId}, rejecting message: ${moderationErr.message}`);
+                        return socket.emit('message-error', { error: 'Only admins can send messages' });
                     }
                 }
 

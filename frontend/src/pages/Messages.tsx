@@ -796,6 +796,31 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
     }
   }, [editing.messageId, editing.chatId, selectedChat?.chat_id]);
 
+  // Editing window: the server allows edits only within 15 minutes of send.
+  // Show the remaining time and auto-close the composer when it runs out.
+  const editingSentAt = useChatStore(state => {
+    if (!editing.messageId || !editing.chatId) return null;
+    const m = state.messagesByConversation[editing.chatId]?.find(
+      (x: any) => (x.message_id || x.id) === editing.messageId
+    );
+    return m?.sent_at || null;
+  });
+  const [nowTick, setNowTick] = useState(() => Date.now());
+  useEffect(() => {
+    if (!editing.messageId) return;
+    const t = setInterval(() => setNowTick(Date.now()), 20000);
+    return () => clearInterval(t);
+  }, [editing.messageId]);
+  const editMinutesLeft = editingSentAt
+    ? Math.max(0, 15 - Math.floor((nowTick - new Date(editingSentAt).getTime()) / 60000))
+    : null;
+  useEffect(() => {
+    if (!editing.messageId || editMinutesLeft === null || editMinutesLeft > 0) return;
+    const chatId = editing.chatId;
+    useChatStore.getState().finishEdit(chatId);
+    showInfo('Editing window expired — messages can only be edited within 15 minutes');
+  }, [editMinutesLeft, editing.messageId, editing.chatId]);
+
   const startMicRecording = useCallback(() => {
     if (recordingSessionId) return;
 
@@ -963,7 +988,9 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
         {editing.messageId && editing.chatId === selectedChat?.chat_id && (
           <div className="flex items-center justify-between gap-2 p-2 bg-white/5 border-b border-white/5 px-4 text-xs text-white/50">
             <div className="flex items-center gap-1.5 min-w-0">
-              <span className="font-bold text-[#ff1493] shrink-0">Editing message…</span>
+              <span className="font-bold text-[#ff1493] shrink-0">
+                Editing message{editMinutesLeft !== null ? ` · ${editMinutesLeft}m left` : ''}…
+              </span>
               <span className="truncate">"{editing.originalContent}"</span>
             </div>
             <button
@@ -1794,6 +1821,40 @@ export default function Messages() {
     setStoreMessages(chatId, updated);
   };
   const [messageSearch, setMessageSearch] = useState('');
+  // Full-history in-chat search: the sidebar box filters conversations (and the
+  // loaded window) instantly; this ALSO asks the server so matches older than
+  // the loaded window still show up. Falls back to local filtering on error.
+  const [serverSearch, setServerSearch] = useState<{ query: string; messages: any[] } | null>(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+
+  useEffect(() => {
+    const term = messageSearch.trim();
+    const chatId = selectedChat?.chat_id;
+    if (term.length < 2 || !chatId || chatId.startsWith('temp_')) {
+      setServerSearch(null);
+      return;
+    }
+    let cancelled = false;
+    setSearchLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.get(`/messages/chat/${chatId}/search?q=${encodeURIComponent(term)}`);
+        if (cancelled) return;
+        const rows = Array.isArray(res.data?.data) ? res.data.data : [];
+        setServerSearch({ query: term, messages: rows });
+      } catch (err) {
+        logger.error('In-chat search failed', err);
+        if (!cancelled) setServerSearch(null); // keep local filtering
+      } finally {
+        if (!cancelled) setSearchLoading(false);
+      }
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+      setSearchLoading(false);
+    };
+  }, [messageSearch, selectedChat?.chat_id]);
   const [loading, setLoading] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   // Chat whose initial message load has completed — guards the "No messages yet"
@@ -3822,6 +3883,14 @@ export default function Messages() {
     return unexpired.filter(m => (m.content ?? '').toLowerCase().includes(term));
   }, [messages, messageSearch]);
 
+  // What the message list actually renders: server results for the current
+  // query when available (full history), otherwise the locally filtered window.
+  const displayedMessages = useMemo(() => (
+    serverSearch && serverSearch.query === messageSearch.trim()
+      ? serverSearch.messages
+      : filteredMessages
+  ), [serverSearch, messageSearch, filteredMessages]);
+
   // Multi-image album plan: consecutive plain-image messages from the same
   // sender within 5 minutes render as ONE grid bubble instead of a burst of
   // single-image bubbles (GIFs, videos, voice notes and replies excluded).
@@ -4314,6 +4383,12 @@ export default function Messages() {
                   }}
                 />
               </div>
+
+              {searchLoading && (
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                  Searching full history…
+                </div>
+              )}
 
               {/* Filter Tabs */}
               <div className="flex items-center mb-3 gap-2">
@@ -4811,12 +4886,13 @@ export default function Messages() {
                       <p className="text-white/30 text-xs mt-1">Say hi — send the first message!</p>
                     </div>
                   ) : null}
-                  {messageSearch && filteredMessages.length === 0 ? (
+                  {messageSearch && displayedMessages.length === 0 && !searchLoading ? (
                     <div className="py-10 text-center">
                       <p className="text-white/40 text-sm">No messages matching “{messageSearch}”</p>
+                      <p className="text-white/25 text-xs mt-1">Searched the full conversation</p>
                     </div>
                   ) : null}
-                  {filteredMessages.flatMap((msg, i) => {
+                  {displayedMessages.flatMap((msg, i) => {
                     const isMe = msg.sender_id === (user?.id || user?.user_id);
                     const prevMsg = i > 0 ? filteredMessages[i - 1] : null;
                     const nextMsg = i < filteredMessages.length - 1 ? filteredMessages[i + 1] : null;
@@ -6111,6 +6187,15 @@ export default function Messages() {
         }}
         onEdit={() => {
           if (activeMessageMenu?.msg && selectedChat) {
+            // The server rejects edits older than 15 minutes — don't offer an
+            // action that can only fail (showInfo, not a red error).
+            const sentAt = activeMessageMenu.msg.sent_at || activeMessageMenu.msg.created_at;
+            const elapsedMin = sentAt ? (Date.now() - new Date(sentAt).getTime()) / 60000 : 0;
+            if (elapsedMin > 15) {
+              showInfo('Editing window expired — messages can only be edited within 15 minutes');
+              setActiveMessageMenu(null);
+              return;
+            }
             useChatStore.getState().startEdit(selectedChat.chat_id, activeMessageMenu.msg.message_id, activeMessageMenu.msg.content);
           }
           setActiveMessageMenu(null);

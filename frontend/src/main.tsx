@@ -50,10 +50,10 @@ const showBootFailure = (reason: unknown) => {
 (async () => {
   try {
     logger.log('APP STARTED');
-    // Chunk-reload guard from lazyWithRetry only applies within one broken
-    // session — clear it once the app boots successfully so the next deploy
-    // skew can self-heal again.
-    sessionStorage.removeItem('sparkle_chunk_reload');
+    // NOTE: the chunk-reload guard is deliberately NOT cleared on boot — it is
+    // timestamp-bounded (max 2 hard reloads / 10 min, see lazyWithRetry) so a
+    // persistently stale HTML can never reload-loop forever, while the next
+    // deploy skew still self-heals once the window rolls over.
     // Expose realtime logger globally for debugging
     (window as any).__realtimeLogger = realtimeLogger;
 

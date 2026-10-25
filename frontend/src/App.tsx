@@ -429,6 +429,27 @@ function App() {
     }
   }, [theme]);
 
+  // Cross-device appearance: the Settings toggle writes dark_mode_enabled to the
+  // server (users.dark_mode_enabled). Hydrate it from there once per session so
+  // the preference follows the user to a new device / cleared storage instead of
+  // falling back to the local default. Falls back to the local value on error.
+  const themeHydrated = useRef(false);
+  useEffect(() => {
+    if (!isAuthenticated || themeHydrated.current) return;
+    themeHydrated.current = true;
+    (async () => {
+      try {
+        const res = await api.get('/users/advanced-settings');
+        const settings = res.data?.data?.settings || res.data?.settings;
+        if (settings && typeof settings.dark_mode_enabled === 'boolean') {
+          useUserStore.getState().setTheme(settings.dark_mode_enabled ? 'dark' : 'light');
+        }
+      } catch (err) {
+        logger.warn('Theme hydration failed; keeping local preference');
+      }
+    })();
+  }, [isAuthenticated]);
+
   // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
   if (!hydrated) {
     return (

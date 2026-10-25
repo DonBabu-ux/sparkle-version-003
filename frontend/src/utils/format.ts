@@ -44,44 +44,42 @@ export const timeAgo = (dateInput?: string | Date): string => {
 };
 
 /**
- * Compact, human-readable timestamp for chat list previews.
- * Under 1 min → "Just now" | mins → "2 mins" | hrs → "2 hrs"
- * Yesterday → "Yesterday" | this week → weekday | older → date
+ * Compact, human-readable timestamp for chat list previews (WhatsApp-style).
+ * Under 24h → clock time | yesterday → "Yesterday" | this week → weekday
+ * | older → "18 Oct" ("18 Oct 26" when from a previous year)
  */
 export const formatChatTimestamp = (dateInput?: string | Date): string => {
   if (!dateInput) return '';
   const date = new Date(dateInput);
-  if (isNaN(date.getTime())) return '';
+  if (isNaN(date.getTime()) || date.getTime() <= 0) return '';
 
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffSec = Math.floor(diffMs / 1000);
-  const diffMin = Math.floor(diffSec / 60);
-  const diffHr  = Math.floor(diffMin / 60);
 
-  if (diffSec < 60)  return 'Just now';
-  if (diffMin === 1) return '1 min';
-  if (diffMin < 60)  return `${diffMin} mins`;
-  if (diffHr  === 1) return '1 hr';
-  if (diffHr  < 24)  return `${diffHr} hrs`;
-
-  const today   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const msgDay  = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const today  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const diffDays = Math.round((today.getTime() - msgDay.getTime()) / 86400000);
 
+  // Yesterday and older: day-based labels, never an hour counter
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7)   return date.toLocaleDateString([], { weekday: 'short' });
-  return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  if (diffDays > 1 && diffDays < 7) return date.toLocaleDateString([], { weekday: 'short' });
+  if (diffDays >= 7) {
+    const sameYear = date.getFullYear() === now.getFullYear();
+    const base = date.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    return sameYear ? base : `${base} ${String(date.getFullYear()).slice(-2)}`;
+  }
+
+  // Today (or a skewed-future timestamp): show the clock time
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 };
 
 /**
- * Full date label for in-chat date separators.
- * Today | Yesterday | weekday | Month DD, YYYY
+ * Full date label for in-chat date separators (WhatsApp-style).
+ * Today | Yesterday | weekday | "18 October 26"
  */
 export const formatMessageGroupDate = (dateInput?: string | Date): string => {
   if (!dateInput) return '';
   const date = new Date(dateInput);
-  if (isNaN(date.getTime())) return '';
+  if (isNaN(date.getTime()) || date.getTime() <= 0) return '';
 
   const now     = new Date();
   const today   = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -90,10 +88,9 @@ export const formatMessageGroupDate = (dateInput?: string | Date): string => {
 
   if (diffDays === 0) return 'Today';
   if (diffDays === 1) return 'Yesterday';
-  if (diffDays < 7)   return date.toLocaleDateString([], { weekday: 'long' });
-  const opts: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric' };
-  if (diffDays > 365) opts.year = 'numeric';
-  return date.toLocaleDateString([], opts);
+  if (diffDays > 1 && diffDays < 7) return date.toLocaleDateString([], { weekday: 'long' });
+  const base = date.toLocaleDateString([], { day: 'numeric', month: 'long' });
+  return date.getFullYear() === now.getFullYear() ? base : `${base} ${String(date.getFullYear()).slice(-2)}`;
 };
 
 /** Returns true when two date inputs fall on the same calendar day. */

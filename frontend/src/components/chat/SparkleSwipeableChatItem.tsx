@@ -111,6 +111,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   };
 
   const timeLabel = formatChatTimestamp(chat.last_message_time || chat.last_message_at);
+  // Connect-page default for users without a photo (matches /connect)
+  const chatAvatar = isSelfChat
+    ? null
+    : (chat.avatar_url || chat.partner_avatar || chat.partner_photo || chat.profile_photo || itemIdentity.avatar);
+  const unreadCount = Math.max(0, Number(chat.unread_count) || 0);
 
   return (
     <div ref={containerRef} id={domId} className="relative overflow-hidden group select-none">
@@ -195,7 +200,11 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
               <Bookmark size={22} />
             </div>
           ) : (
-            <img src={itemIdentity.avatar} className="w-[52px] h-[52px] rounded-full object-cover border border-white/10 shadow-md" alt="" />
+            <img
+              src={(chatAvatar && chatAvatar !== '/logo.png') ? chatAvatar : '/uploads/avatars/no-profile.png'}
+              className="w-[52px] h-[52px] rounded-full object-cover border border-white/10 shadow-md"
+              alt=""
+            />
           )}
           {itemIdentity.presence.showPresence && itemIdentity.presence.isOnline && !isSelfChat && !isSelected && (
             <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-[2.5px] border-[#13131a] rounded-full" />
@@ -254,7 +263,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                 if (displayInfo.mode === 'unread_summary') {
                   return (
                     <div className="flex items-center gap-1.5 truncate">
-                      <p className="text-[13px] font-bold text-[#f5f5f5] truncate flex-1">
+                      <p className="text-[13px] font-bold text-white/80 truncate flex-1">
                         {displayInfo.unreadSummary}
                       </p>
                       <span className="text-[10px] font-bold text-white/30 lowercase shrink-0">· {timeLabel}</span>
@@ -272,7 +281,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
 
                 return (
                   <div className="flex items-center gap-1.5 truncate">
-                    <p className="text-[13px] font-normal text-[#f5f5f5]/60 truncate flex-1 min-w-0">
+                    <p className="text-[13px] font-normal text-white/45 truncate flex-1 min-w-0">
                       {previewText}
                     </p>
                     {displayInfo.middleLabel && (
@@ -286,7 +295,17 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                         · {displayInfo.middleLabel}
                       </span>
                     )}
-                    <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
+                    {unreadCount > 0 && (
+                      <span
+                        className="shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#ff1493]/15 text-[#ff1493] text-[10px] font-black leading-none"
+                        aria-label={`${unreadCount} unread messages`}
+                      >
+                        {unreadCount > 99 ? '99+' : unreadCount}
+                      </span>
+                    )}
+                    {timeLabel && (
+                      <span className="text-[10px] font-bold text-white/30 lowercase shrink-0">· {timeLabel}</span>
+                    )}
                   </div>
                 );
               })()}

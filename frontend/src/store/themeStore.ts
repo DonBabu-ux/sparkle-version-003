@@ -45,13 +45,13 @@ const createTheme = (
 });
 
 export const PRESET_THEMES: SparkleTheme[] = [
-  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#121212', '#121212', true, '#056162', '#262d31', '#ffffff', '#ffffff', 'https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png', 'none', 'tile'),
+  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#121212', '#121212', true, '#056162', '#262d31', '#ffffff', '#ffffff', '/uploads/wallpapers/whatsapp-doodle.png', 'none', 'tile'),
   createTheme('amoled_black', 'AMOLED Black', 'Dark', '#00E5FF', '#00B8CC', '#33EAFF', '#0f0f0f', '#0f0f0f', true, '#00E5FF', '#111111', '#000000', '#ffffff'),
   createTheme('cyberpunk_neon', 'Cyberpunk Neon', 'Neon', '#00FF9D', '#00CC7D', '#33FFB0', '#090A0F', '#090A0F', true, '#FF0055', '#1a1b26', '#ffffff', '#00FF9D'),
-  createTheme('purple_galaxy', 'Purple Galaxy', 'Space', '#B14AED', '#8E3BC0', '#C775F5', '#1A0B2E', '#1A0B2E', true, '#B14AED', '#2D1B4E', '#ffffff', '#e9d5ff', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop', 'stars'),
+  createTheme('purple_galaxy', 'Purple Galaxy', 'Space', '#B14AED', '#8E3BC0', '#C775F5', '#1A0B2E', '#1A0B2E', true, '#B14AED', '#2D1B4E', '#ffffff', '#e9d5ff', '/uploads/wallpapers/galaxy-stars.png', 'stars'),
   createTheme('luxury_gold', 'Luxury Gold', 'Premium', '#D4AF37', '#AA8C2C', '#E2C45E', '#111111', '#111111', true, '#D4AF37', '#222222', '#000000', '#D4AF37'),
   createTheme('glassmorphism', 'Glassmorphism', 'Glass', '#ffffff', '#f3f4f6', '#ffffff', '#000000', '#f8fafc', false, 'rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)', '#000000', '#000000'),
-  createTheme('ocean_blue', 'Ocean Blue', 'Nature', '#0077B6', '#005F92', '#0096C7', '#03045E', '#E0FBFC', false, '#0077B6', '#CAF0F8', '#ffffff', '#03045E', 'https://images.unsplash.com/photo-1518837695005-2083093ee35b?q=80&w=800&auto=format&fit=crop'),
+  createTheme('ocean_blue', 'Ocean Blue', 'Nature', '#0077B6', '#005F92', '#0096C7', '#03045E', '#E0FBFC', false, '#0077B6', '#CAF0F8', '#ffffff', '#03045E', '/uploads/wallpapers/ocean-waves.png'),
   createTheme('sunset_orange', 'Sunset Orange', 'Gradient', '#FF7E67', '#E66A55', '#FFA08A', '#2C1B18', '#FFE9E3', false, '#FF7E67', '#FFD1C1', '#ffffff', '#2C1B18', 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=800&auto=format&fit=crop'),
   createTheme('anime_sakura', 'Anime Sakura', 'Anime', '#FFB7B2', '#E5A4A0', '#FFC8C4', '#2D2A2A', '#FDFBF7', false, '#FFB7B2', '#FFE5E5', '#ffffff', '#2D2A2A', 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=800&auto=format&fit=crop', 'particles'),
   createTheme('matrix_hacker', 'Matrix Hacker', 'Neon', '#00FF00', '#00CC00', '#33FF33', '#000000', '#000000', true, '#00FF00', '#0a2e0a', '#000000', '#00FF00', undefined, 'rain'),
@@ -74,7 +74,7 @@ export const PRESET_THEMES: SparkleTheme[] = [
   createTheme('bamboo_garden', 'Bamboo Garden', 'Nature', '#6B8E23', '#556B2F', '#9ACD32', '#1B5E20', '#F1F8E9', false, '#6B8E23', '#C5E1A5', '#ffffff', '#33691E', 'https://images.unsplash.com/photo-1533423996375-f914ab1efbb2?q=80&w=800&auto=format&fit=crop'),
 
   // 10 Galaxy and Sky
-  createTheme('orion_nebula', 'Orion Nebula', 'Galaxy', '#8A2BE2', '#4B0082', '#9370DB', '#0F0518', '#F3E5F5', true, '#8A2BE2', '#38006B', '#ffffff', '#CE93D8', 'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=800&auto=format&fit=crop'),
+  createTheme('orion_nebula', 'Orion Nebula', 'Galaxy', '#8A2BE2', '#4B0082', '#9370DB', '#0F0518', '#F3E5F5', true, '#8A2BE2', '#38006B', '#ffffff', '#CE93D8', '/uploads/wallpapers/galaxy-stars.png'),
   createTheme('milky_way', 'Milky Way', 'Galaxy', '#483D8B', '#191970', '#6A5ACD', '#050514', '#E8EAF6', true, '#483D8B', '#1A237E', '#ffffff', '#9FA8DA', 'https://images.unsplash.com/photo-1506318137071-a8e063b4bec0?q=80&w=800&auto=format&fit=crop'),
   createTheme('starry_night', 'Starry Night', 'Galaxy', '#000080', '#00008B', '#4169E1', '#000000', '#E3F2FD', true, '#000080', '#011936', '#ffffff', '#64B5F6', 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?q=80&w=800&auto=format&fit=crop'),
   createTheme('deep_space', 'Deep Space', 'Galaxy', '#800080', '#4B0082', '#8B008B', '#000000', '#FCE4EC', true, '#800080', '#12001A', '#ffffff', '#F48FB1', 'https://images.unsplash.com/photo-1537420327992-d6e192287183?q=80&w=800&auto=format&fit=crop'),

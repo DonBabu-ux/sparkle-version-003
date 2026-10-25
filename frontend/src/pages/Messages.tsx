@@ -639,36 +639,85 @@ const MessageBubbleWrapper: React.FC<{
   );
 };
 
-const ChatBackground = ({ theme }: { theme: SparkleTheme | null }) => {
-  if (!theme) return <div className="absolute inset-0 z-0 bg-[#000000]" />;
+// Wallpapers are big external images — preload each URL exactly once per
+// session so theme switches re-render from the HTTP cache instead of
+// re-fetching, and downscale the Unsplash variants (the heaviest sources).
+const preloadedWallpapers = new Set<string>();
 
-  const hasImage = !!theme.wallpaperUrl;
+function lightenWallpaperUrl(url: string): string {
+  // Unsplash honors width/quality params — cap at a phone-friendly size.
+  if (url.includes('images.unsplash.com')) {
+    const u = new URL(url);
+    u.searchParams.set('w', '1080');
+    u.searchParams.set('q', '60');
+    u.searchParams.set('auto', 'format');
+    u.searchParams.set('fit', 'crop');
+    return u.toString();
+  }
+  return url;
+}
+
+const ChatBackground = ({ theme, mode = 'dark' }: { theme: SparkleTheme | null; mode?: 'light' | 'dark' }) => {
+  // Wallpapers live on our own server (/uploads/wallpapers) and are resolved
+  // through getMediaUrl so the native APK gets the absolute API origin.
+  const wallpaperUrl = theme?.wallpaperUrl ? getMediaUrl(lightenWallpaperUrl(theme.wallpaperUrl)) : null;
+
+  useEffect(() => {
+    if (!wallpaperUrl || preloadedWallpapers.has(wallpaperUrl)) return;
+    preloadedWallpapers.add(wallpaperUrl);
+    const img = new Image();
+    img.src = wallpaperUrl;
+  }, [wallpaperUrl]);
+
+  const base = mode === 'light'
+    ? (theme?.colors?.backgroundLight || '#eef1f6')
+    : (theme?.colors?.backgroundDark || '#000000');
+  const tint = mode === 'light'
+    ? (theme?.colors?.backgroundLight || '#ffffff')
+    : (theme?.colors?.backgroundDark || '#000000');
+  const isDarkMode = mode !== 'light';
+
+  if (!theme) {
+    return <div className="absolute inset-0 z-0" style={{ backgroundColor: isDarkMode ? '#000000' : '#eef1f6' }} />;
+  }
 
   return (
     <div
       className="absolute inset-0 z-0 overflow-hidden pointer-events-none transition-all duration-700"
-      style={{ backgroundColor: theme?.colors?.backgroundDark || '#000000' }}
+      style={{ backgroundColor: base }}
     >
-      {!hasImage && (
-        <div
-          className="absolute inset-0 transition-all duration-700 opacity-100"
-          style={{
-            background: `linear-gradient(135deg, ${theme?.colors?.backgroundDark || '#000000'} 0%, ${theme?.colors?.backgroundLight || '#000000'} 100%)`
-          }}
-        />
-      )}
+      {/* Base gradient — light in light mode, dark in dark mode */}
+      <div
+        className="absolute inset-0 transition-all duration-700"
+        style={{
+          background: `linear-gradient(135deg, ${base} 0%, ${tint} 100%)`,
+          opacity: 1,
+        }}
+      />
 
-      {hasImage && (
-        <div
-          className="absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url(${theme?.wallpaperUrl})`,
-            backgroundSize: theme?.wallpaperStyle === 'tile' ? '350px' : (theme?.wallpaperStyle || 'cover'),
-            backgroundPosition: 'center',
-            backgroundRepeat: theme?.wallpaperStyle === 'tile' ? 'repeat' : 'no-repeat',
-            opacity: 1,
-          }}
-        />
+      {wallpaperUrl && (
+        <>
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              backgroundImage: `url(${wallpaperUrl})`,
+              backgroundSize: theme?.wallpaperStyle === 'tile' ? '350px' : (theme?.wallpaperStyle || 'cover'),
+              backgroundPosition: 'center',
+              backgroundRepeat: theme?.wallpaperStyle === 'tile' ? 'repeat' : 'no-repeat',
+              opacity: isDarkMode ? 0.55 : 0.4,
+            }}
+          />
+          {/* Readability scrim: heavy in dark mode, light wash in light mode so
+              bubble text and timestamps stay legible over any wallpaper */}
+          <div
+            className="absolute inset-0 z-0"
+            style={{
+              background: isDarkMode
+                ? 'linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0.6) 100%)'
+                : 'linear-gradient(180deg, rgba(255,255,255,0.6) 0%, rgba(255,255,255,0.75) 100%)',
+            }}
+          />
+        </>
       )}
 
       {/* Live Animations Layer */}
@@ -4056,6 +4105,9 @@ export default function Messages() {
   const safeTime = (time: string) => {
     if (!time) return '';
     const date = new Date(time);
+    // Reject "0"/epoch timestamps and unparseable values — they rendered as
+    // "Invalid Date" or a 1970 clock time in message bubbles.
+    if (isNaN(date.getTime()) || date.getTime() <= 0) return '';
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
@@ -4556,7 +4608,7 @@ export default function Messages() {
           !selectedChat ? 'hidden md:flex' : 'flex',
           (activePrivacy?.copyProtection || activePrivacy?.screenshotProtection || (activePrivacy as any)?.blockScreenshots) && 'select-none'
         )}>
-          {selectedChat && <ChatBackground theme={currentChatTheme} />}
+          {selectedChat && <ChatBackground theme={currentChatTheme} mode={appThemeMode === 'dark' ? 'dark' : 'light'} />}
 
           {selectedChat ? (
             <PullUpDisappearingGesture
@@ -4914,12 +4966,10 @@ export default function Messages() {
                     );
 
                     const dateSep = showDateSep ? (
-                      <div key={`date-${i}`} className="flex items-center gap-3 my-4 px-2">
-                        <div className="flex-1 h-px bg-white/[0.07]" />
-                        <span className="text-[10px] font-bold text-white/25 uppercase tracking-widest px-2 shrink-0 select-none">
+                      <div key={`date-${i}`} className="flex justify-center my-4 select-none">
+                        <span className="px-3.5 py-1.5 rounded-full bg-black/[0.25] dark:bg-white/[0.07] backdrop-blur-sm text-[11px] font-bold uppercase tracking-wider text-white/60 dark:text-white/50">
                           {formatMessageGroupDate(msg.sent_at || msg.created_at)}
                         </span>
-                        <div className="flex-1 h-px bg-white/[0.07]" />
                       </div>
                     ) : null;
 

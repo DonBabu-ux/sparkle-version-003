@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight,
@@ -15,7 +15,7 @@ import {
   Flame,
 } from 'lucide-react';
 import { useUserStore } from '../../store/userStore';
-import EditProfileModal from './EditProfileModal';
+import ProfileCompletionModal from './ProfileCompletionModal';
 import type { User } from '../../types/user';
 
 interface ChecklistItem {
@@ -30,8 +30,27 @@ interface ChecklistItem {
 export const AestheticProfileCompletionBanner: React.FC = () => {
   const { user, setUser } = useUserStore();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [completionFocus, setCompletionFocus] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
+  // Facebook-style login nudge: open the completion flow once per session when
+  // the profile is incomplete (never auto-opens after a permanent dismissal).
+  const autoShownRef = useRef<string | null>(
+    (() => {
+      try {
+        return sessionStorage.getItem('profileCompletionAutoShown');
+      } catch {
+        return null;
+      }
+    })()
+  );
+  const isPermanentlyDismissed = (() => {
+    try {
+      return localStorage.getItem('profileCompletionCardDismissed') === 'true';
+    } catch {
+      return false;
+    }
+  })();
 
   // Check if banner is currently dismissed
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
@@ -142,6 +161,19 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
     // Default quick-close dismisses for 24 hours
     handleDismissHours(24);
   }, [handleDismissHours]);
+
+  // Auto-open the focused flow once per session, shortly after the feed settles
+  useEffect(() => {
+    if (isPermanentlyDismissed || autoShownRef.current) return;
+    autoShownRef.current = '1';
+    try {
+      sessionStorage.setItem('profileCompletionAutoShown', '1');
+    } catch {
+      /* storage unavailable — still only auto-opens once per mount */
+    }
+    const t = setTimeout(() => setShowEditModal(true), 900);
+    return () => clearTimeout(t);
+  }, [isPermanentlyDismissed]);
 
   // If 100% complete or dismissed, do not render
   if (isDismissed || percentage >= 100 || !user) {
@@ -332,7 +364,10 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                         <button
                           key={item.id}
                           type="button"
-                          onClick={() => setShowEditModal(true)}
+                          onClick={() => {
+                            setCompletionFocus(item.id);
+                            setShowEditModal(true);
+                          }}
                           className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all active:scale-[0.97] ${
                             item.isCompleted
                               ? 'bg-emerald-500/[0.07] dark:bg-emerald-500/[0.12] border border-emerald-500/20'
@@ -388,16 +423,13 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
         </div>
       </motion.div>
 
-      {/* Embedded Actionable Modal */}
-      {showEditModal && (
-        <EditProfileModal
-          isOpen={showEditModal}
-          onClose={() => setShowEditModal(false)}
-          onProfileUpdated={(updatedUser) => {
-            setUser(updatedUser);
-          }}
-        />
-      )}
+      {/* Focused completion flow (only the missing details) */}
+      <ProfileCompletionModal
+        isOpen={showEditModal}
+        onClose={() => { setShowEditModal(false); setCompletionFocus(null); }}
+        onProfileUpdated={(updatedUser) => setUser(updatedUser)}
+        focusItemId={completionFocus}
+      />
     </>
   );
 };

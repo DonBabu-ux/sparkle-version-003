@@ -15,9 +15,10 @@ async function runRecoveryPass() {
     if (running) return;
     running = true;
     try {
-        const [webhooks, withdrawals] = await Promise.allSettled([
+        const [webhooks, withdrawals, lifecycle] = await Promise.allSettled([
             walletService.processPendingWebhookEvents(20),
-            walletService.processPendingWithdrawals(20)
+            walletService.processPendingWithdrawals(20),
+            walletService.runWithdrawalLifecycleSweep()
         ]);
 
         if (webhooks.status === 'rejected') {
@@ -25,6 +26,9 @@ async function runRecoveryPass() {
         }
         if (withdrawals.status === 'rejected') {
             logger.error('[WalletRecovery] Withdrawal pass failed:', withdrawals.reason?.message || withdrawals.reason);
+        }
+        if (lifecycle.status === 'rejected') {
+            logger.error('[WalletRecovery] Lifecycle pass failed:', lifecycle.reason?.message || lifecycle.reason);
         }
     } finally {
         running = false;

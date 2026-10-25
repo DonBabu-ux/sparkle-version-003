@@ -20,6 +20,31 @@ const paystackService = require('./paystack.service');
 const systemMessageService = require('./systemMessage.service');
 const { reconcileDepositAmount } = require('../utils/walletReconciliation');
 
+/**
+ * Send a withdrawal lifecycle notification at most once per (withdrawal, status)
+ * per process. The recovery worker re-executes stuck withdrawals every 60s, so
+ * without this guard every retry re-notifies the user (the "1–2 business days"
+ * spam). reference = withdrawal_id.
+ */
+async function notifyWithdrawalOnce(userId, amountCents, status, withdrawalId) {
+    const key = `${withdrawalId}:${status}`;
+    if (withdrawalNotified.has(key)) return { skipped: true };
+    withdrawalNotified.add(key);
+    try {
+        await systemMessageService.sendWalletNotification(userId, {
+            txnType: 'withdrawal',
+            amountCents,
+            currency: 'KES',
+            status,
+            reference: withdrawalId,
+        });
+        return { sent: true };
+    } catch (err) {
+        withdrawalNotified.delete(key);
+        throw err;
+    }
+}
+
 // Supported transaction types (mirrors DB ENUM)
 const TXN_TYPES = {
     DEPOSIT:          'Deposit',
@@ -42,6 +67,108 @@ const TXN_STATUS = {
     FAILED:    'Failed',
     REFUNDED:  'Refunded',
 };
+
+// Business-day payout window: 2 business days (weekends excluded) from request.
+const WITHDRAWAL_WINDOW_BUSINESS_DAYS = 2;
+// In-memory guard so a single process never re-notifies the same withdrawal.
+const withdrawalNotified = new Set();
+
+function isBusinessDay(date) {
+    const day = date.getDay();
+    return day !== 0 && day !== 6;
+}
+
+/** Latest instant at which a withdrawal requested at `from` should still be open. */
+function payoutDeadline(from) {
+    const d = new Date(from);
+    let remaining = WITHDRAWAL_WINDOW_BUSINESS_DAYS;
+    while (remaining > 0) {
+        d.setDate(d.getDate() + 1);
+        if (isBusinessDay(d)) remaining--;
+    }
+    return d;
+}
+
+/**
+ * Expire withdrawals still open past their payout window: return the reserved
+ * funds exactly once and mark Cancelled. Idempotent (row lock + status guard).
+ */
+async function expireStaleWithdrawals(walletId, reason) {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const expired = await expireStaleWithdrawalsLocked(connection, walletId, reason);
+        await connection.commit();
+        return expired;
+    } catch (err) {
+        await connection.rollback();
+        throw err;
+    } finally {
+        connection.release();
+    }
+}
+
+async function expireStaleWithdrawalsLocked(connection, walletId, reason) {
+    const [rows] = await connection.query(
+        `SELECT withdrawal_id, amount_cents
+           FROM wallet_withdrawals
+          WHERE wallet_id = ? AND status IN ('Pending', 'Processing')
+            AND requested_at < DATE_SUB(NOW(), INTERVAL 3 DAY)
+          FOR UPDATE`,
+        [walletId]
+    );
+    const expired = [];
+    for (const row of rows) {
+        await cancelWithdrawalLocked(connection, row.withdrawal_id, row.amount_cents, reason);
+        expired.push(row.withdrawal_id);
+    }
+    return expired;
+}
+
+/**
+ * Cancel one withdrawal under an open transaction: mark Cancelled, return the
+ * reserved funds to available balance, refund the wallet, notify once.
+ */
+async function cancelWithdrawalLocked(connection, withdrawalId, amountCents, reason) {
+    const [[row]] = await connection.query(
+        'SELECT status FROM wallet_withdrawals WHERE withdrawal_id = ? FOR UPDATE',
+        [withdrawalId]
+    );
+    if (!row || ['Completed', 'Failed', 'Cancelled'].includes(row.status)) {
+        return { status: 'already_closed' };
+    }
+
+    await connection.query(
+        `UPDATE wallet_withdrawals
+            SET status = 'Cancelled', processed_at = NOW(),
+                metadata = JSON_SET(COALESCE(metadata, '{}'), '$.cancelReason', ?)
+          WHERE withdrawal_id = ?`,
+        [reason, withdrawalId]
+    );
+
+    // Return the reserved funds: pending → available.
+    await connection.query(
+        `UPDATE wallets
+            SET pending_balance = GREATEST(pending_balance - ?, 0),
+                available_balance = available_balance + ?,
+                updated_at = NOW()
+          WHERE wallet_id = (SELECT wallet_id FROM wallet_withdrawals WHERE withdrawal_id = ?)
+            AND pending_balance >= ?`,
+        [amountCents, amountCents, withdrawalId, amountCents]
+    );
+
+    // Immutable ledger correction: the original Pending withdrawal ledger row
+    // is never mutated; we add a compensating Refund row instead.
+    await connection.query(
+        `INSERT INTO wallet_transactions
+            (transaction_id, wallet_id, reference, type, status, amount, currency, payment_provider, metadata)
+         SELECT ?, wallet_id, ?, 'Refund', 'Completed', ?, 'KES', 'Sparkle', JSON_OBJECT('withdrawalId', ?, 'reason', ?)
+           FROM wallet_withdrawals WHERE withdrawal_id = ?`,
+        [crypto.randomUUID(), `SPK_WD_CANCEL_${withdrawalId.slice(0, 8)}`, amountCents, withdrawalId, reason, withdrawalId]
+    );
+
+    return { status: 'cancelled', withdrawalId, amountCents };
+}
 
 function normalizeKenyanPhone(num) {
     if (!num) return '';
@@ -545,6 +672,12 @@ class WalletService {
                 throw new Error(`Insufficient balance. Available: ${wallet.available_balance} cents`);
             }
 
+            // Abandonment guard: an old request the user never saw resolved must
+            // not block a fresh one forever. Anything still open past the
+            // payout window is expired here (refunds already returned by the
+            // timeout worker, or refunded below if the worker never ran).
+            await expireStaleWithdrawalsLocked(connection, walletId, 'New withdrawal requested');
+
             const withdrawalId = crypto.randomUUID();
             const transactionId = crypto.randomUUID();
             const internalRef = `SPK_WD_${crypto.randomBytes(10).toString('hex').toUpperCase()}`;
@@ -594,15 +727,9 @@ class WalletService {
                 });
             });
 
-            // Notify user
+            // Notify user (once per withdrawal, per status — see guard above)
             setImmediate(() => {
-                systemMessageService.sendWalletNotification(userId, {
-                    txnType: 'withdrawal',
-                    amountCents,
-                    currency: 'KES',
-                    status: 'Pending',
-                    reference: withdrawalId,
-                }).catch(() => {});
+                notifyWithdrawalOnce(userId, amountCents, 'Pending', withdrawalId).catch(() => {});
             });
 
             return {
@@ -700,6 +827,21 @@ class WalletService {
             await this._persistTransferInitiated(withdrawalId, recipientCode, transferCode);
 
             logger.info(`[WalletService] Paystack transfer initiated: ${transferCode} for withdrawal ${withdrawalId}`);
+
+            // Mid-lifecycle update ("⏳ Withdrawal Processing")
+            try {
+                const [owner] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [withdrawal.wallet_id]);
+                if (owner.length) {
+                    await notifyWithdrawalOnce(
+                        owner[0].user_id,
+                        Number(withdrawal.amount_cents),
+                        'Processing',
+                        withdrawalId
+                    );
+                }
+            } catch (err) {
+                logger.warn('[WalletService] Processing notify failed:', err.message);
+            }
             return { status: 'processing' };
         } catch (err) {
             logger.error(`[WalletService] _executePaystackTransfer failed for ${withdrawalId}:`, err.message);
@@ -917,10 +1059,31 @@ class WalletService {
             );
 
             await connection.commit();
-            return { status: 'failed' };
+
+            // Terminal notification: the refund the user was told to expect.
+            try {
+                const [owner] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [row.wallet_id]);
+                if (owner.length) {
+                    await notifyWithdrawalOnce(owner[0].user_id, amountCents, 'Failed', withdrawalId);
+                }
+            } catch (err) {
+                logger.warn('[WalletService] Failed notify failed:', err.message);
+            }
+
+            // Terminal notification ("✅ Withdrawal Completed")
+            try {
+                const [owner] = await pool.query('SELECT user_id FROM wallets WHERE wallet_id = ?', [row.wallet_id]);
+                if (owner.length) {
+                    await notifyWithdrawalOnce(owner[0].user_id, amountCents, 'Completed', withdrawalId);
+                }
+            } catch (err) {
+                logger.warn('[WalletService] Completed notify failed:', err.message);
+            }
+
+            return { status: 'completed' };
         } catch (err) {
             await connection.rollback();
-            logger.error(`[WalletService] Could not fail/refund withdrawal ${withdrawalId}:`, err.message);
+            logger.error('[WalletService] finalizeWithdrawalSuccess failed:', err.message);
             throw err;
         } finally {
             connection.release();
@@ -928,8 +1091,8 @@ class WalletService {
     }
 
     /**
-     * Apply a transfer webhook to the withdrawal ledger, even if this process
-     * never initiated the transfer (for example after a restart).
+     * Fail a withdrawal and return the reserved funds exactly once. The status
+     * check under FOR UPDATE prevents double refunds on retried events.
      */
     async handleTransferWebhook(eventType, data = {}) {
         const reference = data.reference || null;
@@ -1232,6 +1395,22 @@ class WalletService {
                         continue;
                     }
 
+                    // Failure cooldown: a wallet whose last attempt failed/cancelled
+                    // within the payout window must not be retried immediately. Without
+                    // this, each failed automatic withdrawal (e.g. Paystack test mode)
+                    // produced a fresh request + notification every 15 minutes.
+                    const [recent] = await pool.query(
+                        `SELECT withdrawal_id FROM wallet_withdrawals
+                         WHERE wallet_id = ? AND status IN ('Failed', 'Cancelled')
+                           AND requested_at > DATE_SUB(NOW(), INTERVAL 2 DAY)
+                         LIMIT 1`,
+                        [cfg.wallet_id]
+                    );
+                    if (recent.length > 0) {
+                        logger.info(`[AutoWithdrawalEngine] Skipping wallet ${cfg.wallet_id}: recent failure cooldown active`);
+                        continue;
+                    }
+
                     // Execute requestWithdrawal using available balance
                     const amountToWithdraw = availableCents;
                     logger.info(`[AutoWithdrawalEngine] Triggering automated withdrawal of ${amountToWithdraw} cents for user ${cfg.user_id}`);
@@ -1272,3 +1451,62 @@ const walletService = new WalletService();
 module.exports = walletService;
 module.exports.TXN_TYPES = TXN_TYPES;
 module.exports.TXN_STATUS = TXN_STATUS;
+module.exports.notifyWithdrawalOnce = notifyWithdrawalOnce;
+module.exports.payoutDeadline = payoutDeadline;
+module.exports.WITHDRAWAL_WINDOW_BUSINESS_DAYS = WITHDRAWAL_WINDOW_BUSINESS_DAYS;
+
+/**
+ * Withdrawal lifecycle worker: any withdrawal still open 2 business days after
+ * it was requested is cancelled, the reserved funds are returned, and the user
+ * gets the "🚫 Withdrawal Cancelled" terminal notification. Idempotent and
+ * safe to run on a schedule — cancelWithdrawalLocked re-checks status under
+ * FOR UPDATE, so a provider webhook that lands mid-cancel cannot double-refund.
+ */
+async function runWithdrawalLifecycleSweep() {
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+
+        const [stale] = await connection.query(
+            `SELECT w.withdrawal_id, w.wallet_id, w.amount_cents, w.requested_at, wa.user_id
+               FROM wallet_withdrawals w
+               JOIN wallets wa ON wa.wallet_id = w.wallet_id
+              WHERE w.status IN ('Pending', 'Processing')
+              ORDER BY w.requested_at ASC
+              LIMIT 100
+        `);
+
+        const now = new Date();
+        const cancelled = [];
+        for (const row of stale) {
+            if (payoutDeadline(new Date(row.requested_at)) > now) continue; // still within the promised window
+            const result = await cancelWithdrawalLocked(
+                connection,
+                row.withdrawal_id,
+                Number(row.amount_cents),
+                'Payout window elapsed (2 business days)'
+            );
+            if (result.status === 'cancelled') {
+                cancelled.push({ withdrawalId: row.withdrawal_id, userId: row.user_id, amountCents: Number(row.amount_cents) });
+            }
+        }
+
+        await connection.commit();
+
+        for (const c of cancelled) {
+            await notifyWithdrawalOnce(c.userId, c.amountCents, 'Cancelled', c.withdrawalId)
+                .catch((err) => logger.warn('[WithdrawalLifecycle] cancel notify failed:', err.message));
+        }
+        if (cancelled.length) {
+            logger.info(`[WithdrawalLifecycle] cancelled ${cancelled.length} withdrawal(s) past payout window`);
+        }
+        return { cancelled: cancelled.length };
+    } catch (err) {
+        await connection.rollback();
+        logger.error('[WithdrawalLifecycle] sweep failed:', err.message);
+        throw err;
+    } finally {
+        connection.release();
+    }
+}
+module.exports.runWithdrawalLifecycleSweep = runWithdrawalLifecycleSweep;

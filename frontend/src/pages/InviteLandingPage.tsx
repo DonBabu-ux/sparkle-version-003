@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Download, Smartphone, Copy, Check, AlertCircle, ArrowRight, CheckCircle2, LogIn } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import QRCode from 'react-qr-code';
 import { validateReferralCode, recordReferralClick } from '../services/referralService';
 import type { PublicInviteInfo } from '../services/referralService';
@@ -118,7 +119,7 @@ export default function InviteLandingPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
-        <div className="w-12 h-12 rounded-full border-2 border-[#ff006e] border-t-transparent animate-spin mb-4" />
+        <Spinner size="xl" color="#ff006e" className="w-12 h-12 mb-4" />
         <p className="text-zinc-400 text-sm font-medium">Validating Sparkle invite...</p>
       </div>
     );

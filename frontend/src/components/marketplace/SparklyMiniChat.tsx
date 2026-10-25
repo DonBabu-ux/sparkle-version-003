@@ -1,6 +1,7 @@
+import Spinner from '../ui/Spinner';
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Send, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { X, Send, Sparkles, ExternalLink } from "lucide-react";
 import api from "../../api/api";
 import { useUserStore } from "../../store/userStore";
 import { useNavigate } from "react-router-dom";
@@ -310,7 +311,7 @@ export default function SparklyMiniChat({ isOpen, onClose, initialMessage }: Pro
                   disabled={!inputText.trim() || isThinking}
                   className="w-8 h-8 rounded-full bg-purple-600 disabled:opacity-40 flex items-center justify-center hover:bg-purple-500 active:scale-95 transition-all disabled:cursor-not-allowed flex-shrink-0"
                 >
-                  {isThinking ? <Loader2 size={14} className="text-white animate-spin" /> : <Send size={14} className="text-white" />}
+                  {isThinking ? <Spinner size="small" className="text-white" /> : <Send size={14} className="text-white" />}
                 </button>
               </div>
             </div>

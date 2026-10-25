@@ -1,25 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  ArrowLeft,
-  Download,
-  RefreshCw,
-  Wifi,
-  Signal,
-  BellRing,
-  Zap,
-  PackageCheck,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
-  ExternalLink,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  Shield,
-  Radio,
-} from 'lucide-react';
+import { ArrowLeft, Download, RefreshCw, Wifi, Signal, BellRing, Zap, PackageCheck, CheckCircle2, AlertCircle, Clock, ExternalLink, ChevronDown, ChevronUp, Shield, Radio } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import UpdateService from '../services/UpdateService';
 import type {
   UpdateStatus,
@@ -46,15 +29,15 @@ function formatBytes(bytes: number | null): string {
   return `${(bytes / 1_048_576).toFixed(1)} MB`;
 }
 
-const STATUS_META: Record<UpdateStatus, { label: string; color: string; icon: React.ElementType }> = {
+const STATUS_META: Record<UpdateStatus, { label: string; color: string; icon: React.ElementType | null }> = {
   idle:             { label: 'Ready',                 color: 'text-slate-500 dark:text-zinc-400',  icon: PackageCheck },
-  checking:         { label: 'Checking for updates…', color: 'text-blue-500',                       icon: Loader2 },
+  checking:         { label: 'Checking for updates…', color: 'text-blue-500',                       icon: null },
   up_to_date:       { label: 'Up to date',            color: 'text-emerald-500',                    icon: CheckCircle2 },
   update_available: { label: 'Update available',      color: 'text-amber-500',                      icon: Download },
   waiting_for_wifi: { label: 'Waiting for Wi-Fi',     color: 'text-sky-500',                        icon: Wifi },
-  downloading:      { label: 'Downloading…',          color: 'text-blue-500',                       icon: Loader2 },
+  downloading:      { label: 'Downloading…',          color: 'text-blue-500',                       icon: null },
   ready_to_apply:   { label: 'Ready to install',      color: 'text-emerald-500',                    icon: PackageCheck },
-  applying:         { label: 'Applying update…',      color: 'text-violet-500',                     icon: Loader2 },
+  applying:         { label: 'Applying update…',      color: 'text-violet-500',                     icon: null },
   failed:           { label: 'Update failed',         color: 'text-red-500',                        icon: AlertCircle },
   apk_required:     { label: 'Full upgrade required', color: 'text-orange-500',                     icon: Download },
   offline:          { label: 'No connection',         color: 'text-slate-400',                      icon: AlertCircle },
@@ -298,7 +281,11 @@ export default function AppUpdates() {
                 : status === 'apk_required' ? 'bg-orange-500/10'
                 : 'bg-slate-100 dark:bg-zinc-800'
               }`}>
-                <StatusIcon className={`w-5 h-5 ${meta.color} ${isSpinning ? 'animate-spin' : ''}`} />
+                {isSpinning ? (
+                  <Spinner size="medium" className={meta.color} />
+                ) : meta.icon ? (
+                  <StatusIcon className={`w-5 h-5 ${meta.color}`} />
+                ) : null}
               </div>
               <div className="flex-1 min-w-0">
                 <p className={`text-sm font-bold ${meta.color}`}>{meta.label}</p>
@@ -382,7 +369,7 @@ export default function AppUpdates() {
                   disabled={applyLoading}
                   className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-500/25 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  {applyLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Zap className="w-4 h-4" />}
+                  {applyLoading ? <Spinner size="medium" className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
                   {applyLoading ? 'Restarting…' : 'Install Update Now'}
                 </button>
               )}

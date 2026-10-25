@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Check, CheckCheck, Clock, Edit2, Share2, CornerUpLeft, Info } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -68,7 +69,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
         <div className="p-6 overflow-y-auto space-y-6">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 text-slate-500 gap-2">
-              <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              <Spinner size="medium" text-blue-500 />
               <p className="text-xs">Fetching message details...</p>
             </div>
           ) : !info ? (

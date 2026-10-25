@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Zap, TrendingUp, AlertCircle, History, RefreshCw, CheckCircle2, ArrowRight } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -518,7 +519,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                   >
                     {submitting ? (
                       <>
-                        <RefreshCw size={16} className="animate-spin" /> Activating Boost...
+                        <Spinner size="small" className="text-white" /> Activating Boost...
                       </>
                     ) : (
                       <>

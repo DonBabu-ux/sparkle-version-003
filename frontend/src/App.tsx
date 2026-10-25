@@ -136,6 +136,7 @@ import { getRoleFromToken } from './utils/tokenUtils';
 import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { useAppPermissions } from './hooks/useAppPermissions';
+import Spinner from './components/ui/Spinner';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
@@ -452,12 +453,9 @@ function App() {
             </p>
           </div>
 
-          {/* Centered micro-animation indicator */}
-          <div className="mt-12 flex items-center justify-center relative w-10 h-10">
-            <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute top-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '0ms' }} />
-            <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute right-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '150ms' }} />
-            <span className="w-2 h-2 bg-[#ff1493] rounded-full animate-dot-pulse absolute bottom-0 left-1/2 transform -translate-x-1/2" style={{ animationDelay: '300ms' }} />
-            <span className="w-2 h-2 bg-[#fb7185] rounded-full animate-dot-pulse absolute left-0 top-1/2 transform -translate-y-1/2" style={{ animationDelay: '450ms' }} />
+          {/* Centered micro-animation indicator — the one shared brand loader */}
+          <div className="mt-12 flex items-center justify-center">
+            <Spinner size="xl" />
           </div>
         </div>
         <style>{`
@@ -502,7 +500,7 @@ function App() {
                   <UploadNotificationCenter />
                   <Suspense fallback={
                         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
-                          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
+                                <Spinner size="xl" />
                         </div>
                       }>
                     <Routes>
@@ -617,7 +615,7 @@ function App() {
                           <Suspense
                             fallback={
                               <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
-                                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-pink-500"></div>
+                          <Spinner size="xl" />
                               </div>
                             }
                           >

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Loader2 } from 'lucide-react';
+import { Check } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { useNavigate } from 'react-router-dom';
 import confetti from 'canvas-confetti';
 import api from '../../api/api';
@@ -67,7 +68,7 @@ export default function Success() {
       </p>
 
       <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
-        <Loader2 className="animate-spin text-[#ff2d87]" size={16} />
+        <Spinner size="small" className="text-[#ff2d87]" />
         <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">Taking you to your dashboard...</span>
       </div>
     </motion.div>

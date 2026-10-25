@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
-import { MailCheck, Loader2, XCircle, ArrowRight } from 'lucide-react';
+import { MailCheck, XCircle, ArrowRight } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { parseResetLinkParams } from '../utils/resetLink';
 import { showError, showSuccess } from '../utils/toast';
@@ -99,7 +100,7 @@ export default function VerifyEmail() {
                             className="w-full inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-full bg-primary text-white font-bold text-sm hover:opacity-90 disabled:opacity-60 transition-opacity"
                         >
                             {status === 'checking' ? (
-                                <><Loader2 size={16} className="animate-spin" /> Verifying…</>
+                                <><Spinner size="small" /> Verifying…</>
                             ) : (
                                 <>Verify Email <ArrowRight size={16} /></>
                             )}

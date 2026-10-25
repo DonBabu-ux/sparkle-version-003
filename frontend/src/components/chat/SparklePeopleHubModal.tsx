@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, X, Users, Sparkles, MessageSquare, UserCheck, Share2, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, X, Users, Sparkles, MessageSquare, UserCheck, Share2, RefreshCw } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
@@ -702,7 +703,7 @@ const UserRowCard: React.FC<UserRowCardProps> = ({
         className="px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff1493] to-[#e0115f] hover:brightness-110 text-white text-xs font-black uppercase tracking-wider transition-all shrink-0 flex items-center gap-1.5 shadow-md shadow-[#ff1493]/20 active:scale-95"
       >
         {isStarting ? (
-          <Loader2 size={14} className="animate-spin" />
+          <Spinner size="small" />
         ) : (
           <>
             <MessageSquare size={14} />

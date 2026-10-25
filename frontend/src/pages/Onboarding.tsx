@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import Slide1 from '../components/onboarding/Slide1';
 import Slide2 from '../components/onboarding/Slide2';
@@ -52,7 +53,7 @@ export default function Onboarding() {
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-dvh bg-[#0b0712] gap-3">
-        <Loader2 className="animate-spin text-[#ff2d87]" size={36} />
+        <Spinner size="large" className="text-[#ff2d87]" />
         <span className="text-sm font-bold text-[#b9a8cc]">Loading Sparkle experience...</span>
       </div>
     );

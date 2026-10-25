@@ -7,6 +7,7 @@ import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
 import { getRoleFromToken } from '../utils/tokenUtils';
 import { resolveAdminAccess } from '../utils/adminRoute';
@@ -626,7 +627,7 @@ export default function Settings() {
                               : 'bg-[#ff2d87] hover:bg-[#e02675] text-white shadow-lg shadow-[#ff2d87]/20'
                           } disabled:opacity-50`}
                         >
-                          {acSubmitting ? <span className="w-4 h-4 border-2 border-current/40 border-t-current rounded-full animate-spin" /> : null}
+                          {acSubmitting ? <Spinner size="small" text-current /> : null}
                           {isHidden ? '👁 Make Profile Visible Again' : '🙈 Turn On Ghost Mode (Hide Me)'}
                         </button>
                       </motion.div>
@@ -685,7 +686,7 @@ export default function Settings() {
                           disabled={acSubmitting || !acPassword}
                           className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20"
                         >
-                          {acSubmitting ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                          {acSubmitting ? <Spinner size="small" text-white /> : null}
                           Suspend My Account (Take a Break)
                         </button>
                       </motion.div>
@@ -754,7 +755,7 @@ export default function Settings() {
                           disabled={acSubmitting || !acPassword || !acAcknowledgeTerminate}
                           className="w-full py-3.5 rounded-2xl bg-orange-600 hover:bg-orange-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-orange-600/20"
                         >
-                          {acSubmitting ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : null}
+                          {acSubmitting ? <Spinner size="small" text-white /> : null}
                           Permanently Terminate Account
                         </button>
                       </motion.div>
@@ -880,7 +881,7 @@ export default function Settings() {
                           disabled={acSubmitting || acConfirmText !== 'DELETE' || !acPassword}
                           className="w-full py-3.5 rounded-2xl bg-red-500 hover:bg-red-600 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold text-sm transition-all active:scale-98 flex items-center justify-center gap-2 shadow-lg shadow-red-500/20"
                         >
-                          {acSubmitting ? <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" /> : <Trash2 size={16} />}
+                          {acSubmitting ? <Spinner size="small" text-white /> : <Trash2 size={16} />}
                           Permanently Delete Account
                         </button>
                       </motion.div>

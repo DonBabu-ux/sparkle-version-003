@@ -2,10 +2,8 @@ import { showError } from '../../utils/toast';
 import { validateFile } from '../../utils/fileValidation';
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X, ShieldCheck, Camera, Check,
-  AlertCircle, Loader2, Frame, SwitchCamera, ImageIcon
-} from 'lucide-react';
+import { X, ShieldCheck, Camera, Check, AlertCircle, Frame, SwitchCamera, ImageIcon } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -365,7 +363,7 @@ export default function IdentityVerificationModal({ isOpen, onClose }: IdentityV
             className="w-32 h-32 border-4 border-primary/10 border-t-primary rounded-full shadow-inner"
           />
           <div className="absolute inset-0 flex items-center justify-center">
-            <Loader2 size={40} className="text-primary animate-pulse" />
+            <Spinner size="xl" className="text-primary animate-pulse" />
           </div>
         </div>
         <div className="text-center">

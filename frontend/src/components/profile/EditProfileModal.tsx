@@ -5,7 +5,8 @@ import ProfileIdentityPreview from './ProfileIdentityPreview';
 import MentionAutocomplete, { type MentionOption } from '../MentionAutocomplete';
 import { useMentionSearch } from '../../hooks/useMentionSearch';
 import { VerifiedBadge } from '../common/VerifiedBadge';
-import { ArrowLeft, Camera, ChevronRight, Copy, Check, CheckCircle2, AlertCircle, Clock, Sparkles, GraduationCap, Compass, User as UserIcon, AtSign, Search, Eye, Upload, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, Camera, ChevronRight, Copy, Check, CheckCircle2, AlertCircle, Clock, Sparkles, GraduationCap, Compass, User as UserIcon, AtSign, Search, Eye, Upload, X } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import type { User } from '../../types/user';
 import { useModalA11y } from '../../hooks/useModalA11y';
 import { validateFile } from '../../utils/fileValidation';
@@ -586,7 +587,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-400 dark:text-neutral-600 cursor-not-allowed'
               }`}
             >
-              {saving && <Loader2 size={13} className="animate-spin" />}
+              {saving && <Spinner size="small" />}
               {saving ? 'Saving...' : 'Save'}
             </button>
           ) : (
@@ -650,7 +651,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                   className="px-3 py-1.5 rounded-lg bg-neutral-200/70 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 text-xs font-medium border border-neutral-200/80 dark:border-neutral-700/80 transition-colors flex items-center gap-1.5"
                 >
                   {uploadingPhoto ? (
-                    <Loader2 size={13} className="animate-spin" />
+                    <Spinner size="small" />
                   ) : (
                     <Camera size={13} />
                   )}
@@ -960,7 +961,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                 <div className="flex items-center gap-2 text-xs min-h-[20px]">
                   {checkingUsername ? (
                     <span className="text-neutral-500 dark:text-neutral-400 flex items-center gap-1 font-medium">
-                      <Loader2 size={13} className="animate-spin text-pink-500" /> Checking availability...
+                      <Spinner size="small" className="text-pink-500" /> Checking availability...
                     </span>
                   ) : usernameFeedback ? (
                     <span
@@ -1122,7 +1123,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                     header={
                       <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 flex items-center justify-between text-[11px] font-bold text-black/40 dark:text-white/40 uppercase tracking-wider">
                         <span>Mention User</span>
-                        {mentionLoading && <Loader2 size={12} className="animate-spin text-pink-500" />}
+                        {mentionLoading && <Spinner size="small" className="text-pink-500" />}
                       </div>
                     }
                     scrollClassName="max-h-48 overflow-y-auto divide-y divide-black/[0.03] dark:divide-white/[0.03]"

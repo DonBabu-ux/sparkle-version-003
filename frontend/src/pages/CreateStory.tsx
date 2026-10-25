@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Loader2, Music3, AlertCircle } from 'lucide-react';
+import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Music3, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { EnvironmentService } from '../services/EnvironmentService';
@@ -966,7 +966,7 @@ export default function CreateStory() {
                             className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-6 text-[14px] font-bold outline-none focus:border-rose-500 transition-all placeholder-white/20"
                           />
                           {musicLoading && (
-                            <Loader2 size={16} className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400 animate-spin" />
+                            <Spinner size="small" className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400" />
                           )}
                         </div>
                       </div>

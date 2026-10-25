@@ -484,7 +484,7 @@ export default function Profile() {
                       >
                         {isOpeningChat ? (
                           <>
-                            <div className="w-3.5 h-3.5 border-2 border-pink-500 border-t-transparent rounded-full animate-spin" />
+                            <Spinner size="small" text-pink-500 className="w-3.5 h-3.5" />
                             <span>Opening…</span>
                           </>
                         ) : (
@@ -527,7 +527,7 @@ export default function Profile() {
                       >
                         {isOpeningChat ? (
                           <>
-                            <div className="w-3.5 h-3.5 border-2 border-rose-500 border-t-transparent rounded-full animate-spin" />
+                            <Spinner size="small" text-rose-500 className="w-3.5 h-3.5" />
                             <span>Opening...</span>
                           </>
                         ) : (

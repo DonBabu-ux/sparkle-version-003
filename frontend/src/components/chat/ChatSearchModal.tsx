@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Search, Calendar, CornerUpRight, MessageSquare, Image as ImageIcon, FileText, Link2, Mic, Music, Share2, Eye } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
@@ -206,7 +207,7 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 max-w-4xl mx-auto w-full no-scrollbar">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
-            <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
+            <Spinner size="medium" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
             <p className="text-xs">Searching conversation...</p>
           </div>
         ) : results.length === 0 ? (

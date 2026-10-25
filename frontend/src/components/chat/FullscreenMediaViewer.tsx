@@ -1,25 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  ArrowLeft,
-  Check,
-  Copy,
-  Download,
-  FileText,
-  Forward,
-  Image as ImageIcon,
-  Loader2,
-  MoreVertical,
-  Pause,
-  Play,
-  RotateCw,
-  Search,
-  Sparkles,
-  Star,
-  Trash2,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, FileText, Forward, Image as ImageIcon, MoreVertical, Pause, Play, RotateCw, Search, Sparkles, Star, Trash2, X } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { Capacitor } from '@capacitor/core';
 import api from '../../api/api';
 import { getAvatarUrl, getMediaUrl } from '../../utils/imageUtils';
@@ -146,7 +129,7 @@ function ZoomableImage({ src, rotation }: { src: string; rotation: number }) {
       onWheel={handleWheel}
     >
       {!loaded && (
-        <Loader2 size={34} className="animate-spin text-white/60" />
+        <Spinner size="large" className="text-white/60" />
       )}
       <img
         src={src}
@@ -619,7 +602,7 @@ export default function FullscreenMediaViewer({
                   aria-label="Download"
                 >
                   {busy === 'download' ? (
-                    <Loader2 size={18} className="animate-spin" />
+                    <Spinner size="medium" />
                   ) : (
                     <Download size={18} />
                   )}
@@ -682,7 +665,7 @@ export default function FullscreenMediaViewer({
                           }`}
                         >
                           <span className={item.danger ? 'text-red-400' : 'text-white/60'}>
-                            {item.busy ? <Loader2 size={17} className="animate-spin" /> : item.icon}
+                            {item.busy ? <Spinner size="medium" /> : item.icon}
                           </span>
                           {item.label}
                         </button>
@@ -700,7 +683,7 @@ export default function FullscreenMediaViewer({
                         className="w-full flex items-center gap-3 px-4 py-3 text-[13px] font-semibold text-white/90 hover:bg-white/5 active:bg-white/10 transition-colors disabled:opacity-50"
                       >
                         {busy === 'avatar' ? (
-                          <Loader2 size={17} className="animate-spin text-white/60" />
+                          <Spinner size="medium" className="text-white/60" />
                         ) : (
                           <ImageIcon size={17} className="text-white/60" />
                         )}
@@ -788,7 +771,7 @@ export default function FullscreenMediaViewer({
                     disabled={busy === 'download'}
                     className="flex-1 py-3 rounded-xl bg-[#ff1493] text-white text-[13px] font-bold hover:bg-pink-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                   >
-                    {busy === 'download' ? <Loader2 size={15} className="animate-spin" /> : null}
+                    {busy === 'download' ? <Spinner size="small" /> : null}
                     Download
                   </button>
                 </div>
@@ -851,7 +834,7 @@ export default function FullscreenMediaViewer({
                 <div className="px-4 pb-3 max-h-[40vh] overflow-y-auto">
                   {aiPanel.loading && (
                     <div className="flex items-center gap-2.5 text-white/60 text-[13px] font-semibold py-2">
-                      <Loader2 size={15} className="animate-spin" />
+                      <Spinner size="small" />
                       Analyzing media…
                     </div>
                   )}

@@ -1,21 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  ArrowLeft,
-  Shield,
-  Key,
-  Mail,
-  Smartphone,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Eye,
-  EyeOff,
-  Copy,
-  Check,
-  Sparkles,
-  Lock
-} from 'lucide-react';
+import { ArrowLeft, Shield, Key, Mail, Smartphone, CheckCircle2, AlertCircle, Eye, EyeOff, Copy, Check, Sparkles, Lock } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 
 interface AvailableFactors {
@@ -279,7 +265,7 @@ export const ChangePassword: React.FC = () => {
 
             {loadingFactors ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-6 h-6 animate-spin text-[#ff1493]" />
+                <Spinner size="medium" className="w-6 h-6 text-[#ff1493]" />
                 <span className="text-xs text-slate-400">Checking security factors...</span>
               </div>
             ) : (
@@ -407,7 +393,7 @@ export const ChangePassword: React.FC = () => {
               disabled={loading || !verificationCode}
               className="w-full py-3.5 rounded-2xl bg-[#ff1493] hover:bg-pink-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40 active:scale-98 shadow-md shadow-pink-500/20"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm & Proceed to Step 2'}
+              {loading ? <Spinner size="medium" className="w-4 h-4" /> : 'Confirm & Proceed to Step 2'}
             </button>
           </form>
         )}
@@ -540,7 +526,7 @@ export const ChangePassword: React.FC = () => {
               disabled={loading || newPassword.length < 8 || newPassword !== confirmPassword}
               className="w-full py-3.5 rounded-2xl bg-[#ff1493] hover:bg-pink-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40 active:scale-98 shadow-lg shadow-pink-500/25"
             >
-              {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Change password'}
+              {loading ? <Spinner size="medium" className="w-4 h-4" /> : 'Change password'}
             </button>
           </form>
         )}

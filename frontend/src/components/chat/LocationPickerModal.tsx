@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import { ArrowLeft, RotateCw, Search, Maximize2, Minimize2, Navigation, MapPin, Building, ShoppingBag, GraduationCap, Activity, Shield, Utensils, Bus, Trees, X, Loader2 } from 'lucide-react';
+import { ArrowLeft, RotateCw, Search, Maximize2, Minimize2, Navigation, MapPin, Building, ShoppingBag, GraduationCap, Activity, Shield, Utensils, Bus, Trees, X } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
 import { LiveLocationIntroModal } from './LiveLocationIntroModal';
@@ -502,7 +503,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               <div className="flex items-center gap-3.5">
                 <div className="flex items-center justify-center w-11 h-11 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 group-hover:scale-105 transition-transform">
                   {isSendingCurrent ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
+                    <Spinner size="medium" className="w-6 h-6" />
                   ) : (
                     <Navigation className="w-6 h-6" />
                   )}
@@ -521,7 +522,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               <span className="text-xs font-black uppercase tracking-wider text-white/50">
                 Nearby locations
               </span>
-              {loadingNearby && <Loader2 className="w-3.5 h-3.5 text-[#ff1493] animate-spin" />}
+              {loadingNearby && <Spinner size="medium" className="w-3.5 h-3.5 text-[#ff1493]" />}
             </div>
 
             {/* NEARBY PLACES LIST (~30 LOCATIONS) */}

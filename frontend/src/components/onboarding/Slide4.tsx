@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UserPlus, UserCheck, ArrowRight, ArrowLeft, Loader2, Sparkles } from 'lucide-react';
+import { UserPlus, UserCheck, ArrowRight, ArrowLeft, Sparkles } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 
@@ -127,7 +128,7 @@ export default function Slide4({ onNext, onBack }: SlideProps) {
 
       {loading ? (
         <div className="flex flex-col items-center justify-center py-14 gap-3">
-          <Loader2 className="animate-spin text-[#ff2d87]" size={28} />
+          <Spinner size="large" className="text-[#ff2d87]" />
           <span className="text-sm font-medium text-slate-400 dark:text-zinc-400">Loading recommendations...</span>
         </div>
       ) : creators.length === 0 ? (
@@ -217,7 +218,7 @@ export default function Slide4({ onNext, onBack }: SlideProps) {
           className="flex-1 py-3.5 px-6 rounded-2xl bg-[#ff2d87] hover:bg-[#e02675] text-white font-bold text-sm tracking-wide active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
         >
           {submitting ? (
-            <Loader2 className="animate-spin" size={17} />
+            <Spinner size="medium" />
           ) : followingIds.length === 0 ? (
             <>
               <span>Skip for Now</span>

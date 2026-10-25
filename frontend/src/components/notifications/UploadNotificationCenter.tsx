@@ -3,6 +3,7 @@ import { useUploadStore } from '../../store/uploadStore';
 import { useNetworkStore } from '../../store/networkStore';
 import { useNavigate } from 'react-router-dom';
 import { ChevronUp, ChevronDown, CheckCircle, AlertTriangle, RefreshCw, Trash2, Play, CloudUpload } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadEventBus } from '../../utils/UploadEventBus';
 import { create } from 'zustand';
@@ -292,7 +293,7 @@ export default function UploadNotificationCenter() {
                               {/* Spinner overlay */}
                               {(job.status === 'UPLOADING' || job.status === 'GENERATING_THUMBNAIL' || job.status === 'COMPRESSING') && (
                                 <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                  <Spinner size="medium" text-primary />
                                 </div>
                               )}
                             </div>

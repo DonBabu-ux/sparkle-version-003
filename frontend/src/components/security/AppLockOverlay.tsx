@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, Delete, AlertCircle, Shield, X, Check, Loader2, ArrowLeft } from 'lucide-react';
+import { Lock, Delete, AlertCircle, Shield, X, Check, ArrowLeft } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { appLockService } from '../../services/appLock.service';
 import api from '../../api/api';
 
@@ -351,7 +352,7 @@ export const AppLockOverlay: React.FC = () => {
                     }}
                     className="w-full py-3 rounded-xl bg-[#ff1493] hover:bg-pink-600 active:scale-98 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2"
                   >
-                    {loadingFactors ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Reset App Lock'}
+                    {loadingFactors ? <Spinner size="medium" className="w-4 h-4" /> : 'Reset App Lock'}
                   </button>
                   <button
                     type="button"
@@ -469,7 +470,7 @@ export const AppLockOverlay: React.FC = () => {
                     onClick={handleVerifyFactor}
                     className="w-full py-3 rounded-xl bg-[#ff1493] hover:bg-pink-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40"
                   >
-                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify & Continue'}
+                    {isSubmitting ? <Spinner size="medium" className="w-4 h-4" /> : 'Verify & Continue'}
                   </button>
                   <button
                     type="button"
@@ -522,7 +523,7 @@ export const AppLockOverlay: React.FC = () => {
                   onClick={handleFinishReset}
                   className="w-full mt-4 py-3 rounded-xl bg-[#ff1493] hover:bg-pink-600 text-white font-semibold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-40"
                 >
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Save New PIN & Unlock'}
+                  {isSubmitting ? <Spinner size="medium" className="w-4 h-4" /> : 'Save New PIN & Unlock'}
                 </button>
               </div>
             )}

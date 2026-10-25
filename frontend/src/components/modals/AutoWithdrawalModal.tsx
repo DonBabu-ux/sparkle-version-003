@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Zap, Calendar, Sliders, ShieldCheck, CheckCircle2, Smartphone, Building2, AlertCircle, Loader2 } from 'lucide-react';
+import { X, Zap, Calendar, Sliders, ShieldCheck, CheckCircle2, Smartphone, Building2, AlertCircle } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 import { useModalA11y } from '../../hooks/useModalA11y';
@@ -176,7 +177,7 @@ export function AutoWithdrawalModal({
           <div className="p-6 overflow-y-auto space-y-6 flex-1 text-slate-800">
             {fetching ? (
               <div className="py-12 flex flex-col items-center justify-center gap-3 text-slate-400">
-                <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                <Spinner size="medium" className="w-8 h-8 text-amber-500" />
                 <p className="text-xs font-bold uppercase tracking-wider">Loading Configuration...</p>
               </div>
             ) : (
@@ -452,7 +453,7 @@ export function AutoWithdrawalModal({
               disabled={loading || fetching}
               className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-xl text-xs font-black shadow-lg shadow-amber-500/25 flex items-center gap-2 disabled:opacity-50 transition-all"
             >
-              {loading && <Loader2 size={14} className="animate-spin" />}
+              {loading && <Spinner size="small" />}
               Save Auto-Payout Settings
             </button>
           </div>

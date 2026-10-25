@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Search, X, Check, MessageSquare, Loader2 } from 'lucide-react';
+import { ArrowLeft, Search, X, Check, MessageSquare } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import clsx from 'clsx';
 import api from '../../api/api';
 import { useUserStore } from '../../store/userStore';
@@ -440,7 +441,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           <div className="flex-1 overflow-y-auto pb-28 divide-y divide-transparent">
             {loading && !recentUsers.length ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Loader2 className="animate-spin text-[#ff1493]" size={28} />
+                <Spinner size="large" className="text-[#ff1493]" />
                 <span className="text-xs text-zinc-400">Loading contacts...</span>
               </div>
             ) : totalVisibleCount === 0 ? (
@@ -532,7 +533,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
 
                 {isSearchingServer && (
                   <div className="flex items-center justify-center gap-2 py-4 text-xs text-zinc-400">
-                    <Loader2 size={14} className="animate-spin text-[#ff1493]" />
+                    <Spinner size="small" className="text-[#ff1493]" />
                     <span>Searching more users...</span>
                   </div>
                 )}
@@ -563,7 +564,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 size={16} className="animate-spin text-white" />
+                  <Spinner size="small" className="text-white" />
                   <span>Starting...</span>
                 </>
               ) : (

@@ -1,7 +1,7 @@
 import { showSuccess } from '../utils/toast';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -535,7 +535,7 @@ export default function Login() {
                     >
                       {resendingCode ? (
                         <>
-                          <Loader2 size={14} className="animate-spin" />
+                          <Spinner size="small" />
                           <span>Sending code...</span>
                         </>
                       ) : cooldown > 0 ? (
@@ -577,7 +577,7 @@ export default function Login() {
                     >
                       {resendingCode ? (
                         <>
-                          <Loader2 size={14} className="animate-spin" />
+                          <Spinner size="small" />
                           <span>Sending recovery code...</span>
                         </>
                       ) : cooldown > 0 ? (

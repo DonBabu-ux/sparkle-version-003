@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Music, Smile, Search, ArrowLeft, ChevronRight } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import { useUserStore } from '../../store/userStore';
 import { getAvatarUrl } from '../../utils/imageUtils';
 import api from '../../api/api';
@@ -395,7 +396,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
             <div className="flex-1 overflow-y-auto no-scrollbar p-2">
               {loadingGifs ? (
                 <div className="flex justify-center py-8">
-                  <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <Spinner size="medium" text-white />
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-1.5">

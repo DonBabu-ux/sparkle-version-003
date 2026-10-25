@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Heart, ArrowRight, ArrowLeft, Loader2, Check } from 'lucide-react';
+import { Heart, ArrowRight, ArrowLeft, Check } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { logger } from '../../utils/logger';
 
@@ -133,7 +134,7 @@ export default function Slide5({ onNext, onBack }: SlideProps) {
           className="flex-1 py-3.5 px-6 rounded-2xl bg-[#ff2d87] hover:bg-[#e02675] text-white font-bold text-sm tracking-wide active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {submitting ? (
-            <Loader2 className="animate-spin" size={17} />
+            <Spinner size="medium" />
           ) : (
             <>
               <span>Confirm ({selectedSlugs.length}/3)</span>

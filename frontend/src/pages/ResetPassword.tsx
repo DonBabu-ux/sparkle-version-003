@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, Shield, Check, X, RefreshCw, ChevronLeft } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Shield, Check, X, ChevronLeft } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { parseResetLinkParams } from '../utils/resetLink';
 
@@ -260,7 +261,7 @@ export default function ResetPassword() {
                 disabled={timer > 0 || resending}
                 className="text-pink-600 font-bold hover:text-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
               >
-                {resending && <RefreshCw size={10} className="animate-spin" />}
+                {resending && <Spinner size="small" />}
                 {timer > 0 ? `Resend Code (${timer}s)` : 'Resend Code'}
               </button>
             </div>

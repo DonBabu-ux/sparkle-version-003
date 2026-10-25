@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Film, Trash2, RotateCcw, Eye, Heart, MessageSquare, Share2, Loader2, Clapperboard, Radio } from 'lucide-react';
+import { ArrowLeft, Film, Trash2, RotateCcw, Eye, Heart, MessageSquare, Share2, Clapperboard, Radio } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { getMediaUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -168,7 +169,7 @@ export default function MomentStudio() {
 
         {loading ? (
           <div className="py-24 flex items-center justify-center">
-            <Loader2 size={28} className="animate-spin text-marketplace-muted" />
+            <Spinner size="large" className="text-marketplace-muted" />
           </div>
         ) : moments.length === 0 ? (
           <ModernOfflineState
@@ -227,7 +228,7 @@ export default function MomentStudio() {
                     aria-label={`Take down ${m.caption?.trim() || 'this moment'}`}
                     className="w-10 h-10 flex items-center justify-center rounded-xl text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/40 transition-colors disabled:opacity-40 shrink-0"
                   >
-                    {busy ? <Loader2 size={17} className="animate-spin" /> : <Trash2 size={17} strokeWidth={2.5} />}
+                    {busy ? <Spinner size="medium" /> : <Trash2 size={17} strokeWidth={2.5} />}
                   </button>
                 </li>
               );
@@ -272,7 +273,7 @@ export default function MomentStudio() {
                       aria-label={`Restore ${m.caption?.trim() || 'this moment'}`}
                       className="flex items-center gap-1.5 px-3.5 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-40 shrink-0"
                     >
-                      {busy ? <Loader2 size={15} className="animate-spin" /> : <RotateCcw size={15} strokeWidth={2.5} />}
+                      {busy ? <Spinner size="small" /> : <RotateCcw size={15} strokeWidth={2.5} />}
                       <span className="text-[11px] font-black uppercase tracking-widest">Restore</span>
                     </button>
                   </li>

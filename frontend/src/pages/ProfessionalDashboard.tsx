@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
-import { ArrowLeft, X, Settings, BadgeCheck, DollarSign, Zap, Shield, Plus, HelpCircle, Heart, MessageSquare, Share2, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle, History, Eye, Users, Radio, Video, Banknote, Store, Megaphone, BarChart2, Activity, RefreshCw, CheckCircle2, XCircle, AlertCircle, Loader2, Building2, Smartphone, CreditCard } from 'lucide-react';
+import { ArrowLeft, X, Settings, BadgeCheck, DollarSign, Zap, Shield, Plus, HelpCircle, Heart, MessageSquare, Share2, TrendingUp, Wallet, ArrowDownCircle, ArrowUpCircle, History, Eye, Users, Radio, Video, Banknote, Store, Megaphone, BarChart2, Activity, RefreshCw, CheckCircle2, XCircle, AlertCircle, Building2, Smartphone, CreditCard } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import '../components/ui/Spinner';
 import { useUserStore } from '../store/userStore';
 import { AutoWithdrawalModal } from '../components/modals/AutoWithdrawalModal';
@@ -258,7 +259,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
               {verificationStatus === 'pending' ? (
                 <>
                   <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
-                    <Loader2 size={32} className="text-amber-500 animate-spin" />
+                    <Spinner size="large" className="text-amber-500" />
                   </div>
                   <p className="text-slate-800 font-black text-lg italic uppercase">Verifying Payment...</p>
                   <p className="text-slate-600 text-xs font-medium">
@@ -368,7 +369,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
               <button onClick={handleSubmit} disabled={loading || !amount || amountKES <= 0}
                 className="w-full py-4 bg-gradient-to-r from-[#FF1F6D] to-[#ff6b35] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic shadow-lg shadow-[#FF1F6D]/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <DollarSign size={16} />}
+                {loading ? <Spinner size="small" /> : <DollarSign size={16} />}
                 {loading ? 'Initializing…' : `Pay ${amountCents > 0 ? formatKES(amountCents) : ''}`.trim()}
               </button>
             </>
@@ -505,7 +506,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                         className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
                       <button onClick={resolveAccount} disabled={resolving || !accountNumber || !bankCode}
                         className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
-                        {resolving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
+                        {resolving ? <Spinner size="small" /> : <CheckCircle2 size={14} />}
                       </button>
                     </div>
                     {resolved && (
@@ -532,7 +533,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
 
               <button onClick={submit} disabled={loading || amountCents <= 0}
                 className="w-full py-4 bg-gradient-to-r from-[#FF1F6D] to-[#ff6b35] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic shadow-lg shadow-[#FF1F6D]/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                {loading ? <Loader2 size={16} className="animate-spin" /> : <ArrowUpCircle size={16} />}
+                {loading ? <Spinner size="small" /> : <ArrowUpCircle size={16} />}
                 {loading ? 'Submitting…' : `Withdraw ${amountCents > 0 ? formatKES(amountCents) : ''}`.trim()}
               </button>
             </>

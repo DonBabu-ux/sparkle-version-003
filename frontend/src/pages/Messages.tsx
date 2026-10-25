@@ -55,7 +55,8 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Loader2, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
+import Spinner from '../components/ui/Spinner';
 import { useCall } from '../components/CallProvider';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -1280,7 +1281,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                   <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-2 gap-x-3 gap-y-4 p-3 content-start">
                     {loadingGiphy ? (
                       <div className="col-span-2 h-full flex flex-col items-center justify-center py-20 gap-3">
-                        <div className="w-8 h-8 border-3 border-[#ff1493] border-t-transparent rounded-full animate-spin" />
+                        <Spinner size="large" color="#ff1493" />
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading GIFs...</span>
                       </div>
                     ) : giphyResults.map((item: any) => (
@@ -1302,7 +1303,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                   <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-3 gap-x-3 gap-y-4 p-3 content-start">
                     {loadingGiphy ? (
                       <div className="col-span-3 h-full flex flex-col items-center justify-center py-20 gap-3">
-                        <div className="w-8 h-8 border-3 border-[#ff1493] border-t-transparent rounded-full animate-spin" />
+                        <Spinner size="large" color="#ff1493" />
                         <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading Stickers...</span>
                       </div>
                     ) : giphyResults.map((item: any) => (
@@ -4833,7 +4834,7 @@ export default function Messages() {
               <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
                 {paging?.isLoadingOlder && (
                   <div className="flex justify-center py-2">
-                    <Loader2 className="w-4 h-4 animate-spin text-purple-400" />
+                    <Spinner size="medium" className="w-4 h-4 text-purple-400" />
                   </div>
                 )}
                 {(() => {

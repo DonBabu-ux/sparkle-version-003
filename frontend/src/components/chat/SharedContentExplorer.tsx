@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { ChevronLeft, Image as ImageIcon, FileText, Link2, Mic, Music, Play, ExternalLink, Download, Share2, CornerUpRight, Search, AlertCircle, ChevronRight, Eye, Calendar, X } from 'lucide-react';
+import Spinner from '../ui/Spinner';
 import api from '../../api/api';
 import { useThemeStore } from '../../store/themeStore';
 import { logger } from '../../utils/logger';
@@ -168,7 +169,7 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 no-scrollbar">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-3">
-            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
+            <Spinner size="large" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
             <p className="text-xs">Loading shared content...</p>
           </div>
         ) : data.length === 0 ? (

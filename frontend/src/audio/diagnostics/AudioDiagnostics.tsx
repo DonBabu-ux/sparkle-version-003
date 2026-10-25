@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeft, RefreshCw, ShieldAlert, CheckCircle, Play, Settings } from 'lucide-react';
+import Spinner from '../../components/ui/Spinner';
 import { useNavigate } from 'react-router-dom';
 import AudioSessionManager from '../managers/AudioSessionManager';
 import type { SoundKey } from '../managers/SoundManager';
@@ -20,7 +21,7 @@ export const AudioDiagnostics: React.FC = () => {
   if (!stats) {
     return (
       <div className="min-h-dvh bg-slate-950 text-white flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+        <Spinner size="large" />
       </div>
     );
   }

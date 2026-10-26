@@ -109,3 +109,4 @@ keystore.properties
 local.properties
 .gradle/
 frontend/android/app/src/main/assets/public/
+scripts/tmp-*.cjs

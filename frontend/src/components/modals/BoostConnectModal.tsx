@@ -258,7 +258,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                 <button
                   onClick={() => setActiveTab('boost')}
                   className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider italic transition-all ${
-                    activeTab === 'boost' ? 'bg-amber-500 text-black shadow-md' : 'text-slate-300 hover:text-white'
+                    activeTab === 'boost' ? 'bg-amber-500 text-[#18181b] shadow-md' : 'text-slate-300 hover:text-white'
                   }`}
                 >
                   Boost Engine
@@ -266,7 +266,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                 <button
                   onClick={() => setActiveTab('history')}
                   className={`px-3.5 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider italic transition-all flex items-center gap-1.5 ${
-                    activeTab === 'history' ? 'bg-amber-500 text-black shadow-md' : 'text-slate-300 hover:text-white'
+                    activeTab === 'history' ? 'bg-amber-500 text-[#18181b] shadow-md' : 'text-slate-300 hover:text-white'
                   }`}
                 >
                   <History size={12} /> History
@@ -360,7 +360,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                           }`}
                         >
                           {plan.popular && (
-                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black dark:text-white px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider italic shadow-md">
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-[#18181b] dark:text-white px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider italic shadow-md">
                               Most Popular
                             </span>
                           )}
@@ -428,7 +428,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                             }}
                             className={`py-3 rounded-xl text-xs font-black italic transition-all border ${
                               !isCustomDaysActive && durationInput === d
-                                ? 'bg-amber-500 text-black border-amber-500 shadow-md'
+                                ? 'bg-amber-500 text-[#18181b] border-amber-500 shadow-md'
                                 : 'bg-[#181a24] border-slate-700 text-white hover:border-slate-500'
                             }`}
                           >
@@ -514,7 +514,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                     className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest italic shadow-xl transition-all flex items-center justify-center gap-2 ${
                       submitting || isInsufficientBalance || budgetNum < 10
                         ? 'bg-white/10 text-slate-400 cursor-not-allowed border border-white/10'
-                        : 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20 active:scale-[0.99]'
+                        : 'bg-amber-500 hover:bg-amber-400 text-[#18181b] shadow-amber-500/20 active:scale-[0.99]'
                     }`}
                   >
                     {submitting ? (

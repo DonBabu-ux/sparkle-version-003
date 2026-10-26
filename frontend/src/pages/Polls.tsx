@@ -169,7 +169,7 @@ export default function Polls() {
   ];
 
   return (
-    <div className="flex bg-transparent min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-transparent min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -181,7 +181,7 @@ export default function Polls() {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-md shadow-primary/5">
               <BarChart2 size={14} strokeWidth={3} className="text-primary" />
-              <span className="text-[10px] font-bold text-black dark:text-white uppercase tracking-wider">Polls</span>
+              <span className="text-[10px] font-bold text-[#18181b] dark:text-white uppercase tracking-wider">Polls</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
               Sparkle <span className="text-primary">Polls</span>
@@ -266,7 +266,7 @@ export default function Polls() {
                               <BarChart2 size={16} strokeWidth={2.5} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">{poll.question}</p>
+                              <p className="text-[13px] font-bold text-[#18181b] dark:text-white tracking-tight truncate">{poll.question}</p>
                               <p className="text-[11px] text-black/40 font-medium mt-0.5">
                                 {poll.total_votes || 0} votes · {poll.is_expired ? 'Closed' : 'Open'}
                               </p>

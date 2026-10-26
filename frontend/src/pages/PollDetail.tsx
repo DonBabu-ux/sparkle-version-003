@@ -183,7 +183,7 @@ export default function PollDetail() {
   const isExpired = poll.is_expired;
 
   return (
-    <div className="bg-transparent min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-20">
+    <div className="bg-transparent min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-20">
       <main className="relative z-10 max-w-xl mx-auto w-full p-4 md:p-8">
         <button 
           onClick={() => navigate('/polls')}

@@ -190,7 +190,7 @@ export default function Explore() {
   })();
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white font-sans overflow-hidden transition-colors duration-300">
+    <div className="flex bg-[#fdf2f4] dark:bg-black min-h-dvh text-[#18181b] dark:text-white font-sans overflow-hidden transition-colors duration-300">
 
       {/* Main Content Area */}
       <div className="flex-1 w-full">

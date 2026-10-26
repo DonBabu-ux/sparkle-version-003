@@ -33,7 +33,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
     >
       {icon ?? <Sparkles className="w-8 h-8 text-primary" />}
     </motion.div>
-    <p className="font-heading font-bold text-[15px] text-black dark:text-white">{title}</p>
+    <p className="font-heading font-bold text-[15px] text-[#18181b] dark:text-white">{title}</p>
     <p className="mt-1 text-[13px] text-black/50 dark:text-white/50 max-w-[260px] leading-relaxed">
       {message}
     </p>

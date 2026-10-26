@@ -156,7 +156,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
       role="dialog"
       aria-modal="true"
       tabIndex={-1}
-      className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col overflow-hidden safe-area-top safe-area-bottom animate-in slide-in-from-bottom duration-300"
+      className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-[#18181b] dark:text-white flex flex-col overflow-hidden safe-area-top safe-area-bottom animate-in slide-in-from-bottom duration-300"
     >
         {showSelector && (
           <FeelingActivitySelector 
@@ -288,7 +288,7 @@ export default function PostModal({ onClose, onSuccess, editPost }: PostModalPro
             <MentionInput
               value={content}
               onChange={setContent}
-              className="w-full min-h-[100px] text-[18px] outline-none placeholder:text-gray-300 dark:placeholder:text-white/20 text-black dark:text-white resize-none border-none bg-transparent"
+              className="w-full min-h-[100px] text-[18px] outline-none placeholder:text-gray-300 dark:placeholder:text-white/20 text-[#18181b] dark:text-white resize-none border-none bg-transparent"
               placeholder={`What's on your mind, ${user?.name?.split(' ')[0] || ''}?`}
               autoFocus={true}
             />

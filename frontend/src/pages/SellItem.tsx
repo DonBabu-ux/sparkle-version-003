@@ -157,7 +157,7 @@ export default function SellItem() {
   };
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] text-marketplace-text font-sans pb-10">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] text-marketplace-text font-sans pb-10">
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">

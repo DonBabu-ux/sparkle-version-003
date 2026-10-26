@@ -141,7 +141,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); if (actorUsername) navigate(`/profile/${actorUsername}`); }}
-                className="font-bold text-black dark:text-white text-[17px] hover:underline focus:outline-none leading-tight truncate max-w-[200px]"
+                className="font-bold text-[#18181b] dark:text-white text-[17px] hover:underline focus:outline-none leading-tight truncate max-w-[200px]"
                 style={{ fontWeight: 700 }}
               >
                 {displayName}
@@ -271,7 +271,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
           <div className="flex items-center gap-1.5 mb-0.5">
             {isUnread && <span className="w-2 h-2 rounded-full bg-pink-500 shadow shadow-pink-500/50 flex-shrink-0" />}
             <p className="text-sm text-zinc-900 dark:text-white leading-snug break-words" style={{ fontWeight: 500 }}>
-              <span style={{ fontWeight: 700 }} className="text-black dark:text-white">{summaryText}</span>
+              <span style={{ fontWeight: 700 }} className="text-[#18181b] dark:text-white">{summaryText}</span>
               {' '}
               {first.body}
             </p>
@@ -311,7 +311,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
                 onClick={() => { if (username) navigate(`/profile/${username}`); }}
               >
                 <img src={avatar} alt={name || ''} className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0" />
-                <span className="text-sm text-black dark:text-white truncate" style={{ fontWeight: 700 }}>{name}</span>
+                <span className="text-sm text-[#18181b] dark:text-white truncate" style={{ fontWeight: 700 }}>{name}</span>
                 {username && (
                   <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate ml-1" style={{ fontWeight: 400 }}>@{username}</span>
                 )}

@@ -112,7 +112,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   if (!isOpen) return null;
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className={`fixed inset-0 z-(--z-modal) flex flex-col overflow-hidden ${isDark ? 'bg-black text-white' : 'bg-white text-black'}`}>
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className={`fixed inset-0 z-(--z-modal) flex flex-col overflow-hidden ${isDark ? 'bg-black text-white' : 'bg-white text-[#18181b]'}`}>
       {/* Top Bar */}
       <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/50 to-transparent">
         <button onClick={() => { setCapturedMedia(null); onClose(); }} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors">
@@ -238,7 +238,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
             
             <button 
               onClick={() => onSend(capturedMedia, viewMode)}
-              className="bg-white dark:bg-[#1b1b24] px-5 py-3 rounded-full text-black dark:text-white font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/20"
+              className="bg-white dark:bg-[#1b1b24] px-5 py-3 rounded-full text-[#18181b] dark:text-white font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/20"
             >
               <span className="uppercase text-sm tracking-widest hidden sm:block">Send</span>
               <div className="flex items-center justify-center relative">

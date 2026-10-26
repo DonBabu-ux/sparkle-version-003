@@ -876,7 +876,7 @@ export default function StoryViewer() {
                            <button
                              key={opt}
                              onClick={() => updateSetting('reply_privacy', opt.toLowerCase())}
-                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.reply_privacy === opt.toLowerCase() ? 'bg-white text-black shadow' : 'text-white/50'}`}
+                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.reply_privacy === opt.toLowerCase() ? 'bg-white text-[#18181b] shadow' : 'text-white/50'}`}
                            >
                              {opt}
                            </button>
@@ -899,7 +899,7 @@ export default function StoryViewer() {
                            <button 
                              key={opt}
                              onClick={() => updateSetting('comment_privacy', opt.toLowerCase())}
-                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.comment_privacy === opt.toLowerCase() ? 'bg-white text-black shadow' : 'text-white/50'}`}
+                             className={`py-2 text-[12px] font-semibold rounded-lg transition-all ${currentStory.comment_privacy === opt.toLowerCase() ? 'bg-white text-[#18181b] shadow' : 'text-white/50'}`}
                            >
                              {opt}
                            </button>
@@ -1071,7 +1071,7 @@ export default function StoryViewer() {
                     setSelectedMentions([]);
                   }}
                   disabled={isProcessing}
-                  className="mt-4 w-full h-12 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-xl font-bold text-[14px] disabled:opacity-50"
+                  className="mt-4 w-full h-12 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-xl font-bold text-[14px] disabled:opacity-50"
                 >
                   {isProcessing ? 'Saving...' : `Hide from ${selectedMentions.length} ${selectedMentions.length === 1 ? 'person' : 'people'}`}
                 </button>
@@ -1215,7 +1215,7 @@ export default function StoryViewer() {
                    <div className="flex gap-2">
                       {['❤️', '🔥', '👏', '😂'].map(e => <button key={e} onClick={() => setReplyText(prev => prev + e)} className="text-xl active:scale-125 transition-all">{e}</button>)}
                    </div>
-                   <button onClick={() => handlePostComment(replyText)} className="px-6 h-10 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-full font-black uppercase italic text-[11px]">Post</button>
+                   <button onClick={() => handlePostComment(replyText)} className="px-6 h-10 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-full font-black uppercase italic text-[11px]">Post</button>
                 </div>
              </motion.div>
           </motion.div>

@@ -137,7 +137,7 @@ export default function GroupDetail() {
   };
 
   if (loading) return (
-    <div className="flex items-center justify-center min-h-dvh bg-[#fafafa]">
+    <div className="flex items-center justify-center min-h-dvh bg-[#fdf2f4]">
       <Spinner size="medium" color="text-primary" />
     </div>
   );

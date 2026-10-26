@@ -56,7 +56,7 @@ export default function AccountsCenter() {
 
   if (!hydrated) {
     return (
-      <div className="flex bg-white dark:bg-zinc-950 min-h-dvh items-center justify-center text-marketplace-text">
+      <div className="flex bg-[#fdf2f4] dark:bg-zinc-950 min-h-dvh items-center justify-center text-marketplace-text">
         <Spinner size="xl" color="text-primary" />
       </div>
     );
@@ -107,7 +107,7 @@ export default function AccountsCenter() {
                   className="w-12 h-12 rounded-xl shrink-0 border border-marketplace-border"
                 />
                 <div className="flex-1 min-w-0">
-                  <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">
+                  <p className="text-[13px] font-bold text-[#18181b] dark:text-white tracking-tight truncate">
                     {acc.user.name || acc.user.username}
                   </p>
                   <p className="text-[11px] text-marketplace-muted font-medium truncate">@{acc.user.username}</p>
@@ -136,7 +136,7 @@ export default function AccountsCenter() {
               <Plus size={20} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-bold text-black dark:text-white tracking-tight">Add account</p>
+              <p className="text-[13px] font-bold text-[#18181b] dark:text-white tracking-tight">Add account</p>
               <p className="text-[11px] text-marketplace-muted font-medium">Sign in with another Sparkle account</p>
             </div>
           </button>
@@ -159,7 +159,7 @@ export default function AccountsCenter() {
                     <row.icon size={18} strokeWidth={2.2} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">{row.label}</p>
+                    <p className="text-[13px] font-bold text-[#18181b] dark:text-white tracking-tight truncate">{row.label}</p>
                     <p className="text-[11px] text-marketplace-muted font-medium truncate">{row.sub}</p>
                   </div>
                   <ChevronRight size={16} className="text-marketplace-muted shrink-0" />

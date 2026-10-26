@@ -59,7 +59,7 @@ export default function ReportListing() {
   if (loading) return null;
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] text-marketplace-text font-sans">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] text-marketplace-text font-sans">
       <header className="sticky top-0 z-50 bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
           <ChevronLeft size={24} strokeWidth={2.5} />

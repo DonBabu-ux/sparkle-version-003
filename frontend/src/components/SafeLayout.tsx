@@ -12,7 +12,7 @@ export const EdgeBackgroundLayer: React.FC<{
   style?: React.CSSProperties;
 }> = ({ children, className = '', style }) => {
   const theme = useUserStore((state) => state.theme);
-  const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f0f2f5] text-black';
+  const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f0f2f5] text-[#18181b]';
   
   return (
     <div

@@ -60,7 +60,7 @@ export default function GroupAdmin() {
   };
 
   if (loading) return (
-    <div className="flex min-h-dvh bg-[#fafafa]">
+    <div className="flex min-h-dvh bg-[#fdf2f4]">
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Loading...</p>
@@ -69,7 +69,7 @@ export default function GroupAdmin() {
   );
 
   return (
-    <div className="flex min-h-dvh bg-[#fafafa] text-black dark:text-white font-sans pb-20">
+    <div className="flex min-h-dvh bg-[#fafafa] text-[#18181b] dark:text-white font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full">
         <header className="mb-8 animate-fade-in">
@@ -82,7 +82,7 @@ export default function GroupAdmin() {
             </Link>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
               <Shield size={12} strokeWidth={3} className="text-primary" />
-              <span className="text-[8px] font-black text-black dark:text-white uppercase tracking-widest italic">Admin Hub</span>
+              <span className="text-[8px] font-black text-[#18181b] dark:text-white uppercase tracking-widest italic">Admin Hub</span>
             </div>
           </div>
           

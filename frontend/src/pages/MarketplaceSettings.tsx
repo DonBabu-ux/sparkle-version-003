@@ -111,7 +111,7 @@ const MarketplaceSettings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-gray-50 dark:bg-[#101217] flex items-center justify-center">
+      <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center">
         <Spinner size="medium" color="text-primary" />
       </div>
     );

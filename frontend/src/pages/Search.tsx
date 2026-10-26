@@ -170,7 +170,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="block lg:flex bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="block lg:flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -420,7 +420,7 @@ export default function Search() {
                                     <Sparkles size={18} strokeWidth={3} />
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-black text-black dark:text-white italic uppercase leading-none">{actionItem.name}</h3>
+                            <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic uppercase leading-none">{actionItem.name}</h3>
                             <p className="text-black/20 font-bold text-[11px] uppercase tracking-widest mt-3">@{actionItem.username}</p>
                         </>
                     ) : (
@@ -428,7 +428,7 @@ export default function Search() {
                             <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 mb-6">
                                 <Clock size={32} strokeWidth={2.5} />
                             </div>
-                             <h3 className="text-2xl font-black text-black dark:text-white italic uppercase">Search History</h3>
+                             <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic uppercase">Search History</h3>
                             <p className="text-primary font-bold text-base mt-3 italic px-4">"{actionItem.query}"</p>
                         </>
                     )}

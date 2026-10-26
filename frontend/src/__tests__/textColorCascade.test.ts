@@ -4,7 +4,7 @@
  * The @layer base rules used to paint h1..h6/p/span/b/i/strong/em/a with the
  * THEME color (--color-text-primary), which overrides the color those elements
  * inherit from their container. Inside a container of opposite polarity
- * (text-white card in light theme, text-black card in dark theme) that painted
+ * (text-white card in light theme, text-[#18181b] card in dark theme) that painted
  * the text the same color as the background → invisible.
  *
  * Correct model: body carries the theme color; containers carry their own;
@@ -32,7 +32,7 @@ describe('H22 text-color cascade', () => {
     });
 
     it('body still anchors the theme color for light and dark', () => {
-        expect(css).toMatch(/body\s*\{[^}]*text-\[#000000\]/);
+        expect(css).toMatch(/body\s*\{[^}]*text-\[#18181b\]/);
         expect(css).toMatch(/\.dark body\s*\{[^}]*color:\s*#FFFFFF/);
     });
 });

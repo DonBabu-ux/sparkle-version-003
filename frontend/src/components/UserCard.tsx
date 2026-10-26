@@ -83,7 +83,7 @@ export default function UserCard({ u }: UserCardProps) {
       {/* User Info */}
       <div className="flex flex-col items-center w-full mb-3">
         <div className="flex items-center gap-1.5 justify-center w-full mb-1">
-          <span className="font-black text-[15px] text-black dark:text-white tracking-tight truncate max-w-[80%] uppercase italic">
+          <span className="font-black text-[15px] text-[#18181b] dark:text-white tracking-tight truncate max-w-[80%] uppercase italic">
             {identity.displayName}
           </span>
           <VerifiedBadge accountType={identity.accountType} isVerified={identity.badge.show} color={identity.badge.color} size="xs" />

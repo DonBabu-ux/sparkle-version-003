@@ -537,7 +537,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               <div className="flex flex-col items-center mt-2 px-6">
                 <div className="relative mb-4">
                   <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-24 h-24 rounded-full object-cover border-4 border-white/5 shadow-lg" alt="" />
-                  {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-black dark:text-white">9m</span></div>}
+                  {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-[#18181b] dark:text-white">9m</span></div>}
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-6">{displayPartnerName}</h2>
 

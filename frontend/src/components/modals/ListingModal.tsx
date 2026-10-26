@@ -85,13 +85,13 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         <div className="flex items-center gap-2">
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-black dark:text-white hover:bg-black/5 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#18181b] dark:text-white hover:bg-black/5 transition-all"
           >
             <ChevronLeft size={24} strokeWidth={3} />
           </button>
           <div className="modal-title">
-            <Store size={20} strokeWidth={3} className="text-black dark:text-white" /> 
-            <span className="font-heading font-black text-xl text-black dark:text-white tracking-tighter uppercase italic">Create Listing</span>
+            <Store size={20} strokeWidth={3} className="text-[#18181b] dark:text-white" /> 
+            <span className="font-heading font-black text-xl text-[#18181b] dark:text-white tracking-tighter uppercase italic">Create Listing</span>
           </div>
         </div>
         <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
@@ -100,17 +100,17 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       <div className="modal-body p-8 space-y-8">
         <div className="space-y-3">
           <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
-          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-3">
             <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
-            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <div className="space-y-3">
             <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all appearance-none cursor-pointer">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all appearance-none cursor-pointer">
               <option value="student_market">Student Market</option>
               <option value="blackmarket">Black Market</option>
               <option value="electronics">Electronics</option>
@@ -121,7 +121,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
 
         <div className="space-y-3">
           <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Detailed description</label>
-          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
         <div className="space-y-4">

@@ -106,7 +106,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
               <Bookmark size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
             </div>
             <div className="text-left">
-              <p className="text-[14px] font-semibold text-black dark:text-white">Save post</p>
+              <p className="text-[14px] font-semibold text-[#18181b] dark:text-white">Save post</p>
               <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Add to your collection</p>
             </div>
           </button>
@@ -119,7 +119,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
               <LinkIcon size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
             </div>
             <div className="text-left">
-              <p className="text-[14px] font-semibold text-black dark:text-white">Copy link</p>
+              <p className="text-[14px] font-semibold text-[#18181b] dark:text-white">Copy link</p>
               <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Share this spark</p>
             </div>
           </button>
@@ -140,7 +140,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                   <PlusCircle size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-black dark:text-white">Interested</p>
+                  <p className="text-[14px] font-semibold text-[#18181b] dark:text-white">Interested</p>
                   <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Show more like this</p>
                 </div>
               </button>
@@ -160,7 +160,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                   <MinusCircle size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                 </div>
                 <div className="text-left">
-                  <p className="text-[14px] font-semibold text-black dark:text-white">Not interested</p>
+                  <p className="text-[14px] font-semibold text-[#18181b] dark:text-white">Not interested</p>
                   <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Hide from my feed</p>
                 </div>
               </button>
@@ -193,7 +193,7 @@ const PostOptionsModal: React.FC<PostOptionsModalProps> = ({ post, onClose }) =>
                     <Pencil size={18} className="text-black/60 dark:text-white/60" strokeWidth={2} />
                   </div>
                   <div className="text-left">
-                    <p className="text-[14px] font-semibold text-black dark:text-white">Edit post</p>
+                    <p className="text-[14px] font-semibold text-[#18181b] dark:text-white">Edit post</p>
                     <p className="text-[11px] font-medium text-black/40 dark:text-white/40">Modify your spark</p>
                   </div>
                 </button>

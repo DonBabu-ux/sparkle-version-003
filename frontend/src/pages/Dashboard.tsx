@@ -83,7 +83,7 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
       <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-black/5 dark:border-white/10" alt="" />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-[14px] text-black dark:text-white truncate">{s.username}</p>
+        <p className="font-bold text-[14px] text-[#18181b] dark:text-white truncate">{s.username}</p>
         <p className="text-[12px] text-black/40 dark:text-white/40 truncate">{s.campus || 'Main Campus'}</p>
       </div>
       <button className={`px-4 py-1.5 rounded-lg font-bold text-[13px] transition-all ${following ? 'bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20' : 'bg-primary/5 text-primary hover:bg-primary/10'}`} onClick={handleFollow} disabled={loading || following}>
@@ -266,7 +266,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
         <div className="bg-white dark:bg-[#1b1b24] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
-            <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
+            <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#18181b] dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
               What's on your mind, {user?.name || user?.username}?
             </button>
           </div>
@@ -345,7 +345,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                         <div className={`absolute top-[-20px] w-10 h-10 ${myStoryGroup ? 'bg-purple-500' : 'bg-primary'} rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10`}>
                           <Plus size={24} strokeWidth={4} />
                         </div>
-                        <span className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white">
+                        <span className="text-[11px] font-black uppercase tracking-widest text-[#18181b] dark:text-white">
                           {myStoryGroup ? 'Your Story' : 'Add Story'}
                         </span>
                       </div>
@@ -671,7 +671,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                        <div className="space-y-3">{trendingTags.map(tag => (
                          <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary/20 rounded-2xl transition-all group/tag">
                            <div className="flex items-center justify-between">
-                             <p className="text-[15px] font-black text-black dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
+                             <p className="text-[15px] font-black text-[#18181b] dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
                              <TrendingUp size={14} className="text-primary opacity-0 group-hover/tag:opacity-100 transition-opacity" />
                           </div>
                           <p className="text-[10px] font-bold text-black/30 dark:text-white/30 mt-1 uppercase tracking-widest">{tag.count} Sparks</p>

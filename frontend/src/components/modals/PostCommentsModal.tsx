@@ -275,7 +275,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
       <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/10 bg-white dark:bg-[#101217]">
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between">
-            <h3 className="font-bold text-[17px] text-black dark:text-white">Comments</h3>
+            <h3 className="font-bold text-[17px] text-[#18181b] dark:text-white">Comments</h3>
             <button 
               onClick={() => setShowSortModal(true)}
               className="flex items-center gap-1.5 px-3 py-1 bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group"
@@ -310,7 +310,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
         <div className="flex gap-3 pb-4 border-b border-black/5 dark:border-white/10">
           <img src={post.avatar_url || '/uploads/avatars/no-profile.png'} className="w-9 h-9 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0" alt="" />
           <div className="min-w-0">
-            <div className="font-bold text-black dark:text-white text-[15px]">
+            <div className="font-bold text-[#18181b] dark:text-white text-[15px]">
               {post.name || post.username}
             </div>
             <div className="text-black/80 dark:text-white/80 text-[15px] mt-0.5 whitespace-pre-wrap leading-relaxed">{post.content}</div>
@@ -388,7 +388,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                 onChange={setCommentText}
                 placeholder={replyingTo ? `Reply to @${replyingTo.username}...` : "Add a comment..."}
                 onSubmit={handleSubmit}
-                className="w-full bg-transparent border-none outline-none text-[14px] text-black dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 py-3"
+                className="w-full bg-transparent border-none outline-none text-[14px] text-[#18181b] dark:text-white placeholder:text-black/30 dark:placeholder:text-white/30 py-3"
              />
           </form>
           
@@ -456,7 +456,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
               <div className="w-12 h-1 bg-black/10 dark:bg-white/10 rounded-full mx-auto mb-6" />
               
               <div className="flex items-center justify-between mb-8">
-                <h3 className="text-xl font-bold text-black dark:text-white">Sort Comments</h3>
+                <h3 className="text-xl font-bold text-[#18181b] dark:text-white">Sort Comments</h3>
                 <button onClick={() => setShowSortModal(false)} className="text-[12px] font-bold text-primary uppercase">Done</button>
               </div>
 
@@ -484,7 +484,7 @@ export default function PostCommentsModal({ post, onClose }: PostCommentsModalPr
                       {sortMode === mode.id && <Check size={12} className="text-white" />}
                     </div>
                     <div className="text-left">
-                      <p className={clsx("text-[14px] font-bold", sortMode === mode.id ? "text-primary" : "text-black dark:text-white")}>
+                      <p className={clsx("text-[14px] font-bold", sortMode === mode.id ? "text-primary" : "text-[#18181b] dark:text-white")}>
                         {mode.label}
                       </p>
                       <p className="text-[11px] font-medium text-black/40 dark:text-white/40 mt-0.5">{mode.desc}</p>
@@ -583,7 +583,7 @@ function CommentItem({
       
       <div className="flex-1 flex flex-col min-w-0">
         <div className="px-1 py-0.5">
-          <p onClick={handleProfileClick} className="font-bold text-[14px] text-black dark:text-white cursor-pointer hover:underline inline-block mr-2">
+          <p onClick={handleProfileClick} className="font-bold text-[14px] text-[#18181b] dark:text-white cursor-pointer hover:underline inline-block mr-2">
             {comment.username}
           </p>
           <div className="text-[14px] text-black/90 dark:text-white/90 break-words whitespace-pre-wrap leading-[1.4] tracking-tight inline">
@@ -643,11 +643,11 @@ function CommentItem({
             {showMenu && (
               <div className="absolute top-full left-0 mt-1 w-32 bg-white dark:bg-[#101217] rounded-lg shadow-xl border border-black/5 dark:border-white/10 py-1 z-50 animate-scale-in">
                 {!isAuthor && (
-                  <button onClick={() => { setShowMenu(false); showInfo('Comment reported.'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Report</button>
+                  <button onClick={() => { setShowMenu(false); showInfo('Comment reported.'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-[#18181b] dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Report</button>
                 )}
-                <button onClick={() => { setShowMenu(false); navigator.clipboard.writeText(comment.content); showSuccess('Copied!'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Copy</button>
+                <button onClick={() => { setShowMenu(false); navigator.clipboard.writeText(comment.content); showSuccess('Copied!'); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-[#18181b] dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Copy</button>
                 {isAuthor && (
-                  <button onClick={() => { setShowMenu(false); setIsEditing(true); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Edit</button>
+                  <button onClick={() => { setShowMenu(false); setIsEditing(true); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-[#18181b] dark:text-white hover:bg-black/5 dark:hover:bg-white/5">Edit</button>
                 )}
                 {canDelete && (
                   <button onClick={() => { setShowMenu(false); onDelete(comment.comment_id); }} className="w-full text-left px-4 py-2 text-[13px] font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20">Delete</button>

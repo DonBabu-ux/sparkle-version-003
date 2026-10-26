@@ -41,7 +41,7 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="min-h-dvh font-sans" style={{ background: 'linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%)' }}>
+    <div className="min-h-dvh font-sans" style={{ background: '#fdf2f4' }}>
       <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
       <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 

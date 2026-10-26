@@ -1148,7 +1148,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                           className={`w-full px-3 py-2.5 flex items-center gap-3 text-left transition-colors ${
                             active
                               ? 'bg-pink-500/10 text-pink-600 dark:text-pink-400'
-                              : 'hover:bg-black/5 dark:hover:bg-white/5 text-black dark:text-white'
+                              : 'hover:bg-black/5 dark:hover:bg-white/5 text-[#18181b] dark:text-white'
                           }`}
                         >
                           <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 bg-black/5 dark:bg-white/10 flex items-center justify-center border border-black/5 dark:border-white/10">

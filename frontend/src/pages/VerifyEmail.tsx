@@ -42,13 +42,13 @@ export default function VerifyEmail() {
     };
 
     return (
-        <div className="min-h-dvh bg-white dark:bg-[#101217] flex items-center justify-center px-4">
+        <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center px-4">
             <div className="w-full max-w-md bg-white/80 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[36px] shadow-2xl border border-black/5 dark:border-white/10 p-8 text-center">
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                     <MailCheck className="text-primary" size={30} strokeWidth={2.5} />
                 </div>
 
-                <h1 className="text-2xl font-black italic uppercase tracking-tight text-black dark:text-white mb-2">
+                <h1 className="text-2xl font-black italic uppercase tracking-tight text-[#18181b] dark:text-white mb-2">
                     Verify Your Email
                 </h1>
 
@@ -68,7 +68,7 @@ export default function VerifyEmail() {
                 ) : status === 'done' ? (
                     <>
                         <p className="text-sm text-black/60 dark:text-white/60 mb-6">
-                            <span className="font-semibold text-black dark:text-white">{maskEmail(email)}</span>{' '}
+                            <span className="font-semibold text-[#18181b] dark:text-white">{maskEmail(email)}</span>{' '}
                             is verified. You can continue to your account.
                         </p>
                         <Link
@@ -83,7 +83,7 @@ export default function VerifyEmail() {
                         <p className="text-sm text-black/60 dark:text-white/60 mb-1">
                             Confirm verification for
                         </p>
-                        <p className="text-sm font-semibold text-black dark:text-white mb-6 break-all">
+                        <p className="text-sm font-semibold text-[#18181b] dark:text-white mb-6 break-all">
                             {maskEmail(email)}
                         </p>
 

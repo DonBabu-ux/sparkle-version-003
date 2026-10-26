@@ -294,7 +294,7 @@ export default function Confessions() {
   };
 
   return (
-    <div className="flex bg-[#FBFBFD] dark:bg-[#101217] min-h-dvh text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#1D1D1F] dark:text-white font-sans selection:bg-primary/10">
       {/* Background blobs */}
       <div className="fixed top-[-10%] right-[-5%] w-[500px] h-[500px] bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[400px] h-[400px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
@@ -313,7 +313,7 @@ export default function Confessions() {
                 <ArrowLeft size={19} strokeWidth={2.5} />
               </button>
               <div>
-                <h1 className="text-lg font-black tracking-tight text-black dark:text-white uppercase italic leading-none">Confessions</h1>
+                <h1 className="text-lg font-black tracking-tight text-[#18181b] dark:text-white uppercase italic leading-none">Confessions</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="flex -space-x-0.5">
                     {[1,2,3].map(i => (
@@ -393,7 +393,7 @@ export default function Confessions() {
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
-                      className="h-9 px-5 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all active:scale-95"
+                      className="h-9 px-5 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all active:scale-95"
                     >
                       Join Echo
                     </button>
@@ -421,7 +421,7 @@ export default function Confessions() {
                   </div>
                   <div>
                     <p className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-[0.18em]">{stat.label}</p>
-                    <p className="text-[13px] font-black text-black dark:text-white uppercase italic">{stat.value}</p>
+                    <p className="text-[13px] font-black text-[#18181b] dark:text-white uppercase italic">{stat.value}</p>
                   </div>
                 </div>
               ))}
@@ -482,7 +482,7 @@ export default function Confessions() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black text-black dark:text-white uppercase italic truncate">
+                        <span className="text-[11px] font-black text-[#18181b] dark:text-white uppercase italic truncate">
                           {conf.author_alias || `Anonymous #${idx + 100}`}
                         </span>
                         <span className="text-[9px] font-semibold text-black/20 dark:text-white/20 uppercase tracking-wider ml-2 flex-shrink-0">
@@ -809,7 +809,7 @@ export default function Confessions() {
                   <MessageCircle size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-black dark:text-white">Anonymous Replies</h3>
+                  <h3 className="text-sm font-black uppercase tracking-wider text-[#18181b] dark:text-white">Anonymous Replies</h3>
                   <p className="text-[10px] font-bold text-black/20 dark:text-white/40 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
                 </div>
               </div>
@@ -955,7 +955,7 @@ export default function Confessions() {
                     onChange={e => setCommentInputs(prev => ({ ...prev, [activeCommentsModal]: e.target.value }))}
                     placeholder="Whisper your reply..."
                     onKeyPress={(e) => e.key === 'Enter' && handleAddComment(activeCommentsModal)}
-                    className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-2xl px-4 text-[14px] font-medium text-black dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 transition-all border border-transparent focus:border-primary/40 placeholder:text-black/20 dark:placeholder:text-white/20"
+                    className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-2xl px-4 text-[14px] font-medium text-[#18181b] dark:text-white outline-none focus:ring-2 focus:ring-primary/20 focus:bg-white dark:focus:bg-white/10 transition-all border border-transparent focus:border-primary/40 placeholder:text-black/20 dark:placeholder:text-white/20"
                   />
                   <button 
                     onClick={() => handleAddComment(activeCommentsModal)}

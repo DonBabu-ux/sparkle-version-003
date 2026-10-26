@@ -28,15 +28,14 @@
   --bg-main: #f0f2f5;
 
   /* ---- Messaging shell theming ----
-     The chat screen was authored dark-only while the app default is LIGHT.
-     `data-chat-mode` on the chat root mirrors the user's light/dark choice;
-     these semantic surfaces flip with it. Keep dark as the dark-mode value
-     so existing screens are pixel-identical when the app is dark. */
-  --chat-shell-bg: #eef1f6;
-  --chat-panel-bg: #ffffff;
-  --chat-overlay-bg: #f7f8fb;
-  --chat-input-text: #0f172a;
-  --chat-text: #0f172a;
+     The chat screen was authored dark-only. The :root defaults are the DARK
+     values so a missing/hydrating data-chat-mode attribute can never paint
+     a light shell in a dark app; light is the explicit scope below. */
+  --chat-shell-bg: #111118;
+  --chat-panel-bg: #13131a;
+  --chat-overlay-bg: #121212;
+  --chat-input-text: #f5f5f5;
+  --chat-text: #f0f0f5;
   --safe-area-inset-top: env(safe-area-inset-top, 0px);
   --safe-area-inset-right: env(safe-area-inset-right, 0px);
   --safe-area-inset-bottom: env(safe-area-inset-bottom, 0px);
@@ -66,13 +65,22 @@
   --z-max: 99999;     /* unmissable top layer (TikTok hearts, loading bar) */
 }
 
-/* Messaging: dark scope mirrors the authored values so dark mode is unchanged */
+/* Messaging: dark scope is the authored default; light scope flips explicitly.
+   If the light scope these values are the only ones that change. */
 [data-chat-mode="dark"] {
   --chat-shell-bg: #111118;
   --chat-panel-bg: #13131a;
   --chat-overlay-bg: #121212;
   --chat-input-text: #f5f5f5;
   --chat-text: #f0f0f5;
+}
+
+[data-chat-mode="light"] {
+  --chat-shell-bg: #eef1f6;
+  --chat-panel-bg: #ffffff;
+  --chat-overlay-bg: #f7f8fb;
+  --chat-input-text: #0f172a;
+  --chat-text: #0f172a;
 }
 
 .chat-shell-bg { background-color: var(--chat-shell-bg); }
@@ -290,7 +298,7 @@ body.note-modal-open nav {
 
 /* Global Reset & Base */
 html {
-  background: #fff0f4;
+  background: #fdf2f4;
   font-size: 100%;
 }
 
@@ -305,8 +313,8 @@ html.dark {
 }
 
 body {
-  @apply text-[#000000] antialiased selection:bg-pink-400/20 font-medium;
-  background: linear-gradient(135deg, #fff0f4 0%, #fff9fa 55%, #fef0f5 100%);
+  @apply text-[#18181b] antialiased selection:bg-pink-400/20 font-medium;
+  background: #fdf2f4;
   background-attachment: fixed;
   min-height: 100dvh;
   margin: 0;
@@ -334,7 +342,7 @@ body {
   background-color: #1a1a1a !important;
 }
 
-.dark.theme-legacy .bg-gray-50, .dark.theme-legacy .bg-gray-100, .dark.theme-legacy .bg-gray-200, .dark.theme-legacy .bg-slate-50, .dark.theme-legacy .bg-zinc-50, .dark.theme-legacy .bg-[#f0f2f5], .dark.theme-legacy .bg-[#f2f2f2] {
+.dark.theme-legacy .bg-gray-50, .dark.theme-legacy .bg-gray-100, .dark.theme-legacy .bg-gray-200, .dark.theme-legacy .bg-slate-50, .dark.theme-legacy .bg-zinc-50, .dark.theme-legacy .bg-[#f0f2f5], .dark.theme-legacy .bg-[#f2f2f2], .dark.theme-legacy .bg-[#fdf2f4] {
   background-color: #000000 !important;
 }
 
@@ -343,6 +351,12 @@ body {
 }
 
 .dark.theme-legacy .text-black, .dark.theme-legacy .text-black\/20, .dark.theme-legacy .text-black\/30, .dark.theme-legacy .text-black\/40, .dark.theme-legacy .text-black\/50, .dark.theme-legacy .text-black\/60, .dark.theme-legacy .text-black\/70, .dark.theme-legacy .text-black\/80, .dark.theme-legacy .text-black\/90 {
+  color: #FFFFFF !important;
+}
+
+/* Light-mode soft-black (#18181b) is the paired light token for text-black
+   since the cream-shell pass; remap it too so legacy dark routes stay white. */
+.dark.theme-legacy .text-\[#18181b\] {
   color: #FFFFFF !important;
 }
 

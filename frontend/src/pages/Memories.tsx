@@ -29,7 +29,7 @@ export default function Memories() {
   }, []);
 
   return (
-    <div className="bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white font-sans transition-colors duration-300 overflow-x-hidden">
+    <div className="bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#18181b] dark:text-white font-sans transition-colors duration-300 overflow-x-hidden">
       {/* Removed Sidebar for Full Page Experience */}
       
       <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full">
@@ -37,12 +37,12 @@ export default function Memories() {
           <header className="flex gap-5 mb-10 items-start">
             <button 
               onClick={() => navigate(-1)} 
-              className="w-11 h-11 rounded-full bg-white dark:bg-white/10 border border-black/5 dark:border-white/10 flex items-center justify-center text-black dark:text-white shadow-sm hover:scale-105 active:scale-95 transition-all shrink-0"
+              className="w-11 h-11 rounded-full bg-white dark:bg-white/10 border border-black/5 dark:border-white/10 flex items-center justify-center text-[#18181b] dark:text-white shadow-sm hover:scale-105 active:scale-95 transition-all shrink-0"
             >
               <ArrowLeft size={20} strokeWidth={3} />
             </button>
             <div className="min-w-0">
-              <h1 className="text-4xl lg:text-5xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase">Memories</h1>
+              <h1 className="text-4xl lg:text-5xl font-black text-[#18181b] dark:text-white tracking-tighter leading-none italic uppercase">Memories</h1>
               <p className="text-sm font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mt-2">Relive your favorite Sparkle moments</p>
             </div>
           </header>
@@ -61,7 +61,7 @@ export default function Memories() {
                 </div>
                 
                 <div className="text-black/40 dark:text-white/40 font-bold text-xs uppercase tracking-widest mb-1 italic">{new Date().toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                <h3 className="text-3xl font-black text-black dark:text-white italic uppercase tracking-tighter mb-8">1 Year Ago Today</h3>
+                <h3 className="text-3xl font-black text-[#18181b] dark:text-white italic uppercase tracking-tighter mb-8">1 Year Ago Today</h3>
                 
                 {memories.length > 0 ? (
                   <div 
@@ -91,7 +91,7 @@ export default function Memories() {
             {/* List of Recent Memories */}
             <div>
               <div className="flex items-center justify-between mb-6 px-2">
-                <h2 className="text-lg font-black text-black dark:text-white italic uppercase tracking-widest">Past Highlights</h2>
+                <h2 className="text-lg font-black text-[#18181b] dark:text-white italic uppercase tracking-widest">Past Highlights</h2>
                 <div className="h-px flex-1 bg-black/5 dark:bg-white/10 mx-6"></div>
               </div>
 
@@ -144,7 +144,7 @@ export default function Memories() {
                     showSuccess('Memories link copied to clipboard!');
                   } catch { /* clipboard unavailable */ }
                 }}
-                className="w-full h-16 flex items-center justify-center gap-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl text-black dark:text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 group shadow-lg active:scale-[0.98]"
+                className="w-full h-16 flex items-center justify-center gap-3 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-2xl text-[#18181b] dark:text-white font-black text-xs uppercase tracking-[0.2em] hover:bg-primary hover:text-white hover:border-primary transition-all duration-500 group shadow-lg active:scale-[0.98]"
               >
                 <Share2 size={18} strokeWidth={3} className="group-hover:rotate-12 transition-transform" />
                 <span>Share Memories</span>

@@ -486,7 +486,7 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex bg-app min-h-dvh text-black dark:text-white font-sans pb-[env(safe-area-inset-bottom)]">
+    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-white font-sans pb-[env(safe-area-inset-bottom)]">
 
       <main className="flex-1 pb-20 max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
         {/* Sticky Header */}

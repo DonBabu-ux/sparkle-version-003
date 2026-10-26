@@ -202,8 +202,8 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
-        <div className="flex-1 flex flex-col items-center justify-center transition-all text-black dark:text-white">
+      <div className="flex bg-[#fdf2f4] dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
+        <div className="flex-1 flex flex-col items-center justify-center transition-all text-[#18181b] dark:text-white">
           <div className="relative mb-20">
             <Spinner size="xl" color="text-primary" />
           </div>
@@ -218,7 +218,7 @@ export default function Profile() {
   if (!profile) {
     const isGenuinelyMissing = profileError === 'not_found';
     return (
-        <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
+        <div className="flex bg-white dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState
              type="error"
@@ -242,12 +242,12 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pt-20">
+    <div className="flex bg-white dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
 
       {/* Top Navigation Bar */}
       <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top)))] pb-4 transition-all">
         <a className="flex items-center gap-2.5 active:scale-95 transition-transform" href="/dashboard" data-discover="true">
-          <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
+          <span className="font-heading font-black text-xl tracking-tighter text-[#18181b] dark:text-white">Sparkle</span>
         </a>
         {accounts.length > 1 && (
           <button
@@ -284,7 +284,7 @@ export default function Profile() {
                     className="w-8 h-8 rounded-full object-cover border border-black/5 dark:border-white/5"
                   />
                   <div className="flex flex-col">
-                    <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>
+                    <span className="text-xs font-bold text-[#18181b] dark:text-white">{acc.user.username}</span>
                     {acc.user.user_id === currentUser?.user_id && (
                       <span className="text-[9px] text-black/40 dark:text-white/40 font-medium uppercase tracking-tight">Active account</span>
                     )}
@@ -301,7 +301,7 @@ export default function Profile() {
                 className="w-full p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-left"
               >
                 <ShieldCheck size={16} className="text-black/40 dark:text-white/40" />
-                <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Account Settings</span>
+                <span className="text-xs font-black uppercase tracking-tight text-[#18181b] dark:text-white">Account Settings</span>
               </button>
             </div>
             <div className="border-t border-black/5 dark:border-white/5 pt-2 mt-2">
@@ -310,7 +310,7 @@ export default function Profile() {
                 className="w-full p-2.5 flex items-center gap-3 hover:bg-black/5 dark:hover:bg-white/5 rounded-xl text-left"
               >
                 <Plus size={16} className="text-black/40 dark:text-white/40" />
-                <span className="text-xs font-black uppercase tracking-tight text-black dark:text-white">Add Sparkle Account</span>
+                <span className="text-xs font-black uppercase tracking-tight text-[#18181b] dark:text-white">Add Sparkle Account</span>
               </button>
             </div>
           </div>
@@ -405,14 +405,14 @@ export default function Profile() {
                            className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                          >
                            <History size={18} className="text-primary" />
-                           <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Story</span>
+                           <span className="text-sm font-bold text-[#18181b] dark:text-white tracking-tight">View Story</span>
                          </button>
                          <button
                            onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); setActiveModal('media_preview', null, { url: getAvatarUrl(profile?.avatar_url, profile?.username) }); }}
                            className="w-full px-4 py-3 text-left hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors flex items-center gap-3"
                          >
                            <ImageIcon size={18} className="text-black/40 dark:text-white/40" />
-                           <span className="text-sm font-bold text-black dark:text-white tracking-tight">View Picture</span>
+                           <span className="text-sm font-bold text-[#18181b] dark:text-white tracking-tight">View Picture</span>
                          </button>
                       </motion.div>
                     </>
@@ -425,7 +425,7 @@ export default function Profile() {
               {/* Info Column (Beside Avatar) */}
               <div className="flex-1 flex flex-col pt-2">
                 <div className="flex flex-wrap items-center gap-3 mb-2">
-                  <h1 className="text-xl md:text-2xl font-black text-black dark:text-white tracking-tight flex items-center gap-1.5">
+                  <h1 className="text-xl md:text-2xl font-black text-[#18181b] dark:text-white tracking-tight flex items-center gap-1.5">
                     {identity.displayName}
                     <VerifiedBadge accountType={identity.accountType} isVerified={identity.badge.show} color={identity.badge.color} size="md" />
                   </h1>
@@ -433,16 +433,16 @@ export default function Profile() {
                   {/* Stats Row Beside Username */}
                   <div className="flex items-center gap-6 ml-4 md:ml-8 border-l border-black/5 dark:border-white/5 pl-4 md:pl-8">
                     <div className="flex flex-col items-center">
-                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{posts.length}</span>
-                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Posts</span>
+                      <span className="text-sm md:text-base font-black text-[#18181b] dark:text-white leading-none">{posts.length}</span>
+                      <span className="text-[11px] font-bold text-[#18181b] dark:text-white/40 uppercase tracking-widest">Posts</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Followers')}>
-                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.followers_count || 0}</span>
-                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Followers</span>
+                      <span className="text-sm md:text-base font-black text-[#18181b] dark:text-white leading-none">{profile?.followers_count || 0}</span>
+                      <span className="text-[11px] font-bold text-[#18181b] dark:text-white/40 uppercase tracking-widest">Followers</span>
                     </div>
                     <div className="flex flex-col items-center cursor-pointer hover:opacity-70 transition-opacity" onClick={() => setModalType('Following')}>
-                      <span className="text-sm md:text-base font-black text-black dark:text-white leading-none">{profile?.following_count || 0}</span>
-                      <span className="text-[11px] font-bold text-black dark:text-white/40 uppercase tracking-widest">Following</span>
+                      <span className="text-sm md:text-base font-black text-[#18181b] dark:text-white leading-none">{profile?.following_count || 0}</span>
+                      <span className="text-[11px] font-bold text-[#18181b] dark:text-white/40 uppercase tracking-widest">Following</span>
                     </div>
                   </div>
                 </div>
@@ -508,7 +508,7 @@ export default function Profile() {
                   ) : (
                     <div className="flex items-center gap-2">
                       {isFollowing ? (
-                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
+                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-[#18181b] dark:text-white transition-all uppercase tracking-widest border border-black/5 dark:border-white/5">
                           Following
                         </button>
                       ) : isRequested ? (
@@ -523,7 +523,7 @@ export default function Profile() {
                       <button 
                         onClick={handleOpenChat}
                         disabled={isOpeningChat}
-                        className="px-6 py-3 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-black dark:text-white transition-all uppercase tracking-widest shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
+                        className="px-6 py-3 bg-white dark:bg-white/5 border border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg text-xs font-bold text-[#18181b] dark:text-white transition-all uppercase tracking-widest shadow-sm active:scale-95 flex items-center gap-1.5 disabled:opacity-50"
                       >
                         {isOpeningChat ? (
                           <>
@@ -604,7 +604,7 @@ export default function Profile() {
                       <LayoutDashboard size={20} />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[13px] font-bold text-black dark:text-white tracking-tight">Professional Dashboard</span>
+                      <span className="text-[13px] font-bold text-[#18181b] dark:text-white tracking-tight">Professional Dashboard</span>
                       <span className="text-[11px] text-black/40 dark:text-white/40 font-medium uppercase tracking-wider">Track your performance</span>
                     </div>
                   </div>
@@ -625,7 +625,7 @@ export default function Profile() {
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full border border-dashed border-black/30 dark:border-white/30 flex items-center justify-center group-hover:bg-black/5 dark:group-hover:bg-white/5 transition-colors">
                   <Plus size={24} className="text-black/50 dark:text-white/50" />
                 </div>
-                <span className="text-xs font-medium text-black dark:text-white">New</span>
+                <span className="text-xs font-medium text-[#18181b] dark:text-white">New</span>
               </div>
             )}
 
@@ -655,7 +655,7 @@ export default function Profile() {
                     )}
                   </div>
                 </div>
-                <span className="text-xs font-medium text-black dark:text-white truncate max-w-[64px] text-center">{h.title}</span>
+                <span className="text-xs font-medium text-[#18181b] dark:text-white truncate max-w-[64px] text-center">{h.title}</span>
               </div>
             ))}
           </div>
@@ -671,7 +671,7 @@ export default function Profile() {
             ] as const).map(tab => (
               <button 
                 key={tab.id}
-                className={`flex items-center gap-2 py-4 border-t font-semibold text-[12px] tracking-widest transition-all ${activeTab === tab.id ? 'border-black dark:border-white text-black dark:text-white' : 'border-transparent text-black/50 dark:text-white/50 hover:text-black/70 dark:hover:text-white/70'}`} 
+                className={`flex items-center gap-2 py-4 border-t font-semibold text-[12px] tracking-widest transition-all ${activeTab === tab.id ? 'border-black dark:border-white text-[#18181b] dark:text-white' : 'border-transparent text-black/50 dark:text-white/50 hover:text-black/70 dark:hover:text-white/70'}`} 
                 onClick={() => setActiveTab(tab.id)}
               >
                 <tab.icon size={14} /> {tab.label}
@@ -717,7 +717,7 @@ export default function Profile() {
                     ) : (post.media_url || post.image_url) ? (
                       <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt={post.content || "Post image"} />
                     ) : (
-                      <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-black dark:text-white">
+                      <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-[#18181b] dark:text-white">
                          <p className="font-medium text-[11px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
                            {post.content || 'No Media'}
                          </p>

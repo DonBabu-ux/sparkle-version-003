@@ -89,7 +89,7 @@ export default function Navbar() {
       {!MOBILE_HEADERLESS_PREFIXES.some(path => location.pathname.startsWith(path)) && (
         <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
-            <span className="font-heading font-black text-xl tracking-tighter text-black dark:text-white">Sparkle</span>
+            <span className="font-heading font-black text-xl tracking-tighter text-[#18181b] dark:text-white">Sparkle</span>
           </Link>
           
           <div className="flex-1 mx-4">
@@ -225,7 +225,7 @@ export default function Navbar() {
                 <div className={`w-9 h-9 rounded-xl bg-white dark:bg-black shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
                     <item.icon size={18} strokeWidth={2.5} />
                 </div>
-                <span className="font-bold text-black dark:text-white text-sm">{item.name}</span>
+                <span className="font-bold text-[#18181b] dark:text-white text-sm">{item.name}</span>
                 {item.isNew && <div className="absolute right-5 top-1/2 -translate-y-1/2 w-2 h-2 bg-primary rounded-full animate-pulse" />}
                 </button>
             ))}

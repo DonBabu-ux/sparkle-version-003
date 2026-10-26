@@ -87,23 +87,23 @@ export default function ClubDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <Spinner size="large" color="text-primary" />
-        <p className="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.4em] italic animate-pulse">Loading club...</p>
+        <p className="text-[10px] font-black text-[#18181b] dark:text-white uppercase tracking-[0.4em] italic animate-pulse">Loading club...</p>
       </div>
     </div>
   );
 
   if (!club) return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-10">
         <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center border-4 border-dashed border-black/10 dark:border-white/10">
-           <Users size={40} className="text-black dark:text-white opacity-10" />
+           <Users size={40} className="text-[#18181b] dark:text-white opacity-10" />
         </div>
         <div className="space-y-4">
            <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Club <span className="text-primary">Not Found.</span></h2>
-           <p className="text-base font-bold text-black dark:text-white opacity-30 italic">This club is no longer available.</p>
+           <p className="text-base font-bold text-[#18181b] dark:text-white opacity-30 italic">This club is no longer available.</p>
         </div>
         <button onClick={() => navigate('/clubs')} className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-primary/30">Browse Clubs</button>
       </div>
@@ -111,7 +111,7 @@ export default function ClubDetail() {
   );
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
       
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
@@ -119,7 +119,7 @@ export default function ClubDetail() {
       <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
         <button 
           onClick={() => navigate('/clubs')}
-          className="mb-12 w-16 h-16 rounded-[24px] bg-white dark:bg-[#1b1b24] border border-white shadow-2xl flex items-center justify-center text-black dark:text-white hover:scale-110 active:scale-95 transition-all group"
+          className="mb-12 w-16 h-16 rounded-[24px] bg-white dark:bg-[#1b1b24] border border-white shadow-2xl flex items-center justify-center text-[#18181b] dark:text-white hover:scale-110 active:scale-95 transition-all group"
         >
           <ArrowLeft size={28} strokeWidth={4} className="group-hover:-translate-x-1.5 transition-transform" />
         </button>
@@ -162,9 +162,9 @@ export default function ClubDetail() {
                    <Sparkles size={14} strokeWidth={3} /> {club.category}
                 </div>
                 
-                <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[12px] group-hover:decoration-primary/40 transition-all">{club.name}</h1>
+                <h1 className="text-4xl md:text-5xl font-black text-[#18181b] dark:text-white tracking-tighter leading-none italic uppercase underline decoration-primary decoration-8 underline-offset-[12px] group-hover:decoration-primary/40 transition-all">{club.name}</h1>
                 
-                <div className="flex flex-col gap-6 text-[11px] font-black text-black dark:text-white uppercase tracking-widest pt-8 border-t border-black/[0.03]">
+                <div className="flex flex-col gap-6 text-[11px] font-black text-[#18181b] dark:text-white uppercase tracking-widest pt-8 border-t border-black/[0.03]">
                    <div className="flex items-center gap-4 group/item">
                       <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                         <Users size={20} strokeWidth={3} />
@@ -179,7 +179,7 @@ export default function ClubDetail() {
                    </div>
                 </div>
                 
-                <p className="text-base font-bold text-black dark:text-white opacity-60 leading-relaxed italic border-l-4 border-primary/20 pl-6">
+                <p className="text-base font-bold text-[#18181b] dark:text-white opacity-60 leading-relaxed italic border-l-4 border-primary/20 pl-6">
                    {club.description}
                 </p>
                 
@@ -205,7 +205,7 @@ export default function ClubDetail() {
                   <button 
                     key={tab.id}
                     onClick={() => setActiveTab(tab.id as 'posts' | 'members')}
-                    className={`flex items-center gap-4 px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] transition-all italic ${activeTab === tab.id ? 'bg-white text-primary shadow-2xl shadow-primary/10' : 'text-black opacity-30 hover:opacity-100 hover:scale-105'}`}
+                    className={`flex items-center gap-4 px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] transition-all italic ${activeTab === tab.id ? 'bg-white text-primary shadow-2xl shadow-primary/10' : 'text-[#18181b] opacity-30 hover:opacity-100 hover:scale-105'}`}
                   >
                     <tab.icon size={18} strokeWidth={4} />
                     {tab.label}
@@ -217,12 +217,12 @@ export default function ClubDetail() {
               {activeTab === 'posts' ? (
                 posts.length === 0 ? (
                   <div className="py-64 text-center bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] flex flex-col items-center gap-10 shadow-2xl shadow-primary/5 animate-fade-in group">
-                     <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-black dark:text-white opacity-10 group-hover:scale-125 transition-transform duration-1000">
+                     <div className="w-24 h-24 bg-black/5 rounded-[32px] flex items-center justify-center text-[#18181b] dark:text-white opacity-10 group-hover:scale-125 transition-transform duration-1000">
                         <MessageSquare size={48} strokeWidth={2} />
                      </div>
                      <div className="space-y-6">
-                        <h3 className="text-5xl font-black text-black dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">No Posts Yet.</h3>
-                        <p className="text-[10px] font-black text-black dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No posts in this club yet. Be the first to share something.</p>
+                        <h3 className="text-5xl font-black text-[#18181b] dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">No Posts Yet.</h3>
+                        <p className="text-[10px] font-black text-[#18181b] dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No posts in this club yet. Be the first to share something.</p>
                      </div>
                   </div>
                 ) : (
@@ -245,7 +245,7 @@ export default function ClubDetail() {
                           />
                         </div>
                         <div className="flex flex-col">
-                           <span className="font-black text-lg text-black dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-none mb-2">@{m.username}</span>
+                           <span className="font-black text-lg text-[#18181b] dark:text-white uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-none mb-2">@{m.username}</span>
                            <div className="flex items-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-primary" />
                               <span className="text-[9px] font-black uppercase tracking-[0.3em] text-black/20 italic">{m.role || 'Inhabitant'}</span>

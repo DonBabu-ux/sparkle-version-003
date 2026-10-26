@@ -122,7 +122,7 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-white dark:bg-[#1b1b24]">
+      <div className="min-h-dvh flex items-center justify-center bg-[#fdf2f4] dark:bg-[#1b1b24]">
         <Spinner size="large" color="text-primary" />
       </div>
     );

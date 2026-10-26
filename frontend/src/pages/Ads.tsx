@@ -29,7 +29,7 @@ export default function Ads() {
   const balance = wallet ? wallet.available_balance / 100 : 0;
 
   return (
-    <div className="min-h-dvh bg-[#fafafd] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: #ffffff; border: 1px solid rgba(255, 31, 109, 0.12); }
       `}</style>

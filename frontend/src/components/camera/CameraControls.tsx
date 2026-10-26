@@ -72,7 +72,7 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
         {torchSupported ? (
           <button 
             onClick={onFlashToggle} 
-            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border border-white/10 ${flash ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-black/30 text-white'}`}
+            className={`w-12 h-12 rounded-full flex items-center justify-center transition-all shadow-lg border border-white/10 ${flash ? 'bg-yellow-400 text-[#18181b] border-yellow-400' : 'bg-black/30 text-white'}`}
           >
             <Zap size={18} fill={flash ? "currentColor" : "none"} strokeWidth={2.5} />
           </button>
@@ -100,7 +100,7 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
                 <div className="relative">
                   <TimerIcon size={20} strokeWidth={2.5} />
                   {cameraTimer > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-black dark:text-white text-[8px] px-1 rounded-full font-black">
+                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-[#18181b] dark:text-white text-[8px] px-1 rounded-full font-black">
                       {cameraTimer}s
                     </span>
                   )}

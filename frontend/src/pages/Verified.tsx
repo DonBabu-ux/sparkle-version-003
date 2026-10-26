@@ -52,13 +52,13 @@ export default function Verified() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-white dark:bg-[#101217] flex items-center justify-center">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center">
       <Spinner size="large" color="text-primary" />
     </div>
   );
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-[#101217] text-black dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden relative transition-colors duration-300">
+    <div className="min-h-dvh bg-white dark:bg-[#101217] text-[#18181b] dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden relative transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-red-200/20 rounded-full blur-[80px] md:blur-[140px] pointer-events-none z-0" />
@@ -68,12 +68,12 @@ export default function Verified() {
         <header className="flex items-center gap-5 md:gap-8 mb-10 md:mb-12 animate-fade-in">
           <button 
             onClick={() => navigate(-1)} 
-            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-[#101217]/50 backdrop-blur-3xl flex items-center justify-center text-black dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-[#101217]/50 backdrop-blur-3xl flex items-center justify-center text-[#18181b] dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
             <ArrowLeft size={22} strokeWidth={3} />
           </button>
           <div>
-            <h1 className="text-2xl md:text-4xl font-black text-black dark:text-white tracking-tight italic leading-none uppercase">Verification</h1>
+            <h1 className="text-2xl md:text-4xl font-black text-[#18181b] dark:text-white tracking-tight italic leading-none uppercase">Verification</h1>
             <p className="text-sm md:text-base font-medium text-black/40 dark:text-white/40 mt-2 italic uppercase tracking-widest">Identity & Reputation</p>
           </div>
         </header>
@@ -102,7 +102,7 @@ export default function Verified() {
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-black text-black dark:text-white tracking-tight italic mb-2 uppercase">Level {stats.trustLevel}: {['', 'Recognized', 'Trusted', 'Established', 'Confirmed', 'Verified'][stats.trustLevel]}</h3>
+                <h3 className="text-2xl font-black text-[#18181b] dark:text-white tracking-tight italic mb-2 uppercase">Level {stats.trustLevel}: {['', 'Recognized', 'Trusted', 'Established', 'Confirmed', 'Verified'][stats.trustLevel]}</h3>
                 <div className="flex justify-center gap-1 mb-8">
                    {[1,2,3,4,5].map(lvl => (
                      <div key={lvl} className={`h-1.5 w-8 rounded-full transition-all ${lvl <= stats.trustLevel ? 'bg-[#FF1F6D] shadow-[0_0_10px_rgba(255,31,109,0.5)]' : 'bg-slate-200 dark:bg-white/10'}`} />
@@ -114,7 +114,7 @@ export default function Verified() {
                      <div className="p-6 bg-black/5 dark:bg-white/5 rounded-[32px] border border-black/5 dark:border-white/5">
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
-                              <Users size={16} className="text-black dark:text-white" />
+                              <Users size={16} className="text-[#18181b] dark:text-white" />
                               <span className="text-[10px] font-black uppercase italic tracking-widest text-slate-500 dark:text-zinc-400">Global Followers</span>
                            </div>
                            <span className="text-xs font-black italic">{stats.followers}/1,000</span>
@@ -148,11 +148,11 @@ export default function Verified() {
                         <div className="flex gap-3">
                            <div className={`flex-1 p-3 rounded-2xl border ${stats.trustLevel >= 1 ? 'bg-white border-amber-200' : 'bg-slate-50 border-slate-100 opacity-50'} flex flex-col items-center gap-1`}>
                               <Zap size={14} className={stats.trustLevel >= 1 ? 'text-amber-500' : 'text-slate-300'} fill={stats.trustLevel >= 1 ? 'currentColor' : 'none'} />
-                              <span className="text-[7px] font-black uppercase tracking-tighter text-black dark:text-white">Spark Seed</span>
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-[#18181b] dark:text-white">Spark Seed</span>
                            </div>
                            <div className={`flex-1 p-3 rounded-2xl border ${stats.trustLevel >= 3 ? 'bg-white border-emerald-200' : 'bg-slate-50 border-slate-100 opacity-50'} flex flex-col items-center gap-1`}>
                               <TrendingUp size={14} className={stats.trustLevel >= 3 ? 'text-emerald-500' : 'text-slate-300'} />
-                              <span className="text-[7px] font-black uppercase tracking-tighter text-black dark:text-white">Viral</span>
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-[#18181b] dark:text-white">Viral</span>
                            </div>
                         </div>
                      </div>
@@ -200,7 +200,7 @@ export default function Verified() {
                       <div className={`w-10 h-10 rounded-2xl ${perk.color} flex items-center justify-center border border-white dark:border-white/10 shadow-sm`}>
                         {perk.icon}
                       </div>
-                      <span className="text-[9px] font-black text-black dark:text-white uppercase italic tracking-widest">{perk.label}</span>
+                      <span className="text-[9px] font-black text-[#18181b] dark:text-white uppercase italic tracking-widest">{perk.label}</span>
                    </div>
                  ))}
               </div>
@@ -217,7 +217,7 @@ export default function Verified() {
                       required
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">What best describes you?</option>
                       <option value="creator">Creator Elite</option>
@@ -237,7 +237,7 @@ export default function Verified() {
                       required
                       value={formData.documentType}
                       onChange={e => setFormData({ ...formData, documentType: e.target.value })}
-                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">Select identity source</option>
                       <option value="passport">Passport</option>
@@ -295,7 +295,7 @@ export default function Verified() {
                     required
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-black dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all shadow-sm placeholder:text-black/20 dark:placeholder:text-white/20 italic"
+                    className="w-full bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all shadow-sm placeholder:text-black/20 dark:placeholder:text-white/20 italic"
                   ></textarea>
                 </div>
 

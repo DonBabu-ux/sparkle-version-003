@@ -134,7 +134,7 @@ export default function Connect() {
   
 
   return (
-    <div className="flex bg-app min-h-dvh text-black dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
+    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full">
         
@@ -145,7 +145,7 @@ export default function Connect() {
               <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Orbit className="text-white" size={22} />
               </div>
-              <h1 className="text-3xl font-black text-black dark:text-white tracking-tighter uppercase italic">Discovery Hub</h1>
+              <h1 className="text-3xl font-black text-[#18181b] dark:text-white tracking-tighter uppercase italic">Discovery Hub</h1>
             </div>
             <p className="text-[13px] font-bold text-black/40 dark:text-white/40 uppercase tracking-[0.2em] ml-13">
               Expanding your sparkle matrix
@@ -163,7 +163,7 @@ export default function Connect() {
                 placeholder="Search by name, major, or campus..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-black dark:text-white placeholder:text-black/20 dark:placeholder:text-white/10 transition-all outline-none"
+                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-[#18181b] dark:text-white placeholder:text-black/20 dark:placeholder:text-white/10 transition-all outline-none"
               />
             </div>
             
@@ -204,7 +204,7 @@ export default function Connect() {
                   <Compass size={40} className="text-black/20 dark:text-white/10" />
                 </div>
                 <div className="space-y-3 px-4">
-                  <h3 className="text-2xl font-black text-black dark:text-white italic">CONNECTION LOST</h3>
+                  <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic">CONNECTION LOST</h3>
                   <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
                 </div>
                 <button
@@ -220,7 +220,7 @@ export default function Connect() {
                   <Search size={40} className="text-black/20 dark:text-white/10" />
                 </div>
                 <div className="space-y-3 px-4">
-                  <h3 className="text-2xl font-black text-black dark:text-white italic">NO RESULTS FOUND</h3>
+                  <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic">NO RESULTS FOUND</h3>
                   <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
                 </div>
               </div>

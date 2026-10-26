@@ -41,7 +41,7 @@ export const ThreeStateToggle: React.FC<ThreeStateToggleProps> = ({
         onClick={() => onChange(null)}
         className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-all ${
           currentSelection === 'default'
-            ? 'bg-white dark:bg-zinc-800 text-black dark:text-white shadow-sm font-bold scale-[1.02]'
+            ? 'bg-white dark:bg-zinc-800 text-[#18181b] dark:text-white shadow-sm font-bold scale-[1.02]'
             : 'text-black/50 dark:text-white/50 hover:text-black dark:hover:text-white'
         }`}
       >

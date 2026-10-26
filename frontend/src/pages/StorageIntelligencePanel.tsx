@@ -53,7 +53,7 @@ export default function StorageIntelligencePanel() {
     };
 
     return (
-        <div className="flex bg-[#fafafa] min-h-dvh text-black font-sans dark:bg-[#0f0f0f] dark:text-white">
+        <div className="flex bg-[#fdf2f4] min-h-dvh text-[#18181b] font-sans dark:bg-[#0f0f0f] dark:text-white">
             <main className="flex-1 p-6 lg:p-10">
                 <div className="flex items-center justify-between mb-8">
                     <div>
@@ -115,7 +115,7 @@ export default function StorageIntelligencePanel() {
                                     {stats.categories.map(cat => (
                                         <div key={cat.category} className="flex items-center justify-between">
                                             <div className="flex flex-col">
-                                                <span className="text-black capitalize font-medium dark:text-white">{cat.category}</span>
+                                                <span className="text-[#18181b] capitalize font-medium dark:text-white">{cat.category}</span>
                                                 <span className="text-black/50 text-xs dark:text-white/40">{cat.count} files</span>
                                             </div>
                                             <span className="font-bold">{formatBytes(cat.bytes)}</span>
@@ -131,7 +131,7 @@ export default function StorageIntelligencePanel() {
                                 <div className="space-y-4">
                                     {stats.lifecycles.map(life => (
                                         <div key={life.lifecycle_state} className="flex items-center justify-between">
-                                            <span className="text-black capitalize font-medium flex items-center gap-2 dark:text-white">
+                                            <span className="text-[#18181b] capitalize font-medium flex items-center gap-2 dark:text-white">
                                                 <div className={`w-2 h-2 rounded-full ${life.lifecycle_state === 'active' ? 'bg-green-500' : life.lifecycle_state === 'reusable' ? 'bg-blue-500' : 'bg-orange-500'}`} />
                                                 {life.lifecycle_state.replace('_', ' ')}
                                             </span>

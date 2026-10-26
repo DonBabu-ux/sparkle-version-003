@@ -104,7 +104,7 @@ export default function Gallery() {
   });
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden">
       <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
         {/* Subtle ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
@@ -115,7 +115,7 @@ export default function Gallery() {
               <Layers size={16} className="text-primary md:w-[18px]" />
               <span className="text-[9px] md:text-[10px] font-black text-black/40 uppercase tracking-[0.4em]">Visual Archive</span>
             </div>
-            <h1 className="font-heading font-black text-5xl md:text-7xl lg:text-9xl text-black dark:text-white tracking-tighter italic uppercase leading-[0.85]">
+            <h1 className="font-heading font-black text-5xl md:text-7xl lg:text-9xl text-[#18181b] dark:text-white tracking-tighter italic uppercase leading-[0.85]">
               Media <br /><span className="text-primary italic">Gallery.</span>
             </h1>
             <p className="text-sm md:text-lg font-semibold text-black/30 leading-relaxed border-l-4 border-primary/30 pl-6 md:pl-8">

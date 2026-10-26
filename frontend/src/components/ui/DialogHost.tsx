@@ -61,7 +61,7 @@ export const DialogHost: React.FC = () => {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-5">
-              <p className="font-heading font-bold text-[15px] text-black dark:text-white">
+              <p className="font-heading font-bold text-[15px] text-[#18181b] dark:text-white">
                 {pending.title ?? (isConfirm ? 'Are you sure?' : 'Input required')}
               </p>
               <p className="mt-1.5 text-[13px] text-black/60 dark:text-white/60 leading-relaxed">
@@ -73,7 +73,7 @@ export const DialogHost: React.FC = () => {
                   type="text"
                   value={value}
                   onChange={(e) => setValue(e.target.value)}
-                  className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm text-black dark:text-white outline-none focus:ring-2 focus:ring-primary/50"
+                  className="mt-3 w-full px-3 py-2.5 rounded-xl bg-black/5 dark:bg-white/10 border border-black/10 dark:border-white/10 text-sm text-[#18181b] dark:text-white outline-none focus:ring-2 focus:ring-primary/50"
                 />
               )}
             </div>

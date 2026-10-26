@@ -22,7 +22,7 @@ const AddYoursSticker: React.FC<AddYoursStickerProps> = ({ config, onInteract })
 
       {/* Prompt Section */}
       <div className="flex flex-col items-center text-center relative z-10">
-        <h3 className="text-[20px] font-black italic uppercase tracking-tighter text-black dark:text-white leading-none px-4 mb-5 pointer-events-none drop-shadow-sm">
+        <h3 className="text-[20px] font-black italic uppercase tracking-tighter text-[#18181b] dark:text-white leading-none px-4 mb-5 pointer-events-none drop-shadow-sm">
           {config.prompt || 'Add yours'}
         </h3>
         

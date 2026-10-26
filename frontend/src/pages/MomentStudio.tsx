@@ -118,7 +118,7 @@ export default function MomentStudio() {
   };
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-black text-black dark:text-white pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-black text-[#18181b] dark:text-white pb-[env(safe-area-inset-bottom)]">
       <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
@@ -209,7 +209,7 @@ export default function MomentStudio() {
 
                   {/* Meta + stats */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-bold text-black dark:text-white truncate">
+                    <p className="text-[13px] font-bold text-[#18181b] dark:text-white truncate">
                       {m.caption?.trim() || 'Untitled moment'}
                     </p>
                     <p className="text-[11px] text-marketplace-muted font-medium mt-0.5">{timeAgo(m.created_at)}</p>

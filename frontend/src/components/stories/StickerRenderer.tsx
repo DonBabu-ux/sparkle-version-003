@@ -167,7 +167,7 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
       return (
         <div className="bg-white/95 backdrop-blur-3xl px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 min-w-[120px] justify-center select-none">
           <span className="text-primary font-black italic uppercase tracking-tighter text-[20px]">@</span>
-          <span className="text-black dark:text-white font-black italic uppercase tracking-tighter text-[20px]">{mentionUser}</span>
+          <span className="text-[#18181b] dark:text-white font-black italic uppercase tracking-tighter text-[20px]">{mentionUser}</span>
         </div>
       );
     }
@@ -219,7 +219,7 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
       );
     case 'location':
       return (
-        <div className="bg-white/90 backdrop-blur-3xl px-5 py-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 select-none text-black dark:text-white font-black uppercase italic text-[12px]">
+        <div className="bg-white/90 backdrop-blur-3xl px-5 py-2.5 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 select-none text-[#18181b] dark:text-white font-black uppercase italic text-[12px]">
           📍 {config.name || 'Current Location'}
         </div>
       );

@@ -127,7 +127,7 @@ export default function SellerProfile() {
   }, [fetchSeller]);
 
   if (loading) return (
-    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] flex flex-col items-center justify-center">
+    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] flex flex-col items-center justify-center">
        <Spinner size="large" color="text-primary" />
     </div>
   );

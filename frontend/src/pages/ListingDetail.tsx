@@ -175,7 +175,7 @@ export default function ListingDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-white dark:bg-[#1b1b24] min-h-dvh text-slate-900 justify-center items-center">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-slate-900 justify-center items-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );

@@ -278,7 +278,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
         <div className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-2">
           <Lock size={20} className="text-black/40 dark:text-white/40" />
         </div>
-        <h3 className="text-black dark:text-white font-bold text-[14px] mb-1">Post Unavailable</h3>
+        <h3 className="text-[#18181b] dark:text-white font-bold text-[14px] mb-1">Post Unavailable</h3>
         <p className="text-black/40 dark:text-white/40 text-[12px]">This post is private and cannot be viewed.</p>
       </div>
     );
@@ -310,13 +310,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           avatarClassName="shrink-0 mt-0.5"
           bodyClassName="flex-1 min-w-0 flex flex-col justify-center"
           titleRow
-          nameClassName="font-bold text-[15px] text-black dark:text-white hover:underline tracking-tighter"
+          nameClassName="font-bold text-[15px] text-[#18181b] dark:text-white hover:underline tracking-tighter"
           extras={(post.feeling || post.activity) && (
              <div className="flex items-center gap-1 text-[12px] text-black/40 dark:text-white/40 font-medium flex-wrap">
               {post.feeling && (
                 <>
                   <span>is feeling</span>
-                  <span className="font-bold text-black dark:text-white capitalize flex items-center gap-1">
+                  <span className="font-bold text-[#18181b] dark:text-white capitalize flex items-center gap-1">
                     {post.feeling}
                     {(() => { const Icon = getFeelingIcon(post.feeling); return Icon ? <Icon size={14} className="text-primary" /> : null; })()}
                   </span>
@@ -326,7 +326,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               {post.activity && (
                 <>
                   <span>is</span>
-                  <span className="font-bold text-black dark:text-white capitalize">{post.activity}</span>
+                  <span className="font-bold text-[#18181b] dark:text-white capitalize">{post.activity}</span>
                 </>
               )}
             </div>
@@ -421,24 +421,24 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   <div className="p-1.5 overflow-y-auto max-h-[85vh] custom-scrollbar">
                     <button onClick={handleSavePost} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left group">
                       <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                        <Bookmark size={18} className="text-black dark:text-white" strokeWidth={2} />
+                        <Bookmark size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                       </div>
                       <div>
-                        <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Save post</p>
+                        <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Save post</p>
                         <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Add this to your saved items.</p>
                       </div>
                     </button>
                     <button onClick={handleToggleNotifications} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                       <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                        <Bell size={18} className="text-black dark:text-white" strokeWidth={2} />
+                        <Bell size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                       </div>
-                      <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Turn on notifications for this post</p>
+                      <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Turn on notifications for this post</p>
                     </button>
                     <button onClick={handleWhySeeing} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                       <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                        <Info size={18} className="text-black dark:text-white" strokeWidth={2} />
+                        <Info size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                       </div>
-                      <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Why am I seeing this post?</p>
+                      <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Why am I seeing this post?</p>
                     </button>
 
                     {!isOwner && (
@@ -446,42 +446,42 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         <div className="h-px bg-black/5 dark:bg-white/10 my-1 mx-3" />
                         <button onClick={handleReport} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <Flag size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <Flag size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Report post</p>
+                          <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Report post</p>
                         </button>
                         <button onClick={handleNotInterested} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <EyeOff size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <EyeOff size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Hide post</p>
+                            <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Hide post</p>
                             <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">See fewer posts like this.</p>
                           </div>
                         </button>
                         <button onClick={handleSnooze} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <Clock size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <Clock size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Snooze {post.name || post.username} for 30 days</p>
+                            <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Snooze {post.name || post.username} for 30 days</p>
                             <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Temporarily stop seeing posts.</p>
                           </div>
                         </button>
                         <button onClick={handleHideAll} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <X size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <X size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
                           <div>
-                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Hide all from {post.name || post.username}</p>
+                            <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Hide all from {post.name || post.username}</p>
                             <p className="text-[13px] text-black/40 dark:text-white/40 leading-[1.3]">Stop seeing posts from this person.</p>
                           </div>
                         </button>
                         <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <LinkIcon size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <LinkIcon size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Copy link</p>
+                          <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Copy link</p>
                         </button>
                       </>
                     )}
@@ -491,17 +491,17 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                         <div className="h-px bg-black/5 dark:bg-white/10 my-1 mx-3" />
                         <button onClick={handleCopyLink} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                           <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                            <LinkIcon size={18} className="text-black dark:text-white" strokeWidth={2} />
+                            <LinkIcon size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                           </div>
-                          <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Copy link</p>
+                          <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Copy link</p>
                         </button>
                         
                         {isOwner && (
                           <button onClick={() => { setMenuOpen(false); setActiveModal('post', null, { editPost: post }); }} className="w-full flex items-center gap-3 px-3 py-[10px] hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left">
                             <div className="w-9 h-9 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center shrink-0">
-                              <Pencil size={18} className="text-black dark:text-white" strokeWidth={2} />
+                              <Pencil size={18} className="text-[#18181b] dark:text-white" strokeWidth={2} />
                             </div>
-                            <p className="text-[15px] font-semibold text-black dark:text-white leading-[1.3]">Edit post</p>
+                            <p className="text-[15px] font-semibold text-[#18181b] dark:text-white leading-[1.3]">Edit post</p>
                           </button>
                         )}
                         
@@ -527,7 +527,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* Content */}
       <div className="px-3 pb-2 pt-1">
         {post.content && (
-          <div className="text-[14px] text-black dark:text-white leading-snug">
+          <div className="text-[14px] text-[#18181b] dark:text-white leading-snug">
             <MentionText 
               content={post.content.length > 150 && !isExpanded ? post.content.substring(0, 150) + '...' : post.content} 
             />
@@ -610,13 +610,13 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               <span className="text-[12px] text-black/40 dark:text-white/40 font-medium">
                 {storePost.top_liker_name ? (
                   <>
-                    Liked by <span className="font-bold text-black dark:text-white">{storePost.top_liker_name}</span>
+                    Liked by <span className="font-bold text-[#18181b] dark:text-white">{storePost.top_liker_name}</span>
                     {sparkCount > 1 && (
-                      <> and <span className="font-bold text-black dark:text-white">{formatCount(sparkCount - 1)} others</span></>
+                      <> and <span className="font-bold text-[#18181b] dark:text-white">{formatCount(sparkCount - 1)} others</span></>
                     )}
                   </>
                 ) : (
-                  <span className="font-bold text-black dark:text-white">{formatCount(sparkCount)} {sparkCount === 1 ? 'like' : 'likes'}</span>
+                  <span className="font-bold text-[#18181b] dark:text-white">{formatCount(sparkCount)} {sparkCount === 1 ? 'like' : 'likes'}</span>
                 )}
               </span>
             )}

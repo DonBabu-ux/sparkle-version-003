@@ -204,7 +204,7 @@ export default function Marketplace() {
         !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
 
-      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white dark:bg-[#1b1b24]">
+      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24]">
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">

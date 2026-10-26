@@ -39,7 +39,7 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="flex bg-white dark:bg-[#101217] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -49,7 +49,7 @@ export default function Hashtag() {
         
         <button 
           onClick={() => navigate(-1)}
-          className="mb-8 w-12 h-12 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl shadow-sm flex items-center justify-center text-black dark:text-white hover:border-primary/30 hover:text-primary transition-all active:scale-95 group"
+          className="mb-8 w-12 h-12 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl shadow-sm flex items-center justify-center text-[#18181b] dark:text-white hover:border-primary/30 hover:text-primary transition-all active:scale-95 group"
         >
           <ArrowLeft size={20} strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
         </button>
@@ -60,7 +60,7 @@ export default function Hashtag() {
                   <Hash size={28} strokeWidth={3} />
                </div>
                <div className="text-center md:text-left min-w-0">
-                  <h1 className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tight leading-none italic uppercase">#{tag}</h1>
+                  <h1 className="text-4xl md:text-5xl font-black text-[#18181b] dark:text-white tracking-tight leading-none italic uppercase">#{tag}</h1>
                   <p className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mt-2">{posts.length} Posts In Feed</p>
                </div>
             </div>
@@ -84,7 +84,7 @@ export default function Hashtag() {
                   <Orbit size={200} strokeWidth={1} className="animate-spin-slow" />
                </div>
                <div className="space-y-4">
-                  <h3 className="text-4xl font-black text-black dark:text-white italic uppercase tracking-tight">Quiet Zone</h3>
+                  <h3 className="text-4xl font-black text-[#18181b] dark:text-white italic uppercase tracking-tight">Quiet Zone</h3>
                   <p className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest max-w-xs mx-auto">Be the first to ignite this hashtag with your content.</p>
                   <button onClick={() => navigate('/dashboard')} className="mt-4 h-12 px-8 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:translate-y-[-2px] transition-all shadow-lg shadow-primary/10">Start The Conversation</button>
                </div>

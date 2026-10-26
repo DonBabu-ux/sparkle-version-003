@@ -184,7 +184,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-20">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full">
         
@@ -199,7 +199,7 @@ export default function AdminDashboard() {
             </button>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 dark:bg-[#1b1b24]/80 border border-white dark:border-white/10 backdrop-blur-xl shadow-sm">
               <Shield size={12} strokeWidth={3} className="text-primary" />
-              <span className="text-[8px] font-black text-black dark:text-white uppercase tracking-widest italic">Override</span>
+              <span className="text-[8px] font-black text-[#18181b] dark:text-white uppercase tracking-widest italic">Override</span>
             </div>
           </div>
           

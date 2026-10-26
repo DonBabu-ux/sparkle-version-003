@@ -48,7 +48,7 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
               <h3 className="text-[16px] font-black italic uppercase tracking-tighter">Stickers</h3>
               <button 
                 onClick={onClose}
-                className="w-8 h-8 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center text-black dark:text-white active:scale-90"
+                className="w-8 h-8 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center text-[#18181b] dark:text-white active:scale-90"
               >
                 <X size={16} strokeWidth={3} />
               </button>

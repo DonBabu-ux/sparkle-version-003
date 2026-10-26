@@ -163,7 +163,7 @@ const SuggestionRow = React.memo(({ suggestions }: { suggestions: any[] }) => {
               onClick={() => navigate(`/profile/${s.username}`)}
             />
             <div className="min-w-0 w-full px-1">
-              <p className="text-[13px] font-black text-black dark:text-white truncate tracking-tight">{s.username}</p>
+              <p className="text-[13px] font-black text-[#18181b] dark:text-white truncate tracking-tight">{s.username}</p>
               <p className="text-[11px] text-black/40 dark:text-white/40 truncate uppercase font-bold tracking-wider">{s.campus || 'Sparkle'}</p>
             </div>
             <button 

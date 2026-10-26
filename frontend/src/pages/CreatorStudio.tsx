@@ -48,7 +48,7 @@ export default function CreatorStudio() {
   }, [fetchStats]);
 
   return (
-    <div className="min-h-dvh bg-[#fafafd] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
       `}</style>

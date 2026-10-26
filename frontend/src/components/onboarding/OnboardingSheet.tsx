@@ -917,7 +917,7 @@ export default function OnboardingSheet({
                   'Mobile app',
                 ].map((item, i) => (
                   <li key={i} className="flex items-center gap-3 text-sm text-[#f6eefc]">
-                    <span className="w-5 h-5 rounded-md flex-none bg-gradient-to-b from-[#5ff0b0] to-[#1fae75] shadow-sm shadow-[#46e6a0]/40 flex items-center justify-center text-[10px] text-black dark:text-white font-bold">
+                    <span className="w-5 h-5 rounded-md flex-none bg-gradient-to-b from-[#5ff0b0] to-[#1fae75] shadow-sm shadow-[#46e6a0]/40 flex items-center justify-center text-[10px] text-[#18181b] dark:text-white font-bold">
                       ✓
                     </span>
                     {item}

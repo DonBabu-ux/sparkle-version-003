@@ -213,7 +213,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
             value={customInput}
             onChange={e => setCustomInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleCustomSubmit()}
-            className="w-full text-center text-2xl font-black italic border-none focus:ring-0 placeholder:text-gray-200 dark:placeholder:text-white/20 bg-transparent text-black dark:text-white"
+            className="w-full text-center text-2xl font-black italic border-none focus:ring-0 placeholder:text-gray-200 dark:placeholder:text-white/20 bg-transparent text-[#18181b] dark:text-white"
           />
           <button 
             onClick={handleCustomSubmit}
@@ -228,7 +228,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
   }
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-black dark:text-white flex flex-col rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100dvh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-max) bg-white dark:bg-zinc-950 text-[#18181b] dark:text-white flex flex-col rounded-none md:rounded-lg md:max-w-2xl md:mx-auto md:my-6 md:h-[calc(100dvh-48px)] border-none md:border border-black/10 dark:border-white/10 shadow-2xl animate-in slide-in-from-right duration-300">
       {/* Header */}
       <div className="flex items-center px-4 py-4 border-b border-gray-100 dark:border-white/10 bg-white dark:bg-zinc-950 sticky top-0 z-10">
         <button 
@@ -305,7 +305,7 @@ export default function FeelingActivitySelector({ onSelect, onClose, initialSele
             placeholder={activeTab === 'tag' ? "Search friends..." : `Search for a ${activeTab}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-gray-50 dark:bg-zinc-900 border-none rounded-lg py-3 px-6 text-[14px] font-bold text-center focus:ring-2 focus:ring-primary/20 text-black dark:text-white transition-all placeholder:text-gray-400 dark:placeholder:text-white/20"
+            className="w-full bg-gray-50 dark:bg-zinc-900 border-none rounded-lg py-3 px-6 text-[14px] font-bold text-center focus:ring-2 focus:ring-primary/20 text-[#18181b] dark:text-white transition-all placeholder:text-gray-400 dark:placeholder:text-white/20"
           />
         </div>
       </div>

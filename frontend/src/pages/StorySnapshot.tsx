@@ -148,7 +148,7 @@ export default function StorySnapshot() {
 
                 <button 
                     onClick={() => navigate(`/profile/${story.user_id}`)}
-                    className="w-full py-4 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
+                    className="w-full py-4 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-xl font-bold hover:bg-gray-200 transition-colors flex items-center justify-center gap-2"
                 >
                     <User size={18} /> View Profile
                 </button>

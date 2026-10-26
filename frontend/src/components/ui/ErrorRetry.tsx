@@ -22,7 +22,7 @@ export const ErrorRetry: React.FC<ErrorRetryProps> = ({
     <div className="w-16 h-16 bg-red-500/10 rounded-3xl flex items-center justify-center mb-4">
       <RotateCw className="w-7 h-7 text-red-500" />
     </div>
-    <p className="font-heading font-bold text-[15px] text-black dark:text-white">Load failed</p>
+    <p className="font-heading font-bold text-[15px] text-[#18181b] dark:text-white">Load failed</p>
     <p className="mt-1 text-[13px] text-black/50 dark:text-white/50 max-w-[280px] leading-relaxed">
       {message}
     </p>

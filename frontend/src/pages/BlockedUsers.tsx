@@ -59,13 +59,13 @@ export default function BlockedUsers() {
         <div className="flex items-center gap-4 mb-8">
           <button 
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-slate-600 shadow-sm hover:bg-slate-50 transition-colors"
+            className="w-10 h-10 rounded-full bg-white dark:bg-[#1b1b24] flex items-center justify-center text-slate-600 dark:text-zinc-300 shadow-sm hover:bg-slate-50 transition-colors"
           >
             <ArrowLeft size={20} />
           </button>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Blocked Users</h1>
-            <p className="text-slate-500 text-sm mt-1">Manage accounts you have restricted from interacting with you</p>
+            <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1">Manage accounts you have restricted from interacting with you</p>
           </div>
         </div>
 
@@ -77,16 +77,16 @@ export default function BlockedUsers() {
             placeholder="Search blocked users..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white border border-slate-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
+            className="w-full bg-white dark:bg-[#1b1b24] border border-slate-100 rounded-2xl py-3 pl-12 pr-4 text-sm font-medium text-slate-700 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 shadow-sm"
           />
         </div>
 
         {/* List */}
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center gap-4">
               <Spinner size="medium" color="text-primary" />
-              <p className="text-slate-500 text-sm font-medium">Loading blocked users...</p>
+              <p className="text-slate-500 dark:text-zinc-400 text-sm font-medium">Loading blocked users...</p>
             </div>
           ) : filteredUsers.length > 0 ? (
             <div className="divide-y divide-slate-50">
@@ -100,12 +100,12 @@ export default function BlockedUsers() {
                     />
                     <div>
                       <h3 className="font-bold text-slate-800 text-sm">{user.name}</h3>
-                      <p className="text-slate-500 text-xs">@{user.username}</p>
+                      <p className="text-slate-500 dark:text-zinc-400 text-xs">@{user.username}</p>
                     </div>
                   </div>
                   <button 
                     onClick={() => handleUnblock(user.user_id)}
-                    className="px-4 py-2 bg-slate-100 text-slate-600 text-xs font-bold rounded-xl hover:bg-slate-200 active:scale-95 transition-all"
+                    className="px-4 py-2 bg-slate-100 dark:bg-[#101217] text-slate-600 dark:text-zinc-300 text-xs font-bold rounded-xl hover:bg-slate-200 active:scale-95 transition-all"
                   >
                     Unblock
                   </button>
@@ -114,11 +114,11 @@ export default function BlockedUsers() {
             </div>
           ) : (
             <div className="p-12 flex flex-col items-center justify-center text-center">
-              <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4">
+              <div className="w-16 h-16 bg-slate-50 dark:bg-[#101217] rounded-full flex items-center justify-center text-slate-300 mb-4">
                 <UserX size={32} />
               </div>
               <h3 className="font-bold text-slate-800">No Blocked Users</h3>
-              <p className="text-slate-500 text-sm mt-1 max-w-xs">
+              <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1 max-w-xs">
                 {searchQuery ? `No users matching "${searchQuery}" found in your block list.` : "You haven't blocked any users yet. When you block someone, they will appear here."}
               </p>
             </div>

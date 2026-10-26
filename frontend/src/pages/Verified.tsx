@@ -114,8 +114,8 @@ export default function Verified() {
                      <div className="p-6 bg-black/5 dark:bg-white/5 rounded-[32px] border border-black/5 dark:border-white/5">
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
-                              <Users size={16} className="text-black" />
-                              <span className="text-[10px] font-black uppercase italic tracking-widest text-slate-500">Global Followers</span>
+                              <Users size={16} className="text-black dark:text-white" />
+                              <span className="text-[10px] font-black uppercase italic tracking-widest text-slate-500 dark:text-zinc-400">Global Followers</span>
                            </div>
                            <span className="text-xs font-black italic">{stats.followers}/1,000</span>
                         </div>
@@ -148,11 +148,11 @@ export default function Verified() {
                         <div className="flex gap-3">
                            <div className={`flex-1 p-3 rounded-2xl border ${stats.trustLevel >= 1 ? 'bg-white border-amber-200' : 'bg-slate-50 border-slate-100 opacity-50'} flex flex-col items-center gap-1`}>
                               <Zap size={14} className={stats.trustLevel >= 1 ? 'text-amber-500' : 'text-slate-300'} fill={stats.trustLevel >= 1 ? 'currentColor' : 'none'} />
-                              <span className="text-[7px] font-black uppercase tracking-tighter text-black">Spark Seed</span>
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-black dark:text-white">Spark Seed</span>
                            </div>
                            <div className={`flex-1 p-3 rounded-2xl border ${stats.trustLevel >= 3 ? 'bg-white border-emerald-200' : 'bg-slate-50 border-slate-100 opacity-50'} flex flex-col items-center gap-1`}>
                               <TrendingUp size={14} className={stats.trustLevel >= 3 ? 'text-emerald-500' : 'text-slate-300'} />
-                              <span className="text-[7px] font-black uppercase tracking-tighter text-black">Viral</span>
+                              <span className="text-[7px] font-black uppercase tracking-tighter text-black dark:text-white">Viral</span>
                            </div>
                         </div>
                      </div>

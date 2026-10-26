@@ -39,16 +39,16 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
         animate={{ y: 0 }}
         exit={{ y: "100%" }}
         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-        className="relative bg-white w-full sm:max-w-[440px] rounded-t-[40px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
+        className="relative bg-white dark:bg-[#1b1b24] w-full sm:max-w-[440px] rounded-t-[40px] sm:rounded-[32px] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
       >
         {/* Mobile Handle */}
-        <div className="p-4 flex flex-col items-center border-b border-gray-50 bg-white sticky top-0 z-10">
+        <div className="p-4 flex flex-col items-center border-b border-gray-50 bg-white dark:bg-[#1b1b24] sticky top-0 z-10">
            <div className="w-12 h-1.5 bg-gray-200 rounded-full mb-4" />
            <div className="flex items-center justify-between w-full px-4">
               <h3 className="text-[16px] font-black italic uppercase tracking-tighter">Stickers</h3>
               <button 
                 onClick={onClose}
-                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center text-black active:scale-90"
+                className="w-8 h-8 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center text-black dark:text-white active:scale-90"
               >
                 <X size={16} strokeWidth={3} />
               </button>

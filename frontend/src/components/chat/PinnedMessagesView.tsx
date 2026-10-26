@@ -172,12 +172,12 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
       {/* Pinned Messages Main Scroll View */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 no-scrollbar">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-2">
             <Spinner size="medium" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
             <p className="text-xs">Loading pins...</p>
           </div>
         ) : pinnedList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-2">
             <Pin className="w-8 h-8 opacity-40" style={{ color: primaryColor }} />
             <p className="text-sm font-bold text-slate-300">No pinned messages found</p>
             <p className="text-xs text-white/40">Long press any message in the chat to pin it here.</p>

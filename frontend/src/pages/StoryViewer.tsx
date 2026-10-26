@@ -529,7 +529,7 @@ export default function StoryViewer() {
           <div className="absolute top-4 left-4 right-4 z-50 flex gap-1.5 px-2">
             {userStories.stories.map((_: Story, idx: number) => (
               <div key={idx} className="h-[2px] flex-1 bg-white/20 rounded-full overflow-hidden">
-                <motion.div className="h-full bg-white shadow-[0_0_8px_white]" initial={false} animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }} transition={{ duration: 0.1, ease: 'linear' }} />
+                <motion.div className="h-full bg-white dark:bg-[#1b1b24] shadow-[0_0_8px_white]" initial={false} animate={{ width: idx === currentIndex ? `${progress}%` : idx < currentIndex ? '100%' : '0%' }} transition={{ duration: 0.1, ease: 'linear' }} />
               </div>
             ))}
           </div>
@@ -1071,7 +1071,7 @@ export default function StoryViewer() {
                     setSelectedMentions([]);
                   }}
                   disabled={isProcessing}
-                  className="mt-4 w-full h-12 bg-white text-black rounded-xl font-bold text-[14px] disabled:opacity-50"
+                  className="mt-4 w-full h-12 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-xl font-bold text-[14px] disabled:opacity-50"
                 >
                   {isProcessing ? 'Saving...' : `Hide from ${selectedMentions.length} ${selectedMentions.length === 1 ? 'person' : 'people'}`}
                 </button>
@@ -1215,7 +1215,7 @@ export default function StoryViewer() {
                    <div className="flex gap-2">
                       {['❤️', '🔥', '👏', '😂'].map(e => <button key={e} onClick={() => setReplyText(prev => prev + e)} className="text-xl active:scale-125 transition-all">{e}</button>)}
                    </div>
-                   <button onClick={() => handlePostComment(replyText)} className="px-6 h-10 bg-white text-black rounded-full font-black uppercase italic text-[11px]">Post</button>
+                   <button onClick={() => handlePostComment(replyText)} className="px-6 h-10 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-full font-black uppercase italic text-[11px]">Post</button>
                 </div>
              </motion.div>
           </motion.div>

@@ -71,7 +71,7 @@ export default function Sidebar() {
         className="flex items-center px-6 mb-8 cursor-pointer h-12"
         onClick={() => navigate('/dashboard')}
       >
-        <div className="shrink-0 flex items-center justify-center transition-transform hover:scale-105 w-12 h-12 overflow-hidden bg-white rounded-full shadow-md border border-slate-200/60 p-1">
+        <div className="shrink-0 flex items-center justify-center transition-transform hover:scale-105 w-12 h-12 overflow-hidden bg-white dark:bg-[#1b1b24] rounded-full shadow-md border border-slate-200/60 p-1">
           <img src="/logo.png" alt="Sparkle" className="w-full h-full object-contain" />
         </div>
         <AnimatePresence>

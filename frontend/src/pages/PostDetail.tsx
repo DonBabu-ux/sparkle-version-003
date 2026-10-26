@@ -97,7 +97,7 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
+      <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center">
           <Spinner size="large" color="text-primary" />
         </div>
@@ -107,11 +107,11 @@ export default function PostDetail() {
 
   if (!post) {
     return (
-      <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
+      <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
             <Orbit size={120} strokeWidth={1} className="text-black/5" />
-            <h2 className="text-4xl font-black text-black mt-8 mb-4 tracking-tight italic">Post Not Found.</h2>
-            <p className="text-black font-medium max-w-sm mx-auto mb-8">This post could not be found.</p>
+            <h2 className="text-4xl font-black text-black dark:text-white mt-8 mb-4 tracking-tight italic">Post Not Found.</h2>
+            <p className="text-black dark:text-white font-medium max-w-sm mx-auto mb-8">This post could not be found.</p>
             <button onClick={() => navigate(-1)} className="px-10 py-4 bg-primary text-white rounded-2xl font-bold shadow-xl shadow-primary/20 transition-all hover:scale-105 active:scale-95">Go Back</button>
         </div>
       </div>
@@ -119,7 +119,7 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
       
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
@@ -143,7 +143,7 @@ export default function PostDetail() {
               </div>
            </div>
 
-           <p className="text-black text-xl font-medium leading-relaxed mb-10 whitespace-pre-wrap">{post.content}</p>
+           <p className="text-black dark:text-white text-xl font-medium leading-relaxed mb-10 whitespace-pre-wrap">{post.content}</p>
 
            {post.media?.length > 0 && (
              <div className="grid grid-cols-1 gap-6 mb-10 rounded-[32px] overflow-hidden">
@@ -153,14 +153,14 @@ export default function PostDetail() {
              </div>
            )}
 
-           <div className="flex items-center gap-8 pt-8 border-t border-black/5">
+           <div className="flex items-center gap-8 pt-8 border-t border-black/5 dark:border-white/5">
               <div className="flex items-center gap-3">
                 <Heart size={24} className="text-primary" fill={post.spark_count && post.spark_count > 0 ? "currentColor" : "none"} strokeWidth={3} />
-                <span className="text-sm font-bold text-black">{post.spark_count || 0} Sparks</span>
+                <span className="text-sm font-bold text-black dark:text-white">{post.spark_count || 0} Sparks</span>
               </div>
               <div className="flex items-center gap-3">
                 <MessageSquare size={24} className="text-black/20" strokeWidth={3} />
-                <span className="text-sm font-bold text-black">{comments.length} Signals</span>
+                <span className="text-sm font-bold text-black dark:text-white">{comments.length} Signals</span>
               </div>
            </div>
         </div>
@@ -170,12 +170,12 @@ export default function PostDetail() {
            <div className="flex items-center justify-between gap-3 px-1 mb-8">
               <div className="flex items-center gap-3">
                 <div className="w-1 h-8 bg-primary rounded-full" />
-                <h3 className="text-2xl font-black text-black italic">Comments</h3>
+                <h3 className="text-2xl font-black text-black dark:text-white italic">Comments</h3>
               </div>
               
               <button 
                 onClick={() => setShowSortModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white border border-black/5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 group"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#1b1b24] border border-black/5 dark:border-white/5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 group"
               >
                 <span className="text-[10px] font-black uppercase tracking-widest text-black/60 group-hover:text-primary">
                   {sortMode === 'relevant' ? 'Most relevant' : 
@@ -222,7 +222,7 @@ export default function PostDetail() {
               )}
               {comments.length === 0 ? (
                 <div className="py-20 text-center bg-white/40 border border-white rounded-[40px] shadow-inner">
-                   <p className="text-black font-medium text-black/20 uppercase tracking-widest">No comments yet.</p>
+                   <p className="text-black dark:text-white font-medium text-black/20 uppercase tracking-widest">No comments yet.</p>
                 </div>
               ) : (
                 comments.map(comment => (
@@ -230,10 +230,10 @@ export default function PostDetail() {
                      <img src={comment.avatar_url || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-2xl object-cover border border-white/65 shadow-sm" alt="" />
                      <div className="flex-1 min-w-0 pt-1">
                         <div className="flex justify-between items-start mb-2">
-                          <span className="text-sm font-black text-black">{comment.name || comment.username}</span>
+                          <span className="text-sm font-black text-black dark:text-white">{comment.name || comment.username}</span>
                           <span className="text-[10px] font-bold text-black/20 uppercase">{new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                         </div>
-                        <p className="text-base text-black font-medium leading-relaxed">{comment.content}</p>
+                        <p className="text-base text-black dark:text-white font-medium leading-relaxed">{comment.content}</p>
                      </div>
                   </div>
                 ))
@@ -258,12 +258,12 @@ export default function PostDetail() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 lg:left-72 right-0 bg-white rounded-t-[48px] z-[1001] shadow-2xl p-8 pb-12 md:p-12"
+              className="fixed bottom-0 left-0 lg:left-72 right-0 bg-white dark:bg-[#1b1b24] rounded-t-[48px] z-[1001] shadow-2xl p-8 pb-12 md:p-12"
             >
               <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-8" />
               
               <div className="flex items-center justify-between mb-10">
-                <h3 className="text-2xl font-black text-black italic uppercase tracking-tighter">Sort Comments</h3>
+                <h3 className="text-2xl font-black text-black dark:text-white italic uppercase tracking-tighter">Sort Comments</h3>
                 <button onClick={() => setShowSortModal(false)} className="text-[11px] font-black uppercase tracking-widest text-primary">Done</button>
               </div>
 

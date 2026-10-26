@@ -467,18 +467,18 @@ const MarketplaceChat = () => {
   const opponentUsername = amIBlocked ? 'sparkle_user' : (isBuyer ? conversation.seller_username : 'buyer');
 
   return (
-    <div className="flex flex-col h-dvh bg-gray-100 max-w-2xl mx-auto shadow-xl relative">
-      <header className="bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+    <div className="flex flex-col h-dvh bg-gray-100 dark:bg-[#101217] max-w-2xl mx-auto shadow-xl relative">
+      <header className="bg-white dark:bg-[#1b1b24] border-b px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <ArrowLeft size={20} className="text-gray-700" />
+            <ArrowLeft size={20} className="text-gray-700 dark:text-zinc-200" />
           </button>
           <div className="flex items-center gap-3">
             <div className="relative">
               <img 
                 src={getMediaUrl(opponentAvatar) || `https://ui-avatars.com/api/?name=${opponentName}&background=E2E8F0&color=94A3B8`} 
                 alt={opponentName} 
-                className="w-10 h-10 rounded-full object-cover border border-gray-200 bg-gray-100"
+                className="w-10 h-10 rounded-full object-cover border border-gray-200 dark:border-white/10 bg-gray-100 dark:bg-[#101217]"
               />
               {(isOpponentOnline && (userSettings?.show_online_status !== false)) && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
@@ -486,7 +486,7 @@ const MarketplaceChat = () => {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-gray-900 leading-tight">{opponentName}</span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-zinc-400">
                 @{opponentUsername} • {isOpponentOnline ? <span className="text-green-600 font-medium">Online</span> : 'Offline'}
               </span>
             </div>
@@ -495,16 +495,16 @@ const MarketplaceChat = () => {
         <div className="relative">
           <button 
             onClick={() => setShowMenu(!showMenu)}
-            className="p-2 hover:bg-gray-100 rounded-full text-gray-600 transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-full text-gray-600 dark:text-zinc-300 transition-colors"
           >
             <MoreVertical size={20} />
           </button>
           
           {showMenu && (
-            <div className="absolute right-0 top-full mt-2 w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+            <div className="absolute right-0 top-full mt-2 w-56 bg-white dark:bg-[#1b1b24] rounded-xl shadow-2xl border border-gray-100 dark:border-white/10 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <button 
                 onClick={() => { setShowMenu(false); navigate(`/marketplace/seller/${isBuyer ? conversation.seller_id : conversation.buyer_id}`); }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 dark:text-zinc-200 font-bold transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                   <ShoppingBagIcon size={16} />
@@ -530,7 +530,7 @@ const MarketplaceChat = () => {
                     window.location.reload(); 
                   } catch(err) { logger.error(err); }
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 dark:text-zinc-200 font-bold transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center text-blue-600">
                   <Tag size={16} />
@@ -550,7 +550,7 @@ const MarketplaceChat = () => {
                     }
                   } catch(err) { logger.error(err); }
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 dark:text-zinc-200 font-bold transition-colors"
               >
                 <div className="w-8 h-8 rounded-full bg-purple-50 flex items-center justify-center text-purple-600">
                   <ShoppingBagIcon size={16} />
@@ -566,9 +566,9 @@ const MarketplaceChat = () => {
                     window.location.reload(); 
                   } catch(err) { logger.error(err); }
                 }}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 font-bold transition-colors"
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-gray-700 dark:text-zinc-200 font-bold transition-colors"
               >
-                <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-600">
+                <div className="w-8 h-8 rounded-full bg-gray-50 dark:bg-[#101217] flex items-center justify-center text-gray-600 dark:text-zinc-300">
                   <EyeOff size={16} />
                 </div>
                 <span>{conversation.is_muted ? 'Unmute' : 'Mute'} Chat</span>
@@ -594,7 +594,7 @@ const MarketplaceChat = () => {
                 </button>
               )}
 
-              <div className="h-px bg-gray-100 my-1 mx-4" />
+              <div className="h-px bg-gray-100 dark:bg-[#101217] my-1 mx-4" />
 
               <button 
                 onClick={async () => {
@@ -618,9 +618,9 @@ const MarketplaceChat = () => {
         </div>
       </header>
 
-      <div className="bg-white border-b border-gray-100 px-4 py-3 flex items-center justify-between gap-4 sticky top-[64px] z-10 shadow-sm">
+      <div className="bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 px-4 py-3 flex items-center justify-between gap-4 sticky top-[64px] z-10 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 bg-gray-50 rounded-md flex items-center justify-center text-gray-300 shadow-inner border border-gray-100 overflow-hidden">
+          <div className="w-14 h-14 bg-gray-50 dark:bg-[#101217] rounded-md flex items-center justify-center text-gray-300 shadow-inner border border-gray-100 dark:border-white/10 overflow-hidden">
             {conversation.listing_image ? (
               <img src={getMediaUrl(conversation.listing_image)} alt={conversation.listing_title} className="w-full h-full object-cover" />
             ) : (
@@ -648,7 +648,7 @@ const MarketplaceChat = () => {
             {conversation.listing_status === 'active' ? (
               <button onClick={() => handleUpdateStatus('sold')} className="text-[11px] font-bold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm">Mark as Sold</button>
             ) : (
-              <button onClick={() => handleUpdateStatus('active')} className="text-[11px] font-bold bg-gray-200 text-gray-700 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors">Mark Available</button>
+              <button onClick={() => handleUpdateStatus('active')} className="text-[11px] font-bold bg-gray-200 text-gray-700 dark:text-zinc-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors">Mark Available</button>
             )}
           </div>
         ) : conversation.listing_status === 'sold' && (
@@ -659,7 +659,7 @@ const MarketplaceChat = () => {
       </div>
 
       <div 
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-white bg-opacity-50" 
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-white dark:bg-[#1b1b24] bg-opacity-50" 
         onClick={() => {
           setContextMenuId(null);
           setShowPicker(false);
@@ -682,10 +682,10 @@ const MarketplaceChat = () => {
                   
                   {contextMenuId === msg.id && (
                     <div className={`absolute top-0 ${isMine ? 'right-full mr-2' : 'left-full ml-2'} z-50 bg-white shadow-2xl border border-gray-100 rounded-xl py-1 w-32 overflow-hidden animate-in zoom-in-95 duration-100`}>
-                      <button onClick={(e) => { e.stopPropagation(); setReplyToMessage(msg); setContextMenuId(null); }} className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 flex items-center gap-2 text-gray-700">
+                      <button onClick={(e) => { e.stopPropagation(); setReplyToMessage(msg); setContextMenuId(null); }} className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 flex items-center gap-2 text-gray-700 dark:text-zinc-200">
                         <Reply size={14} /> Reply
                       </button>
-                      <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(msg.message_text); setContextMenuId(null); }} className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 flex items-center gap-2 text-gray-700">
+                      <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(msg.message_text); setContextMenuId(null); }} className="w-full text-left px-3 py-2 text-xs font-bold hover:bg-gray-50 flex items-center gap-2 text-gray-700 dark:text-zinc-200">
                         <Paperclip size={14} /> Copy
                       </button>
                       {isMine && (
@@ -760,24 +760,24 @@ const MarketplaceChat = () => {
                     })()}
                   </div>
                   <div className={`absolute top-0 ${isMine ? '-left-8' : '-right-8'} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                     <button onClick={() => setReplyToMessage(msg)} className="p-1.5 bg-gray-100 text-gray-500 rounded-full hover:bg-gray-200"><ArrowLeft size={14} className="rotate-180" /></button>
+                     <button onClick={() => setReplyToMessage(msg)} className="p-1.5 bg-gray-100 dark:bg-[#101217] text-gray-500 dark:text-zinc-400 rounded-full hover:bg-gray-200"><ArrowLeft size={14} className="rotate-180" /></button>
                   </div>
                   {msg.reactions && msg.reactions.length > 0 && (
-                    <div className="absolute -bottom-3 right-2 flex gap-1 bg-white shadow-sm border border-gray-100 rounded-full px-1.5 py-0.5 text-xs z-10">
+                    <div className="absolute -bottom-3 right-2 flex gap-1 bg-white dark:bg-[#1b1b24] shadow-sm border border-gray-100 dark:border-white/10 rounded-full px-1.5 py-0.5 text-xs z-10">
                       {[...new Set(msg.reactions.map((r: any) => r.reaction))].map((emoji: any, idx) => (<span key={idx} className="cursor-pointer">{emoji}</span>))}
-                      {msg.reactions.length > 1 && <span className="text-gray-500 font-bold text-[10px] ml-0.5">{msg.reactions.length}</span>}
+                      {msg.reactions.length > 1 && <span className="text-gray-500 dark:text-zinc-400 font-bold text-[10px] ml-0.5">{msg.reactions.length}</span>}
                     </div>
                   )}
                   {contextMenuId === msg.id && (
-                    <div className="absolute top-full mt-1 right-0 bg-white shadow-lg rounded-md border border-gray-200 z-20 overflow-hidden min-w-[150px]">
-                      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 bg-gray-50">
+                    <div className="absolute top-full mt-1 right-0 bg-white dark:bg-[#1b1b24] shadow-lg rounded-md border border-gray-200 dark:border-white/10 z-20 overflow-hidden min-w-[150px]">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-[#101217]">
                         {['👍', '❤️', '😂', '🔥', '🙏'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }} className="hover:scale-125 transition-transform">{emoji}</button>))}
-                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 transition-colors">➕</button>
+                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 dark:text-zinc-400 transition-colors">➕</button>
                       </div>
                       {isMine && (
                         <>
                           {(msg.message_type === 'text' || msg.type === 'text' || !msg.message_type) && (
-                            <button onClick={(e) => { e.stopPropagation(); setEditingMessageId(msg.id); setInputText(msg.message_text); setContextMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2">Edit</button>
+                            <button onClick={(e) => { e.stopPropagation(); setEditingMessageId(msg.id); setInputText(msg.message_text); setContextMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-zinc-200 hover:bg-gray-100 flex items-center gap-2">Edit</button>
                           )}
                           <button onClick={(e) => { e.stopPropagation(); handleDelete(msg.id); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2">Unsend</button>
                         </>
@@ -800,10 +800,10 @@ const MarketplaceChat = () => {
         })}
         {(opponentTyping && (userSettings?.typing_indicators !== false) && !amIBlocked) && (
           <div className="flex items-start gap-2 animate-pulse">
-             <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+             <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center">
                <Smile size={16} className="text-gray-400" />
              </div>
-             <div className="bg-gray-100 rounded-2xl px-4 py-2 text-xs font-bold text-gray-500 italic shadow-sm">
+             <div className="bg-gray-100 dark:bg-[#101217] rounded-2xl px-4 py-2 text-xs font-bold text-gray-500 dark:text-zinc-400 italic shadow-sm">
                {opponentName} is typing...
              </div>
           </div>
@@ -839,15 +839,15 @@ const MarketplaceChat = () => {
       </AnimatePresence>
 
       {isBlockedByMe || amIBlocked ? (
-        <div className="bg-white border-t p-8 text-center pb-12 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="bg-white dark:bg-[#1b1b24] border-t p-8 text-center pb-12 animate-in slide-in-from-bottom-4 duration-500">
           <div className="max-w-xs mx-auto">
-             <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 shadow-sm">
+             <div className="w-16 h-16 bg-gray-50 dark:bg-[#101217] rounded-full flex items-center justify-center mx-auto mb-4 border border-gray-100 dark:border-white/10 shadow-sm">
                <ShieldAlert size={32} className="text-gray-300" />
              </div>
              <h4 className="text-base font-black text-slate-900 mb-2 leading-tight">
                {isBlockedByMe ? 'Conversation Blocked' : 'Message Not Sent'}
              </h4>
-             <p className="text-sm font-bold text-slate-500 mb-8 leading-relaxed">
+             <p className="text-sm font-bold text-slate-500 dark:text-zinc-400 mb-8 leading-relaxed">
                {isBlockedByMe 
                  ? 'You have blocked this user. Unblock them to continue chatting or delete this conversation.' 
                  : 'Not everyone can message this user. You cannot send messages to this person at this time.'}
@@ -884,7 +884,7 @@ const MarketplaceChat = () => {
                     </button>
                     <button 
                       onClick={() => navigate('/marketplace/report/' + conversation.listing_id)}
-                      className="py-3 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
+                      className="py-3 bg-slate-50 dark:bg-[#101217] text-slate-600 dark:text-zinc-300 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-colors"
                     >
                       Report
                     </button>
@@ -893,7 +893,7 @@ const MarketplaceChat = () => {
              ) : (
                 <button 
                   onClick={() => navigate('/marketplace/inbox')}
-                  className="w-full py-4 bg-slate-100 text-slate-600 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                  className="w-full py-4 bg-slate-100 dark:bg-[#101217] text-slate-600 dark:text-zinc-300 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
                 >
                   Back to Inbox
                 </button>
@@ -901,35 +901,35 @@ const MarketplaceChat = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-white border-t relative">
+        <div className="bg-white dark:bg-[#1b1b24] border-t relative">
           {replyToMessage && (
-            <div className="bg-gray-50 px-4 py-2 flex justify-between items-center border-b border-gray-100 text-sm">
+            <div className="bg-gray-50 dark:bg-[#101217] px-4 py-2 flex justify-between items-center border-b border-gray-100 dark:border-white/10 text-sm">
               <div className="flex flex-col overflow-hidden">
                 <span className="text-[10px] font-bold text-blue-600 uppercase">Replying to</span>
-                <p className="text-gray-500 truncate italic text-xs">{replyToMessage.message_text || 'Media message'}</p>
+                <p className="text-gray-500 dark:text-zinc-400 truncate italic text-xs">{replyToMessage.message_text || 'Media message'}</p>
               </div>
               <button type="button" onClick={() => setReplyToMessage(null)} className="p-1 hover:bg-gray-200 rounded-full text-gray-400"><ArrowLeft size={16} className="rotate-90" /></button>
             </div>
           )}
           
           {stagedMedia.length > 0 && (
-            <div className="p-3 border-b border-gray-100 flex gap-2 overflow-x-auto no-scrollbar bg-gray-50">
+            <div className="p-3 border-b border-gray-100 dark:border-white/10 flex gap-2 overflow-x-auto no-scrollbar bg-gray-50 dark:bg-[#101217]">
               {stagedMedia.map((media, idx) => (
                 <div key={idx} className="relative group">
                   {media.type === 'image' ? (
-                    <img src={media.url} className="w-20 h-20 object-cover rounded-md border border-gray-200 shadow-sm" alt="Preview" />
+                    <img src={media.url} className="w-20 h-20 object-cover rounded-md border border-gray-200 dark:border-white/10 shadow-sm" alt="Preview" />
                   ) : (
                     <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center">
                       <ImageIcon size={24} className="text-gray-400" />
                     </div>
                   )}
-                  <button onClick={() => setStagedMedia(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-2 -right-2 bg-white rounded-full shadow-md p-1 border border-gray-100 hover:bg-gray-100">
-                    <X size={12} className="text-gray-500" />
+                  <button onClick={() => setStagedMedia(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-2 -right-2 bg-white dark:bg-[#1b1b24] rounded-full shadow-md p-1 border border-gray-100 dark:border-white/10 hover:bg-gray-100">
+                    <X size={12} className="text-gray-500 dark:text-zinc-400" />
                   </button>
                 </div>
               ))}
               {isUploading && (
-                <div className="w-20 h-20 bg-gray-100 border-2 border-dashed border-gray-300 rounded-md flex items-center justify-center animate-pulse">
+                <div className="w-20 h-20 bg-gray-100 dark:bg-[#101217] border-2 border-dashed border-gray-300 dark:border-white/10 rounded-md flex items-center justify-center animate-pulse">
                   <Spinner size="small" color="text-primary" />
                 </div>
               )}
@@ -942,9 +942,9 @@ const MarketplaceChat = () => {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 320, opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="bg-white border-b border-gray-100 overflow-hidden flex flex-col"
+                className="bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 overflow-hidden flex flex-col"
               >
-                <div className="flex border-b border-gray-50 sticky top-0 bg-white z-10">
+                <div className="flex border-b border-gray-50 sticky top-0 bg-white dark:bg-[#1b1b24] z-10">
                   {(['emoji', 'sticker', 'gif', 'gift'] as const).map(tab => (
                     <button
                       key={tab}
@@ -975,7 +975,7 @@ const MarketplaceChat = () => {
 
                   {(pickerTab === 'gif' || pickerTab === 'sticker') && (
                     <div className="space-y-4">
-                      <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-gray-100 shadow-sm mb-4">
+                      <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-gray-100 dark:border-white/10 shadow-sm mb-4">
                         <input 
                           value={giphySearch}
                           onChange={(e) => setGiphySearch(e.target.value)}
@@ -993,7 +993,7 @@ const MarketplaceChat = () => {
                             <button
                               key={item.id}
                               onClick={() => handleSendGiphy(item.images.fixed_height.url, pickerTab)}
-                              className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 hover:opacity-80 transition-opacity shadow-sm"
+                              className="relative aspect-video rounded-lg overflow-hidden bg-gray-100 dark:bg-[#101217] hover:opacity-80 transition-opacity shadow-sm"
                             >
                               <img src={item.images.fixed_height.url} className="w-full h-full object-cover" alt="giphy" />
                             </button>
@@ -1011,7 +1011,7 @@ const MarketplaceChat = () => {
                           <button
                             key={gift.id}
                             onClick={() => handleSendGift(gift)}
-                            className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border border-gray-100 shadow-sm hover:border-blue-200 hover:shadow-md transition-all group"
+                            className="flex flex-col items-center justify-center p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm hover:border-blue-200 hover:shadow-md transition-all group"
                           >
                             <div className={`w-10 h-10 rounded-full ${gift.bg} flex items-center justify-center mb-2.5 group-hover:scale-110 transition-transform`}>
                               <Icon size={20} className={gift.color} />
@@ -1027,7 +1027,7 @@ const MarketplaceChat = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex items-end gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-white">
+          <div className="flex items-end gap-3 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-white dark:bg-[#1b1b24]">
             <button 
               type="button" 
               onClick={() => fileInputRef.current?.click()}
@@ -1044,7 +1044,7 @@ const MarketplaceChat = () => {
               onChange={handleFileUpload}
             />
             
-            <div className="flex-1 bg-gray-100 rounded-2xl flex items-center px-4 py-1">
+            <div className="flex-1 bg-gray-100 dark:bg-[#101217] rounded-2xl flex items-center px-4 py-1">
               <input 
                 value={inputText}
                 onChange={handleTyping}

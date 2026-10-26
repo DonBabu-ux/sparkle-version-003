@@ -206,12 +206,12 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
       {/* Main Full Page Scrollable Results */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 max-w-4xl mx-auto w-full no-scrollbar">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-2">
             <Spinner size="medium" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
             <p className="text-xs">Searching conversation...</p>
           </div>
         ) : results.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 gap-2">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-2">
             <Search className="w-8 h-8 opacity-40" style={{ color: primaryColor }} />
             <p className="text-sm font-bold text-slate-300">No matching messages found</p>
             <p className="text-xs text-white/40">Try adjusting your search keyword or filters.</p>

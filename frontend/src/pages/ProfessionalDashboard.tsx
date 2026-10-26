@@ -133,7 +133,7 @@ const TxnRow = ({ txn }: { txn: Transaction }) => {
   return (
     <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 px-2 -mx-2 rounded-xl transition-colors">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center shrink-0">
+        <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-[#101217] border border-slate-200 flex items-center justify-center shrink-0">
           {TXN_ICONS[txn.type] || <Activity size={16} className="text-slate-400" />}
         </div>
         <div>
@@ -238,17 +238,17 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
       <motion.div
         initial={{ y: '100%', scale: 0.95 }} animate={{ y: 0, scale: 1 }}
         exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="bg-white border border-[#FF1F6D]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl"
+        className="bg-white dark:bg-[#1b1b24] border border-[#FF1F6D]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl"
       >
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest italic">
+            <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase tracking-widest italic">
               {step === 1 ? 'Step 1 of 2' : step === 2 ? 'Step 2 of 2' : 'Processing'}
             </p>
             <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Add Funds</h2>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors">
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 dark:bg-[#101217] flex items-center justify-center hover:bg-slate-100 transition-colors">
             <X size={18} className="text-slate-800" />
           </button>
         </div>
@@ -262,7 +262,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                     <Spinner size="large" className="text-amber-500" />
                   </div>
                   <p className="text-slate-800 font-black text-lg italic uppercase">Verifying Payment...</p>
-                  <p className="text-slate-600 text-xs font-medium">
+                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
                     {method === 'mpesa'
                       ? 'Check your phone for the M-Pesa prompt and enter your PIN to complete.'
                       : 'Please complete your payment in the Paystack window.'}
@@ -276,7 +276,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                     <CheckCircle2 size={32} className="text-emerald-500" />
                   </motion.div>
                   <p className="text-emerald-600 font-black text-lg italic uppercase">Payment Confirmed!</p>
-                  <p className="text-slate-600 text-xs font-medium">
+                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
                     KES {(amountCents / 100).toFixed(2)} has been successfully credited to your wallet.
                   </p>
                   <button onClick={() => { onClose(); onSuccess(); }}
@@ -291,12 +291,12 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                     <XCircle size={32} className="text-red-500" />
                   </motion.div>
                   <p className="text-red-600 font-black text-lg italic uppercase">Payment Failed</p>
-                  <p className="text-slate-600 text-xs font-medium">
+                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
                     The payment request was cancelled, timed out, or failed.
                   </p>
                   <div className="flex gap-2">
                     <button onClick={() => { setStep(1); setVerificationStatus('pending'); }}
-                      className="flex-1 py-3.5 bg-slate-100 text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-slate-200 transition-all">
+                      className="flex-1 py-3.5 bg-slate-100 dark:bg-[#101217] text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-slate-200 transition-all">
                       Try Again
                     </button>
                     <button onClick={onClose}
@@ -319,7 +319,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">KES</span>
                   <input
                     type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1.00"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 pl-14 pr-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#FF1F6D]/50 transition-colors"
+                    className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3.5 pl-14 pr-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#FF1F6D]/50 transition-colors"
                   />
                 </div>
                 <div className="flex gap-2 flex-wrap">
@@ -356,7 +356,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">M-Pesa Phone Number</label>
                   <input
                     type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX or 07..."
-                    className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm"
+                    className="mt-2 w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm"
                   />
                 </motion.div>
               )}
@@ -436,13 +436,13 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="bg-white border border-[#FF1F6D]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white">
+        className="bg-white dark:bg-[#1b1b24] border border-[#FF1F6D]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white dark:bg-[#1b1b24]">
           <div>
-            <p className="text-[9px] text-slate-500 font-black uppercase tracking-widest italic">Creator Payout</p>
+            <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase tracking-widest italic">Creator Payout</p>
             <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Withdraw</h2>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors">
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 dark:bg-[#101217] flex items-center justify-center hover:bg-slate-100 transition-colors">
             <X size={18} className="text-slate-800" />
           </button>
         </div>
@@ -454,7 +454,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                 <CheckCircle2 size={32} className="text-emerald-500" />
               </div>
               <p className="text-slate-900 font-black text-lg italic uppercase">Withdrawal Requested</p>
-              <p className="text-slate-600 text-xs font-medium">Your payout is being processed. Funds arrive within 1–2 business days.</p>
+              <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">Your payout is being processed. Funds arrive within 1–2 business days.</p>
               <button onClick={onClose} className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-slate-800 transition-all">Done</button>
             </div>
           ) : (
@@ -485,7 +485,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                   <span className="text-[#FF1F6D] lowercase font-black italic">min 1 bob (KES 1.00)</span>
                 </label>
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1.00"
-                  className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#FF1F6D]/50 transition-colors" />
+                  className="mt-2 w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3.5 px-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#FF1F6D]/50 transition-colors" />
               </div>
 
               {method === 'bank' ? (
@@ -493,7 +493,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Bank</label>
                     <select value={bankCode} onChange={(e) => setBankCode(e.target.value)}
-                      className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm appearance-none">
+                      className="mt-2 w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm appearance-none">
                       <option value="">Select bank…</option>
                       {banks.map((b, i) => <option key={`${i}-${b.code}`} value={b.code}>{b.name}</option>)}
                     </select>
@@ -503,9 +503,9 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                     <div className="flex gap-2 mt-2">
                       <input type="text" value={accountNumber} onChange={(e) => { setAccountNumber(e.target.value); setResolved(null); }}
                         placeholder="Enter account number"
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
+                        className="flex-1 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
                       <button onClick={resolveAccount} disabled={resolving || !accountNumber || !bankCode}
-                        className="px-3 py-3 bg-slate-50 border border-slate-200 rounded-xl text-slate-500 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
+                        className="px-3 py-3 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
                         {resolving ? <Spinner size="small" /> : <CheckCircle2 size={14} />}
                       </button>
                     </div>
@@ -516,14 +516,14 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Account Name</label>
                     <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account holder name"
-                      className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
+                      className="mt-2 w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
                   </div>
                 </>
               ) : (
                 <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">M-Pesa Number</label>
                   <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX or 07..."
-                    className="mt-2 w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
+                    className="mt-2 w-full bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#FF1F6D]/50 transition-colors text-sm" />
                 </div>
               )}
 
@@ -703,10 +703,10 @@ export default function ProfessionalDashboard() {
           </div>
           <div className="flex items-center gap-2">
             <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <RefreshCw size={16} className="text-slate-600" />
+              <RefreshCw size={16} className="text-slate-600 dark:text-zinc-300" />
             </button>
             <button onClick={() => navigate('/settings')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <Settings size={18} className="text-slate-600" strokeWidth={2.5} />
+              <Settings size={18} className="text-slate-600 dark:text-zinc-300" strokeWidth={2.5} />
             </button>
             <button onClick={() => setShowSubscription(true)}
               className="px-4 py-2 bg-gradient-to-r from-[#FF1F6D] to-[#ff6b35] text-white rounded-full text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#FF1F6D]/30 hover:scale-105 active:scale-95 transition-all">
@@ -729,7 +729,7 @@ export default function ProfessionalDashboard() {
           <div className="relative p-6 md:p-8">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.25em] italic">Creator Wallet</p>
+                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-[0.25em] italic">Creator Wallet</p>
                 <p className="text-[9px] font-bold text-[#FF1F6D] mt-0.5 uppercase italic">{user?.name || 'Creator'} · KES</p>
               </div>
               <div className="w-10 h-10 rounded-xl glass flex items-center justify-center border border-[#FF1F6D]/10">
@@ -739,7 +739,7 @@ export default function ProfessionalDashboard() {
 
             {/* Balance */}
             <div className="mb-8">
-              <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-2">Available Balance</p>
+              <p className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-2">Available Balance</p>
               {loadingWallet ? (
                 <Skeleton className="h-12 w-48 bg-slate-200/50" />
               ) : (
@@ -784,7 +784,7 @@ export default function ProfessionalDashboard() {
                   { label: 'Total Earned',    value: wallet.lifetime_earnings },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">{stat.label}</p>
+                    <p className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{stat.label}</p>
                     <p className="text-sm font-black text-slate-900 italic mt-0.5">{formatKES(stat.value)}</p>
                   </div>
                 ))}
@@ -795,12 +795,12 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 2: Revenue Analytics ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-3">Revenue Analytics</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Revenue Analytics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {revenueCards.map((card, i) => (
               <motion.div key={i} whileHover={{ y: -3, scale: 1.02 }}
                 className="glass rounded-2xl p-4 cursor-pointer transition-all shadow-sm border-slate-100 hover:border-[#FF1F6D]/20">
-                <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">{card.label}</p>
+                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{card.label}</p>
                 {loadingWallet ? (
                   <Skeleton className="h-7 w-24 mt-2 bg-slate-200/50" />
                 ) : (
@@ -823,7 +823,7 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 3: Creator Insights ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-3">Creator Insights</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Creator Insights</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { label: 'Profile Visits',   value: stats.profileViews,    icon: <Eye size={16} />,            color: '#FF1F6D' },
@@ -835,8 +835,8 @@ export default function ProfessionalDashboard() {
             ].map((item, i) => (
               <motion.div key={i} whileHover={{ y: -2 }} className="glass rounded-2xl p-4 cursor-pointer shadow-sm border-slate-100 hover:border-[#FF1F6D]/20">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest italic">{item.label}</p>
-                  <div className="w-7 h-7 rounded-lg bg-slate-50 flex items-center justify-center border border-[#FF1F6D]/5" style={{ color: item.color }}>
+                  <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{item.label}</p>
+                  <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-[#101217] flex items-center justify-center border border-[#FF1F6D]/5" style={{ color: item.color }}>
                     {item.icon}
                   </div>
                 </div>
@@ -859,7 +859,7 @@ export default function ProfessionalDashboard() {
           <div className="flex justify-between items-start mb-5">
             <div>
               <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight leading-none">Monetization</h2>
-              <p className="text-[9px] text-slate-500 font-black italic uppercase mt-1 tracking-widest">Creator Earnings Overview</p>
+              <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black italic uppercase mt-1 tracking-widest">Creator Earnings Overview</p>
             </div>
             <div className="w-10 h-10 glass rounded-xl flex items-center justify-center text-[#FF1F6D] border-slate-100">
               <DollarSign size={18} strokeWidth={2.5} />
@@ -873,8 +873,8 @@ export default function ProfessionalDashboard() {
               { label: 'Available Earnings',  value: wallet?.available_balance || 0, color: '#3b82f6' },
               { label: 'Est. Next Payout',    value: Math.round((wallet?.available_balance || 0) * 0.9), color: '#a855f7' },
             ].map((item, i) => (
-              <div key={i} className="bg-slate-50 rounded-xl p-3 border border-slate-200/50">
-                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest italic">{item.label}</p>
+              <div key={i} className="bg-slate-50 dark:bg-[#101217] rounded-xl p-3 border border-slate-200/50">
+                <p className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{item.label}</p>
                 {loadingWallet ? (
                   <Skeleton className="h-6 w-20 mt-1.5 bg-slate-200/50" />
                 ) : (
@@ -907,10 +907,10 @@ export default function ProfessionalDashboard() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Transactions</h2>
-              <p className="text-[9px] text-slate-500 font-black uppercase italic tracking-widest mt-0.5">Recent Activity</p>
+              <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase italic tracking-widest mt-0.5">Recent Activity</p>
             </div>
             <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
-              <RefreshCw size={14} className="text-slate-600" />
+              <RefreshCw size={14} className="text-slate-600 dark:text-zinc-300" />
             </button>
           </div>
 
@@ -925,8 +925,8 @@ export default function ProfessionalDashboard() {
           ) : (
             <div className="text-center py-12">
               <Wallet size={32} className="text-slate-400 mx-auto mb-3" />
-              <p className="text-[11px] font-black text-slate-500 uppercase italic">No transactions yet</p>
-              <p className="text-[10px] text-slate-600 font-medium mt-1">Add funds to get started</p>
+              <p className="text-[11px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">No transactions yet</p>
+              <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium mt-1">Add funds to get started</p>
               <button onClick={() => setShowDeposit(true)}
                 className="mt-4 px-6 py-2.5 bg-gradient-to-r from-[#FF1F6D] to-[#ff6b35] text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#FF1F6D]/30 hover:scale-105 transition-all">
                 Add Funds
@@ -936,7 +936,7 @@ export default function ProfessionalDashboard() {
 
           {transactions.length > 0 && (
             <button onClick={() => navigate('/wallet/history')}
-              className="mt-4 w-full py-3 glass rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest italic hover:text-[#FF1F6D] hover:bg-[#FF1F6D]/5 transition-all border-slate-100 hover:border-[#FF1F6D]/20">
+              className="mt-4 w-full py-3 glass rounded-xl text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic hover:text-[#FF1F6D] hover:bg-[#FF1F6D]/5 transition-all border-slate-100 hover:border-[#FF1F6D]/20">
               View All Transactions
             </button>
           )}
@@ -953,7 +953,7 @@ export default function ProfessionalDashboard() {
                   <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{m.label}</span>
                   <span className="text-[10px] font-black italic" style={{ color: m.color }}>{m.value}%</span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-100 dark:bg-[#101217] rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }} animate={{ width: `${m.value}%` }}
                     transition={{ duration: 1.2, delay: 0.3 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
@@ -968,15 +968,15 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 7: Quick Actions ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <h2 className="text-[10px] font-black text-slate-500 uppercase tracking-widest italic mb-3">Quick Actions</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Quick Actions</h2>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
             {quickActions.map((action, i) => (
               <motion.button key={i} onClick={action.onClick} whileHover={{ y: -3, scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                className="glass rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-all border-slate-100 hover:border-[#FF1F6D]/20 shadow-sm bg-white">
+                className="glass rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-all border-slate-100 hover:border-[#FF1F6D]/20 shadow-sm bg-white dark:bg-[#1b1b24]">
                 <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md text-white`}>
                   {action.icon}
                 </div>
-                <span className="text-[8px] font-black text-slate-600 uppercase italic tracking-wide text-center leading-tight">
+                <span className="text-[8px] font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-wide text-center leading-tight">
                   {action.label}
                 </span>
               </motion.button>
@@ -989,7 +989,7 @@ export default function ProfessionalDashboard() {
           className="glass rounded-3xl p-6 shadow-sm border-slate-100">
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Content Performance</h2>
-            <span className="text-[8px] font-black text-slate-500 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
+            <span className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
           </div>
           <div className="flex items-center gap-6">
             <div className="relative w-20 h-20 shrink-0">
@@ -1013,10 +1013,10 @@ export default function ProfessionalDashboard() {
               ].map((item, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex justify-between text-[9px]">
-                    <span className="font-black text-slate-500 uppercase italic">{item.label}</span>
+                    <span className="font-black text-slate-500 dark:text-zinc-400 uppercase italic">{item.label}</span>
                     <span className="font-black italic" style={{ color: item.color }}>{item.pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-slate-100 dark:bg-[#101217] rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: item.color }}
@@ -1039,11 +1039,11 @@ export default function ProfessionalDashboard() {
             { label: 'Get Verified',   icon: <BadgeCheck size={14} />,    color: 'text-[#FF1F6D]',  onClick: () => navigate('/verified') },
           ].map((item, i) => (
             <motion.button key={i} onClick={item.onClick} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-              className="glass p-3 rounded-xl flex flex-col items-center gap-1.5 hover:border-[#FF1F6D]/20 transition-all shadow-sm bg-white border-slate-100">
+              className="glass p-3 rounded-xl flex flex-col items-center gap-1.5 hover:border-[#FF1F6D]/20 transition-all shadow-sm bg-white dark:bg-[#1b1b24] border-slate-100">
               <div className={`w-8 h-8 rounded-lg bg-slate-50 ${item.color} flex items-center justify-center border border-slate-100`}>
                 {item.icon}
               </div>
-              <span className="text-[8px] font-black text-slate-500 uppercase italic tracking-widest text-center">{item.label}</span>
+              <span className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase italic tracking-widest text-center">{item.label}</span>
             </motion.button>
           ))}
         </div>

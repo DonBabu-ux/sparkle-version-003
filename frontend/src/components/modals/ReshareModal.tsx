@@ -100,13 +100,13 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
             <span className="text-slate-400 text-xs font-medium ml-auto">Original Post</span>
           </div>
           <div className="preview-content">
-            {originalPost.content && <p className="preview-text text-slate-600 italic">{originalPost.content}</p>}
+            {originalPost.content && <p className="preview-text text-slate-600 dark:text-zinc-300 italic">{originalPost.content}</p>}
             {originalPost.media_url && (
               <div className="preview-media grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500">
                 {originalPost.media_type === 'video' ? (
-                  <div className="video-placeholder bg-slate-100 flex items-center justify-center gap-2 py-8">
+                  <div className="video-placeholder bg-slate-100 dark:bg-[#101217] flex items-center justify-center gap-2 py-8">
                     <Spinner size="small" color="text-primary" />
-                    <span className="text-slate-500 font-bold">Video Clip</span>
+                    <span className="text-slate-500 dark:text-zinc-400 font-bold">Video Clip</span>
                   </div>
                 ) : (
                   <img src={originalPost.media_url} alt="" />

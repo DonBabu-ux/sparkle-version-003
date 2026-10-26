@@ -83,7 +83,7 @@ export default function LostFound() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -97,12 +97,12 @@ export default function LostFound() {
                 <div className="max-w-4xl space-y-8">
                    <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5">
                       <PackageOpen size={18} strokeWidth={3} className="text-primary" />
-                       <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
+                       <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
                    </div>
-                   <h1 className="text-6xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                   <h1 className="text-6xl md:text-9xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase">
                       Lost & <span className="text-primary italic">Found.</span>
                    </h1>
-                    <p className="text-xl font-bold text-black opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
+                    <p className="text-xl font-bold text-black dark:text-white opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
                       Broadcast missing harmonics or report found signals. Maintaining the village collective organized.
                     </p>
                 </div>
@@ -139,7 +139,7 @@ export default function LostFound() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Scan village items..." 
-                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black dark:text-white placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
                 />
              </div>
           </div>
@@ -156,8 +156,8 @@ export default function LostFound() {
             <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
                <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
                <div className="space-y-6">
-                  <h3 className="text-5xl font-black text-black opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
-                  <p className="text-[10px] font-black text-black opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items intercepted in this harmonic sector yet.</p>
+                  <h3 className="text-5xl font-black text-black dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
+                  <p className="text-[10px] font-black text-black dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items intercepted in this harmonic sector yet.</p>
                   <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Report an Item</button>
                </div>
             </div>
@@ -219,18 +219,18 @@ export default function LostFound() {
                            <Tag size={16} strokeWidth={4} />
                            {item.category || 'General Spectrum'}
                         </div>
-                        <h3 className="text-3xl font-black text-black mb-4 tracking-tighter italic leading-none group-hover:text-primary transition-colors uppercase">{item.title}</h3>
-                        <p className="text-base font-bold text-black opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No detailed harmonic data provided.'}</p>
+                        <h3 className="text-3xl font-black text-black dark:text-white mb-4 tracking-tighter italic leading-none group-hover:text-primary transition-colors uppercase">{item.title}</h3>
+                        <p className="text-base font-bold text-black dark:text-white opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No detailed harmonic data provided.'}</p>
                         
                         <div className="space-y-4 mb-12 flex-grow">
                            <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                                  <MapPin size={20} strokeWidth={4} />
                               </div>
-                              <span className="text-xs font-black text-black italic uppercase tracking-widest truncate">{item.location || 'GLOBAL SECTOR'}</span>
+                              <span className="text-xs font-black text-black dark:text-white italic uppercase tracking-widest truncate">{item.location || 'GLOBAL SECTOR'}</span>
                            </div>
                            <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                                  <Calendar size={20} strokeWidth={4} />
                               </div>
                               <span className="text-xs font-black text-black/20 italic uppercase tracking-widest">
@@ -239,15 +239,15 @@ export default function LostFound() {
                            </div>
                         </div>
 
-                        <div className="mt-auto pt-10 border-t border-black/5 flex items-center justify-between">
+                        <div className="mt-auto pt-10 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
                            <div className="flex items-center gap-5">
                               <div className="relative group/avatar">
                                  <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.reporter_username || 'A')}&background=e11d48&color=fff&bold=true`} className="w-14 h-14 rounded-2xl object-cover shadow-2xl border-2 border-white group-hover/avatar:rotate-12 transition-transform" alt="" />
                                  <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-4 border-white shadow-lg"></div>
                               </div>
                               <div className="flex flex-col">
-                                  <span className="text-[12px] font-black text-black leading-none uppercase italic tracking-tighter group-hover:text-primary transition-colors cursor-pointer">@{item.reporter_username}</span>
-                                  <span className="text-[9px] font-black text-black opacity-20 uppercase tracking-[0.2em] mt-2 italic">Reported by</span>
+                                  <span className="text-[12px] font-black text-black dark:text-white leading-none uppercase italic tracking-tighter group-hover:text-primary transition-colors cursor-pointer">@{item.reporter_username}</span>
+                                  <span className="text-[9px] font-black text-black dark:text-white opacity-20 uppercase tracking-[0.2em] mt-2 italic">Reported by</span>
                               </div>
                            </div>
 
@@ -290,7 +290,7 @@ export default function LostFound() {
 
              <div className="p-16 pb-0 flex items-center justify-between">
                 <div>
-                   <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Report an Item</h3>
+                   <h3 className="text-5xl font-black text-black dark:text-white tracking-tighter italic uppercase">Report an Item</h3>
                    <div className="flex items-center gap-4 mt-4">
                       <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
                       <div className="flex gap-1.5">
@@ -300,7 +300,7 @@ export default function LostFound() {
                       </div>
                    </div>
                 </div>
-                <button onClick={() => setShowReport(false)} className="w-18 h-18 bg-black/5 rounded-[24px] flex items-center justify-center text-black opacity-10 hover:opacity-100 hover:rotate-90 transition-all duration-500">
+                <button onClick={() => setShowReport(false)} className="w-18 h-18 bg-black/5 rounded-[24px] flex items-center justify-center text-black dark:text-white opacity-10 hover:opacity-100 hover:rotate-90 transition-all duration-500">
                     <X size={32} strokeWidth={4} />
                 </button>
              </div>
@@ -330,10 +330,10 @@ export default function LostFound() {
                         <select 
                           value={form.category}
                           onChange={e => setForm({...form, category: e.target.value})}
-                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none appearance-none italic shadow-inner"
+                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-lg font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none appearance-none italic shadow-inner"
                         >
                           {['Electronics', 'Documents', 'Keys', 'Clothing', 'Bags', 'Other'].map(c => (
-                              <option key={c} value={c} className="bg-white">{c.toUpperCase()} FREQUENCY</option>
+                              <option key={c} value={c} className="bg-white dark:bg-[#1b1b24]">{c.toUpperCase()} FREQUENCY</option>
                           ))}
                         </select>
                     </div>
@@ -354,7 +354,7 @@ export default function LostFound() {
                             value={form.title}
                             onChange={e => setForm({...form, title: e.target.value})}
                             placeholder="e.g. Silver Harmonic Laptop..."
-                            className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
+                            className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-xl font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
                           />
                        </div>
                        <div className="space-y-4">
@@ -364,13 +364,13 @@ export default function LostFound() {
                             value={form.description}
                             onChange={e => setForm({...form, description: e.target.value})}
                             placeholder="Describe unique marks, colors, or details..."
-                            className="w-full bg-black/5 border-2 border-transparent rounded-[40px] px-10 py-8 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic resize-none shadow-inner"
+                            className="w-full bg-black/5 border-2 border-transparent rounded-[40px] px-10 py-8 text-lg font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic resize-none shadow-inner"
                           />
                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">
-                       <button onClick={() => setStep(1)} className="w-40 h-20 rounded-[28px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 hover:opacity-100 italic">Retract</button>
+                       <button onClick={() => setStep(1)} className="w-40 h-20 rounded-[28px] bg-black/5 text-black dark:text-white opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 hover:opacity-100 italic">Retract</button>
                        <button onClick={() => setStep(3)} disabled={!form.title} className="flex-1 h-20 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30">Advance Scan</button>
                     </div>
                   </div>
@@ -387,7 +387,7 @@ export default function LostFound() {
                             value={form.location}
                             onChange={e => setForm({...form, location: e.target.value})}
                             placeholder="e.g. Main Library, Blue Cafe..."
-                            className="w-full h-24 bg-black/5 border-2 border-transparent rounded-[32px] pl-20 pr-10 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
+                            className="w-full h-24 bg-black/5 border-2 border-transparent rounded-[32px] pl-20 pr-10 text-xl font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
                           />
                         </div>
                     </div>
@@ -398,13 +398,13 @@ export default function LostFound() {
                        </div>
                        <div className="w-18 h-18 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shrink-0 animate-pulse border border-primary/20"><Sparkles size={32} strokeWidth={4} /></div>
                        <div className="relative z-10">
-                           <h4 className="text-2xl font-black italic text-black uppercase tracking-tighter leading-none mb-3">Report Posted</h4>
-                           <p className="text-[10px] font-black text-black opacity-30 uppercase tracking-[0.4em] italic leading-tight">Your report will be shared with the campus immediately.</p>
+                           <h4 className="text-2xl font-black italic text-black dark:text-white uppercase tracking-tighter leading-none mb-3">Report Posted</h4>
+                           <p className="text-[10px] font-black text-black dark:text-white opacity-30 uppercase tracking-[0.4em] italic leading-tight">Your report will be shared with the campus immediately.</p>
                        </div>
                     </div>
 
                     <div className="flex items-center gap-6">
-                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-black opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Back</button>
+                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-black dark:text-white opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Back</button>
                        <button 
                         onClick={handleSubmit} 
                         disabled={submitting} 

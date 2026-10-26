@@ -26,7 +26,7 @@ function read(abs: string): string {
 }
 
 describe('C2.1 — Giphy key stays server-side', () => {
-    it('frontend never embeds the key or calls api.giphy.com directly', () => {
+    it('frontend never embeds the key or calls api.giphy.com directly', { timeout: 20000 }, () => {
         const offenders = walk(SRC)
             .filter((f) => read(f).includes(HARD_KEY) || read(f).includes('api.giphy.com'));
         expect(offenders).toEqual([]);

@@ -537,7 +537,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               <div className="flex flex-col items-center mt-2 px-6">
                 <div className="relative mb-4">
                   <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-24 h-24 rounded-full object-cover border-4 border-white/5 shadow-lg" alt="" />
-                  {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-black">9m</span></div>}
+                  {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-black dark:text-white">9m</span></div>}
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-6">{displayPartnerName}</h2>
 
@@ -1613,7 +1613,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 {/* QR Code card */}
                 <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 self-start">Scan to Verify</h4>
-                  <div className="bg-white rounded-2xl p-4 shadow-[0_0_40px_rgba(52,211,153,0.2)]">
+                  <div className="bg-white dark:bg-[#1b1b24] rounded-2xl p-4 shadow-[0_0_40px_rgba(52,211,153,0.2)]">
                     <QRCode
                       value={encryptionKeys.code}
                       size={200}
@@ -1810,7 +1810,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 {/* Share QR */}
                 <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493] self-start">Profile QR Code</h4>
-                  <div className="bg-white rounded-2xl p-4 shadow-lg">
+                  <div className="bg-white dark:bg-[#1b1b24] rounded-2xl p-4 shadow-lg">
                     <QRCode
                       value={`https://sparkle.app/@${chat.partner_username || chat.partner_id}`}
                       size={190}

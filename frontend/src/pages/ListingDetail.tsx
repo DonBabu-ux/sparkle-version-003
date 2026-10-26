@@ -175,7 +175,7 @@ export default function ListingDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-white min-h-dvh text-slate-900 justify-center items-center">
+    <div className="flex bg-white dark:bg-[#1b1b24] min-h-dvh text-slate-900 justify-center items-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
@@ -187,10 +187,10 @@ export default function ListingDetail() {
   
 
   return (
-    <div className="flex flex-col bg-white min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
+    <div className="flex flex-col bg-white dark:bg-[#1b1b24] min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
       
       {/* 1. Header */}
-      <header className="sticky top-0 z-[1100] bg-white border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
@@ -221,7 +221,7 @@ export default function ListingDetail() {
 
       <div className="px-4 pb-4">
         <h3 className="text-[17px] font-bold mb-2">Description</h3>
-        <p className="text-[15px] text-slate-700 whitespace-pre-wrap leading-relaxed">
+        <p className="text-[15px] text-slate-700 dark:text-zinc-200 whitespace-pre-wrap leading-relaxed">
           {listing.description || "No description provided."}
         </p>
       </div>
@@ -231,7 +231,7 @@ export default function ListingDetail() {
             <ShieldCheck size={20} className="text-[#1877F2]" />
             <h3 className="text-[15px] font-bold text-[#1877F2]">Sparkle Safety Checklist</h3>
         </div>
-        <ul className="text-[13px] text-slate-600 space-y-1.5 list-disc list-inside">
+        <ul className="text-[13px] text-slate-600 dark:text-zinc-300 space-y-1.5 list-disc list-inside">
             <li>Always meet in a safe, public campus location.</li>
             <li>Inspect the item thoroughly before paying.</li>
             <li>Don't send money via phone before seeing the item.</li>
@@ -266,7 +266,7 @@ export default function ListingDetail() {
       )}
 
       {/* 5. Action Icons Row */}
-      <div className="px-4 py-3 flex items-center justify-between text-slate-700">
+      <div className="px-4 py-3 flex items-center justify-between text-slate-700 dark:text-zinc-200">
         <div className="flex flex-col items-center gap-1 cursor-pointer" onClick={handleOffer}>
           <div className="w-12 h-12 rounded-full bg-marketplace-bg flex items-center justify-center">
             <CornerUpRight size={22} className="text-marketplace-text -scale-x-100" />

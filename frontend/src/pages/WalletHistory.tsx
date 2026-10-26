@@ -80,7 +80,7 @@ export default function WalletHistory() {
       `}</style>
 
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
@@ -90,7 +90,7 @@ export default function WalletHistory() {
             <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Your recent transactions</p>
           </div>
         </div>
-        <button onClick={fetchHistory} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
+        <button onClick={fetchHistory} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -98,7 +98,7 @@ export default function WalletHistory() {
       <main className="max-w-[800px] mx-auto p-4 md:p-6 space-y-4">
         {/* Search & Filters */}
         <div className="glass-card p-4 rounded-3xl space-y-3 shadow-sm">
-          <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-2xl px-3 py-2">
             <Search size={16} className="text-slate-400" />
             <input
               type="text"
@@ -112,13 +112,13 @@ export default function WalletHistory() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             <div className="flex items-center gap-1.5 shrink-0">
               <Filter size={12} className="text-slate-400" />
-              <span className="text-[9px] font-black uppercase text-slate-500">Filter:</span>
+              <span className="text-[9px] font-black uppercase text-slate-500 dark:text-zinc-400">Filter:</span>
             </div>
             
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 focus:outline-none"
+              className="bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
             >
               <option value="">All Types</option>
               <option value="Deposit">Deposit</option>
@@ -132,7 +132,7 @@ export default function WalletHistory() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 focus:outline-none"
+              className="bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
             >
               <option value="">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -166,8 +166,8 @@ export default function WalletHistory() {
                     className="flex items-center justify-between py-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center">
-                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500" />}
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-[#101217] border border-slate-200 flex items-center justify-center">
+                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500 dark:text-zinc-400" />}
                       </div>
                       <div>
                         <p className="text-xs font-black text-slate-900 uppercase italic">{txn.type}</p>
@@ -201,17 +201,17 @@ export default function WalletHistory() {
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <ChevronLeft size={14} /> Prev
               </button>
-              <span className="text-[10px] font-black text-slate-500 uppercase">
+              <span className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase">
                 Page {page} of {totalPages}
               </span>
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 Next <ChevronRight size={14} />
               </button>

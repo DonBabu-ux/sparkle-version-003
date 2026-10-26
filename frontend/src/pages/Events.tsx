@@ -125,7 +125,7 @@ export default function Events() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black font-sans overflow-x-hidden">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white font-sans overflow-x-hidden">
       
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
@@ -137,12 +137,12 @@ export default function Events() {
               <div className="max-w-4xl space-y-8">
                  <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
                     <Calendar size={18} strokeWidth={3} className="text-primary" />
-                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Events</span>
+                    <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.4em] italic">Campus Events</span>
                  </div>
-                 <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                 <h1 className="text-5xl md:text-9xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase">
                     Village <span className="text-primary">Live</span>
                  </h1>
-                  <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl">
+                  <p className="text-xl font-bold text-black dark:text-white opacity-60 leading-relaxed italic max-w-2xl">
                     Experience the village vibe. Upcoming workshops, social gathering harmonics, and memories at <span className="text-primary">{user?.campus || 'the village'}</span>.
                   </p>
               </div>
@@ -179,7 +179,7 @@ export default function Events() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search events..."
-                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black dark:text-white placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
            </div>
         </div>
@@ -235,20 +235,20 @@ export default function Events() {
                                       <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
                                       <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] italic">{ev.campus || 'VILLAGE NODE'}</span>
                                    </div>
-                                   <h3 className="text-4xl md:text-5xl font-black text-black tracking-tighter leading-none italic uppercase group-hover:text-primary transition-colors duration-700">{ev.title}</h3>
+                                   <h3 className="text-4xl md:text-5xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase group-hover:text-primary transition-colors duration-700">{ev.title}</h3>
                                 </div>
                              </div>
 
                              <div className="flex flex-wrap items-center gap-8">
-                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5">
+                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5 dark:border-white/5">
                                    <Clock size={20} strokeWidth={4} className="text-primary" />
-                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">
+                                   <span className="text-sm font-black text-black dark:text-white uppercase tracking-widest italic">
                                       {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                                    </span>
                                 </div>
-                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5">
+                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5 dark:border-white/5">
                                    <Users size={20} strokeWidth={4} className="text-primary" />
-                                   <span className="text-sm font-black text-black uppercase tracking-widest italic">{ev.total_rsvps || 0} GOING</span>
+                                   <span className="text-sm font-black text-black dark:text-white uppercase tracking-widest italic">{ev.total_rsvps || 0} GOING</span>
                                 </div>
                                 {ev.max_attendees && ev.max_attendees > 0 && (
                                    <div className="flex-1 min-w-[250px] pt-2">
@@ -310,7 +310,7 @@ export default function Events() {
                                 {ev.user_status && ev.user_status !== 'accepted' && (
                                    <button 
                                      onClick={() => handleRSVP(ev.event_id, 'not_going')}
-                                     className="px-12 h-20 bg-black/5 text-black/20 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] hover:text-black transition-all italic border border-black/5"
+                                     className="px-12 h-20 bg-black/5 text-black/20 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] hover:text-black transition-all italic border border-black/5 dark:border-white/5"
                                    >
                                       Cancel Signal
                                    </button>
@@ -330,12 +330,12 @@ export default function Events() {
                              <div className="flex items-center gap-6 mb-8 px-2">
                                 <div className="w-1.5 h-12 bg-primary rounded-full" />
                                 <div>
-                                   <h4 className="text-3xl font-black text-black italic uppercase tracking-tighter">Mission Requirements</h4>
+                                   <h4 className="text-3xl font-black text-black dark:text-white italic uppercase tracking-tighter">Mission Requirements</h4>
                                    <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Urgent campus events.</p>
                                 </div>
                               </div>
                               <div className="bg-white/40 backdrop-blur-3xl rounded-[40px] p-10 border border-white shadow-inner">
-                                 <p className="text-lg font-bold text-black leading-loose italic opacity-70 whitespace-pre-wrap">
+                                 <p className="text-lg font-bold text-black dark:text-white leading-loose italic opacity-70 whitespace-pre-wrap">
                                     {ev.requirements || 'No specific signal requirements listed for this gathering.'}
                                  </p>
                               </div>
@@ -352,8 +352,8 @@ export default function Events() {
       {/* Access Pass QR Overlay */}
       {passQr && (
         <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-6" onClick={() => setPassQr(null)}>
-          <div className="bg-white rounded-[32px] p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-black mb-1 italic">{passQr.title}</h3>
+          <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-[11px] font-black uppercase tracking-widest text-black dark:text-white mb-1 italic">{passQr.title}</h3>
             <p className="text-[9px] font-bold text-black/40 uppercase tracking-widest mb-4">Show this pass at the door</p>
             <img src={passQr.src} alt="Access pass QR code" className="mx-auto w-56 h-56 rounded-2xl" />
             <button

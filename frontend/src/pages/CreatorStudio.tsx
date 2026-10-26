@@ -54,7 +54,7 @@ export default function CreatorStudio() {
       `}</style>
 
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
@@ -64,7 +64,7 @@ export default function CreatorStudio() {
             <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Content command center</p>
           </div>
         </div>
-        <button onClick={fetchStats} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
+        <button onClick={fetchStats} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -87,11 +87,11 @@ export default function CreatorStudio() {
                   key={i}
                   whileHover={{ y: -3, scale: 1.02 }}
                   onClick={act.onClick}
-                  className="glass-card p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border-slate-100 hover:border-[#FF1F6D]/20 transition-all bg-white"
+                  className="glass-card p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border-slate-100 hover:border-[#FF1F6D]/20 transition-all bg-white dark:bg-[#1b1b24]"
                 >
                   <div className="space-y-2">
                     <h3 className="text-xs font-black text-slate-800 uppercase italic tracking-wider">{act.title}</h3>
-                    <p className="text-[10px] text-slate-500 font-medium leading-relaxed">{act.desc}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium leading-relaxed">{act.desc}</p>
                   </div>
                   <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${act.color} flex items-center justify-center text-white shadow-md`}>
                     {act.icon}
@@ -110,10 +110,10 @@ export default function CreatorStudio() {
                     { label: 'Sparks Received', value: stats?.totalSparks || 0, icon: <Flame size={16} className="text-[#FF1F6D]" /> },
                     { label: 'Video Performance', value: stats?.videoViews || 0, icon: <Play size={16} className="text-indigo-500" /> },
                   ].map((st, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-slate-50 border border-slate-200/50 rounded-2xl">
+                    <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#101217] border border-slate-200/50 rounded-2xl">
                       <div className="flex items-center gap-2">
                         {st.icon}
-                        <span className="text-[10px] font-black text-slate-500 uppercase italic">{st.label}</span>
+                        <span className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">{st.label}</span>
                       </div>
                       <span className="text-sm font-black text-slate-900 italic">{st.value.toLocaleString()}</span>
                     </div>
@@ -127,9 +127,9 @@ export default function CreatorStudio() {
                 {content.length > 0 ? (
                   <div className="space-y-3">
                     {content.map((item) => (
-                      <div key={item.id} className="p-4 bg-slate-50 border border-slate-200/50 rounded-2xl flex items-center justify-between">
+                      <div key={item.id} className="p-4 bg-slate-50 dark:bg-[#101217] border border-slate-200/50 rounded-2xl flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-white border border-slate-200 flex items-center justify-center">
+                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#1b1b24] border border-slate-200 flex items-center justify-center">
                             {item.type === 'Video' ? <Video size={16} className="text-[#FF1F6D]" /> :
                              item.type === 'Image' ? <ImageIcon size={16} className="text-pink-500" /> :
                             <FileText size={16} className="text-purple-500" />}
@@ -160,7 +160,7 @@ export default function CreatorStudio() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
                     <FileText size={32} className="text-slate-400 mb-3" />
-                    <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">No publications yet</p>
+                    <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">No publications yet</p>
                     <p className="text-[10px] text-slate-400 mt-1">Your uploaded content will appear here.</p>
                   </div>
                 )}

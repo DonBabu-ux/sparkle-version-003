@@ -145,7 +145,7 @@ export default function Support() {
                         <div 
                             key={ticket.ticket_id} 
                             onClick={() => navigate(`/support/ticket/${ticket.ticket_id}`)}
-                            className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
+                            className="bg-white dark:bg-[#1b1b24] p-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getStatusStyle(ticket.status)}`}>
@@ -153,7 +153,7 @@ export default function Support() {
                                 </div>
                                 <div>
                                     <div className="font-bold text-gray-900">{ticket.subject}</div>
-                                    <div className="text-xs text-gray-500 uppercase font-semibold mt-0.5">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</div>
+                                    <div className="text-xs text-gray-500 dark:text-zinc-400 uppercase font-semibold mt-0.5">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</div>
                                 </div>
                             </div>
                             <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusStyle(ticket.status)}`}>
@@ -162,9 +162,9 @@ export default function Support() {
                         </div>
                     ))
                 ) : (
-                    <div className="bg-white/50 border-2 border-dashed border-gray-200 rounded-3xl p-10 text-center flex flex-col items-center">
+                    <div className="bg-white/50 border-2 border-dashed border-gray-200 dark:border-white/10 rounded-3xl p-10 text-center flex flex-col items-center">
                         <MessageCircle size={48} className="text-gray-300 mb-3" />
-                        <div className="text-gray-500 font-medium">No active support tickets</div>
+                        <div className="text-gray-500 dark:text-zinc-400 font-medium">No active support tickets</div>
                         <button onClick={() => setShowForm(true)} className="mt-4 text-[#FF3D6D] font-bold text-sm">Need help? Create one now</button>
                     </div>
                 )}
@@ -189,16 +189,16 @@ export default function Support() {
           {/* Contact Form / Modal Style */}
           {showForm && (
             <div className="fixed inset-0 z-(--z-sheet) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                <div className="bg-white rounded-[32px] w-full max-w-xl p-8 shadow-2xl relative animate-scale-in">
+                <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] w-full max-w-xl p-8 shadow-2xl relative animate-scale-in">
                     <button 
                         onClick={() => setShowForm(false)}
                         className="absolute top-6 right-6 p-2 hover:bg-gray-100 rounded-full transition-colors"
                     >
-                        <Plus className="rotate-45 text-gray-500" size={24} />
+                        <Plus className="rotate-45 text-gray-500 dark:text-zinc-400" size={24} />
                     </button>
 
                     <h2 className="text-2xl font-black text-gray-900 mb-2">Need a hand?</h2>
-                    <p className="text-gray-500 mb-8">Tell us what's going on and we'll jump in.</p>
+                    <p className="text-gray-500 dark:text-zinc-400 mb-8">Tell us what's going on and we'll jump in.</p>
 
                     <form className="sup-contact-form" onSubmit={handleSubmit}>
                         <div className="sup-form-field">

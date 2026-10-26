@@ -212,7 +212,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="bg-[#fdf2f4] w-full h-[100dvh] sm:h-[90vh] sm:max-w-5xl sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row"
+        className="bg-[#fdf2f4] dark:bg-[#1b1b24] w-full h-[100dvh] sm:h-[90vh] sm:max-w-5xl sm:rounded-[40px] shadow-2xl overflow-hidden flex flex-col md:flex-row"
         onClick={e => e.stopPropagation()}
       >
         
@@ -225,9 +225,9 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
              <div className="flex items-center justify-between mb-8">
                 <div>
                    <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-                   <p className="text-sm font-medium text-gray-500 mt-1">Manage your circle</p>
+                   <p className="text-sm font-medium text-gray-500 dark:text-zinc-400 mt-1">Manage your circle</p>
                 </div>
-                <button onClick={onClose} className="w-10 h-10 bg-gray-50 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 active:scale-95 transition-all">
+                <button onClick={onClose} className="w-10 h-10 bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-400 active:scale-95 transition-all">
                    <X size={20} />
                 </button>
              </div>
@@ -261,15 +261,15 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
              </nav>
 
              <div className="mt-4 pt-6 border-t border-gray-50">
-                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
-                   <p className="text-xs font-semibold text-gray-500 mb-3 uppercase tracking-wider">Your Role</p>
+                 <div className="bg-gray-50 dark:bg-[#101217] p-4 rounded-2xl border border-gray-100 dark:border-white/10">
+                   <p className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-3 uppercase tracking-wider">Your Role</p>
                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 bg-white rounded-lg shadow-sm flex items-center justify-center text-primary">
+                      <div className="w-8 h-8 bg-white dark:bg-[#1b1b24] rounded-lg shadow-sm flex items-center justify-center text-primary">
                          <Shield size={16} />
                       </div>
                       <div>
                          <p className="font-bold text-gray-900 text-sm capitalize">{userRole.replace('_', ' ')}</p>
-                         <p className="text-xs text-gray-500">Access Level</p>
+                         <p className="text-xs text-gray-500 dark:text-zinc-400">Access Level</p>
                       </div>
                    </div>
                 </div>
@@ -280,8 +280,8 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
         {/* Main Content Area */}
         <main className={`flex-1 flex flex-col min-w-0 min-h-0 bg-transparent ${isMobileMenuOpen ? 'hidden md:flex' : 'flex'}`}>
           {/* Mobile Back Button */}
-          <div className="md:hidden p-4 border-b border-gray-100 bg-white flex items-center gap-3 sticky top-0 z-10">
-             <button onClick={() => setIsMobileMenuOpen(true)} className="w-8 h-8 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center text-gray-600 transition-colors">
+          <div className="md:hidden p-4 border-b border-gray-100 dark:border-white/10 bg-white dark:bg-[#1b1b24] flex items-center gap-3 sticky top-0 z-10">
+             <button onClick={() => setIsMobileMenuOpen(true)} className="w-8 h-8 rounded-full bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 flex items-center justify-center text-gray-600 dark:text-zinc-300 transition-colors">
                 <ArrowLeft size={18} />
              </button>
              <h4 className="font-semibold text-base text-gray-900 capitalize">{activeTab}</h4>
@@ -292,14 +292,14 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">Circle Identity</h3>
-                      <p className="text-gray-500 font-medium text-sm">Visual presence and manifesto</p>
+                      <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Visual presence and manifesto</p>
                    </header>
 
                    <section className="space-y-10">
                       {/* Cover Photo */}
                       <div className="space-y-3">
-                         <label className="text-sm font-semibold text-gray-700 ml-1">Cover Image</label>
-                         <div className="relative group rounded-2xl overflow-hidden h-48 bg-gray-100 border border-gray-200">
+                         <label className="text-sm font-semibold text-gray-700 dark:text-zinc-200 ml-1">Cover Image</label>
+                         <div className="relative group rounded-2xl overflow-hidden h-48 bg-gray-100 dark:bg-[#101217] border border-gray-200 dark:border-white/10">
                             <img src={getMediaUrl(coverPreview)} className="w-full h-full object-cover" alt="" />
                             {isAdmin && (
                                <button 
@@ -316,8 +316,8 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                       <div className="flex flex-col md:flex-row gap-6">
                          {/* Icon/PFP */}
                          <div className="space-y-3 shrink-0">
-                            <label className="text-sm font-semibold text-gray-700 ml-1">Circle Icon</label>
-                            <div className="relative group w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 border border-gray-200">
+                            <label className="text-sm font-semibold text-gray-700 dark:text-zinc-200 ml-1">Circle Icon</label>
+                            <div className="relative group w-24 h-24 rounded-2xl overflow-hidden bg-gray-100 dark:bg-[#101217] border border-gray-200 dark:border-white/10">
                                <img src={getAvatarUrl(iconPreview)} className="w-full h-full object-cover" alt="" />
                                {isAdmin && (
                                   <button 
@@ -333,25 +333,25 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
 
                           {/* Name */}
                           <div className="flex-1 space-y-3">
-                             <label className="text-sm font-semibold text-gray-700 ml-1">Circle Name</label>
+                             <label className="text-sm font-semibold text-gray-700 dark:text-zinc-200 ml-1">Circle Name</label>
                              <input 
                                type="text" 
                                value={name}
                                onChange={e => setName(e.target.value)}
                                disabled={!isAdmin}
-                               className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 font-semibold text-gray-900 text-sm focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60"
+                               className="w-full bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 font-semibold text-gray-900 text-sm focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-60"
                              />
                           </div>
                        </div>
 
                        <div className="space-y-3">
-                          <label className="text-sm font-semibold text-gray-700 ml-1">Description</label>
+                          <label className="text-sm font-semibold text-gray-700 dark:text-zinc-200 ml-1">Description</label>
                           <textarea 
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             disabled={!isAdmin}
                             rows={4}
-                            className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 font-medium text-gray-700 text-sm leading-relaxed focus:ring-2 focus:ring-primary/20 transition-all resize-none disabled:opacity-60"
+                            className="w-full bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 font-medium text-gray-700 dark:text-zinc-200 text-sm leading-relaxed focus:ring-2 focus:ring-primary/20 transition-all resize-none disabled:opacity-60"
                           />
                        </div>
                    </section>
@@ -372,7 +372,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">Access Control</h3>
-                      <p className="text-gray-500 font-medium text-sm">Who can join and contribute</p>
+                      <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Who can join and contribute</p>
                    </header>
  
                     <div className="space-y-4">
@@ -397,7 +397,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-1">Squad Members</h3>
-                        <p className="text-gray-500 font-medium text-sm">Direct member management and hierarchy</p>
+                        <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Direct member management and hierarchy</p>
                       </div>
                    </header>
 
@@ -406,7 +406,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                    ) : (
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          {members.map(member => (
-                            <div key={member.user_id} className="bg-white p-4 rounded-xl border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+                            <div key={member.user_id} className="bg-white dark:bg-[#1b1b24] p-4 rounded-xl border border-gray-100 dark:border-white/10 flex items-center justify-between hover:shadow-md transition-shadow">
                                <div className="flex items-center gap-4">
                                   <img 
                                     src={getAvatarUrl(member.avatar, member.username)} 
@@ -424,7 +424,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                                      {isOwner && (
                                         <button 
                                           onClick={() => handleMemberAction(member.user_id, (member.role === 'admin' || member.role === 'moderator') ? 'demote' : 'promote')}
-                                          className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:text-primary transition-all flex items-center justify-center border border-gray-100"
+                                          className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#101217] text-gray-400 hover:text-primary transition-all flex items-center justify-center border border-gray-100 dark:border-white/10"
                                         >
                                            <Shield size={18} />
                                         </button>
@@ -443,7 +443,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                                      </button>
                                      <button 
                                        onClick={() => handleMemberAction(member.user_id, 'remove')}
-                                       className="w-10 h-10 rounded-xl bg-gray-50 text-gray-400 hover:text-red-500 transition-all flex items-center justify-center border border-gray-100"
+                                       className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#101217] text-gray-400 hover:text-red-500 transition-all flex items-center justify-center border border-gray-100 dark:border-white/10"
                                      >
                                         <Trash2 size={18} />
                                      </button>
@@ -460,21 +460,21 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="space-y-6">
                    <h3 className="text-xl font-bold text-gray-900 mb-4">Admission Gate</h3>
                    {requests.length === 0 ? (
-                      <div className="py-16 bg-white rounded-2xl border border-gray-100 flex flex-col items-center gap-3">
+                      <div className="py-16 bg-white dark:bg-[#1b1b24] rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center gap-3">
                          <UserCheck size={32} className="text-gray-300" />
-                         <p className="text-sm font-medium text-gray-500">No pending requests</p>
+                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">No pending requests</p>
                       </div>
                    ) : (
                       <div className="space-y-4">
                          {requests.map(req => (
-                            <div key={req.id} className="bg-white p-5 rounded-xl border border-gray-100 flex items-center justify-between gap-4 hover:shadow-md transition-shadow">
+                            <div key={req.id} className="bg-white dark:bg-[#1b1b24] p-5 rounded-xl border border-gray-100 dark:border-white/10 flex items-center justify-between gap-4 hover:shadow-md transition-shadow">
                                <div className="flex items-center gap-4">
                                   <img src={getAvatarUrl(req.avatar, req.username)} className="w-12 h-12 rounded-full object-cover" alt="" />
                                   <p className="text-base font-bold text-gray-900">{req.name || req.username}</p>
                                </div>
                                <div className="flex items-center gap-2">
                                   <button onClick={() => handleRequestAction(req.id, 'approve')} className="h-9 px-4 bg-primary hover:bg-primary/90 text-white rounded-lg font-semibold text-sm transition-all">Approve</button>
-                                  <button onClick={() => handleRequestAction(req.id, 'reject')} className="h-9 px-4 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg font-semibold text-sm transition-all">Reject</button>
+                                  <button onClick={() => handleRequestAction(req.id, 'reject')} className="h-9 px-4 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-gray-600 dark:text-zinc-300 rounded-lg font-semibold text-sm transition-all">Reject</button>
                                </div>
                             </div>
                          ))}
@@ -487,19 +487,19 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="space-y-6">
                    <h3 className="text-xl font-bold text-gray-900 mb-4">Pending Review</h3>
                    {pendingPosts.length === 0 ? (
-                      <div className="py-16 bg-white rounded-2xl border border-gray-100 flex flex-col items-center gap-3">
+                      <div className="py-16 bg-white dark:bg-[#1b1b24] rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center gap-3">
                          <MessageSquare size={32} className="text-gray-300" />
-                         <p className="text-sm font-medium text-gray-500">Nothing to review</p>
+                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">Nothing to review</p>
                       </div>
                    ) : (
                       <div className="space-y-4">
                          {pendingPosts.map(post => (
-                            <div key={post.post_id} className="bg-white p-5 rounded-xl border border-gray-100 space-y-4 shadow-sm">
+                            <div key={post.post_id} className="bg-white dark:bg-[#1b1b24] p-5 rounded-xl border border-gray-100 dark:border-white/10 space-y-4 shadow-sm">
                                <div className="flex items-center gap-3">
                                   <img src={getAvatarUrl(post.avatar_url, post.username)} className="w-10 h-10 rounded-full object-cover" alt="" />
                                   <div>
                                      <p className="font-bold text-gray-900 text-sm leading-tight">{post.name || post.username}</p>
-                                     <p className="text-xs text-gray-500 font-medium mt-0.5">{new Date(post.created_at).toLocaleString()}</p>
+                                     <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium mt-0.5">{new Date(post.created_at).toLocaleString()}</p>
                                   </div>
                                </div>
                                <p className="text-gray-800 font-medium text-sm">{post.content}</p>
@@ -518,14 +518,14 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-red-600 mb-1">Danger Zone</h3>
-                      <p className="text-sm text-gray-500 font-medium">Irreversible circle actions</p>
+                      <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Irreversible circle actions</p>
                    </header>
 
                    <div className="space-y-4">
-                      <div className="p-6 bg-white rounded-xl border border-red-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+                      <div className="p-6 bg-white dark:bg-[#1b1b24] rounded-xl border border-red-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                          <div>
                             <p className="text-lg font-bold text-red-600 mb-1">Leave Circle</p>
-                            <p className="text-sm text-gray-500 font-medium">You will lose access to member-only content.</p>
+                            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">You will lose access to member-only content.</p>
                          </div>
                          <button onClick={handleLeaveCircle} className="w-full md:w-auto h-11 px-6 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-600 hover:text-white transition-all">Leave Circle</button>
                       </div>
@@ -546,7 +546,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
 
 function ToggleCard({ title, desc, icon: Icon, active, onToggle }: any) {
   return (
-    <div className="group p-4 bg-white rounded-xl border border-gray-100 shadow-sm transition-all hover:shadow-md">
+    <div className="group p-4 bg-white dark:bg-[#1b1b24] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm transition-all hover:shadow-md">
        <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-4">
              <div className={`w-10 h-10 rounded-lg flex items-center justify-center transition-all ${active ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-400'}`}>
@@ -554,7 +554,7 @@ function ToggleCard({ title, desc, icon: Icon, active, onToggle }: any) {
              </div>
              <div>
                 <p className="text-sm font-bold text-gray-900">{title}</p>
-                <p className="text-xs font-medium text-gray-500 mt-0.5 max-w-[180px] sm:max-w-xs">{desc}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-0.5 max-w-[180px] sm:max-w-xs">{desc}</p>
              </div>
           </div>
           <button 

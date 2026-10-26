@@ -176,7 +176,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
                 onClick={takeSnapshot}
                 className="w-[72px] h-[72px] md:w-20 md:h-20 rounded-full border-[4px] border-white/50 flex items-center justify-center hover:scale-105 active:scale-95 transition-all z-10 shrink-0 mx-1 md:mx-2"
               >
-                <div className="w-[60px] h-[60px] md:w-[68px] md:h-[68px] bg-white rounded-full shadow-inner" />
+                <div className="w-[60px] h-[60px] md:w-[68px] md:h-[68px] bg-white dark:bg-[#1b1b24] rounded-full shadow-inner" />
               </button>
 
               {/* Right filters */}
@@ -238,7 +238,7 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
             
             <button 
               onClick={() => onSend(capturedMedia, viewMode)}
-              className="bg-white px-5 py-3 rounded-full text-black font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/20"
+              className="bg-white dark:bg-[#1b1b24] px-5 py-3 rounded-full text-black dark:text-white font-black flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-xl shadow-white/20"
             >
               <span className="uppercase text-sm tracking-widest hidden sm:block">Send</span>
               <div className="flex items-center justify-center relative">

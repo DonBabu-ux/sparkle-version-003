@@ -80,19 +80,19 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+        className="bg-white dark:bg-[#1b1b24] w-full max-w-md rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
         onClick={e => e.stopPropagation()}
       >
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
           <div>
             <h2 className="text-base font-black text-gray-900 tracking-tight uppercase italic">Invite Friends</h2>
             <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">To {groupName}</p>
           </div>
           <button
             onClick={onClose}
-            className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+            className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 transition-colors"
           >
-            <X size={20} className="text-gray-500" strokeWidth={2.5} />
+            <X size={20} className="text-gray-500 dark:text-zinc-400" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -104,7 +104,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
               placeholder="Search friends..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
+              className="w-full bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 rounded-xl py-2.5 pl-10 pr-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all"
             />
           </div>
         </div>
@@ -133,7 +133,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
                       <div className="relative">
                         <img
                           src={friend.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(friend.name || friend.username)}&background=random&color=fff`}
-                          className="w-10 h-10 rounded-xl object-cover border border-gray-100 shadow-sm"
+                          className="w-10 h-10 rounded-xl object-cover border border-gray-100 dark:border-white/10 shadow-sm"
                           alt=""
                         />
                         {isSelected && (
@@ -163,7 +163,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
             </div>
           ) : (
             <div className="py-20 text-center">
-              <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center text-gray-300 mx-auto mb-4">
+              <div className="w-16 h-16 bg-gray-50 dark:bg-[#101217] rounded-2xl flex items-center justify-center text-gray-300 mx-auto mb-4">
                 <UserPlus size={32} />
               </div>
               <p className="text-sm font-bold text-gray-400 uppercase tracking-widest">No friends found</p>
@@ -171,7 +171,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
           )}
         </div>
 
-        <div className="p-4 border-t border-gray-100 bg-white">
+        <div className="p-4 border-t border-gray-100 dark:border-white/10 bg-white dark:bg-[#1b1b24]">
           <button
             onClick={handleInvite}
             disabled={selectedIds.length === 0 || sending}

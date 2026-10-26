@@ -281,7 +281,7 @@ export default function Profile() {
                   <img
                     src={getAvatarUrl(acc.user.avatar_url, acc.user.username)}
                     alt={acc.user.username}
-                    className="w-8 h-8 rounded-full object-cover border border-black/5"
+                    className="w-8 h-8 rounded-full object-cover border border-black/5 dark:border-white/5"
                   />
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-black dark:text-white">{acc.user.username}</span>

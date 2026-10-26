@@ -48,7 +48,7 @@ export default function CreateGroup() {
       <main className="max-w-4xl mx-auto px-6 py-32 relative z-10">
         <button 
           onClick={() => navigate('/groups')}
-          className="flex items-center gap-2 text-slate-500 hover:text-slate-900 font-bold mb-12 transition-colors group"
+          className="flex items-center gap-2 text-slate-500 dark:text-zinc-400 hover:text-slate-900 font-bold mb-12 transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           <span className="text-sm">Back to Circles</span>
@@ -71,7 +71,7 @@ export default function CreateGroup() {
            <div className="lg:col-span-7 p-10 rounded-[40px]" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 4px 32px rgba(255,61,109,0.07)' }}>
               {error && (
                 <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold rounded-2xl animate-shake flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">⚠️</div>
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#1b1b24] flex items-center justify-center shadow-sm">⚠️</div>
                   {error}
                 </div>
               )}
@@ -85,7 +85,7 @@ export default function CreateGroup() {
                       value={formData.name}
                       onChange={e => setFormData({...formData, name: e.target.value})}
                       placeholder="e.g. Photography Club" 
-                      className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-6 text-slate-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300"
+                      className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-slate-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300"
                     />
                  </div>
 
@@ -95,7 +95,7 @@ export default function CreateGroup() {
                       value={formData.description}
                       onChange={e => setFormData({...formData, description: e.target.value})}
                       placeholder="What is this community about?" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 px-6 text-slate-900 font-medium focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none"
+                      className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 px-6 text-slate-900 font-medium focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none"
                     />
                  </div>
 
@@ -107,7 +107,7 @@ export default function CreateGroup() {
                        <select 
                          value={formData.campus}
                          onChange={e => setFormData({...formData, campus: e.target.value})}
-                         className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
+                         className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
                        >
                          <option value="main">Main Campus</option>
                          <option value="north">North Campus</option>
@@ -122,7 +122,7 @@ export default function CreateGroup() {
                        <select 
                          value={formData.category}
                          onChange={e => setFormData({...formData, category: e.target.value})}
-                         className="w-full h-14 bg-slate-50 border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
+                         className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
                        >
                          <option value="general">General</option>
                          <option value="tech">Technology</option>

@@ -166,7 +166,7 @@ export default function MarketplaceModals() {
             <div className="sticky top-0 z-20 px-6 py-5 flex items-center bg-white/80 backdrop-blur-md border-b border-slate-100/50">
               <button 
                 onClick={() => setActiveModal(null)}
-                className="group w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-900 rounded-2xl hover:bg-slate-100 hover:scale-105 transition-all duration-200 active:scale-95"
+                className="group w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-[#101217] text-slate-900 rounded-2xl hover:bg-slate-100 hover:scale-105 transition-all duration-200 active:scale-95"
                 aria-label="Back"
               >
                 <ChevronLeft size={22} strokeWidth={3} className="group-hover:-translate-x-0.5 transition-transform" />
@@ -183,7 +183,7 @@ export default function MarketplaceModals() {
 
               <button 
                 onClick={() => setActiveModal(null)}
-                className="w-10 h-10 flex items-center justify-center bg-slate-50 text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-90 lg:flex hidden"
+                className="w-10 h-10 flex items-center justify-center bg-slate-50 dark:bg-[#101217] text-slate-400 rounded-2xl hover:bg-slate-100 hover:text-slate-600 transition-all active:scale-90 lg:flex hidden"
               >
                 <X size={20} strokeWidth={2.5} />
               </button>
@@ -222,7 +222,7 @@ export default function MarketplaceModals() {
                       <button 
                         key={mult}
                         onClick={() => setOfferPrice((parseFloat(selectedListing.price) * mult).toString())}
-                        className="py-3 bg-white border border-marketplace-border rounded-xl font-bold text-xs hover:bg-marketplace-bg transition-colors"
+                        className="py-3 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded-xl font-bold text-xs hover:bg-marketplace-bg transition-colors"
                       >
                         {mult === 1.0 ? 'Full Price' : `${Math.round((1-mult)*100)}% Off`}
                       </button>
@@ -311,7 +311,7 @@ export default function MarketplaceModals() {
                         }}
                         className="flex flex-col items-center gap-2 group"
                       >
-                        <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center border border-slate-100 group-hover:scale-110 group-hover:bg-white transition-all shadow-sm">
+                        <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-[#101217] flex items-center justify-center border border-slate-100 group-hover:scale-110 group-hover:bg-white transition-all shadow-sm">
                           {app.icon}
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest text-marketplace-muted">{app.name}</span>
@@ -319,13 +319,13 @@ export default function MarketplaceModals() {
                     ))}
                   </div>
 
-                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 flex items-center justify-between">
-                    <div className="truncate text-xs font-bold text-slate-500 flex-1 pr-4">
+                  <div className="p-4 bg-slate-50 dark:bg-[#101217] rounded-2xl border border-slate-100 flex items-center justify-between">
+                    <div className="truncate text-xs font-bold text-slate-500 dark:text-zinc-400 flex-1 pr-4">
                       {window.location.origin}/marketplace/listings/{selectedListing.listing_id}
                     </div>
                     <button 
                       onClick={handleCopyLink}
-                      className="px-4 py-2 bg-white border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-100 transition-colors flex-shrink-0"
+                      className="px-4 py-2 bg-white dark:bg-[#1b1b24] border border-slate-200 rounded-xl font-black text-xs hover:bg-slate-100 transition-colors flex-shrink-0"
                     >
                       Copy Link
                     </button>
@@ -380,7 +380,7 @@ export default function MarketplaceModals() {
               {/* DISTANCE MODAL */}
               {activeModal === 'distance' && (
                 <div className="space-y-6">
-                  <p className="text-sm text-slate-500 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-[#101217] p-4 rounded-xl border border-slate-100">
                     To provide more relevant results, your device's estimated location is used. Adjust the radius to see items further away.
                   </p>
                   <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function MarketplaceModals() {
                       </button>
                     </div>
                     
-                    <p className="text-xs text-slate-500 mb-4 uppercase font-bold tracking-wider">Counties (2x2)</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-400 mb-4 uppercase font-bold tracking-wider">Counties (2x2)</p>
                     <div className="grid grid-cols-2 gap-2 mb-6">
                       {[
                         { name: 'Nairobi', lat: -1.2921, lng: 36.8219 },
@@ -492,7 +492,7 @@ export default function MarketplaceModals() {
                             setFilters({ location: { ...loc, name: loc.name + ', Kenya', source: 'manual' } });
                             setActiveModal(null);
                           }}
-                          className="p-2.5 bg-slate-50 border border-marketplace-border rounded-lg text-[13px] font-semibold text-marketplace-muted hover:bg-marketplace-bg transition-all"
+                          className="p-2.5 bg-slate-50 dark:bg-[#101217] border border-marketplace-border rounded-lg text-[13px] font-semibold text-marketplace-muted hover:bg-marketplace-bg transition-all"
                         >
                           {loc.name}
                         </button>
@@ -561,24 +561,24 @@ export default function MarketplaceModals() {
                     <h3 className="font-bold text-lg mb-4">Price</h3>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <label className="text-xs font-semibold text-slate-500 mb-1 block">Min</label>
+                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mb-1 block">Min</label>
                         <input 
                           type="number" 
                           placeholder="Any" 
                           value={localMin}
                           onChange={(e) => setLocalMin(e.target.value)}
-                          className="w-full p-3 bg-slate-100 rounded-xl font-medium outline-none" 
+                          className="w-full p-3 bg-slate-100 dark:bg-[#101217] rounded-xl font-medium outline-none" 
                         />
                       </div>
                       <span className="text-slate-300 font-bold mt-4">-</span>
                       <div className="flex-1">
-                        <label className="text-xs font-semibold text-slate-500 mb-1 block">Max</label>
+                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mb-1 block">Max</label>
                         <input 
                           type="number" 
                           placeholder="Any" 
                           value={localMax}
                           onChange={(e) => setLocalMax(e.target.value)}
-                          className="w-full p-3 bg-slate-100 rounded-xl font-medium outline-none" 
+                          className="w-full p-3 bg-slate-100 dark:bg-[#101217] rounded-xl font-medium outline-none" 
                         />
                       </div>
                     </div>
@@ -587,7 +587,7 @@ export default function MarketplaceModals() {
                   <div className="pt-6 border-t border-slate-100 flex gap-3">
                     <button 
                       onClick={handleResetFilters}
-                      className="flex-1 py-3.5 bg-slate-100 text-slate-800 font-bold rounded-xl hover:bg-slate-200 transition-all"
+                      className="flex-1 py-3.5 bg-slate-100 dark:bg-[#101217] text-slate-800 font-bold rounded-xl hover:bg-slate-200 transition-all"
                     >
                       Reset
                     </button>
@@ -610,8 +610,8 @@ export default function MarketplaceModals() {
                   <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     <div className="flex flex-col h-full items-center justify-center text-center py-20 px-6">
                       <div className="relative mb-8">
-                        <div className="w-24 h-24 bg-slate-50 rounded-[32px] flex items-center justify-center transform rotate-12" />
-                        <div className="absolute inset-0 w-24 h-24 bg-white border-2 border-slate-100 rounded-[32px] flex items-center justify-center shadow-sm -rotate-6 group-hover:rotate-0 transition-transform">
+                        <div className="w-24 h-24 bg-slate-50 dark:bg-[#101217] rounded-[32px] flex items-center justify-center transform rotate-12" />
+                        <div className="absolute inset-0 w-24 h-24 bg-white dark:bg-[#1b1b24] border-2 border-slate-100 rounded-[32px] flex items-center justify-center shadow-sm -rotate-6 group-hover:rotate-0 transition-transform">
                           <MessageCircle size={38} className="text-[#1877F2]" strokeWidth={1.5} />
                         </div>
                         <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-green-500 border-4 border-white rounded-full flex items-center justify-center">

@@ -23,7 +23,7 @@ const PollSticker: React.FC<PollStickerProps> = ({ config, onInteract }) => {
 
   return (
     <div className="bg-white/95 backdrop-blur-md rounded-[24px] p-5 shadow-2xl border border-white/20 min-w-[220px] flex flex-col gap-4">
-      <h4 className="text-[16px] font-black italic uppercase tracking-tight text-black text-center leading-tight">
+      <h4 className="text-[16px] font-black italic uppercase tracking-tight text-black dark:text-white text-center leading-tight">
         {config.question || 'Poll'}
       </h4>
 

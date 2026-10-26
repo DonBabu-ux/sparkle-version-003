@@ -262,7 +262,7 @@ export default function Invite() {
                     <button
                       onClick={handleCopyCode}
                       aria-label="Copy Referral Code"
-                      className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-zinc-800 text-slate-500 hover:text-[#ff006e] transition-colors flex items-center gap-1 active:scale-95"
+                      className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-[#ff006e] transition-colors flex items-center gap-1 active:scale-95"
                     >
                       {copiedCode ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
                       {copiedCode && <span className="text-xs font-bold text-emerald-600">Copied!</span>}
@@ -674,13 +674,13 @@ export default function Invite() {
               </span>
               <button 
                 onClick={() => setShowQrModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
             </div>
 
-            <div className="p-4 bg-white rounded-2xl border border-slate-100 shadow-md my-2">
+            <div className="p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-slate-100 shadow-md my-2">
               <QRCode value={canonicalInviteUrl} size={180} />
             </div>
 
@@ -721,7 +721,7 @@ export default function Invite() {
               </h3>
               <button 
                 onClick={() => setShowShareModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -808,7 +808,7 @@ export default function Invite() {
               </div>
               <button 
                 onClick={() => setShowRulesModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -875,7 +875,7 @@ export default function Invite() {
               </h3>
               <button 
                 onClick={() => setShowHistoryModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>

@@ -204,7 +204,7 @@ export default function Search() {
                   {query && (
                       <button 
                         onClick={() => { setQuery(''); setResults({}); }} 
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 rounded-lg text-gray-400 hover:text-gray-900 transition-all"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-[#101217] rounded-lg text-gray-400 hover:text-gray-900 transition-all"
                       >
                           <X size={14} strokeWidth={3} />
                       </button>
@@ -254,7 +254,7 @@ export default function Search() {
                         <section>
                             <div className="flex items-center justify-between mb-6 px-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-100 flex items-center justify-center text-gray-400">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-[#101217] flex items-center justify-center text-gray-400">
                                         <Clock size={20} />
                                     </div>
                                     <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Recent</h2>
@@ -357,7 +357,7 @@ export default function Search() {
                                                     <Hash size={24} className="text-primary" />
                                                 </div>
                                             ) : (
-                                                <img src={g.image || '/uploads/groups/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
+                                                <img src={g.image || '/uploads/groups/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 dark:border-white/10 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             )}
                                             <div className="flex-1 min-w-0">
                                                 <div className="text-lg font-bold text-gray-900 dark:text-white leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
@@ -377,7 +377,7 @@ export default function Search() {
                                         />
                                     ))}
                                     {Array.isArray(items) && items.length === 0 && (
-                                        <div className="text-center py-8 md:py-16 bg-black/[0.01] rounded-[24px] md:rounded-[32px] border border-dashed border-black/5 px-6 mx-2">
+                                        <div className="text-center py-8 md:py-16 bg-black/[0.01] rounded-[24px] md:rounded-[32px] border border-dashed border-black/5 dark:border-white/5 px-6 mx-2">
                                             <p className="text-[10px] md:text-xs font-black text-black/20 uppercase tracking-widest italic leading-relaxed">No results found matching your search.</p>
                                         </div>
                                     )}
@@ -407,7 +407,7 @@ export default function Search() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-[1001] bg-white rounded-t-[48px] p-10 max-w-2xl mx-auto shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-[#1b1b24] rounded-t-[48px] p-10 max-w-2xl mx-auto shadow-2xl"
             >
                 <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-10" />
                 
@@ -420,7 +420,7 @@ export default function Search() {
                                     <Sparkles size={18} strokeWidth={3} />
                                 </div>
                             </div>
-                            <h3 className="text-2xl font-black text-black italic uppercase leading-none">{actionItem.name}</h3>
+                            <h3 className="text-2xl font-black text-black dark:text-white italic uppercase leading-none">{actionItem.name}</h3>
                             <p className="text-black/20 font-bold text-[11px] uppercase tracking-widest mt-3">@{actionItem.username}</p>
                         </>
                     ) : (

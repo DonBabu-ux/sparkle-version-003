@@ -169,7 +169,7 @@ export default function Polls() {
   ];
 
   return (
-    <div className="flex bg-transparent min-h-dvh text-black overflow-x-hidden font-sans">
+    <div className="flex bg-transparent min-h-dvh text-black dark:text-white overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -181,7 +181,7 @@ export default function Polls() {
           <div className="max-w-3xl space-y-4">
             <div className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-md shadow-primary/5">
               <BarChart2 size={14} strokeWidth={3} className="text-primary" />
-              <span className="text-[10px] font-bold text-black uppercase tracking-wider">Polls</span>
+              <span className="text-[10px] font-bold text-black dark:text-white uppercase tracking-wider">Polls</span>
             </div>
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900 tracking-tight leading-none">
               Sparkle <span className="text-primary">Polls</span>
@@ -219,13 +219,13 @@ export default function Polls() {
                 <div key={i} className="h-64 bg-white/60 backdrop-blur-3xl border border-white rounded-3xl p-8 space-y-6 relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" style={{ backgroundSize: '200% 100%' }} />
                    <div className="flex justify-between items-center">
-                      <div className="w-24 h-4 bg-gray-100 rounded-lg animate-pulse" />
+                      <div className="w-24 h-4 bg-gray-100 dark:bg-[#101217] rounded-lg animate-pulse" />
                       <div className="w-16 h-4 bg-primary/5 rounded-lg animate-pulse" />
                    </div>
-                   <div className="w-full h-8 bg-gray-100 rounded-xl animate-pulse" />
+                   <div className="w-full h-8 bg-gray-100 dark:bg-[#101217] rounded-xl animate-pulse" />
                    <div className="space-y-3">
-                      <div className="w-full h-12 bg-gray-50 rounded-2xl animate-pulse" />
-                      <div className="w-full h-12 bg-gray-50 rounded-2xl animate-pulse" />
+                      <div className="w-full h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl animate-pulse" />
+                      <div className="w-full h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl animate-pulse" />
                    </div>
                 </div>
               ))}
@@ -259,14 +259,14 @@ export default function Polls() {
                           <div
                             key={poll.poll_id}
                             onClick={() => navigate(`/polls/${poll.poll_id}`)}
-                            className="group flex items-center gap-4 p-4 rounded-xl bg-white border border-white/60 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer shadow-sm animate-scale-in"
+                            className="group flex items-center gap-4 p-4 rounded-xl bg-white dark:bg-[#1b1b24] border border-white/60 hover:shadow-lg hover:shadow-primary/5 transition-all cursor-pointer shadow-sm animate-scale-in"
                             style={{ animationDelay: `${idx * 50}ms` }}
                           >
                             <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary shrink-0">
                               <BarChart2 size={16} strokeWidth={2.5} />
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="text-[13px] font-bold text-black tracking-tight truncate">{poll.question}</p>
+                              <p className="text-[13px] font-bold text-black dark:text-white tracking-tight truncate">{poll.question}</p>
                               <p className="text-[11px] text-black/40 font-medium mt-0.5">
                                 {poll.total_votes || 0} votes · {poll.is_expired ? 'Closed' : 'Open'}
                               </p>
@@ -299,7 +299,7 @@ export default function Polls() {
                 <div 
                   key={poll.poll_id} 
                   onClick={() => navigate(`/polls/${poll.poll_id}`)}
-                  className="group relative bg-white border border-white/60 p-6 md:p-8 rounded-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/5 animate-scale-in flex flex-col overflow-hidden"
+                  className="group relative bg-white dark:bg-[#1b1b24] border border-white/60 p-6 md:p-8 rounded-xl hover:scale-[1.01] transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl hover:shadow-primary/5 animate-scale-in flex flex-col overflow-hidden"
                   style={{ animationDelay: `${idx * 50}ms` }}
                 >
                   <div className="absolute -right-5 -bottom-5 text-black/[0.03] -rotate-12 z-0 pointer-events-none" aria-hidden>
@@ -308,7 +308,7 @@ export default function Polls() {
                   
                   <div className="flex justify-between items-center gap-4 mb-4 relative z-10">
                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-xl text-[10px] font-semibold text-gray-500 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-[#101217] rounded-xl text-[10px] font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
                           <Calendar size={12} strokeWidth={2.5} /> {new Date(poll.created_at).toLocaleDateString()}
                        </div>
                        {(poll.engagement_score ?? 0) > 10 ? (
@@ -336,12 +336,12 @@ export default function Polls() {
                      {poll.question}
                   </h3>
 
-                  <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500">
+                  <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500 dark:text-zinc-400">
                      {!poll.is_anonymous && (
                        <img src={poll.creator_avatar || '/uploads/avatars/no-profile.png'} className="w-4 h-4 rounded-full" alt="" />
                      )}
                      {poll.is_anonymous && (
-                       <div className="w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center text-[8px] font-black text-gray-400">?</div>
+                       <div className="w-4 h-4 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center text-[8px] font-black text-gray-400">?</div>
                      )}
                      <span>By <span className="text-gray-800">{poll.is_anonymous ? 'Classified' : (poll.creator_name || `@${poll.username}`)}</span></span>
                      <span className="w-1 h-1 rounded-full bg-gray-300" />
@@ -368,11 +368,11 @@ export default function Polls() {
                     const pct = poll.total_votes && poll.total_votes > 0 ? Math.round((opt.vote_count / poll.total_votes) * 100) : 0;
                     return (
                       <div key={opt.option_id} className="space-y-2">
-                        <div className="flex justify-between font-bold text-[12px] text-gray-700">
+                        <div className="flex justify-between font-bold text-[12px] text-gray-700 dark:text-zinc-200">
                            <span className="truncate pr-2">{opt.option_text}</span>
                            <span className={pct > 0 ? 'text-primary' : 'text-gray-400'}>{pct}%</span>
                         </div>
-                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-gray-100 dark:bg-[#101217] rounded-full overflow-hidden">
                            <div className="h-full bg-primary rounded-full transition-all duration-500 ease-out" style={{ width: `${pct}%` }} />
                         </div>
                       </div>
@@ -380,7 +380,7 @@ export default function Polls() {
                   })}
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between text-gray-400 group-hover:text-primary transition-all relative z-10">
+                  <div className="mt-6 pt-4 border-t border-gray-100 dark:border-white/10 flex items-center justify-between text-gray-400 group-hover:text-primary transition-all relative z-10">
                      <p className="text-[11px] font-black uppercase tracking-widest">{poll.is_expired ? 'View Results' : 'Join Conversation'}</p>
                      <ChevronRight size={18} strokeWidth={3} className="group-hover:translate-x-1 transition-transform" />
                   </div>
@@ -392,9 +392,9 @@ export default function Polls() {
                    {[...Array(2)].map((_, i) => (
                     <div key={i} className="h-48 bg-white/40 backdrop-blur-3xl border border-white rounded-3xl p-6 relative overflow-hidden">
                        <div className="absolute inset-0 animate-shimmer" />
-                       <div className="w-1/3 h-4 bg-gray-100 rounded-full animate-pulse mb-4" />
-                       <div className="w-full h-8 bg-gray-100 rounded-xl animate-pulse" />
-                       <div className="w-2/3 h-4 bg-gray-50 rounded-full animate-pulse mt-4" />
+                       <div className="w-1/3 h-4 bg-gray-100 dark:bg-[#101217] rounded-full animate-pulse mb-4" />
+                       <div className="w-full h-8 bg-gray-100 dark:bg-[#101217] rounded-xl animate-pulse" />
+                       <div className="w-2/3 h-4 bg-gray-50 dark:bg-[#101217] rounded-full animate-pulse mt-4" />
                     </div>
                   ))}
                 </div>

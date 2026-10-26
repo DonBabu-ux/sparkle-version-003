@@ -53,7 +53,7 @@ function DefaultOptionRow({
       <img src={option.avatar_url || '/uploads/avatars/no-profile.png'} className="w-8 h-8 rounded-full" alt="" />
       <div className="text-left">
         <p className="font-bold text-slate-800 text-sm">@{option.username}</p>
-        <p className="text-xs text-slate-500">{option.name}</p>
+        <p className="text-xs text-slate-500 dark:text-zinc-400">{option.name}</p>
       </div>
     </button>
   );

@@ -186,7 +186,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
             onSelect={(u) => selectMention(u.username)}
             onClose={closePanel}
             selectOnMouseDown
-            className="fixed bottom-[64px] left-0 right-0 z-[10002] bg-white rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.18)] max-h-[72vh] flex flex-col overflow-hidden"
+            className="fixed bottom-[64px] left-0 right-0 z-[10002] bg-white dark:bg-[#1b1b24] rounded-t-3xl shadow-[0_-8px_40px_rgba(0,0,0,0.18)] max-h-[72vh] flex flex-col overflow-hidden"
             style={{ animation: 'mentionSlideUp 0.22s cubic-bezier(0.32,0.72,0,1) forwards' }}
             header={
               <>
@@ -224,7 +224,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
                         </div>
                       </button>
                     ))}
-                    <div className="h-px bg-gray-100 mx-5 my-2" />
+                    <div className="h-px bg-gray-100 dark:bg-[#101217] mx-5 my-2" />
                   </div>
                 )}
 
@@ -265,7 +265,7 @@ const MentionInput: React.FC<MentionInputProps> = ({
                   <div className="relative shrink-0">
                     <img
                       src={u.avatar_url || '/uploads/avatars/no-profile.png'}
-                      className="w-11 h-11 rounded-full object-cover border border-gray-100"
+                      className="w-11 h-11 rounded-full object-cover border border-gray-100 dark:border-white/10"
                       alt=""
                     />
                     {isReplyTarget && (

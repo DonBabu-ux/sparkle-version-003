@@ -48,7 +48,7 @@ export default function CreatorAnalytics() {
       `}</style>
 
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
@@ -58,7 +58,7 @@ export default function CreatorAnalytics() {
             <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Real-time performance metrics</p>
           </div>
         </div>
-        <button onClick={fetchAnalytics} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
+        <button onClick={fetchAnalytics} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -69,7 +69,7 @@ export default function CreatorAnalytics() {
             <Spinner size="large" color="text-[#FF1F6D]" />
           </div>
         ) : !data ? (
-          <div className="text-center py-20 bg-white rounded-3xl border border-slate-100 shadow-sm">
+          <div className="text-center py-20 bg-white dark:bg-[#1b1b24] rounded-3xl border border-slate-100 shadow-sm">
             <BarChart2 size={40} className="text-slate-300 mx-auto mb-3" />
             <p className="text-sm font-black text-slate-400 uppercase italic">Failed to load analytics</p>
           </div>
@@ -92,19 +92,19 @@ export default function CreatorAnalytics() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 uppercase italic">Followers</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Followers</span>
                     <p className="text-2xl font-black text-[#FF1F6D] italic mt-0.5">{(data.followers || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 uppercase italic">Account Reach</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Account Reach</span>
                     <p className="text-2xl font-black text-slate-900 italic mt-0.5">{(data.accountReach || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 uppercase italic">Profile Views</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Profile Views</span>
                     <p className="text-2xl font-black text-slate-900 italic mt-0.5">{(data.profileViews || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 uppercase italic">Gained this Month</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Gained this Month</span>
                     <p className="text-2xl font-black text-emerald-600 italic mt-0.5">+{(data.followersGrowth || 0).toLocaleString()}</p>
                   </div>
                 </div>
@@ -151,7 +151,7 @@ export default function CreatorAnalytics() {
                     'Keep your average video length between 15-30 seconds to optimize the total watch time score in the algorithm.',
                     'Prompt users to comment in the first 5 seconds to maximize immediate sparks index calculations.',
                   ].map((tip, idx) => (
-                    <div key={idx} className="flex gap-2 text-xs font-semibold text-slate-600 leading-relaxed">
+                    <div key={idx} className="flex gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300 leading-relaxed">
                       <span className="text-[#FF1F6D] font-black">0{idx + 1}.</span>
                       <p>{tip}</p>
                     </div>
@@ -164,7 +164,7 @@ export default function CreatorAnalytics() {
                   <h3 className="text-base font-black text-slate-900 italic uppercase flex items-center gap-2">
                     <Award size={18} className="text-[#FF1F6D]" /> Sparkle Creator Milestone
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500 leading-relaxed mt-2">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 leading-relaxed mt-2">
                     Complete monetization triggers by building high quality content and matching community interaction guidelines.
                   </p>
                 </div>

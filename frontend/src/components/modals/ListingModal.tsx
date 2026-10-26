@@ -85,13 +85,13 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         <div className="flex items-center gap-2">
           <button 
             onClick={onClose}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-black hover:bg-black/5 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-black dark:text-white hover:bg-black/5 transition-all"
           >
             <ChevronLeft size={24} strokeWidth={3} />
           </button>
           <div className="modal-title">
-            <Store size={20} strokeWidth={3} className="text-black" /> 
-            <span className="font-heading font-black text-xl text-black tracking-tighter uppercase italic">Create Listing</span>
+            <Store size={20} strokeWidth={3} className="text-black dark:text-white" /> 
+            <span className="font-heading font-black text-xl text-black dark:text-white tracking-tighter uppercase italic">Create Listing</span>
           </div>
         </div>
         <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
@@ -100,17 +100,17 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       <div className="modal-body p-8 space-y-8">
         <div className="space-y-3">
           <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
-          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-3">
             <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
-            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <div className="space-y-3">
             <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all appearance-none cursor-pointer">
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all appearance-none cursor-pointer">
               <option value="student_market">Student Market</option>
               <option value="blackmarket">Black Market</option>
               <option value="electronics">Electronics</option>
@@ -121,20 +121,20 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
 
         <div className="space-y-3">
           <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Detailed description</label>
-          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 rounded-2xl outline-none font-bold text-black focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-black dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
         <div className="space-y-4">
           <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
           <div className="flex gap-4 flex-wrap">
             {previews.map((p, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-black/5 group">
+              <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-black/5 dark:border-white/5 group">
                 <img src={p} alt="" className="w-full h-full object-cover" />
                 <button className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFile(i)}><X size={12} /></button>
               </div>
             ))}
             {previews.length < 4 && (
-              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-black/10 flex items-center justify-center text-black/20 hover:text-black hover:border-black/20 hover:bg-black/5 transition-all" onClick={() => fileRef.current?.click()}>
+              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 flex items-center justify-center text-black/20 hover:text-black hover:border-black/20 hover:bg-black/5 transition-all" onClick={() => fileRef.current?.click()}>
                 <Plus size={24} strokeWidth={3} />
                 <input type="file" ref={fileRef} hidden multiple accept="image/*" onChange={handleFile} />
               </button>

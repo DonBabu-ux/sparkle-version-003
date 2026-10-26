@@ -64,7 +64,7 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-2 bg-rose-500 px-4 py-2 rounded-full text-white font-black italic uppercase tracking-wider text-xs shadow-lg shadow-rose-500/20"
           >
-            <div className="w-2.5 h-2.5 bg-white rounded-full animate-pulse" />
+            <div className="w-2.5 h-2.5 bg-white dark:bg-[#1b1b24] rounded-full animate-pulse" />
             <span>REC {formatTimer(recordingSeconds)}</span>
           </motion.div>
         )}
@@ -100,7 +100,7 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
                 <div className="relative">
                   <TimerIcon size={20} strokeWidth={2.5} />
                   {cameraTimer > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-black text-[8px] px-1 rounded-full font-black">
+                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-black dark:text-white text-[8px] px-1 rounded-full font-black">
                       {cameraTimer}s
                     </span>
                   )}

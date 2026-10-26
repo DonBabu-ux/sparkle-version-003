@@ -29,7 +29,7 @@ export const AchievementGrid: React.FC<Props> = ({ achievements }) => {
             {a.unlocked ? (
               <CheckCircle size={32} className="text-pink-600 mb-2 dark:text-pink-400" />
             ) : (
-              <Circle size={32} className="text-gray-500 mb-2" />
+              <Circle size={32} className="text-gray-500 dark:text-zinc-400 mb-2" />
             )}
             <span className="font-medium text-black/70 mb-1 text-center dark:text-pink-100">{a.label}</span>
             <div className="w-full bg-gray-700 rounded-full h-2">

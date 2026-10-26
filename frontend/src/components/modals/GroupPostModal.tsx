@@ -118,7 +118,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
       onClick={onClose}
     >
       <div
-        className="bg-white w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[95vh] relative"
+        className="bg-white dark:bg-[#1b1b24] w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[95vh] relative"
         onClick={e => e.stopPropagation()}
       >
         {showSelector && (
@@ -132,16 +132,16 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           />
         )}
 
-        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/10">
           <div className="w-8" />
           <h2 className="text-sm font-black text-gray-900 tracking-tight uppercase italic">
             Post to {groupName}
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 transition-colors"
           >
-            <X size={18} className="text-gray-600" strokeWidth={2.5} />
+            <X size={18} className="text-gray-600 dark:text-zinc-300" strokeWidth={2.5} />
           </button>
         </div>
 
@@ -149,7 +149,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           <div className="flex items-center gap-3 px-5 py-4">
             <img
               src={getAvatarUrl(user?.avatar_url, user?.username)}
-              className="w-11 h-11 rounded-full object-cover border border-gray-100 shrink-0"
+              className="w-11 h-11 rounded-full object-cover border border-gray-100 dark:border-white/10 shrink-0"
               alt=""
             />
             <div className="flex-1 min-w-0">
@@ -159,7 +159,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
                 </p>
                 
                 {(selections.feeling || selections.activity || selections.taggedUsers.length > 0) && (
-                  <div className="flex items-center flex-wrap gap-1 text-[14px] text-gray-500 font-medium">
+                  <div className="flex items-center flex-wrap gap-1 text-[14px] text-gray-500 dark:text-zinc-400 font-medium">
                     {selections.feeling && (
                       <>
                         <span>is feeling</span>
@@ -196,14 +196,14 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
 
                     <button 
                       onClick={() => setSelections({ feeling: null, activity: null, subOption: null, taggedUsers: [] })}
-                      className="ml-1 w-4 h-4 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      className="ml-1 w-4 h-4 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center hover:bg-gray-200 transition-colors"
                     >
                       <X size={10} />
                     </button>
                   </div>
                 )}
               </div>
-              <div className="mt-1 flex items-center gap-1 bg-gray-50 px-2 py-0.5 rounded-lg border border-gray-100 w-fit">
+              <div className="mt-1 flex items-center gap-1 bg-gray-50 dark:bg-[#101217] px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/10 w-fit">
                 <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider italic">Member</span>
               </div>
             </div>
@@ -220,10 +220,10 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           </div>
 
           {previews.length > 0 && (
-            <div className="mx-5 mb-3 border border-gray-200 rounded-lg overflow-hidden">
+            <div className="mx-5 mb-3 border border-gray-200 dark:border-white/10 rounded-lg overflow-hidden">
               <div className={`grid gap-1 ${previews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {previews.map((p, i) => (
-                  <div key={i} className="relative aspect-square bg-gray-100">
+                  <div key={i} className="relative aspect-square bg-gray-100 dark:bg-[#101217]">
                     <img src={p} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}
@@ -238,9 +238,9 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           )}
         </div>
 
-        <div className="px-5 pb-5 pt-3 border-t border-gray-100 space-y-3">
-          <div className="flex items-center justify-between border border-gray-200 rounded-lg px-4 py-2.5">
-            <span className="text-[14px] font-semibold text-gray-600">Add to your post</span>
+        <div className="px-5 pb-5 pt-3 border-t border-gray-100 dark:border-white/10 space-y-3">
+          <div className="flex items-center justify-between border border-gray-200 dark:border-white/10 rounded-lg px-4 py-2.5">
+            <span className="text-[14px] font-semibold text-gray-600 dark:text-zinc-300">Add to your post</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => fileRef.current?.click()}
@@ -270,9 +270,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           <button
             onClick={handleSubmit}
             disabled={!canPost}
-            className="w-full py-3 rounded-lg font-black text-[13px] tracking-tight transition-all
-              disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed
-              bg-primary hover:bg-primary/90 active:scale-[0.98] text-white shadow-xl shadow-primary/40"
+            className="w-full py-3 rounded-lg font-black text-[13px] tracking-tight transition-all disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed bg-primary hover:bg-primary/90 active:scale-[0.98] text-white shadow-xl shadow-primary/40"
           >
             {uploading ? <Spinner size="small" color="text-primary" /> : 'Post to Circle'}
           </button>

@@ -393,7 +393,7 @@ export default function Confessions() {
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
-                      className="h-9 px-5 bg-white text-black rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all active:scale-95"
+                      className="h-9 px-5 bg-white dark:bg-[#1b1b24] text-black dark:text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all active:scale-95"
                     >
                       Join Echo
                     </button>

@@ -152,8 +152,8 @@ export default function GroupDetail() {
   return (
     <div className="min-h-dvh bg-[#fafafa] pb-20">
       {/* HEADER SECTION */}
-      <div className="bg-white shadow-sm overflow-hidden border-b border-gray-100">
-        <div className="relative h-36 sm:h-64 w-full bg-gray-100 overflow-hidden">
+      <div className="bg-white dark:bg-[#1b1b24] shadow-sm overflow-hidden border-b border-gray-100 dark:border-white/10">
+        <div className="relative h-36 sm:h-64 w-full bg-gray-100 dark:bg-[#101217] overflow-hidden">
           <img 
             src={getMediaUrl(group.cover_image)} 
             className="w-full h-full object-cover" 
@@ -180,7 +180,7 @@ export default function GroupDetail() {
         <div className="relative -mt-12 mb-4 px-4">
             <div className="flex flex-col items-center text-center">
               <div className="relative mb-3">
-                <div className="w-24 h-24 rounded-[32px] border-[5px] border-white shadow-2xl overflow-hidden bg-white ring-1 ring-gray-100">
+                <div className="w-24 h-24 rounded-[32px] border-[5px] border-white shadow-2xl overflow-hidden bg-white dark:bg-[#1b1b24] ring-1 ring-gray-100">
                   <img 
                     src={getAvatarUrl(group.icon_url)} 
                     className="w-full h-full object-cover" 
@@ -230,7 +230,7 @@ export default function GroupDetail() {
                 )}
 
                 {isMember ? (
-                  <div className="flex-1 h-9 bg-black/5 text-black/40 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-black/5">
+                  <div className="flex-1 h-9 bg-black/5 text-black/40 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-black/5 dark:border-white/5">
                       <Check size={12} strokeWidth={4} className="text-primary" /> Joined
                   </div>
                 ) : (
@@ -245,7 +245,7 @@ export default function GroupDetail() {
 
                 <button 
                   onClick={() => setShowInviteModal(true)}
-                  className="w-9 h-9 flex items-center justify-center bg-white border border-gray-100 text-primary rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+                  className="w-9 h-9 flex items-center justify-center bg-white dark:bg-[#1b1b24] border border-gray-100 dark:border-white/10 text-primary rounded-xl hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
                 >
                   <UserPlus size={16} />
                 </button>
@@ -253,7 +253,7 @@ export default function GroupDetail() {
             </div>
         </div>
 
-        <div className="border-t border-gray-100 pt-1">
+        <div className="border-t border-gray-100 dark:border-white/10 pt-1">
           <div className="flex items-center justify-center gap-1 px-4 overflow-x-auto no-scrollbar">
             {(['posts', 'about', 'members', 'media'] as Tab[]).map(t => (
               <button
@@ -274,13 +274,13 @@ export default function GroupDetail() {
       <div className="max-w-6xl mx-auto px-4 md:px-8 py-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-4">
+            <div className="bg-white dark:bg-[#1b1b24] rounded-[10px] shadow-sm border border-gray-200 dark:border-white/10 p-4">
               <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic mb-4">About</h3>
-              <p className="text-sm text-gray-600 leading-relaxed mb-6 font-medium">
+              <p className="text-sm text-gray-600 dark:text-zinc-300 leading-relaxed mb-6 font-medium">
                 {group.description || 'Welcome to our community!'}
               </p>
               <div className="space-y-4 border-t border-gray-50 pt-4">
-                <div className="flex items-center gap-3 text-sm text-gray-700 font-bold">
+                <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-zinc-200 font-bold">
                   <Globe size={18} className="text-primary" />
                   <div>
                     <p className="text-[13px]">{group.is_public ? 'Public Circle' : 'Private Circle'}</p>
@@ -289,7 +289,7 @@ export default function GroupDetail() {
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-3 text-sm text-gray-700 font-bold">
+                <div className="flex items-center gap-3 text-sm text-gray-700 dark:text-zinc-200 font-bold">
                   <Info size={18} className="text-primary" />
                   <div>
                     <p className="text-[13px]">{group.category || 'General'} Topic</p>
@@ -298,7 +298,7 @@ export default function GroupDetail() {
               </div>
             </div>
 
-            <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-4">
+            <div className="bg-white dark:bg-[#1b1b24] rounded-[10px] shadow-sm border border-gray-200 dark:border-white/10 p-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic">Members</h3>
                 <button onClick={() => setActiveTab('members')} className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">See all</button>
@@ -315,7 +315,7 @@ export default function GroupDetail() {
               </div>
               <button 
                 onClick={() => setShowInviteModal(true)}
-                className="w-full py-2.5 bg-gray-50 text-gray-600 hover:bg-gray-100 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                className="w-full py-2.5 bg-gray-50 dark:bg-[#101217] text-gray-600 dark:text-zinc-300 hover:bg-gray-100 rounded-lg font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
               >
                 <UserPlus size={14} className="text-primary" /> Invite to Circle
               </button>
@@ -328,7 +328,7 @@ export default function GroupDetail() {
                 {isMember || group.is_public ? (
                   <>
                     {isMember && (
-                      <div className="bg-white rounded-[10px] shadow-sm border border-gray-100 p-4 overflow-hidden">
+                      <div className="bg-white dark:bg-[#1b1b24] rounded-[10px] shadow-sm border border-gray-100 dark:border-white/10 p-4 overflow-hidden">
                         <div className="flex items-center gap-3 mb-4">
                           <Avatar 
                             src={user?.avatar_url} 
@@ -338,21 +338,21 @@ export default function GroupDetail() {
                           />
                           <button 
                             onClick={() => { setPostModalView('post'); setShowPostModal(true); }}
-                            className="flex-1 bg-gray-50 hover:bg-gray-100 text-gray-400 text-left px-4 py-3 rounded-[10px] font-bold text-sm transition-all"
+                            className="flex-1 bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 text-gray-400 text-left px-4 py-3 rounded-[10px] font-bold text-sm transition-all"
                           >
                             What's on your mind?
                           </button>
                         </div>
                         <div className="grid grid-cols-3 gap-2">
-                          <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 dark:bg-[#101217] hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <ImageIcon size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Photo</span>
                           </button>
-                          <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 dark:bg-[#101217] hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <UserPlus size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Invite</span>
                           </button>
-                          <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
+                          <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-gray-50 dark:bg-[#101217] hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <Activity size={16} className="text-primary" />
                             <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest group-hover/btn:text-primary">Feeling</span>
                           </button>
@@ -364,19 +364,19 @@ export default function GroupDetail() {
                       {posts && posts.length > 0 ? posts.map(post => (
                         <PostCard key={post.post_id} post={post} />
                       )) : (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-[10px]">
+                        <div className="bg-white dark:bg-[#1b1b24] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-12 text-center text-gray-400 font-bold uppercase tracking-widest text-[10px]">
                           No posts yet
                         </div>
                       )}
                     </div>
                   </>
                 ) : (
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center space-y-6">
-                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto text-primary">
+                  <div className="bg-white dark:bg-[#1b1b24] rounded-xl shadow-sm border border-gray-200 dark:border-white/10 p-12 text-center space-y-6">
+                    <div className="w-16 h-16 bg-gray-50 dark:bg-[#101217] rounded-full flex items-center justify-center mx-auto text-primary">
                       <Lock size={32} />
                     </div>
                     <h3 className="text-xl font-black text-gray-900 tracking-tight uppercase italic">This Circle is Private</h3>
-                    <p className="text-gray-500 font-medium max-w-sm mx-auto text-sm">Join this circle to view posts, participate in discussions, and connect with the community.</p>
+                    <p className="text-gray-500 dark:text-zinc-400 font-medium max-w-sm mx-auto text-sm">Join this circle to view posts, participate in discussions, and connect with the community.</p>
                     <button 
                       onClick={handleJoin}
                       className="px-10 py-3 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-105 transition-all"
@@ -389,7 +389,7 @@ export default function GroupDetail() {
             )}
 
             {activeTab === 'members' && (
-              <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-6">
+              <div className="bg-white dark:bg-[#1b1b24] rounded-[10px] shadow-sm border border-gray-200 dark:border-white/10 p-6">
                 <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-50">
                    <h3 className="text-base font-black text-gray-900 uppercase tracking-tighter italic">Members ({members.length})</h3>
                    <button onClick={() => setShowInviteModal(true)} className="flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest">
@@ -426,19 +426,19 @@ export default function GroupDetail() {
             )}
             
             {activeTab === 'about' && (
-               <div className="bg-white rounded-[10px] shadow-sm border border-gray-200 p-6 space-y-8 text-center sm:text-left">
+               <div className="bg-white dark:bg-[#1b1b24] rounded-[10px] shadow-sm border border-gray-200 dark:border-white/10 p-6 space-y-8 text-center sm:text-left">
                   <div>
                      <h4 className="text-[10px] font-black text-primary uppercase tracking-[0.2em] mb-2 leading-none">Description</h4>
-                     <p className="text-base text-gray-600 leading-relaxed font-medium">
+                     <p className="text-base text-gray-600 dark:text-zinc-300 leading-relaxed font-medium">
                         {group.description || 'No description provided.'}
                      </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                     <div className="p-4 bg-gray-50 rounded-xl">
+                     <div className="p-4 bg-gray-50 dark:bg-[#101217] rounded-xl">
                         <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Created By</h5>
                         <p className="text-sm font-bold text-gray-900">{group.creator_name || 'Original Member'}</p>
                      </div>
-                     <div className="p-4 bg-gray-50 rounded-xl">
+                     <div className="p-4 bg-gray-50 dark:bg-[#101217] rounded-xl">
                         <h5 className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Born On</h5>
                         <p className="text-sm font-bold text-gray-900">{new Date(group.created_at).toLocaleDateString()}</p>
                      </div>

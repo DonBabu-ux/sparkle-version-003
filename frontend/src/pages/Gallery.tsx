@@ -104,18 +104,18 @@ export default function Gallery() {
   });
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden">
       <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
         {/* Subtle ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
 
         <header className="mb-12 md:mb-24 flex flex-col xl:flex-row xl:items-end justify-between gap-8 md:gap-12 animate-fade-in relative z-10">
           <div className="max-w-3xl space-y-6 md:space-y-8">
-            <div className="inline-flex items-center gap-3 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-black/5 border border-black/5">
+            <div className="inline-flex items-center gap-3 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-black/5 border border-black/5 dark:border-white/5">
               <Layers size={16} className="text-primary md:w-[18px]" />
               <span className="text-[9px] md:text-[10px] font-black text-black/40 uppercase tracking-[0.4em]">Visual Archive</span>
             </div>
-            <h1 className="font-heading font-black text-5xl md:text-7xl lg:text-9xl text-black tracking-tighter italic uppercase leading-[0.85]">
+            <h1 className="font-heading font-black text-5xl md:text-7xl lg:text-9xl text-black dark:text-white tracking-tighter italic uppercase leading-[0.85]">
               Media <br /><span className="text-primary italic">Gallery.</span>
             </h1>
             <p className="text-sm md:text-lg font-semibold text-black/30 leading-relaxed border-l-4 border-primary/30 pl-6 md:pl-8">
@@ -123,7 +123,7 @@ export default function Gallery() {
             </p>
           </div>
 
-          <div className="flex flex-wrap lg:flex-nowrap bg-black/[0.02] border border-black/5 p-2 rounded-[24px] md:rounded-[32px] shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex flex-wrap lg:flex-nowrap bg-black/[0.02] border border-black/5 dark:border-white/5 p-2 rounded-[24px] md:rounded-[32px] shadow-sm overflow-x-auto no-scrollbar">
             {( [
               { key: 'all', icon: Grid, label: 'Everything' },
               { key: 'photos', icon: ImageIcon, label: 'Photos' },
@@ -145,13 +145,13 @@ export default function Gallery() {
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-black/[0.02] border border-black/5 rounded-[32px] md:rounded-[48px] animate-pulse" />
+                <div key={i} className="aspect-square bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-[32px] md:rounded-[48px] animate-pulse" />
               ))}
             </div>
           ) : error ? (
             <ErrorRetry onRetry={fetchMedia} />
           ) : filteredMedia.length === 0 ? (
-            <div className="py-32 md:py-64 flex flex-col items-center justify-center gap-8 md:gap-12 text-center animate-fade-in bg-black/[0.01] border-[8px] md:border-[12px] border-dashed border-black/5 rounded-[48px] md:rounded-[96px] shadow-inner px-4">
+            <div className="py-32 md:py-64 flex flex-col items-center justify-center gap-8 md:gap-12 text-center animate-fade-in bg-black/[0.01] border-[8px] md:border-[12px] border-dashed border-black/5 dark:border-white/5 rounded-[48px] md:rounded-[96px] shadow-inner px-4">
                <Layers size={40} strokeWidth={1} className="text-black/10 md:w-[60px] md:h-[60px]" />
                <div className="space-y-4 md:space-y-6">
                  <h3 className="font-heading font-black text-3xl md:text-5xl text-black/10 italic uppercase tracking-tighter">Archive Empty.</h3>

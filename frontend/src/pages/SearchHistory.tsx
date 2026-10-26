@@ -68,7 +68,7 @@ export default function SearchHistory() {
   };
 
   return (
-    <div className="flex bg-white min-h-dvh text-black font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="flex bg-white dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -89,7 +89,7 @@ export default function SearchHistory() {
                   <ArrowLeft size={16} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
               <div className="min-w-0">
-                <h1 className="text-lg md:text-xl font-black text-black uppercase tracking-tight italic leading-none truncate">History</h1>
+                <h1 className="text-lg md:text-xl font-black text-black dark:text-white uppercase tracking-tight italic leading-none truncate">History</h1>
                 <p className="text-[9px] md:text-[10px] font-black text-black/20 uppercase tracking-[0.2em] mt-1 md:mt-2 truncate">Your recent searches</p>
               </div>
             </div>
@@ -116,7 +116,7 @@ export default function SearchHistory() {
               <div className="w-24 h-24 bg-black/[0.02] rounded-[32px] flex items-center justify-center text-black/10 mb-8 shadow-inner">
                 <Clock size={48} strokeWidth={2.5} />
               </div>
-              <h2 className="text-2xl font-black text-black italic uppercase tracking-tight mb-3">No history</h2>
+              <h2 className="text-2xl font-black text-black dark:text-white italic uppercase tracking-tight mb-3">No history</h2>
               <p className="text-black/20 font-bold text-sm max-w-[280px] leading-relaxed">Your search history is empty. Time to discover something new!</p>
               <button 
                 onClick={() => navigate('/search')} 
@@ -130,7 +130,7 @@ export default function SearchHistory() {
               {Object.entries(groupedHistory).map(([date, items], idx) => (
                 <div key={date} className="animate-in slide-in-from-bottom-4 duration-700" style={{ animationDelay: `${idx * 0.1}s` }}>
                   <div className="flex items-center gap-4 mb-8">
-                     <h3 className="text-xs font-black text-black italic uppercase tracking-[0.2em] opacity-20">{date}</h3>
+                     <h3 className="text-xs font-black text-black dark:text-white italic uppercase tracking-[0.2em] opacity-20">{date}</h3>
                      <div className="flex-1 h-[1px] bg-black/[0.05]" />
                   </div>
                   
@@ -138,7 +138,7 @@ export default function SearchHistory() {
                     {items.map((item) => (
                       <div 
                         key={item.id} 
-                        className="flex items-center gap-6 p-6 bg-black/[0.02] hover:bg-black text-black hover:text-white rounded-[32px] transition-all group duration-500 shadow-sm"
+                        className="flex items-center gap-6 p-6 bg-black/[0.02] hover:bg-black text-black dark:text-white hover:text-white rounded-[32px] transition-all group duration-500 shadow-sm"
                       >
                         <div className="w-12 h-12 rounded-2xl bg-black/[0.03] group-hover:bg-white/10 flex items-center justify-center text-black/10 group-hover:text-white transition-all">
                           <Clock size={20} strokeWidth={2.5} />

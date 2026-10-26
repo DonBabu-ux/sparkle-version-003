@@ -155,7 +155,7 @@ export default function EventsAdmin() {
   };
 
   return (
-    <div className="flex bg-[#fafafa] min-h-dvh text-black overflow-x-hidden font-sans pb-20">
+    <div className="flex bg-[#fafafa] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-4xl mx-auto w-full">
         
@@ -164,13 +164,13 @@ export default function EventsAdmin() {
           <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => navigate('/events')}
-              className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-100 text-gray-400 active:scale-90 transition-all"
+              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-[#1b1b24] rounded-full shadow-sm border border-gray-100 dark:border-white/10 text-gray-400 active:scale-90 transition-all"
             >
               <ArrowLeft size={16} />
             </button>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
               <Shield size={12} strokeWidth={3} className="text-primary" />
-              <span className="text-[8px] font-black text-black uppercase tracking-widest italic">Event Control</span>
+              <span className="text-[8px] font-black text-black dark:text-white uppercase tracking-widest italic">Event Control</span>
             </div>
           </div>
           
@@ -200,7 +200,7 @@ export default function EventsAdmin() {
 
         {/* Check-In - Compact Overlay */}
         {showScanner && (
-          <div className="bg-white rounded-[24px] p-4 mb-6 border-2 border-emerald-500/20 shadow-xl animate-fade-in">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-[24px] p-4 mb-6 border-2 border-emerald-500/20 shadow-xl animate-fade-in">
              <div className="flex justify-between items-center mb-3">
                 <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
                   <QrCode size={14} className="text-emerald-500" /> Manual Check-In
@@ -210,7 +210,7 @@ export default function EventsAdmin() {
              <select
                value={activeEventAttendees ?? ''}
                onChange={(e) => { const id = e.target.value; if (id) loadAttendees(id); }}
-               className="w-full p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500/40 transition-all uppercase italic mb-3"
+               className="w-full p-3 bg-gray-50 dark:bg-[#101217] border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-emerald-500/40 transition-all uppercase italic mb-3"
              >
                <option value="">Select event…</option>
                {events.map((e) => (
@@ -225,7 +225,7 @@ export default function EventsAdmin() {
                  ) : (
                    <div className="space-y-1.5 max-h-[220px] overflow-y-auto no-scrollbar">
                      {eligible.map((a) => (
-                       <div key={a.user_id} className="bg-gray-50 p-2 rounded-lg flex justify-between items-center">
+                       <div key={a.user_id} className="bg-gray-50 dark:bg-[#101217] p-2 rounded-lg flex justify-between items-center">
                          <span className="text-[9px] font-black uppercase text-gray-900 italic">{a.username}</span>
                          {a.status === 'attended' ? (
                            <span className="text-[7px] font-black uppercase px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-600">Present</span>
@@ -250,7 +250,7 @@ export default function EventsAdmin() {
 
         {/* Create Form - High Density */}
         {showCreateForm && (
-          <div className="bg-white rounded-[24px] p-5 mb-6 border border-gray-100 shadow-sm animate-fade-in">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-[24px] p-5 mb-6 border border-gray-100 dark:border-white/10 shadow-sm animate-fade-in">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-[10px] font-black uppercase tracking-widest italic flex items-center gap-2">
                 <Plus size={14} className="text-primary" /> New Gathering
@@ -258,10 +258,10 @@ export default function EventsAdmin() {
               <button onClick={() => setShowCreateForm(false)} className="text-gray-400"><X size={16} /></button>
             </div>
             <form onSubmit={handleCreateSubmit} className="space-y-3">
-              <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Event Title" className="w-full p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all uppercase italic" />
+              <input required type="text" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Event Title" className="w-full p-3 bg-gray-50 dark:bg-[#101217] border-none rounded-xl text-[11px] font-bold outline-none focus:bg-white focus:ring-1 focus:ring-primary/20 transition-all uppercase italic" />
               <div className="grid grid-cols-2 gap-2">
-                <input required type="datetime-local" value={formData.event_date} onChange={e => setFormData({...formData, event_date: e.target.value})} className="p-3 bg-gray-50 border-none rounded-xl text-[10px] font-black outline-none w-full" />
-                <input type="number" value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} placeholder="Capacity" className="p-3 bg-gray-50 border-none rounded-xl text-[11px] font-bold outline-none uppercase" />
+                <input required type="datetime-local" value={formData.event_date} onChange={e => setFormData({...formData, event_date: e.target.value})} className="p-3 bg-gray-50 dark:bg-[#101217] border-none rounded-xl text-[10px] font-black outline-none w-full" />
+                <input type="number" value={formData.capacity} onChange={e => setFormData({...formData, capacity: e.target.value})} placeholder="Capacity" className="p-3 bg-gray-50 dark:bg-[#101217] border-none rounded-xl text-[11px] font-bold outline-none uppercase" />
               </div>
               <button type="submit" className="w-full py-3 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-primary/20 transition-all active:scale-95 italic">
                 Launch Event
@@ -287,7 +287,7 @@ export default function EventsAdmin() {
           ) : events.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {events.map((e) => (
-                <div key={e.event_id} id={`mgmt-card-${e.event_id}`} className="bg-white rounded-[24px] p-4 border border-gray-100 shadow-sm relative overflow-hidden group">
+                <div key={e.event_id} id={`mgmt-card-${e.event_id}`} className="bg-white dark:bg-[#1b1b24] rounded-[24px] p-4 border border-gray-100 dark:border-white/10 shadow-sm relative overflow-hidden group">
                   <div className="flex justify-between items-start mb-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-1.5">
@@ -302,14 +302,14 @@ export default function EventsAdmin() {
                        <button onClick={() => toggleEventStatus(e.event_id, e.is_public)} className={`w-7 h-7 rounded-lg flex items-center justify-center transition-all ${e.is_public ? 'bg-amber-50 text-amber-500' : 'bg-emerald-50 text-emerald-500'}`}>
                          <Power size={12} />
                        </button>
-                       <button onClick={() => deleteEvent(e.event_id)} className="w-7 h-7 rounded-lg flex items-center justify-center bg-gray-50 text-gray-400 hover:text-primary transition-all">
+                       <button onClick={() => deleteEvent(e.event_id)} className="w-7 h-7 rounded-lg flex items-center justify-center bg-gray-50 dark:bg-[#101217] text-gray-400 hover:text-primary transition-all">
                          <Trash2 size={12} />
                        </button>
                     </div>
                   </div>
 
                   <div onClick={() => loadAttendees(e.event_id)} className="grid grid-cols-2 gap-2 mb-4 bg-gray-50/50 p-2.5 rounded-xl cursor-pointer hover:bg-primary/5 transition-all">
-                     <div className="text-center border-r border-gray-100">
+                     <div className="text-center border-r border-gray-100 dark:border-white/10">
                         <div className="text-lg font-black text-gray-900 leading-none">{e.total_rsvps || 0}</div>
                         <div className="text-[7px] font-black text-gray-400 uppercase tracking-widest mt-1">RSVPs</div>
                      </div>
@@ -328,11 +328,11 @@ export default function EventsAdmin() {
                     </button>
                     
                     {activeEventAttendees === e.event_id && (
-                      <div className="mt-2 bg-gray-50 rounded-xl p-1.5 max-h-[160px] overflow-y-auto no-scrollbar space-y-1">
+                      <div className="mt-2 bg-gray-50 dark:bg-[#101217] rounded-xl p-1.5 max-h-[160px] overflow-y-auto no-scrollbar space-y-1">
                         {attendeesList.map(a => (
-                          <div key={a.user_id} className="bg-white p-2 rounded-lg flex justify-between items-center shadow-sm">
+                          <div key={a.user_id} className="bg-white dark:bg-[#1b1b24] p-2 rounded-lg flex justify-between items-center shadow-sm">
                              <div className="flex items-center gap-2">
-                                <img src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.username}`} className="w-5 h-5 rounded-md border border-gray-100" alt="" />
+                                <img src={a.avatar_url || `https://ui-avatars.com/api/?name=${a.username}`} className="w-5 h-5 rounded-md border border-gray-100 dark:border-white/10" alt="" />
                                 <span className="text-[9px] font-black uppercase text-gray-900 italic">{a.username}</span>
                              </div>
                              {a.status === 'pending' ? (
@@ -354,8 +354,8 @@ export default function EventsAdmin() {
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-[32px] p-12 text-center border border-gray-100 shadow-sm">
-               <div className="w-12 h-12 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 text-gray-200 mx-auto">
+            <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] p-12 text-center border border-gray-100 dark:border-white/10 shadow-sm">
+               <div className="w-12 h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl flex items-center justify-center mb-4 text-gray-200 mx-auto">
                   <Calendar size={24} />
                </div>
                <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">No events managed yet.</p>

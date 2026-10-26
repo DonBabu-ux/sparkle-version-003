@@ -147,7 +147,7 @@ export default function HighlightPlayerModal({
           {stories.map((_, idx) => (
             <div key={idx} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
               <div
-                className="h-full bg-white rounded-full transition-none"
+                className="h-full bg-white dark:bg-[#1b1b24] rounded-full transition-none"
                 style={{
                   width: idx < currentIndex ? '100%' : idx === currentIndex ? `${progress}%` : '0%',
                 }}

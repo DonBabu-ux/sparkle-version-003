@@ -91,14 +91,14 @@ export default function MarketplaceOrder() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-white flex items-center justify-center">
+    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] flex items-center justify-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
 
   if (!listing) return (
-    <div className="min-h-dvh bg-slate-50 flex flex-col items-center justify-center px-6 text-center">
-      <h1 className="text-xl font-black text-black mb-2">Listing unavailable</h1>
+    <div className="min-h-dvh bg-slate-50 dark:bg-[#101217] flex flex-col items-center justify-center px-6 text-center">
+      <h1 className="text-xl font-black text-black dark:text-white mb-2">Listing unavailable</h1>
       <p className="text-sm text-black/60 mb-6">{loadError || 'This listing is no longer available.'}</p>
       <button
         onClick={() => navigate('/marketplace')}
@@ -112,16 +112,16 @@ export default function MarketplaceOrder() {
   const isOwner = user?.user_id && listing.seller_id === user.user_id;
 
   return (
-    <div className="min-h-dvh bg-slate-50 pb-10">
-      <div className="bg-white sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
+    <div className="min-h-dvh bg-slate-50 dark:bg-[#101217] pb-10">
+      <div className="bg-white dark:bg-[#1b1b24] sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors">
           <ChevronLeft size={24} />
         </button>
-        <h1 className="font-black text-xl text-black tracking-tight">Request to Buy</h1>
+        <h1 className="font-black text-xl text-black dark:text-white tracking-tight">Request to Buy</h1>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-6">
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
+        <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
           <div className="flex gap-4">
             <img 
               src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/defaults/no-image.png'}
@@ -129,8 +129,8 @@ export default function MarketplaceOrder() {
               alt={listing.title} 
             />
             <div className="flex-1">
-              <h2 className="text-xl font-bold text-black mb-1">{listing.title}</h2>
-              <p className="text-black text-sm mb-2">Seller: {listing.seller_name || listing.seller_username}</p>
+              <h2 className="text-xl font-bold text-black dark:text-white mb-1">{listing.title}</h2>
+              <p className="text-black dark:text-white text-sm mb-2">Seller: {listing.seller_name || listing.seller_username}</p>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black text-[#1877F2]">KES {parseFloat(listing.price).toLocaleString()}</span>
               </div>
@@ -139,8 +139,8 @@ export default function MarketplaceOrder() {
         </div>
 
         {isOwner ? (
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 text-center">
-            <p className="font-bold text-black mb-1">This is your listing.</p>
+          <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 border border-slate-100 text-center">
+            <p className="font-bold text-black dark:text-white mb-1">This is your listing.</p>
             <p className="text-sm text-black/60 mb-4">You cannot send an order request to yourself.</p>
             <button onClick={() => navigate(`/marketplace/listings/${listingId}`)} className="px-6 py-3 bg-black text-white rounded-2xl font-bold text-sm">
               Back to listing
@@ -148,58 +148,58 @@ export default function MarketplaceOrder() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100">
               <div className="flex items-center gap-3 mb-4">
                 <CreditCard className="text-blue-500" size={20} />
-                <h3 className="font-black text-black">Agreed Price</h3>
+                <h3 className="font-black text-black dark:text-white">Agreed Price</h3>
               </div>
               <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-black">KES</span>
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-black dark:text-white">KES</span>
                 <input 
                   type="number"
                   value={agreedPrice}
                   onChange={(e) => setAgreedPrice(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-14 pr-4 text-xl font-black text-black focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                  className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 pl-14 pr-4 text-xl font-black text-black dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                 />
               </div>
               <p className="text-xs text-black/50 mt-2">This is the price you propose to the seller. Nothing is charged in the app.</p>
             </div>
 
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100">
               <div className="flex items-center gap-3 mb-4">
                 <MapPin className="text-emerald-500" size={20} />
-                <h3 className="font-black text-black">Meetup Details</h3>
+                <h3 className="font-black text-black dark:text-white">Meetup Details</h3>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="text-xs font-black text-black uppercase tracking-widest mb-1.5 block ml-1">Campus</label>
+                  <label className="text-xs font-black text-black dark:text-white uppercase tracking-widest mb-1.5 block ml-1">Campus</label>
                   <input 
                     type="text"
                     value={campus}
                     onChange={(e) => setCampus(e.target.value)}
                     placeholder="e.g. Main Campus"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-black focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                    className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl p-4 font-bold text-black dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-black text-black uppercase tracking-widest mb-1.5 block ml-1">Specific Location</label>
+                  <label className="text-xs font-black text-black dark:text-white uppercase tracking-widest mb-1.5 block ml-1">Specific Location</label>
                   <input 
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g. Student Union, Library Gate"
-                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl p-4 font-bold text-black focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                    className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl p-4 font-bold text-black dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-black text-black uppercase tracking-widest mb-1.5 block ml-1">Preferred Time</label>
+                  <label className="text-xs font-black text-black dark:text-white uppercase tracking-widest mb-1.5 block ml-1">Preferred Time</label>
                   <div className="relative">
-                    <Clock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-black" />
+                    <Clock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-black dark:text-white" />
                     <input 
                       type="datetime-local"
                       value={scheduledTime}
                       onChange={(e) => { setScheduledTime(e.target.value); setTimeError(''); }}
-                      className="w-full bg-slate-50 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-black focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                      className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-black dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                     />
                   </div>
                   {timeError && <p className="text-xs font-bold text-rose-600 mt-2">{timeError}</p>}
@@ -210,8 +210,8 @@ export default function MarketplaceOrder() {
             <div className="bg-blue-50/50 border border-blue-100 rounded-3xl p-6 flex gap-4">
               <ShieldCheck className="text-[#1877F2] flex-shrink-0" size={24} />
               <div>
-                <h4 className="font-bold text-black mb-1">Meet in person and pay directly</h4>
-                <p className="text-black text-sm leading-relaxed">
+                <h4 className="font-bold text-black dark:text-white mb-1">Meet in person and pay directly</h4>
+                <p className="text-black dark:text-white text-sm leading-relaxed">
                   This sends a meetup request to the seller. Sparkle does not take payment, hold money, or guarantee the item. Pay the seller only after you inspect it in person.
                 </p>
               </div>
@@ -241,7 +241,7 @@ export default function MarketplaceOrder() {
             </button>
 
             {!location && !success && (
-              <p className="text-center text-xs font-bold text-black uppercase tracking-widest">
+              <p className="text-center text-xs font-bold text-black dark:text-white uppercase tracking-widest">
                 Please enter a specific meetup location
               </p>
             )}

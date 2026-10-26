@@ -78,7 +78,7 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-gray-500 max-w-[280px] mb-10 leading-relaxed font-medium"
+        className="text-gray-500 dark:text-zinc-400 max-w-[280px] mb-10 leading-relaxed font-medium"
       >
         {message || defaultMessage}
       </motion.p>
@@ -101,7 +101,7 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
         
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex-1 px-8 py-4 bg-gray-100 text-gray-600 font-bold rounded-2xl uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+          className="flex-1 px-8 py-4 bg-gray-100 dark:bg-[#101217] text-gray-600 dark:text-zinc-300 font-bold rounded-2xl uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <Home size={18} />
           Go Home

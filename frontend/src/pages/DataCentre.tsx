@@ -382,12 +382,12 @@ export default function DataCentre() {
                     </h2>
 
                     {historyLoading && history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-500 flex items-center justify-center gap-2">
+                        <div className="py-8 text-center text-xs text-slate-500 dark:text-zinc-400 flex items-center justify-center gap-2">
                             <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
                             Loading archive history...
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-500 border border-dashed border-slate-800 rounded-2xl">
+                        <div className="py-8 text-center text-xs text-slate-500 dark:text-zinc-400 border border-dashed border-slate-800 rounded-2xl">
                             No export requests found for this account.
                         </div>
                     ) : (
@@ -421,7 +421,7 @@ export default function DataCentre() {
                                                 Requested on {new Date(job.createdAt).toLocaleString()} • Delivered to {job.deliveryEmail}
                                             </p>
                                             {job.fileSizeBytes && (
-                                                <p className="text-slate-500 text-[10px]">
+                                                <p className="text-slate-500 dark:text-zinc-400 text-[10px]">
                                                     Size: {(job.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • {job.categories?.length || 0} Categories
                                                 </p>
                                             )}
@@ -444,7 +444,7 @@ export default function DataCentre() {
                                                     Compiling...
                                                 </span>
                                             ) : (
-                                                <span className="text-slate-500 text-[11px]">Archive unavailable</span>
+                                                <span className="text-slate-500 dark:text-zinc-400 text-[11px]">Archive unavailable</span>
                                             )}
                                         </div>
                                     </div>

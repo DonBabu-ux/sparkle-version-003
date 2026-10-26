@@ -204,7 +204,7 @@ export default function Marketplace() {
         !isInboxView && "pb-[calc(6rem+env(safe-area-inset-bottom))]"
     )}>
 
-      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white">
+      <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-white dark:bg-[#1b1b24]">
         
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">
@@ -347,13 +347,13 @@ export default function Marketplace() {
               <div className="flex items-center gap-2 overflow-x-auto no-scrollbar">
                 <button 
                   onClick={() => setActiveModal('categories')}
-                  className="flex items-center justify-center w-8 h-8 rounded border border-marketplace-border text-[#1877F2] flex-shrink-0 bg-white"
+                  className="flex items-center justify-center w-8 h-8 rounded border border-marketplace-border text-[#1877F2] flex-shrink-0 bg-white dark:bg-[#1b1b24]"
                 >
                   <Grid size={14} />
                 </button>
                 <button 
                   onClick={() => setActiveModal('location')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-marketplace-border rounded text-[13px] font-bold text-[#1877F2] whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded text-[13px] font-bold text-[#1877F2] whitespace-nowrap flex-shrink-0"
                 >
                   <span className="flex flex-col items-start leading-none">
                     <span className="text-[10px] text-marketplace-muted font-normal">
@@ -366,13 +366,13 @@ export default function Marketplace() {
                 </button>
                 <button 
                   onClick={() => setActiveModal('distance')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-marketplace-border rounded text-[13px] font-bold text-[#1877F2] whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded text-[13px] font-bold text-[#1877F2] whitespace-nowrap flex-shrink-0"
                 >
                   {radiusKm} km <ChevronDown size={14} />
                 </button>
                 <button 
                   onClick={() => setActiveModal('filters')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-marketplace-border rounded text-[13px] font-bold text-marketplace-text whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded text-[13px] font-bold text-marketplace-text whitespace-nowrap flex-shrink-0"
                 >
                   <SlidersHorizontal size={14} /> Filters
                 </button>
@@ -387,7 +387,7 @@ export default function Marketplace() {
                 </button>
                 <button 
                   onClick={() => setActiveModal('sort')}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-marketplace-border rounded text-[13px] font-bold text-marketplace-text whitespace-nowrap flex-shrink-0"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded text-[13px] font-bold text-marketplace-text whitespace-nowrap flex-shrink-0"
                 >
                   <ListFilter size={14} /> Sort
                 </button>
@@ -434,7 +434,7 @@ export default function Marketplace() {
               {loading ? (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-[2px]">
                   {[...Array(6)].map((_, i) => (
-                    <div key={i} className="aspect-square bg-slate-100 animate-pulse" />
+                    <div key={i} className="aspect-square bg-slate-100 dark:bg-[#101217] animate-pulse" />
                   ))}
                 </div>
               ) : error ? (

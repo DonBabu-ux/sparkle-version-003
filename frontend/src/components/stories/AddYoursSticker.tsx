@@ -22,7 +22,7 @@ const AddYoursSticker: React.FC<AddYoursStickerProps> = ({ config, onInteract })
 
       {/* Prompt Section */}
       <div className="flex flex-col items-center text-center relative z-10">
-        <h3 className="text-[20px] font-black italic uppercase tracking-tighter text-black leading-none px-4 mb-5 pointer-events-none drop-shadow-sm">
+        <h3 className="text-[20px] font-black italic uppercase tracking-tighter text-black dark:text-white leading-none px-4 mb-5 pointer-events-none drop-shadow-sm">
           {config.prompt || 'Add yours'}
         </h3>
         
@@ -36,7 +36,7 @@ const AddYoursSticker: React.FC<AddYoursStickerProps> = ({ config, onInteract })
              <Camera size={20} strokeWidth={3} className="group-hover/cam:rotate-12 transition-transform" />
           </div>
           {(config.avatars || []).slice(0, 3).map((av, i) => (
-            <div key={i} className="w-12 h-12 rounded-full border-4 border-white overflow-hidden shadow-xl bg-gray-100" style={{ zIndex: 20 - i }}>
+            <div key={i} className="w-12 h-12 rounded-full border-4 border-white overflow-hidden shadow-xl bg-gray-100 dark:bg-[#101217]" style={{ zIndex: 20 - i }}>
                <img 
                 src={av || '/uploads/avatars/no-profile.png'}
                 className="w-full h-full object-cover" 

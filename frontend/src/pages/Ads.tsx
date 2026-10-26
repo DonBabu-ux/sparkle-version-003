@@ -35,7 +35,7 @@ export default function Ads() {
       `}</style>
 
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm">
+      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm">
         <div className="max-w-[1000px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -46,7 +46,7 @@ export default function Ads() {
               <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Campus campaigns in KES</p>
             </div>
           </div>
-          <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600">
+          <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -62,7 +62,7 @@ export default function Ads() {
               </div>
               <div>
                 <h2 className="text-base font-black text-slate-900 italic uppercase leading-none">Ad Campaigns</h2>
-                <p className="text-[9px] text-slate-500 font-bold uppercase italic tracking-wider mt-0.5">Reach students on Sparkle</p>
+                <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-bold uppercase italic tracking-wider mt-0.5">Reach students on Sparkle</p>
               </div>
             </div>
 
@@ -78,9 +78,9 @@ export default function Ads() {
           {/* Campaigns list */}
           <div className="glass-card rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-base font-black text-slate-900 italic uppercase">My Campaigns</h3>
-            <div className="p-8 text-center bg-slate-50 border border-dashed border-slate-200 rounded-2xl">
+            <div className="p-8 text-center bg-slate-50 dark:bg-[#101217] border border-dashed border-slate-200 rounded-2xl">
               <Megaphone size={28} className="text-slate-300 mx-auto mb-2" />
-              <p className="text-xs font-bold text-slate-500">No campaigns yet.</p>
+              <p className="text-xs font-bold text-slate-500 dark:text-zinc-400">No campaigns yet.</p>
               <p className="text-[10px] text-slate-400 font-medium mt-1">Campaign creation isn't available yet.</p>
             </div>
           </div>
@@ -121,7 +121,7 @@ export default function Ads() {
                   <h4 className="text-[10px] font-black text-slate-800 uppercase italic flex items-center gap-1.5">
                     <Play size={10} className="text-[#FF1F6D]" fill="currentColor" /> {obj.title}
                   </h4>
-                  <p className="text-[10px] text-slate-500 font-medium leading-normal pl-3.5">{obj.desc}</p>
+                  <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium leading-normal pl-3.5">{obj.desc}</p>
                 </div>
               ))}
             </div>
@@ -131,9 +131,9 @@ export default function Ads() {
           <div className="glass-card rounded-3xl p-5 shadow-sm border-[#FF1F6D]/15" style={{ background: 'linear-gradient(135deg, #fff7f0, #fff)' }}>
             <div className="flex items-center gap-2 mb-2">
               <Zap size={14} className="text-amber-500" fill="currentColor" />
-              <span className="text-[9px] font-black text-slate-700 uppercase italic">Pro Tip</span>
+              <span className="text-[9px] font-black text-slate-700 dark:text-zinc-200 uppercase italic">Pro Tip</span>
             </div>
-            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+            <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium leading-relaxed">
               Boost a post from your profile to reach more students right away.
             </p>
           </div>

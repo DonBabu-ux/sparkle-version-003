@@ -157,9 +157,9 @@ export default function SellItem() {
   };
 
   return (
-    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-10">
+    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] text-marketplace-text font-sans pb-10">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-50 bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
@@ -192,7 +192,7 @@ export default function SellItem() {
             <button 
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="w-24 h-24 flex-shrink-0 bg-white border-2 border-dashed border-marketplace-border rounded-xl flex flex-col items-center justify-center gap-1 text-marketplace-muted hover:text-[#1877F2] hover:border-[#1877F2] transition-all"
+              className="w-24 h-24 flex-shrink-0 bg-white dark:bg-[#1b1b24] border-2 border-dashed border-marketplace-border rounded-xl flex flex-col items-center justify-center gap-1 text-marketplace-muted hover:text-[#1877F2] hover:border-[#1877F2] transition-all"
             >
               <Camera size={24} />
               <span className="text-[11px] font-bold uppercase tracking-wider">Add</span>
@@ -332,9 +332,9 @@ export default function SellItem() {
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              className="relative bg-white w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
+              className="relative bg-white dark:bg-[#1b1b24] w-full max-w-lg rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden max-h-[85vh] flex flex-col"
             >
-              <div className="px-6 py-4 border-b border-marketplace-border flex items-center justify-between bg-white sticky top-0 z-10">
+              <div className="px-6 py-4 border-b border-marketplace-border flex items-center justify-between bg-white dark:bg-[#1b1b24] sticky top-0 z-10">
                 <h2 className="text-xl font-bold">Select Category</h2>
                 <button onClick={() => setIsCategoryModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-marketplace-bg">
                   <X size={20} />

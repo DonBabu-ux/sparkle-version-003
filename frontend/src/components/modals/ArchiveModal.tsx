@@ -97,7 +97,7 @@ const ArchiveModal: React.FC<ArchiveModalProps> = ({ isOpen, onClose }) => {
             <div className="relative">
               <Spinner size="medium" color="text-primary" />
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                <div className="w-2 h-2 bg-white dark:bg-[#1b1b24] rounded-full animate-pulse" />
               </div>
             </div>
             <span className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] animate-pulse">Accessing Archive...</span>

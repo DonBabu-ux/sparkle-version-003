@@ -360,7 +360,7 @@ export default function BoostConnectModal({ isOpen, onClose, onSuccess }: BoostC
                           }`}
                         >
                           {plan.popular && (
-                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider italic shadow-md">
+                            <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-amber-500 text-black dark:text-white px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider italic shadow-md">
                               Most Popular
                             </span>
                           )}

@@ -181,7 +181,7 @@ const SettingsRow: React.FC<SettingsRowProps> = ({
           </span>
         )}
       </div>
-      {subtitle && <p className="text-xs text-gray-500 mt-0.5 leading-relaxed truncate">{subtitle}</p>}
+      {subtitle && <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 leading-relaxed truncate">{subtitle}</p>}
     </div>
     {rightElement || (onClick && <ChevronRight size={16} className="text-gray-300 shrink-0" />)}
   </button>
@@ -215,14 +215,14 @@ const SideSheet: React.FC<SideSheetProps> = ({ open, onClose, title, children })
         open ? 'translate-x-0' : 'translate-x-full'
       }`}
     >
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 dark:border-white/10">
         <button
           type="button"
           onClick={onClose}
-          className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors"
           aria-label="Close panel"
         >
-          <ChevronLeft size={18} className="text-gray-600" />
+          <ChevronLeft size={18} className="text-gray-600 dark:text-zinc-300" />
         </button>
         <h2 className="text-sm font-bold text-gray-900">{title}</h2>
       </div>
@@ -243,15 +243,15 @@ interface SubPageProps {
 
 const SubPage: React.FC<SubPageProps> = ({ title, onBack, children }) => (
   <div className="flex flex-col min-h-full">
-    <div className="sticky top-0 bg-white border-b border-gray-100 z-10 shadow-xs">
+    <div className="sticky top-0 bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
       <div className="flex items-center gap-3 px-4 py-3.5">
         <button
           type="button"
           onClick={onBack}
-          className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
+          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
           aria-label="Back"
         >
-          <ArrowLeft size={18} className="text-gray-700" />
+          <ArrowLeft size={18} className="text-gray-700 dark:text-zinc-200" />
         </button>
         <h1 className="text-base font-bold text-gray-900 tracking-tight">{title}</h1>
       </div>
@@ -263,11 +263,11 @@ const SubPage: React.FC<SubPageProps> = ({ title, onBack, children }) => (
 const SectionHeader: React.FC<{ title: string; description?: string }> = ({ title, description }) => (
   <div className="px-4 pt-6 pb-2">
     <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">{title}</h3>
-    {description && <p className="text-xs text-gray-500 mt-1 leading-relaxed">{description}</p>}
+    {description && <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 leading-relaxed">{description}</p>}
   </div>
 );
 
-const Divider = () => <div className="h-px bg-gray-100 mx-4" />;
+const Divider = () => <div className="h-px bg-gray-100 dark:bg-[#101217] mx-4" />;
 
 interface ConfirmModalProps {
   open: boolean;
@@ -291,14 +291,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-[#1b1b24] rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <h3 className="text-base font-bold text-gray-900">{title}</h3>
-        <div className="text-sm text-gray-500 mt-2 leading-relaxed">{message}</div>
+        <div className="text-sm text-gray-500 dark:text-zinc-400 mt-2 leading-relaxed">{message}</div>
         <div className="flex gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-sm font-semibold text-gray-700 transition-colors"
+            className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-sm font-semibold text-gray-700 dark:text-zinc-200 transition-colors"
           >
             Cancel
           </button>
@@ -812,17 +812,17 @@ export default function MessagesSettings() {
 
   const renderHome = () => (
     <div className="flex flex-col min-h-full">
-      <div className="sticky top-0 bg-white border-b border-gray-100 z-10 shadow-xs">
+      <div className="sticky top-0 bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <button
             type="button"
             onClick={() =>
               navigate(initialChatId ? `/messages?chat=${initialChatId}` : '/messages')
             }
-            className="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
+            className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
             aria-label="Back to messages"
           >
-            <ArrowLeft size={18} className="text-gray-700" />
+            <ArrowLeft size={18} className="text-gray-700 dark:text-zinc-200" />
           </button>
           <div>
             <h1 className="text-base font-bold text-gray-900 tracking-tight">Messages Settings</h1>
@@ -834,7 +834,7 @@ export default function MessagesSettings() {
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="mt-2">
           <SectionHeader title="Activity" />
-          <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<Activity size={18} className="text-green-600" />}
               iconBg="bg-green-50"
@@ -845,7 +845,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Notifications & Sound" />
-          <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<Bell size={18} className="text-blue-600" />}
               iconBg="bg-blue-50"
@@ -856,7 +856,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Messaging" />
-          <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<MessageCircle size={18} className="text-purple-600" />}
               iconBg="bg-purple-50"
@@ -883,9 +883,9 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Privacy & Security" />
-          <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
-              icon={<Lock size={18} className="text-gray-700" />}
+              icon={<Lock size={18} className="text-gray-700 dark:text-zinc-200" />}
               iconBg="bg-gray-100"
               title="Chat Lock"
               subtitle="Lock selected conversations with a local PIN"
@@ -909,7 +909,7 @@ export default function MessagesSettings() {
             />
             <Divider />
             <SettingsRow
-              icon={<Smartphone size={18} className="text-gray-700" />}
+              icon={<Smartphone size={18} className="text-gray-700 dark:text-zinc-200" />}
               iconBg="bg-gray-100"
               title="Device Logins"
               subtitle="Review where you are logged in"
@@ -918,7 +918,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Data & Storage" />
-          <div className="bg-white rounded-2xl mx-4 shadow-sm border border-gray-100 overflow-hidden mb-6">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-6">
             <SettingsRow
               icon={<Wifi size={18} className="text-teal-600" />}
               iconBg="bg-teal-50"
@@ -939,11 +939,11 @@ export default function MessagesSettings() {
   const renderActiveStatus = () => (
     <SubPage title="Active Status" onBack={goBack}>
       <div className="pb-24">
-        <div className="bg-white mx-4 mt-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 mt-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-4 flex items-start gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Show when you are active</p>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-1 leading-relaxed">
                 Your active status is visible to people you are connected to on Sparkle according to your privacy settings.
               </p>
             </div>
@@ -966,7 +966,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Who can see your active status" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             { value: 'everyone', label: 'Everyone', desc: 'All Sparkle users' },
             { value: 'followers', label: 'Followers only', desc: 'Only people who follow you' },
@@ -985,7 +985,7 @@ export default function MessagesSettings() {
               >
                 <div>
                   <p className="text-sm font-semibold text-gray-900 text-left">{opt.label}</p>
-                  <p className="text-xs text-gray-500 text-left">{opt.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 text-left">{opt.desc}</p>
                 </div>
                 {lastSeenPrivacy === opt.value && <Check size={18} className="text-[#ff1493]" />}
               </button>
@@ -993,8 +993,8 @@ export default function MessagesSettings() {
           ))}
         </div>
 
-        <div className="mx-4 mt-4 p-3 bg-gray-50 rounded-xl">
-          <p className="text-xs text-gray-600 leading-relaxed">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+          <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
             Turn off your active status everywhere you use Sparkle. This preference is applied to your account across all devices.
           </p>
         </div>
@@ -1108,16 +1108,16 @@ export default function MessagesSettings() {
 
           <div className="px-4 pt-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#101217] flex items-center justify-center">
                 {page.icon}
               </div>
               <h2 className="text-lg font-bold text-gray-900">{page.title}</h2>
             </div>
             <div className="space-y-4">
               {page.content.map((item, i) => (
-                <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
+                <div key={i} className="bg-white dark:bg-[#1b1b24] rounded-xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
                   <p className="text-sm font-bold text-gray-900 mb-1">{item.head}</p>
-                  <p className="text-sm text-gray-600 leading-relaxed">{item.body}</p>
+                  <p className="text-sm text-gray-600 dark:text-zinc-300 leading-relaxed">{item.body}</p>
                 </div>
               ))}
             </div>
@@ -1128,7 +1128,7 @@ export default function MessagesSettings() {
               <button
                 type="button"
                 onClick={() => setLearnMorePage(p => p - 1)}
-                className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors"
+                className="flex items-center gap-1.5 text-sm font-semibold text-gray-600 dark:text-zinc-300 hover:text-gray-900 transition-colors"
               >
                 <ChevronLeft size={16} /> Previous
               </button>
@@ -1169,7 +1169,7 @@ export default function MessagesSettings() {
           title="Conversation Alert Settings"
           description="Select a conversation to configure its dedicated mute state and custom alert tone."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setChatSelectSheet(true)}
@@ -1182,11 +1182,11 @@ export default function MessagesSettings() {
                     selectedConversation.partner_avatar,
                     selectedConversation.partner_name
                   )}
-                  className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                  className="w-8 h-8 rounded-full object-cover border border-gray-100 dark:border-white/10"
                   alt=""
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center">
                   <MessageCircle size={14} className="text-gray-400" />
                 </div>
               )}
@@ -1215,7 +1215,7 @@ export default function MessagesSettings() {
               <div className="px-4 py-3.5 flex items-center justify-between gap-4">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Mute Conversation</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                     Silence all notification sounds and popups for this chat.
                   </p>
                 </div>
@@ -1248,7 +1248,7 @@ export default function MessagesSettings() {
           title="Sound Theme Profile"
           description="Applies to all sounds across Sparkle."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setSoundThemeSheet(true)}
@@ -1257,7 +1257,7 @@ export default function MessagesSettings() {
             <div className="text-left">
               <p className="text-sm font-semibold text-gray-900">Active Theme Pack</p>
               <p className="text-xs text-[#ff1493] font-medium mt-0.5">{audioTheme}</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Swaps the audio profile across the platform instantly.
               </p>
             </div>
@@ -1269,7 +1269,7 @@ export default function MessagesSettings() {
           title="Default Notification Sound"
           description="Alert tone when no per-chat override is configured."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setNotifSoundSheet(true)}
@@ -1290,7 +1290,7 @@ export default function MessagesSettings() {
           title="Volume Levels"
           description="Adjust master, message, notification, and UI audio channels."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {(
             [
               { label: 'Master Volume', key: 'master' as const },
@@ -1303,7 +1303,7 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5">
                 <div className="flex items-center justify-between text-xs mb-2">
-                  <span className="font-semibold text-gray-700">{vol.label}</span>
+                  <span className="font-semibold text-gray-700 dark:text-zinc-200">{vol.label}</span>
                   <span className="font-mono font-bold text-[#ff1493]">
                     {Math.round(((audioVolumes as any)[vol.key] ?? 1) * 100)}%
                   </span>
@@ -1326,7 +1326,7 @@ export default function MessagesSettings() {
           title="Toggles & Customization"
           description="Independently enable or disable each audio category."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               key: 'masterSounds',
@@ -1357,12 +1357,12 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-center gap-4 justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0">
                     {item.icon}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5">{item.desc}</p>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">{item.desc}</p>
                   </div>
                 </div>
                 <TouchSafeSwitch
@@ -1379,14 +1379,14 @@ export default function MessagesSettings() {
           title="Test Preview"
           description="Audit sound and vibration response safely without sending real messages."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-4 grid grid-cols-3 gap-3">
             {(['send', 'receive', 'notification'] as const).map(t => (
               <button
                 key={t}
                 type="button"
                 onClick={() => handleTestPreview(t)}
-                className="py-2.5 px-2 bg-gray-50 hover:bg-gray-100 active:scale-95 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 flex items-center justify-center gap-1.5 transition-all capitalize"
+                className="py-2.5 px-2 bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 active:scale-95 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold text-gray-700 dark:text-zinc-200 flex items-center justify-center gap-1.5 transition-all capitalize"
               >
                 <Play size={11} fill="currentColor" className="text-[#ff1493]" />
                 {t}
@@ -1399,7 +1399,7 @@ export default function MessagesSettings() {
           <button
             type="button"
             onClick={() => setResetAudioModal(true)}
-            className="w-full py-3 bg-white border border-gray-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-semibold text-gray-500 hover:text-red-600 transition-all flex items-center justify-center gap-2 active:scale-98"
+            className="w-full py-3 bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 hover:text-red-600 transition-all flex items-center justify-center gap-2 active:scale-98"
           >
             <RotateCcw size={15} />
             Reset Audio Settings
@@ -1417,11 +1417,11 @@ export default function MessagesSettings() {
     <SubPage title="Messages Behavior & Security" onBack={goBack}>
       <div className="pb-24">
         <SectionHeader title="Account General" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Push Notifications</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Receive system notifications when new messages arrive. System permissions must also be granted in device settings.
               </p>
             </div>
@@ -1451,7 +1451,7 @@ export default function MessagesSettings() {
                   ? 'Followers only'
                   : 'No one'}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Server-enforced — controls who can open new conversations with you.
               </p>
             </div>
@@ -1460,9 +1460,9 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Security" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <SettingsRow
-            icon={<Lock size={18} className="text-gray-700" />}
+            icon={<Lock size={18} className="text-gray-700 dark:text-zinc-200" />}
             iconBg="bg-gray-100"
             title="Chat Lock"
             subtitle="Lock selected conversations with a local PIN on this device"
@@ -1470,7 +1470,7 @@ export default function MessagesSettings() {
           />
           <Divider />
           <SettingsRow
-            icon={<Smartphone size={18} className="text-gray-700" />}
+            icon={<Smartphone size={18} className="text-gray-700 dark:text-zinc-200" />}
             iconBg="bg-gray-100"
             title="Device Logins"
             subtitle="Review and manage active login sessions"
@@ -1490,13 +1490,13 @@ export default function MessagesSettings() {
       <div className="pb-24">
         <div className="mx-4 mt-4 p-3 bg-pink-50 border border-pink-100 rounded-xl flex gap-2">
           <Info size={14} className="text-[#ff1493] shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600 leading-relaxed">
+          <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
             These are <strong>global defaults</strong>. If a chat has not set an explicit override in its conversation settings, it inherits these values.
           </p>
         </div>
 
         <SectionHeader title="Global Defaults" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               label: 'Read Receipts',
@@ -1535,12 +1535,12 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0 mt-0.5">
                     {item.icon}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{item.desc}</p>
                   </div>
                 </div>
                 <TouchSafeSwitch
@@ -1560,7 +1560,7 @@ export default function MessagesSettings() {
           title="Screen Protection"
           description="Android-native security features — availability depends on platform support."
         />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               label: 'Screenshot Notifications',
@@ -1568,7 +1568,7 @@ export default function MessagesSettings() {
               key: 'default_screenshot_notification',
               value: defaultScreenshotNotification,
               setter: setDefaultScreenshotNotification,
-              icon: <Camera size={16} className="text-gray-600" />,
+              icon: <Camera size={16} className="text-gray-600 dark:text-zinc-300" />,
             },
             {
               label: 'Screen Recording Blur',
@@ -1576,19 +1576,19 @@ export default function MessagesSettings() {
               key: 'blur_screen_recording',
               value: blurScreenRecording,
               setter: setBlurScreenRecording,
-              icon: <Monitor size={16} className="text-gray-600" />,
+              icon: <Monitor size={16} className="text-gray-600 dark:text-zinc-300" />,
             },
           ].map((item, i) => (
             <React.Fragment key={item.key}>
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0 mt-0.5">
                     {item.icon}
                   </div>
                   <div>
                     <p className="text-sm font-semibold text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{item.desc}</p>
+                    <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 leading-relaxed">{item.desc}</p>
                   </div>
                 </div>
                 <TouchSafeSwitch
@@ -1617,14 +1617,14 @@ export default function MessagesSettings() {
     return (
       <SubPage title="Chat Themes" onBack={goBack}>
         <div className="pb-24">
-          <div className="mx-4 mt-4 p-3 bg-gray-50 rounded-xl">
-            <p className="text-xs text-gray-600 leading-relaxed">
+          <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+            <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
               This is the <strong>global default theme</strong> applied to all conversations that do not have a per-chat theme override. Changing the global theme does not affect conversations with explicit overrides set in their individual chat settings.
             </p>
           </div>
 
           <SectionHeader title="Global Default Theme" />
-          <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
             <button
               type="button"
               onClick={() => setChatThemeGlobalSheet(true)}
@@ -1637,7 +1637,7 @@ export default function MessagesSettings() {
                 />
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900">{currentGlobalTheme.name}</p>
-                  <p className="text-xs text-gray-500">{currentGlobalTheme.category}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">{currentGlobalTheme.category}</p>
                 </div>
               </div>
               <ChevronRight size={16} className="text-gray-300" />
@@ -1645,7 +1645,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="How themes work" />
-          <div className="mx-4 bg-white rounded-xl border border-gray-100 shadow-sm p-4 space-y-3">
+          <div className="mx-4 bg-white dark:bg-[#1b1b24] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-4 space-y-3">
             {[
               { label: 'Global Default', desc: 'Applied to all chats without an explicit override.' },
               {
@@ -1661,7 +1661,7 @@ export default function MessagesSettings() {
                 <div className="w-1.5 h-1.5 rounded-full bg-[#ff1493] mt-1.5 shrink-0" />
                 <div>
                   <span className="text-xs font-bold text-gray-800">{item.label}: </span>
-                  <span className="text-xs text-gray-500">{item.desc}</span>
+                  <span className="text-xs text-gray-500 dark:text-zinc-400">{item.desc}</span>
                 </div>
               </div>
             ))}
@@ -1678,15 +1678,15 @@ export default function MessagesSettings() {
   const renderChatLock = () => (
     <SubPage title="Chat Lock" onBack={goBack}>
       <div className="pb-24">
-        <div className="mx-4 mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl flex gap-2">
-          <Lock size={14} className="text-gray-600 shrink-0 mt-0.5" />
-          <p className="text-xs text-gray-600 leading-relaxed">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 rounded-xl flex gap-2">
+          <Lock size={14} className="text-gray-600 dark:text-zinc-300 shrink-0 mt-0.5" />
+          <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
             Chat Lock is a <strong>local device security</strong> feature. Locked conversations require a PIN to open on this device only. The PIN is never sent to Sparkle servers. Locking does not delete messages, affect delivery, alter read receipts, or block the other person.
           </p>
         </div>
 
         <SectionHeader title="PIN" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {pinSet ? (
             <>
               <div className="px-4 py-3.5 flex items-center gap-3">
@@ -1695,7 +1695,7 @@ export default function MessagesSettings() {
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-gray-900">PIN configured</p>
-                  <p className="text-xs text-gray-500">Stored locally on this device only.</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">Stored locally on this device only.</p>
                 </div>
               </div>
               <Divider />
@@ -1721,12 +1721,12 @@ export default function MessagesSettings() {
               onClick={() => setShowPinSetup(true)}
               className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
             >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
-                <Lock size={16} className="text-gray-500" />
+              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#101217] flex items-center justify-center">
+                <Lock size={16} className="text-gray-500 dark:text-zinc-400" />
               </div>
               <div className="text-left">
                 <p className="text-sm font-semibold text-gray-900">Set PIN</p>
-                <p className="text-xs text-gray-500">Required to lock conversations.</p>
+                <p className="text-xs text-gray-500 dark:text-zinc-400">Required to lock conversations.</p>
               </div>
               <ChevronRight size={16} className="text-gray-300 ml-auto" />
             </button>
@@ -1736,11 +1736,11 @@ export default function MessagesSettings() {
         {pinSet && (
           <>
             <SectionHeader title="Visibility" />
-            <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Hide Locked Chats</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">
+                  <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
                     When on, locked conversations are removed from the normal messages list. They can be revealed by entering your PIN in the Messages search field.
                   </p>
                 </div>
@@ -1765,7 +1765,7 @@ export default function MessagesSettings() {
               title="Locked Conversations"
               description="Select which conversations to lock."
             />
-            <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {loadingConversations ? (
                 <div className="px-4 py-6 text-center text-xs text-gray-400">
                   Loading conversations...
@@ -1788,7 +1788,7 @@ export default function MessagesSettings() {
                       >
                         <img
                           src={getAvatarUrl(c.partner_avatar, c.partner_name)}
-                          className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                          className="w-8 h-8 rounded-full object-cover border border-gray-100 dark:border-white/10"
                           alt=""
                         />
                         <span className="flex-1 text-sm font-semibold text-gray-900 text-left">
@@ -1814,14 +1814,14 @@ export default function MessagesSettings() {
 
       {showPinSetup && (
         <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-xs w-full p-6 shadow-2xl">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl max-w-xs w-full p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center mx-auto mb-4">
               <Lock size={22} className="text-[#ff1493]" />
             </div>
             <h3 className="text-base font-bold text-gray-900 text-center">
               {pinSet ? 'Change PIN' : 'Set 4-Digit PIN'}
             </h3>
-            <p className="text-xs text-gray-500 text-center mt-1">
+            <p className="text-xs text-gray-500 dark:text-zinc-400 text-center mt-1">
               This PIN is stored only on this device and is never sent to Sparkle.
             </p>
             <input
@@ -1835,7 +1835,7 @@ export default function MessagesSettings() {
                 setNewPinValue(e.target.value.replace(/\D/g, '').slice(0, 4));
                 setPinError('');
               }}
-              className="w-full mt-4 text-center text-2xl font-mono tracking-widest bg-gray-50 border border-gray-200 rounded-xl py-3 text-gray-900 outline-none focus:border-[#ff1493] focus:ring-2 focus:ring-[#ff1493]/20"
+              className="w-full mt-4 text-center text-2xl font-mono tracking-widest bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 rounded-xl py-3 text-gray-900 outline-none focus:border-[#ff1493] focus:ring-2 focus:ring-[#ff1493]/20"
             />
             {pinError && (
               <p className="text-xs text-red-500 text-center mt-1.5 font-medium">{pinError}</p>
@@ -1848,7 +1848,7 @@ export default function MessagesSettings() {
                   setNewPinValue('');
                   setPinError('');
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-gray-100 text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-[#101217] text-sm font-semibold text-gray-700 dark:text-zinc-200 hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
@@ -1873,8 +1873,8 @@ export default function MessagesSettings() {
   const renderArchivedChats = () => (
     <SubPage title="Archived Chats" onBack={goBack}>
       <div className="pb-24">
-        <div className="mx-4 mt-4 p-3 bg-gray-50 rounded-xl">
-          <p className="text-xs text-gray-500 leading-relaxed">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+          <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
             Archived conversations remain fully intact — all messages are preserved. Archiving does not delete or block any conversation.
           </p>
         </div>
@@ -1883,10 +1883,10 @@ export default function MessagesSettings() {
           <div className="py-12 text-center text-sm text-gray-400">Loading archived chats...</div>
         ) : archivedChats.length === 0 ? (
           <div className="py-12 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center mb-3">
               <Archive size={24} className="text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-gray-500">No archived chats</p>
+            <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400">No archived chats</p>
             <p className="text-xs text-gray-400 mt-1">Archived conversations will appear here.</p>
           </div>
         ) : (
@@ -1896,7 +1896,7 @@ export default function MessagesSettings() {
                 archivedChats.length !== 1 ? 's' : ''
               }`}
             />
-            <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {archivedChats.map((c: any, i) => {
                 const name = sanitizePartnerName(c.partner_name, c.partner_username);
                 return (
@@ -1905,7 +1905,7 @@ export default function MessagesSettings() {
                     <div className="px-4 py-3.5 flex items-center gap-3">
                       <img
                         src={getAvatarUrl(c.partner_avatar, c.partner_name)}
-                        className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                        className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-white/10"
                         alt=""
                       />
                       <div className="flex-1 min-w-0">
@@ -1917,7 +1917,7 @@ export default function MessagesSettings() {
                       <button
                         type="button"
                         onClick={() => setUnarchiveChatId(c.chat_id)}
-                        className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-600 rounded-lg transition-colors shrink-0"
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
                       >
                         Unarchive
                       </button>
@@ -1943,10 +1943,10 @@ export default function MessagesSettings() {
           <div className="py-12 text-center text-sm text-gray-400">Loading blocked users...</div>
         ) : blockedUsers.length === 0 ? (
           <div className="py-12 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center mb-3">
               <UserX size={24} className="text-gray-300" />
             </div>
-            <p className="text-sm font-semibold text-gray-500">No blocked contacts</p>
+            <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400">No blocked contacts</p>
             <p className="text-xs text-gray-400 mt-1">Users you block will appear here.</p>
           </div>
         ) : (
@@ -1956,14 +1956,14 @@ export default function MessagesSettings() {
                 blockedUsers.length !== 1 ? 's' : ''
               }`}
             />
-            <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {blockedUsers.map((u: any, i) => (
                 <React.Fragment key={u.user_id}>
                   {i > 0 && <Divider />}
                   <div className="px-4 py-3.5 flex items-center gap-3">
                     <img
                       src={u.avatar_url || '/uploads/avatars/no-profile.png'}
-                      className="w-10 h-10 rounded-full object-cover border border-gray-100"
+                      className="w-10 h-10 rounded-full object-cover border border-gray-100 dark:border-white/10"
                       alt=""
                     />
                     <div className="flex-1 min-w-0">
@@ -1975,7 +1975,7 @@ export default function MessagesSettings() {
                     <button
                       type="button"
                       onClick={() => setUnblockUserId(u.user_id)}
-                      className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-600 rounded-lg transition-colors shrink-0"
+                      className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
                     >
                       Unblock
                     </button>
@@ -2021,7 +2021,7 @@ export default function MessagesSettings() {
           description="Review devices that have recently accessed your Sparkle account."
         />
 
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {loadingSessions && deviceSessions.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-gray-400">Loading sessions…</div>
           )}
@@ -2058,7 +2058,7 @@ export default function MessagesSettings() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 space-y-0.5">
+                      <div className="text-xs text-gray-500 dark:text-zinc-400 mt-1 space-y-0.5">
                         {session.ip_address && <p>IP: {session.ip_address}</p>}
                         <p>{formatWhen(session.last_active)}</p>
                       </div>
@@ -2068,7 +2068,7 @@ export default function MessagesSettings() {
                             type="button"
                             disabled={revokingSession === session.session_id}
                             onClick={() => revokeSession(session.session_id)}
-                            className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-xs font-bold text-gray-700 rounded-lg transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-700 dark:text-zinc-200 rounded-lg transition-colors disabled:opacity-50"
                           >
                             {revokingSession === session.session_id ? 'Signing out…' : 'Log out'}
                           </button>
@@ -2087,7 +2087,7 @@ export default function MessagesSettings() {
             <button
               type="button"
               onClick={logoutAllOtherDevices}
-              className="w-full py-3 bg-white border border-red-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 hover:text-red-600 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-white dark:bg-[#1b1b24] border border-red-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 hover:text-red-600 transition-all flex items-center justify-center gap-2"
             >
               <LogOut size={15} />
               Log out all other devices
@@ -2106,7 +2106,7 @@ export default function MessagesSettings() {
     <SubPage title="Media & Storage" onBack={goBack}>
       <div className="pb-24">
         <SectionHeader title="Network & Downloads" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setMediaDownloadSheet(true)}
@@ -2121,7 +2121,7 @@ export default function MessagesSettings() {
                   ? 'Always (Cellular & Wi-Fi)'
                   : 'Never'}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Choose when images and files automatically download.
               </p>
             </div>
@@ -2133,7 +2133,7 @@ export default function MessagesSettings() {
           <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Rich Link Previews</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Automatically fetch thumbnail and title metadata for links shared in chats.
               </p>
             </div>
@@ -2159,7 +2159,7 @@ export default function MessagesSettings() {
               <p className="text-xs text-[#ff1493] font-medium mt-0.5">
                 {mediaQuality === 'high' ? 'High Quality' : 'Standard (Compressed)'}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 High Quality uploads at higher resolution with balanced compression.
               </p>
             </div>
@@ -2168,7 +2168,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Data Management" />
-        <div className="bg-white mx-4 rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setClearHistoryModal(true)}
@@ -2179,7 +2179,7 @@ export default function MessagesSettings() {
             </div>
             <div className="text-left">
               <p className="text-sm font-bold text-red-500">Clear Cached Messages</p>
-              <p className="text-xs text-gray-500 mt-0.5">
+              <p className="text-xs text-gray-500 dark:text-zinc-400 mt-0.5">
                 Clear locally cached data. Active threads can be re-synced from the server.
               </p>
             </div>
@@ -2225,8 +2225,8 @@ export default function MessagesSettings() {
   }, [view, fetchDeviceSessions]);
 
   return (
-    <div className="min-h-dvh bg-gray-50 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
-      <div className="min-h-dvh max-w-lg mx-auto bg-gray-50 relative shadow-xl border-x border-gray-100">
+    <div className="min-h-dvh bg-gray-50 dark:bg-[#101217] text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
+      <div className="min-h-dvh max-w-lg mx-auto bg-gray-50 dark:bg-[#101217] relative shadow-xl border-x border-gray-100 dark:border-white/10">
         {renderView()}
       </div>
 
@@ -2236,7 +2236,7 @@ export default function MessagesSettings() {
         onClose={() => setSoundThemeSheet(false)}
         title="Sound Theme"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Select a theme to swap the audio profile across the platform.
         </p>
         <div className="mt-2">
@@ -2250,7 +2250,7 @@ export default function MessagesSettings() {
               >
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900">{t.label}</p>
-                  <p className="text-xs text-gray-500">{t.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">{t.desc}</p>
                 </div>
                 {audioTheme === t.key && <Check size={18} className="text-[#ff1493]" />}
               </button>
@@ -2264,7 +2264,7 @@ export default function MessagesSettings() {
         onClose={() => setNotifSoundSheet(false)}
         title="Default Notification Sound"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Standard alert tone used when no chat-specific override is configured.
         </p>
         <div className="mt-2">
@@ -2289,7 +2289,7 @@ export default function MessagesSettings() {
         onClose={() => setChatSoundSheet(false)}
         title="Chat Notification Tone"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Custom alert sound for this conversation only. Does not change the global default.
         </p>
         <div className="mt-2">
@@ -2314,7 +2314,7 @@ export default function MessagesSettings() {
         onClose={() => setChatSelectSheet(false)}
         title="Select Conversation"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Choose a conversation to configure its per-chat notification settings.
         </p>
         <div className="mt-2">
@@ -2335,7 +2335,7 @@ export default function MessagesSettings() {
                   >
                     <img
                       src={getAvatarUrl(c.partner_avatar, c.partner_name)}
-                      className="w-8 h-8 rounded-full object-cover border border-gray-100"
+                      className="w-8 h-8 rounded-full object-cover border border-gray-100 dark:border-white/10"
                       alt=""
                     />
                     <span className="flex-1 text-sm font-semibold text-gray-900 text-left">
@@ -2383,7 +2383,7 @@ export default function MessagesSettings() {
               >
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500">{opt.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">{opt.desc}</p>
                 </div>
                 {autoDownloadMedia === opt.value && <Check size={18} className="text-[#ff1493]" />}
               </button>
@@ -2423,7 +2423,7 @@ export default function MessagesSettings() {
               >
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500">{opt.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">{opt.desc}</p>
                 </div>
                 {mediaQuality === opt.value && <Check size={18} className="text-[#ff1493]" />}
               </button>
@@ -2437,7 +2437,7 @@ export default function MessagesSettings() {
         onClose={() => setWhoCanMessageSheet(false)}
         title="Who Can Message You"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Server-enforced. Controls who can open new direct conversations with your account.
         </p>
         <div className="mt-2">
@@ -2467,7 +2467,7 @@ export default function MessagesSettings() {
               >
                 <div className="text-left">
                   <p className="text-sm font-semibold text-gray-900">{opt.label}</p>
-                  <p className="text-xs text-gray-500">{opt.desc}</p>
+                  <p className="text-xs text-gray-500 dark:text-zinc-400">{opt.desc}</p>
                 </div>
                 {messagePrivacy === opt.value && <Check size={18} className="text-[#ff1493]" />}
               </button>
@@ -2481,7 +2481,7 @@ export default function MessagesSettings() {
         onClose={() => setChatThemeGlobalSheet(false)}
         title="Global Chat Theme"
       >
-        <p className="px-4 pt-4 text-xs text-gray-500">
+        <p className="px-4 pt-4 text-xs text-gray-500 dark:text-zinc-400">
           Sets the default theme for all conversations without a per-chat override.
         </p>
         <div className="mt-2">

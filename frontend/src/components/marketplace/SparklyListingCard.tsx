@@ -58,7 +58,7 @@ export const SparklyListingCard: React.FC<SparklyListingCardProps> = ({ listing 
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-slate-600">
+          <div className="w-full h-full flex items-center justify-center text-slate-600 dark:text-zinc-300">
             <ShoppingBag size={32} />
           </div>
         )}

@@ -431,7 +431,7 @@ const LiveAnimations = ({ type }: { type: AnimationType | undefined }) => {
     return (
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 opacity-60">
         {[...Array(30)].map((_, i) => (
-          <div key={i} className="absolute bg-white rounded-full opacity-80 animate-snow" style={{
+          <div key={i} className="absolute bg-white dark:bg-[#1b1b24] rounded-full opacity-80 animate-snow" style={{
             left: `${Math.random() * 100}%`,
             width: `${Math.random() * 4 + 2}px`,
             height: `${Math.random() * 4 + 2}px`,
@@ -5803,7 +5803,7 @@ export default function Messages() {
                   >
                     <ArrowDown size={20} strokeWidth={3} />
                     {unreadCountInChat > 0 && (
-                      <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] bg-white text-[#ff1493] text-[9px] font-black px-1.5 rounded-full border-2 border-[#ff1493] shadow-lg flex items-center justify-center">
+                      <div className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] bg-white dark:bg-[#1b1b24] text-[#ff1493] text-[9px] font-black px-1.5 rounded-full border-2 border-[#ff1493] shadow-lg flex items-center justify-center">
                         {unreadCountInChat > 9 ? '9+' : unreadCountInChat}
                       </div>
                     )}

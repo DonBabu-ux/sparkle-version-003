@@ -127,13 +127,13 @@ export default function SellerProfile() {
   }, [fetchSeller]);
 
   if (loading) return (
-    <div className="min-h-dvh bg-white flex flex-col items-center justify-center">
+    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] flex flex-col items-center justify-center">
        <Spinner size="large" color="text-primary" />
     </div>
   );
 
   if (!seller) return (
-    <div className="min-h-dvh bg-white flex flex-col">
+    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] flex flex-col">
        <div className="flex-1 flex items-center justify-center text-marketplace-muted font-bold flex-col gap-4">
          <AlertCircle size={48} className="text-marketplace-muted/30" />
          <p className="text-lg">Seller not found</p>
@@ -147,7 +147,7 @@ export default function SellerProfile() {
   const isOwner = user?.id === seller.user_id || user?.user_id === seller.user_id;
 
   return (
-    <div className="min-h-dvh bg-white text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
       <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -187,7 +187,7 @@ export default function SellerProfile() {
                 <img 
                   src={seller.avatar_url || '/uploads/avatars/no-profile.png'}
                   alt={seller.username}
-                  className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl border-[6px] border-white shadow-2xl object-cover bg-white"
+                  className="w-32 h-32 sm:w-44 sm:h-44 rounded-3xl border-[6px] border-white shadow-2xl object-cover bg-white dark:bg-[#1b1b24]"
                 />
                 {seller.is_verified && (
                   <div className="absolute -bottom-2 -right-2 bg-[#1877F2] text-white w-10 h-10 rounded-2xl flex items-center justify-center border-4 border-white shadow-lg">
@@ -234,7 +234,7 @@ export default function SellerProfile() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
             <div className="p-6 bg-marketplace-bg border border-marketplace-border rounded-3xl group hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-amber-500">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1b1b24] flex items-center justify-center shadow-sm text-amber-500">
                   <Star size={20} fill="currentColor" />
                 </div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Reliability</span>
@@ -253,7 +253,7 @@ export default function SellerProfile() {
 
             <div className="p-6 bg-marketplace-bg border border-marketplace-border rounded-3xl group hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-blue-500">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1b1b24] flex items-center justify-center shadow-sm text-blue-500">
                   <ShoppingBag size={20} />
                 </div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Activity</span>
@@ -266,7 +266,7 @@ export default function SellerProfile() {
 
             <div className="p-6 bg-marketplace-bg border border-marketplace-border rounded-3xl group hover:bg-slate-50 transition-colors">
               <div className="flex items-center gap-3 mb-2">
-                <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-sm text-purple-500">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-[#1b1b24] flex items-center justify-center shadow-sm text-purple-500">
                   <Calendar size={20} />
                 </div>
                 <span className="text-[11px] font-black uppercase tracking-widest text-marketplace-muted">Experience</span>
@@ -336,7 +336,7 @@ export default function SellerProfile() {
             <div className="space-y-4">
               {seller.reviews && seller.reviews.length > 0 ? (
                 seller.reviews.map((rv, i) => (
-                  <div key={i} className="p-6 bg-white border border-marketplace-border rounded-[32px] shadow-sm">
+                  <div key={i} className="p-6 bg-white dark:bg-[#1b1b24] border border-marketplace-border rounded-[32px] shadow-sm">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
                         <img src={rv.reviewer_avatar || '/uploads/avatars/no-profile.png'} className="w-12 h-12 rounded-2xl object-cover" />
@@ -397,7 +397,7 @@ export default function SellerProfile() {
                 
                 <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {seller.is_verified && (
-                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                    <div className="flex items-center gap-4 p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-marketplace-border shadow-sm">
                       <div className="w-11 h-11 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
                         <ShieldCheck size={20} />
                       </div>
@@ -408,17 +408,17 @@ export default function SellerProfile() {
                     </div>
                   )}
                   {!seller.is_verified && (
-                    <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
-                      <div className="w-11 h-11 rounded-xl bg-slate-100 text-slate-500 flex items-center justify-center">
+                    <div className="flex items-center gap-4 p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-marketplace-border shadow-sm">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-[#101217] text-slate-500 dark:text-zinc-400 flex items-center justify-center">
                         <ShieldAlert size={20} />
                       </div>
                       <div>
                         <div className="text-[10px] font-black text-marketplace-muted uppercase tracking-widest">Account Verification</div>
-                        <div className="text-sm font-bold text-slate-600">Not verified</div>
+                        <div className="text-sm font-bold text-slate-600 dark:text-zinc-300">Not verified</div>
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-4 p-4 bg-white rounded-2xl border border-marketplace-border shadow-sm">
+                  <div className="flex items-center gap-4 p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-marketplace-border shadow-sm">
                       <div className="w-11 h-11 rounded-xl bg-green-50 text-green-500 flex items-center justify-center">
                         <MapPin size={20} />
                       </div>
@@ -435,7 +435,7 @@ export default function SellerProfile() {
                   <h4 className="text-lg font-black mb-1">Trading Safety</h4>
                   <p className="text-white/60 text-sm font-medium">Always meet in public places for transactions.</p>
                 </div>
-                <button onClick={() => navigate('/help')} className="relative z-10 px-6 py-2.5 bg-white text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
+                <button onClick={() => navigate('/help')} className="relative z-10 px-6 py-2.5 bg-white dark:bg-[#1b1b24] text-slate-900 rounded-xl font-black text-xs uppercase tracking-widest hover:scale-105 transition-all">
                   Read Guide
                 </button>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-10 -mt-10" />

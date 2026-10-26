@@ -61,7 +61,7 @@ export default function Clubs() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black font-sans overflow-x-hidden">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white font-sans overflow-x-hidden">
       
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
       <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
@@ -72,12 +72,12 @@ export default function Clubs() {
               <div className="max-w-4xl space-y-8">
                  <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full mb-4 shadow-xl shadow-primary/5">
                     <Users size={18} strokeWidth={3} className="text-primary" />
-                    <span className="text-[10px] font-black text-black uppercase tracking-[0.4em] italic">Campus Clubs</span>
+                    <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.4em] italic">Campus Clubs</span>
                  </div>
-                 <h1 className="text-5xl md:text-9xl font-black text-black tracking-tighter leading-none italic uppercase">
+                 <h1 className="text-5xl md:text-9xl font-black text-black dark:text-white tracking-tighter leading-none italic uppercase">
                     Campus <span className="text-primary">Clubs</span>
                  </h1>
-                  <p className="text-xl font-bold text-black opacity-60 leading-relaxed italic max-w-2xl">
+                  <p className="text-xl font-bold text-black dark:text-white opacity-60 leading-relaxed italic max-w-2xl">
                     Discover and join signals that match your frequency at <span className="text-primary">{user?.campus || 'the village'}</span>.
                   </p>
               </div>
@@ -113,7 +113,7 @@ export default function Clubs() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search clubs..."
-                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black dark:text-white placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
               />
            </div>
         </div>
@@ -150,7 +150,7 @@ export default function Clubs() {
                   to={`/clubs/${club.club_id}`}
                   className="bg-white/80 backdrop-blur-3xl rounded-[56px] group hover:scale-[1.03] transition-all duration-700 overflow-hidden shadow-2xl shadow-primary/5 border border-white relative animate-fade-in"
                  >
-                   <div className="relative aspect-video overflow-hidden mt-3 mx-3 rounded-[42px] border border-black/5">
+                   <div className="relative aspect-video overflow-hidden mt-3 mx-3 rounded-[42px] border border-black/5 dark:border-white/5">
                       <img 
                         src={club.banner_url || '/uploads/groups/default.png'}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
@@ -162,7 +162,7 @@ export default function Clubs() {
                    </div>
                    <div className="px-12 pb-12 -mt-16 relative z-10 flex flex-col items-start">
                       <div className="mb-8">
-                         <div className="p-1 rounded-[32px] bg-white shadow-2xl inline-block group-hover:-rotate-6 transition-transform duration-700 border border-black/5">
+                         <div className="p-1 rounded-[32px] bg-white dark:bg-[#1b1b24] shadow-2xl inline-block group-hover:-rotate-6 transition-transform duration-700 border border-black/5 dark:border-white/5">
                            <img 
                                src={club.logo_url || '/uploads/groups/default.png'}
                                className="w-24 h-24 rounded-[28px] object-cover"
@@ -170,8 +170,8 @@ export default function Clubs() {
                            />
                          </div>
                       </div>
-                      <h3 className="text-3xl font-black text-black mb-4 group-hover:text-primary transition-colors leading-none uppercase tracking-tighter italic">{club.name}</h3>
-                      <p className="text-base font-bold text-black opacity-60 line-clamp-2 leading-relaxed mb-12 italic">
+                      <h3 className="text-3xl font-black text-black dark:text-white mb-4 group-hover:text-primary transition-colors leading-none uppercase tracking-tighter italic">{club.name}</h3>
+                      <p className="text-base font-bold text-black dark:text-white opacity-60 line-clamp-2 leading-relaxed mb-12 italic">
                         {club.description || 'Connecting frequencies across the village...'}
                       </p>
                       
@@ -181,7 +181,7 @@ export default function Clubs() {
                                <Users size={24} strokeWidth={4} />
                             </div>
                             <div className="flex flex-col">
-                               <span className="text-lg font-black text-black leading-none">{club.member_count || 0}</span>
+                               <span className="text-lg font-black text-black dark:text-white leading-none">{club.member_count || 0}</span>
                                <span className="text-[8px] font-black text-black/20 uppercase tracking-widest mt-1 italic">Members</span>
                             </div>
                          </div>
@@ -203,7 +203,7 @@ export default function Clubs() {
           <div className="bg-white/90 backdrop-blur-3xl w-full max-w-4xl rounded-[56px] shadow-2xl border border-white overflow-hidden animate-scale-in max-h-[90vh] overflow-y-auto no-scrollbar relative" onClick={e => e.stopPropagation()}>
              <div className="p-16 pb-0 flex items-center justify-between">
                 <div>
-                   <h3 className="text-5xl font-black text-black tracking-tighter italic uppercase">Register Circle</h3>
+                   <h3 className="text-5xl font-black text-black dark:text-white tracking-tighter italic uppercase">Register Circle</h3>
                    <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] mt-4 italic">Start a new club on your campus.</p>
                 </div>
                 <button onClick={() => setShowModal(false)} className="w-16 h-16 bg-black/5 rounded-3xl flex items-center justify-center text-black/10 hover:text-black transition-all">
@@ -230,7 +230,7 @@ export default function Clubs() {
                         type="text" 
                         value={form.name}
                         onChange={e => setForm({...form, name: e.target.value})}
-                        className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-8 text-xl font-black text-black focus:bg-white focus:border-primary transition-all outline-none italic"
+                        className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-8 text-xl font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic"
                         placeholder="e.g. Drama Club, Chess Club..."
                         required 
                       />
@@ -242,7 +242,7 @@ export default function Clubs() {
                          <select 
                           value={form.category}
                           onChange={e => setForm({...form, category: e.target.value})}
-                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-8 font-black text-black focus:bg-white focus:border-primary transition-all outline-none appearance-none italic"
+                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-8 font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none appearance-none italic"
                          >
                              {CATEGORIES.filter(c => c !== 'All Communities').map(c => <option key={c} value={c}>{c}</option>)}
                          </select>
@@ -259,7 +259,7 @@ export default function Clubs() {
                         rows={3} 
                         value={form.description}
                         onChange={e => setForm({...form, description: e.target.value})}
-                        className="w-full bg-black/5 border-2 border-transparent rounded-[32px] p-8 text-lg font-black text-black focus:bg-white focus:border-primary transition-all outline-none resize-none italic"
+                        className="w-full bg-black/5 border-2 border-transparent rounded-[32px] p-8 text-lg font-black text-black dark:text-white focus:bg-white focus:border-primary transition-all outline-none resize-none italic"
                         placeholder="Tell the village about the frequency you're establishing..." 
                         required 
                       />

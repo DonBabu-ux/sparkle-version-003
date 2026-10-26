@@ -140,7 +140,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">Breach / vulnerability</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-rose-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-rose-400" />
                   </button>
 
                   <button
@@ -157,7 +157,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">Direct human help</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-sky-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-sky-400" />
                   </button>
 
                   <button
@@ -177,7 +177,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">Automated assistant</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-purple-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-purple-400" />
                   </button>
 
                   <button
@@ -194,7 +194,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">Urgent account phone call</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-emerald-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-emerald-400" />
                   </button>
 
                   <button
@@ -211,7 +211,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">UI / API malfunction</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-amber-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-amber-400" />
                   </button>
 
                   <button
@@ -232,7 +232,7 @@ export const DeveloperEmergencyConsoleModal: React.FC<ModalProps> = ({ isOpen, o
                         <p className="text-[10px] text-slate-400">Run auto-repair & test suite</p>
                       </div>
                     </div>
-                    <ChevronRight size={16} className="text-slate-600 group-hover:text-indigo-400" />
+                    <ChevronRight size={16} className="text-slate-600 dark:text-zinc-300 group-hover:text-indigo-400" />
                   </button>
                 </div>
               </div>

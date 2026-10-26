@@ -330,7 +330,7 @@ export default function AccountRecoveryPortal() {
                                         </span>
                                     </div>
                                     <p className="text-slate-400">Category: {statusResult.category}</p>
-                                    <p className="text-slate-500 text-[10px]">Submitted: {new Date(statusResult.submittedAt).toLocaleString()}</p>
+                                    <p className="text-slate-500 dark:text-zinc-400 text-[10px]">Submitted: {new Date(statusResult.submittedAt).toLocaleString()}</p>
                                     {statusResult.decisionOutcome && (
                                         <div className="p-2.5 rounded-xl bg-slate-900 border border-slate-700 font-semibold text-sky-300">
                                             Decision: {statusResult.decisionOutcome}
@@ -392,7 +392,7 @@ export default function AccountRecoveryPortal() {
 
                                     <button
                                         onClick={() => { setRequestId(null); setChallengeCode(''); }}
-                                        className="w-full text-center text-slate-500 hover:text-slate-400 text-xs py-1"
+                                        className="w-full text-center text-slate-500 dark:text-zinc-400 hover:text-slate-400 text-xs py-1"
                                     >
                                         Use a different contact method
                                     </button>

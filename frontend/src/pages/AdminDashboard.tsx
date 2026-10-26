@@ -184,7 +184,7 @@ export default function AdminDashboard() {
   }, [activeTab]);
 
   return (
-    <div className="flex bg-[#fdf2f4] min-h-dvh text-black overflow-x-hidden font-sans pb-20">
+    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-black dark:text-white overflow-x-hidden font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full">
         
@@ -193,13 +193,13 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-6">
             <button 
               onClick={() => navigate(-1)}
-              className="w-8 h-8 flex items-center justify-center bg-white rounded-full shadow-sm border border-gray-100 text-gray-500 active:scale-90 transition-all"
+              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-[#1b1b24] rounded-full shadow-sm border border-gray-100 dark:border-white/10 text-gray-500 dark:text-zinc-400 active:scale-90 transition-all"
             >
               <ArrowLeft size={16} />
             </button>
             <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
               <Shield size={12} strokeWidth={3} className="text-primary" />
-              <span className="text-[8px] font-black text-black uppercase tracking-widest italic">Override</span>
+              <span className="text-[8px] font-black text-black dark:text-white uppercase tracking-widest italic">Override</span>
             </div>
           </div>
           
@@ -285,10 +285,10 @@ export default function AdminDashboard() {
                 </div>
                 <div className="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
                   {stats?.recentActivity?.map((act, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 bg-white border border-gray-50 rounded-[20px] hover:bg-primary/5 transition-all group">
+                    <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-[#1b1b24] border border-gray-50 rounded-[20px] hover:bg-primary/5 transition-all group">
                       <div className="w-2 h-2 bg-primary rounded-full shrink-0 shadow-[0_0_8px_rgba(255,105,180,0.4)]" />
                       <div className="flex-1 min-w-0">
-                         <p className="text-[11px] font-bold text-gray-700 leading-tight truncate uppercase italic">{act.message}</p>
+                         <p className="text-[11px] font-bold text-gray-700 dark:text-zinc-200 leading-tight truncate uppercase italic">{act.message}</p>
                          <div className="flex justify-between items-center mt-1">
                             <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Live Now</span>
                             <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">{act.time}</span>
@@ -300,7 +300,7 @@ export default function AdminDashboard() {
               </div>
 
               {/* Council Directive - Compact */}
-              <div className="bg-white p-6 rounded-[32px] border border-white shadow-sm flex flex-col">
+              <div className="bg-white dark:bg-[#1b1b24] p-6 rounded-[32px] border border-white shadow-sm flex flex-col">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
                      <Sparkles size={16} strokeWidth={3} />
@@ -312,7 +312,7 @@ export default function AdminDashboard() {
                      value={announcement}
                      onChange={e => setAnnouncement(e.target.value)}
                      placeholder="Send an announcement..."
-                     className="w-full min-h-[100px] bg-gray-50 border-none rounded-2xl p-4 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all outline-none italic resize-none"
+                     className="w-full min-h-[100px] bg-gray-50 dark:bg-[#101217] border-none rounded-2xl p-4 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all outline-none italic resize-none"
                   />
                   <button 
                      onClick={handleSendAnnouncement}
@@ -326,11 +326,11 @@ export default function AdminDashboard() {
           </div>
         ) : (
           /* Content Table - Modern & Tight */
-          <div className="bg-white rounded-[32px] border border-white shadow-sm overflow-hidden animate-fade-in mb-20">
+          <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] border border-white shadow-sm overflow-hidden animate-fade-in mb-20">
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100">
+                  <tr className="bg-gray-50/50 border-b border-gray-100 dark:border-white/10">
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Subject</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Status</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Actions</th>
@@ -392,13 +392,13 @@ export default function AdminDashboard() {
 
       {stepUp && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white rounded-[28px] p-6 shadow-2xl">
+          <div className="w-full max-w-md bg-white dark:bg-[#1b1b24] rounded-[28px] p-6 shadow-2xl">
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-xl font-black text-gray-900">Confirm it's you</h2>
                 <p className="text-xs font-bold text-gray-400 mt-1">Sensitive admin actions need a fresh identity check.</p>
               </div>
-              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-500" aria-label="Close">
+              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-gray-50 dark:bg-[#101217] flex items-center justify-center text-gray-500 dark:text-zinc-400" aria-label="Close">
                 <X size={16} />
               </button>
             </div>
@@ -438,7 +438,7 @@ export default function AdminDashboard() {
                   value={secret}
                   onChange={(e) => setSecret(e.target.value)}
                   placeholder={factor === 'password' ? 'Current password' : 'Email verification code'}
-                  className="w-full h-12 rounded-xl bg-gray-50 border border-gray-200 px-4 font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 px-4 font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20"
                 />
                 <button
                   type="submit"

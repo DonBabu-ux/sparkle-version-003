@@ -91,7 +91,7 @@ export default function ListingCard({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className="bg-white cursor-pointer flex flex-col pb-4"
+          className="bg-white dark:bg-[#1b1b24] cursor-pointer flex flex-col pb-4"
           onClick={onClick}
         >
           <MarketplaceImageSlider
@@ -128,7 +128,7 @@ export default function ListingCard({
           layout
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-[32px] overflow-hidden border border-marketplace-border shadow-sm group hover:shadow-xl transition-all duration-300"
+          className="bg-white dark:bg-[#1b1b24] rounded-[32px] overflow-hidden border border-marketplace-border shadow-sm group hover:shadow-xl transition-all duration-300"
         >
           <div className="relative overflow-hidden">
             <MarketplaceImageSlider
@@ -141,7 +141,7 @@ export default function ListingCard({
             />
             {(isSold || isRemoved) && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center backdrop-blur-[2px]">
-                <div className="bg-white px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">{isRemoved ? 'Removed' : 'Sold'}</div>
+                <div className="bg-white dark:bg-[#1b1b24] px-6 py-2 rounded-full font-black text-xs uppercase tracking-[0.2em]">{isRemoved ? 'Removed' : 'Sold'}</div>
               </div>
             )}
           </div>
@@ -270,7 +270,7 @@ export default function ListingCard({
           onClick={onClick}
           className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
         >
-          <img src={listing.image || '/uploads/defaults/no-image.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 group-hover:scale-105 transition-all shrink-0" alt="" />
+          <img src={listing.image || '/uploads/defaults/no-image.png'} className="w-16 h-16 rounded-xl object-cover border border-gray-100 dark:border-white/10 group-hover:scale-105 transition-all shrink-0" alt="" />
           <div className="flex-1 min-w-0">
             <div className="text-lg font-bold text-gray-900 leading-none mb-2 italic uppercase tracking-tight truncate">{listing.title}</div>
             <div className="flex items-center gap-3">

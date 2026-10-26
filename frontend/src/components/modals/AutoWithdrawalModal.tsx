@@ -152,7 +152,7 @@ export function AutoWithdrawalModal({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg bg-white dark:bg-[#1b1b24] rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-white shrink-0 relative">
@@ -186,7 +186,7 @@ export function AutoWithdrawalModal({
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60">
                   <div>
                     <h4 className="text-sm font-black text-slate-900">Enable Auto-Payouts</h4>
-                    <p className="text-[11px] text-slate-500 font-medium">Funds will automatically transfer when rules trigger</p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">Funds will automatically transfer when rules trigger</p>
                   </div>
                   <button
                     type="button"
@@ -211,7 +211,7 @@ export function AutoWithdrawalModal({
                   >
                     {/* Mode Selection */}
                     <div>
-                      <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wide mb-2">
+                      <label className="block text-[11px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-wide mb-2">
                         Withdrawal Rule / Strategy
                       </label>
                       <div className="grid grid-cols-3 gap-2">
@@ -226,7 +226,7 @@ export function AutoWithdrawalModal({
                         >
                           <Sliders className={`w-4 h-4 mb-1 ${mode === 'threshold' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Threshold</div>
-                          <div className="text-[10px] text-slate-500">When balance reaches limit</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">When balance reaches limit</div>
                         </button>
 
                         <button
@@ -240,7 +240,7 @@ export function AutoWithdrawalModal({
                         >
                           <Calendar className={`w-4 h-4 mb-1 ${mode === 'scheduled' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Scheduled</div>
-                          <div className="text-[10px] text-slate-500">Daily / Weekly / Monthly</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">Daily / Weekly / Monthly</div>
                         </button>
 
                         <button
@@ -254,7 +254,7 @@ export function AutoWithdrawalModal({
                         >
                           <Zap className={`w-4 h-4 mb-1 ${mode === 'hybrid' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Hybrid</div>
-                          <div className="text-[10px] text-slate-500">Schedule + Threshold</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">Schedule + Threshold</div>
                         </button>
                       </div>
                     </div>
@@ -262,7 +262,7 @@ export function AutoWithdrawalModal({
                     {/* Threshold Input */}
                     {(mode === 'threshold' || mode === 'hybrid') && (
                       <div>
-                        <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wide mb-1.5">
+                        <label className="block text-[11px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-wide mb-1.5">
                           Minimum Threshold (KES)
                         </label>
                         <div className="relative">
@@ -274,7 +274,7 @@ export function AutoWithdrawalModal({
                             value={thresholdKES}
                             onChange={(e) => setThresholdKES(e.target.value)}
                             placeholder="5000"
-                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
+                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
                           />
                         </div>
                         <p className="text-[10px] text-slate-400 font-medium mt-1">
@@ -286,7 +286,7 @@ export function AutoWithdrawalModal({
                     {/* Schedule Frequency Input */}
                     {(mode === 'scheduled' || mode === 'hybrid') && (
                       <div>
-                        <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wide mb-1.5">
+                        <label className="block text-[11px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-wide mb-1.5">
                           Payout Frequency
                         </label>
                         <div className="grid grid-cols-3 gap-2">
@@ -310,7 +310,7 @@ export function AutoWithdrawalModal({
 
                     {/* Payment Method & Details */}
                     <div>
-                      <label className="block text-[11px] font-black text-slate-600 uppercase tracking-wide mb-1.5">
+                      <label className="block text-[11px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-wide mb-1.5">
                         Destination Payout Method
                       </label>
                       <div className="grid grid-cols-2 gap-2 mb-3">
@@ -342,7 +342,7 @@ export function AutoWithdrawalModal({
 
                       {method === 'mpesa' ? (
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
                             M-Pesa Phone Number
                           </label>
                           <input
@@ -350,13 +350,13 @@ export function AutoWithdrawalModal({
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="0712345678 or +254712345678"
-                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none"
+                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none"
                           />
                         </div>
                       ) : (
                         <div className="space-y-2">
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
                               Account Holder Name
                             </label>
                             <input
@@ -364,12 +364,12 @@ export function AutoWithdrawalModal({
                               value={accountName}
                               onChange={(e) => setAccountName(e.target.value)}
                               placeholder="e.g. John Doe"
-                              className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
                                 Bank Code
                               </label>
                               <input
@@ -377,11 +377,11 @@ export function AutoWithdrawalModal({
                                 value={bankCode}
                                 onChange={(e) => setBankCode(e.target.value)}
                                 placeholder="e.g. 01"
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
                                 Account Number
                               </label>
                               <input
@@ -389,7 +389,7 @@ export function AutoWithdrawalModal({
                                 value={accountNumber}
                                 onChange={(e) => setAccountNumber(e.target.value)}
                                 placeholder="123456789"
-                                className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                               />
                             </div>
                           </div>
@@ -398,7 +398,7 @@ export function AutoWithdrawalModal({
                     </div>
 
                     {/* Terms Consent */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 flex items-start gap-3">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#101217] border border-slate-200/80 flex items-start gap-3">
                       <input
                         type="checkbox"
                         id="autoWithdrawalConsent"
@@ -406,7 +406,7 @@ export function AutoWithdrawalModal({
                         onChange={(e) => setConsentConfirmed(e.target.checked)}
                         className="mt-0.5 w-4 h-4 rounded border-slate-300 text-amber-500 focus:ring-amber-500 shrink-0 cursor-pointer"
                       />
-                      <label htmlFor="autoWithdrawalConsent" className="text-[11px] text-slate-600 leading-snug cursor-pointer select-none">
+                      <label htmlFor="autoWithdrawalConsent" className="text-[11px] text-slate-600 dark:text-zinc-300 leading-snug cursor-pointer select-none">
                         <strong className="text-slate-800">Automatic Payout Agreement:</strong> I authorize Sparkle to automatically transfer available Professional Dashboard funds to my specified payment destination whenever the selected withdrawal rules are satisfied.
                       </label>
                     </div>
@@ -414,7 +414,7 @@ export function AutoWithdrawalModal({
                 )}
 
                 {/* Security Note */}
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 bg-slate-100/60 p-3 rounded-xl">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 bg-slate-100/60 p-3 rounded-xl">
                   <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
                   <span>Atomic balance locking and idempotency protection active on all automated payouts.</span>
                 </div>
@@ -439,11 +439,11 @@ export function AutoWithdrawalModal({
           </div>
 
           {/* Footer */}
-          <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+          <div className="p-4 bg-slate-50 dark:bg-[#101217] border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-bold text-slate-600 hover:text-slate-900 transition-colors"
+              className="px-4 py-2 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-slate-900 transition-colors"
             >
               Cancel
             </button>

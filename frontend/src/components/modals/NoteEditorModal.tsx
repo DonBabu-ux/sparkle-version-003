@@ -438,7 +438,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
               className="bg-[#d1d1d6] w-[270px] overflow-hidden shadow-2xl"
             >
               <div className="px-6 pt-5 pb-4 text-center">
-                <h3 className="text-black font-semibold text-[17px] mb-1.5">Something Went Wrong</h3>
+                <h3 className="text-black dark:text-white font-semibold text-[17px] mb-1.5">Something Went Wrong</h3>
                 <p className="text-black/60 text-[13px] leading-relaxed">Music is currently unavailable. Please try again later.</p>
               </div>
               <div className="border-t border-black/15 flex">

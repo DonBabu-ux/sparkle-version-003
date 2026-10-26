@@ -380,10 +380,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
 
   if (chat?.account_type === 'system' || chat?.is_system_account || chat?.is_system) {
     return (
-      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-[#000000] z-(--z-sheet) flex justify-center animate-fade-in">
-        <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative select-none">
-          <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
-            <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors">
+      <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-(--z-sheet) flex justify-center animate-fade-in">
+        <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#1b1b24] relative select-none">
+          <div className="p-4 flex items-center justify-between sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
+            <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors">
               <ChevronLeft size={24} />
             </button>
             <span className="text-white font-bold text-lg">Official Account</span>
@@ -416,7 +416,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
             </div>
 
             {/* Version Pill */}
-            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-400 flex items-center justify-center font-bold">
                   <Sparkles size={20} />
@@ -434,7 +434,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
             {/* Official Links */}
             <div className="space-y-2">
               <h3 className="text-xs font-bold text-white/30 uppercase tracking-widest px-2">Official Links</h3>
-              <div className="bg-white/5 border border-white/10 rounded-2xl overflow-hidden divide-y divide-white/5">
+              <div className="bg-white/5 border border-white/5 rounded-2xl overflow-hidden divide-y divide-white/5">
                 <button
                   onClick={() => { onClose(); navigate('/help'); }}
                   className="w-full p-4 flex items-center justify-between text-left hover:bg-white/5 transition-colors"
@@ -520,23 +520,23 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
   }
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-[#000000] z-(--z-sheet) flex justify-center animate-fade-in">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-(--z-sheet) flex justify-center animate-fade-in">
       <div 
-        className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#0a0a0a] relative" 
+        className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#1b1b24] relative" 
         onClick={e => e.stopPropagation()}
       >
         <AnimatePresence mode="wait">
           {view === 'main' ? (
             <motion.div key="main" initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full overflow-y-auto no-scrollbar pb-10">
-              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <span className="text-white font-bold text-lg">Settings</span>
-                <button className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><MoreHorizontal size={24} /></button>
+                <button className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><MoreHorizontal size={24} /></button>
               </div>
 
               <div className="flex flex-col items-center mt-2 px-6">
                 <div className="relative mb-4">
-                  <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-24 h-24 rounded-full object-cover border-4 border-white/10 shadow-lg" alt="" />
+                  <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-24 h-24 rounded-full object-cover border-4 border-white/5 shadow-lg" alt="" />
                   {chat.partner_online && <div className="absolute bottom-1 right-1 w-5 h-5 bg-emerald-500 border-[3px] border-black rounded-full flex items-center justify-center"><span className="text-[8px] font-bold text-black">9m</span></div>}
                 </div>
                 <h2 className="text-2xl font-bold text-white mb-6">{displayPartnerName}</h2>
@@ -567,7 +567,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                   <ActionItem icon={Pin} label="Pinned messages" onClick={() => setView('pinned')} primaryColor={currentTheme?.colors.primary} />
                   
                   {/* Conversation Insights (Phase 5) */}
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl my-3 space-y-3">
+                  <div className="p-4 bg-white/5 border border-white/5 rounded-2xl my-3 space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
                         <BarChart2 className="w-4 h-4 text-[#ff1493]" />
@@ -614,7 +614,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                       </div>
                     </div>
 
-                    <div className="border-t border-white/10 pt-3 space-y-1.5 text-xs text-white/70">
+                    <div className="border-t border-white/5 pt-3 space-y-1.5 text-xs text-white/70">
                       <div className="flex justify-between">
                         <span>Started chatting</span>
                         <span className="text-white font-semibold">{chatStats?.started_chatting || 'March 18, 2025'}</span>
@@ -810,9 +810,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'disappearing_selector' ? (
-            <motion.div key="disappearing_selector" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#0a0a0a]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+            <motion.div key="disappearing_selector" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#1b1b24]">
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Disappearing Messages</h2>
               </div>
 
@@ -823,7 +823,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                   </p>
                 </div>
 
-                <div className="bg-white/5 border border-white/10 rounded-2xl divide-y divide-white/10 overflow-hidden">
+                <div className="bg-white/5 border border-white/5 rounded-2xl divide-y divide-white/5 overflow-hidden">
                   {[
                     { label: 'Off', value: 0 },
                     { label: '15 seconds', value: 15 },
@@ -853,7 +853,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                         }
                         setView('main');
                       }}
-                      className="w-full p-4 flex items-center justify-between text-left hover:bg-white/10 transition-colors"
+                      className="w-full p-4 flex items-center justify-between text-left hover:bg-white/[0.08] transition-colors"
                     >
                       <span className="text-sm font-semibold text-white">{opt.label}</span>
                       {disappearingDuration === opt.value && (
@@ -868,12 +868,12 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
             </motion.div>
           ) : view === 'customize' ? (
             <motion.div key="customize" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Customize</h2>
               </div>
 
-              <div className="flex justify-center gap-2 p-4 border-b border-white/10 bg-[#0a0a0a]">
+              <div className="flex justify-center gap-2 p-4 border-b border-white/5 bg-[#1b1b24]">
                 <TabButton active={customizeTab === 'themes'} onClick={() => setCustomizeTab('themes')}>Themes</TabButton>
                 <TabButton active={customizeTab === 'reaction'} onClick={() => setCustomizeTab('reaction')}>Quick reaction</TabButton>
                 <TabButton active={customizeTab === 'words'} onClick={() => setCustomizeTab('words')}>Word effects</TabButton>
@@ -883,10 +883,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 {customizeTab === 'themes' && (
                   <div className="p-4">
                     <div className="flex gap-2 mb-6">
-                      <button onClick={() => setView('ai_generator')} className="flex-1 bg-white/5 hover:bg-white/10 rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-purple-500/20 active:scale-95">
+                      <button onClick={() => setView('ai_generator')} className="flex-1 bg-white/5 hover:bg-white/[0.08] rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-purple-500/20 active:scale-95">
                         <Wand2 size={16} className="text-purple-400" /> AI Themes
                       </button>
-                      <button onClick={() => setView('custom_photo')} className="flex-1 bg-white/5 hover:bg-white/10 rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-blue-500/20 active:scale-95">
+                      <button onClick={() => setView('custom_photo')} className="flex-1 bg-white/5 hover:bg-white/[0.08] rounded-lg py-2 px-1 flex flex-col items-center justify-center gap-1 text-white/90 text-[11px] font-bold transition-all border border-blue-500/20 active:scale-95">
                         <ImagePlus size={16} className="text-blue-400" /> Upload Image
                       </button>
                     </div>
@@ -952,7 +952,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     </div>
 
                     {/* Bottom Half: Emoji Grid with Sleek Search */}
-                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/10 pb-[env(safe-area-inset-bottom)]">
+                    <div className="flex-[1.2] flex flex-col w-full bg-[#000000] border-t border-white/5 pb-[env(safe-area-inset-bottom)]">
                       <div className="p-5 pt-8">
                         <div className="bg-white/10 rounded-full flex items-center px-5 h-11 border border-white/20 focus-within:border-[#ff1493]/50 focus-within:bg-white/[0.15] transition-all">
                           <Search size={18} className="text-white/40" />
@@ -1001,7 +1001,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                             <motion.div 
                               key={effect.id}
                               initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
-                              className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between group"
+                              className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group"
                             >
                               <div className="flex items-center gap-4">
                                 <span className="text-2xl">{effect.emoji}</span>
@@ -1020,11 +1020,11 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               {customizeTab === 'words' && (
-                <div className="p-4 bg-[#000000] border-t border-white/10 relative z-30 pb-[calc(1rem+env(safe-area-inset-bottom))]">
+                <div className="p-4 bg-[#000000] border-t border-white/5 relative z-30 pb-[calc(1rem+env(safe-area-inset-bottom))]">
                   <div className="bg-white/5 rounded-full flex items-center px-3 py-1.5 border border-white/5 focus-within:bg-white/10 focus-within:border-[#ff1493]/30 transition-all">
                     <button 
                       onClick={() => setView('word_emoji_picker')} 
-                      className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-xl hover:bg-white/10 transition-colors shrink-0"
+                      className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center text-xl hover:bg-white/[0.08] transition-colors shrink-0"
                     >
                       {wordEmoji}
                     </button>
@@ -1069,7 +1069,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               {/* Fake Chat Header */}
-              <header className="h-[60px] bg-black/40 backdrop-blur-xl border-b border-white/10 px-4 flex items-center justify-between z-10">
+              <header className="h-[60px] bg-black/40 backdrop-blur-xl border-b border-white/5 px-4 flex items-center justify-between z-10">
                 <div className="flex items-center gap-3">
                   <button onClick={() => setView('customize')} className="text-white p-2"><ChevronLeft size={24} /></button>
                   <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-[36px] h-[36px] rounded-full object-cover" />
@@ -1100,9 +1100,9 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               {/* Fake Input */}
-              <div className="p-4 z-10 bg-black/40 backdrop-blur-xl border-t border-white/10">
+              <div className="p-4 z-10 bg-black/40 backdrop-blur-xl border-t border-white/5">
                 <div className="flex items-center gap-3">
-                  <div className="flex-1 h-10 rounded-full bg-white/10 border border-white/10 px-4 flex items-center">
+                  <div className="flex-1 h-10 rounded-full bg-white/10 border border-white/5 px-4 flex items-center">
                     <span className="text-white/40 text-sm">Message...</span>
                   </div>
                   <button className="w-10 h-10 rounded-full flex items-center justify-center" style={{ color: previewTheme.colors.primary }}>
@@ -1134,13 +1134,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     value={aiPrompt}
                     onChange={e => setAiPrompt(e.target.value)}
                     placeholder="e.g., pink neon cyberpunk"
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl px-4 py-5 text-white text-center font-bold focus:border-purple-500/50 transition-colors outline-none"
+                    className="w-full bg-white/5 border border-white/5 rounded-2xl px-4 py-5 text-white text-center font-bold focus:border-purple-500/50 transition-colors outline-none"
                   />
                 </div>
                 
                 <div className="flex flex-wrap justify-center gap-2 mb-8">
                   {['romantic roses', 'galaxy purple', 'sunset beach', 'dark minimalist'].map(p => (
-                    <button key={p} onClick={() => setAiPrompt(p)} className="px-4 py-2 rounded-full bg-white/5 text-xs font-bold text-white/70 hover:bg-white/10 transition-colors">{p}</button>
+                    <button key={p} onClick={() => setAiPrompt(p)} className="px-4 py-2 rounded-full bg-white/5 text-xs font-bold text-white/70 hover:bg-white/[0.08] transition-colors">{p}</button>
                   ))}
                 </div>
 
@@ -1178,7 +1178,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 <h2 className="text-xl font-bold text-white">Custom Photo Editor</h2>
               </div>
               <div className="p-6 flex-1 flex flex-col items-center overflow-y-auto no-scrollbar pb-24">
-                <label className="w-full aspect-[2/3] max-w-[240px] bg-white/5 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-white/20 cursor-pointer hover:bg-white/10 transition-all overflow-hidden relative group mb-8">
+                <label className="w-full aspect-[2/3] max-w-[240px] bg-white/5 rounded-3xl flex flex-col items-center justify-center border-2 border-dashed border-white/20 cursor-pointer hover:bg-white/[0.08] transition-all overflow-hidden relative group mb-8">
                   {customPhoto ? (
                     <>
                       <img src={customPhoto} className="w-full h-full object-cover transition-all" style={{ filter: `blur(${blurValue/5}px)` }} alt="" />
@@ -1266,15 +1266,15 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
             </motion.div>
           ) : view === 'nicknames' ? (
-            <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#0a0a0a]">
-              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-10 border-b border-white/10">
+            <motion.div key="nicknames" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#1b1b24]">
+              <div className="p-4 flex items-center justify-between sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-10 border-b border-white/5">
                 <div className="flex items-center gap-4">
-                  <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                  <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                   <h2 className="text-xl font-bold text-white">Nicknames</h2>
                 </div>
                 <button 
                   onClick={() => setShowNicknameHistory(true)}
-                  className="p-2.5 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-full transition-all flex items-center gap-1.5 text-xs font-bold border border-white/10"
+                  className="p-2.5 bg-white/5 hover:bg-white/[0.08] text-white/80 hover:text-white rounded-full transition-all flex items-center gap-1.5 text-xs font-bold border border-white/5"
                   title="View Nickname History"
                 >
                   <History size={18} className="text-[#ff1493]" />
@@ -1283,7 +1283,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               </div>
 
               <div className="p-6 space-y-6 max-w-lg mx-auto w-full">
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 shadow-md">
                   <img src={getAvatarUrl(chat.partner_avatar, displayPartnerName)} className="w-14 h-14 rounded-full object-cover border-2 border-white/20" alt="" />
                   <div className="flex-1">
                     <p className="text-xs font-bold text-white/50 mb-1">Set nickname for {displayPartnerName}</p>
@@ -1296,7 +1296,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 shadow-md">
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/5 shadow-md">
                   <div className="w-14 h-14 rounded-full bg-gradient-to-tr from-purple-600 to-pink-600 flex items-center justify-center text-white font-black text-lg shadow-lg">You</div>
                   <div className="flex-1">
                     <p className="text-xs font-bold text-white/50 mb-1">Set your nickname</p>
@@ -1361,7 +1361,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'media' ? (
             <motion.div key="media" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Media, Files & Links</h2>
               </div>
               <div className="p-4 grid grid-cols-3 gap-2 overflow-y-auto">
@@ -1376,11 +1376,11 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'pinned' ? (
             <motion.div key="pinned" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Pinned Messages</h2>
               </div>
               <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/10">
+                <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6 border border-white/5">
                   <Pin size={32} className="text-white/40" />
                 </div>
                 <h3 className="text-xl font-bold text-white mb-2">No pinned messages</h3>
@@ -1390,7 +1390,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'search_chat' ? (
             <motion.div key="search_chat" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#000000] z-10 border-b border-white/5">
-                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+                <button onClick={() => setView('main')} className="p-2 text-white hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                   <div className="flex-1 bg-white/5 rounded-full flex items-center px-4 h-10 border border-white/5 transition-all focus-within:bg-white/10">
                     <Search size={16} className="text-white/20" />
                     <input 
@@ -1410,15 +1410,15 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
             </motion.div>
           ) : view === 'notifications_sounds' ? (
             <motion.div key="notifications_sounds" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/80 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Notifications & Sounds</h2>
               </div>
 
               <div className="flex-1 overflow-y-auto no-scrollbar pb-20 p-6 space-y-6">
                 
                 {/* Mute and Main Toggle Card */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm font-bold text-white">Mute Conversation</p>
@@ -1434,7 +1434,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Sound Theme Selector */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Sound Theme Profile</h4>
                   <div className="flex flex-col gap-4">
                     <div>
@@ -1444,18 +1444,18 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     <select
                       value={audioSettings.soundTheme || 'Sparkle Original'}
                       onChange={(e) => handleThemeChange(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
+                      className="w-full px-4 py-3 rounded-2xl border border-white/5 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
                     >
-                      <option value="Sparkle Original" className="bg-[#0a0a0a] text-white">Sparkle Original</option>
-                      <option value="Classic" className="bg-[#0a0a0a] text-white">Classic</option>
-                      <option value="Soft" className="bg-[#0a0a0a] text-white">Soft (Lowpass DSP)</option>
-                      <option value="Minimal" className="bg-[#0a0a0a] text-white">Minimal (Pitch Up DSP)</option>
+                      <option value="Sparkle Original" className="bg-[#1b1b24] text-white">Sparkle Original</option>
+                      <option value="Classic" className="bg-[#1b1b24] text-white">Classic</option>
+                      <option value="Soft" className="bg-[#1b1b24] text-white">Soft (Lowpass DSP)</option>
+                      <option value="Minimal" className="bg-[#1b1b24] text-white">Minimal (Pitch Up DSP)</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Notification Alert Sound Selector */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Notification Sound</h4>
                   <div className="flex flex-col gap-4">
                     <div>
@@ -1465,19 +1465,19 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     <select
                       value={selectedNotificationSound}
                       onChange={(e) => handleNotificationSoundChange(e.target.value)}
-                      className="w-full px-4 py-3 rounded-2xl border border-white/10 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
+                      className="w-full px-4 py-3 rounded-2xl border border-white/5 bg-white/5 text-white text-sm font-bold outline-none focus:border-[#ff1493] transition-all cursor-pointer"
                     >
-                      <option value="default" className="bg-[#0a0a0a] text-white">Device Default / System Sound</option>
-                      <option value="iphone" className="bg-[#0a0a0a] text-white">iPhone Classic Style</option>
-                      <option value="facebook_notification" className="bg-[#0a0a0a] text-white">Facebook Style Notification</option>
-                      <option value="inchat_receive" className="bg-[#0a0a0a] text-white">In-Chat Message Receive</option>
-                      <option value="outchat_notification" className="bg-[#0a0a0a] text-white">Out-Chat Bubble Ping</option>
+                      <option value="default" className="bg-[#1b1b24] text-white">Device Default / System Sound</option>
+                      <option value="iphone" className="bg-[#1b1b24] text-white">iPhone Classic Style</option>
+                      <option value="facebook_notification" className="bg-[#1b1b24] text-white">Facebook Style Notification</option>
+                      <option value="inchat_receive" className="bg-[#1b1b24] text-white">In-Chat Message Receive</option>
+                      <option value="outchat_notification" className="bg-[#1b1b24] text-white">Out-Chat Bubble Ping</option>
                     </select>
                   </div>
                 </div>
 
                 {/* Volume Sliders */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-6 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-6 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Volume Levels</h4>
                   <div className="space-y-4">
                     {[
@@ -1505,7 +1505,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Customization Switches */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Toggles & Customization</h4>
                   <div className="grid grid-cols-1 gap-4">
                     {[
@@ -1528,7 +1528,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Previews */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Test Preview</h4>
                   <div className="grid grid-cols-3 gap-3">
                     {[
@@ -1543,7 +1543,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                         <button
                           key={btn.key}
                           onClick={() => playSound(soundToPlay as SoundKey)}
-                          className="py-3 px-3 bg-white/5 border border-white/10 hover:border-[#ff1493]/50 rounded-2xl transition-all active:scale-95 text-xs font-bold text-white flex items-center justify-center gap-1.5 hover:bg-white/10"
+                          className="py-3 px-3 bg-white/5 border border-white/5 hover:border-[#ff1493]/50 rounded-2xl transition-all active:scale-95 text-xs font-bold text-white flex items-center justify-center gap-1.5 hover:bg-white/[0.08]"
                         >
                           <Play size={10} fill="currentColor" /> {btn.label}
                         </button>
@@ -1555,7 +1555,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 {/* Reset Audio */}
                 <button
                   onClick={handleResetAudio}
-                  className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/10 text-white"
+                  className="w-full py-4 bg-white/5 hover:bg-white/[0.08] rounded-2xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-2 border border-white/5 text-white"
                 >
                   <RotateCcw size={14} /> Reset Audio Settings
                 </button>
@@ -1589,8 +1589,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'encryption_verification' ? (
             <motion.div key="encryption_verification" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               {/* Header */}
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Encryption</h2>
               </div>
 
@@ -1611,7 +1611,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* QR Code card */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400 self-start">Scan to Verify</h4>
                   <div className="bg-white rounded-2xl p-4 shadow-[0_0_40px_rgba(52,211,153,0.2)]">
                     <QRCode
@@ -1626,7 +1626,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Verification number blocks */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-emerald-400">Verification Numbers</h4>
                   <p className="text-xs text-white/50 leading-relaxed">
                     If the numbers below match on both devices, your chat is fully secure.
@@ -1635,7 +1635,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     {encryptionKeys.blocks.map((block, i) => (
                       <div
                         key={i}
-                        className="bg-black/40 border border-white/10 rounded-2xl py-3 px-2 flex items-center justify-center"
+                        className="bg-black/40 border border-white/5 rounded-2xl py-3 px-2 flex items-center justify-center"
                       >
                         <span className="font-mono text-base font-black text-white tracking-widest">{block}</span>
                       </div>
@@ -1656,8 +1656,8 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'create_group' ? (
             <motion.div key="create_group" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               {/* Header */}
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white flex-1">Create Group Chat</h2>
                 <button
                   onClick={async () => {
@@ -1687,13 +1687,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
               <div className="flex-1 overflow-y-auto no-scrollbar pb-24 p-4 space-y-5">
 
                 {/* Group name input */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-5 space-y-3">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-5 space-y-3">
                   <p className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Group Name</p>
                   <input
                     value={groupName}
                     onChange={e => setGroupName(e.target.value)}
                     placeholder="Enter group name…"
-                    className="w-full bg-transparent text-white text-base font-bold outline-none placeholder:text-white/30 border-b border-white/10 pb-2"
+                    className="w-full bg-transparent text-white text-base font-bold outline-none placeholder:text-white/30 border-b border-white/5 pb-2"
                   />
                 </div>
 
@@ -1713,7 +1713,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 )}
 
                 {/* Friend search */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-4 space-y-3">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-4 space-y-3">
                   <p className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Add People</p>
                   <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2">
                     <Search size={14} className="text-white/40" />
@@ -1781,15 +1781,15 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
           ) : view === 'share_contact' ? (
             <motion.div key="share_contact" initial={{ x: 20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -20, opacity: 0 }} className="flex flex-col h-full bg-[#000000]">
               {/* Header */}
-              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#0a0a0a]/90 backdrop-blur-xl z-20 border-b border-white/10">
-                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/10 rounded-full transition-colors"><ChevronLeft size={24} /></button>
+              <div className="p-4 flex items-center gap-4 sticky top-0 bg-[#1b1b24]/90 backdrop-blur-xl z-20 border-b border-white/5">
+                <button onClick={() => setView('main')} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors"><ChevronLeft size={24} /></button>
                 <h2 className="text-xl font-bold text-white">Share Contact</h2>
               </div>
 
               <div className="flex-1 overflow-y-auto no-scrollbar pb-24 p-6 space-y-6">
 
                 {/* Contact card */}
-                <div className="relative bg-gradient-to-br from-[#ff1493]/20 via-white/5 to-purple-500/10 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-2xl overflow-hidden">
+                <div className="relative bg-gradient-to-br from-[#ff1493]/20 via-white/5 to-purple-500/10 border border-white/5 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-2xl overflow-hidden">
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-5" />
                   <img
                     src={getAvatarUrl(chat.partner_avatar)}
@@ -1799,7 +1799,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     <p className="text-xl font-black text-white">{displayPartnerName}</p>
                     {chat.partner_username && <p className="text-sm text-white/50 mt-0.5">@{chat.partner_username}</p>}
                   </div>
-                  <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-full px-4 py-2">
+                  <div className="flex items-center gap-2 bg-white/5 border border-white/5 rounded-full px-4 py-2">
                     <Link2 size={13} className="text-[#ff1493]" />
                     <span className="text-xs font-mono text-white/60">
                       sparkle.app/@{chat.partner_username || chat.partner_id}
@@ -1808,7 +1808,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Share QR */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 flex flex-col items-center gap-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493] self-start">Profile QR Code</h4>
                   <div className="bg-white rounded-2xl p-4 shadow-lg">
                     <QRCode
@@ -1823,13 +1823,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 </div>
 
                 {/* Send in Chat section */}
-                <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
+                <div className="bg-white/5 border border-white/5 rounded-3xl p-6 space-y-4 shadow-xl backdrop-blur-md">
                   <h4 className="text-xs font-black uppercase tracking-wider text-[#ff1493]">Send in Chat</h4>
                   <p className="text-xs text-white/50 leading-relaxed">
                     Share {displayPartnerName.split(' ')[0]}'s contact card directly with your following.
                   </p>
 
-                  <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2 border border-white/10">
+                  <div className="flex items-center gap-2 bg-white/5 rounded-2xl px-3 py-2 border border-white/5">
                     <Search size={14} className="text-white/40" />
                     <input
                       value={shareSearchQuery}
@@ -1864,7 +1864,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                               sharingState === 'sent' 
                                 ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400 font-bold" 
                                 : sharingState === 'sending'
-                                  ? "bg-white/5 border-white/10 text-white/40 cursor-default font-bold"
+                                  ? "bg-white/5 border-white/5 text-white/40 cursor-default font-bold"
                                   : "bg-[#ff1493] border-[#ff1493] text-white hover:opacity-90 font-bold"
                             )}
                           >
@@ -1888,7 +1888,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                       setLinkCopied(true);
                       setTimeout(() => setLinkCopied(false), 2500);
                     }}
-                    className="flex items-center justify-center gap-2 py-4 bg-white/5 border border-white/10 hover:border-[#ff1493]/40 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
+                    className="flex items-center justify-center gap-2 py-4 bg-white/5 border border-white/5 hover:border-[#ff1493]/40 rounded-2xl text-xs font-bold text-white transition-all active:scale-95"
                   >
                     {linkCopied ? <CheckCircle2 size={15} className="text-emerald-400" /> : <Copy size={15} />}
                     {linkCopied ? 'Copied!' : 'Copy Link'}
@@ -1911,7 +1911,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 {/* Visit profile CTA */}
                 <button
                   onClick={() => { onClose(); navigate(`/profile/${chat.partner_username || chat.partner_id}`); }}
-                  className="w-full py-4 bg-white/5 hover:bg-white/10 rounded-2xl text-sm font-bold text-white border border-white/10 transition-all active:scale-95 flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-white/5 hover:bg-white/[0.08] rounded-2xl text-sm font-bold text-white border border-white/5 transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <User size={16} /> View Full Profile
                 </button>
@@ -1962,10 +1962,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                 initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
-                className="bg-[#0a0a0a] border border-white/10 rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden text-white"
+                className="bg-[#1b1b24] border border-white/5 rounded-3xl w-full max-w-md max-h-[80vh] flex flex-col shadow-2xl overflow-hidden text-white"
               >
                 {/* Header */}
-                <div className="p-5 border-b border-white/10 flex items-center justify-between bg-white/5">
+                <div className="p-5 border-b border-white/5 flex items-center justify-between bg-white/5">
                   <div className="flex items-center gap-2.5">
                     <div className="p-2 bg-[#ff1493]/20 text-[#ff1493] rounded-xl border border-[#ff1493]/30">
                       <History className="w-5 h-5" />
@@ -1977,7 +1977,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                   </div>
                   <button 
                     onClick={() => setShowNicknameHistory(false)}
-                    className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+                    className="p-2 rounded-full hover:bg-white/[0.08] text-white/60 hover:text-white transition-colors"
                   >
                     <X className="w-5 h-5" />
                   </button>
@@ -1995,7 +1995,7 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
                     nicknameHistoryList.map((entry, idx) => (
                       <div 
                         key={entry.id || idx}
-                        className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2 hover:bg-white/10 transition-colors"
+                        className="p-4 bg-white/5 border border-white/5 rounded-2xl space-y-2 hover:bg-white/[0.08] transition-colors"
                       >
                         <div className="flex items-center justify-between text-xs font-bold text-[#ff1493]">
                           <span>{entry.set_by_name || 'User'} updated a nickname</span>

@@ -50,12 +50,12 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
   };
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white dark:bg-[#1b1b24] rounded-[64px] border-4 border-black shadow-[0_40px_120px_rgba(0,0,0,0.2)] overflow-hidden relative lowercase">
       <div className="absolute top-0 right-0 p-12 text-black/[0.01] pointer-events-none">
           <Orbit size={240} strokeWidth={1} className="animate-spin-slow" />
       </div>
 
-      <div className="p-10 flex items-center justify-between border-b-4 border-black/5 bg-white relative z-10">
+      <div className="p-10 flex items-center justify-between border-b-4 border-black/5 bg-white dark:bg-[#1b1b24] relative z-10">
         <div className="flex items-center gap-6">
           <div className="w-14 h-14 bg-black rounded-2xl flex items-center justify-center text-white shadow-2xl">
             <Calendar size={24} strokeWidth={3} />
@@ -82,7 +82,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
           <input 
             type="text" 
             placeholder="EVENT NAME..."
-            className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+            className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all uppercase italic tracking-tighter" 
             value={title} 
             onChange={(e) => setTitle(e.target.value)} 
           />
@@ -95,7 +95,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
           </div>
           <textarea 
             placeholder="TELL THE TRIBES WHAT'S HAPPENING..." 
-            className="w-full p-10 bg-black/5 border-4 border-transparent rounded-[40px] outline-none font-black text-xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all min-h-[160px] resize-none uppercase italic tracking-tighter leading-tight" 
+            className="w-full p-10 bg-black/5 border-4 border-transparent rounded-[40px] outline-none font-black text-xl text-black placeholder:text-black/5 focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[160px] resize-none uppercase italic tracking-tighter leading-tight" 
             value={desc} 
             onChange={(e) => setDesc(e.target.value)} 
             rows={3} 
@@ -110,7 +110,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
             </div>
             <input 
               type="datetime-local" 
-              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black focus:bg-white focus:border-black transition-all uppercase" 
+              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all uppercase" 
               value={start} 
               onChange={(e) => setStart(e.target.value)} 
             />
@@ -123,7 +123,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
             <input 
               type="text" 
               placeholder="WHERE IS IT?"
-              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black placeholder:text-black/10 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+              className="w-full p-6 bg-black/5 border-2 border-transparent rounded-[24px] outline-none font-black text-[14px] text-black placeholder:text-black/10 focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all uppercase italic tracking-tighter" 
               value={location} 
               onChange={(e) => setLocation(e.target.value)} 
             />
@@ -139,7 +139,7 @@ export default function EventModal({ onClose, onSuccess }: EventModalProps) {
             <input 
               type="number" 
               placeholder="UNLIMITED BANDWIDTH" 
-              className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white focus:border-black transition-all uppercase italic tracking-tighter" 
+              className="w-full p-8 bg-black/5 border-4 border-transparent rounded-[32px] outline-none font-black text-2xl text-black placeholder:text-black/5 focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all uppercase italic tracking-tighter" 
               value={capacity === 0 ? '' : capacity} 
               onChange={(e) => setCapacity(parseInt(e.target.value) || 0)} 
             />

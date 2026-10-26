@@ -263,7 +263,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <Navbar />
 
       <main className="flex-1 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
-        <div className="bg-white dark:bg-[#000000] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
+        <div className="bg-white dark:bg-[#1b1b24] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
             <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-black dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">

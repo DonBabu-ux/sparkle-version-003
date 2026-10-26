@@ -15,7 +15,7 @@ const LEGACY_THEME_ROUTES = [
   '/login', '/signup', '/forgot-password',
   '/about', '/legal', '/legal/:documentId',
   '/admin', '/admin/storage',
-  '/settings/accounts', '/settings/blocked',
+  '/settings/blocked',
   '/groups/create', '/groups/:id/settings', '/groups/:id',
   '/marketplace', '/marketplace/category/:categoryId', '/marketplace/inbox', '/marketplace/sell',
   '/marketplace/report/:id', '/marketplace/my-shop', '/marketplace/orders', '/marketplace/orders/:orderId', '/marketplace/my-listings',

@@ -11,6 +11,27 @@ import { ToastProvider } from './utils/toast';
 import realtimeLogger from './utils/realtimeTrace';
 import { logger } from './utils/logger';
 
+// Apply the persisted theme BEFORE React mounts so every route paints in the
+// right theme from the first frame (the provider effect runs after mount,
+// which let unconverted routes flash paint light in dark mode).
+(function applyStoredThemeEarly() {
+  try {
+    const raw = localStorage.getItem('user-storage');
+    if (!raw) return;
+    const theme = JSON.parse(raw)?.state?.theme;
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.style.colorScheme = 'dark';
+    } else if (theme === 'light') {
+      root.classList.remove('dark');
+      root.style.colorScheme = 'light';
+    }
+  } catch {
+    /* storage blocked or unparseable - the provider will settle it after mount */
+  }
+})();
+
 // ── Global last-resort handlers ──────────────────────────────────────────────
 // ErrorBoundary only catches render-phase errors. Unhandled promise rejections
 // (failed fetches in event handlers, socket callbacks, etc.) and async crashes

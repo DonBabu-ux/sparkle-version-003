@@ -88,7 +88,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
 
       <div className="relative bg-[#1a1a1a] w-full h-auto max-h-[85vh] rounded-t-[2.5rem] sm:rounded-2xl sm:max-w-md flex flex-col overflow-hidden animate-slide-up shadow-[0_-20px_50px_rgba(0,0,0,0.5)]">
         {/* Grabber for mobile */}
-        <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0 sm:hidden" />
+        <div className="w-12 h-1.5 bg-white dark:bg-[#1b1b24]/20 rounded-full mx-auto my-3 shrink-0 sm:hidden" />
         
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-white/10 shrink-0">
@@ -139,7 +139,7 @@ export default function CreateHighlightModal({ isOpen, onClose, onCreated }: Cre
                           <img src={story.media_url} alt="" className="w-full h-full object-cover" />
                         )}
                         {/* Selection overlay */}
-                        <div className={`absolute inset-0 transition-all ${isSelected ? 'bg-blue-500/40' : 'bg-transparent group-hover:bg-white/10'}`} />
+                        <div className={`absolute inset-0 transition-all ${isSelected ? 'bg-blue-500/40' : 'bg-transparent group-hover:bg-white dark:bg-[#1b1b24]/10'}`} />
                         {/* Checkmark */}
                         <div className={`absolute top-2 right-2 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all z-10 ${
                           isSelected

@@ -69,8 +69,6 @@ export default function Navbar() {
   const activeConversationId = useChatStore((s) => s.activeConversationId);
 
   const isActive = (path: string) => location.pathname === path;
-  const isMoments = location.pathname.startsWith('/moments');
-  const isMessages = location.pathname.startsWith('/messages');
   // Icon treatment follows the ACTUAL app theme, not the route: /messages is
   // no longer hardcoded dark (light-mode chat shipped), and hardcoded white
   // glyphs + white drop-shadow wash out on the light shell (the "blurry
@@ -341,6 +339,8 @@ export default function Navbar() {
 
 function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const theme = useUserStore((state) => state.theme);
+  const isDark = theme === 'dark';
 
   useEffect(() => {
     const fetchUnread = async () => {
@@ -367,10 +367,19 @@ function NotificationBell() {
   }, []);
 
   return (
-    <Link to="/notifications" className="relative w-10 h-10 bg-black/5 rounded-xl flex items-center justify-center text-black/30 hover:text-primary transition-all active:scale-90">
+    <Link
+      to="/notifications"
+      className={clsx(
+        "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90",
+        isDark ? "bg-white/5 text-white/70 hover:text-primary" : "bg-black/5 text-black/30 hover:text-primary"
+      )}
+    >
       <Bell size={20} strokeWidth={2.5} />
       {unreadCount > 0 && (
-        <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-[#e41e3f] text-white text-[12px] font-bold rounded-full border-2 border-white shadow-sm flex items-center justify-center font-sans tracking-tight antialiased z-10">
+        <span className={clsx(
+          "absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-[#e41e3f] text-white text-[12px] font-bold rounded-full border-2 shadow-sm flex items-center justify-center font-sans tracking-tight antialiased z-10",
+          isDark ? "border-[#1b1b24]" : "border-white"
+        )}>
           {unreadCount > 99 ? '99+' : unreadCount}
         </span>
       )}

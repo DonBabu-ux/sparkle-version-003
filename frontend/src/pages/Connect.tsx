@@ -134,7 +134,7 @@ export default function Connect() {
   
 
   return (
-    <div className="flex bg-app min-h-dvh text-black dark:bg-[#000000] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
+    <div className="flex bg-app min-h-dvh text-black dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full">
         
@@ -258,5 +258,4 @@ export default function Connect() {
     </div>
   );
 }
-
 

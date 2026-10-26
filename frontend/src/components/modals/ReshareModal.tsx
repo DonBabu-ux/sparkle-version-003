@@ -89,7 +89,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
             options={suggestions}
             loading={loading}
             onSelect={(u) => selectMention(u.username)}
-            className="absolute top-full left-0 w-full z-50 mt-1 bg-white border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full left-0 w-full z-50 mt-1 bg-white dark:bg-[#1b1b24] border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
           />
         </div>
 

@@ -133,21 +133,21 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   };
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white dark:bg-[#1b1b24] rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 flex-shrink-0">
+      <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 dark:border-zinc-800 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div className="w-11 h-11 bg-primary rounded-2xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
             <SpyIcon size={20} className="text-white" />
           </div>
           <div>
-            <h3 className="font-black text-xl text-gray-900 tracking-tight uppercase italic leading-none">New Confession</h3>
-            <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest mt-0.5">Posted under an alias</p>
+            <h3 className="font-black text-xl text-gray-900 dark:text-zinc-100 tracking-tight uppercase italic leading-none">New Confession</h3>
+            <p className="text-[9px] font-black text-gray-300 dark:text-zinc-600 uppercase tracking-widest mt-0.5">Posted under an alias</p>
           </div>
         </div>
         <button
-          className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-gray-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
+          className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
           onClick={attemptClose}
         >
           <X size={18} strokeWidth={2.5} />
@@ -166,7 +166,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
                 className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
                   subType === t
                     ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-primary/20 hover:bg-white'
+                    : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 text-gray-400 dark:text-zinc-500 hover:border-primary/20 hover:bg-white dark:bg-[#1b1b24]'
                 }`}
                 onClick={() => setSubType(t)}
               >
@@ -184,10 +184,10 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           <div>
             <div className="flex items-center gap-2 mb-2 px-1">
               <Sparkles size={12} className="text-primary" />
-              <label className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Your Confession</label>
+              <label className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Your Confession</label>
             </div>
             <textarea
-              className="w-full p-5 bg-gray-50 border-2 border-transparent rounded-2xl outline-none font-semibold text-lg text-gray-800 placeholder:text-gray-300 focus:bg-white focus:border-primary/20 transition-all min-h-[140px] resize-none leading-snug"
+              className="w-full p-5 bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 border-2 border-transparent rounded-2xl outline-none font-semibold text-lg text-gray-800 dark:text-zinc-200 placeholder:text-gray-300 dark:text-zinc-600 dark:placeholder:text-zinc-600 focus:bg-white dark:bg-[#1b1b24] focus:border-primary/20 transition-all min-h-[140px] resize-none leading-snug"
               placeholder={`What's your ${themes[subType].label.toLowerCase()}?`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -196,7 +196,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
 
           {/* Image preview */}
           {imagePreview && (
-            <div className="relative rounded-2xl overflow-hidden border border-gray-100">
+            <div className="relative rounded-2xl overflow-hidden border border-gray-100 dark:border-zinc-800">
               <img src={imagePreview} alt="Attachment" className="w-full max-h-52 object-cover" />
               {/* Anonymity reminder banner on image */}
               <div className="absolute top-2 left-2 right-2 flex items-center gap-2 bg-black/70 backdrop-blur-sm rounded-xl px-3 py-2">
@@ -205,7 +205,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
               </div>
               <button
                 onClick={removeImage}
-                className="absolute bottom-2 right-2 w-8 h-8 bg-black/60 rounded-xl flex items-center justify-center text-white hover:bg-rose-500 transition-colors"
+                className="absolute bottom-2 right-2 w-8 h-8 bg-black/60 rounded-xl flex items-center justify-center text-white hover:bg-rose-50 dark:bg-rose-500/10 dark:hover:bg-rose-50 dark:bg-rose-500/100/100 transition-colors"
               >
                 <Trash2 size={14} />
               </button>
@@ -214,18 +214,18 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
 
           {/* Image Warning */}
           {showImageWarning && (
-            <div className="border border-gray-200 rounded-lg bg-white p-4">
+            <div className="border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#1b1b24] p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle size={16} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                <AlertTriangle size={16} className="text-gray-400 dark:text-zinc-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-gray-900 mb-1">This may reduce your anonymity</p>
-                  <p className="text-sm text-gray-500 leading-relaxed">
+                  <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">This may reduce your anonymity</p>
+                  <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed">
                     Images can carry hidden metadata — device info, GPS coordinates, or identifiable content. Only attach an image if you're confident it can't be traced back to you.
                   </p>
                   <div className="flex items-center gap-3 mt-4">
                     <button
                       onClick={() => setShowImageWarning(false)}
-                      className="text-sm font-medium text-gray-400 hover:text-gray-600 transition-colors"
+                      className="text-sm font-medium text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:text-zinc-400 transition-colors"
                     >
                       Cancel
                     </button>
@@ -243,7 +243,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
 
           {/* Identity shield note */}
           <div className="flex items-center gap-3 p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100">
-            <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center text-emerald-500 shadow-sm flex-shrink-0">
+            <div className="w-9 h-9 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center text-emerald-500 shadow-sm flex-shrink-0">
               <SpyIcon size={16} className="text-emerald-500" />
             </div>
             <span className="text-[10px] font-bold text-emerald-600/80 uppercase tracking-widest leading-relaxed">
@@ -254,12 +254,12 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
       </div>
 
       {/* Footer */}
-      <div className="px-6 pb-6 pt-3 flex-shrink-0 border-t border-gray-50 space-y-3">
+      <div className="px-6 pb-6 pt-3 flex-shrink-0 border-t border-gray-50 dark:border-zinc-800 space-y-3">
         {/* Attach image button */}
         {!imagePreview && !showImageWarning && (
           <button
             onClick={handleImageClick}
-            className="w-full h-11 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center gap-2 text-gray-400 hover:border-primary/30 hover:text-primary transition-all group"
+            className="w-full h-11 rounded-2xl border-2 border-dashed border-gray-200 dark:border-zinc-800 flex items-center justify-center gap-2 text-gray-400 dark:text-zinc-500 hover:border-primary/30 hover:text-primary transition-all group"
           >
             <ImageIcon size={16} className="group-hover:scale-110 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-widest">Attach Image (optional)</span>

@@ -197,7 +197,7 @@ export default function AdminDashboard() {
             >
               <ArrowLeft size={16} />
             </button>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 border border-white backdrop-blur-xl shadow-sm">
+            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 dark:bg-[#1b1b24]/80 border border-white dark:border-white/10 backdrop-blur-xl shadow-sm">
               <Shield size={12} strokeWidth={3} className="text-primary" />
               <span className="text-[8px] font-black text-black dark:text-white uppercase tracking-widest italic">Override</span>
             </div>
@@ -214,7 +214,7 @@ export default function AdminDashboard() {
         </header>
 
         {/* Tab Navigation - Compact Row */}
-        <div className="flex bg-white/60 backdrop-blur-xl border border-white p-1 rounded-2xl shadow-sm mb-8 overflow-x-auto no-scrollbar sticky top-16 z-50">
+        <div className="flex bg-white/60 dark:bg-[#1b1b24]/60 backdrop-blur-xl border border-white dark:border-white/10 p-1 rounded-2xl shadow-sm mb-8 overflow-x-auto no-scrollbar sticky top-16 z-50">
           {['overview', 'users', 'reports', 'logs'].map(tab => (
             <button 
               key={tab} 
@@ -233,7 +233,7 @@ export default function AdminDashboard() {
         </div>
 
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center bg-white/40 backdrop-blur-xl border-2 border-dashed border-white rounded-[40px] shadow-sm mb-12">
+          <div className="py-20 flex flex-col items-center justify-center bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border-2 border-dashed border-white dark:border-white/10 rounded-[40px] shadow-sm mb-12">
              <Spinner size="large" color="text-primary" />
              <p className="text-[9px] font-black italic text-gray-400 uppercase tracking-widest mt-4">Loading data...</p>
           </div>
@@ -247,7 +247,7 @@ export default function AdminDashboard() {
                 { label: 'Reports', value: stats?.reports?.pending || 0, icon: <AlertCircle size={18} strokeWidth={3} />, urgent: true },
                 { label: 'Capital', value: stats?.marketplace?.total || 0, icon: <BarChart3 size={18} strokeWidth={3} /> }
               ].map(s => (
-                <div key={s.label} className={`p-4 md:p-6 rounded-[24px] border-2 transition-all bg-white shadow-sm hover:shadow-md ${s.urgent ? 'border-primary/10 shadow-primary/5' : 'border-white'}`}>
+                <div key={s.label} className={`p-4 md:p-6 rounded-[24px] border-2 transition-all bg-white dark:bg-[#1b1b24] shadow-sm hover:shadow-md ${s.urgent ? 'border-primary/10 shadow-primary/5' : 'border-white dark:border-white/10'}`}>
                   <div className="flex justify-between items-start mb-4">
                     <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest italic">{s.label}</span>
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.urgent ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-400'}`}>
@@ -264,7 +264,7 @@ export default function AdminDashboard() {
             {/* Storage Intelligence Panel Link */}
             <button onClick={() => navigate('/admin/storage')} className="w-full bg-primary text-white p-6 rounded-[24px] flex justify-between items-center shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all">
                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                  <div className="w-12 h-12 bg-white/20 dark:bg-white/10 rounded-full flex items-center justify-center">
                      <Database size={24} strokeWidth={3} />
                   </div>
                   <div className="text-left">
@@ -276,7 +276,7 @@ export default function AdminDashboard() {
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* Activity Feed - Compact */}
-              <div className="bg-white/80 backdrop-blur-xl p-6 rounded-[32px] border border-white shadow-sm">
+              <div className="bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-xl p-6 rounded-[32px] border border-white dark:border-white/10 shadow-sm">
                 <div className="flex items-center gap-3 mb-6">
                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
                       <Activity size={16} strokeWidth={3} />
@@ -330,7 +330,7 @@ export default function AdminDashboard() {
             <div className="overflow-x-auto no-scrollbar">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-gray-50/50 border-b border-gray-100 dark:border-white/10">
+                  <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/10">
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Subject</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Status</th>
                     <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Actions</th>
@@ -407,14 +407,14 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => { setFactor('password'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}
+                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-[#1b1b24] text-gray-500 dark:text-zinc-400 border-gray-200 dark:border-white/10'}`}
               >
                 <KeyRound size={14} /> Password
               </button>
               <button
                 type="button"
                 onClick={() => { setFactor('email'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white text-gray-500 border-gray-200'}`}
+                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-[#1b1b24] text-gray-500 dark:text-zinc-400 border-gray-200 dark:border-white/10'}`}
               >
                 <Mail size={14} /> Email code
               </button>

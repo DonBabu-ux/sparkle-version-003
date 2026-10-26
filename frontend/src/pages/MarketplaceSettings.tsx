@@ -189,7 +189,7 @@ const MarketplaceSettings = () => {
                       key={item.id}
                       onClick={item.disabled ? undefined : item.action}
                       disabled={item.disabled}
-                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98]'}`}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-800' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98] dark:bg-[#101217] dark:hover:bg-zinc-800'}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
@@ -199,10 +199,10 @@ const MarketplaceSettings = () => {
                           <div className={`font-black flex items-center gap-2 ${item.disabled ? 'text-slate-400' : 'text-slate-800'}`}>
                             {item.label}
                           </div>
-                          <div className={`text-xs font-bold ${item.disabled ? 'text-slate-400' : 'text-slate-500'}`}>{item.desc}</div>
+                          <div className={`text-xs font-bold ${item.disabled ? 'text-slate-400 dark:text-zinc-500' : 'text-slate-500 dark:text-zinc-400'}`}>{item.desc}</div>
                         </div>
                       </div>
-                      <ChevronRight size={18} className={`text-slate-300 group-hover:text-slate-600 transition-colors ${item.disabled ? 'text-slate-400 cursor-not-allowed' : ''}`} />
+                          <ChevronRight size={18} className={`text-slate-300 dark:text-zinc-600 group-hover:text-slate-600 dark:group-hover:text-zinc-300 transition-colors ${item.disabled ? 'text-slate-400 dark:text-zinc-500 cursor-not-allowed' : ''}`} />
                     </button>
                   ))}
                 </div>
@@ -240,7 +240,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ message_filter: !settings.message_filter })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.message_filter ? 'bg-blue-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${settings.message_filter ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.message_filter ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
           </div>
@@ -263,7 +263,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ read_receipts: !settings.read_receipts })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.read_receipts ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${settings.read_receipts ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.read_receipts ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
 
@@ -276,7 +276,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ typing_indicators: !settings.typing_indicators })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.typing_indicators ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${settings.typing_indicators ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.typing_indicators ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
 
@@ -289,7 +289,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ show_online_status: !settings.show_online_status })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.show_online_status ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${settings.show_online_status ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.show_online_status ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
           </div>
@@ -530,7 +530,7 @@ function MarketplaceSupportView() {
             <div className="w-10 h-10 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm"><Package size={20} className="text-slate-400" /></div>
             <div className="font-black text-slate-800">Your Support History</div>
           </div>
-          <ChevronRight size={18} className="text-slate-300 group-hover:text-slate-600" />
+          <ChevronRight size={18} className="text-slate-300 dark:text-zinc-600 group-hover:text-slate-600 dark:group-hover:text-zinc-300" />
         </button>
       </div>
     );
@@ -542,7 +542,7 @@ function MarketplaceSupportView() {
         <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar pb-6">
           {botMessages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] p-4 rounded-xl font-bold text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 rounded-tl-none'}`}>
+              <div className={`max-w-[80%] p-4 rounded-xl font-bold text-sm ${msg.role === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-100 text-slate-800 dark:bg-zinc-800 dark:text-zinc-200 rounded-tl-none'}`}>
                 {msg.text}
               </div>
             </div>
@@ -570,7 +570,7 @@ function MarketplaceSupportView() {
               <TrendingUp size={20} />
             </button>
           </div>
-          <button onClick={() => setMode('options')} className="w-full py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Back to Options</button>
+          <button onClick={() => setMode('options')} className="w-full py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
         </div>
       </div>
     );
@@ -606,7 +606,7 @@ function MarketplaceSupportView() {
           <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-lg font-black text-sm shadow-xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all">
             {loading ? 'Submitting...' : 'Submit Support Ticket'}
           </button>
-          <button type="button" onClick={() => setMode('options')} className="w-full py-4 text-slate-400 font-black text-sm hover:text-slate-600 transition-colors">Cancel</button>
+          <button type="button" onClick={() => setMode('options')} className="w-full py-4 text-slate-400 dark:text-zinc-500 font-black text-sm hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Cancel</button>
         </div>
       </form>
     );
@@ -625,7 +625,7 @@ function MarketplaceSupportView() {
           tickets.map((t) => (
             <div key={t.ticket_id} className="p-5 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-lg hover:border-slate-200 transition-colors cursor-pointer group">
               <div className="flex justify-between items-start mb-2">
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${t.status === 'open' ? 'bg-blue-100 text-blue-700' : t.status === 'resolved' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${t.status === 'open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' : t.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'}`}>
                   {t.status}
                 </span>
                 <span className="text-[10px] font-bold text-slate-400">{new Date(t.created_at).toLocaleDateString()}</span>
@@ -637,7 +637,7 @@ function MarketplaceSupportView() {
         ) : (
           <div className="text-center py-20 text-slate-400 font-bold">You haven't submitted any tickets yet.</div>
         )}
-        <button onClick={() => setMode('options')} className="w-full py-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 transition-colors">Back to Options</button>
+        <button onClick={() => setMode('options')} className="w-full py-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
       </div>
     );
   }

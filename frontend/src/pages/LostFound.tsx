@@ -95,7 +95,7 @@ export default function LostFound() {
           <header className="mb-24 animate-fade-in px-4">
              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-16">
                 <div className="max-w-4xl space-y-8">
-                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 backdrop-blur-3xl border border-white rounded-full shadow-xl shadow-primary/5">
+                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-3xl border border-white dark:border-white/10 rounded-full shadow-xl shadow-primary/5">
                       <PackageOpen size={18} strokeWidth={3} className="text-primary" />
                        <span className="text-[10px] font-black text-black dark:text-white uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
                    </div>
@@ -133,13 +133,13 @@ export default function LostFound() {
              </div>
 
              <div className="relative w-full lg:w-[450px] group">
-                <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
+                <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 dark:text-white/15 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
                 <input 
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Scan village items..." 
-                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black dark:text-white placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
+                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-black dark:text-white placeholder:text-black/5 dark:text-white/10 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
                 />
              </div>
           </div>
@@ -149,11 +149,11 @@ export default function LostFound() {
           {loading ? (
              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
                 {[1,2,3,4,5,6].map(i => (
-                   <div key={i} className="h-[500px] bg-white/40 backdrop-blur-3xl border border-white rounded-[56px] animate-pulse shadow-sm" />
+                   <div key={i} className="h-[500px] bg-white/40 dark:bg-white/[0.03] backdrop-blur-3xl border border-white dark:border-white/10 rounded-[56px] animate-pulse shadow-sm" />
                 ))}
              </div>
           ) : items.length === 0 ? (
-            <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 backdrop-blur-3xl border-4 border-dashed border-white rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
+            <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 dark:bg-white/[0.03] backdrop-blur-3xl border-4 border-dashed border-white dark:border-white/10 rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
                <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
                <div className="space-y-6">
                   <h3 className="text-5xl font-black text-black dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
@@ -169,7 +169,7 @@ export default function LostFound() {
                 }).map((item, i) => (
                    <div 
                     key={item.id} 
-                    className="bg-white/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
+                    className="bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white dark:border-white/10 p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
                     style={{ animationDelay: `${i * 50}ms` }}
                    >
                      {/* Media Content */}
@@ -181,7 +181,7 @@ export default function LostFound() {
                             alt="" 
                           />
                         ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-black/5 opacity-40">
+                          <div className="w-full h-full flex flex-col items-center justify-center text-black/5 dark:text-white/10 opacity-40">
                              <PackageOpen size={80} strokeWidth={1} />
                              <span className="text-[10px] font-black uppercase tracking-widest italic mt-4">No Photo Added</span>
                           </div>
@@ -207,7 +207,7 @@ export default function LostFound() {
                                  showSuccess('Link copied to clipboard!');
                                } catch { /* clipboard unavailable */ }
                              }}
-                             className="w-12 h-12 bg-white/20 backdrop-blur-3xl border border-white/20 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
+                             className="w-12 h-12 bg-white/20 dark:bg-black/40 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
                            >
                               <Share2 size={20} strokeWidth={3} />
                            </button>
@@ -224,16 +224,16 @@ export default function LostFound() {
                         
                         <div className="space-y-4 mb-12 flex-grow">
                            <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                                  <MapPin size={20} strokeWidth={4} />
                               </div>
                               <span className="text-xs font-black text-black dark:text-white italic uppercase tracking-widest truncate">{item.location || 'GLOBAL SECTOR'}</span>
                            </div>
                            <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
+                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                                  <Calendar size={20} strokeWidth={4} />
                               </div>
-                              <span className="text-xs font-black text-black/20 italic uppercase tracking-widest">
+                              <span className="text-xs font-black text-black/20 dark:text-white/25 italic uppercase tracking-widest">
                                  {new Date(item.createdAt || item.date_lost_found || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
                               </span>
                            </div>
@@ -278,7 +278,7 @@ export default function LostFound() {
       {/* High-Fidelity Report Step Modal */}
       {showReport && (
         <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
-          <div className="bg-white/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white/90 dark:bg-[#1b1b24]/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white dark:border-white/10 overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
              
              {/* Progress Bar Top */}
              <div className="absolute top-0 inset-x-0 h-3 bg-black/5">
@@ -292,7 +292,7 @@ export default function LostFound() {
                 <div>
                    <h3 className="text-5xl font-black text-black dark:text-white tracking-tighter italic uppercase">Report an Item</h3>
                    <div className="flex items-center gap-4 mt-4">
-                      <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
+                      <span className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
                       <div className="flex gap-1.5">
                          {[1,2,3].map(i => (
                             <div key={i} className={`w-3 h-1 rounded-full transition-all duration-500 ${step >= i ? 'bg-primary w-6' : 'bg-black/10'}`} />
@@ -326,7 +326,7 @@ export default function LostFound() {
                     </div>
 
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Category</label>
+                        <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Category</label>
                         <select 
                           value={form.category}
                           onChange={e => setForm({...form, category: e.target.value})}
@@ -348,7 +348,7 @@ export default function LostFound() {
                   <div className="space-y-12 animate-fade-in">
                     <div className="space-y-10">
                        <div className="space-y-4">
-                          <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Item Designation</label>
+                          <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Item Designation</label>
                           <input 
                             type="text" 
                             value={form.title}
@@ -358,7 +358,7 @@ export default function LostFound() {
                           />
                        </div>
                        <div className="space-y-4">
-                          <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Defragmented Visuals</label>
+                          <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Defragmented Visuals</label>
                           <textarea 
                             rows={3} 
                             value={form.description}
@@ -379,9 +379,9 @@ export default function LostFound() {
                 {step === 3 && (
                   <div className="space-y-16 animate-fade-in">
                     <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] ml-10 italic">Last Seen Location</label>
+                        <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Last Seen Location</label>
                         <div className="relative group">
-                          <MapPin className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-all scale-125" size={24} strokeWidth={4} />
+                          <MapPin className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 dark:text-white/15 group-focus-within:text-primary transition-all scale-125" size={24} strokeWidth={4} />
                           <input 
                             type="text" 
                             value={form.location}

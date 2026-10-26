@@ -60,6 +60,7 @@ export const GlobalThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
             root.classList.remove('dark');
             root.style.colorScheme = 'light';
         }
+        console.log(`[cDex-theme] applied theme="${theme}" path="${pathname}" hasDark=${root.classList.contains('dark')}`);
 
         const isLegacyTheme = LEGACY_THEME_ROUTES.some(rx => rx.test(pathname));
         root.classList.toggle('theme-legacy', isLegacyTheme);

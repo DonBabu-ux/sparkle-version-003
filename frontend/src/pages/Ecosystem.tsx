@@ -219,7 +219,7 @@ export default function Ecosystem() {
                     <button 
                       key={cat} 
                       onClick={() => setApiCategory(cat)}
-                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${apiCategory === cat ? 'bg-[#FF3D6D] text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 hover:bg-gray-200'}`}
+                      className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${apiCategory === cat ? 'bg-[#FF3D6D] text-white' : 'bg-gray-100 dark:bg-white/5 text-gray-500 dark:text-zinc-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}
                     >
                       {cat === 'auth' ? 'POST Auth' : cat === 'posts' ? 'GET Feed' : 'WebSocket connection'}
                     </button>
@@ -232,7 +232,7 @@ export default function Ecosystem() {
                   </pre>
                   <button 
                     onClick={() => copyCode(API_SAMPLES[apiCategory])}
-                    className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white p-2 rounded-xl transition-colors"
+                    className="absolute top-4 right-4 bg-white/10 dark:bg-black/40 hover:bg-white/20 text-white p-2 rounded-xl transition-colors"
                     title="Copy to clipboard"
                   >
                     {copied ? <CheckCircle size={16} className="text-emerald-400" /> : <Copy size={16} />}

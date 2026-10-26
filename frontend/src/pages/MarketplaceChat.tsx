@@ -648,7 +648,7 @@ const MarketplaceChat = () => {
             {conversation.listing_status === 'active' ? (
               <button onClick={() => handleUpdateStatus('sold')} className="text-[11px] font-bold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors shadow-sm">Mark as Sold</button>
             ) : (
-              <button onClick={() => handleUpdateStatus('active')} className="text-[11px] font-bold bg-gray-200 text-gray-700 dark:text-zinc-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors">Mark Available</button>
+              <button onClick={() => handleUpdateStatus('active')} className="text-[11px] font-bold bg-gray-200 dark:bg-zinc-700 text-gray-700 dark:text-zinc-200 px-3 py-1.5 rounded-md hover:bg-gray-300 transition-colors">Mark Available</button>
             )}
           </div>
         ) : conversation.listing_status === 'sold' && (
@@ -676,7 +676,7 @@ const MarketplaceChat = () => {
                 <div 
                   onContextMenu={(e) => { e.preventDefault(); setContextMenuId(msg.id); }}
                   onClick={() => setContextMenuId(contextMenuId === msg.id ? null : msg.id)}
-                  className={`px-4 py-2 rounded-xl shadow-sm relative cursor-pointer group ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white text-gray-900 border border-gray-100 rounded-bl-sm font-medium'}`}
+                  className={`px-4 py-2 rounded-xl shadow-sm relative cursor-pointer group ${isMine ? 'bg-blue-600 text-white rounded-br-sm' : 'bg-white dark:bg-[#1b1b24] text-gray-900 dark:text-white border border-gray-100 dark:border-white/10 rounded-bl-sm font-medium'}`}
                 >
                   {!isMine && <div className="text-[10px] text-purple-600 font-bold mb-1 uppercase tracking-tight">{opponentName}</div>}
                   
@@ -697,7 +697,7 @@ const MarketplaceChat = () => {
                   )}
                   <div className="flex flex-col gap-2">
                     {msg.reply_to_id && (
-                      <div className={`p-2 rounded text-xs border-l-4 ${isMine ? 'bg-blue-700 border-white/50 text-blue-100' : 'bg-gray-50 border-purple-400 text-gray-500'}`}>
+                      <div className={`p-2 rounded text-xs border-l-4 ${isMine ? 'bg-blue-700 border-white/50 text-blue-100' : 'bg-gray-50 dark:bg-white/[0.04] border-purple-400 text-gray-500 dark:text-zinc-400'}`}>
                         <div className="font-bold opacity-80 mb-0.5">Replied to</div>
                         <p className="truncate italic">{messages.find(m => m.id === msg.reply_to_id)?.message_text || "Original message removed"}</p>
                       </div>
@@ -919,7 +919,7 @@ const MarketplaceChat = () => {
                   {media.type === 'image' ? (
                     <img src={media.url} className="w-20 h-20 object-cover rounded-md border border-gray-200 dark:border-white/10 shadow-sm" alt="Preview" />
                   ) : (
-                    <div className="w-20 h-20 bg-gray-200 rounded-md flex items-center justify-center">
+                    <div className="w-20 h-20 bg-gray-200 dark:bg-zinc-800 rounded-md flex items-center justify-center">
                       <ImageIcon size={24} className="text-gray-400" />
                     </div>
                   )}
@@ -958,7 +958,7 @@ const MarketplaceChat = () => {
                   ))}
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-4 no-scrollbar bg-gray-50/30">
+                <div className="flex-1 overflow-y-auto p-4 no-scrollbar bg-gray-50/30 dark:bg-white/[0.02]">
                   {pickerTab === 'emoji' && (
                     <div className="flex justify-center w-full">
                       <Picker 
@@ -975,7 +975,7 @@ const MarketplaceChat = () => {
 
                   {(pickerTab === 'gif' || pickerTab === 'sticker') && (
                     <div className="space-y-4">
-                      <div className="sticky top-0 bg-white/80 backdrop-blur-sm p-1 rounded-lg border border-gray-100 dark:border-white/10 shadow-sm mb-4">
+                      <div className="sticky top-0 bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-sm p-1 rounded-lg border border-gray-100 dark:border-white/10 shadow-sm mb-4">
                         <input 
                           value={giphySearch}
                           onChange={(e) => setGiphySearch(e.target.value)}

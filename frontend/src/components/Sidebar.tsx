@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { scrollTopTo } from './AppScreen';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,6 +28,7 @@ import { getRoleFromToken } from '../utils/tokenUtils';
 import { isAdminRole } from '../utils/adminRoute';
 import { useModalStore } from '../store/modalStore';
 import Avatar from './Avatar';
+import api from '../api/api';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -42,6 +43,29 @@ export default function Sidebar() {
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
   const [showMenuPopup, setShowMenuPopup] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  // Instagram-style unread dot: pink only when there are unread
+  // notifications; cleared instantly when the user reads them.
+  useEffect(() => {
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get('/notifications');
+        const list = res.data.notifications || res.data || [];
+        setUnreadCount(list.filter((n: any) => !n.is_read && !n.isRead).length);
+      } catch {
+        /* silent — dot just stays off */
+      }
+    };
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 30000);
+    const onAllRead = () => setUnreadCount(0);
+    window.addEventListener('notifications_all_read', onAllRead);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('notifications_all_read', onAllRead);
+    };
+  }, []);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -50,9 +74,10 @@ export default function Sidebar() {
     { name: 'Home', icon: Home, path: '/dashboard' },
     { name: 'Search', icon: Search, path: '/search', action: () => navigate('/search') },
     { name: 'Explore', icon: Compass, path: '/explore' },
+    { name: 'Connect', icon: Users, path: '/connect' },
     { name: 'Reels', icon: PlayCircle, path: '/moments' },
     { name: 'Messages', icon: Send, path: '/messages' },
-    { name: 'Notifications', icon: Heart, path: '/notifications', badge: 'dot' },
+    { name: 'Notifications', icon: Heart, path: '/notifications', badge: unreadCount > 0 ? (unreadCount > 99 ? '99+' : String(unreadCount)) : undefined },
     { name: 'Create', icon: Plus, path: '#', action: () => setActiveModal('creation_hub') },
     ...(isAdminRole(role) ? [{ name: 'Admin', icon: Shield, path: '/admin' }] : []),
     { name: 'Profile', icon: null, path: `/profile/${user?.username}`, isProfile: true },
@@ -144,7 +169,7 @@ export default function Sidebar() {
                   <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-[#ff1493] rounded-full border border-white dark:border-zinc-950" />
                 )}
                 {item.badge && item.badge !== 'dot' && (
-                  <span className="absolute -top-1 -right-1.5 bg-[#ff1493] text-white text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded-full border border-white dark:border-zinc-950 scale-90">
+                  <span className="absolute -top-1 -right-2 min-w-[18px] h-[18px] px-1 bg-[#ff1493] text-white text-[10px] font-black tabular-nums text-center leading-none flex items-center justify-center rounded-full border border-white dark:border-zinc-950 scale-90 origin-center">
                     {item.badge}
                   </span>
                 )}

@@ -1314,7 +1314,7 @@ export default function MessagesSettings() {
                   max={100}
                   value={Math.round(((audioVolumes as any)[vol.key] ?? 1) * 100)}
                   onChange={e => handleVolumeChange(vol.key, parseInt(e.target.value) / 100)}
-                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#ff1493] bg-gray-200"
+                  className="w-full h-1.5 rounded-lg appearance-none cursor-pointer accent-[#ff1493] bg-gray-200 dark:bg-zinc-700"
                   aria-label={vol.label}
                 />
               </div>

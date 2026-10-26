@@ -295,7 +295,7 @@ export default function PollDetail() {
                       key={opt.option_id}
                       onClick={() => handleVote(opt.option_id)}
                       disabled={voting}
-                      className="w-full p-5 rounded-2xl bg-gray-50/50 border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex justify-between items-center group/btn"
+                      className="w-full p-5 rounded-2xl bg-gray-50/50 dark:bg-white/[0.02] border border-transparent hover:border-primary/20 hover:bg-primary/5 transition-all text-left flex justify-between items-center group/btn"
                     >
                        <span className="text-sm font-bold text-gray-700 dark:text-zinc-200">{opt.option_text}</span>
                        <div className="w-5 h-5 rounded-full border-2 border-gray-200 dark:border-white/10 group-hover/btn:border-primary transition-colors flex items-center justify-center">
@@ -322,7 +322,7 @@ export default function PollDetail() {
               </div>
            </div>
            
-           <div className="bg-white/50 backdrop-blur-xl border border-white p-6 rounded-3xl flex items-center justify-between">
+           <div className="bg-white/50 dark:bg-[#1b1b24]/50 backdrop-blur-xl border border-white dark:border-white/10 p-6 rounded-3xl flex items-center justify-between">
               <div className="flex items-center gap-3">
                  <div className="w-10 h-10 bg-white dark:bg-[#1b1b24] rounded-2xl flex items-center justify-center shadow-sm text-primary">
                     <Users size={20} />
@@ -370,7 +370,7 @@ export default function PollDetail() {
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                        {opt.voters.map(voter => (
-                         <div key={voter.user_id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 hover:bg-gray-100/80 transition-colors group">
+                         <div key={voter.user_id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 dark:bg-white/[0.02] hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-colors group">
                             <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate(`/profile/${voter.username}`)}>
                                <img src={getSafeAvatarUrl(voter.avatar_url)} className="w-8 h-8 rounded-full object-cover border border-white shadow-sm" alt="" />
                                <div>
@@ -381,7 +381,7 @@ export default function PollDetail() {
                              {currentUser?.user_id !== voter.user_id && (
                               <button 
                                 onClick={() => handleFollow(voter.user_id, voter.is_following)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white border border-gray-200 text-gray-400' : requestedIds.has(voter.user_id) ? 'bg-white border border-gray-200 text-gray-400 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
+                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500' : requestedIds.has(voter.user_id) ? 'bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
                               >
                                 {voter.is_following ? <UserCheck size={12} /> : requestedIds.has(voter.user_id) ? 'Requested' : 'Follow'}
                               </button>
@@ -414,7 +414,7 @@ export default function PollDetail() {
                 {followers.map(f => {
                   const isInvited = invitedUsers.includes(f.user_id);
                   return (
-                    <div key={f.user_id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 hover:bg-gray-100/80 transition-all group">
+                    <div key={f.user_id} className="flex items-center justify-between p-3 rounded-2xl bg-gray-50/50 dark:bg-white/[0.02] hover:bg-gray-100/80 dark:hover:bg-white/[0.06] transition-all group">
                        <div className="flex items-center gap-3">
                           <img src={getSafeAvatarUrl(f.avatar_url)} className="w-9 h-9 rounded-full object-cover border border-white shadow-sm" alt="" />
                           <div>

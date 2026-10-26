@@ -460,7 +460,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
           ) : (
             <>
               {wallet && (
-                <div className="bg-[#fff0f6] border border-[#FF1F6D]/15 rounded-xl p-4">
+                <div className="bg-[#fff0f6] dark:bg-[#FF1F6D]/10 border border-[#FF1F6D]/15 dark:border-[#FF1F6D]/25 rounded-xl p-4">
                   <p className="text-[9px] text-[#FF1F6D] font-black uppercase tracking-widest italic">Available Balance</p>
                   <p className="text-2xl font-black text-slate-900 italic mt-1">{formatKES(wallet.available_balance)}</p>
                 </div>
@@ -677,7 +677,7 @@ export default function ProfessionalDashboard() {
   ];
 
   return (
-    <div className="min-h-dvh bg-[#fafafd] text-slate-800 font-sans pb-16 overflow-x-hidden relative">
+    <div className="min-h-dvh bg-[#fafafd] dark:bg-[#1b1b24] text-slate-800 dark:text-zinc-200 font-sans pb-16 overflow-x-hidden relative">
       <style>{`
         .glass { background: rgba(255, 31, 109, 0.02); border: 1px solid rgba(255, 31, 109, 0.12); backdrop-filter: blur(20px); }
         .glass-strong { background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 31, 109, 0.18); backdrop-filter: blur(24px); }
@@ -741,7 +741,7 @@ export default function ProfessionalDashboard() {
             <div className="mb-8">
               <p className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-2">Available Balance</p>
               {loadingWallet ? (
-                <Skeleton className="h-12 w-48 bg-slate-200/50" />
+                <Skeleton className="h-12 w-48 bg-slate-200/50 dark:bg-white/[0.06]" />
               ) : (
                 <div className="flex items-baseline gap-3">
                   <p className="text-4xl md:text-5xl font-black text-slate-900 italic tracking-tighter">
@@ -802,7 +802,7 @@ export default function ProfessionalDashboard() {
                 className="glass rounded-2xl p-4 cursor-pointer transition-all shadow-sm border-slate-100 hover:border-[#FF1F6D]/20">
                 <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{card.label}</p>
                 {loadingWallet ? (
-                  <Skeleton className="h-7 w-24 mt-2 bg-slate-200/50" />
+                  <Skeleton className="h-7 w-24 mt-2 bg-slate-200/50 dark:bg-white/[0.06]" />
                 ) : (
                   <p className="text-lg font-black italic mt-1 truncate" style={{ color: card.color }}>
                     {formatKES(card.cents)}
@@ -841,7 +841,7 @@ export default function ProfessionalDashboard() {
                   </div>
                 </div>
                 {loadingStats ? (
-                  <Skeleton className="h-8 w-20 bg-slate-200/50" />
+                  <Skeleton className="h-8 w-20 bg-slate-200/50 dark:bg-white/[0.06]" />
                 ) : (
                   <p className="text-2xl font-black italic" style={{ color: item.color }}>
                     <AnimatedCounter value={item.value} formatter={(v) => v.toLocaleString()} />
@@ -876,7 +876,7 @@ export default function ProfessionalDashboard() {
               <div key={i} className="bg-slate-50 dark:bg-[#101217] rounded-xl p-3 border border-slate-200/50">
                 <p className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{item.label}</p>
                 {loadingWallet ? (
-                  <Skeleton className="h-6 w-20 mt-1.5 bg-slate-200/50" />
+                  <Skeleton className="h-6 w-20 mt-1.5 bg-slate-200/50 dark:bg-white/[0.06]" />
                 ) : (
                   <p className="text-sm font-black italic mt-1.5" style={{ color: item.color }}>
                     {formatKES(item.value)}
@@ -916,7 +916,7 @@ export default function ProfessionalDashboard() {
 
           {loadingWallet ? (
             <div className="space-y-3">
-              {[0,1,2].map((i) => <Skeleton key={i} className="h-14 bg-slate-200/50" />)}
+              {[0,1,2].map((i) => <Skeleton key={i} className="h-14 bg-slate-200/50 dark:bg-white/[0.06]" />)}
             </div>
           ) : transactions.length > 0 ? (
             <div>
@@ -1040,7 +1040,7 @@ export default function ProfessionalDashboard() {
           ].map((item, i) => (
             <motion.button key={i} onClick={item.onClick} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
               className="glass p-3 rounded-xl flex flex-col items-center gap-1.5 hover:border-[#FF1F6D]/20 transition-all shadow-sm bg-white dark:bg-[#1b1b24] border-slate-100">
-              <div className={`w-8 h-8 rounded-lg bg-slate-50 ${item.color} flex items-center justify-center border border-slate-100`}>
+              <div className={`w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/[0.04] ${item.color} flex items-center justify-center border border-slate-100`}>
                 {item.icon}
               </div>
               <span className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase italic tracking-widest text-center">{item.label}</span>

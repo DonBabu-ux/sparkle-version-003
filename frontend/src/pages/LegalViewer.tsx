@@ -108,7 +108,7 @@ export default function LegalViewer() {
                 >
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
-                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-pink-500/10 to-purple-500/10 border border-pink-500/20 flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
+                      <div className="flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
                         <FileText className="w-6 h-6" />
                       </div>
                       {item.jurisdiction && (

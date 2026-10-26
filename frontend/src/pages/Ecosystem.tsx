@@ -124,7 +124,7 @@ export default function Ecosystem() {
               {APPS.map((app) => (
                 <div key={app.name} className="eco-card group">
                   <div className="flex items-start justify-between">
-                    <div className="eco-app-icon" style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}>
+                    <div className="eco-app-icon">
                       <app.icon size={24} />
                     </div>
                     <div className="flex items-center gap-2">
@@ -280,16 +280,19 @@ export default function Ecosystem() {
         .eco-content { flex: 1; overflow-y: auto; }
         .eco-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
 
-        .eco-hero { display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; padding: 40px; border-radius: 32px; margin-bottom: 28px; box-shadow: 0 16px 40px rgba(255,61,109,0.2); }
-        .eco-hero-icon { width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .eco-hero h1 { font-size: 2.2rem; font-weight: 900; margin: 0 0 6px; letter-spacing: -1px; }
-        .eco-hero p { margin: 0; opacity: 0.9; font-size: 1.1rem; }
+        .eco-hero { display: flex; align-items: center; gap: 20px; background: #fdf8fa; color: #18181b; padding: 32px; border-radius: 32px; margin-bottom: 28px; border: 1px solid #e6d8e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .eco-hero-icon { color: #FF3D6D; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .eco-hero h1 { font-size: 2rem; font-weight: 900; margin: 0 0 6px; letter-spacing: -1px; color: #18181b; }
+        .eco-hero p { margin: 0; color: #475569; font-size: 1.05rem; }
+        .dark .eco-hero { background: #1b1b24; border-color: rgba(255,255,255,0.08); box-shadow: none; }
+        .dark .eco-hero h1 { color: #f0f0f5; }
+        .dark .eco-hero p { color: #a8a8a8; }
 
         .eco-card { background: white; border: 1px solid rgba(0,0,0,0.04); border-radius: 28px; padding: 24px; box-shadow: 0 4px 16px rgba(0,0,0,0.03); transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1); }
         .eco-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(255,61,109,0.08); border-color: rgba(255,61,109,0.2); }
         .dark .eco-card { background: #18181b; border-color: rgba(255,255,255,0.05); }
 
-        .eco-app-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+        .eco-app-icon { color: #FF3D6D; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         
         .eco-status-pill { text-transform: uppercase; font-size: 10px; font-weight: 900; letter-spacing: 0.05em; padding: 2px 8px; rounded-full: 9999px; border-radius: 9999px; }
         .eco-status-active { background: #dcfce7; color: #15803d; }

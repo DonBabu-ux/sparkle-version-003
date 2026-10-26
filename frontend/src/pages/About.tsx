@@ -87,7 +87,7 @@ export default function About() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 24 }}>
           {VALUES.map((v, i) => (
             <div key={i} style={{ background: 'white', border: '1px solid #f1f5f9', borderRadius: 24, padding: 32, boxShadow: '0 4px 20px rgba(0,0,0,0.04)', transition: '0.3s' }}>
-              <div style={{ width: 52, height: 52, background: 'linear-gradient(135deg, rgba(255,107,139,0.12), rgba(255,61,109,0.08))', borderRadius: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3D6D', marginBottom: 20 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#FF3D6D', marginBottom: 20 }}>
                 {v.icon}
               </div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', margin: '0 0 10px' }}>{v.title}</h3>

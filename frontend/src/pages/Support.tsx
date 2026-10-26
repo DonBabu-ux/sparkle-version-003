@@ -81,6 +81,15 @@ export default function Support() {
     }
   };
 
+  const getStatusIconColor = (status: string) => {
+    switch(status) {
+        case 'open': return 'text-[#FF3D6D]';
+        case 'in_progress': return 'text-amber-500';
+        case 'resolved': return 'text-emerald-500';
+        default: return 'text-slate-400 dark:text-zinc-500';
+    }
+  };
+
   return (
     <div className="page-wrapper">
       <div className="sup-content">
@@ -97,7 +106,7 @@ export default function Support() {
           {/* Quick Actions */}
           <div className="sup-quick-grid">
             <button onClick={() => setShowForm(!showForm)} className="sup-quick-card w-full text-left">
-              <div className="sup-quick-icon" style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}>
+              <div className="sup-quick-icon">
                 <Plus size={22} />
               </div>
               <div>
@@ -108,7 +117,7 @@ export default function Support() {
             </button>
 
             <Link to="/messages" className="sup-quick-card">
-              <div className="sup-quick-icon" style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)' }}>
+              <div className="sup-quick-icon">
                 <MessageSquare size={22} />
               </div>
               <div>
@@ -119,7 +128,7 @@ export default function Support() {
             </Link>
 
             <a href="https://docs.sparkle.campus" target="_blank" rel="noopener noreferrer" className="sup-quick-card">
-              <div className="sup-quick-icon" style={{ background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)' }}>
+              <div className="sup-quick-icon">
                 <BookOpen size={22} />
               </div>
               <div>
@@ -148,7 +157,7 @@ export default function Support() {
                             className="bg-white dark:bg-[#1b1b24] p-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm hover:shadow-md transition-all cursor-pointer flex items-center justify-between"
                         >
                             <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getStatusStyle(ticket.status)}`}>
+                                <div className={`w-8 h-8 flex items-center justify-center shrink-0 ${getStatusIconColor(ticket.status)}`}>
                                     {ticket.status === 'resolved' ? <CheckCircle size={20} /> : <MessageCircle size={20} />}
                                 </div>
                                 <div>
@@ -271,15 +280,15 @@ export default function Support() {
         .sup-content { flex: 1; overflow-y: auto; }
         .sup-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
 
-        .sup-hero { display: flex; align-items: center; gap: 20px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; padding: 40px; border-radius: 32px; margin-bottom: 28px; box-shadow: 0 16px 40px rgba(255,61,109,0.2); }
-        .sup-hero-icon { width: 70px; height: 70px; background: rgba(255,255,255,0.2); border-radius: 22px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-        .sup-hero h1 { font-size: 2.2rem; font-weight: 900; margin: 0 0 6px; letter-spacing: -1px; }
-        .sup-hero p { margin: 0; opacity: 0.9; font-size: 1.1rem; }
+        .sup-hero { display: flex; align-items: center; gap: 20px; background: #fdf8fa; color: #18181b; padding: 32px; border-radius: 32px; margin-bottom: 28px; border: 1px solid #e6d8e1; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .sup-hero-icon { color: #FF3D6D; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .sup-hero h1 { font-size: 2rem; font-weight: 900; margin: 0 0 6px; letter-spacing: -1px; color: #18181b; }
+        .sup-hero p { margin: 0; color: #475569; font-size: 1.05rem; }
 
         .sup-quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 48px; }
         .sup-quick-card { display: flex; align-items: center; gap: 16px; background: white; padding: 20px; border-radius: 24px; border: 1px solid rgba(0,0,0,0.04); box-shadow: 0 4px 16px rgba(0,0,0,0.03); text-decoration: none; color: inherit; transition: 0.25s; cursor: pointer; }
         .sup-quick-card:hover { transform: translateY(-4px); box-shadow: 0 16px 32px rgba(0,0,0,0.06); }
-        .sup-quick-icon { width: 52px; height: 52px; border-radius: 16px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+        .sup-quick-icon { display: flex; align-items: center; justify-content: center; color: #FF3D6D; flex-shrink: 0; }
         .sup-quick-title { font-weight: 800; font-size: 16px; color: #0f172a; margin-bottom: 2px; }
         .sup-quick-sub { font-size: 13px; color: #64748b; font-weight: 500; }
         .sup-quick-arrow { color: #cbd5e1; margin-left: auto; flex-shrink: 0; }
@@ -309,6 +318,9 @@ export default function Support() {
         .sup-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
         /* Dark mode: these surfaces were authored light-only */
+        .dark .sup-hero { background: #1b1b24; border-color: rgba(255,255,255,0.08); box-shadow: none; }
+        .dark .sup-hero h1 { color: #f0f0f5; }
+        .dark .sup-hero p { color: #a8a8a8; }
         .dark .sup-quick-card, .dark .sup-faq-item { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
         .dark .sup-quick-title, .dark .sup-section-header h2, .dark .sup-faq-question, .dark .sup-form-field label { color: #f0f0f5; }
         .dark .sup-quick-sub, .dark .sup-faq-answer { color: #a8a8a8; }

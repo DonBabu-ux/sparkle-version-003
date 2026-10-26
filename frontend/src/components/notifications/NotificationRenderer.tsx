@@ -137,7 +137,7 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
         role="region"
         aria-label="Empty notifications"
       >
-        <div className="w-20 h-20 rounded-full bg-gradient-to-tr from-pink-500/10 to-purple-500/10 flex items-center justify-center text-pink-500 mb-6 shadow-inner animate-pulse-subtle">
+        <div className="flex items-center justify-center text-pink-500 mb-6 animate-pulse-subtle">
           <BellOff size={36} />
         </div>
         <h2 role="heading" aria-level={2} className="text-xl font-bold text-zinc-900 dark:text-white mb-2">

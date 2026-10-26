@@ -291,40 +291,6 @@ export default function Sidebar() {
           )}
         </AnimatePresence>
 
-        <Link 
-          to="/ecosystem"
-          className={cn(
-            "flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group cursor-pointer",
-            isActive('/ecosystem') 
-              ? "bg-slate-200/70 dark:bg-white/10 text-[#ff1493] dark:text-white font-bold" 
-              : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
-          )}
-        >
-          <div className="shrink-0 w-6 h-6 flex items-center justify-center transition-transform group-hover:scale-105">
-            <LayoutGrid 
-              size={24} 
-              strokeWidth={isActive('/ecosystem') ? 2.5 : 2} 
-              className={cn(
-                isActive('/ecosystem') 
-                  ? "text-[#ff1493] dark:text-white" 
-                  : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-400 dark:group-hover:text-white"
-              )}
-            />
-          </div>
-          <AnimatePresence>
-            {isHovered && (
-              <motion.span 
-                initial={{ opacity: 0, width: 0 }}
-                animate={{ opacity: 1, width: 'auto' }}
-                exit={{ opacity: 0, width: 0 }}
-                className="text-base overflow-hidden whitespace-nowrap"
-              >
-                More
-              </motion.span>
-            )}
-          </AnimatePresence>
-        </Link>
-        
         <div 
           onClick={() => setShowMenuPopup(!showMenuPopup)}
           className={cn(
@@ -358,6 +324,40 @@ export default function Sidebar() {
             )}
           </AnimatePresence>
         </div>
+        
+        <Link 
+          to="/ecosystem"
+          className={cn(
+            "flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group cursor-pointer",
+            isActive('/ecosystem') 
+              ? "bg-slate-200/70 dark:bg-white/10 text-[#ff1493] dark:text-white font-bold" 
+              : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
+          )}
+        >
+          <div className="shrink-0 w-6 h-6 flex items-center justify-center transition-transform group-hover:scale-105">
+            <LayoutGrid 
+              size={24} 
+              strokeWidth={isActive('/ecosystem') ? 2.5 : 2} 
+              className={cn(
+                isActive('/ecosystem') 
+                  ? "text-[#ff1493] dark:text-white" 
+                  : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-400 dark:group-hover:text-white"
+              )}
+            />
+          </div>
+          <AnimatePresence>
+            {isHovered && (
+              <motion.span 
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                className="text-base overflow-hidden whitespace-nowrap"
+              >
+                More
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
       </div>
     </motion.div>
   );

@@ -131,7 +131,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
         
         <div className="relative bg-white dark:bg-[#1b1b24] w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
-          <div className="h-1.5 w-12 bg-gray-200 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
+          <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
           <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
             <button onClick={() => setShowStoryComposer(false)} className="absolute left-6 p-2 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
               <ChevronLeft size={20} />
@@ -172,7 +172,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
       <div className="relative bg-white dark:bg-[#1b1b24] w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
-        <div className="h-1.5 w-12 bg-gray-200 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
+        <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
         <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
           <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Share Moment</h3>
           <button onClick={onClose} className="absolute right-6 p-2 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
@@ -237,7 +237,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">Telegram</span>
              </button>
              <button onClick={handleCopyLink} className="flex flex-col items-center gap-2">
-                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-sm ${copied ? 'bg-green-500 text-white border-green-500' : 'bg-gray-50 text-gray-600 hover:bg-gray-100 border-gray-100'}`}>
+                <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-sm ${copied ? 'bg-green-500 text-white border-green-500' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/10 border-gray-100 dark:border-white/10'}`}>
                    <Link size={18} />
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">{copied ? 'Copied' : 'Link'}</span>

@@ -431,13 +431,13 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                                      )}
                                      <button 
                                        onClick={() => handleMemberAction(member.user_id, 'mute', !member.muted)}
-                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 ${member.muted ? 'bg-orange-50 text-orange-500' : 'bg-gray-50 text-gray-400 hover:text-orange-500'}`}
+                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.muted ? 'bg-orange-50 dark:bg-orange-500/15 text-orange-500 dark:text-orange-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-400 hover:text-orange-500'}`}
                                      >
                                         <VolumeX size={18} />
                                      </button>
                                      <button 
                                        onClick={() => handleMemberAction(member.user_id, 'ban', !member.banned)}
-                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 ${member.banned ? 'bg-red-50 text-red-500' : 'bg-gray-50 text-gray-400 hover:text-red-500'}`}
+                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.banned ? 'bg-red-50 dark:bg-red-500/15 text-red-500 dark:text-red-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-400 hover:text-red-500'}`}
                                      >
                                         <Ban size={18} />
                                      </button>
@@ -559,7 +559,7 @@ function ToggleCard({ title, desc, icon: Icon, active, onToggle }: any) {
           </div>
           <button 
             onClick={onToggle}
-            className={`flex-shrink-0 w-11 h-6 rounded-full transition-all relative ${active ? 'bg-primary' : 'bg-gray-200'}`}
+            className={`flex-shrink-0 w-11 h-6 rounded-full transition-all relative ${active ? 'bg-primary' : 'bg-gray-200 dark:bg-zinc-700'}`}
           >
             <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-sm ${active ? 'left-6' : 'left-1'}`} />
           </button>

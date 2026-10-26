@@ -135,20 +135,20 @@ export default function CreateGroup() {
 
                  <div 
                    onClick={() => setFormData({...formData, is_public: !formData.is_public})}
-                   className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex items-center justify-between ${formData.is_public ? 'bg-white border-primary/20 shadow-lg shadow-primary/5' : 'bg-slate-50 border-slate-100 opacity-60 hover:opacity-100'}`}
+                   className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex items-center justify-between ${formData.is_public ? 'bg-white dark:bg-[#1b1b24] border-primary/20 shadow-lg shadow-primary/5' : 'bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/10 opacity-60 hover:opacity-100'}`}
                  >
                     <div className="flex items-center gap-4">
-                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.is_public ? 'bg-primary text-white' : 'bg-slate-200 text-slate-500'}`}>
+                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.is_public ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
                           {formData.is_public ? <Eye size={24} /> : <EyeOff size={24} />}
                        </div>
                        <div>
-                         <h4 className="text-sm font-bold text-slate-900">Public Visibility</h4>
-                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">
+                         <h4 className="text-sm font-bold text-slate-900 dark:text-white">Public Visibility</h4>
+                         <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-tight">
                            {formData.is_public ? 'Anyone can join and see posts' : 'Membership requires approval'}
                          </p>
                        </div>
                     </div>
-                    <div className={`w-12 h-6 rounded-full relative transition-all ${formData.is_public ? 'bg-primary' : 'bg-slate-300'}`}>
+                    <div className={`w-12 h-6 rounded-full relative transition-all ${formData.is_public ? 'bg-primary' : 'bg-slate-300 dark:bg-zinc-700'}`}>
                        <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${formData.is_public ? 'left-7' : 'left-1'}`}></div>
                     </div>
                  </div>

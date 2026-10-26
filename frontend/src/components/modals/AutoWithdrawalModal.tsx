@@ -414,7 +414,7 @@ export function AutoWithdrawalModal({
                 )}
 
                 {/* Security Note */}
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 bg-slate-100/60 p-3 rounded-xl">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 bg-slate-100/60 dark:bg-white/[0.06] p-3 rounded-xl">
                   <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
                   <span>Atomic balance locking and idempotency protection active on all automated payouts.</span>
                 </div>

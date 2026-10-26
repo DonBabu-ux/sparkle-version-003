@@ -278,6 +278,14 @@ body.note-modal-open nav {
   .bg-app {
     background-color: #fdf2f4 !important;
   }
+
+  /* MUST stay inside this @layer block - for !important declarations,
+     unlayayed !important is the weakest of all important declarations,
+     so an unlayayed dark rule loses to the light rule above. Same
+     layer = specificity decides: .dark .bg-app beats .bg-app. */
+  .dark .bg-app {
+    background-color: #1b1b24 !important;
+  }
 }
 
 /* Global Reset & Base */
@@ -394,10 +402,6 @@ body {
 
 .dark.theme-legacy .bg-primary\/5, .dark.theme-legacy .bg-primary\/10 {
   background-color: rgba(255, 0, 110, 0.15) !important;
-}
-
-.dark .bg-app {
-  background-color: #1b1b24 !important;
 }
 
 /* Global ambient pink orbs — injected on every page via ::before/::after on #root */

@@ -71,7 +71,7 @@ export const ProfileIdentityPreview: React.FC<ProfileIdentityPreviewProps> = ({
                 alt={draft.name || 'Profile'}
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(draft.name || 'User')}`;
+                  (e.currentTarget as HTMLImageElement).src = '/uploads/avatars/no-profile.png';
                 }}
               />
             </div>

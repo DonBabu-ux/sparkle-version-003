@@ -55,7 +55,7 @@ import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
 const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
-import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, Info, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, Zap, Camera, Mic, Play, Pause, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, MessageSquarePlus, Zap, Camera, Mic, Play, Pause, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { useCall } from '../components/CallProvider';
 import { getAvatarUrl, getMediaUrl } from '../utils/imageUtils';
@@ -995,15 +995,6 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
 
   
 
-  const AVATARS = [
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Felix',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Aneka',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Sasha',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=George',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Lilly',
-    'https://api.dicebear.com/7.x/avataaars/svg?seed=Oliver'
-  ];
-
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     if (selectedChat) {
@@ -1145,7 +1136,7 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                   <button
                     type="button"
                     onClick={() => setShowAttachmentMenu(true)}
-                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0"
+                    className="w-9 h-9 flex items-center justify-center text-white/75 hover:text-white active:scale-90 transition-all shrink-0"
                     title="Attach Options"
                   >
                     <Plus size={20} strokeWidth={2.5} />
@@ -1370,24 +1361,8 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                       </motion.div>
                     ))}
                   </div>
-                ) : (
-                  <div className="h-full overflow-y-auto no-scrollbar grid grid-cols-3 gap-4 p-4">
-                    {AVATARS.map((src, i) => (
-                      <motion.div
-                        key={i}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        className="relative aspect-square bg-white/5 p-2 border border-white/10 cursor-pointer overflow-hidden"
-                        onClick={() => {
-                          onSend(null, JSON.stringify({ type: 'avatar', url: src }));
-                          setShowEmojiPicker(false);
-                        }}
-                      >
-                        <img src={src} className="w-full h-full object-contain" alt="" />
-                      </motion.div>
-                    ))}
-                  </div>
-                )}
+                ) : null
+                }
               </div>
 
               {/* Reference Bottom Bar */}
@@ -4411,12 +4386,6 @@ export default function Messages() {
                     <Camera size={22} strokeWidth={2.2} />
                   </button>
                   <button
-                    onClick={() => { setPeopleHubMode('new_chat'); setShowNewChatModal(true); }}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
-                  >
-                    <SquarePen size={22} strokeWidth={2.2} />
-                  </button>
-                  <button
                     onClick={() => navigate('/messages/settings')}
                     className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                     title="Message Settings"
@@ -4655,11 +4624,14 @@ export default function Messages() {
                         <div
                           className="relative group cursor-pointer shrink-0"
                           onClick={() => {
-                            if (isSystemChat) {
-                              setShowChatSettings(true);
-                            } else if (!isSelfHeader) {
-                              navigate(`/profile/${selectedChat.partner_username || selectedChat.partner_id}`);
-                            }
+                            // Tapping the avatar previews it fullscreen instead
+                            // of navigating away from the conversation.
+                            setViewerMessage({
+                              ...selectedChat,
+                              type: 'image',
+                              media_url: isSelfHeader ? undefined : headerIdentity.avatar,
+                              message_id: `avatar-preview-${Date.now()}`,
+                            });
                           }}
                         >
                           {isSelfHeader ? (
@@ -4674,7 +4646,13 @@ export default function Messages() {
                             />
                           )}
                         </div>
-                        <div className="ml-2 flex-1 min-w-0 flex flex-col justify-center">
+                        <button
+                          type="button"
+                          onClick={() => setShowChatSettings(true)}
+                          className="ml-2 flex-1 min-w-0 flex flex-col justify-center text-left cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                          aria-label="Chat info"
+                          title="Chat info"
+                        >
                           <h3 className="text-[14.5px] font-extrabold tracking-tight leading-none text-white flex items-center gap-1.5 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                             {headerDisplayName}
                             {!isSelfHeader && (
@@ -4732,7 +4710,7 @@ export default function Messages() {
                               </AnimatePresence>
                             </div>
                           )}
-                        </div>
+                        </button>
                       </div>
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
                         {!isSystemChat && (
@@ -4741,9 +4719,6 @@ export default function Messages() {
                             <button aria-label="Start video call" title="Video call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                           </>
                         )}
-                        <button onClick={() => setShowChatSettings(true)} aria-label="Chat settings" title="Chat settings" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }}>
-                          <Info size={19} strokeWidth={2.2} />
-                        </button>
                       </div>
                     </>
                   );
@@ -7804,11 +7779,11 @@ export default function Messages() {
             setPeopleHubMode('new_chat');
             setShowNewChatModal(true);
           }}
-          className="fixed right-5 md:right-8 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-8 z-30 w-11 h-11 rounded-full bg-[#ff1493] text-white flex items-center justify-center shadow-lg shadow-[#ff1493]/35 hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff1493] focus:ring-offset-2 focus:ring-offset-[#13131a] cursor-pointer"
+          className="fixed right-5 md:right-8 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-8 z-30 w-14 h-14 rounded-full bg-[#ff1493] text-white flex items-center justify-center shadow-lg shadow-[#ff1493]/40 hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff1493] focus:ring-offset-2 focus:ring-offset-[#13131a] cursor-pointer"
           aria-label="Start new chat"
           title="New message"
         >
-          <Plus size={24} strokeWidth={2.5} className="text-white" />
+          <MessageSquarePlus size={26} strokeWidth={2.2} className="text-white" />
         </button>
       )}
 

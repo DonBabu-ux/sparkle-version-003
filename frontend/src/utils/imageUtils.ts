@@ -41,8 +41,9 @@ const isBackendDefaultAvatar = (url: string) =>
  * Section 5: Default Avatar Handling (APK Safe)
  */
 export const getAvatarUrl = (url?: string | null, _seed?: string | null): string => {
+  // Legacy system-avatar path (sparkle-logo.svg was removed; we ship the PNG).
   if (url && (url.includes('sparkle-logo') || url.includes('/assets/system/'))) {
-    return url.startsWith('/') ? url : `/${url}`;
+    return '/logo.png';
   }
   // 1. Check for valid URL
   if (url && url !== 'null' && url !== 'undefined' && url.trim() !== '') {

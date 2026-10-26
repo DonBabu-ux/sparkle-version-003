@@ -123,7 +123,9 @@ export class IdentityManager {
 
 
     // 1. Avatar Pipeline Resolution
-    // System/Official -> Sparkle Logo -> avatar_url -> profile_photo -> partner_avatar -> generated avatar -> placeholder
+    // System/Official -> avatar_url -> profile_photo -> partner_avatar -> bundled default.
+    // Dicebear-generated art is gone: users without a photo get the same
+    // default as the Connect page.
     let avatar = '/logo.png';
     if (!isSystemAccount) {
       if (user.avatar_url) avatar = user.avatar_url;
@@ -131,7 +133,7 @@ export class IdentityManager {
       else if (user.avatar) avatar = user.avatar;
       else if (user.partner_avatar) avatar = user.partner_avatar;
       else {
-        avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`;
+        avatar = '/uploads/avatars/no-profile.png';
       }
     }
 

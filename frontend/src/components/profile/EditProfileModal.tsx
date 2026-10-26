@@ -1158,7 +1158,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
                                 alt={displayName}
                                 className="w-full h-full object-cover"
                                 onError={(e) => {
-                                  (e.currentTarget as HTMLImageElement).src = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(displayName)}`;
+                                  (e.currentTarget as HTMLImageElement).src = '/uploads/avatars/no-profile.png';
                                 }}
                               />
                             ) : (

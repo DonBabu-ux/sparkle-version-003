@@ -7,7 +7,7 @@
 'use strict';
 
 const SYSTEM_USER_ID = process.env.SPARKLE_SYSTEM_USER_ID || process.env.SYSTEM_USER_ID || 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
-const SYSTEM_AVATAR = '/assets/system/sparkle-logo.svg';
+const SYSTEM_AVATAR = '/logo.png';
 
 // Multi-Account Official Ecosystem Registry
 const OFFICIAL_ECOSYSTEM_ACCOUNTS = {

@@ -47,6 +47,17 @@ class GroupChatController {
                 }
             });
 
+            // Group size policy: WhatsApp-style cap of 100 people per group.
+            const MAX_GROUP_MEMBERS = 100;
+            const requested = Array.isArray(actualMemberIds) ? actualMemberIds : [];
+            if (requested.length + 1 > MAX_GROUP_MEMBERS) {
+                return res.status(400).json({
+                    status: 'error',
+                    code: 'GROUP_FULL',
+                    error: `A group can have at most ${MAX_GROUP_MEMBERS} members (including you).`
+                });
+            }
+
             // Add Creator
             await GroupMember.add({ chatId, userId: creatorId, role: 'creator', status: 'active' });
 
@@ -147,6 +158,16 @@ class GroupChatController {
 
             if (newUids.length === 0) {
                 return res.json({ status: 'success', message: 'No new members to add' });
+            }
+
+            // Group size policy: WhatsApp-style cap of 100 people per group.
+            const MAX_GROUP_MEMBERS = 100;
+            if (existingIds.size + newUids.length > MAX_GROUP_MEMBERS) {
+                return res.status(400).json({
+                    status: 'error',
+                    code: 'GROUP_FULL',
+                    error: `This group can have at most ${MAX_GROUP_MEMBERS} members. You tried to add ${newUids.length} with ${existingIds.size} already in.`
+                });
             }
 
             await GroupMember.addMany(newUids.map(uid => ({

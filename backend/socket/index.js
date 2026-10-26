@@ -2000,7 +2000,7 @@ async function handleSparklyMentionInChat({ io, chatId, senderUserId, senderName
         recipient_id: recipientId,
         sender_name: 'Sparkly AI',
         sender_username: 'sparkly',
-        sender_avatar: '/assets/system/sparkle-logo.svg',
+        sender_avatar: '/logo.png',
         content: '',
         type: 'text',
         sent_at: initialSentAt,

@@ -71,7 +71,12 @@ export default function Navbar() {
   const isActive = (path: string) => location.pathname === path;
   const isMoments = location.pathname.startsWith('/moments');
   const isMessages = location.pathname.startsWith('/messages');
-  const isDarkBase = isMoments || isMessages;
+  // Icon treatment follows the ACTUAL app theme, not the route: /messages is
+  // no longer hardcoded dark (light-mode chat shipped), and hardcoded white
+  // glyphs + white drop-shadow wash out on the light shell (the "blurry
+  // icons" report) instead of matching the other pages.
+  const theme = useUserStore((state) => state.theme);
+  const isDarkBase = theme === 'dark';
   const isInsideChat = (location.pathname.startsWith('/messages') && location.pathname !== '/messages') ||
     (location.pathname === '/messages' && (new URLSearchParams(location.search).has('chat') || Boolean(activeConversationId)));
 

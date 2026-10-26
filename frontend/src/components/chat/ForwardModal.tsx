@@ -68,7 +68,7 @@ export const ForwardModal: React.FC<ForwardModalProps> = ({ isOpen, onClose, con
   const getAvatar = (c: ForwardContact) =>
     c.avatar_url && c.avatar_url.startsWith('http')
       ? c.avatar_url
-      : `https://api.dicebear.com/7.x/avataaars/svg?seed=${c.username || c.name}`;
+      : '/uploads/avatars/no-profile.png';
 
   return (
     <AnimatePresence>

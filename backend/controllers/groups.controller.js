@@ -323,6 +323,13 @@ const joinGroup = async (req, res) => {
             return res.json({ success: true, message: 'Join request sent successfully', status: 'pending' });
         }
 
+        // Group size policy: WhatsApp-style cap of 100 people per circle.
+        const MAX_GROUP_MEMBERS = 100;
+        const memberCount = await Group.getMembersCount(groupId);
+        if (memberCount >= MAX_GROUP_MEMBERS) {
+            return res.status(400).json({ error: 'This group is full (100 members max).' });
+        }
+
         await Group.addMember(groupId, userId);
         res.json({ success: true, message: 'Joined group successfully', status: 'active' });
     } catch (error) {
@@ -693,6 +700,17 @@ const inviteFriends = async (req, res) => {
 
         const group = await Group.findById(groupId);
         if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        // Group size policy: WhatsApp-style cap of 100 people per circle.
+        const MAX_GROUP_MEMBERS = 100;
+        const memberCount = await Group.getMembersCount(groupId);
+        const room = MAX_GROUP_MEMBERS - memberCount;
+        if (room <= 0) {
+            return res.status(400).json({ error: `This group is full (${MAX_GROUP_MEMBERS} members max).` });
+        }
+        if (userIds.length > room) {
+            return res.status(400).json({ error: `Only ${room} more member(s) fit in this group (${MAX_GROUP_MEMBERS} max).` });
+        }
 
         const notificationController = require('./notification.controller');
 

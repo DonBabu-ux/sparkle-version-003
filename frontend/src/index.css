@@ -76,7 +76,7 @@
 }
 
 [data-chat-mode="light"] {
-  --chat-shell-bg: #eef1f6;
+  --chat-shell-bg: #fdf2f4;
   --chat-panel-bg: #ffffff;
   --chat-overlay-bg: #f7f8fb;
   --chat-input-text: #0f172a;
@@ -95,16 +95,43 @@
 [data-chat-mode="light"] .bg-white\/5 { background-color: rgba(15, 23, 42, 0.045); }
 [data-chat-mode="light"] .bg-white\/10 { background-color: rgba(15, 23, 42, 0.07); }
 [data-chat-mode="light"] .bg-white\/20 { background-color: rgba(15, 23, 42, 0.1); }
+[data-chat-mode="light"] .bg-white\/\[0.08\] { background-color: rgba(15, 23, 42, 0.06); }
+[data-chat-mode="light"] .bg-white\/\[0.03\] { background-color: rgba(15, 23, 42, 0.035); }
+[data-chat-mode="light"] .bg-white\/\[0.04\] { background-color: rgba(15, 23, 42, 0.045); }
+[data-chat-mode="light"] .bg-white\/\[0.16\] { background-color: rgba(15, 23, 42, 0.09); }
+[data-chat-mode="light"] .text-white\/20 { color: rgba(15, 23, 42, 0.35); }
+[data-chat-mode="light"] .text-white\/30 { color: rgba(15, 23, 42, 0.42); }
 [data-chat-mode="light"] .text-white\/40 { color: rgba(15, 23, 42, 0.5); }
 [data-chat-mode="light"] .text-white\/50 { color: rgba(15, 23, 42, 0.55); }
+[data-chat-mode="light"] .text-white\/60 { color: rgba(15, 23, 42, 0.6); }
 [data-chat-mode="light"] .text-white\/70 { color: rgba(15, 23, 42, 0.66); }
 [data-chat-mode="light"] .text-white\/80 { color: rgba(15, 23, 42, 0.78); }
 [data-chat-mode="light"] .text-white\/90 { color: rgba(15, 23, 42, 0.88); }
 [data-chat-mode="light"] .border-white\/5 { border-color: rgba(15, 23, 42, 0.07); }
 [data-chat-mode="light"] .border-white\/10 { border-color: rgba(15, 23, 42, 0.11); }
-[data-chat-mode="light"] .border-white\/\[0\.06\] { border-color: rgba(15, 23, 42, 0.09); }
+[data-chat-mode="light"] .border-white\/\[0.06\] { border-color: rgba(15, 23, 42, 0.09); }
+[data-chat-mode="light"] .border-white\/\[0.12\] { border-color: rgba(15, 23, 42, 0.16); }
 [data-chat-mode="light"] .placeholder\:text-white\/20::placeholder { color: rgba(15, 23, 42, 0.4); }
 [data-chat-mode="light"] .placeholder\:text-white\/40::placeholder { color: rgba(15, 23, 42, 0.45); }
+/* Pure text-white and icons riding on translucent-white chips (filter pills,
+   new-chat FAB, icon wells) must flip with their background. Compound selector
+   keeps specificity above the single-class utility. Colored chips (brand pink,
+   gradients, media) keep white — only the white-alpha grounds are matched. */
+[data-chat-mode="light"] .bg-white\/20.text-white,
+[data-chat-mode="light"] .bg-white\/10.text-white,
+[data-chat-mode="light"] .bg-white\/5.text-white,
+[data-chat-mode="light"] .bg-white\/\[0.08\].text-white,
+[data-chat-mode="light"] .bg-white\/\[0.16\].text-white { color: #0f172a; }
+[data-chat-mode="light"] .bg-white\/20:hover.text-white:hover,
+[data-chat-mode="light"] .bg-white\/\[0.16\]:hover.text-white:hover { color: #0f172a; }
+/* Hover grounds darken the chip in light mode instead of whitening it. */
+[data-chat-mode="light"] .hover\:bg-white\/5:hover { background-color: rgba(15, 23, 42, 0.08); }
+[data-chat-mode="light"] .hover\:bg-white\/10:hover { background-color: rgba(15, 23, 42, 0.12); }
+[data-chat-mode="light"] .hover\:bg-white\/20:hover { background-color: rgba(15, 23, 42, 0.16); }
+[data-chat-mode="light"] .hover\:bg-white\/25:hover { background-color: rgba(15, 23, 42, 0.2); }
+[data-chat-mode="light"] .hover\:bg-white\/\[0\.15\]:hover { background-color: rgba(15, 23, 42, 0.12); }
+[data-chat-mode="light"] .hover\:bg-white\/\[0\.25\]:hover { background-color: rgba(15, 23, 42, 0.2); }
+[data-chat-mode="light"] .hover\:text-white:hover { color: #0f172a; }
 
 /* ---- Chat component subsystem (rows, modals, location, action bar) ----
    These live in components/chat/* and were authored dark-only with the same
@@ -350,7 +377,10 @@ body {
   border-color: #262626 !important;
 }
 
-.dark.theme-legacy .text-black, .dark.theme-legacy .text-black\/20, .dark.theme-legacy .text-black\/30, .dark.theme-legacy .text-black\/40, .dark.theme-legacy .text-black\/50, .dark.theme-legacy .text-black\/60, .dark.theme-legacy .text-black\/70, .dark.theme-legacy .text-black\/80, .dark.theme-legacy .text-black\/90 {
+/* One rule per value — overlapping !important selectors silently kill each
+   other by source order, which is how dim text started turning full-white.
+   30/40 are intentionally dim; the rest go full white. */
+.dark.theme-legacy .text-black, .dark.theme-legacy .text-black\/20, .dark.theme-legacy .text-black\/50, .dark.theme-legacy .text-black\/60, .dark.theme-legacy .text-black\/70, .dark.theme-legacy .text-black\/80, .dark.theme-legacy .text-black\/90 {
   color: #FFFFFF !important;
 }
 
@@ -379,7 +409,7 @@ body {
   background: #000000 !important;
 }
 
-.dark.theme-legacy .shadow-sm, .dark.theme-legacy .shadow-md, .dark.theme-legacy .shadow-lg, .dark.theme-legacy .shadow-xl, .dark.theme-legacy .shadow-2xl, .dark.theme-legacy .shadow-xl {
+.dark.theme-legacy .shadow-sm, .dark.theme-legacy .shadow-md, .dark.theme-legacy .shadow-lg, .dark.theme-legacy .shadow-xl, .dark.theme-legacy .shadow-2xl {
   box-shadow: none !important;
 }
 

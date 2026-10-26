@@ -26,6 +26,7 @@
 
 :root {
   --bg-main: #f0f2f5;
+  --page-shell-bg: #f0f2f5;
 
   /* ---- Messaging shell theming ----
      The chat screen was authored dark-only. The :root defaults are the DARK
@@ -331,6 +332,13 @@ html {
 
 html.dark {
   background: #1b1b24;
+}
+
+/* Pages that paint .page-wrapper with var(--bg-main) inline (Ecosystem,
+   Support, ...) must flip with the app theme, not just :root's light value. */
+.dark {
+  --bg-main: #1b1b24;
+  --page-shell-bg: #1b1b24;
 }
 
 @media (max-width: 768px) {

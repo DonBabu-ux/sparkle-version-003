@@ -308,6 +308,16 @@ export default function Support() {
         .sup-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 15px 35px rgba(255,61,109,0.4); }
         .sup-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
+        /* Dark mode: these surfaces were authored light-only */
+        .dark .sup-quick-card, .dark .sup-faq-item { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
+        .dark .sup-quick-title, .dark .sup-section-header h2, .dark .sup-faq-question, .dark .sup-form-field label { color: #f0f0f5; }
+        .dark .sup-quick-sub, .dark .sup-faq-answer { color: #a8a8a8; }
+        .dark .sup-faq-answer { border-top-color: rgba(255,255,255,0.08); }
+        .dark .sup-quick-arrow { color: #64748b; }
+        .dark .sup-form-field input, .dark .sup-form-field select, .dark .sup-form-field textarea { background: #12151c; border-color: rgba(255,255,255,0.12); color: #f0f0f5; }
+        .dark .sup-form-field input:focus, .dark .sup-form-field select:focus, .dark .sup-form-field textarea:focus { background: #1b1b24; }
+        .dark .sup-form-field input::placeholder, .dark .sup-form-field textarea::placeholder { color: #6b7280; }
+
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
         @media (max-width: 600px) {

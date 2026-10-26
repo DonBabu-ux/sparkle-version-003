@@ -123,7 +123,7 @@ export default function FollowRequests() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f8fafc); min-height: 100dvh; }
+        .page-wrapper { display: flex; background: var(--bg-main); min-height: 100dvh; }
         .fr-content { flex: 1; padding: 30px 20px; }
         .fr-container { max-width: 620px; margin: 0 auto; }
 
@@ -163,6 +163,16 @@ export default function FollowRequests() {
         .fr-empty-icon { width: 90px; height: 90px; background: #f8fafc; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; color: #cbd5e1; }
         .fr-empty h3 { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 8px; }
         .fr-empty p { font-size: 14px; color: #64748b; }
+
+        /* Dark mode: authored light-only */
+        .dark .fr-page-header, .dark .fr-card, .dark .fr-skeleton, .dark .fr-empty { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
+        .dark .fr-page-header h1, .dark .fr-details h4, .dark .fr-empty h3 { color: #f0f0f5; }
+        .dark .fr-page-header p, .dark .fr-details p, .dark .fr-empty p { color: #a8a8a8; }
+        .dark .fr-reject-btn { background: rgba(255,255,255,0.08); color: #c8ccd4; }
+        .dark .fr-reject-btn:hover { background: rgba(239,68,68,0.2); color: #f87171; }
+        .dark .fr-avatar { border-color: rgba(255,255,255,0.12); }
+        .dark .frs-avatar, .dark .frs-line, .dark .frs-btn-box { background: rgba(255,255,255,0.08); }
+        .dark .fr-empty-icon { background: rgba(255,255,255,0.06); color: #6b7280; }
       `}</style>
     </div>
   );

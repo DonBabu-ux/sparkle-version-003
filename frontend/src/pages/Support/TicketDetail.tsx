@@ -154,6 +154,25 @@ export default function TicketDetail() {
                 .reply-form button:disabled { opacity: 0.5; transform: none; }
 
                 .closed-info { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 16px; background: #f1f5f9; border-radius: 16px; color: #64748b; font-weight: 600; font-size: 14px; }
+
+                /* Dark mode: authored light-only */
+                .dark .page-wrapper { background: #1b1b24; }
+                .dark .ticket-container { background: #12151c; box-shadow: 0 0 40px rgba(0,0,0,0.4); }
+                .dark .ticket-header, .dark .ticket-footer { border-bottom-color: rgba(255,255,255,0.08); background: #12151c; }
+                .dark .ticket-footer { border-top-color: rgba(255,255,255,0.08); }
+                .dark .back-btn { background: rgba(255,255,255,0.08); }
+                .dark .back-btn:hover { background: rgba(255,255,255,0.14); }
+                .dark .header-info h1 { color: #f0f0f5; }
+                .dark .header-meta, .dark .date-tag { color: #a8a8a8; }
+                .dark .category-tag { background: rgba(255,255,255,0.08); color: #a8a8a8; }
+                .dark .status-badge.open, .dark .status-badge.resolved { background: rgba(22,163,74,0.2); color: #4ade80; }
+                .dark .status-badge.in_progress { background: rgba(202,138,4,0.2); color: #facc15; }
+                .dark .status-badge.closed { background: rgba(255,255,255,0.08); color: #94a3b8; }
+                .dark .chat-window { background: #0d0f13; }
+                .dark .bot .message-bubble { background: #1b1b24; color: #f0f0f5; border-color: rgba(255,255,255,0.1); }
+                .dark .reply-form input { background: #12151c; border-color: rgba(255,255,255,0.12); color: #f0f0f5; }
+                .dark .reply-form input:focus { background: #1b1b24; }
+                .dark .closed-info { background: rgba(255,255,255,0.06); color: #a8a8a8; }
             `}</style>
         </div>
     );

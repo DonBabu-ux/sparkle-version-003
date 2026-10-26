@@ -151,6 +151,8 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 40px; background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
         .modal-header { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: white; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
+
+        .dark .modal-inner, .dark .modal-header { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
       `}</style>
     </div>
   );

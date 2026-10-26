@@ -308,6 +308,32 @@ export default function SkillHub() {
         .sh-textarea:focus { border-color: #111827; }
 
         .sh-modal-actions { display: flex; gap: 12px; }
+
+        /* Dark mode: authored light-only */
+        .dark .sh-layout { background: #0d0f13; }
+        .dark .sh-header, .dark .sh-tabs { border-bottom-color: rgba(255,255,255,0.08); }
+        .dark .sh-back { background: rgba(255,255,255,0.08); color: #f0f0f5; }
+        .dark .sh-title, .dark .sh-name, .dark .sh-service-title, .dark .sh-modal h2 { color: #f0f0f5; }
+        .dark .sh-subtitle, .dark .sh-user, .dark .sh-details, .dark .sh-notes, .dark .sh-loading, .dark .sh-tab, .dark .sh-modal-sub { color: #a8a8a8; }
+        .dark .sh-empty { background: rgba(255,255,255,0.04); color: #a8a8a8; }
+        .dark .sh-card { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
+        .dark .sh-card-header, .dark .sh-card-actions, .dark .sh-card-footer { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
+        .dark .sh-status--pending { background: rgba(217,119,6,0.2); color: #fbbf24; }
+        .dark .sh-status--accepted { background: rgba(37,99,235,0.2); color: #60a5fa; }
+        .dark .sh-status--declined { background: rgba(220,38,38,0.2); color: #f87171; }
+        .dark .sh-status--completed { background: rgba(16,185,129,0.2); color: #34d399; }
+        .dark .sh-notes { background: rgba(255,255,255,0.04); }
+        .dark .sh-btn--primary { background: #f0f0f5; color: #0d0f13; }
+        .dark .sh-btn--primary:hover { background: #ffffff; }
+        .dark .sh-btn--success { background: rgba(16,185,129,0.15); color: #34d399; }
+        .dark .sh-btn--danger { background: rgba(220,38,38,0.15); color: #f87171; }
+        .dark .sh-btn--danger:hover { background: rgba(220,38,38,0.3); }
+        .dark .sh-btn--ghost { color: #a8a8a8; }
+        .dark .sh-btn--ghost:hover { background: rgba(255,255,255,0.06); }
+        .dark .sh-modal { background: #1b1b24; }
+        .dark .sh-textarea { background: #12151c; border-color: rgba(255,255,255,0.12); color: #f0f0f5; }
+        .dark .sh-textarea:focus { border-color: #f0f0f5; }
+        .dark .sh-star { color: #4b5563; }
       `}</style>
     </div>
   );

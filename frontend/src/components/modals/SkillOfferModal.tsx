@@ -553,6 +553,10 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         .dark .sof-success__title { color: #fff; }
         .sof-success__sub { font-size: 14px; font-weight: 500; color: #6b7280; }
         .dark .sof-success__sub { color: #9ca3af; }
+
+        .dark .sof-wc-fill--over { background: #ea580c; }
+        .dark .sof-wc-msg--ok { color: #34d399; }
+        .dark .sof-wc-count--ok { color: #34d399; }
       `}</style>
     </div>
   );

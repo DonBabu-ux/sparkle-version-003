@@ -182,6 +182,8 @@ export default function Help() {
           .help-categories { grid-template-columns: 1fr; }
           .contact-cards { grid-template-columns: 1fr; }
         }
+
+        .dark .contact-info span { color: #a8a8a8; }
       `}</style>
     </div>
   );

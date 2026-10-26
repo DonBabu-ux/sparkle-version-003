@@ -621,6 +621,22 @@ export default function ResetPassword() {
             font-size: 1rem;
           }
         }
+
+        /* Dark mode: this auth screen was authored light-only */
+        .dark .security-page-bg {
+          background-color: #0d0f13;
+          background-image: radial-gradient(circle at 10% 20%, rgba(255, 20, 147, 0.07) 0%, transparent 45%),
+                            radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.06) 0%, transparent 45%);
+          color: #f0f0f5;
+        }
+        .dark .security-back-btn { color: #a8a8a8; }
+        .dark .security-back-btn:hover { color: #ff6b9d; }
+        .dark .input-otp-box, .dark .security-input {
+          background: rgba(255,255,255,0.06);
+          border-color: rgba(255,255,255,0.12);
+          color: #f0f0f5;
+        }
+        .dark .success-overlay { background: #0d0f13; }
       `}</style>
     </div>
   );

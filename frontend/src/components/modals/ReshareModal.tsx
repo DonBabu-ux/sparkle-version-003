@@ -147,6 +147,14 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
         .preview-text { font-size: 0.85rem; color: #64748b; line-height: 1.5; margin-bottom: 8px; }
         .preview-media { border-radius: 12px; overflow: hidden; max-height: 140px; }
         .preview-media img { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Dark mode: authored light-only */
+        .dark .modal-inner { background: #1b1b24; }
+        .dark .reshare-input { color: #f0f0f5; }
+        .dark .reshare-input::placeholder { color: #6b7280; }
+        .dark .original-post-preview { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); }
+        .dark .preview-username { color: #f0f0f5; }
+        .dark .preview-text { color: #a8a8a8; }
       `}</style>
     </div>
   );

@@ -577,6 +577,8 @@ export default function SkillDetailModal({ offerId, onClose }: { offerId: string
           padding-left: 10px; border-left: 2px solid #e5e7eb;
         }
         .dark .sdm-review__comment { color: #9ca3af; border-color: rgba(255,255,255,0.05); }
+
+        .dark .sdm-price__val { color: #34d399; }
       `}</style>
     </div>
   );

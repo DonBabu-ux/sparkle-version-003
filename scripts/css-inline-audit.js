@@ -12,9 +12,13 @@ const path = require('path');
 const SRC = path.join(__dirname, '..', 'frontend', 'src');
 const verbose = process.argv.includes('--verbose');
 
+const BRAND_PINKS = /#(?:ff2d87|ff3d6d|ff6b8b|ff1f6d)\b/i;
 const LIGHT_BG = /background(?:-color)?\s*:\s*(?:white|#f[0-9a-f]{2,5}|#e[fF][0-9a-f]|#fa[0-9a-f]{3,5}|#fd[0-9a-f]{3,5}|#f[0-9a-f]{5})\b/i;
 const LIGHT_TEXT = /color\s*:\s*#(?:0f|1e|1[0-9a-f]|2[0-9a-f]|3[0-9a-f]|4[0-9a-f]|5[0-9a-f]|6[0-7])[0-9a-f]{4}/i;
 const LIGHT_VAR = /var\(--[a-z-]+,\s*#f[0-9a-f]{2,5}\)/i;
+
+const isLight = (body) =>
+  !BRAND_PINKS.test(body) && (LIGHT_BG.test(body) || LIGHT_TEXT.test(body) || LIGHT_VAR.test(body));
 
 const findings = [];
 
@@ -46,7 +50,8 @@ function walk(dir) {
           block += line + '\n';
         }
         if (!inStyle) {
-          const rules = block.split('}');
+          const clean = block.replace(/\/\*[\s\S]*?\*\//g, '');
+          const rules = clean.split('}');
           const darkSelectors = new Set();
           const lightSurfaces = [];
           for (const rule of rules) {
@@ -59,7 +64,7 @@ function walk(dir) {
               for (const s of sel.split(',')) darkSelectors.add(s.trim().replace(/\.dark\s*/, '').replace(/data-chat-mode="[a-z]+"\s*/g, '').trim());
               continue;
             }
-            if (LIGHT_BG.test(body) || LIGHT_TEXT.test(body) || LIGHT_VAR.test(body)) {
+            if (isLight(body)) {
               lightSurfaces.push(sel);
             }
           }

@@ -32,6 +32,7 @@ export default function Ads() {
     <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: #ffffff; border: 1px solid rgba(255, 31, 109, 0.12); }
+        .dark .glass-card { background: #1b1b24; border-color: rgba(255, 31, 109, 0.25); }
       `}</style>
 
       {/* Header */}

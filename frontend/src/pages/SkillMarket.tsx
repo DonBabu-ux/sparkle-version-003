@@ -684,6 +684,10 @@ export default function SkillMarket() {
         .skm-card__btn:hover { background: #e11d48; box-shadow: 0 6px 18px rgba(225,29,72,0.28); }
         .dark .skm-card__btn:hover { background: #e11d48; color: #fff; }
         .skm-card__btn:active { transform: scale(0.9); }
+
+        /* Dark mode fixes for the two uncovered surfaces */
+        .dark .skm-empty__icon { background: rgba(255,255,255,0.06); color: #6b7280; }
+        .dark .skm-card__price { color: #34d399; }
       `}</style>
     </div>
   );

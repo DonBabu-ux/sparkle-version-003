@@ -267,7 +267,7 @@ export default function Support() {
       </div>
 
       <style>{`
-        .page-wrapper { display: flex; background: var(--bg-main, #f0f2f5); min-height: 100dvh; }
+        .page-wrapper { display: flex; background: var(--bg-main); min-height: 100dvh; }
         .sup-content { flex: 1; overflow-y: auto; }
         .sup-container { max-width: 820px; margin: 0 auto; padding: 30px 24px 100px; }
 

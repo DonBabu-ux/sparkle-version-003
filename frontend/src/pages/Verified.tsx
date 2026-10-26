@@ -119,7 +119,7 @@ export default function Verified() {
                            </div>
                            <span className="text-xs font-black italic">{stats.followers}/1,000</span>
                         </div>
-                        <div className="h-2.5 bg-white/50 rounded-full overflow-hidden p-0.5 border border-white">
+                        <div className="h-2.5 bg-white/50 dark:bg-black/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
                            <div className="h-full bg-black rounded-full transition-all duration-1000" style={{ width: `${Math.min((stats.followers / 1000) * 100, 100)}%` }} />
                         </div>
                      </div>
@@ -132,7 +132,7 @@ export default function Verified() {
                            </div>
                            <span className="text-xs font-black italic text-[#FF1F6D]">{stats.engagement}%/70%</span>
                         </div>
-                        <div className="h-2.5 bg-white/50 rounded-full overflow-hidden p-0.5 border border-white">
+                        <div className="h-2.5 bg-white/50 dark:bg-black/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
                            <div className="h-full bg-[#FF1F6D] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,31,109,0.3)]" style={{ width: `${Math.min((stats.engagement / 70) * 100, 100)}%` }} />
                         </div>
                      </div>

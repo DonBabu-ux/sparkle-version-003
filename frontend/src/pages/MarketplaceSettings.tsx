@@ -211,7 +211,7 @@ const MarketplaceSettings = () => {
 
         {/* Section 1: Privacy */}
         <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
+          <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <Shield size={18} className="text-blue-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Messaging Privacy</h2>
           </div>
@@ -248,7 +248,7 @@ const MarketplaceSettings = () => {
 
         {/* Section 2: Experience */}
         <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
+          <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <Eye size={18} className="text-indigo-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Chat Experience</h2>
           </div>
@@ -297,7 +297,7 @@ const MarketplaceSettings = () => {
 
         {/* Section 3: Safety */}
         <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-50 flex items-center gap-3 bg-gray-50/50">
+          <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <UserX size={18} className="text-red-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Safety & Blocks</h2>
           </div>
@@ -505,7 +505,7 @@ function MarketplaceSupportView() {
             <div className="text-2xl font-black tracking-tighter mb-2">How can we help?</div>
             <p className="text-indigo-100 font-bold text-sm mb-6 opacity-80">Chat with our automated assistant or browse the options below.</p>
           </div>
-          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 blur-2xl" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 dark:bg-white/[0.06] rounded-full -mr-16 -mt-16 blur-2xl" />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

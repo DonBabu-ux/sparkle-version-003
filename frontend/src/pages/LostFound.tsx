@@ -123,7 +123,7 @@ export default function LostFound() {
                    <button 
                     key={t}
                     onClick={() => setFilter(t)}
-                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white border-white text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 border-white text-black opacity-30 hover:opacity-100 hover:bg-white'}`}
+                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white dark:bg-[#1b1b24] border-white dark:border-white/10 text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 dark:bg-white/[0.03] border-white dark:border-white/10 text-black dark:text-white opacity-30 hover:opacity-100 hover:bg-white dark:hover:bg-white/[0.06]'}`}
                    >
                      {t === 'lost' && <AlertCircle size={16} strokeWidth={3} />}
                      {t === 'found' && <CheckCircle2 size={16} strokeWidth={3} />}
@@ -311,14 +311,14 @@ export default function LostFound() {
                     <div className="grid grid-cols-2 gap-8">
                        <button 
                         onClick={() => setReportType('lost')}
-                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'lost' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
+                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'lost' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] rotate-2' : 'bg-white dark:bg-white/[0.04] border-white dark:border-white/10 text-black dark:text-white opacity-20 hover:border-primary/20 hover:opacity-60'}`}
                        >
                          <AlertCircle size={64} strokeWidth={4} className={reportType === 'lost' ? 'animate-pulse' : ''} />
                          <span className="text-sm font-black uppercase tracking-[0.3em] italic">Lost Item</span>
                        </button>
                        <button 
                         onClick={() => setReportType('found')}
-                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'found' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] -rotate-2' : 'bg-white border-white text-black opacity-20 hover:border-primary/20 hover:opacity-60'}`}
+                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'found' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] -rotate-2' : 'bg-white dark:bg-white/[0.04] border-white dark:border-white/10 text-black dark:text-white opacity-20 hover:border-primary/20 hover:opacity-60'}`}
                        >
                          <CheckCircle2 size={64} strokeWidth={4} className={reportType === 'found' ? 'animate-pulse' : ''} />
                          <span className="text-sm font-black uppercase tracking-[0.3em] italic">Item Found</span>

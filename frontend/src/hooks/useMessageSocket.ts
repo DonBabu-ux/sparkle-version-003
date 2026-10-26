@@ -151,6 +151,14 @@ export const useMessageSocket = () => {
         chatStore.addMessage(chatId, msg);
       }
 
+      // Live unread badge: standby counters rise only from real incoming
+      // messages, and never for the chat the user is currently reading.
+      if (msg.sender_id && msg.sender_id !== myId && chatId) {
+        if (chatStore.activeConversationId !== chatId) {
+          chatStore.incrementUnreadCount(chatId);
+        }
+      }
+
       // If message is from someone else, immediately send Enterprise Session Delivery ACK
       if (msg.sender_id && msg.sender_id !== myId) {
         const messageId = msg.message_id || msg.id;

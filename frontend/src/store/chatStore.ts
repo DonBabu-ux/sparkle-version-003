@@ -205,6 +205,7 @@ interface ChatState {
   removeReaction: (chatId: string, messageId: string, userId: string, emoji: string) => void;
   updateReaction: (chatId: string, messageId: string, userId: string, emoji: string) => void;
   clearUnreadCount: (chatId: string) => void;
+  incrementUnreadCount: (chatId: string) => void;
   setEditing: (editing: { messageId?: string; chatId?: string; originalContent?: string; startedAt?: number }) => void;
   clearEditing: () => void;
   setDraft: (chatId: string, text: string) => void;
@@ -441,6 +442,11 @@ export const useChatStore = create<ChatState>()(
                   ...c,
                   partner_name: c.partner_name || c.partner_username || 'Sparkle User',
                   partner_username: c.partner_username || '',
+                  // Unread badges are standby state: hydrate at 0 and let live
+                  // socket events raise them. The inbox payload still carries
+                  // a server-side unread_count, but displaying it on load made
+                  // the badge a server-read rather than a live counter.
+                  unread_count: 0,
                 })),
               };
             }),
@@ -966,6 +972,23 @@ export const useChatStore = create<ChatState>()(
           }));
           get().refreshConversation(chatId);
         },
+
+        /**
+         * Live unread increment — called by the socket new-message handler for
+         * incoming messages in non-active chats. The row badge and the Unread
+         * tab count both render from this counter, so badges update in real
+         * time without hydrating server counts.
+         */
+        incrementUnreadCount: (chatId) =>
+            set((state) => {
+              const next = (state.unreadCounts[chatId] || 0) + 1;
+              return {
+                unreadCounts: { ...state.unreadCounts, [chatId]: next },
+                conversations: state.conversations.map((c) =>
+                  c.chat_id === chatId ? { ...c, unread_count: next } : c
+                ),
+              };
+            }),
         startEdit: (chatId, messageId, content) => {
           set((state) => ({
             editing: {

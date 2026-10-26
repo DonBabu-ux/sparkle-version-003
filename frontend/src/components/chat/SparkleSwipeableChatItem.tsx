@@ -6,6 +6,7 @@ import { IdentityManager } from '../../utils/identityManager';
 import { VerifiedBadge } from '../common/VerifiedBadge';
 import { formatChatTimestamp } from '../../utils/format';
 import { resolveChatListDisplay } from '../../utils/chatListDisplay';
+import { useChatStore } from '../../store/chatStore';
 
 interface SparkleSwipeableChatItemProps {
   chat: any;
@@ -62,7 +63,6 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
     currentUserId,
     referenceTime,
   });
-  const hasUnreadIncoming = displayInfo.hasUnreadIncoming;
 
   // Reset swipe translation whenever selection mode changes
   useEffect(() => {
@@ -115,7 +115,9 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
   const chatAvatar = isSelfChat
     ? null
     : (chat.avatar_url || chat.partner_avatar || chat.partner_photo || chat.profile_photo || itemIdentity.avatar);
-  const unreadCount = Math.max(0, Number(chat.unread_count) || 0);
+  // Live unread counter (standby on load; raised by socket new-message events).
+  const liveUnread = useChatStore((s) => s.unreadCounts[chat.chat_id] || 0);
+  const unreadCount = liveUnread;
 
   return (
     <div ref={containerRef} id={domId} className="relative overflow-hidden group select-none">
@@ -165,7 +167,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
         }}
         role="button"
         tabIndex={0}
-        aria-label={`Chat with ${displayName}${hasUnreadIncoming ? `, ${chat.unread_count || 1} unread` : ''}${isActive ? ' (open)' : ''}`}
+        aria-label={`Chat with ${displayName}${liveUnread > 0 ? `, ${liveUnread} unread` : ''}${isActive ? ' (open)' : ''}`}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault();
@@ -217,7 +219,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           <div className="flex justify-between items-center mb-0.5">
             <h4 className={clsx(
               "text-[15px] tracking-tight truncate leading-tight flex items-center gap-1.5",
-              hasUnreadIncoming ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
+              liveUnread > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
             )}>
               {displayName}
               {!isSelfChat && (
@@ -237,7 +239,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
               {Boolean(chat.is_muted) && <VolumeX size={12} className="text-purple-400 shrink-0" />}
             </h4>
 
-            {displayInfo.hasUnreadIncoming && unreadCount > 0 && (
+            {liveUnread > 0 && (
               <span
                 className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#ff1493] text-white text-[11px] font-black leading-none ml-2"
                 aria-label={`${unreadCount} unread messages`}

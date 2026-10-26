@@ -42,6 +42,26 @@ public class SparkleInsetsPlugin extends Plugin {
                     lastSentJson = json;
                     notifyListeners("insetsChanged", data);
                 }
+
+                // IME squeeze (WhatsApp-style keyboard).
+                //
+                // MainActivity enables edge-to-edge, i.e. decorFitsSystemWindows(false).
+                // On Android 11+ that makes the app responsible for window insets and
+                // "adjustResize" becomes a no-op: the system no longer shrinks our
+                // window for the keyboard. The observed behavior was the whole window
+                // panning up (top cut off) and the composer ending up under the keys.
+                //
+                // Padding the WebView by the IME height shrinks the CSS layout viewport
+                // instead: the flex chat layout compresses, the input dock stays pinned
+                // just above the keyboard, and window.visualViewport (used by
+                // ChatInputDock to drop the safe-area pad) reports the shrink. When the
+                // keyboard closes the IME inset is 0, so nothing changes.
+                Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+                int targetBottom = ime.bottom > 0 ? ime.bottom : 0;
+                if (view.getPaddingBottom() != targetBottom) {
+                    view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(), targetBottom);
+                }
+
                 return windowInsets;
             });
             ViewCompat.requestApplyInsets(webView);

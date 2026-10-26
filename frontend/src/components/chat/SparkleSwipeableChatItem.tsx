@@ -237,11 +237,13 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
               {Boolean(chat.is_muted) && <VolumeX size={12} className="text-purple-400 shrink-0" />}
             </h4>
 
-            {displayInfo.showUnreadEdgeDot && (
-              <div
-                className="w-2.5 h-2.5 rounded-full bg-[#ff1493] shrink-0 shadow-[0_0_8px_rgba(255,20,147,0.4)] ml-2"
-                aria-label="Unread message indicator"
-              />
+            {displayInfo.hasUnreadIncoming && unreadCount > 0 && (
+              <span
+                className="shrink-0 inline-flex items-center justify-center min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#ff1493] text-white text-[11px] font-black leading-none ml-2"
+                aria-label={`${unreadCount} unread messages`}
+              >
+                {unreadCount > 999 ? '999+' : unreadCount}
+              </span>
             )}
           </div>
 
@@ -293,14 +295,6 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                         "text-white/50"
                       )}>
                         · {displayInfo.middleLabel}
-                      </span>
-                    )}
-                    {unreadCount > 0 && (
-                      <span
-                        className="shrink-0 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1.5 rounded-full bg-[#ff1493]/15 text-[#ff1493] text-[10px] font-black leading-none"
-                        aria-label={`${unreadCount} unread messages`}
-                      >
-                        {unreadCount > 99 ? '99+' : unreadCount}
                       </span>
                     )}
                     {timeLabel && (

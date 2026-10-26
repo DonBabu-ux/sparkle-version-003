@@ -47,9 +47,12 @@ describe('Chat List Unread Indicators, Receipts & Activity Status', () => {
         referenceTime: BASE_NOW,
       });
 
-      expect(result.mode).toBe('unread_summary');
-      expect(result.showUnreadEdgeDot).toBe(true);
-      expect(result.unreadSummary).toBe('3 new messages');
+      // WhatsApp-style: the row shows the normal preview and a numeric unread
+      // badge (rendered by the row component from unread_count, up to 999);
+      // there is no "N new messages" summary and no edge dot.
+      expect(result.mode).toBe('normal_preview');
+      expect(result.showUnreadEdgeDot).toBe(false);
+      expect(result.unreadSummary).toBeNull();
       expect(result.hasUnreadIncoming).toBe(true);
       expect(result.isLastMsgFromMe).toBe(false);
     });

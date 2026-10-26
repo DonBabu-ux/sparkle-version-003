@@ -815,7 +815,7 @@ const LiveRecordingBar = memo(({
   );
 });
 
-const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending, getQuickReaction, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onFileSelect, onOpenDisappearingSettings }: any) => {
+const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttachmentMenu, onVoiceSend, theme, replyToMessage, onOpenDisappearingSettings }: any) => {
   const drafts = useChatStore(state => state.drafts);
   const setDraft = useChatStore(state => state.setDraft);
   const localMessage = selectedChat ? (drafts[selectedChat.chat_id] || '') : '';
@@ -1132,54 +1132,18 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
                   transition={{ duration: 0.18, ease: [0.4, 0, 0.2, 1] }}
                   className="flex items-center gap-0.5 shrink-0 overflow-hidden"
                 >
-                  {/* 1. Plus (+) — Main Attachment Sheet Button */}
+                  {/* Attach — single WhatsApp-style paperclip. The attachment
+                      sheet (gallery / camera / document / audio / location)
+                      lives behind this one control. */}
                   <button
                     type="button"
                     onClick={() => setShowAttachmentMenu(true)}
                     className="w-9 h-9 flex items-center justify-center text-white/75 hover:text-white active:scale-90 transition-all shrink-0"
-                    title="Attach Options"
+                    title="Attach"
+                    aria-label="Attach"
                   >
-                    <Plus size={20} strokeWidth={2.5} />
+                    <Paperclip size={20} strokeWidth={2.2} />
                   </button>
-
-                  {/* 2. Camera (📷) — Sparkle Camera Flow */}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (onCameraOpen) onCameraOpen();
-                    }}
-                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0"
-                    title="Open Camera"
-                  >
-                    <Camera size={19} strokeWidth={2.2} />
-                  </button>
-
-                  {/* 3. Files (📎) — Device File Picker */}
-                  <label
-                    className="w-9 h-9 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 active:scale-90 rounded-full transition-all shrink-0 cursor-pointer"
-                    title="Choose Files"
-                  >
-                    <input
-                      type="file"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files.length > 0) {
-                          const check = validateFiles(Array.from(e.target.files), { kind: 'any', maxSizeMB: 10 });
-                          if (!check.ok) {
-                            showError(check.error!);
-                            e.target.value = '';
-                            return;
-                          }
-                          if (onFileSelect) {
-                            onFileSelect(e.target.files);
-                          }
-                          e.target.value = '';
-                        }
-                      }}
-                    />
-                    <Paperclip size={19} strokeWidth={2.2} />
-                  </label>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -1228,19 +1192,6 @@ const ChatInput = memo(({ onTyping, onSend, onCameraOpen, selectedChat, sending,
             </div>
 
             <div className="flex items-center shrink-0 mr-1 gap-1">
-              {!localMessage.trim() && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    const reaction = getQuickReaction(selectedChat.chat_id);
-                    onSend(undefined, reaction);
-                  }}
-                  className="text-2xl hover:scale-110 active:scale-90 transition-all p-1"
-                >
-                  {getQuickReaction(selectedChat.chat_id)}
-                </button>
-              )}
-
               {localMessage.trim() ? (
                 <button
                   type="submit"
@@ -2625,7 +2576,7 @@ export default function Messages() {
     }
   }, [hiddenTabs, activeFilter]);
 
-  const { getThemeForChat, getQuickReaction, getWordEffects } = useThemeStore();
+  const { getThemeForChat, getWordEffects } = useThemeStore();
   const currentChatTheme = selectedChat ? getThemeForChat(selectedChat.chat_id) : null;
   
 
@@ -2712,7 +2663,8 @@ export default function Messages() {
     const store = useChatStore.getState();
     if (selectedChat) {
       store.setActiveConversationId(selectedChat.chat_id);
-      socket?.emit('mark-read', selectedChat.chat_id);
+      // NOTE: the legacy 'mark-read' emit was removed with its server handler;
+      // the canonical read-receipt path is the message-read-ack effect below.
       store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
       store.refreshConversation(selectedChat.chat_id);
       fetchMessages(selectedChat.chat_id);
@@ -3024,9 +2976,12 @@ export default function Messages() {
   useEffect(() => {
     if (!socket || !selectedChat) return;
 
-    if (document.hasFocus() && !(selectedChat.is_group || selectedChat.chat_type === 'group') && !selectedChat.chat_id.startsWith('temp_')) {
+    if (document.hasFocus() && !selectedChat.chat_id.startsWith('temp_')) {
       // Single canonical read-receipt emit: 'message-read-ack' (same
       // tri-condition write + partner broadcast as the legacy 'mark-read').
+      // Groups are included: the server marks group rows by chat_id, and
+      // excluding them left group read state unpersisted (it reappeared
+      // unread on every refetch/reload).
       socket.emit('message-read-ack', { chatId: selectedChat.chat_id });
       setUnreadCountInChat(0);
 
@@ -4638,6 +4593,12 @@ export default function Messages() {
                             <div className="w-[38px] h-[38px] rounded-full bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-sm border border-white/10">
                               <Bookmark size={18} />
                             </div>
+                          ) : isSystemChat ? (
+                            <img
+                              src="/logo.png"
+                              className="w-[38px] h-[38px] rounded-full object-cover border border-white/10 shadow-sm"
+                              alt=""
+                            />
                           ) : (
                             <img
                               src={headerIdentity.avatar}
@@ -4655,6 +4616,9 @@ export default function Messages() {
                         >
                           <h3 className="text-[14.5px] font-extrabold tracking-tight leading-none text-white flex items-center gap-1.5 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                             {headerDisplayName}
+                            {(selectedChat?.is_group || selectedChat?.chat_type === 'group') && (
+                              <Users size={13} strokeWidth={2.5} className="text-white/50 shrink-0" aria-label="Group chat" />
+                            )}
                             {!isSelfHeader && (
                               <VerifiedBadge accountType={headerIdentity.accountType} isVerified={headerIdentity.badge.show} color={headerIdentity.badge.color} size="xs" />
                             )}
@@ -4713,7 +4677,7 @@ export default function Messages() {
                         </button>
                       </div>
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
-                        {!isSystemChat && (
+                        {!isSystemChat && !(selectedChat?.is_group || selectedChat?.chat_type === 'group') && (
                           <>
                             <button aria-label="Start voice call" title="Voice call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
                             <button aria-label="Start video call" title="Video call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
@@ -5985,18 +5949,15 @@ export default function Messages() {
                   initialMessage=""
                   onTyping={handleTyping}
                   onSend={handleSendMessageWrapper}
-                  onCameraOpen={() => setShowCameraModal(true)}
                   isMenuCollapsed={isMenuCollapsed}
                   setIsMenuCollapsed={setIsMenuCollapsed}
                   selectedChat={selectedChat}
                   sending={sending}
-                  getQuickReaction={getQuickReaction}
                   setShowAttachmentMenu={setShowAttachmentSheet}
                   showAttachmentMenu={showAttachmentSheet}
                   onVoiceSend={handleVoiceSend}
                   theme={currentChatTheme}
                   replyToMessage={replyToMessage}
-                  onFileSelect={(files: FileList | File[]) => handleMediaSelection({ source: 'file', files })}
                   onOpenDisappearingSettings={() => {
                     setChatSettingsInitialView('disappearing_selector');
                     setShowChatSettings(true);

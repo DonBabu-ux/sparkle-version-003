@@ -88,7 +88,7 @@ export const formatActivityStatus = (
   isOnline?: boolean | number | null,
   referenceTime: number = Date.now()
 ): string | null => {
-  if (Boolean(isOnline)) {
+  if (isOnline) {
     return null;
   }
 
@@ -139,12 +139,14 @@ export const resolveChatListDisplay = ({
   // Messages sent by the current user must never count as incoming unread.
   const hasUnreadIncoming = !isLastMsgFromMe && unreadCount > 0;
 
-  // 1. Priority: Incoming unread messages get bold unread summary
+  // 1. Priority: Incoming unread messages. The count is carried by the row's
+  // numeric unread badge (WhatsApp-style, up to 999); the row itself renders
+  // the normal preview instead of an "N new messages" summary.
   if (hasUnreadIncoming) {
     return {
-      mode: 'unread_summary',
-      showUnreadEdgeDot: true,
-      unreadSummary: getUnreadSummary(unreadCount),
+      mode: 'normal_preview',
+      showUnreadEdgeDot: false,
+      unreadSummary: null,
       senderPrefix: '',
       middleLabel: null,
       middleLabelType: null,

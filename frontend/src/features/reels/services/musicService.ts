@@ -1,6 +1,8 @@
 import api from '../../../api/api';
 import { logger } from '../../../utils/logger';
+import { EnvironmentService } from '../../../services/EnvironmentService';
 import type { MusicTrack } from '../types';
+
 
 /**
  * Music catalogue adapter.
@@ -83,6 +85,18 @@ export function createMusicPlayer(track: MusicTrack): HTMLAudioElement {
   return el;
 }
 
+/**
+ * On native (Android APK) the WebView can't play Deezer CDN audio directly —
+ * the URLs are HTTP (cleartext blocked) and cross-origin (CORS blocked).
+ * Route them through the backend proxy which serves them over HTTPS.
+ */
+function resolveAudioUrl(rawUrl: string): string {
+  if (!rawUrl) return rawUrl;
+  if (!EnvironmentService.isNative()) return rawUrl;
+  const base = EnvironmentService.getApiBaseUrl(); // e.g. https://sparkle-version-003-1-f4v3.onrender.com/api
+  return `${base}/music/preview-proxy?url=${encodeURIComponent(rawUrl)}`;
+}
+
 function normalizeTrack(raw: Record<string, unknown>): MusicTrack | null {
   const audioUrl = String(raw.audioUrl || '');
   if (!audioUrl) return null;
@@ -90,7 +104,7 @@ function normalizeTrack(raw: Record<string, unknown>): MusicTrack | null {
     id: String(raw.id || ''),
     title: String(raw.title || 'Untitled'),
     artist: String(raw.artist || 'Unknown artist'),
-    audioUrl,
+    audioUrl: resolveAudioUrl(audioUrl),
     thumbnailUrl: (raw.thumbnailUrl as string) || null,
     duration: Number(raw.duration) || 30,
     albumTitle: raw.albumTitle ? String(raw.albumTitle) : undefined,

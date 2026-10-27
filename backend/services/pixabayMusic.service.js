@@ -48,6 +48,13 @@ const CATEGORY_LIST = [
   'Bright', 'Dreamy', 'Groovy', 'Sentimental',
 ];
 
+// Deezer sometimes returns http:// preview CDN URLs.
+// Android WebView (and modern browsers) block non-secure audio — force HTTPS.
+function toHttps(url) {
+  if (!url) return url;
+  return url.startsWith('http://') ? 'https://' + url.slice(7) : url;
+}
+
 function normalizeTrack(hit) {
   if (!hit || !hit.preview) return null;
   return {
@@ -56,8 +63,8 @@ function normalizeTrack(hit) {
     artist: hit.artist?.name || 'Unknown Artist',
     artistId: hit.artist?.id != null ? String(hit.artist.id) : null,
     duration: hit.duration || 30,
-    audioUrl: hit.preview,
-    thumbnailUrl: hit.album?.cover_medium || hit.album?.cover || null,
+    audioUrl: toHttps(hit.preview),
+    thumbnailUrl: toHttps(hit.album?.cover_medium || hit.album?.cover || null),
     albumTitle: hit.album?.title || '',
     link: hit.link || null,
   };

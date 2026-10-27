@@ -6,5 +6,7 @@ const musicController = require('../../controllers/music.controller');
 router.get('/search', musicController.search);
 router.get('/trending', musicController.trending);
 router.get('/categories', musicController.categories);
+// Audio proxy: pipes Deezer CDN previews through HTTPS for Android WebView compatibility
+router.get('/preview-proxy', musicController.previewProxy);
 
 module.exports = router;

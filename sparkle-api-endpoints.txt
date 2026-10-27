@@ -1,0 +1,531 @@
+
+File                     Line Route
+----                     ---- -----
+admin.routes.js            10 router.get('/stats', adminController.getDashboardStats);
+admin.routes.js            11 router.get('/users', adminController.getUsers);
+admin.routes.js            12 router.get('/reports', adminController.getReportedContent);
+admin.routes.js            13 router.get('/logs', adminController.getLogs);
+admin.routes.js            14 router.post('/actions', adminController.handleAction);
+admin.routes.js            15 router.post('/announcements', adminController.broadcastAnnouncement);
+ai.routes.js               14 router.post('/sparkly/chat', feedRateLimiter, aiController.sparklyChat);
+ai.routes.js               15 router.post('/sparkly/chat/stream', feedRateLimiter, aiController.sparklyChatStream);
+ai.routes.js               16 router.post('/sparkly/stream', feedRateLimiter, aiController.sparklyChatStream);
+ai.routes.js               18 router.post('/analyze-media', feedRateLimiter, aiController.analyzeMedia);
+ai.routes.js               19 router.get('/sparkly/conversations', aiController.getConversations);
+ai.routes.js               20 router.get('/sparkly/conversations/search', aiController.searchConversations);
+ai.routes.js               21 router.post('/sparkly/conversations', aiController.createConversation);
+ai.routes.js               22 router.get('/sparkly/conversations/:id/messages', aiController.getMessages);
+ai.routes.js               23 router.delete('/sparkly/conversations/:id', aiController.deleteConversation);
+ai.routes.js               24 router.get('/sparkly/memories', aiController.getMemories);
+ai.routes.js               25 router.delete('/sparkly/memories', aiController.clearMemories);
+ai.routes.js               26 router.delete('/sparkly/memories/:id', aiController.deleteMemory);
+ai.routes.js               27 router.post('/sparkly/messages/:id/feedback', aiController.postFeedback);
+ai.routes.js               28 router.delete('/sparkly/messages/:id/feedback', aiController.removeFeedback);
+ai.routes.js               29 router.post('/sparkly/conversations/:id/branch', aiController.branchConversation);
+analytics.routes.js         6 router.get('/creator', authMiddleware, analyticsController.getCreatorStats);
+auth.routes.js             33 router.post('/signup', authRateLimiter, authController.signup);
+auth.routes.js             34 router.post('/login', loginLimiter, validate(loginSchema), authController.login);
+auth.routes.js             35 router.post('/refresh', authController.refreshToken);
+auth.routes.js             36 router.post('/verify-2fa', authRateLimiter, authController.verify2FA);
+auth.routes.js             37 router.post('/resend-2fa', authRateLimiter, authController.resend2FA);
+auth.routes.js             38 router.post('/request-2fa-recovery', authRateLimiter, authController.request2FARecovery);
+auth.routes.js             39 router.post('/logout', authMiddleware, authController.logout);
+auth.routes.js             40 router.get('/check-username', authController.checkUsername);
+auth.routes.js             41 router.get('/check-email', authController.checkEmail);
+auth.routes.js             44 router.post('/verify-email', authRateLimiter, authController.verifyEmail);
+auth.routes.js             45 router.post('/verify-sms', authRateLimiter, authController.verifySMS);
+auth.routes.js             46 router.post('/forgot-password', authRateLimiter, authController.forgotPassword);
+auth.routes.js             47 router.post('/reset-password', authRateLimiter, authController.resetPassword);
+auth.routes.js             48 router.post('/resend-verification', authRateLimiter, authController.resendVerification);
+auth.routes.js             49 router.post('/reactivate', authRateLimiter, authController.reactivateAccount);
+auth.routes.js             50 router.post('/cancel-deletion', authRateLimiter, authController.cancelDeletion);
+auth.routes.js             53 router.post('/google/sync', supabaseController.syncSocialUser);
+auth.routes.js             54 router.post('/otp/verify/sync', supabaseController.syncVerifiedOTP);
+auth.routes.js             57 router.get('/validate', authMiddleware, authController.validateToken);
+auth.routes.js             58 router.post('/switch-account', authController.switchAccount);
+boost.routes.js            13 router.post('/calculate', boostController.calculateBoost);
+boost.routes.js            14 router.post('/activate', boostController.activateBoost);
+boost.routes.js            15 router.get('/active', boostController.getActiveBoost);
+boost.routes.js            16 router.get('/history', boostController.getBoostHistory);
+boost.routes.js            17 router.post('/renew', boostController.renewBoost);
+campus.routes.js            7 router.get('/polls', optionalAuthMiddleware, campusController.getPolls);                                                // Browse (supports ?campus= filter)
+campus.routes.js            8 router.post('/polls', authMiddleware, campusController.createPoll);                             // Create poll (with duration via expires_at)
+campus.routes.js            9 router.post('/polls/:id/vote', authMiddleware, campusController.votePoll);                      // Vote
+campus.routes.js           10 router.get('/polls/:id/results', optionalAuthMiddleware, campusController.getPollResults);                              // View results
+campus.routes.js           11 router.post('/polls/:id/invite', authMiddleware, campusController.inviteToPoll);                    // NEW - Invite others
+campus.routes.js           12 router.get('/polls/:id/share', campusController.sharePoll);                                     // NEW — share poll link
+campus.routes.js           13 router.post('/polls/:id/predict', authMiddleware, campusController.predictPollWinner);              // NEW — predict winner
+campus.routes.js           14 router.post('/polls/:id/interaction', authMiddleware, campusController.trackPollInteraction);      // NEW — track skips/shares
+campus.routes.js           17 router.get('/events', campusController.getEvents);                                              // Browse events
+campus.routes.js           18 router.post('/events', authMiddleware, campusController.createEvent);                           // Create event
+campus.routes.js           19 router.post('/events/:id/rsvp', authMiddleware, campusController.rsvpEvent);                   // RSVP
+campus.routes.js           20 router.get('/events/:id/attendees', authMiddleware, campusController.getEventAttendees);        // NEW — view attendees
+campus.routes.js           21 router.get('/events/:id/share', campusController.shareEvent);                                   // NEW — share event link
+campus.routes.js           22 router.get('/events/:id/qr', authMiddleware, campusController.generateEventQR);                 // Generate QR
+campus.routes.js           23 router.post('/events/checkin', authMiddleware, campusController.checkInEvent);                  // Check-In user
+campus.routes.js           24 router.delete('/events/:id', authMiddleware, campusController.deleteEvent);                    // Admin/Creator Delete
+campus.routes.js           25 router.patch('/events/:id/status', authMiddleware, campusController.updateEventStatus);         // Admin/Creator Update Status
+campus.routes.js           26 router.post('/events/rsvp/approve', authMiddleware, campusController.approveRSVP);              // Admin/Creator Approve/Reject
+campus.routes.js           27 router.patch('/events/:id', authMiddleware, campusController.updateEvent);                      // NEW - Edit event
+campus.routes.js           28 router.get('/events/:id/analytics', authMiddleware, campusController.getEventAnalytics);        // NEW - View stats
+campus.routes.js           29 router.post('/events/:id/notify', authMiddleware, campusController.notifyAttendees);           // NEW - Send announcement
+campus.routes.js           32 router.get('/streams', campusController.getStreams);                                            // Browse live streams
+campus.routes.js           33 router.get('/streams/active', campusController.getStreams);                                     // DashboardAPI Alias
+campus.routes.js           34 router.post('/streams', authMiddleware, campusController.createStream);                         // NEW — create live stream
+campus.routes.js           35 router.post('/streams/start', authMiddleware, campusController.createStream);                  // DashboardAPI Alias
+campus.routes.js           36 router.post('/streams/:id/updates', authMiddleware, campusController.postStreamUpdate);         // NEW — post update to stream
+campus.routes.js           37 router.post('/streams/:id/follow', authMiddleware, campusController.followStream);              // NEW — follow stream for updates
+campus.routes.js           38 router.post('/streams/:id/join', authMiddleware, campusController.followStream);                // DashboardAPI Alias
+campus.routes.js           39 router.post('/streams/:id/end', authMiddleware, campusController.endStream);                     // NEW
+clubs.routes.js             8 router.get('/', authMiddleware, clubsController.getClubs);
+clubs.routes.js             9 router.post('/', authMiddleware, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), clubsController.createClub);
+clubs.routes.js            10 router.get('/category/:category', clubsController.getClubsByCategory);                           // NEW — category filter
+clubs.routes.js            11 router.get('/:id', authMiddleware, clubsController.getClubById);
+clubs.routes.js            12 router.put('/:id', authMiddleware, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), clubsController.updateClub);
+clubs.routes.js            13 router.get('/:id/members', authMiddleware, clubsController.getMembers);
+clubs.routes.js            14 router.get('/:id/leadership', clubsController.getLeadership);                                    // NEW — leadership team
+clubs.routes.js            15 router.post('/:id/join', authMiddleware, clubsController.joinClub);
+clubs.routes.js            16 router.post('/:id/leave', authMiddleware, clubsController.leaveClub);
+clubs.routes.js            19 router.get('/:id/announcements', clubsController.getAnnouncements);                              // NEW
+clubs.routes.js            20 router.post('/:id/announcements', authMiddleware, clubsController.createAnnouncement);            // NEW
+clubs.routes.js            23 router.post('/:id/events/:eventId/rsvp', authMiddleware, clubsController.rsvpEvent);             // NEW
+confession.routes.js        8 router.get('/', confessionController.getConfessionsByAffiliation);                                   // affiliation filter via ?campus=X
+confession.routes.js        9 router.get('/community/:campus', confessionController.getConfessionsByAffiliation);                  // NEW — explicit affiliation filter
+confession.routes.js       10 router.get('/:id', confessionController.getConfessionById);                                          // single confession (deep links)
+confession.routes.js       13 router.post('/', authMiddleware, upload.single('image'), confessionController.createConfession);  // Post anonymous confession (image optional)
+confession.routes.js       14 router.post('/:id/react', authMiddleware, confessionController.reactToConfession);              // Like / react
+confession.routes.js       15 router.post('/:id/report', authMiddleware, confessionController.reportConfession);              // NEW — report confession
+confession.routes.js       16 router.post('/:id/comments', authMiddleware, confessionController.commentAnonymously);          // NEW — anonymous comment
+confession.routes.js       17 router.get('/:id/comments', confessionController.getComments);                                  // NEW — get comments
+discover.routes.js         15 router.get('/feed', authMiddleware, async (req, res) => {
+discover.routes.js         39 router.get('/suggested-users', authMiddleware, async (req, res) => {
+discover.routes.js         63 router.get('/trending-creators', authMiddleware, async (req, res) => {
+giphy.routes.js            43 router.get('/trending', (req, res) => handleGiphy(req, res, 'trending'));
+giphy.routes.js            44 router.get('/search', (req, res) => handleGiphy(req, res, 'search'));
+groupChat.routes.js         8 router.post('/', authMiddleware, upload.single('pfp'), groupChatController.createGroupChat);
+groupChat.routes.js         9 router.get('/', authMiddleware, groupChatController.getUserChats);
+groupChat.routes.js        10 router.get('/:chatId', authMiddleware, groupChatController.getChatDetails);
+groupChat.routes.js        11 router.put('/:chatId', authMiddleware, upload.single('pfp'), groupChatController.updateGroup);   // group name & icon
+groupChat.routes.js        14 router.get('/:chatId/messages', authMiddleware, groupChatController.getMessages);
+groupChat.routes.js        15 router.post('/:chatId/messages', authMiddleware, groupChatController.sendGroupMessage);           // NEW — send to group chat
+groupChat.routes.js        18 router.post('/:chatId/members', authMiddleware, groupChatController.addMembers);
+groupChat.routes.js        19 router.post('/:chatId/leave', authMiddleware, groupChatController.leaveGroupChat);         // NEW — leave group chat
+groupChat.routes.js        20 router.delete('/:chatId/members/:userId', authMiddleware, groupChatController.removeMember);   // ADMIN — remove member
+groupChat.routes.js        21 router.patch('/:chatId/members/:userId/role', authMiddleware, groupChatController.updateMemberRole); // ADMIN — promote/demote member
+groupChat.routes.js        25 router.get('/:chatId/channels', authMiddleware, groupChannelsController.listChannels);
+groupChat.routes.js        26 router.post('/:chatId/channels', authMiddleware, groupChannelsController.createChannel);
+groupChat.routes.js        27 router.patch('/:chatId/channels/:id', authMiddleware, groupChannelsController.updateChannel);
+groupChat.routes.js        28 router.delete('/:chatId/channels/:id', authMiddleware, groupChannelsController.deleteChannel);
+groups.routes.js           12 router.get('/', authMiddleware, groupsController.getGroupsAPI);
+groups.routes.js           13 router.get('/:id', authMiddleware, groupsController.getGroupAPI);
+groups.routes.js           16 router.post('/', authMiddleware, upload.single('pfp'), groupsController.createGroup);
+groups.routes.js           19 router.post('/:id/post', authMiddleware, postUpload.array('image', 10), groupsController.createGroupPost);
+groups.routes.js           22 router.get('/:id/posts', authMiddleware, groupsController.getGroupPostsAPI);
+groups.routes.js           25 router.get('/:id/requests', authMiddleware, groupsController.getPendingRequestsAPI);
+groups.routes.js           28 router.post('/requests/:requestId/approve', authMiddleware, groupsController.approveRequestAPI);
+groups.routes.js           29 router.post('/requests/:requestId/reject', authMiddleware, groupsController.rejectRequestAPI);
+groups.routes.js           32 router.post('/:id/join', authMiddleware, groupsController.joinGroup);
+groups.routes.js           33 router.post('/:id/leave', authMiddleware, groupsController.leaveGroup);
+groups.routes.js           34 router.delete('/:id', authMiddleware, groupsController.deleteGroupAPI);
+groups.routes.js           35 router.post('/:id/update', authMiddleware, upload.fields([{ name: 'icon', maxCount: 1 }, { name: 'cover', maxCount: 1 }]), groupsController.updateGroupAPI);
+groups.routes.js           36 router.get('/:id/members', authMiddleware, groupsController.getMembersDetailedAPI);
+groups.routes.js           37 router.post('/:id/users/:userId/remove', authMiddleware, groupsController.removeMemberAPI);
+groups.routes.js           38 router.post('/:id/users/:userId/promote', authMiddleware, groupsController.promoteMemberAPI);
+groups.routes.js           39 router.post('/:id/users/:userId/demote', authMiddleware, groupsController.demoteMemberAPI);
+groups.routes.js           40 router.delete('/:id/posts/:postId', authMiddleware, groupsController.deletePostAPI);
+groups.routes.js           41 router.post('/:id/invite', authMiddleware, groupsController.inviteFriends);
+groups.routes.js           42 router.get('/:id/pending-posts', authMiddleware, groupsController.getPendingPostsAPI);
+groups.routes.js           43 router.post('/posts/:postId/approve', authMiddleware, groupsController.approvePostAPI);
+groups.routes.js           44 router.post('/posts/:postId/reject', authMiddleware, groupsController.rejectPostAPI);
+groups.routes.js           45 router.post('/:id/users/:userId/mute', authMiddleware, groupsController.muteMemberAPI);
+groups.routes.js           46 router.post('/:id/users/:userId/ban', authMiddleware, groupsController.banMemberAPI);
+highlights.routes.js       16 router.get('/archive', authMiddleware, getStoryArchive);
+highlights.routes.js       19 router.post('/', authMiddleware, createHighlight);
+highlights.routes.js       20 router.get('/:id', authMiddleware, getHighlight);
+highlights.routes.js       21 router.put('/:id', authMiddleware, updateHighlight);
+highlights.routes.js       22 router.delete('/:id', authMiddleware, deleteHighlight);
+highlights.routes.js       25 router.post('/:id/stories', authMiddleware, addStoriesToHighlight);
+highlights.routes.js       26 router.delete('/:id/stories/:storyId', authMiddleware, removeStoryFromHighlight);
+index.js                   36 router.get('/csrf-token', csrfTokenProtection, (req, res) => {
+index.js                   41 router.get('/health', async (req, res) => {
+index.js                   69 router.post('/comments/:id/like', authMiddleware, postController.likeComment);
+link-preview.routes.js     60 router.get('/', authMiddleware, async (req, res) => {
+location.routes.js          7 router.post('/resolve', optionalAuthMiddleware, locationController.resolveLocation);
+location.routes.js          8 router.all('/nearby', optionalAuthMiddleware, locationController.getNearbyLocations);
+location.routes.js         11 router.post('/live/start', authMiddleware, locationController.startLiveLocation);
+location.routes.js         12 router.post('/live/update', authMiddleware, locationController.updateLiveLocation);
+location.routes.js         13 router.post('/live/stop', authMiddleware, locationController.stopLiveLocation);
+location.routes.js         14 router.post('/live/stop/:liveLocationId', authMiddleware, locationController.stopLiveLocation);
+location.routes.js         15 router.get('/live/:liveLocationId', authMiddleware, locationController.getLiveLocationSession);
+lost-found.routes.js       10 router.get('/', lostFoundController.getFeed);
+lost-found.routes.js       13 router.get('/:id', lostFoundController.getItem);
+lost-found.routes.js       16 router.post('/', authMiddleware, postUpload.array('media', 3), lostFoundController.reportItem);
+lost-found.routes.js       19 router.post('/:id/claim', authMiddleware, lostFoundController.claimItem);
+lost-found.routes.js       20 router.put('/:id/claim', authMiddleware, lostFoundController.claimItem); // DashboardAPI compatibility
+lost-found.routes.js       23 router.put('/:id/status', authMiddleware, lostFoundController.markReturned);
+lost-found.routes.js       26 router.delete('/:id', authMiddleware, lostFoundController.deleteItem);
+marketplace.routes.js      10 router.get('/marketplace/listings',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getListings);
+marketplace.routes.js      11 router.get('/marketplace/categories',            optionalAuthMiddleware, feedRateLimiter, marketplaceController.getCategories);
+marketplace.routes.js      12 router.get('/marketplace/trending',              optionalAuthMiddleware, feedRateLimiter, marketplaceController.getTrending);
+marketplace.routes.js      13 router.get('/marketplace/wishlist', authMiddleware, marketplaceController.getWishlist);
+marketplace.routes.js      14 router.get('/marketplace/listings/recommended',  optionalAuthMiddleware, feedRateLimiter, marketplaceController.getRecommendations);
+marketplace.routes.js      15 router.get('/marketplace/listings/:id',          optionalAuthMiddleware, marketplaceController.getListingById);
+marketplace.routes.js      16 router.post('/marketplace/listings',             authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.createListing);
+marketplace.routes.js      17 router.put('/marketplace/listings/:id',          authMiddleware, mutationRateLimiter, marketplaceUpload.array('media', 20), ...marketplaceController.updateListing);
+marketplace.routes.js      18 router.delete('/marketplace/listings/:id',       authMiddleware, mutationRateLimiter, marketplaceController.deleteListing);
+marketplace.routes.js      21 router.post('/marketplace/listings/:id/contact', authMiddleware, mutationRateLimiter, ...marketplaceController.contactSeller);
+marketplace.routes.js      22 router.put('/marketplace/listings/:id/sold',     authMiddleware, mutationRateLimiter, marketplaceController.markAsSold);
+marketplace.routes.js      23 router.post('/marketplace/listings/:id/favorite',authMiddleware, mutationRateLimiter, ...marketplaceController.toggleFavorite);
+marketplace.routes.js      24 router.post('/marketplace/listings/:id/wishlist',authMiddleware, mutationRateLimiter, marketplaceController.toggleWishlist);
+marketplace.routes.js      25 router.post('/marketplace/listings/:id/view',    authMiddleware, marketplaceController.recordView);
+marketplace.routes.js      26 router.post('/marketplace/listings/:id/share',   authMiddleware, marketplaceController.recordShare);
+marketplace.routes.js      27 router.post('/marketplace/listings/:id/report',  authMiddleware, mutationRateLimiter, marketplaceController.reportListing);
+marketplace.routes.js      28 router.post('/marketplace/listings/:id/boost',   authMiddleware, mutationRateLimiter, ...marketplaceController.boostListing);
+marketplace.routes.js      29 router.post('/marketplace/listings/:id/relist',  authMiddleware, mutationRateLimiter, marketplaceController.relistItem);
+marketplace.routes.js      32 router.post('/marketplace/seller/favorite',      authMiddleware, ...marketplaceController.toggleSellerFavorite);
+marketplace.routes.js      33 router.get('/marketplace/sellers/:sellerId/favorite', authMiddleware, marketplaceController.getSellerFavoriteStatus);
+marketplace.routes.js      34 router.post('/marketplace/sellers/:sellerId/alert', authMiddleware, marketplaceController.toggleSellerAlert);
+marketplace.routes.js      35 router.get('/marketplace/sellers/:sellerId/alert',  authMiddleware, marketplaceController.getSellerAlertStatus);
+marketplace.routes.js      36 router.get('/marketplace/sellers/:id',           optionalAuthMiddleware, marketplaceController.getSellerProfile);
+marketplace.routes.js      39 router.post('/marketplace/order',                            authMiddleware, ...marketplaceController.placeOrder);
+marketplace.routes.js      40 router.get('/marketplace/orders',                            authMiddleware, marketplaceController.getOrders);
+marketplace.routes.js      41 router.get('/marketplace/orders/:orderId',                   authMiddleware, marketplaceController.getOrderById);
+marketplace.routes.js      42 router.patch('/marketplace/orders/:orderId/status',          authMiddleware, ...marketplaceController.updateOrderStatus);
+marketplace.routes.js      43 router.post('/marketplace/orders/:orderId/confirm-meetup',   authMiddleware, marketplaceController.confirmMeetup);
+marketplace.routes.js      46 router.get('/marketplace/chats',                   authMiddleware, marketplaceController.getUserChats);
+marketplace.routes.js      47 router.get('/marketplace/chats/:id/messages',      authMiddleware, marketplaceController.getChatMessages);
+marketplace.routes.js      48 router.post('/marketplace/chats/:chatId/messages', authMiddleware, marketplaceController.sendMessage);
+marketplace.routes.js      51 router.post('/marketplace/users/:id/block',        authMiddleware, ...marketplaceController.blockUser);
+marketplace.routes.js      52 router.post('/marketplace/users/:id/review',       authMiddleware, ...marketplaceController.createReview);
+marketplace.routes.js      53 router.post('/marketplace/reviews',                authMiddleware, ...marketplaceController.createReview);
+marketplace.routes.js      54 router.get('/marketplace/users/:id/reviews',       authMiddleware, marketplaceController.getUserReviews);
+marketplace.routes.js      57 router.get('/marketplace/lost-found',              authMiddleware, marketplaceController.getLostFoundItems);
+marketplace.routes.js      58 router.post('/marketplace/lost-found',             authMiddleware, ...marketplaceController.createLostFoundItem);
+marketplace.routes.js      59 router.get('/marketplace/skills',                  authMiddleware, marketplaceController.getSkillOffers);
+marketplace.routes.js      60 router.post('/marketplace/skills',                 authMiddleware, ...marketplaceController.createSkillOffer);
+marketplace.routes.js      63 router.get('/marketplace/favorites',               authMiddleware, marketplaceController.getFavorites);
+marketplace.routes.js      64 router.get('/marketplace/counts',                  authMiddleware, marketplaceController.getCounts);
+marketplace.routes.js      65 router.get('/marketplace/safe-locations',          authMiddleware, marketplaceController.getSafeMeetupLocations);
+marketplace.routes.js      66 router.post('/location/resolve',                   optionalAuthMiddleware, locationController.resolveLocation);
+marketplaceChatRoutes.js   14 router.post('/conversations', async (req, res) => {
+marketplaceChatRoutes.js   86 router.get('/conversations', async (req, res) => {
+marketplaceChatRoutes.js  144 router.get('/conversations/:id', async (req, res) => {
+marketplaceChatRoutes.js  196 router.get('/messages/:conversation_id', async (req, res) => {
+marketplaceChatRoutes.js  252 router.put('/messages/:message_id', async (req, res) => {
+marketplaceChatRoutes.js  267 router.delete('/messages/:message_id', async (req, res) => {
+marketplaceChatRoutes.js  282 router.post('/messages/upload', messageUpload.single('media'), async (req, res) => {
+marketplaceChatRoutes.js  292 router.post('/messages/:message_id/react', async (req, res) => {
+marketplaceChatRoutes.js  307 router.get('/settings', async (req, res) => {
+marketplaceChatRoutes.js  334 router.put('/settings', async (req, res) => {
+marketplaceChatRoutes.js  361 router.patch('/conversations/:id/toggle', async (req, res) => {
+marketplaceChatRoutes.js  390 router.get('/conversations/:id/status', async (req, res) => {
+marketplaceChatRoutes.js  429 router.delete('/conversations/:id', async (req, res) => {
+media-admin.routes.js       8 router.get('/stats', authMiddleware, adminMiddleware, mediaAdminController.getStorageStats);
+media-admin.routes.js       9 router.post('/cleanup', authMiddleware, adminMiddleware, mediaAdminController.executeSafeCleanup);
+media.routes.js            12 router.post('/upload-init', authMiddleware, MediaController.uploadInit);
+media.routes.js            13 router.post('/upload-complete', authMiddleware, MediaController.uploadComplete);
+media.routes.js            16 router.get('/download-token/:mediaId', authMiddleware, MediaController.getDownloadToken);
+media.routes.js            19 router.post('/ack-download', authMiddleware, MediaController.recordDownloadAck);
+media.routes.js            22 router.post('/request-redelivery', authMiddleware, MediaController.requestRedelivery);
+messages.routes.js         14 router.get('/inbox', messageController.getInbox);
+messages.routes.js         15 router.get('/conversations', messageController.getInbox);
+messages.routes.js         16 router.get('/archived', messageController.getArchivedConversations);
+messages.routes.js         17 router.get('/welcome-cards', messageController.getWelcomeCards);
+messages.routes.js         18 router.get('/official-chat', messageController.getOfficialChatStatus);
+messages.routes.js         19 router.post('/official-chat/status', messageController.updateOfficialOnboardingStatus);
+messages.routes.js         20 router.post('/official-chat/complete-onboarding', (req, res, next) => {
+messages.routes.js         24 router.post('/official-chat/replay', messageController.replayOfficialOnboarding);
+messages.routes.js         25 router.post('/open', messageController.openConversation);
+messages.routes.js         26 router.post('/start', messageController.openConversation);
+messages.routes.js         27 router.post('/chat', messageController.openConversation);
+messages.routes.js         28 router.get('/mutual-groups/:partnerId', messageController.getMutualGroups);
+messages.routes.js         31 router.get('/search', messageController.searchMessages);
+messages.routes.js         32 router.get('/chat/:chatId/search', messageController.searchMessages);
+messages.routes.js         35 router.post('/send', messageController.sendMessage);
+messages.routes.js         36 router.post('/', messageController.sendMessage); // DashboardAPI Alias
+messages.routes.js         37 router.post('/read/:chatId', messageController.markRead);
+messages.routes.js         38 router.post('/unread/:chatId', messageController.markUnread);
+messages.routes.js         39 router.post('/chat/:chatId/unread', messageController.markUnread);
+messages.routes.js         40 router.post('/mute/:chatId', messageController.muteConversation);
+messages.routes.js         41 router.post('/chat/:chatId/mute', messageController.muteConversation);
+messages.routes.js         42 router.patch('/chat/:chatId/mute', messageController.muteConversation);
+messages.routes.js         43 router.post('/chat/:chatId/archive', messageController.archiveConversation);
+messages.routes.js         44 router.patch('/chat/:chatId/archive', messageController.archiveConversation);
+messages.routes.js         45 router.post('/chat/:chatId/unarchive', (req, res, next) => {
+messages.routes.js         50 router.post('/chat/:chatId/pin', messageController.pinConversation);
+messages.routes.js         51 router.patch('/chat/:chatId/pin', messageController.pinConversation);
+messages.routes.js         52 router.post('/chat/:chatId/favorite', messageController.favoriteConversation);
+messages.routes.js         53 router.patch('/chat/:chatId/favorite', messageController.favoriteConversation);
+messages.routes.js         54 router.post('/chat/:chatId/priority', messageController.priorityConversation);
+messages.routes.js         55 router.patch('/chat/:chatId/priority', messageController.priorityConversation);
+messages.routes.js         56 router.delete('/chat/:chatId', messageController.deleteConversation);
+messages.routes.js         59 router.delete('/:messageId', messageController.deleteMessage);
+messages.routes.js         60 router.delete('/:messageId/delete-for-me', messageController.deleteMessage);
+messages.routes.js         61 router.delete('/:messageId/delete-for-all', messageController.deleteMessageForEveryone);
+messages.routes.js         62 router.patch('/:messageId', messageController.editMessage);
+messages.routes.js         63 router.put('/:messageId/edit', messageController.editMessage);
+messages.routes.js         64 router.post('/:messageId/react', messageController.reactToMessage);
+messages.routes.js         65 router.delete('/:messageId/react', messageController.removeReaction);
+messages.routes.js         66 router.post('/:messageId/star', messageController.starMessage);
+messages.routes.js         67 router.delete('/:messageId/star', messageController.unstarMessage);
+messages.routes.js         68 router.post('/:messageId/pin', messageController.pinMessage);
+messages.routes.js         69 router.post('/:messageId/unpin', messageController.unpinMessage);
+messages.routes.js         70 router.delete('/:messageId/pin', messageController.unpinMessage);
+messages.routes.js         71 router.post('/:messageId/forward', messageController.forwardMessage);
+messages.routes.js         72 router.post('/chat/:chatId/messages/:messageId/copy', messageController.copyMessage);
+messages.routes.js         73 router.post('/chat/:chatId/messages/:messageId/forward', messageController.forwardMessage);
+messages.routes.js         74 router.post('/:chatId/messages/:messageId/copy', messageController.copyMessage);
+messages.routes.js         75 router.post('/:chatId/messages/:messageId/forward', messageController.forwardMessage);
+messages.routes.js         76 router.get('/:messageId/info', messageController.getMessageInfo);
+messages.routes.js         77 router.get('/sync/events', messageController.syncEvents);
+messages.routes.js         80 router.get('/:messageId/permissions', permissionController.getMessagePermissions);
+messages.routes.js         81 router.get('/:chatId/privacy', permissionController.getPrivacySettings);
+messages.routes.js         82 router.patch('/:chatId/privacy', permissionController.updatePrivacySettings);
+messages.routes.js         83 router.post('/:chatId/capture-attempt', permissionController.recordCaptureAttempt);
+messages.routes.js         86 router.get('/chat/:chatId/pinned', messageController.getChatPinnedMessages);
+messages.routes.js         87 router.get('/chat/:chatId/media', messageController.getChatMedia);
+messages.routes.js         88 router.get('/chat/:chatId/files', messageController.getChatFiles);
+messages.routes.js         89 router.get('/chat/:chatId/links', messageController.getChatLinks);
+messages.routes.js         90 router.get('/chat/:chatId/voice', messageController.getChatVoice);
+messages.routes.js         91 router.get('/chat/:chatId/music', messageController.getChatMusic);
+messages.routes.js         92 router.get('/chat/:chatId/stories', messageController.getChatStories);
+messages.routes.js         93 router.get('/chat/:chatId/posts', messageController.getChatPosts);
+messages.routes.js         94 router.get('/chat/:chatId/stats', messageController.getChatStats);
+messages.routes.js         95 router.get('/chat/:chatId/nicknames', messageController.getChatNicknames);
+messages.routes.js         96 router.get('/:chatId/nicknames', messageController.getChatNicknames);
+messages.routes.js         97 router.post('/chat/:chatId/nickname', messageController.setChatNickname);
+messages.routes.js         98 router.post('/:chatId/nickname', messageController.setChatNickname);
+messages.routes.js         99 router.get('/chat/:chatId/nickname-history', messageController.getChatNicknameHistory);
+messages.routes.js        102 router.get('/chat/:chatId', messageController.getConversationMessages);
+messages.routes.js        103 router.get('/:chatId', messageController.getConversationMessages);
+moderation.routes.js        7 router.post('/reports', authMiddleware, moderationController.reportPost);
+moderation.routes.js       10 router.post('/appeals', authMiddleware, moderationController.appealPost);
+moderation.routes.js       13 router.post('/appeals/:appeal_id/review', authMiddleware, moderationController.reviewAppeal);
+moments.routes.js           9 router.get('/stream', authMiddleware, momentsController.getMomentsStream);
+moments.routes.js          12 router.get('/:id', authMiddleware, momentsController.getMomentById);
+moments.routes.js          13 router.post('/',
+moments.routes.js          20 router.post('/:id/spark', authMiddleware, momentsController.sparkMoment);
+moments.routes.js          21 router.post('/:id/save', authMiddleware, momentsController.saveMoment);
+moments.routes.js          22 router.post('/:id/share', authMiddleware, momentsController.trackShare);
+moments.routes.js          23 router.post('/:id/view', authMiddleware, momentsController.trackView);
+moments.routes.js          24 router.post('/:id/engagement', authMiddleware, momentsController.trackEngagement);
+moments.routes.js          25 router.get('/:id/share-data', authMiddleware, momentsController.getShareData);
+moments.routes.js          28 router.get('/:id/comments', authMiddleware, momentsController.getComments);
+moments.routes.js          29 router.post('/:id/comments', authMiddleware, momentsController.addComment);
+moments.routes.js          30 router.post('/comment/:id/like', authMiddleware, momentsController.likeComment);
+moments.routes.js          33 router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);
+moments.routes.js          36 router.get('/users/:userId/moments', authMiddleware, momentsController.getMomentsStream); // Filter by user_id in controller
+music.routes.js             6 router.get('/search', musicController.search);
+notifications.routes.js    10 router.get('/', notificationController.getNotifications);
+notifications.routes.js    13 router.get('/unread-count', notificationController.getUnreadCount);
+notifications.routes.js    16 router.get('/vapid-public-key', (req, res) => res.json({ key: process.env.VAPID_PUBLIC_KEY }));
+notifications.routes.js    19 router.post('/subscribe', notificationController.subscribePush);
+notifications.routes.js    22 router.post('/register-fcm-token', notificationController.registerFcmToken);
+notifications.routes.js    25 router.post('/deregister-fcm-token', notificationController.deregisterFcmToken);
+notifications.routes.js    28 router.put('/read-all', notificationController.markAllAsRead);
+notifications.routes.js    29 router.post('/read-all', notificationController.markAllAsRead);
+notifications.routes.js    32 router.put('/:notificationId/read', notificationController.markAsRead);
+notifications.routes.js    35 router.post('/clear', notificationController.clearNotifications);
+notifications.routes.js    36 router.post('/:id/read', (req, res) => {
+notifications.routes.js    42 router.delete('/:notificationId', notificationController.deleteNotification);
+onboarding.routes.js       10 router.get('/status', onboardingController.getStatus);
+onboarding.routes.js       11 router.get('/popular-users', onboardingController.getPopularUsers);
+onboarding.routes.js       12 router.get('/recommendations', onboardingController.getRecommendations);
+onboarding.routes.js       13 router.post('/follow', onboardingController.followCreators);
+onboarding.routes.js       14 router.post('/interests', onboardingController.saveInterests);
+onboarding.routes.js       15 router.post('/complete', onboardingController.completeOnboarding);
+ota.routes.js              35 router.get('/info', async (req, res) => {
+ota.routes.js              80 router.get('/version', async (req, res) => {
+ota.routes.js             160 router.post('/deploy-ota', async (req, res) => {
+posts.routes.js            12 router.get('/feed', authMiddleware, feedRateLimiter, feedController.getFeedPosts);
+posts.routes.js            13 router.get('/new', authMiddleware, feedRateLimiter, feedController.getNewPosts);
+posts.routes.js            14 router.get('/liked', authMiddleware, feedRateLimiter, postController.getLikedPosts);
+posts.routes.js            15 router.get('/saved', authMiddleware, feedRateLimiter, postController.getSavedPosts);
+posts.routes.js            16 router.get('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.getPost);
+posts.routes.js            17 router.post('/', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), (req, res, next) => {
+posts.routes.js            23 router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);
+posts.routes.js            24 router.post('/:id/like', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);
+posts.routes.js            25 router.post('/:id/save', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.savePost);
+posts.routes.js            26 router.get('/:id/comments', authMiddleware, validate(postIdSchema, 'params'), postController.getComments);
+posts.routes.js            27 router.post('/:id/comments', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), validate(addCommentSchema), postController.addComment);
+posts.routes.js            28 router.post('/:id/share', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sharePost);
+posts.routes.js            29 router.post('/:id/reshare', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.resharePost);
+posts.routes.js            30 router.patch('/:id/reshare/comment', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.updateReshareComment);
+posts.routes.js            31 router.get('/:id/translate', authMiddleware, postController.translatePost);
+posts.routes.js            32 router.get('/comments/:id/translate', authMiddleware, postController.translateComment);
+posts.routes.js            33 router.post('/:id/report', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.reportPost);
+posts.routes.js            34 router.post('/:id/action', authMiddleware, postController.logAction);
+posts.routes.js            35 router.put('/:id', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), postController.updatePost);
+posts.routes.js            36 router.delete('/:id', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.deletePost);
+posts.routes.js            39 router.patch('/comments/:id', authMiddleware, mutationRateLimiter, postController.updateComment);
+posts.routes.js            40 router.delete('/comments/:id', authMiddleware, mutationRateLimiter, postController.deleteComment);
+realtime.routes.js         13 router.get('/online-friends', getOnlineFriends);
+realtime.routes.js         14 router.get('/presence/:userId', getUserPresence);
+realtime.routes.js         15 router.get('/chat/:chatId/history', getChatHistory);
+realtime.routes.js         16 router.post('/chat/:chatId/read-all', markAllAsRead);
+recovery.routes.js         10 router.post('/challenge', async (req, res) => {
+recovery.routes.js         26 router.post('/verify', async (req, res) => {
+recovery.routes.js         37 router.post('/cancel-deletion', async (req, res) => {
+recovery.routes.js         48 router.post('/appeal', async (req, res) => {
+recovery.routes.js         63 router.post('/emergency-export', async (req, res) => {
+recovery.routes.js         78 router.get('/appeal/status', async (req, res) => {
+referral.routes.js         12 router.get('/validate/:code', referralClickLimiter, referralController.validateCode);
+referral.routes.js         13 router.post('/click', referralClickLimiter, referralController.recordClick);
+referral.routes.js         14 router.post('/resolve', referralClickLimiter, referralController.resolveHandoff);
+referral.routes.js         17 router.get('/:code', referralClickLimiter, (req, res, next) => {
+referral.routes.js         26 router.get('/stats', authMiddleware, referralController.getStats);
+referral.routes.js         27 router.get('/me', authMiddleware, referralController.getStats);
+referral.routes.js         28 router.get('/invite-link', authMiddleware, referralController.getInviteLink);
+referral.routes.js         29 router.get('/leaderboard', optionalAuthMiddleware, referralController.getLeaderboard);
+referral.routes.js         30 router.get('/rewards', optionalAuthMiddleware, referralController.getRewards);
+referral.routes.js         31 router.get('/history', authMiddleware, referralController.getHistory);
+referral.routes.js         33 router.post('/claim', authMiddleware, referralActionLimiter, referralController.claimReferral);
+referral.routes.js         34 router.post('/manual', authMiddleware, referralActionLimiter, referralController.manualCode);
+rooms.routes.js             8 router.post('/', authMiddleware, roomsController.createRoom);
+rooms.routes.js             9 router.get('/', authMiddleware, roomsController.listUserRooms);
+rooms.routes.js            10 router.get('/:roomId', authMiddleware, roomsController.getRoom);
+rooms.routes.js            11 router.put('/:roomId', authMiddleware, roomsController.updateRoom);
+rooms.routes.js            12 router.delete('/:roomId', authMiddleware, roomsController.deleteRoom);
+rooms.routes.js            15 router.post('/:roomId/join', authMiddleware, roomsController.joinRoom);
+rooms.routes.js            16 router.post('/:roomId/leave', authMiddleware, roomsController.leaveRoom);
+rooms.routes.js            19 router.get('/:roomId/channels', authMiddleware, roomChannelsController.listChannels);
+rooms.routes.js            20 router.post('/:roomId/channels', authMiddleware, roomChannelsController.createChannel);
+rooms.routes.js            21 router.patch('/:roomId/channels/:channelId', authMiddleware, roomChannelsController.updateChannel);
+rooms.routes.js            22 router.delete('/:roomId/channels/:channelId', authMiddleware, roomChannelsController.deleteChannel);
+rooms.routes.js            25 router.get('/channels/:channelId/messages', authMiddleware, roomChannelsController.getMessages);
+rooms.routes.js            26 router.post('/channels/:channelId/messages', authMiddleware, roomChannelsController.sendMessage);
+search.routes.js           13 router.get('/', search);
+search.routes.js           16 router.get('/suggestions', getSuggestions);
+search.routes.js           19 router.get('/trending', getTrending);
+search.routes.js           20 router.get('/discovery', getDiscovery);
+search.routes.js           23 router.get('/history', getRecentSearches);
+search.routes.js           24 router.post('/history', saveSearch);
+search.routes.js           25 router.delete('/history', clearSearchHistory);
+search.routes.js           26 router.delete('/history/:id', deleteSearchItem);
+security.routes.js         31 router.get('/status', authMiddleware, securityRateLimiter, securityController.getSecurityStatus);
+security.routes.js         32 router.get('/available-factors', authMiddleware, securityRateLimiter, securityController.getAvailableFactors);
+security.routes.js         35 router.post('/transaction/initiate', authMiddleware, otpRateLimiter, securityController.initiateSecurityTransaction);
+security.routes.js         36 router.post('/transaction/verify', authMiddleware, otpRateLimiter, securityController.verifySecurityTransaction);
+security.routes.js         39 router.post('/2fa/disable', authMiddleware, securityRateLimiter, securityController.disable2FAWithToken);
+security.routes.js         40 router.post('/password/change', authMiddleware, securityRateLimiter, securityController.changePasswordWithToken);
+security.routes.js         41 router.post('/pin/reset-token', authMiddleware, securityRateLimiter, securityController.generatePinResetToken);
+security.routes.js         44 router.post('/2fa/alternate-email/request', authMiddleware, otpRateLimiter, securityController.requestAlternateEmail2FA);
+security.routes.js         45 router.post('/2fa/alternate-email/verify', authMiddleware, otpRateLimiter, securityController.verifyAlternateEmail2FA);
+security.routes.js         48 router.get('/alerts/unacknowledged', authMiddleware, securityRateLimiter, securityController.getUnacknowledgedSecurityAlerts);
+security.routes.js         49 router.post('/alerts/:eventId/acknowledge', authMiddleware, securityRateLimiter, securityController.acknowledgeSecurityAlert);
+security.routes.js         52 router.post('/2fa/email/request', authMiddleware, otpRateLimiter, securityController.requestEmail2FA);
+security.routes.js         53 router.post('/2fa/email/verify', authMiddleware, otpRateLimiter, securityController.verifyEmail2FA);
+security.routes.js         54 router.post('/2fa/email/disable', authMiddleware, securityRateLimiter, securityController.disableEmail2FA);
+security.routes.js         57 router.post('/2fa/sms/request', authMiddleware, otpRateLimiter, securityController.requestSMS2FA);
+security.routes.js         58 router.post('/2fa/sms/verify', authMiddleware, otpRateLimiter, securityController.verifySMS2FA);
+security.routes.js         59 router.post('/2fa/sms/disable', authMiddleware, securityRateLimiter, securityController.disableSMS2FA);
+security.routes.js         62 router.post('/2fa/disable-all', authMiddleware, securityRateLimiter, securityController.disableAll2FA);
+security.routes.js         65 router.post('/recovery-codes/generate', authMiddleware, securityRateLimiter, securityController.generateRecoveryCodes);
+share.routes.js             7 router.post('/track', authMiddleware, async (req, res) => {
+share.routes.js            33 router.get('/:id', authMiddleware, async (req, res) => {
+skill-market.routes.js      7 router.get('/offers', skillMarketController.getOffers);                                         // Browse + filter by category (?category=tutoring)
+skill-market.routes.js      8 router.get('/offers/:id', skillMarketController.getOfferById);                                  // View single offer
+skill-market.routes.js      9 router.get('/offers/:id/reviews', skillMarketController.getOfferReviews);                       // View reviews for an offer
+skill-market.routes.js     12 router.post('/offers', authMiddleware, skillMarketController.createOffer);                       // Create offer
+skill-market.routes.js     13 router.put('/offers/:id', authMiddleware, skillMarketController.updateOffer);                    // NEW — edit offer
+skill-market.routes.js     14 router.delete('/offers/:id', authMiddleware, skillMarketController.deleteOffer);                 // NEW — delete offer
+skill-market.routes.js     15 router.post('/offers/:id/book', authMiddleware, skillMarketController.bookSession);              // Book session / contact provider
+skill-market.routes.js     16 router.get('/bookings/client', authMiddleware, skillMarketController.getClientBookings);             // Get my requests
+skill-market.routes.js     17 router.get('/bookings/provider', authMiddleware, skillMarketController.getProviderBookings);         // Get requests for my skills
+skill-market.routes.js     18 router.post('/bookings/:id/status', authMiddleware, skillMarketController.updateBookingStatus);      // Accept/decline booking
+skill-market.routes.js     19 router.post('/bookings/:id/rate', authMiddleware, skillMarketController.rateExchange);               // Rate exchange after session
+stickers.routes.js          7 router.post('/', authMiddleware, stickerController.createSticker);
+stickers.routes.js         10 router.get('/add-yours/:prompt_id', authMiddleware, stickerController.getAddYoursData);
+stickers.routes.js         11 router.post('/add-yours/prompt', authMiddleware, stickerController.createAddYoursPrompt);
+stickers.routes.js         12 router.post('/add-yours/respond', authMiddleware, stickerController.respondToAddYours);
+stickers.routes.js         15 router.post('/poll/vote', authMiddleware, stickerController.votePoll);
+stickers.routes.js         16 router.post('/reaction', authMiddleware, stickerController.reactToStory);
+stories.routes.js           7 router.get('/active', authMiddleware, feedController.getStories);
+stories.routes.js           8 router.get('/archive', authMiddleware, feedController.getStoryArchive);
+stories.routes.js           9 router.get('/single/:id', authMiddleware, feedController.getSingleStory);
+stories.routes.js          10 router.post('/', authMiddleware, storiesUpload.fields([{ name: 'media', maxCount: 1 }, { name: 'audio', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]), feedController.createStory);
+stories.routes.js          12 router.get('/:id/likes', authMiddleware, feedController.getStoryLikes);
+stories.routes.js          13 router.get('/:id/viewers', authMiddleware, feedController.getStoryViewers);
+stories.routes.js          14 router.post('/:id/view', authMiddleware, feedController.viewStory);
+stories.routes.js          15 router.post('/:id/like', authMiddleware, feedController.likeStory);
+stories.routes.js          16 router.post('/:id/share', authMiddleware, feedController.shareStory);
+stories.routes.js          17 router.post('/:id/archive', authMiddleware, feedController.archiveStory);
+stories.routes.js          18 router.post('/:id/comments/toggle', authMiddleware, feedController.toggleStoryComments);
+stories.routes.js          19 router.post('/:id/comments', authMiddleware, feedController.addStoryComment);
+stories.routes.js          20 router.get('/:id/comments', authMiddleware, feedController.getStoryComments);
+stories.routes.js          21 router.patch('/:id/settings', authMiddleware, feedController.updateStorySettings);
+stories.routes.js          22 router.post('/privacy/hide', authMiddleware, feedController.hideStoryFromUser);
+stories.routes.js          23 router.delete('/:id', authMiddleware, feedController.deleteStory);
+support.routes.js           7 router.post('/', async (req, res) => {
+support.routes.js          27 router.post('/ticket', optionalAuthMiddleware, async (req, res) => {
+support.routes.js          66 router.post('/bot/ask', optionalAuthMiddleware, aiController.sparklyChat);
+upload.routes.js            8 router.post('/', authMiddleware, upload.single('media'), uploadController.uploadMedia);
+upload.routes.js            9 router.post('/message', authMiddleware, messageUpload.single('file'), uploadController.uploadMedia);
+user.routes.js             13 router.get('/me', authMiddleware, userController.getCurrentUser);
+user.routes.js             14 router.get('/hub-relevance-badges', authMiddleware, userController.getHubRelevanceBadges);
+user.routes.js             15 router.get('/active-friends', authMiddleware, userController.getActiveFriends);
+user.routes.js             16 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
+user.routes.js             17 router.get('/suggestions', authMiddleware, userController.getSuggestions);
+user.routes.js             18 router.get('/username-suggestions', authMiddleware, userController.getUsernameSuggestions);
+user.routes.js             19 router.get('/following', authMiddleware, userController.searchFollowingUsers);
+user.routes.js             20 router.get('/followers', authMiddleware, userController.getMyFollowers);
+user.routes.js             21 router.get('/mutual-followers', authMiddleware, userController.getMutualFollowers);
+user.routes.js             22 router.post('/contacts/match', authMiddleware, userController.matchContacts);
+user.routes.js             25 router.get('/blocks', authMiddleware, socialController.getBlockedUsers);
+user.routes.js             26 router.get('/block/status/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.getBlockStatus);
+user.routes.js             27 router.post('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
+user.routes.js             28 router.delete('/block/:id', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
+user.routes.js             31 router.post('/:id/block', authMiddleware, validate(userIdSchema, 'params'), socialController.blockUser);
+user.routes.js             32 router.delete('/:id/block', authMiddleware, validate(userIdSchema, 'params'), socialController.unblockUser);
+user.routes.js             33 router.post('/:id/mute', authMiddleware, validate(userIdSchema, 'params'), socialController.muteUser);
+user.routes.js             34 router.delete('/:id/mute', authMiddleware, validate(userIdSchema, 'params'), socialController.unmuteUser);
+user.routes.js             35 router.post('/:id/report', authMiddleware, validate(userIdSchema, 'params'), socialController.reportUser);
+user.routes.js             38 router.get('/follow-requests', authMiddleware, socialController.getFollowRequests);
+user.routes.js             39 router.post('/follow-requests/respond', authMiddleware, socialController.respondToFollowRequest);
+user.routes.js             40 router.post('/follow-requests/:requestId/accept', authMiddleware, socialController.acceptRequest);
+user.routes.js             41 router.post('/follow-requests/:requestId/reject', authMiddleware, socialController.rejectRequest);
+user.routes.js             43 router.get('/advanced-settings', authMiddleware, userController.getAdvancedSettings);
+user.routes.js             44 router.put('/settings', authMiddleware, userController.updateSettings);
+user.routes.js             45 router.get('/export-data', authMiddleware, userController.exportUserData);
+user.routes.js             48 router.get('/data-centre/history', authMiddleware, async (req, res) => {
+user.routes.js             57 router.post('/data-centre/export', authMiddleware, async (req, res) => {
+user.routes.js             73 router.get('/data-centre/download/:token', async (req, res) => {
+user.routes.js             83 router.get('/2fa/setup', authMiddleware, userController.generate2FASecret);
+user.routes.js             84 router.post('/2fa/enable', authMiddleware, userController.enableTwoFactor);
+user.routes.js             85 router.post('/2fa/disable', authMiddleware, userController.disableTwoFactor);
+user.routes.js             88 router.get('/sessions', authMiddleware, userController.getActiveSessions);
+user.routes.js             89 router.delete('/sessions/:sessionId', authMiddleware, userController.revokeSession);
+user.routes.js             90 router.post('/security/token', authMiddleware, userController.generateSecurityToken);
+user.routes.js             91 router.post('/sessions/logout-all', authMiddleware, userController.logoutAllDevices);
+user.routes.js             93 router.put('/profile', authMiddleware, validate(updateProfileSchema), userController.updateProfile);
+user.routes.js             94 router.patch('/profile/note', authMiddleware, userController.updateNote);
+user.routes.js             95 router.post('/avatar', authMiddleware, upload.single('avatar'), userController.uploadAvatar);
+user.routes.js             96 router.put('/password', authMiddleware, validate(updatePasswordSchema), userController.updatePassword);
+user.routes.js             97 router.delete('/me', authMiddleware, userController.deleteAccount);
+user.routes.js            100 router.post('/account/suspend', authMiddleware, userController.suspendAccount);
+user.routes.js            101 router.post('/account/terminate', authMiddleware, userController.terminateAccount);
+user.routes.js            102 router.post('/account/delete', authMiddleware, userController.deleteAccount);
+user.routes.js            103 router.post('/account/cancel-deletion', authMiddleware, userController.cancelDeletion);
+user.routes.js            104 router.put('/account/visibility', authMiddleware, userController.setHideFromUsers);
+user.routes.js            107 router.get('/:id/posts', authMiddleware, userController.getUserPosts);
+user.routes.js            108 router.get('/:id/followers', authMiddleware, userController.getFollowers);
+user.routes.js            109 router.get('/:id/following', authMiddleware, userController.getFollowing);
+user.routes.js            110 router.get('/:id/highlights', authMiddleware, getUserHighlights);
+user.routes.js            111 router.get('/:id', authMiddleware, userController.getUserProfile);
+user.routes.js            112 router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
+user.routes.js            113 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
+user.routes.js            116 router.post('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
+user.routes.js            117 router.delete('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
+user.routes.js            118 router.post('/:id/poke', authMiddleware, validate(userIdSchema, 'params'), socialController.pokeUser);
+wallet.routes.js           10 router.get('/',                  authMiddleware, walletController.getWallet);
+wallet.routes.js           11 router.get('/history',           authMiddleware, walletController.getHistory);
+wallet.routes.js           12 router.post('/deposit',          authMiddleware, walletController.initializeDeposit);
+wallet.routes.js           13 router.post('/verify',           authMiddleware, walletController.verifyDeposit);
+wallet.routes.js           14 router.post('/withdraw',         authMiddleware, walletController.requestWithdrawal);
+wallet.routes.js           15 router.get('/banks',             authMiddleware, walletController.fetchBanks);
+wallet.routes.js           16 router.post('/resolve-account',  authMiddleware, walletController.resolveAccount);
+wallet.routes.js           17 router.get('/auto-withdrawal',   authMiddleware, walletController.getAutoWithdrawalConfig);
+wallet.routes.js           18 router.post('/auto-withdrawal',  authMiddleware, walletController.updateAutoWithdrawalConfig);
+wallet.routes.js           23 router.post('/webhook/paystack', walletController.handleWebhook);
+
+

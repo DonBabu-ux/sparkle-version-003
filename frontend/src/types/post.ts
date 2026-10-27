@@ -26,6 +26,8 @@ export interface Post {
   is_reshared?: boolean;
   is_pinned?: boolean;
   feed_id?: string;
+  /** Item originates from the moments (reel) table — navigate to /moments/:id. */
+  is_moment?: boolean;
   resharers?: {
     username: string;
     avatar: string;

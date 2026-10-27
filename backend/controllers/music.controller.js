@@ -1,8 +1,8 @@
-const { searchMusic } = require('../services/pixabayMusic.service');
+const { searchMusic, getTrending, getCategories } = require('../services/pixabayMusic.service');
 
 /**
  * GET /api/music/search?q=<query>&page=<n>&per_page=<n>
- * Returns a paginated list of Pixabay music tracks.
+ * Returns a paginated list of catalogue tracks (Deezer public previews).
  */
 async function search(req, res) {
   try {
@@ -17,12 +17,6 @@ async function search(req, res) {
   } catch (err) {
     console.error('[MusicController] Search error:', err.message);
 
-    // Pixabay key missing → 503 (server config issue, not user error)
-    if (err.message.includes('PIXABAY_API_KEY')) {
-      return res.status(503).json({ success: false, message: 'Music search is not configured.' });
-    }
-
-    // Pixabay returned a non-2xx or network error
     const status = err.response?.status || 500;
     res.status(status).json({
       success: false,
@@ -31,4 +25,29 @@ async function search(req, res) {
   }
 }
 
-module.exports = { search };
+/**
+ * GET /api/music/trending?genre=<chip>&limit=<n>
+ * Four real chart tracks by default for the Create-reel shelf.
+ */
+async function trending(req, res) {
+  try {
+    const { genre, limit } = req.query;
+    const tracks = await getTrending({ genre, limit });
+    res.json({ success: true, tracks });
+  } catch (err) {
+    console.error('[MusicController] Trending error:', err.message);
+    // Upstream failure → explicit empty state the UI can render honestly
+    res.status(502).json({
+      success: false,
+      tracks: [],
+      message: 'Trending music is unavailable right now. Try search instead.',
+    });
+  }
+}
+
+/** GET /api/music/categories */
+async function categories(req, res) {
+  res.json({ success: true, categories: getCategories() });
+}
+
+module.exports = { search, trending, categories };

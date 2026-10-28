@@ -421,6 +421,7 @@ async function safeQuery(sql, params = [], priority = false) {
 // Also instruments every query: duration window, slow-query log, error counters.
 const originalQuery = pool.query.bind(pool);
 pool.query = async (sql, params = [], priority = false) => {
+    guardCircuit();
     const releaseGate = await budgetGate.acquire(priority);
     try {
         const t0 = process.hrtime.bigint();
@@ -430,6 +431,7 @@ pool.query = async (sql, params = [], priority = false) => {
             try {
                 // Return the full [rows, fields] tuple like mysql2/promise does
                 const result = await originalQuery(sql, params);
+                noteDbSuccess();
                 recordQuery(label, elapsedMs(t0), null);
                 return result;
             } catch (error) {
@@ -446,6 +448,7 @@ pool.query = async (sql, params = [], priority = false) => {
                 } else if (!isDuplicateErr && message.trim().length > 0) {
                     logger.error('[DB] Query error (wrapped pool.query): ' + String(message));
                 }
+                noteDbFailure(error);
                 recordQuery(label, elapsedMs(t0), error);
                 throw error;
             }
@@ -458,6 +461,7 @@ pool.query = async (sql, params = [], priority = false) => {
 // Prepared statement execution: also instrumented and guarded by budgetGate
 const originalExecute = pool.execute.bind(pool);
 pool.execute = async (sql, params = [], priority = false) => {
+    guardCircuit();
     const releaseGate = await budgetGate.acquire(priority);
     try {
         const t0 = process.hrtime.bigint();
@@ -466,6 +470,7 @@ pool.execute = async (sql, params = [], priority = false) => {
         for (let attempt = 0; attempt < 2; attempt++) {
             try {
                 const result = await originalExecute(sql, params);
+                noteDbSuccess();
                 recordQuery(label, elapsedMs(t0), null);
                 return result;
             } catch (error) {
@@ -482,6 +487,7 @@ pool.execute = async (sql, params = [], priority = false) => {
                 } else if (!isDuplicateErr && message.trim().length > 0) {
                     logger.error('[DB] Execute error (wrapped pool.execute): ' + String(message));
                 }
+                noteDbFailure(error);
                 recordQuery(label, elapsedMs(t0), error);
                 throw error;
             }
@@ -494,6 +500,7 @@ pool.execute = async (sql, params = [], priority = false) => {
 // Transactions: explicit checkouts acquire a slot on the gate and release on conn.release()
 const originalGetConnection = pool.getConnection.bind(pool);
 pool.getConnection = async (priority = 'critical', timeoutMs = 8000, options = {}) => {
+    guardCircuit();
     const releaseGate = await budgetGate.acquire(priority, timeoutMs, options);
     try {
         const conn = await originalGetConnection();
@@ -512,10 +519,23 @@ pool.getConnection = async (priority = 'critical', timeoutMs = 8000, options = {
         }
         return conn;
     } catch (err) {
+        noteDbFailure(err);
         releaseGate();
         throw err;
     }
 };
+
+/** Circuit breaker state for health checks / debug endpoints. */
+function getCircuitStatus() {
+    return {
+        open: isCircuitOpen(),
+        failures: circuit.failures,
+        openedAt: circuit.openedAt ? new Date(circuit.openedAt).toISOString() : null,
+        lastError: circuit.lastError,
+        threshold: CIRCUIT_FAILURE_THRESHOLD,
+        cooldownMs: CIRCUIT_COOLDOWN_MS
+    };
+}
 
 /**
  * Returns safe pool diagnostics without exposing credentials.
@@ -561,6 +581,80 @@ setInterval(() => {
 setImmediate(() => {
     originalQuery('SELECT 1').catch(() => { /* warm-up is best-effort */ });
 });
+
+/**
+ * DB circuit breaker — network-outage resilience.
+ *
+ * Symptom this fixes: when the network to MySQL dies, every request waits on
+ * the budget gate (8s) + the driver's connectTimeout (20s) + the driver's
+ * unbounded connection queue — the server appears to STALL and only a restart
+ * "clears" it (dead sockets + a full queue of waiters).
+ *
+ * Behaviour:
+ *   - N consecutive network-level failures open the breaker
+ *   - while open, queries fail FAST with DB_UNAVAILABLE (503) instead of hanging
+ *   - a 10s watchdog ping probes the DB; the first success closes the breaker,
+ *     so the server self-heals the moment the network returns — no restarts
+ *   - half-open probing uses originalQuery directly, bypassing the breaker
+ */
+const CIRCUIT_FAILURE_THRESHOLD = 3;   // consecutive network failures to open
+const CIRCUIT_COOLDOWN_MS = 10000;     // probe window while open
+const circuit = { failures: 0, openedAt: 0, lastError: null };
+
+function isCircuitOpen() {
+    if (circuit.openedAt === 0) return false;
+    // Cooldown elapsed → allow a probe through (half-open). The probe's own
+    // result re-opens or closes the breaker.
+    if (Date.now() - circuit.openedAt >= CIRCUIT_COOLDOWN_MS) return false;
+    return true;
+}
+
+function noteDbFailure(err) {
+    if (isDatabaseUnavailableError(err)) {
+        circuit.failures++;
+        circuit.lastError = err?.code || err?.message || 'unknown';
+        if (circuit.failures >= CIRCUIT_FAILURE_THRESHOLD && circuit.openedAt === 0) {
+            circuit.openedAt = Date.now();
+            logger.error(`[DB] Circuit breaker OPEN after ${circuit.failures} consecutive network failures — failing fast until the database recovers.`);
+        }
+    }
+}
+
+function noteDbSuccess() {
+    if (circuit.failures > 0 || circuit.openedAt > 0) {
+        const wasOpen = circuit.openedAt > 0;
+        circuit.failures = 0;
+        circuit.openedAt = 0;
+        if (wasOpen) logger.info('[DB] Circuit breaker CLOSED — database recovered.');
+    }
+}
+
+function dbUnavailableError() {
+    const err = new Error('Database temporarily unavailable. Please retry in a moment.');
+    err.code = 'DB_UNAVAILABLE';
+    err.status = 503;
+    return err;
+}
+
+// Watchdog: probes while the breaker is open (and right after opening) so the
+// server heals itself the instant connectivity returns.
+const watchdog = setInterval(() => {
+    if (circuit.openedAt === 0) return;
+    if (Date.now() - circuit.openedAt < CIRCUIT_COOLDOWN_MS) return;
+    originalQuery('SELECT 1')
+        .then(() => { noteDbSuccess(); })
+        .catch((err) => {
+            circuit.failures = CIRCUIT_FAILURE_THRESHOLD;
+            circuit.openedAt = Date.now();
+            throttledError('db_circuit', `Database still unreachable (${err?.code || err?.message || 'unknown'}) — serving fast failures until it recovers.`);
+        });
+}, 5000);
+watchdog.unref();
+
+// Fail fast BEFORE paying the gate + driver timeouts when the breaker is open.
+const guardCircuit = () => {
+    if (isCircuitOpen()) throw dbUnavailableError();
+};
 
 /**
  * Full pool observability snapshot for GET /api/debug/pool (auth-guarded).
@@ -625,5 +719,6 @@ module.exports.isConnectionLimitError = isConnectionLimitError;
 module.exports.isDatabaseUnavailableError = isDatabaseUnavailableError;
 module.exports.getPoolStatus = getPoolStatus;
 module.exports.getPoolMetrics = getPoolMetrics;
+module.exports.getCircuitStatus = getCircuitStatus;
 module.exports.ConnectionBudgetGate = ConnectionBudgetGate;
 module.exports.budgetGate = budgetGate;

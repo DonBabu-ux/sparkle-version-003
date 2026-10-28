@@ -402,9 +402,21 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
         }).catch(err => logger.error('Failed to initialize database:', err));
     });
     
+    let listenAttempts = 0;
+    const MAX_LISTEN_ATTEMPTS = 5;
     server.on('error', (e) => {
         if (e.code === 'EADDRINUSE') {
-            logger.error(`Port ${PORT} is in use, retrying in 1s...`);
+            listenAttempts += 1;
+            // A previous instance shutting down can hold the port for a
+            // second or two — retry briefly, but never forever. An endless
+            // 1s retry loop only spams the console when another healthy
+            // instance already owns the port (it will never release it).
+            if (listenAttempts > MAX_LISTEN_ATTEMPTS) {
+                logger.error(`Port ${PORT} is still in use after ${MAX_LISTEN_ATTEMPTS} attempts. Another server instance is already running — stop it first, then retry.`);
+                logger.error(`Find the owner with: netstat -ano | findstr :${PORT}`);
+                process.exit(1);
+            }
+            logger.error(`Port ${PORT} is in use, retrying in 1s... (attempt ${listenAttempts}/${MAX_LISTEN_ATTEMPTS})`);
             setTimeout(() => {
                 server.close();
                 server.listen(PORT, '0.0.0.0');

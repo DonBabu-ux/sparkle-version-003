@@ -1,12 +1,48 @@
-import { showInfo, showSuccess } from '../utils/toast';
+import { showInfo, showSuccess, showError } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, type FormEvent } from 'react';
-import api from '../api/api';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, Activity, Layers, Sparkles, ArrowLeft, Database, KeyRound, Mail, X } from 'lucide-react';
+import api, { setAdminSession, clearAdminSession } from '../api/api';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, KeyRound, Mail, X, Search, Flag, ShoppingBag, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
+import { BarSeries, LineSeries } from '../components/admin/AdminCharts';
+
+interface AdminAnalytics {
+    rangeDays: number;
+    series: Record<string, Array<{ day: string; count: number }>>;
+    kpis: {
+        totalUsers: number; newUsers7d: number; activeToday: number;
+        engagement24h: number; pendingReports: number; pendingAppeals: number; pendingVerifications: number;
+    };
+}
+
+interface VerificationRequest {
+    request_id: string;
+    user_id: string;
+    username: string;
+    user_name: string;
+    email: string;
+    avatar_url?: string;
+    status: string;
+    requested_at: string;
+    reason?: string;
+    document_url?: string;
+}
+
+interface AppealItem {
+    id: string;
+    post_id: string;
+    user_id: string;
+    username: string;
+    user_name: string;
+    avatar_url?: string;
+    reason: string;
+    status: string;
+    created_at: string;
+    post_excerpt?: string;
+}
 
 interface AdminStats {
   users?: { total: number };
@@ -39,6 +75,18 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [content, setContent] = useState<AdminContentItem[]>([]);
+  const [listQuery, setListQuery] = useState('');
+  const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
+  const [verifications, setVerifications] = useState<VerificationRequest[]>([]);
+  const [appeals, setAppeals] = useState<AppealItem[]>([]);
+  const [queueBusy, setQueueBusy] = useState<string | null>(null);
+  const filteredContent = content.filter(item => {
+    const q = listQuery.trim().toLowerCase();
+    if (!q) return true;
+    const hay = [item.name, item.username, item.email, item.title, item.type, item.action, item.details]
+      .filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  });
   const [announcement, setAnnouncement] = useState('');
   const [stepUp, setStepUp] = useState<{ kind: 'action' | 'announcement'; id?: string; action?: string } | null>(null);
   const [factor, setFactor] = useState<'password' | 'email'>('password');
@@ -47,9 +95,167 @@ export default function AdminDashboard() {
   const [emailSent, setEmailSent] = useState(false);
   const [stepUpError, setStepUpError] = useState('');
   const [stepUpBusy, setStepUpBusy] = useState(false);
+  // Admin access gate — the dashboard itself is behind the second password.
+  // 'expired' = the login session itself died (every call 401s) — that is a
+  // re-login problem, NOT a missing admin password. Never confuse the two.
+  const [gate, setGate] = useState<'loading' | 'set-password' | 'locked' | 'expired' | 'open'>('loading');
+  const [showAdminPwForm, setShowAdminPwForm] = useState(false);
+  const [adminPwForm, setAdminPwForm] = useState({ current: '', next: '', confirm: '' });
+  const [adminPwError, setAdminPwError] = useState('');
+  const [adminPwBusy, setAdminPwBusy] = useState(false);
+  const [unlockPassword, setUnlockPassword] = useState('');
+  const [unlockError, setUnlockError] = useState('');
+  const [unlockBusy, setUnlockBusy] = useState(false);
+  // Live countdown for the elevation window (15 min) — auto-locks at zero so
+  // an unattended panel never stays open.
+  const [sessionLeft, setSessionLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchStats();
+    if (gate !== 'open') { setSessionLeft(null); return; }
+    const tick = () => {
+      const raw = sessionStorage.getItem('sparkle_admin_session_expires');
+      if (!raw) { setSessionLeft(null); return; }
+      const left = Math.max(0, Math.round((Number(raw) - Date.now()) / 1000));
+      setSessionLeft(left);
+      if (left <= 0) lockAdminSession();
+    };
+    tick();
+    const t = setInterval(tick, 15000);
+    return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gate]);
+
+  const enterDashboard = async () => {
+    try {
+      await fetchStats();
+      setGate('open');
+    } catch (err: any) {
+      clearAdminSession();
+      // 401 has TWO very different meanings here:
+      //   ADMIN_SESSION_REQUIRED → login session is FINE, elevation missing/expired
+      //                            → unlock screen (enter admin password once)
+      //   any other 401          → the login session itself is dead → re-login
+      // Conflating them loops the admin between re-login and a 401 forever.
+      if (err?.response?.status === 401 && err?.response?.data?.code === 'ADMIN_SESSION_REQUIRED') {
+        setGate('locked');
+      } else if (err?.response?.status === 401) {
+        setGate('expired');
+      } else {
+        setGate('locked');
+      }
+    }
+  };
+
+  const fetchAdminPwStatus = async () => {
+    try {
+      const res = await api.get('/admin/credentials/status');
+      const set = !!res.data?.data?.hasAdminPassword;
+      if (set) { setShowAdminPwForm(false); await enterDashboard(); }
+      else setGate('set-password');
+    } catch (err: any) {
+      // Only a definitive 200 tells us the credential is unset. Anything else
+      // (401 = dead login session, 5xx, network) goes to re-login, never to
+      // the set-password screen — that produced the misleading error.
+      if (err?.response?.status === 401) {
+        clearAdminSession();
+        setGate('expired');
+      } else {
+        setGate('expired');
+      }
+    }
+  };
+
+  const submitAdminPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    setAdminPwError('');
+    if (adminPwForm.next !== adminPwForm.confirm) {
+      setAdminPwError('The new admin passwords do not match.');
+      return;
+    }
+    setAdminPwBusy(true);
+    try {
+      await api.post('/admin/credentials', {
+        current_password: adminPwForm.current,
+        new_admin_password: adminPwForm.next
+      });
+      setAdminPwForm({ current: '', next: '', confirm: '' });
+      setShowAdminPwForm(false);
+      showSuccess('Admin password set. Now unlock the dashboard with it.');
+      setGate('locked');
+    } catch (err: any) {
+      if (err.response?.status === 401) {
+        // Login session is gone — the credential could not even be attempted.
+        setGate('expired');
+        return;
+      }
+      setAdminPwError(err.response?.data?.message || 'Could not set the admin password.');
+    } finally {
+      setAdminPwBusy(false);
+    }
+  };
+
+  const unlockAdminSession = async (e: FormEvent) => {
+    e.preventDefault();
+    setUnlockError('');
+    setUnlockBusy(true);
+    try {
+      const res = await api.post('/admin/session', { admin_password: unlockPassword });
+      setAdminSession(res.data.data.admin_session_token);
+      const mins = Number(res.data.data.expires_in_minutes) || 15;
+      sessionStorage.setItem('sparkle_admin_session_expires', String(Date.now() + mins * 60000));
+      setUnlockPassword('');
+      await enterDashboard();
+    } catch (err: any) {
+      if (err.response?.data?.code === 'admin_password_not_set') {
+        setGate('set-password');
+      } else if (err.response?.status === 401 && err.response?.data?.code !== 'admin_password_invalid') {
+        // Not the admin password — the login session itself is dead.
+        clearAdminSession();
+        setGate('expired');
+      } else {
+        setUnlockError(err.response?.data?.message || 'That admin password is incorrect.');
+      }
+    } finally {
+      setUnlockBusy(false);
+    }
+  };
+
+  const lockAdminSession = async () => {
+    try { await api.delete('/admin/session'); } catch { /* best effort */ }
+    clearAdminSession();
+    sessionStorage.removeItem('sparkle_admin_session_expires');
+    setSessionLeft(null);
+    setGate('locked');
+  };
+
+  /**
+   * Mid-session failure mapping: a call that dies while the panel is open
+   * (elevation expired, login token died) must land on the right screen
+   * instead of leaving tabs to fire failing requests forever.
+   * 401 + ADMIN_SESSION_REQUIRED  → elevation gone → unlock screen
+   * 401 (anything else)           → login session gone → re-login screen
+   */
+  const onAdminCallError = (err: any) => {
+    const status = err?.response?.status;
+    const code = err?.response?.data?.code;
+    if (status === 401 && code === 'ADMIN_SESSION_REQUIRED') {
+      clearAdminSession();
+      sessionStorage.removeItem('sparkle_admin_session_expires');
+      setSessionLeft(null);
+      setGate('locked');
+      return true;
+    }
+    if (status === 401) {
+      clearAdminSession();
+      sessionStorage.removeItem('sparkle_admin_session_expires');
+      setGate('expired');
+      return true;
+    }
+    return false;
+  };
+
+  useEffect(() => {
+    fetchAdminPwStatus();
     document.title = 'Admin Panel | Sparkle';
   }, []);
 
@@ -58,7 +264,8 @@ export default function AdminDashboard() {
     try {
       const response = await api.get('/admin/stats');
       setStats(response.data);
-    } catch (err) {
+    } catch (err: any) {
+      if (onAdminCallError(err)) return;
       logger.error('Failed to fetch admin stats:', err);
     } finally {
       setLoading(false);
@@ -73,6 +280,75 @@ export default function AdminDashboard() {
     setEmailSent(false);
     setStepUpError('');
     setStepUpBusy(false);
+  };
+
+  // ── Analytics + review queues ──────────────────────────────────────────────
+  const fetchAnalytics = async () => {
+    try {
+      const res = await api.get('/admin/analytics');
+      setAnalytics(res.data?.data || null);
+    } catch (err) {
+      if (onAdminCallError(err)) return;
+      logger.error('Failed to fetch analytics:', err);
+    }
+  };
+
+  const fetchQueues = async () => {
+    try {
+      const [v, a] = await Promise.all([
+        api.get('/admin/verifications'),
+        api.get('/moderation/appeals/pending'),
+      ]);
+      setVerifications(v.data?.requests || []);
+      setAppeals(a.data?.appeals || []);
+    } catch (err) {
+      if (onAdminCallError(err)) return;
+      logger.error('Failed to fetch review queues:', err);
+    }
+  };
+
+  const decideVerification = async (requestId: string, decision: 'approved' | 'rejected') => {
+    if (!await confirmDialog(decision === 'approved' ? 'Approve this verification request?' : 'Reject this verification request?')) return;
+    setQueueBusy(requestId);
+    try {
+      await api.post(`/admin/verifications/${requestId}`, { status: decision });
+      setVerifications(prev => prev.filter(r => r.request_id !== requestId));
+      showSuccess(decision === 'approved' ? 'User verified.' : 'Request rejected.');
+    } catch (err: any) {
+      if (err.response?.data?.code === 'admin_password_not_set') { setGate('set-password'); return; }
+      showError(err.response?.data?.message || 'Could not update the request.');
+    } finally {
+      setQueueBusy(null);
+    }
+  };
+
+  const decideAppeal = async (appealId: string, decision: 'approve' | 'reject') => {
+    if (!await confirmDialog(decision === 'approve' ? 'Approve this appeal? The post will be restored.' : 'Reject this appeal?')) return;
+    setQueueBusy(appealId);
+    try {
+      await api.post(`/moderation/appeals/${appealId}/review`, { decision });
+      setAppeals(prev => prev.filter(a => a.id !== appealId));
+      showSuccess(decision === 'approve' ? 'Appeal approved.' : 'Appeal rejected.');
+    } catch (err: any) {
+      showError(err.response?.data?.message || 'Could not review this appeal.');
+    } finally {
+      setQueueBusy(null);
+    }
+  };
+
+  const exportLogs = async () => {
+    try {
+      const res = await api.get('/admin/logs/export', { responseType: 'blob' });
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'admin_logs.json';
+      a.click();
+      URL.revokeObjectURL(url);
+      showSuccess('Log exported.');
+    } catch {
+      showError('Could not export the log.');
+    }
   };
 
   const handleAdminAction = async (id: string, action: string) => {
@@ -156,6 +432,24 @@ export default function AdminDashboard() {
       }
       resetStepUp();
     } catch (err: any) {
+      // Fail-closed: the backend refuses admin step-up when no admin password
+      // exists yet — route the admin into the set-password form.
+      if (err.response?.status === 403 && err.response?.data?.code === 'admin_password_not_set') {
+        setStepUp(null);
+        setStepUpError('');
+        setStepUpBusy(false);
+        setGate('set-password');
+        return;
+      }
+      // Elevation expired mid-session — the global interceptor already cleared
+      // the token; bounce back to the unlock gate.
+      if (err.response?.data?.code === 'ADMIN_SESSION_REQUIRED') {
+        setStepUp(null);
+        setStepUpError('');
+        setStepUpBusy(false);
+        setGate('locked');
+        return;
+      }
       setStepUpError(err.response?.data?.message || err.response?.data?.error || 'Verification failed. Please try again.');
       setStepUpBusy(false);
     }
@@ -177,228 +471,540 @@ export default function AdminDashboard() {
         else if (activeTab === 'reports') setContent(response.data.reports || response.data.reportedItems || []);
         else setContent(response.data.data || []);
       } catch (err) {
+        if (onAdminCallError(err)) return;
         logger.error(`Failed to fetch ${activeTab}:`, err);
       }
     };
     if (activeTab !== 'overview') fetchTabData();
+    if (activeTab === 'analytics') fetchAnalytics();
+    if (activeTab === 'reviews') fetchQueues();
   }, [activeTab]);
 
+  // ── Admin access gate ─────────────────────────────────────────────────────
+  // The dashboard is behind the second password: set it once, then unlock
+  // each visit with a short-lived elevation session. Nothing admin-related
+  // renders until one of those passes.
+  if (gate !== 'open') {
+    return (
+      <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 flex items-center justify-center p-6">
+        <div className="w-full max-w-sm bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 shadow-sm">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <Shield size={18} />
+            </div>
+            <div>
+              <h1 className="text-base font-black text-[#18181b] dark:text-zinc-100 leading-tight">Admin panel</h1>
+              <p className="text-xs text-slate-600 dark:text-zinc-400">Protected by your admin password</p>
+            </div>
+          </div>
+
+          {gate === 'loading' && (
+            <div className="flex justify-center py-8"><Spinner /></div>
+          )}
+
+          {gate === 'expired' && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+                Your session expired. Log in again to continue — your admin password is unaffected.
+              </p>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors"
+              >
+                Log in again
+              </button>
+              <button
+                onClick={() => { setGate('loading'); fetchAdminPwStatus(); }}
+                className="w-full h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+
+          {gate === 'set-password' && (
+            <form onSubmit={submitAdminPassword} className="space-y-3">
+              <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
+                This account has no admin password yet. Set one now — it must be different from your login password, and your login password can never open this panel.
+              </p>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Current login password</label>
+                <input
+                  autoFocus
+                  type="password"
+                  value={adminPwForm.current}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, current: e.target.value }))}
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">New admin password</label>
+                <input
+                  type="password"
+                  value={adminPwForm.next}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, next: e.target.value }))}
+                  placeholder="At least 12 characters"
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Confirm new admin password</label>
+                <input
+                  type="password"
+                  value={adminPwForm.confirm}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, confirm: e.target.value }))}
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              {adminPwError && <p className="text-xs font-bold text-rose-600">{adminPwError}</p>}
+              <button
+                type="submit"
+                disabled={adminPwBusy}
+                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+              >
+                {adminPwBusy ? 'Saving...' : 'Set admin password'}
+              </button>
+            </form>
+          )}
+
+          {gate === 'locked' && (
+            <form onSubmit={unlockAdminSession} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Admin password</label>
+                <input
+                  autoFocus
+                  type="password"
+                  value={unlockPassword}
+                  onChange={(e) => setUnlockPassword(e.target.value)}
+                  placeholder="Enter your admin password"
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              {unlockError && <p className="text-xs font-bold text-rose-600">{unlockError}</p>}
+              <button
+                type="submit"
+                disabled={unlockBusy}
+                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+              >
+                {unlockBusy ? 'Checking...' : 'Unlock panel'}
+              </button>
+              <p className="text-[11px] text-slate-600 dark:text-zinc-400 text-center leading-relaxed">
+                This is your admin password — not your login password. Access stays open for 15 minutes.
+              </p>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-20">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-6xl mx-auto w-full">
         
-        {/* Compact Header */}
-        <header className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between mb-6">
-            <button 
-              onClick={() => navigate(-1)}
-              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-[#1b1b24] rounded-full shadow-sm border border-gray-100 dark:border-white/10 text-gray-500 dark:text-zinc-400 active:scale-90 transition-all"
-            >
-              <ArrowLeft size={16} />
-            </button>
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-white/80 dark:bg-[#1b1b24]/80 border border-white dark:border-white/10 backdrop-blur-xl shadow-sm">
-              <Shield size={12} strokeWidth={3} className="text-primary" />
-              <span className="text-[8px] font-black text-[#18181b] dark:text-white uppercase tracking-widest italic">Override</span>
+        {/* Header */}
+        <header className="mb-6">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => navigate(-1)}
+                className="w-9 h-9 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 rounded-full border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                aria-label="Back"
+              >
+                <ArrowLeft size={16} />
+              </button>
+              <div>
+                <h1 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Admin panel</h1>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Moderation, users and platform activity.</p>
+              </div>
             </div>
-          </div>
-          
-          <div className="text-center md:text-left">
-            <h1 className="text-3xl md:text-5xl font-black text-gray-900 tracking-tighter uppercase italic leading-none mb-2">
-              Admin <span className="text-primary">Council.</span>
-            </h1>
-            <p className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest max-w-md mx-auto md:mx-0">
-              View key metrics and activity.
-            </p>
+
+            <div className="flex items-center gap-2 flex-wrap">
+              {sessionLeft !== null && (
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold ${
+                  sessionLeft <= 120
+                    ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400'
+                    : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                }`}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                  Unlocked · {Math.floor(sessionLeft / 60)} min left
+                </span>
+              )}
+              <button
+                onClick={() => setShowAdminPwForm(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-primary hover:border-primary transition-colors"
+              >
+                <KeyRound size={13} strokeWidth={2.5} />
+                Admin password
+              </button>
+              <button
+                onClick={lockAdminSession}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-red-500 hover:border-red-500/40 transition-colors"
+              >
+                Lock
+              </button>
+            </div>
           </div>
         </header>
 
-        {/* Tab Navigation - Compact Row */}
-        <div className="flex bg-white/60 dark:bg-[#1b1b24]/60 backdrop-blur-xl border border-white dark:border-white/10 p-1 rounded-2xl shadow-sm mb-8 overflow-x-auto no-scrollbar sticky top-16 z-50">
-          {['overview', 'users', 'reports', 'logs'].map(tab => (
-            <button 
-              key={tab} 
-              className={`flex-1 min-w-[80px] h-10 rounded-xl font-black text-[9px] uppercase tracking-wider transition-all flex items-center justify-center gap-2 italic ${
-                activeTab === tab ? 'bg-primary text-white shadow-lg' : 'text-gray-400 hover:text-gray-900'
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6 overflow-x-auto no-scrollbar">
+          {[
+            { key: 'overview', label: 'Overview', icon: BarChart3 },
+            { key: 'analytics', label: 'Analytics', icon: Activity },
+            { key: 'users', label: 'Users', icon: Users },
+            { key: 'reports', label: 'Reports', icon: AlertCircle },
+            { key: 'reviews', label: 'Reviews', icon: Shield },
+            { key: 'logs', label: 'Activity log', icon: Clock },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key)}
+              className={`flex items-center gap-2 px-4 h-9 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
+                activeTab === tab.key
+                  ? 'bg-primary border-primary text-white'
+                  : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
               }`}
-              onClick={() => setActiveTab(tab)}
             >
-              {tab === 'overview' && <BarChart3 size={12} strokeWidth={3} />}
-              {tab === 'users' && <Users size={12} strokeWidth={3} />}
-              {tab === 'reports' && <AlertCircle size={12} strokeWidth={3} />}
-              {tab === 'logs' && <Clock size={12} strokeWidth={3} />}
-              <span>{tab}</span>
+              <tab.icon size={14} />
+              {tab.label}
+              {tab.key === 'reports' && (stats?.reports?.pending || 0) > 0 && (
+                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-primary/10 text-primary'}`}>
+                  {stats.reports.pending}
+                </span>
+              )}
             </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center bg-white/40 dark:bg-white/[0.03] backdrop-blur-xl border-2 border-dashed border-white dark:border-white/10 rounded-[40px] shadow-sm mb-12">
+          <div className="py-20 flex flex-col items-center justify-center bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl mb-8">
              <Spinner size="large" color="text-primary" />
-             <p className="text-[9px] font-black italic text-gray-400 uppercase tracking-widest mt-4">Loading data...</p>
+             <p className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mt-3">Loading…</p>
           </div>
         ) : activeTab === 'overview' ? (
-          <div className="space-y-8 animate-fade-in">
-            {/* Stats Grid - High Density */}
-            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+          <div className="space-y-5">
+            {/* Stats */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {[
-                { label: 'Users', value: stats?.users?.total || 0, icon: <Users size={18} strokeWidth={3} /> },
-                { label: 'Posts', value: stats?.posts?.total || 0, icon: <Eye size={18} strokeWidth={3} /> },
-                { label: 'Reports', value: stats?.reports?.pending || 0, icon: <AlertCircle size={18} strokeWidth={3} />, urgent: true },
-                { label: 'Capital', value: stats?.marketplace?.total || 0, icon: <BarChart3 size={18} strokeWidth={3} /> }
+                { label: 'Total users', value: stats?.users?.total || 0, icon: Users, urgent: false, tab: 'users' },
+                { label: 'Posts', value: stats?.posts?.total || 0, icon: Eye, urgent: false, tab: null },
+                { label: 'Pending reports', value: stats?.reports?.pending || 0, icon: AlertCircle, urgent: true, tab: 'reports' },
+                { label: 'Marketplace listings', value: stats?.marketplace?.total || 0, icon: ShoppingBag, urgent: false, tab: null }
               ].map(s => (
-                <div key={s.label} className={`p-4 md:p-6 rounded-[24px] border-2 transition-all bg-white dark:bg-[#1b1b24] shadow-sm hover:shadow-md ${s.urgent ? 'border-primary/10 shadow-primary/5' : 'border-white dark:border-white/10'}`}>
-                  <div className="flex justify-between items-start mb-4">
-                    <span className="text-[8px] font-black text-gray-300 uppercase tracking-widest italic">{s.label}</span>
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${s.urgent ? 'bg-primary/10 text-primary' : 'bg-gray-50 text-gray-400'}`}>
-                       {s.icon}
+                <button
+                  key={s.label}
+                  onClick={() => s.tab && setActiveTab(s.tab)}
+                  className={`text-left p-4 rounded-2xl border bg-[#fdf8fa] dark:bg-zinc-800 transition-colors ${s.urgent ? 'border-primary/30' : 'border-[#e6d8e1] dark:border-zinc-700'} ${s.tab ? 'hover:border-primary cursor-pointer' : 'cursor-default'}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs text-slate-600 dark:text-zinc-400">{s.label}</span>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${s.urgent ? 'bg-primary/10 text-primary' : 'bg-[#f6eef3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'}`}>
+                      <s.icon size={15} />
                     </div>
                   </div>
-                  <div className={`text-2xl md:text-3xl font-black italic tracking-tighter leading-none uppercase ${s.urgent ? 'text-primary' : 'text-gray-900'}`}>
-                    {s.value > 999 ? `${(s.value / 1000).toFixed(1)}k` : s.value}
+                  <div className={`text-2xl font-black leading-none ${s.urgent ? 'text-primary' : 'text-[#18181b] dark:text-zinc-100'}`}>
+                    {s.value > 9999 ? `${(s.value / 1000).toFixed(1)}k` : s.value.toLocaleString()}
                   </div>
+                </button>
+              ))}
+            </section>
+
+            {/* Quick links */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button onClick={() => navigate('/admin/storage')} className="flex items-center gap-3 p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 hover:border-primary transition-colors text-left">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <Database size={17} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Storage & media</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">Usage breakdown and cleanup tools</p>
+                </div>
+              </button>
+              <button onClick={() => setActiveTab('reports')} className="flex items-center gap-3 p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 hover:border-primary transition-colors text-left">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                  <Shield size={17} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Moderation queue</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">{stats?.reports?.pending || 0} reports waiting for review</p>
+                </div>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Recent activity */}
+              <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl p-5">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-4">Recent activity</h2>
+                <div className="space-y-2 max-h-[320px] overflow-y-auto no-scrollbar">
+                  {(stats?.recentActivity || []).map((act, i) => (
+                    <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-[#f6eef3] dark:bg-zinc-900">
+                      <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] text-[#18181b] dark:text-zinc-100 leading-snug">{act.message}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-0.5">{act.time}</p>
+                      </div>
+                    </div>
+                  ))}
+                  {(stats?.recentActivity || []).length === 0 && (
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 py-6 text-center">No activity recorded yet.</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Announcement composer */}
+              <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl p-5 flex flex-col">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Announcement</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-3">Sent to every user. Confirmed with your admin password.</p>
+                <textarea
+                  value={announcement}
+                  onChange={e => setAnnouncement(e.target.value)}
+                  placeholder="Write your announcement…"
+                  className="w-full flex-1 min-h-[120px] bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl p-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 outline-none focus:border-primary resize-none transition-colors"
+                />
+                <button
+                  onClick={handleSendAnnouncement}
+                  disabled={!announcement.trim()}
+                  className="mt-3 w-full h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+                >
+                  Send announcement
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : activeTab === 'analytics' ? (
+          <div className="space-y-5">
+            {/* KPI row */}
+            <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+              {[
+                { label: 'Active today', value: analytics?.kpis.activeToday ?? 0, hint: 'users with login activity in 24h' },
+                { label: 'New users (7d)', value: analytics?.kpis.newUsers7d ?? 0, hint: 'signed up this week' },
+                { label: 'Engagement (24h)', value: analytics?.kpis.engagement24h ?? 0, hint: 'sparks + comments' },
+                { label: 'Total users', value: analytics?.kpis.totalUsers ?? 0, hint: 'all accounts' },
+              ].map(k => (
+                <div key={k.label} className="p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
+                  <p className="text-xs text-slate-600 dark:text-zinc-400">{k.label}</p>
+                  <p className="text-2xl font-black text-[#18181b] dark:text-zinc-100 leading-none mt-2">{k.value.toLocaleString()}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1">{k.hint}</p>
                 </div>
               ))}
             </section>
 
-            {/* Storage Intelligence Panel Link */}
-            <button onClick={() => navigate('/admin/storage')} className="w-full bg-primary text-white p-6 rounded-[24px] flex justify-between items-center shadow-lg hover:shadow-xl hover:scale-[1.01] transition-all">
-               <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 dark:bg-white/10 rounded-full flex items-center justify-center">
-                     <Database size={24} strokeWidth={3} />
-                  </div>
-                  <div className="text-left">
-                     <h3 className="text-xl font-black uppercase italic tracking-tighter">Storage Intelligence</h3>
-                     <p className="text-[10px] font-bold text-white/70 uppercase tracking-widest">Manage Media Lifecycles & Cloud Assets</p>
-                  </div>
-               </div>
-            </button>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Activity Feed - Compact */}
-              <div className="bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-xl p-6 rounded-[32px] border border-white dark:border-white/10 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                   <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                      <Activity size={16} strokeWidth={3} />
-                   </div>
-                   <h3 className="text-lg font-black text-gray-900 italic uppercase tracking-tight">Live Activity</h3>
-                </div>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto no-scrollbar pr-1">
-                  {stats?.recentActivity?.map((act, i) => (
-                    <div key={i} className="flex items-center gap-4 p-4 bg-white dark:bg-[#1b1b24] border border-gray-50 rounded-[20px] hover:bg-primary/5 transition-all group">
-                      <div className="w-2 h-2 bg-primary rounded-full shrink-0 shadow-[0_0_8px_rgba(255,105,180,0.4)]" />
-                      <div className="flex-1 min-w-0">
-                         <p className="text-[11px] font-bold text-gray-700 dark:text-zinc-200 leading-tight truncate uppercase italic">{act.message}</p>
-                         <div className="flex justify-between items-center mt-1">
-                            <span className="text-[8px] font-black uppercase tracking-widest text-primary italic">Live Now</span>
-                            <span className="text-[8px] font-black uppercase tracking-widest text-gray-300">{act.time}</span>
-                         </div>
+            {/* Charts */}
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">New users</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Daily signups, last {analytics?.rangeDays || 14} days</p>
+                <BarSeries data={analytics?.series.signups || []} />
+              </div>
+              <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Engagement</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Sparks + comments per day</p>
+                <LineSeries
+                  data={(analytics?.series.sparks || []).map((p, i) => ({
+                    day: p.day,
+                    count: p.count + ((analytics?.series.comments || [])[i]?.count || 0)
+                  }))}
+                />
+              </div>
+              <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Posts</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Published per day</p>
+                <BarSeries data={analytics?.series.posts || []} color="#059669" />
+              </div>
+              <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Activity mix</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Totals across the window</p>
+                <div className="space-y-2.5">
+                  {[
+                    { label: 'Moments', value: sum(analytics?.series.moments) },
+                    { label: 'Messages', value: sum(analytics?.series.messages) },
+                    { label: 'Listings', value: sum(analytics?.series.listings) },
+                    { label: 'Follows', value: sum(analytics?.series.follows) },
+                  ].map(row => {
+                    const max = Math.max(1, sum(analytics?.series.moments), sum(analytics?.series.messages), sum(analytics?.series.listings), sum(analytics?.series.follows));
+                    return (
+                      <div key={row.label} className="flex items-center gap-3">
+                        <span className="text-xs text-slate-600 dark:text-zinc-400 w-16 shrink-0">{row.label}</span>
+                        <div className="flex-1 h-2 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 overflow-hidden">
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${(row.value / max) * 100}%` }} />
+                        </div>
+                        <span className="text-xs font-bold text-[#18181b] dark:text-zinc-100 w-10 text-right">{row.value.toLocaleString()}</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
+            </section>
 
-              {/* Council Directive - Compact */}
-              <div className="bg-white dark:bg-[#1b1b24] p-6 rounded-[32px] border border-white shadow-sm flex flex-col">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-8 h-8 bg-primary text-white rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
-                     <Sparkles size={16} strokeWidth={3} />
+            {/* Queue summary */}
+            <section className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { label: 'Pending reports', value: analytics?.kpis.pendingReports ?? 0, tab: 'reports' },
+                { label: 'Pending appeals', value: analytics?.kpis.pendingAppeals ?? 0, tab: 'reviews' },
+                { label: 'Verification requests', value: analytics?.kpis.pendingVerifications ?? 0, tab: 'reviews' },
+              ].map(q => (
+                <button key={q.label} onClick={() => setActiveTab(q.tab)} className="text-left p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 hover:border-primary transition-colors">
+                  <p className="text-xs text-slate-600 dark:text-zinc-400">{q.label}</p>
+                  <p className="text-xl font-black text-[#18181b] dark:text-zinc-100 mt-1">{q.value}</p>
+                </button>
+              ))}
+            </section>
+          </div>
+        ) : activeTab === 'reviews' ? (
+          <div className="space-y-5">
+            {/* Appeals */}
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#ede3e9] dark:border-zinc-900">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Appeals</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400">Users contesting moderation decisions on their posts.</p>
+              </div>
+              <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
+                {appeals.map(a => (
+                  <div key={a.id} className="flex items-start gap-3 p-4">
+                    <img src={getAvatarUrl(a.avatar_url, a.username)} className="w-9 h-9 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">@{a.username}</p>
+                      {a.post_excerpt && <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5 line-clamp-2">“{a.post_excerpt}”</p>}
+                      <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Reason: {a.reason}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => decideAppeal(a.id, 'approve')} disabled={queueBusy === a.id} className="px-3 h-8 rounded-full bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">Restore post</button>
+                      <button onClick={() => decideAppeal(a.id, 'reject')} disabled={queueBusy === a.id} className="px-3 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 text-xs font-bold disabled:opacity-50">Reject</button>
+                    </div>
                   </div>
-                  <h3 className="text-lg font-black text-gray-900 italic uppercase tracking-tight">Directives</h3>
-                </div>
-                <div className="space-y-4">
-                  <textarea 
-                     value={announcement}
-                     onChange={e => setAnnouncement(e.target.value)}
-                     placeholder="Send an announcement..."
-                     className="w-full min-h-[100px] bg-gray-50 dark:bg-[#101217] border-none rounded-2xl p-4 text-xs font-bold text-gray-900 placeholder:text-gray-300 focus:bg-white focus:ring-2 focus:ring-primary/10 transition-all outline-none italic resize-none"
-                  />
-                  <button 
-                     onClick={handleSendAnnouncement}
-                     className="w-full py-3 bg-primary text-white rounded-xl font-black text-[10px] uppercase tracking-[0.3em] shadow-lg shadow-primary/30 active:scale-95 transition-all italic"
-                  >
-                     Send Broadcast
-                  </button>
-                </div>
+                ))}
+                {appeals.length === 0 && (
+                  <div className="py-12 text-center">
+                    <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No pending appeals</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Appeals users submit will show up here.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Verification requests */}
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 border-b border-[#ede3e9] dark:border-zinc-900">
+                <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Verification requests</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400">Approving grants the verified badge.</p>
+              </div>
+              <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
+                {verifications.map(v => (
+                  <div key={v.request_id} className="flex items-center gap-3 p-4">
+                    <img src={getAvatarUrl(v.avatar_url, v.username)} className="w-9 h-9 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100 truncate">{v.user_name || v.username}</p>
+                      <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">{v.email}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button onClick={() => decideVerification(v.request_id, 'approved')} disabled={queueBusy === v.request_id} className="px-3 h-8 rounded-full bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">Approve</button>
+                      <button onClick={() => decideVerification(v.request_id, 'rejected')} disabled={queueBusy === v.request_id} className="px-3 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 text-xs font-bold disabled:opacity-50">Reject</button>
+                    </div>
+                  </div>
+                ))}
+                {verifications.length === 0 && (
+                  <div className="py-12 text-center">
+                    <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No pending requests</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Verification requests appear here for review.</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
         ) : (
-          /* Content Table - Modern & Tight */
-          <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] border border-white shadow-sm overflow-hidden animate-fade-in mb-20">
-            <div className="overflow-x-auto no-scrollbar">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-gray-50/50 dark:bg-white/[0.02] border-b border-gray-100 dark:border-white/10">
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Subject</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Status</th>
-                    <th className="px-6 py-4 text-[9px] font-black uppercase tracking-widest italic text-gray-400">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {content.length > 0 ? content.map((item, i) => (
-                    <tr key={i} className="hover:bg-gray-50/30 transition-all group">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-4">
-                          {activeTab === 'users' ? (
-                            <>
-                              <img src={getAvatarUrl(item.avatar_url, item.username)} className="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-sm" alt="" />
-                              <div className="flex flex-col">
-                                <span className="text-[12px] font-black italic uppercase tracking-tight text-gray-900 leading-none mb-1">{item.name || item.username}</span>
-                                <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest italic">{item.email}</span>
-                              </div>
-                            </>
-                          ) : (
-                            <div className="flex flex-col">
-                              <span className="text-[12px] font-black italic uppercase tracking-tight text-gray-900 leading-none mb-1">{item.title || item.type || item.action}</span>
-                              <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest truncate max-w-[150px] italic">                              {item.details || 'No details'}</span>
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2.5 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${
-                            item.status?.toLowerCase() === 'active' ? 'bg-emerald-50 text-emerald-500 border-emerald-100' : 
-                            item.status?.toLowerCase() === 'pending' ? 'bg-amber-50 text-amber-500 border-amber-100' :
-                            'bg-gray-900 text-white border-black'}`}>
-                          {item.status || 'Verified'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'approve')} className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-sm"><CheckCircle size={14} /></button>
-                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'restrict')} className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-sm"><Ban size={14} /></button>
-                          <button onClick={() => handleAdminAction(item.id || item.user_id || '', 'purge')} className="w-8 h-8 rounded-lg bg-primary text-white flex items-center justify-center hover:scale-110 active:scale-95 transition-all shadow-sm"><Trash2 size={14} /></button>
-                        </div>
-                      </td>
-                    </tr>
-                  )) : (
-                    <tr>
-                      <td colSpan={3} className="py-20 text-center">
-                        <div className="flex flex-col items-center gap-3">
-                           <Layers size={32} strokeWidth={1} className="text-gray-100" />
-                           <p className="text-[9px] font-black italic uppercase tracking-widest text-gray-300">Stream Empty</p>
-                        </div>
-                      </td>
-                    </tr>
+          <>
+          /* Content list — per-tab actions. Logs are READ-ONLY: an audit
+             entry can never be approved or purged from here. */
+          {activeTab === 'logs' && (
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs text-slate-600 dark:text-zinc-400">Every admin action, including page views.</p>
+              <button onClick={exportLogs} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-primary hover:border-primary transition-colors">
+                Export JSON
+              </button>
+            </div>
+          )}
+          <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden mb-16">
+            {(activeTab === 'users' || activeTab === 'reports') && (
+              <div className="p-4 border-b border-[#ede3e9] dark:border-zinc-900">
+                <div className="relative max-w-sm">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={15} />
+                  <input
+                    value={listQuery}
+                    onChange={e => setListQuery(e.target.value)}
+                    placeholder={activeTab === 'users' ? 'Search by name, username or email…' : 'Search reports…'}
+                    className="w-full h-10 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 outline-none focus:border-primary transition-colors"
+                  />
+                </div>
+              </div>
+            )}
+            <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
+              {filteredContent.length > 0 ? filteredContent.map((item, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 hover:bg-[#f6eef3] dark:hover:bg-zinc-700/40 transition-colors">
+                  {activeTab === 'users' ? (
+                    <img src={getAvatarUrl(item.avatar_url, item.username)} className="w-10 h-10 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 shrink-0">
+                      {activeTab === 'reports' ? <Flag size={16} /> : <Clock size={16} />}
+                    </div>
                   )}
-                </tbody>
-              </table>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100 truncate">
+                      {activeTab === 'users' ? (item.name || item.username) : (item.title || item.type || item.action || 'Entry')}
+                    </p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-400 truncate mt-0.5">
+                      {activeTab === 'users' ? item.email : (item.details || item.action || '')}
+                    </p>
+                  </div>
+                  <span className={`shrink-0 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${
+                    item.status?.toLowerCase() === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
+                    item.status?.toLowerCase() === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' :
+                    activeTab === 'logs' ? 'bg-[#f6eef3] dark:bg-zinc-700 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400' :
+                    'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
+                  }`}>
+                    {item.status || (activeTab === 'logs' ? 'Logged' : 'Reported')}
+                  </span>
+                  {activeTab !== 'logs' && (
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button onClick={() => handleAdminAction(item.id || item.user_id || item.listing_id || '', 'approve')} title="Approve" className="w-8 h-8 rounded-lg bg-emerald-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"><CheckCircle size={15} /></button>
+                      <button onClick={() => handleAdminAction(item.id || item.user_id || item.listing_id || '', 'restrict')} title="Restrict" className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"><Ban size={15} /></button>
+                      <button onClick={() => handleAdminAction(item.id || item.user_id || item.listing_id || '', 'purge')} title="Purge" className="w-8 h-8 rounded-lg bg-red-500 text-white flex items-center justify-center hover:scale-105 active:scale-95 transition-transform"><Trash2 size={15} /></button>
+                    </div>
+                  )}
+                </div>
+              )) : (
+                <div className="py-16 flex flex-col items-center text-center px-6">
+                  <div className="w-11 h-11 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 mb-3">
+                    {activeTab === 'users' ? <Users size={20} /> : activeTab === 'reports' ? <Flag size={20} /> : <Clock size={20} />}
+                  </div>
+                  <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">
+                    {activeTab === 'users' ? 'No users found' : activeTab === 'reports' ? 'No pending reports' : 'No activity logged yet'}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">
+                    {activeTab === 'reports' ? 'Reported content shows up here for review.' : 'Nothing to review right now.'}
+                  </p>
+                </div>
+              )}
             </div>
           </div>
+          </>
         )}
       </main>
 
       {stepUp && (
         <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-md bg-white dark:bg-[#1b1b24] rounded-[28px] p-6 shadow-2xl">
+          <div className="w-full max-w-md bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 shadow-2xl">
             <div className="flex items-start justify-between mb-4">
               <div>
-                <h2 className="text-xl font-black text-gray-900">Confirm it's you</h2>
-                <p className="text-xs font-bold text-gray-400 mt-1">Sensitive admin actions need a fresh identity check.</p>
+                <h2 className="text-base font-black text-[#18181b] dark:text-zinc-100">Confirm it's you</h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Sensitive admin actions need a fresh identity check.</p>
               </div>
-              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-gray-50 dark:bg-[#101217] flex items-center justify-center text-gray-500 dark:text-zinc-400" aria-label="Close">
+              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400" aria-label="Close">
                 <X size={16} />
               </button>
             </div>
@@ -407,14 +1013,14 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => { setFactor('password'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-[#1b1b24] text-gray-500 dark:text-zinc-400 border-gray-200 dark:border-white/10'}`}
+                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-[#e6d8e1] dark:border-zinc-700'}`}
               >
-                <KeyRound size={14} /> Password
+                <KeyRound size={14} /> Admin password
               </button>
               <button
                 type="button"
                 onClick={() => { setFactor('email'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-gray-900 text-white border-gray-900' : 'bg-white dark:bg-[#1b1b24] text-gray-500 dark:text-zinc-400 border-gray-200 dark:border-white/10'}`}
+                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-[#e6d8e1] dark:border-zinc-700'}`}
               >
                 <Mail size={14} /> Email code
               </button>
@@ -425,25 +1031,30 @@ export default function AdminDashboard() {
                 type="button"
                 onClick={requestEmailCode}
                 disabled={stepUpBusy}
-                className="w-full h-12 rounded-xl bg-primary text-white font-black text-sm disabled:opacity-50"
+                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold disabled:opacity-50"
               >
                 {stepUpBusy ? 'Sending...' : 'Send code to my email'}
               </button>
             ) : (
               <form onSubmit={applyStepUp} className="space-y-3">
+                {factor === 'password' && (
+                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
+                    This is your <span className="font-bold text-[#18181b] dark:text-zinc-100">admin password</span> — a separate credential from your login password.
+                  </p>
+                )}
                 <input
                   autoFocus
                   type={factor === 'password' ? 'password' : 'text'}
                   inputMode={factor === 'password' ? undefined : 'numeric'}
                   value={secret}
                   onChange={(e) => setSecret(e.target.value)}
-                  placeholder={factor === 'password' ? 'Current password' : 'Email verification code'}
-                  className="w-full h-12 rounded-xl bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 px-4 font-bold text-sm outline-none focus:ring-2 focus:ring-primary/20"
+                  placeholder={factor === 'password' ? 'Admin password' : 'Email verification code'}
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary transition-colors"
                 />
                 <button
                   type="submit"
                   disabled={stepUpBusy || !secret}
-                  className="w-full h-12 rounded-xl bg-primary text-white font-black text-sm disabled:opacity-50"
+                  className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold disabled:opacity-50"
                 >
                   {stepUpBusy ? 'Checking...' : 'Verify and continue'}
                 </button>
@@ -451,6 +1062,80 @@ export default function AdminDashboard() {
             )}
 
             {stepUpError && <p className="text-xs font-bold text-rose-600 mt-3">{stepUpError}</p>}
+          </div>
+        </div>
+      )}
+
+      {showAdminPwForm && (
+        <div className="fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 shadow-2xl">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-black text-[#18181b] dark:text-zinc-100">
+                  {'Change your admin password'}
+                </h2>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed max-w-xs">
+                  Admin actions are protected by a separate credential. It must be different from your login password — your login password can never approve admin actions.
+                </p>
+              </div>
+              <button onClick={() => setShowAdminPwForm(false)} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 shrink-0" aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={submitAdminPassword} className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Current login password</label>
+                <input
+                  autoFocus
+                  type="password"
+                  value={adminPwForm.current}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, current: e.target.value }))}
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">New admin password</label>
+                <input
+                  type="password"
+                  value={adminPwForm.next}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, next: e.target.value }))}
+                  placeholder="At least 12 characters"
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Confirm new admin password</label>
+                <input
+                  type="password"
+                  value={adminPwForm.confirm}
+                  onChange={(e) => setAdminPwForm(f => ({ ...f, confirm: e.target.value }))}
+                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
+                  required
+                />
+              </div>
+
+              {adminPwError && <p className="text-xs font-bold text-rose-600">{adminPwError}</p>}
+
+              <div className="flex items-center gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowAdminPwForm(false)}
+                  className="flex-1 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={adminPwBusy}
+                  className="flex-[2] h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+                >
+                  {adminPwBusy ? 'Saving...' : 'Update admin password'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
@@ -463,6 +1148,8 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+const sum = (points?: Array<{ count: number }>) => (points || []).reduce((t, p) => t + p.count, 0);
 
 function getAvatarUrl(url: string | undefined, username: string | undefined) {
   if (url && url.startsWith('http')) return url;

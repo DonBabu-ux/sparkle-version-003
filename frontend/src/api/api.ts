@@ -18,6 +18,13 @@ const api = axios.create({
 let csrfToken: string | null = null;
 let csrfFetchAttempted = false;
 
+// Admin elevation session (second password). Short-lived, in-memory only —
+// sessionStorage so a tab refresh keeps it but closing the browser drops it.
+const ADMIN_SESSION_KEY = 'sparkle_admin_session';
+export const getAdminSession = (): string | null => sessionStorage.getItem(ADMIN_SESSION_KEY);
+export const setAdminSession = (token: string) => sessionStorage.setItem(ADMIN_SESSION_KEY, token);
+export const clearAdminSession = () => sessionStorage.removeItem(ADMIN_SESSION_KEY);
+
 const fetchCsrfToken = async (): Promise<string | null> => {
   if (csrfToken) return csrfToken;
   if (csrfFetchAttempted) return null;
@@ -46,7 +53,16 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    
+
+    // Admin elevation: send the session token on every /admin/* call so the
+    // dashboard is authorized by the second password, not just the role.
+    if (config.url?.includes('/admin') || config.url?.includes('/security/transaction')) {
+      const adminSession = getAdminSession();
+      if (adminSession) {
+        config.headers['x-admin-session'] = adminSession;
+      }
+    }
+
     // Add CSRF token for state-changing requests (except auth routes like login/signup to prevent delays)
     const isAuthRequest = config.url?.includes('/auth/login') || config.url?.includes('/auth/signup') || config.url?.includes('/auth/refresh');
     if (['post', 'put', 'delete', 'patch'].includes(config.method?.toLowerCase() || '')) {

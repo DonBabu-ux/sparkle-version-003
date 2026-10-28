@@ -1,4 +1,5 @@
 const ModerationService = require('../services/moderation.service');
+const pool = require('../config/database');
 const logger = require('../utils/logger');
 
 exports.reportPost = async (req, res) => {
@@ -37,6 +38,30 @@ exports.appealPost = async (req, res) => {
         if (['Post not found', 'You can only appeal your own posts', 'This post is already active', 'An appeal is already pending for this post'].includes(err.message)) {
             return res.status(400).json({ success: false, message: err.message });
         }
+        res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+};
+
+/**
+ * GET /api/moderation/appeals/pending — the admin review queue.
+ * reviewAppeal (below) already gates by role; this list needs the same.
+ */
+exports.getPendingAppeals = async (req, res) => {
+    try {
+        const [appeals] = await pool.query(
+            `SELECT a.id, a.post_id, a.user_id, a.reason, a.status, a.created_at,
+                    u.username, u.name AS user_name, u.avatar_url,
+                    LEFT(p.content, 140) AS post_excerpt
+             FROM appeals a
+             JOIN users u ON u.user_id = a.user_id
+             LEFT JOIN posts p ON p.post_id = a.post_id
+             WHERE a.status = 'pending'
+             ORDER BY a.created_at DESC
+             LIMIT 100`
+        );
+        res.json({ success: true, appeals });
+    } catch (err) {
+        logger.error('Get Pending Appeals Error:', err);
         res.status(500).json({ success: false, message: 'Internal server error' });
     }
 };

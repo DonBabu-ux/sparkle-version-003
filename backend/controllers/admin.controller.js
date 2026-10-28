@@ -1,6 +1,7 @@
 const pool = require('../config/database');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
+const AdminCredentialService = require('../services/admin-credential.service');
 
 const VALID_ACTIONS = new Set(['approve', 'restrict', 'purge']);
 const VALID_TYPES = new Set(['users', 'reports', 'logs']);
@@ -507,7 +508,7 @@ const getVerificationRequests = async (req, res) => {
              FROM verification_requests vr
              JOIN users u ON vr.user_id = u.user_id
              WHERE vr.status = 'pending'
-             ORDER BY vr.created_at ASC`
+             ORDER BY vr.requested_at DESC`
         );
         res.json({ requests });
     } catch (error) {
@@ -518,7 +519,7 @@ const getVerificationRequests = async (req, res) => {
 
 const handleVerificationRequest = async (req, res) => {
     try {
-        const { requestId } = req.params;
+        const requestId = req.params.request_id || req.params.requestId;
         const { status, notes } = req.body;
         const adminId = req.user.userId || req.user.user_id;
 
@@ -556,6 +557,201 @@ const handleVerificationRequest = async (req, res) => {
 };
 
 
+/**
+ * Admin credential layer — separate password from the login password.
+ * GET /api/admin/credentials/status  → is an admin password set?
+ * POST /api/admin/credentials        → set / rotate it
+ */
+const getAdminCredentialStatus = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const [rows] = await pool.query(
+            'SELECT admin_password_hash, role FROM users WHERE user_id = ? LIMIT 1',
+            [userId]
+        );
+        res.json({
+            status: 'success',
+            data: { hasAdminPassword: !!(rows[0] && rows[0].admin_password_hash) }
+        });
+    } catch (error) {
+        logger.error('getAdminCredentialStatus failed:', error);
+        res.status(500).json({ status: 'error', message: 'Could not load admin credential status.' });
+    }
+};
+
+const setAdminPassword = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { current_password, new_admin_password } = req.body || {};
+        const result = await AdminCredentialService.setAdminPassword(userId, current_password, new_admin_password);
+        if (!result.ok) {
+            const statusCode = result.code === 'forbidden' ? 403 : 400;
+            return res.status(statusCode).json({ status: 'error', message: result.message });
+        }
+        await logAdminAction(userId, 'admin_credential_set', 'self', null, {});
+        res.json({ status: 'success', message: result.message });
+    } catch (error) {
+        logger.error('setAdminPassword failed:', error);
+        res.status(500).json({ status: 'error', message: 'Could not update the admin password.' });
+    }
+};
+
+/**
+ * POST /api/admin/session — verify the ADMIN password and mint a short-lived
+ * elevation token that authorizes the whole admin surface. Rate-limited by the
+ * admin router limiter; wrong credentials never mint a token.
+ */
+const unlockAdminSession = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const { admin_password } = req.body || {};
+
+        if (!admin_password) {
+            return res.status(400).json({ status: 'error', message: 'Enter your admin password.' });
+        }
+
+        const session = await AdminCredentialService.createAdminSession(userId, admin_password);
+        if (!session) {
+            // Distinguish "not set yet" (fail-closed, needs setup) from "wrong".
+            const set = await AdminCredentialService.hasAdminPassword(userId);
+            if (!set) {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'admin_password_not_set',
+                    message: 'No admin password is set on this account. Set one in Admin settings first.'
+                });
+            }
+            return res.status(401).json({ status: 'error', code: 'admin_password_invalid', message: 'That admin password is incorrect.' });
+        }
+
+        res.json({
+            status: 'success',
+            data: {
+                admin_session_token: session.token,
+                expires_in_minutes: session.expiresInMinutes
+            }
+        });
+    } catch (error) {
+        logger.error('unlockAdminSession failed:', error);
+        res.status(500).json({ status: 'error', message: 'Could not start an admin session.' });
+    }
+};
+
+/**
+ * DELETE /api/admin/session — drop the elevation early (e.g. "lock" button).
+ */
+const lockAdminSession = async (req, res) => {
+    try {
+        await AdminCredentialService.endAdminSession(req.headers[AdminCredentialService.ADMIN_SESSION_HEADER]);
+        res.json({ status: 'success', message: 'Admin session ended.' });
+    } catch (error) {
+        logger.error('lockAdminSession failed:', error);
+        res.status(500).json({ status: 'error', message: 'Could not end the admin session.' });
+    }
+};
+
+/**
+ * GET /api/admin/analytics — daily time series + KPIs for the admin panel.
+ *
+ * Mirrors the DATE() GROUP BY pattern from analytics.controller.js. Every
+ * series runs on an indexed timestamp column and swallows its own error (a
+ * missing table yields an empty series, never a 500), same as getDashboardStats.
+ */
+const getAnalytics = async (req, res) => {
+    const days = 14;
+    try {
+        const daily = async (table, column, alias) => {
+            try {
+                const [rows] = await pool.query(
+                    `SELECT DATE(${column}) AS day, COUNT(*) AS count
+                     FROM ${table}
+                     WHERE ${column} >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+                     GROUP BY DATE(${column})
+                     ORDER BY day ASC`,
+                    [days]
+                );
+                const map = {};
+                for (const r of rows) {
+                    const key = new Date(r.day).toISOString().slice(0, 10);
+                    map[key] = Number(r.count);
+                }
+                // Dense series — fill empty days with zeros so charts are continuous.
+                const series = [];
+                for (let i = days - 1; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(d.getDate() - i);
+                    const key = d.toISOString().slice(0, 10);
+                    series.push({ day: key, count: map[key] || 0 });
+                }
+                return series;
+            } catch (e) {
+                logger.warn(`[analytics] ${alias} series unavailable:`, e.message);
+                return [];
+            }
+        };
+
+        const scalar = async (sql, params = []) => {
+            try {
+                const [rows] = await pool.query(sql, params);
+                const v = Object.values(rows[0] || {})[0];
+                return Number(v) || 0;
+            } catch (e) {
+                logger.warn('[analytics] scalar unavailable:', e.message);
+                return 0;
+            }
+        };
+
+        const [signups, posts, sparks, comments, messages, moments, listings, follows] = await Promise.all([
+            daily('users', 'joined_at', 'signups'),
+            daily('posts', 'created_at', 'posts'),
+            daily('sparks', 'created_at', 'sparks'),
+            daily('comments', 'created_at', 'comments'),
+            daily('messages', 'sent_at', 'messages'),
+            daily('moments', 'created_at', 'moments'),
+            daily('marketplace_listings', 'created_at', 'listings'),
+            daily('follows', 'created_at', 'follows'),
+        ]);
+
+        const [postRep, userRep, listingRep] = await Promise.all([
+            scalar("SELECT COUNT(*) AS c FROM post_reports WHERE status = 'pending'"),
+            scalar("SELECT COUNT(*) AS c FROM user_reports WHERE status = 'pending'"),
+            scalar("SELECT COUNT(*) AS c FROM listing_reports WHERE status = 'pending'"),
+        ]);
+        const pendingReports = postRep + userRep + listingRep;
+
+        const [totalUsers, newUsers7d, dauToday, engagement24h, pendingAppeals, pendingVerifications] = await Promise.all([
+            scalar('SELECT COUNT(*) AS c FROM users'),
+            scalar("SELECT COUNT(*) AS c FROM users WHERE joined_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)"),
+            scalar("SELECT COUNT(*) AS c FROM login_activity WHERE last_active >= DATE_SUB(NOW(), INTERVAL 1 DAY)"),
+            scalar(`SELECT
+                        (SELECT COUNT(*) FROM sparks WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) +
+                        (SELECT COUNT(*) FROM comments WHERE created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)) AS c`),
+            scalar("SELECT COUNT(*) AS c FROM appeals WHERE status = 'pending'"),
+            scalar("SELECT COUNT(*) AS c FROM verification_requests WHERE status = 'pending'"),
+        ]);
+
+        res.json({
+            status: 'success',
+            data: {
+                rangeDays: days,
+                series: { signups, posts, sparks, comments, messages, moments, listings, follows },
+                kpis: {
+                    totalUsers,
+                    newUsers7d,
+                    activeToday: dauToday,
+                    engagement24h,
+                    pendingReports,
+                    pendingAppeals,
+                    pendingVerifications
+                }
+            }
+        });
+    } catch (error) {
+        logger.error('getAnalytics failed:', error);
+        res.status(500).json({ status: 'error', message: 'Could not load analytics.' });
+    }
+};
+
 module.exports = {
     getDashboardStats,
     getUsers,
@@ -568,5 +764,10 @@ module.exports = {
     getVerificationRequests,
     handleVerificationRequest,
     handleAction,
-    broadcastAnnouncement
+    broadcastAnnouncement,
+    getAdminCredentialStatus,
+    setAdminPassword,
+    unlockAdminSession,
+    lockAdminSession,
+    getAnalytics
 };

@@ -152,6 +152,12 @@ const repairUsersTable = async () => {
         const columnsToAdd = [
             { name: 'bio', type: 'TEXT DEFAULT NULL' },
             { name: 'campus', type: 'VARCHAR(100) DEFAULT NULL' },
+            /* Separate admin credential. Null for every ordinary user; an
+               admin/moderator must set it to run admin mutations (fail-closed
+               in adminStepUp.middleware). Verified ONLY against this column —
+               never against password_hash — so the user login password can
+               never grant admin authority. */
+            { name: 'admin_password_hash', type: 'VARCHAR(255) DEFAULT NULL' },
             { name: 'major', type: 'VARCHAR(100) DEFAULT NULL' },
             { name: 'year_of_study', type: 'VARCHAR(50) DEFAULT NULL' },
             { name: 'profile_views', type: 'INT DEFAULT 0' },
@@ -213,11 +219,59 @@ const repairUsersTable = async () => {
             logger.info('Added UNIQUE key uq_users_username_normalized to users table');
         }
 
-        // Set first user as admin if not already set
-        const [users] = await pool.query('SELECT user_id, role FROM users ORDER BY joined_at LIMIT 1');
-        if (users.length > 0 && users[0].role !== 'admin') {
-            await pool.query('UPDATE users SET role = "admin" WHERE user_id = ?', [users[0].user_id]);
-            logger.info('✅ First user set as admin.');
+        // ADMIN SEEDING — the old behavior promoted the first-registered user
+        // to admin on EVERY boot: that account's ordinary login password then
+        // WAS the platform-admin credential (no separate admin credential, no
+        // consent). Promotions now happen ONLY via an explicit allow-list in
+        // ADMIN_EMAILS (comma-separated). No env var → no auto-promotion.
+        const adminEmails = (process.env.ADMIN_EMAILS || '')
+            .split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+        if (adminEmails.length > 0) {
+            try {
+                const placeholders = adminEmails.map(() => '?').join(',');
+                const [targets] = await pool.query(
+                    `SELECT user_id, email, role FROM users WHERE LOWER(email) IN (${placeholders})`,
+                    adminEmails
+                );
+                for (const t of targets) {
+                    if (t.role !== 'admin') {
+                        await pool.query('UPDATE users SET role = "admin" WHERE user_id = ?', [t.user_id]);
+                        logger.info(`Admin role assigned from ADMIN_EMAILS: ${t.email}`);
+                    }
+                }
+            } catch (e) {
+                logger.warn('ADMIN_EMAILS seeding failed:', e.message);
+            }
+        }
+
+        // security_transactions.purpose must accept 'admin_step_up' — the
+        // admin step-up flow writes it (security.controller.js) and reads it
+        // (adminStepUp.middleware.js). Missing from the shipped ENUM, so
+        // every admin step-up insert would hard-fail on a fresh DB.
+        try {
+            await pool.query(
+                "ALTER TABLE security_transactions MODIFY purpose ENUM('2fa_email_enroll','2fa_sms_enroll','2fa_email_alternate','2fa_disable','password_change','password_reset','pin_reset','recovery_regen','security_email_change','admin_step_up') NOT NULL"
+            );
+        } catch (e) {
+            logger.warn('security_transactions purpose ENUM update skipped:', e.message);
+        }
+
+        // Admin elevation sessions — only the token HASH is stored, so a DB
+        // dump can never replay an admin session. 15-minute TTL.
+        try {
+            await pool.query(`
+                CREATE TABLE IF NOT EXISTS admin_sessions (
+                  token_hash char(64) NOT NULL,
+                  user_id char(36) NOT NULL,
+                  created_at timestamp NULL DEFAULT current_timestamp(),
+                  expires_at timestamp NOT NULL,
+                  PRIMARY KEY (token_hash),
+                  KEY idx_admin_sessions_user (user_id, expires_at),
+                  CONSTRAINT admin_sessions_ibfk_1 FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+            `);
+        } catch (e) {
+            logger.warn('admin_sessions table creation skipped:', e.message);
         }
 
         // Ensure system users exist (including sparkly_bot)

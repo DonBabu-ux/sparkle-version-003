@@ -1103,8 +1103,23 @@ const verifySecurityTransaction = async (req, res) => {
                     await recordSecurityEvent(userId, 'recovery_code_consumed', { remaining: codes.length }, req);
                 }
             }
+        } else if (tx.purpose === 'admin_step_up') {
+            // Admin step-up must be satisfied by the SEPARATE admin
+            // credential — never the login password. Accepting password_hash
+            // here would make the user's normal password able to authorize
+            // admin mutations, which this layer exists to prevent.
+            const adminService = require('../services/admin-credential.service');
+            const adminUser = await adminService.loadUser(userId);
+            if (!adminUser || !adminUser.admin_password_hash) {
+                return res.status(403).json({
+                    status: 'error',
+                    code: 'admin_password_not_set',
+                    message: 'No admin password is set on this account. Set one in Admin settings before performing admin actions.'
+                });
+            }
+            isMatch = await adminService.verifyAdminPassword(userId, code);
         } else {
-            // Password check
+            // Password check — ordinary security purposes only
             const [userRows] = await pool.query(
                 'SELECT password_hash FROM users WHERE user_id = ? LIMIT 1',
                 [userId]

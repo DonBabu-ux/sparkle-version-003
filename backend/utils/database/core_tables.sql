@@ -1098,7 +1098,7 @@ CREATE TABLE IF NOT EXISTS `media_objects` (
 CREATE TABLE IF NOT EXISTS `security_transactions` (
   `transaction_id` char(36) NOT NULL,
   `user_id` char(36) NOT NULL,
-  `purpose` enum('2fa_email_enroll','2fa_sms_enroll','2fa_email_alternate','2fa_disable','password_change','password_reset','pin_reset','recovery_regen','security_email_change') NOT NULL,
+  `purpose` enum('2fa_email_enroll','2fa_sms_enroll','2fa_email_alternate','2fa_disable','password_change','password_reset','pin_reset','recovery_regen','security_email_change','admin_step_up') NOT NULL,
   `destination` varchar(255) DEFAULT NULL,
   `otp_hash` varchar(255) DEFAULT NULL,
   `verification_token` varchar(255) DEFAULT NULL,

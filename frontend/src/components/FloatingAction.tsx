@@ -57,12 +57,12 @@ export default function FloatingAction() {
             }
         }}
         className={`w-16 h-16 rounded-full flex items-center justify-center text-white shadow-2xl transition-all duration-500 ${
-            isOpen ? 'bg-slate-800' : 'bg-[#FF3D6D] hover:scale-110'
+            isOpen ? 'bg-slate-800' : 'bg-[#ff1493] hover:scale-110'
         }`}
         style={{ 
             boxShadow: isOpen 
                 ? '0 10px 40px rgba(0,0,0,0.2)' 
-                : '0 10px 40px rgba(255, 61, 109, 0.4)' 
+                : '0 10px 40px rgba(255, 20, 147, 0.4)' 
         }}
       >
         {isOpen ? (

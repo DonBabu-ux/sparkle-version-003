@@ -142,9 +142,9 @@ export default function MarketplaceInbox() {
   }, [openMenuId]);
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-60px)] bg-white dark:bg-[#1b1b24] overflow-hidden w-full relative">
+    <div className="flex flex-col h-[calc(100dvh-60px)] bg-white dark:bg-zinc-800 overflow-hidden w-full relative">
       {/* Header Bar */}
-      <div className="px-4 py-3 border-b border-marketplace-border flex items-center justify-between bg-white dark:bg-[#1b1b24] sticky top-0 z-20">
+      <div className="px-4 py-3 border-b border-marketplace-border flex items-center justify-between bg-white dark:bg-zinc-800 sticky top-0 z-20">
         <h2 className="text-xl font-bold text-marketplace-text">Messages</h2>
         <button 
           onClick={() => navigate('/marketplace/settings')}
@@ -156,7 +156,7 @@ export default function MarketplaceInbox() {
       </div>
 
       {/* Header Tabs */}
-      <div className="flex border-b border-marketplace-border bg-white dark:bg-[#1b1b24] pt-2 sticky top-[52px] z-10">
+      <div className="flex border-b border-marketplace-border bg-white dark:bg-zinc-800 pt-2 sticky top-[52px] z-10">
         <button
           onClick={() => { setActiveTab('buying'); setActiveFilter('All'); }}
           className={clsx(
@@ -224,9 +224,9 @@ export default function MarketplaceInbox() {
                 selectedChatId === chat.id ? "bg-marketplace-bg/80 border-[#1877F2]" : "border-transparent"
               )}
             >
-              <div className="relative w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden bg-slate-100 dark:bg-[#101217] border border-marketplace-border">
+              <div className="relative w-14 h-14 rounded-xl flex-shrink-0 overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-marketplace-border">
                 <img src={chat.listing.image} alt="" className="w-full h-full object-cover" />
-                <div className="absolute bottom-0 right-0 w-6 h-6 bg-white dark:bg-[#1b1b24] rounded-tl-lg flex items-center justify-center shadow-sm">
+                <div className="absolute bottom-0 right-0 w-6 h-6 bg-white dark:bg-zinc-800 rounded-tl-lg flex items-center justify-center shadow-sm">
                   <img src={getAvatarUrl(chat.partner.avatar, chat.partner.username)} alt="" className="w-5 h-5 rounded-full object-cover" />
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function MarketplaceInbox() {
                       
                       {openMenuId === chat.id && (
                         <div 
-                          className="absolute right-0 top-full mt-1 bg-white dark:bg-[#1b1b24] shadow-xl rounded-md border border-gray-100 dark:border-white/10 py-1 z-30 w-32"
+                          className="absolute right-0 top-full mt-1 bg-white dark:bg-zinc-800 shadow-xl rounded-md border border-gray-100 dark:border-white/10 py-1 z-30 w-32"
                           onClick={(e) => e.stopPropagation()}
                         >
                           <button onClick={(e) => { e.stopPropagation(); handleToggleFlag(chat.id, 'is_pinned'); setOpenMenuId(null); }} className="w-full text-left px-3 py-1.5 text-xs font-bold hover:bg-gray-50 flex items-center gap-2">

@@ -59,8 +59,8 @@ export default function ReportListing() {
   if (loading) return null;
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] text-marketplace-text font-sans">
-      <header className="sticky top-0 z-50 bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-marketplace-text font-sans">
+      <header className="sticky top-0 z-50 bg-white dark:bg-zinc-800 border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="w-10 h-10 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
           <ChevronLeft size={24} strokeWidth={2.5} />
         </button>
@@ -126,9 +126,9 @@ export default function ReportListing() {
                   />
                 </div>
 
-                <div className="bg-slate-50 dark:bg-[#101217] p-6 rounded-[32px] border border-slate-100 mb-8 mt-10">
+                <div className="bg-slate-50 dark:bg-zinc-800 p-6 rounded-[32px] border border-slate-100 mb-8 mt-10">
                   <div className="flex items-start gap-4">
-                    <div className="w-8 h-8 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0 shadow-sm">
+                    <div className="w-8 h-8 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center text-slate-400 flex-shrink-0 shadow-sm">
                       <ShieldCheck size={18} />
                     </div>
                     <div>

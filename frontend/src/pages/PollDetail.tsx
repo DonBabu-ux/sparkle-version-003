@@ -167,13 +167,13 @@ export default function PollDetail() {
   };
 
   if (loading) return (
-    <div className="bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh flex items-center justify-center">
+    <div className="bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh flex items-center justify-center">
        <Spinner size="large" color="text-primary" />
     </div>
   );
 
   if (!poll) return (
-    <div className="bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh flex items-center justify-center flex-col gap-4">
+    <div className="bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh flex items-center justify-center flex-col gap-4">
        <p className="text-gray-400 font-bold uppercase tracking-widest">Poll not found</p>
        <button onClick={() => navigate('/polls')} className="text-primary font-black uppercase text-xs">Return Home</button>
     </div>
@@ -187,13 +187,13 @@ export default function PollDetail() {
       <main className="relative z-10 max-w-xl mx-auto w-full p-4 md:p-8">
         <button 
           onClick={() => navigate('/polls')}
-          className="mb-8 w-12 h-12 rounded-2xl bg-white dark:bg-[#1b1b24] border border-gray-100 dark:border-white/10 shadow-sm flex items-center justify-center text-gray-400 hover:text-primary transition-all hover:scale-105 active:scale-95"
+          className="mb-8 w-12 h-12 rounded-2xl bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/10 shadow-sm flex items-center justify-center text-gray-400 hover:text-primary transition-all hover:scale-105 active:scale-95"
         >
           <ArrowLeft size={24} strokeWidth={2.5} />
         </button>
 
         <div className="space-y-6 animate-fade-in">
-           <div className="bg-white dark:bg-[#1b1b24] border border-gray-100 dark:border-white/10 p-6 md:p-10 rounded-3xl shadow-sm relative overflow-hidden">
+           <div className="bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/10 p-6 md:p-10 rounded-3xl shadow-sm relative overflow-hidden">
               <div className="flex justify-between items-start mb-8">
                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -213,7 +213,7 @@ export default function PollDetail() {
                    <img src={getSafeAvatarUrl(poll.creator_avatar)} className="w-8 h-8 rounded-full border-2 border-white shadow-sm" alt="" />
                  )}
                  {poll.is_anonymous && (
-                   <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm bg-gray-100 dark:bg-[#101217] flex items-center justify-center text-[10px] font-black text-gray-400">?</div>
+                   <div className="w-8 h-8 rounded-full border-2 border-white shadow-sm bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-[10px] font-black text-gray-400">?</div>
                  )}
                  <div className="flex flex-col">
                     <span className="text-[11px] font-black text-gray-900 leading-none mb-1">{poll.is_anonymous ? 'Anonymous' : (poll.creator_name || `@${poll.username}`)}</span>
@@ -221,7 +221,7 @@ export default function PollDetail() {
                  </div>
                  <div className="ml-auto flex flex-col items-end gap-1">
                      {poll.expires_at && !isExpired ? <CountdownTimer expiresAt={poll.expires_at} onEnd={fetchPoll} /> : null}
-                     {isExpired ? <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-[#101217] px-2 py-1 rounded-md">Ended</span> : null}
+                     {isExpired ? <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest bg-gray-50 dark:bg-zinc-800 px-2 py-1 rounded-md">Ended</span> : null}
                  </div>
               </div>
 
@@ -267,7 +267,7 @@ export default function PollDetail() {
                             </div>
                             <span className={`text-lg font-bold tracking-tight ${isSelected ? 'text-primary' : 'text-gray-500'}`}>{pct}%</span>
                          </div>
-                         <div className="h-2 bg-gray-50 dark:bg-[#101217] rounded-full overflow-hidden border border-gray-100 dark:border-white/10 p-0.5">
+                         <div className="h-2 bg-gray-50 dark:bg-zinc-800 rounded-full overflow-hidden border border-gray-100 dark:border-white/10 p-0.5">
                             <div 
                               className={`h-full rounded-full transition-all duration-[1.5s] ease-out ${isSelected ? 'bg-primary shadow-sm' : 'bg-gray-200'}`}
                               style={{ width: `${pct}%` }}
@@ -280,7 +280,7 @@ export default function PollDetail() {
                                    <img key={v.user_id} src={getSafeAvatarUrl(v.avatar_url)} className="w-5 h-5 rounded-full border border-white shadow-sm transition-transform group-hover:scale-110" style={{ zIndex: 10-i }} alt="" />
                                  ))}
                                  {opt.voters.length > 5 && (
-                                   <div className="w-5 h-5 rounded-full bg-gray-50 dark:bg-[#101217] border border-gray-100 dark:border-white/10 flex items-center justify-center text-[8px] font-bold text-gray-400 z-0">+{opt.voters.length - 5}</div>
+                                   <div className="w-5 h-5 rounded-full bg-gray-50 dark:bg-zinc-800 border border-gray-100 dark:border-white/10 flex items-center justify-center text-[8px] font-bold text-gray-400 z-0">+{opt.voters.length - 5}</div>
                                  )}
                               </div>
                               <span className="text-[9px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-primary transition-colors">See participants</span>
@@ -315,16 +315,16 @@ export default function PollDetail() {
                  </button>
                  <button 
                   onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess('Link copied!'); }}
-                  className="flex-1 h-12 bg-gray-50 dark:bg-[#101217] text-gray-500 dark:text-zinc-400 rounded-xl font-bold uppercase tracking-wider text-[10px] hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 h-12 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-xl font-bold uppercase tracking-wider text-[10px] hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                  >
                    <ArrowLeft size={14} className="rotate-180" /> Share
                  </button>
               </div>
            </div>
            
-           <div className="bg-white/50 dark:bg-[#1b1b24]/50 backdrop-blur-xl border border-white dark:border-white/10 p-6 rounded-3xl flex items-center justify-between">
+           <div className="bg-white/50 dark:bg-zinc-800/50 backdrop-blur-xl border border-white dark:border-white/10 p-6 rounded-3xl flex items-center justify-between">
               <div className="flex items-center gap-3">
-                 <div className="w-10 h-10 bg-white dark:bg-[#1b1b24] rounded-2xl flex items-center justify-center shadow-sm text-primary">
+                 <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-2xl flex items-center justify-center shadow-sm text-primary">
                     <Users size={20} />
                  </div>
                  <div>
@@ -332,7 +332,7 @@ export default function PollDetail() {
                     <p className="text-sm font-black text-gray-900 uppercase italic">{poll.total_votes && poll.total_votes > 0 ? `${poll.total_votes} nodes synchronized` : 'Awaiting synchronization'}</p>
                  </div>
               </div>
-              <button onClick={() => setShowVotersSheet(true)} className="px-5 py-3 bg-white dark:bg-[#1b1b24] rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-100 dark:border-white/10 shadow-sm hover:text-primary transition-colors">See Details</button>
+              <button onClick={() => setShowVotersSheet(true)} className="px-5 py-3 bg-white dark:bg-zinc-800 rounded-xl text-[10px] font-black uppercase tracking-widest border border-gray-100 dark:border-white/10 shadow-sm hover:text-primary transition-colors">See Details</button>
            </div>
         </div>
       </main>
@@ -341,13 +341,13 @@ export default function PollDetail() {
       {showVotersSheet && poll && (
         <div className="fixed inset-0 z-(--z-sheet) flex items-end justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowVotersSheet(false)} />
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1b1b24] rounded-t-[32px] max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
+          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-800 rounded-t-[32px] max-h-[85vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-black text-gray-900 uppercase italic">Participants</h3>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{poll.total_votes && poll.total_votes > 0 ? `${poll.total_votes} total votes` : 'No votes recorded'}</p>
                 </div>
-                <button onClick={() => setShowVotersSheet(false)} className="w-12 h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={() => setShowVotersSheet(false)} className="w-12 h-12 bg-gray-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={24} strokeWidth={3} />
                 </button>
              </div>
@@ -381,7 +381,7 @@ export default function PollDetail() {
                              {currentUser?.user_id !== voter.user_id && (
                               <button 
                                 onClick={() => handleFollow(voter.user_id, voter.is_following)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500' : requestedIds.has(voter.user_id) ? 'bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
+                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500' : requestedIds.has(voter.user_id) ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
                               >
                                 {voter.is_following ? <UserCheck size={12} /> : requestedIds.has(voter.user_id) ? 'Requested' : 'Follow'}
                               </button>
@@ -400,13 +400,13 @@ export default function PollDetail() {
       {showInviteSheet && (
         <div className="fixed inset-0 z-[1501] flex items-end justify-center animate-fade-in">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowInviteSheet(false)} />
-          <div className="relative w-full max-w-xl bg-white dark:bg-[#1b1b24] rounded-t-[40px] max-h-[75vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
+          <div className="relative w-full max-w-xl bg-white dark:bg-zinc-800 rounded-t-[40px] max-h-[75vh] flex flex-col overflow-hidden animate-slide-up shadow-2xl">
              <div className="p-8 border-b border-gray-50 flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-black text-gray-900 uppercase italic">Invite Friends</h3>
                   <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Select people to notify</p>
                 </div>
-                <button onClick={() => setShowInviteSheet(false)} className="w-12 h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
+                <button onClick={() => setShowInviteSheet(false)} className="w-12 h-12 bg-gray-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors">
                   <X size={24} strokeWidth={3} />
                 </button>
              </div>

@@ -122,7 +122,7 @@ export default function OrderDetail() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-[#fdf2f4] dark:bg-[#1b1b24]">
+      <div className="min-h-dvh flex items-center justify-center bg-[#f8e7ed] dark:bg-zinc-900">
         <Spinner size="large" color="text-primary" />
       </div>
     );
@@ -130,7 +130,7 @@ export default function OrderDetail() {
 
   if (error || !order) {
     return (
-      <div className="min-h-dvh flex flex-col items-center justify-center bg-white dark:bg-[#1b1b24] px-6">
+      <div className="min-h-dvh flex flex-col items-center justify-center bg-white dark:bg-zinc-800 px-6">
         <p className="font-bold text-marketplace-muted mb-4">We could not load this order.</p>
         <ErrorRetry onRetry={loadOrder} />
       </div>
@@ -144,7 +144,7 @@ export default function OrderDetail() {
   const bothMeetupConfirmed = Boolean(order.meetup_confirmed_by_buyer) && Boolean(order.meetup_confirmed_by_seller);
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-[#1b1b24] text-marketplace-text font-sans pb-24">
+    <div className="min-h-dvh bg-white dark:bg-zinc-800 text-marketplace-text font-sans pb-24">
       <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
         <button onClick={() => navigate('/marketplace/orders')} className="w-10 h-10 flex items-center justify-center hover:bg-marketplace-bg rounded-full">
           <ChevronLeft size={24} strokeWidth={2.5} />
@@ -158,7 +158,7 @@ export default function OrderDetail() {
             <span className="text-[11px] font-black uppercase tracking-[0.2em] text-marketplace-muted">
               #{order.order_id.slice(-6).toUpperCase()}
             </span>
-            <span className="text-[11px] font-black uppercase px-3 py-1 rounded-full bg-white dark:bg-[#1b1b24] border border-marketplace-border">
+            <span className="text-[11px] font-black uppercase px-3 py-1 rounded-full bg-white dark:bg-zinc-800 border border-marketplace-border">
               {statusLabels[order.status] || order.status}
             </span>
           </div>

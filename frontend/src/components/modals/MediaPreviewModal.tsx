@@ -86,7 +86,7 @@ export default function MediaPreviewModal() {
       {showMenu && (
         <div className="absolute inset-0 z-[60] flex flex-col justify-end animate-fade-in">
            <div className="absolute inset-0 bg-black/40" onClick={() => setShowMenu(false)} />
-           <div className="relative bg-white dark:bg-[#1b1b24] rounded-t-lg p-4 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
+           <div className="relative bg-white dark:bg-zinc-800 rounded-t-lg p-4 animate-slide-up shadow-[0_-10px_40px_rgba(0,0,0,0.3)]">
               <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6" onClick={() => setShowMenu(false)} />
               
               <div className="space-y-1">
@@ -94,7 +94,7 @@ export default function MediaPreviewModal() {
                   onClick={handleDownload}
                   className="w-full flex items-center gap-4 p-3 hover:bg-gray-100 rounded-xl transition-colors text-left group"
                 >
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
                     <Bookmark size={20} className="text-gray-700 dark:text-zinc-200" />
                   </div>
                   <div>
@@ -107,7 +107,7 @@ export default function MediaPreviewModal() {
                   onClick={handleHide}
                   className="w-full flex items-center gap-4 p-3 hover:bg-gray-100 rounded-xl transition-colors text-left group"
                 >
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
                     <EyeOff size={20} className="text-gray-700 dark:text-zinc-200" />
                   </div>
                   <div>
@@ -117,7 +117,7 @@ export default function MediaPreviewModal() {
                 </button>
 
                 <button onClick={() => { closeModal(); navigate('/support'); }} className="w-full flex items-center gap-4 p-3 hover:bg-gray-100 rounded-xl transition-colors text-left group">
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-[#101217] rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-zinc-800 rounded-full flex items-center justify-center group-hover:bg-white transition-colors">
                     <AlertTriangle size={20} className="text-gray-700 dark:text-zinc-200" />
                   </div>
                   <div>
@@ -129,7 +129,7 @@ export default function MediaPreviewModal() {
 
               <button 
                 onClick={() => setShowMenu(false)}
-                className="w-full mt-4 py-3 bg-gray-100 dark:bg-[#101217] font-bold text-gray-700 dark:text-zinc-200 rounded-xl hover:bg-gray-200 transition-colors"
+                className="w-full mt-4 py-3 bg-gray-100 dark:bg-zinc-800 font-bold text-gray-700 dark:text-zinc-200 rounded-xl hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>

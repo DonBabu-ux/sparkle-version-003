@@ -74,7 +74,7 @@ const SparkleLiveHero: React.FC = () => {
             transition={{ repeat: Infinity, duration: 18, ease: 'linear' }}
             className="absolute inset-0 border border-dashed border-[#ff008a] rounded-full flex items-center justify-center"
           >
-            <div className="absolute top-0 right-1/2 w-2 h-2 bg-white dark:bg-[#1b1b24] rounded-full shadow-[0_0_8px_#ff008a]" />
+            <div className="absolute top-0 right-1/2 w-2 h-2 bg-white dark:bg-zinc-800 rounded-full shadow-[0_0_8px_#ff008a]" />
             <div className="absolute bottom-0 left-1/2 w-1.5 h-1.5 bg-[#ff008a] rounded-full" />
           </motion.div>
 
@@ -84,7 +84,7 @@ const SparkleLiveHero: React.FC = () => {
             transition={{ repeat: Infinity, duration: 12, ease: 'linear' }}
             className="absolute w-40 h-40 border border-dotted border-[#ff4db8]/50 rounded-full flex items-center justify-center"
           >
-            <div className="absolute top-4 left-4 w-1.5 h-1.5 bg-white dark:bg-[#1b1b24] rounded-full shadow-[0_0_6px_#ff4db8]" />
+            <div className="absolute top-4 left-4 w-1.5 h-1.5 bg-white dark:bg-zinc-800 rounded-full shadow-[0_0_6px_#ff4db8]" />
           </motion.div>
         </>
       )}

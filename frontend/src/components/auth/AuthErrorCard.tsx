@@ -85,7 +85,7 @@ export const AuthErrorCard: React.FC<AuthErrorCardProps> = ({
       aria-live="polite"
       className={`auth-error-card relative overflow-hidden rounded-2xl border p-4 mb-4 shadow-sm transition-all duration-300 animate-slide-up ${getCardStyle()} ${className}`}
       style={{
-        boxShadow: error.severity === 'error' ? '0 4px 16px -2px rgba(225, 29, 72, 0.08)' : undefined
+        boxShadow: error.severity === 'error' ? '0 4px 16px -2px rgba(255, 20, 147, 0.08)' : undefined
       }}
     >
       <div className="flex items-start gap-3">
@@ -110,7 +110,7 @@ export const AuthErrorCard: React.FC<AuthErrorCardProps> = ({
             {error.actionLink ? (
               <Link
                 to={error.actionLink}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#e11d48] dark:text-rose-400 hover:underline transition-all"
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#ff1493] dark:text-rose-400 hover:underline transition-all"
               >
                 <span>{error.actionLabel || 'Learn more'}</span>
                 <ExternalLink size={12} />
@@ -119,7 +119,7 @@ export const AuthErrorCard: React.FC<AuthErrorCardProps> = ({
               <button
                 type="button"
                 onClick={handleAction}
-                className="inline-flex items-center gap-1 text-xs font-bold text-[#e11d48] dark:text-rose-400 hover:opacity-80 active:scale-95 transition-all"
+                className="inline-flex items-center gap-1 text-xs font-bold text-[#ff1493] dark:text-rose-400 hover:opacity-80 active:scale-95 transition-all"
               >
                 {error.action === 'retry' && <RotateCcw size={12} className="animate-spin-once" />}
                 <span>{error.actionLabel}</span>

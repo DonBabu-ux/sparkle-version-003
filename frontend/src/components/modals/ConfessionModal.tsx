@@ -133,7 +133,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
   };
 
   return (
-    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white dark:bg-[#1b1b24] rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
+    <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="flex flex-col bg-white dark:bg-zinc-800 rounded-3xl overflow-hidden shadow-2xl relative max-h-[90vh]">
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-5 border-b border-gray-50 dark:border-zinc-800 flex-shrink-0">
@@ -147,7 +147,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           </div>
         </div>
         <button
-          className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
+          className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white dark:bg-zinc-800/5 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
           onClick={attemptClose}
         >
           <X size={18} strokeWidth={2.5} />
@@ -166,7 +166,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
                 className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
                   subType === t
                     ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 text-gray-400 dark:text-zinc-500 hover:border-primary/20 hover:bg-white dark:bg-[#1b1b24]'
+                    : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-white dark:bg-zinc-800/5 text-gray-400 dark:text-zinc-500 hover:border-primary/20 hover:bg-white dark:bg-zinc-800'
                 }`}
                 onClick={() => setSubType(t)}
               >
@@ -187,7 +187,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
               <label className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Your Confession</label>
             </div>
             <textarea
-              className="w-full p-5 bg-gray-50 dark:bg-white dark:bg-[#1b1b24]/5 border-2 border-transparent rounded-2xl outline-none font-semibold text-lg text-gray-800 dark:text-zinc-200 placeholder:text-gray-300 dark:text-zinc-600 dark:placeholder:text-zinc-600 focus:bg-white dark:bg-[#1b1b24] focus:border-primary/20 transition-all min-h-[140px] resize-none leading-snug"
+              className="w-full p-5 bg-gray-50 dark:bg-white dark:bg-zinc-800/5 border-2 border-transparent rounded-2xl outline-none font-semibold text-lg text-gray-800 dark:text-zinc-200 placeholder:text-gray-300 dark:text-zinc-600 dark:placeholder:text-zinc-600 focus:bg-white dark:bg-zinc-800 focus:border-primary/20 transition-all min-h-[140px] resize-none leading-snug"
               placeholder={`What's your ${themes[subType].label.toLowerCase()}?`}
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -214,7 +214,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
 
           {/* Image Warning */}
           {showImageWarning && (
-            <div className="border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-[#1b1b24] p-4">
+            <div className="border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 p-4">
               <div className="flex items-start gap-3">
                 <AlertTriangle size={16} className="text-gray-400 dark:text-zinc-500 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
@@ -243,7 +243,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
 
           {/* Identity shield note */}
           <div className="flex items-center gap-3 p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100">
-            <div className="w-9 h-9 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center text-emerald-500 shadow-sm flex-shrink-0">
+            <div className="w-9 h-9 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center text-emerald-500 shadow-sm flex-shrink-0">
               <SpyIcon size={16} className="text-emerald-500" />
             </div>
             <span className="text-[10px] font-bold text-emerald-600/80 uppercase tracking-widest leading-relaxed">

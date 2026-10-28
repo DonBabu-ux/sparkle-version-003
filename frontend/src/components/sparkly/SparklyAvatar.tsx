@@ -36,17 +36,17 @@ export const SparklyAvatar: React.FC<SparklyAvatarProps> = ({
       {/* Gradient definitions */}
       <defs>
         <radialGradient id={`${id}-bg`} cx="35%" cy="25%" r="70%">
-          <stop offset="0%" stopColor="#7c3aed" stopOpacity="0.35" />
+          <stop offset="0%" stopColor="#ff1493" stopOpacity="0.35" />
           <stop offset="100%" stopColor="#1a1827" stopOpacity="0" />
         </radialGradient>
         <linearGradient id={`${id}-star`} x1="8" y1="8" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-          <stop stopColor="#c084fc" />
-          <stop offset="0.5" stopColor="#818cf8" />
-          <stop offset="1" stopColor="#6366f1" />
+          <stop stopColor="#ff8ec4" />
+          <stop offset="0.5" stopColor="#ff4d9d" />
+          <stop offset="1" stopColor="#ff1493" />
         </linearGradient>
         <linearGradient id={`${id}-inner`} x1="15" y1="15" x2="25" y2="25" gradientUnits="userSpaceOnUse">
           <stop stopColor="#fff" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#e9d5ff" stopOpacity="0.8" />
+          <stop offset="1" stopColor="#ffe6f2" stopOpacity="0.8" />
         </linearGradient>
       </defs>
 

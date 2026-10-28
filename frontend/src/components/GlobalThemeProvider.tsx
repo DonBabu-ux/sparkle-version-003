@@ -81,7 +81,7 @@ export const GlobalThemeProvider: React.FC<{ children: React.ReactNode }> = ({ c
             style={{ 
                 width: '100%', 
                 height: '100%', 
-                backgroundColor: theme === 'dark' ? '#000000' : '#f0f2f5',
+                backgroundColor: theme === 'dark' ? '#000000' : '#f8e7ed',
                 // Smooth hardware-accelerated color scheme transitions like Telegram/Discord
                 transition: 'background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
                 display: 'flex',

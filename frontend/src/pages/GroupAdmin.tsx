@@ -60,7 +60,7 @@ export default function GroupAdmin() {
   };
 
   if (loading) return (
-    <div className="flex min-h-dvh bg-[#fdf2f4]">
+    <div className="flex min-h-dvh bg-[#f8e7ed]">
       <div className="flex-1 flex flex-col items-center justify-center gap-4">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest italic">Loading...</p>
@@ -69,14 +69,14 @@ export default function GroupAdmin() {
   );
 
   return (
-    <div className="flex min-h-dvh bg-[#fafafa] text-[#18181b] dark:text-white font-sans pb-20">
+    <div className="flex min-h-dvh bg-[#fdf8fa] text-[#18181b] dark:text-white font-sans pb-20">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-2xl mx-auto w-full">
         <header className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-6">
             <Link 
               to={`/groups/${id}`}
-              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-[#1b1b24] rounded-full shadow-sm border border-gray-100 dark:border-white/10 text-gray-400 active:scale-90 transition-all"
+              className="w-8 h-8 flex items-center justify-center bg-white dark:bg-zinc-800 rounded-full shadow-sm border border-gray-100 dark:border-white/10 text-gray-400 active:scale-90 transition-all"
             >
               <ArrowLeft size={16} />
             </Link>
@@ -107,7 +107,7 @@ export default function GroupAdmin() {
                 </span>
               </div>
               
-              <div className="bg-white dark:bg-[#1b1b24] rounded-[24px] border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+              <div className="bg-white dark:bg-zinc-800 rounded-[24px] border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
                  {requests.length > 0 ? (
                    <div className="divide-y divide-gray-50">
                       {requests.map(req => (
@@ -124,7 +124,7 @@ export default function GroupAdmin() {
                            <div className="flex gap-2">
                               <button 
                                 onClick={() => handleAction(req.request_id, 'reject')}
-                                className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-[#101217] text-gray-400 hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-center border border-gray-100 dark:border-white/10"
+                                className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-zinc-800 text-gray-400 hover:bg-primary/5 hover:text-primary transition-all flex items-center justify-center border border-gray-100 dark:border-white/10"
                               >
                                 <X size={16} strokeWidth={3} />
                               </button>
@@ -140,7 +140,7 @@ export default function GroupAdmin() {
                    </div>
                  ) : (
                    <div className="py-16 text-center">
-                      <div className="w-12 h-12 bg-gray-50 dark:bg-[#101217] rounded-2xl flex items-center justify-center text-gray-200 mx-auto mb-3">
+                      <div className="w-12 h-12 bg-gray-50 dark:bg-zinc-800 rounded-2xl flex items-center justify-center text-gray-200 mx-auto mb-3">
                          <Sparkles size={24} />
                       </div>
                       <p className="text-[10px] font-black text-gray-300 uppercase tracking-widest italic">No pending requests</p>
@@ -149,7 +149,7 @@ export default function GroupAdmin() {
               </div>
            </section>
 
-           <section className="p-6 rounded-[24px] bg-white dark:bg-[#1b1b24] border border-gray-100 dark:border-white/10 shadow-sm border-dashed">
+           <section className="p-6 rounded-[24px] bg-white dark:bg-zinc-800 border border-gray-100 dark:border-white/10 shadow-sm border-dashed">
               <div className="flex items-center gap-3 mb-4">
                  <div className="w-8 h-8 bg-primary/5 rounded-lg flex items-center justify-center text-primary">
                     <AlertCircle size={16} />

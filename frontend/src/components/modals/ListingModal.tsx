@@ -83,34 +83,34 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="modal-inner">
       <div className="modal-header">
         <div className="flex items-center gap-2">
-          <button 
+          <button
             onClick={onClose}
-            className="w-10 h-10 rounded-full flex items-center justify-center text-[#18181b] dark:text-white hover:bg-black/5 transition-all"
+            className="w-10 h-10 rounded-full flex items-center justify-center text-[#18181b] dark:text-zinc-100 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 transition-all"
           >
             <ChevronLeft size={24} strokeWidth={3} />
           </button>
           <div className="modal-title">
-            <Store size={20} strokeWidth={3} className="text-[#18181b] dark:text-white" /> 
-            <span className="font-heading font-black text-xl text-[#18181b] dark:text-white tracking-tighter uppercase italic">Create Listing</span>
+            <Store size={20} strokeWidth={3} className="text-[#18181b] dark:text-zinc-100" />
+            <span className="font-heading font-black text-xl text-[#18181b] dark:text-zinc-100 tracking-tighter uppercase italic">Create Listing</span>
           </div>
         </div>
-        <button className="w-10 h-10 rounded-full bg-black/5 flex items-center justify-center text-black/30 hover:bg-black hover:text-white transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
+        <button className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:bg-[#e7dae3] dark:hover:bg-zinc-600 hover:text-[#18181b] dark:hover:text-zinc-100 transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
       </div>
 
       <div className="modal-body p-8 space-y-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
-          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
+          <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
-            <input type="number" placeholder="0.00" className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
+            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
+            <input type="number" placeholder="0.00" className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all appearance-none cursor-pointer">
+            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all appearance-none cursor-pointer">
               <option value="student_market">Student Market</option>
               <option value="blackmarket">Black Market</option>
               <option value="electronics">Electronics</option>
@@ -120,21 +120,21 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         </div>
 
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em]">Detailed description</label>
-          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-2xl outline-none font-bold text-[#18181b] dark:text-white focus:bg-white dark:bg-[#1b1b24] focus:border-black transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em]">Detailed description</label>
+          <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-black/30 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
           <div className="flex gap-4 flex-wrap">
             {previews.map((p, i) => (
-              <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-black/5 dark:border-white/5 group">
+              <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-[#ede3e9] dark:border-zinc-900 group">
                 <img src={p} alt="" className="w-full h-full object-cover" />
-                <button className="absolute top-1 right-1 w-6 h-6 bg-black/60 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFile(i)}><X size={12} /></button>
+                <button className="absolute top-1 right-1 w-6 h-6 bg-zinc-900/70 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => removeFile(i)}><X size={12} /></button>
               </div>
             ))}
             {previews.length < 4 && (
-              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-black/10 dark:border-white/10 flex items-center justify-center text-black/20 hover:text-black hover:border-black/20 hover:bg-black/5 transition-all" onClick={() => fileRef.current?.click()}>
+              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:border-[#e6d8e1] dark:hover:border-zinc-600 hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all" onClick={() => fileRef.current?.click()}>
                 <Plus size={24} strokeWidth={3} />
                 <input type="file" ref={fileRef} hidden multiple accept="image/*" onChange={handleFile} />
               </button>
@@ -148,11 +148,13 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 40px; background: white; overflow: hidden; border: 1px solid rgba(0,0,0,0.05); }
-        .modal-header { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.05); background: white; }
+        .modal-inner { display: flex; flex-direction: column; height: 100%; border-radius: 40px; background: #fdf8fa; overflow: hidden; border: 1px solid #e6d8e1; }
+        .modal-header { padding: 32px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #ede3e9; background: #fdf8fa; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
 
-        .dark .modal-inner, .dark .modal-header { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
+        .dark .modal-inner, .dark .modal-header { background: #27272a; }
+        .dark .modal-inner { border-color: #3f3f46; }
+        .dark .modal-header { border-bottom-color: #18181b; }
       `}</style>
     </div>
   );

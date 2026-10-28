@@ -152,7 +152,7 @@ export function AutoWithdrawalModal({
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="relative w-full max-w-lg bg-white dark:bg-[#1b1b24] rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-lg bg-white dark:bg-zinc-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-100 flex flex-col max-h-[90vh]"
         >
           {/* Header */}
           <div className="bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 text-white shrink-0 relative">
@@ -274,7 +274,7 @@ export function AutoWithdrawalModal({
                             value={thresholdKES}
                             onChange={(e) => setThresholdKES(e.target.value)}
                             placeholder="5000"
-                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
+                            className="w-full pl-12 pr-4 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 outline-none transition-all"
                           />
                         </div>
                         <p className="text-[10px] text-slate-400 font-medium mt-1">
@@ -350,7 +350,7 @@ export function AutoWithdrawalModal({
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             placeholder="0712345678 or +254712345678"
-                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none"
+                            className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-sm font-bold text-slate-900 focus:bg-white focus:border-amber-500 outline-none"
                           />
                         </div>
                       ) : (
@@ -364,7 +364,7 @@ export function AutoWithdrawalModal({
                               value={accountName}
                               onChange={(e) => setAccountName(e.target.value)}
                               placeholder="e.g. John Doe"
-                              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                              className="w-full px-3.5 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                             />
                           </div>
                           <div className="grid grid-cols-2 gap-2">
@@ -377,7 +377,7 @@ export function AutoWithdrawalModal({
                                 value={bankCode}
                                 onChange={(e) => setBankCode(e.target.value)}
                                 placeholder="e.g. 01"
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                               />
                             </div>
                             <div>
@@ -389,7 +389,7 @@ export function AutoWithdrawalModal({
                                 value={accountNumber}
                                 onChange={(e) => setAccountNumber(e.target.value)}
                                 placeholder="123456789"
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-xs font-bold text-slate-900 focus:bg-white outline-none"
                               />
                             </div>
                           </div>
@@ -398,7 +398,7 @@ export function AutoWithdrawalModal({
                     </div>
 
                     {/* Terms Consent */}
-                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-[#101217] border border-slate-200/80 flex items-start gap-3">
+                    <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-zinc-800 border border-slate-200/80 flex items-start gap-3">
                       <input
                         type="checkbox"
                         id="autoWithdrawalConsent"
@@ -439,7 +439,7 @@ export function AutoWithdrawalModal({
           </div>
 
           {/* Footer */}
-          <div className="p-4 bg-slate-50 dark:bg-[#101217] border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
+          <div className="p-4 bg-slate-50 dark:bg-zinc-800 border-t border-slate-100 flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}

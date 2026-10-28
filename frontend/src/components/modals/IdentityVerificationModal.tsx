@@ -292,7 +292,7 @@ export default function IdentityVerificationModal({ isOpen, onClose }: IdentityV
             <img src={idFront} className="w-full h-full object-cover" alt="ID Front" />
           ) : (
             <>
-              <div className="w-16 h-16 bg-white dark:bg-[#1b1b24] rounded-full flex items-center justify-center shadow-md mb-4 text-black/20">
+              <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-md mb-4 text-black/20">
                 <Camera size={32} strokeWidth={2.5} />
               </div>
               <span className="text-sm font-black text-black/20 uppercase tracking-widest">Tap to Capture</span>
@@ -334,7 +334,7 @@ export default function IdentityVerificationModal({ isOpen, onClose }: IdentityV
             <img src={selfie} className="w-full h-full object-cover" alt="Selfie" />
           ) : (
             <>
-              <div className="w-16 h-16 bg-white dark:bg-[#1b1b24] rounded-full flex items-center justify-center shadow-md mb-4 text-black/20">
+              <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-md mb-4 text-black/20">
                 <Frame size={32} strokeWidth={2.5} />
               </div>
               <span className="text-sm font-black text-black/20 uppercase tracking-widest">Tap to Capture</span>

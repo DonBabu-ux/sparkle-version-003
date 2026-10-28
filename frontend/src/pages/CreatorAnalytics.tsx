@@ -42,20 +42,20 @@ export default function CreatorAnalytics() {
   }, [fetchAnalytics]);
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#f8e7ed] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
       `}</style>
 
       {/* Header */}
-      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-zinc-800 border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
           </button>
           <div>
             <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Creator Analytics</h1>
-            <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Real-time performance metrics</p>
+            <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Real-time performance metrics</p>
           </div>
         </div>
         <button onClick={fetchAnalytics} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
@@ -66,10 +66,10 @@ export default function CreatorAnalytics() {
       <main className="max-w-[1000px] mx-auto p-4 md:p-6 space-y-6">
         {loading ? (
           <div className="flex items-center justify-center py-40">
-            <Spinner size="large" color="text-[#FF1F6D]" />
+            <Spinner size="large" color="text-[#ff1493]" />
           </div>
         ) : !data ? (
-          <div className="text-center py-20 bg-white dark:bg-[#1b1b24] rounded-3xl border border-slate-100 shadow-sm">
+          <div className="text-center py-20 bg-white dark:bg-zinc-800 rounded-3xl border border-slate-100 shadow-sm">
             <BarChart2 size={40} className="text-slate-300 mx-auto mb-3" />
             <p className="text-sm font-black text-slate-400 uppercase italic">Failed to load analytics</p>
           </div>
@@ -78,14 +78,14 @@ export default function CreatorAnalytics() {
             {/* Reach Summary */}
             <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
               className="glass-card rounded-3xl p-6 relative overflow-hidden shadow-sm">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#FF1F6D] rounded-full blur-[100px] opacity-10 pointer-events-none" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#ff1493] rounded-full blur-[100px] opacity-10 pointer-events-none" />
               <div className="relative z-10 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest italic">Performance Overview</span>
                     <h2 className="text-2xl font-black text-slate-900 italic uppercase mt-1">Creator Reach</h2>
                   </div>
-                  <div className="bg-[#FF1F6D]/10 text-[#FF1F6D] px-3 py-1 rounded-full text-[10px] font-black uppercase italic flex items-center gap-1">
+                  <div className="bg-[#ff1493]/10 text-[#ff1493] px-3 py-1 rounded-full text-[10px] font-black uppercase italic flex items-center gap-1">
                     <TrendingUp size={12} /> Active Growth
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export default function CreatorAnalytics() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
                   <div>
                     <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Followers</span>
-                    <p className="text-2xl font-black text-[#FF1F6D] italic mt-0.5">{(data.followers || 0).toLocaleString()}</p>
+                    <p className="text-2xl font-black text-[#ff1493] italic mt-0.5">{(data.followers || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Account Reach</span>
@@ -119,7 +119,7 @@ export default function CreatorAnalytics() {
                 { label: 'Comments Received', value: data.totalComments,    icon: <MessageSquare size={18} />,  color: 'text-emerald-500' },
                 { label: 'Total Shares',     value: data.totalShares,      icon: <Share2 size={18} />,         color: 'text-sky-500' },
                 { label: 'Post Saves',       value: data.saves,            icon: <Award size={18} />,          color: 'text-indigo-500' },
-                { label: 'Watch Time (Min)', value: data.watchTime,        icon: <Radio size={18} />,          color: 'text-[#FF1F6D]' },
+                { label: 'Watch Time (Min)', value: data.watchTime,        icon: <Radio size={18} />,          color: 'text-[#ff1493]' },
               ].map((item, i) => (
                 <motion.div
                   key={i}
@@ -143,7 +143,7 @@ export default function CreatorAnalytics() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="glass-card rounded-3xl p-6 shadow-sm space-y-4">
                 <h3 className="text-base font-black text-slate-900 italic uppercase flex items-center gap-2">
-                  <BookOpen size={18} className="text-[#FF1F6D]" /> Creator Strategy Pointers
+                  <BookOpen size={18} className="text-[#ff1493]" /> Creator Strategy Pointers
                 </h3>
                 <div className="space-y-3">
                   {[
@@ -152,7 +152,7 @@ export default function CreatorAnalytics() {
                     'Prompt users to comment in the first 5 seconds to maximize immediate sparks index calculations.',
                   ].map((tip, idx) => (
                     <div key={idx} className="flex gap-2 text-xs font-semibold text-slate-600 dark:text-zinc-300 leading-relaxed">
-                      <span className="text-[#FF1F6D] font-black">0{idx + 1}.</span>
+                      <span className="text-[#ff1493] font-black">0{idx + 1}.</span>
                       <p>{tip}</p>
                     </div>
                   ))}
@@ -162,7 +162,7 @@ export default function CreatorAnalytics() {
               <div className="glass-card rounded-3xl p-6 shadow-sm space-y-4 flex flex-col justify-between">
                 <div>
                   <h3 className="text-base font-black text-slate-900 italic uppercase flex items-center gap-2">
-                    <Award size={18} className="text-[#FF1F6D]" /> Sparkle Creator Milestone
+                    <Award size={18} className="text-[#ff1493]" /> Sparkle Creator Milestone
                   </h3>
                   <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 leading-relaxed mt-2">
                     Complete monetization triggers by building high quality content and matching community interaction guidelines.
@@ -170,7 +170,7 @@ export default function CreatorAnalytics() {
                 </div>
                 <button
                   onClick={() => navigate('/verified')}
-                  className="w-full mt-4 py-3 bg-gradient-to-r from-[#FF1F6D] to-[#ff6b35] text-white text-[10px] font-black uppercase tracking-widest italic rounded-2xl shadow-lg shadow-[#FF1F6D]/20 flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 transition-all"
+                  className="w-full mt-4 py-3 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white text-[10px] font-black uppercase tracking-widest italic rounded-2xl shadow-lg shadow-[#ff1493]/20 flex items-center justify-center gap-1.5 hover:scale-105 active:scale-95 transition-all"
                 >
                   Verify Creator Badge <ArrowUpRight size={14} />
                 </button>

@@ -38,7 +38,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-toast) flex items-center justify-center p-6 lowercase">
       {/* Backdrop */}
       <div 
-        className="absolute inset-0 bg-black/20 dark:bg-[#101217]/60 backdrop-blur-3xl animate-fade-in" 
+        className="absolute inset-0 bg-black/20 dark:bg-zinc-800/60 backdrop-blur-3xl animate-fade-in" 
         onClick={onClose} 
       />
       

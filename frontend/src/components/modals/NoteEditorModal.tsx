@@ -145,7 +145,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
         <div className="flex-1 overflow-y-auto no-scrollbar">
           {/* Search bar */}
           <div className="px-4 pb-2">
-            <div className="flex items-center gap-2 bg-white dark:bg-[#1b1b24]/8 border border-white/10 rounded-lg px-3 h-9">
+            <div className="flex items-center gap-2 bg-white dark:bg-zinc-800/8 border border-white/10 rounded-lg px-3 h-9">
               <Search size={14} className="text-white/40" />
               <input
                 placeholder="Search"
@@ -169,7 +169,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
                     if (next.has(contact.id)) next.delete(contact.id); else next.add(contact.id);
                     return next;
                   })}
-                  className="w-full flex items-center px-4 py-3 hover:bg-white dark:bg-[#1b1b24]/5 transition-colors"
+                  className="w-full flex items-center px-4 py-3 hover:bg-white dark:bg-zinc-800/5 transition-colors"
                 >
                   <div className="w-10 h-10 rounded-full overflow-hidden mr-3 shrink-0">
                     <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-full h-full object-cover" alt="" />
@@ -316,7 +316,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
           onClick={handleShare}
           disabled={!canShare || isSubmitting}
           className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-all ${
-            canShare ? 'bg-white dark:bg-[#1b1b24]/20 text-white hover:bg-white dark:bg-[#1b1b24]/30 active:scale-95' : 'bg-white dark:bg-[#1b1b24]/10 text-white/40'
+            canShare ? 'bg-white dark:bg-zinc-800/20 text-white hover:bg-white dark:bg-zinc-800/30 active:scale-95' : 'bg-white dark:bg-zinc-800/10 text-white/40'
           }`}
         >
           {isSubmitting ? '...' : 'Share'}
@@ -349,15 +349,15 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
           {/* Action Icons */}
           <div className="flex items-center gap-6 mt-5">
             <button onClick={() => togglePanel('music_error')}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'music_error' ? 'bg-white dark:bg-[#1b1b24]/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-[#1b1b24]/10 hover:text-white'}`}>
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'music_error' ? 'bg-white dark:bg-zinc-800/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-zinc-800/10 hover:text-white'}`}>
               <Music size={18} strokeWidth={2} />
             </button>
             <button onClick={() => togglePanel('gif')}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'gif' ? 'bg-white dark:bg-[#1b1b24]/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-[#1b1b24]/10'}`}>
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'gif' ? 'bg-white dark:bg-zinc-800/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-zinc-800/10'}`}>
               <span className="text-[12px] font-black tracking-tight">GIF</span>
             </button>
             <button onClick={() => togglePanel('emoji')}
-              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'emoji' ? 'bg-white dark:bg-[#1b1b24]/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-[#1b1b24]/10 hover:text-white'}`}>
+              className={`w-11 h-11 rounded-full flex items-center justify-center transition-all active:scale-90 ${panel === 'emoji' ? 'bg-white dark:bg-zinc-800/20 text-white' : 'bg-[#2a2a2a] text-white/70 hover:bg-white dark:bg-zinc-800/10 hover:text-white'}`}>
               <Smile size={18} strokeWidth={2} />
             </button>
           </div>
@@ -387,7 +387,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 320, opacity: 1 }} exit={{ height: 0, opacity: 0 }}
             className="shrink-0 overflow-hidden bg-[#1a1a1a] border-t border-white/10 flex flex-col">
             <div className="px-4 py-2 shrink-0">
-              <div className="flex items-center gap-2 bg-white dark:bg-[#1b1b24]/10 rounded-full px-4 h-9 border border-white/10">
+              <div className="flex items-center gap-2 bg-white dark:bg-zinc-800/10 rounded-full px-4 h-9 border border-white/10">
                 <Search size={14} className="text-white/40" />
                 <input placeholder="Search GIFs..." value={gifSearch} onChange={e => setGifSearch(e.target.value)}
                   className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-white/30" />
@@ -406,7 +406,7 @@ export default function NoteEditorModal({ initialNote = '', onClose, onSuccess }
                         setNote(prev => (label ? `${prev ? prev + ' ' : ''}${label}`.slice(0, maxLength) : prev));
                         setPanel('none');
                       }}
-                      className="relative aspect-video bg-white dark:bg-[#1b1b24]/5 rounded-lg overflow-hidden hover:opacity-80 active:scale-95 transition-all">
+                      className="relative aspect-video bg-white dark:bg-zinc-800/5 rounded-lg overflow-hidden hover:opacity-80 active:scale-95 transition-all">
                       <img src={gif.images?.fixed_height?.url} className="w-full h-full object-cover" alt="" />
                     </button>
                   ))}

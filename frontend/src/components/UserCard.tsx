@@ -68,7 +68,7 @@ export default function UserCard({ u }: UserCardProps) {
 
       {/* Avatar Section */}
       <div className="relative mb-3">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-[#101217]">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center overflow-hidden shrink-0 shadow-sm border border-black/5 dark:border-white/10 bg-black/5 dark:bg-zinc-800">
           <img 
             alt={identity.displayName} 
             className="w-full h-full object-cover transition-all duration-500" 
@@ -137,7 +137,7 @@ export default function UserCard({ u }: UserCardProps) {
         ) : requestStatus === 'pending' ? (
           <button 
             disabled
-            className="w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-[#101217]/40 text-black/30 dark:text-white/20 border border-dashed border-black/10 dark:border-white/10 cursor-default flex items-center justify-center gap-2"
+            className="w-full py-2 rounded-xl font-black text-[11px] uppercase tracking-[0.15em] bg-black/5 dark:bg-zinc-800/40 text-black/30 dark:text-white/20 border border-dashed border-black/10 dark:border-white/10 cursor-default flex items-center justify-center gap-2"
           >
             <Clock size={14} strokeWidth={3} /> Pending
           </button>

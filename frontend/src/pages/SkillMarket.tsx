@@ -335,7 +335,7 @@ export default function SkillMarket() {
           gap: 6px;
           padding: 5px 12px;
           background: rgba(225,29,72,0.08);
-          color: #e11d48;
+          color: #ff1493;
           border: 1px solid rgba(225,29,72,0.12);
           border-radius: 999px;
           font-size: 11px;
@@ -357,7 +357,7 @@ export default function SkillMarket() {
           color: #fff;
         }
         .skm-heading__accent {
-          background: linear-gradient(135deg, #e11d48 0%, #6366f1 100%);
+          background: linear-gradient(135deg, #ff2d87 0%, #ff1493 100%);
           -webkit-background-clip: text;
           background-clip: text;
           -webkit-text-fill-color: transparent;
@@ -367,12 +367,12 @@ export default function SkillMarket() {
         .skm-tagline {
           font-size: 14px;
           font-weight: 500;
-          color: #6b7280;
+          color: #475569;
           line-height: 1.65;
           max-width: 420px;
         }
         .dark .skm-tagline {
-          color: #9ca3af;
+          color: #475569;
         }
         @media (min-width: 640px) {
           .skm-tagline { font-size: 15px; }
@@ -387,15 +387,15 @@ export default function SkillMarket() {
         .skm-search-wrap { flex: 1; min-width: 200px; }
         .skm-search {
           position: relative; display: flex; align-items: center;
-          background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px;
+          background: #fff; border: 1.5px solid #e6d8e1; border-radius: 14px;
           padding: 0 16px; height: 48px; transition: all 0.2s;
         }
         .dark .skm-search {
-          background: #121212; border-color: rgba(255,255,255,0.1);
+          background: #27272a; border-color: rgba(255,255,255,0.1);
         }
         .skm-search:focus-within { border-color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-        .dark .skm-search:focus-within { border-color: #e11d48; }
-        .skm-search__icon { color: #9ca3af; margin-right: 10px; flex-shrink: 0; }
+        .dark .skm-search:focus-within { border-color: #ff1493; }
+        .skm-search__icon { color: #475569; margin-right: 10px; flex-shrink: 0; }
         .skm-search__input {
           flex: 1; border: none; background: transparent; outline: none;
           font-family: inherit; font-size: 14px; font-weight: 500; color: #111827;
@@ -404,11 +404,11 @@ export default function SkillMarket() {
         .dark .skm-search__input {
           color: #fff;
         }
-        .skm-search__input::placeholder { color: #9ca3af; }
+        .skm-search__input::placeholder { color: #475569; }
 
         .skm-btn--hub {
           display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-          background: #f3f4f6; color: #111827;
+          background: #ede3e9; color: #111827;
           border: none; border-radius: 14px; padding: 0 20px; height: 48px;
           font-family: inherit; font-size: 14px; font-weight: 700;
           cursor: pointer; transition: all 0.2s ease;
@@ -416,21 +416,21 @@ export default function SkillMarket() {
         .dark .skm-btn--hub {
           background: rgba(255,255,255,0.1); color: #fff;
         }
-        .skm-btn--hub:hover { background: #e5e7eb; transform: translateY(-1px); }
+        .skm-btn--hub:hover { background: #e6d8e1; transform: translateY(-1px); }
         .dark .skm-btn--hub:hover { background: rgba(255,255,255,0.15); }
 
         .skm-cta {
           display: flex; align-items: center; justify-content: center; gap: 8px;
           height: 48px; padding: 0 24px;
-          background: linear-gradient(135deg, #e11d48, #be123c);
+          background: #ff1493;
           color: #fff; border: none; border-radius: 14px;
           font-family: inherit; font-size: 14px; font-weight: 700;
           cursor: pointer;
-          box-shadow: 0 4px 14px rgba(225, 29, 72, 0.4);
+          box-shadow: 0 4px 14px rgba(255, 20, 147, 0.4);
           transition: all 0.2s ease;
         }
-        .skm-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(225, 29, 72, 0.5); }
-        .skm-cta:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(225, 29, 72, 0.4); }
+        .skm-cta:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 20, 147, 0.5); }
+        .skm-cta:active { transform: translateY(0); box-shadow: 0 2px 8px rgba(255, 20, 147, 0.4); }
 
         /* ─── Category bar ─────────────────────────────────── */
         .skm-cats-wrap {
@@ -472,17 +472,17 @@ export default function SkillMarket() {
           font-family: inherit;
           font-size: 13px;
           font-weight: 600;
-          color: #9ca3af;
+          color: #475569;
           cursor: pointer;
           white-space: nowrap;
           transition: background 0.18s, color 0.18s;
           flex-shrink: 0;
         }
-        .skm-cat:hover { background: #f3f4f6; color: #374151; }
+        .skm-cat:hover { background: #ede3e9; color: #374151; }
         .dark .skm-cat:hover { background: rgba(255,255,255,0.1); color: #fff; }
         .skm-cat--active { background: #111827; color: #fff; box-shadow: 0 4px 14px rgba(0,0,0,0.15); }
         .dark .skm-cat--active { background: #fff; color: #000; }
-        .skm-cat__icon--active { color: #e11d48; }
+        .skm-cat__icon--active { color: #ff1493; }
 
         /* ─── Loading ──────────────────────────────────────── */
         .skm-loading {
@@ -499,7 +499,7 @@ export default function SkillMarket() {
         .skm-spinner__bar {
           position: absolute; inset: 0;
           border: 3px solid transparent;
-          border-top-color: #e11d48;
+          border-top-color: #ff1493;
           border-radius: 50%;
           animation: skm-spin 0.75s linear infinite;
         }
@@ -507,7 +507,7 @@ export default function SkillMarket() {
         .skm-loading__text {
           font-size: 12px;
           font-weight: 500;
-          color: #9ca3af;
+          color: #475569;
           letter-spacing: 0.08em;
         }
 
@@ -519,7 +519,7 @@ export default function SkillMarket() {
         }
         .skm-empty__icon {
           width: 72px; height: 72px;
-          background: #f3f4f6;
+          background: #ede3e9;
           border-radius: 24px;
           display: flex; align-items: center; justify-content: center;
           color: #d1d5db;
@@ -527,7 +527,7 @@ export default function SkillMarket() {
         }
         .skm-empty__title { font-size: 20px; font-weight: 700; color: #1f2937; margin-bottom: 8px; }
         .dark .skm-empty__title { color: #fff; }
-        .skm-empty__sub { font-size: 14px; font-weight: 500; color: #9ca3af; max-width: 280px; }
+        .skm-empty__sub { font-size: 14px; font-weight: 500; color: #475569; max-width: 280px; }
 
         /* ─── Grid ─────────────────────────────────────────── */
         .skm-grid-wrap { min-height: 360px; }
@@ -604,37 +604,37 @@ export default function SkillMarket() {
           transition: color 0.18s;
         }
         .dark .skm-card__name { color: #fff; }
-        .skm-card:hover .skm-card__name { color: #e11d48; }
+        .skm-card:hover .skm-card__name { color: #ff1493; }
         .skm-card__rating { display: flex; align-items: center; gap: 4px; }
         .skm-card__star { color: #f59e0b; }
         .skm-card__rating-val { font-size: 11px; font-weight: 600; color: #374151; }
-        .dark .skm-card__rating-val { color: #9ca3af; }
-        .skm-card__review-count { font-size: 11px; font-weight: 500; color: #9ca3af; }
+        .dark .skm-card__rating-val { color: #475569; }
+        .skm-card__review-count { font-size: 11px; font-weight: 500; color: #475569; }
         .skm-card__verified {
           margin-left: auto;
           width: 36px; height: 36px;
-          background: #f9fafb;
+          background: #f6eef3;
           border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
           color: #d1d5db;
           transition: background 0.18s, color 0.18s;
         }
         .dark .skm-card__verified { background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.2); }
-        .skm-card:hover .skm-card__verified { background: rgba(225,29,72,0.08); color: #e11d48; }
+        .skm-card:hover .skm-card__verified { background: rgba(225,29,72,0.08); color: #ff1493; }
 
         /* Body */
         .skm-card__body { flex: 1; margin-bottom: 18px; position: relative; z-index: 1; }
         .skm-card__category {
           display: inline-block;
           padding: 3px 10px;
-          background: #f3f4f6;
+          background: #ede3e9;
           border-radius: 99px;
           font-size: 11px;
           font-weight: 600;
-          color: #6b7280;
+          color: #475569;
           margin-bottom: 10px;
         }
-        .dark .skm-card__category { background: rgba(255,255,255,0.05); color: #9ca3af; }
+        .dark .skm-card__category { background: rgba(255,255,255,0.05); color: #475569; }
         .skm-card__title {
           font-size: 17px;
           font-weight: 700;
@@ -644,18 +644,18 @@ export default function SkillMarket() {
           transition: color 0.18s;
         }
         .dark .skm-card__title { color: #fff; }
-        .skm-card:hover .skm-card__title { color: #e11d48; }
+        .skm-card:hover .skm-card__title { color: #ff1493; }
         .skm-card__desc {
           font-size: 13px;
           font-weight: 500;
-          color: #6b7280;
+          color: #475569;
           line-height: 1.6;
           display: -webkit-box;
           -webkit-line-clamp: 3;
           -webkit-box-orient: vertical;
           overflow: hidden;
         }
-        .dark .skm-card__desc { color: #9ca3af; }
+        .dark .skm-card__desc { color: #475569; }
 
         /* Footer */
         .skm-card__footer {
@@ -663,12 +663,12 @@ export default function SkillMarket() {
           align-items: center;
           justify-content: space-between;
           padding-top: 16px;
-          border-top: 1px solid #f3f4f6;
+          border-top: 1px solid #ede3e9;
           position: relative;
           z-index: 1;
         }
         .dark .skm-card__footer { border-color: rgba(255,255,255,0.05); }
-        .skm-card__price-label { display: block; font-size: 11px; font-weight: 500; color: #9ca3af; margin-bottom: 2px; }
+        .skm-card__price-label { display: block; font-size: 11px; font-weight: 500; color: #475569; margin-bottom: 2px; }
         .skm-card__price { font-size: 19px; font-weight: 700; color: #10b981; }
         .skm-card__btn {
           width: 42px; height: 42px;
@@ -681,12 +681,12 @@ export default function SkillMarket() {
           transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
         }
         .dark .skm-card__btn { background: #fff; color: #000; }
-        .skm-card__btn:hover { background: #e11d48; box-shadow: 0 6px 18px rgba(225,29,72,0.28); }
-        .dark .skm-card__btn:hover { background: #e11d48; color: #fff; }
+        .skm-card__btn:hover { background: #ff1493; box-shadow: 0 6px 18px rgba(225,29,72,0.28); }
+        .dark .skm-card__btn:hover { background: #ff1493; color: #fff; }
         .skm-card__btn:active { transform: scale(0.9); }
 
         /* Dark mode fixes for the two uncovered surfaces */
-        .dark .skm-empty__icon { background: rgba(255,255,255,0.06); color: #6b7280; }
+        .dark .skm-empty__icon { background: rgba(255,255,255,0.06); color: #475569; }
         .dark .skm-card__price { color: #34d399; }
       `}</style>
     </div>

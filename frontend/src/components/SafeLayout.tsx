@@ -12,7 +12,7 @@ export const EdgeBackgroundLayer: React.FC<{
   style?: React.CSSProperties;
 }> = ({ children, className = '', style }) => {
   const theme = useUserStore((state) => state.theme);
-  const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f0f2f5] text-[#18181b]';
+  const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f8e7ed] text-[#18181b]';
   
   return (
     <div
@@ -111,7 +111,8 @@ export const KeyboardSafeContainer: React.FC<{
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
-}> = ({ children, className = '', style }) => {
+  'data-chat-mode'?: 'light' | 'dark';
+}> = ({ children, className = '', style, 'data-chat-mode': chatMode }) => {
   // Use static full viewport height to allow browser to handle keyboard overlays.
   const containerStyle: React.CSSProperties = {
     height: '100%',
@@ -122,7 +123,7 @@ export const KeyboardSafeContainer: React.FC<{
     // Ensure any additional className can override.
   };
   return (
-    <div className={`flex flex-col w-full ${className}`} style={containerStyle}>
+    <div className={`flex flex-col w-full ${className}`} style={containerStyle} data-chat-mode={chatMode}>
       {children}
     </div>
   );
@@ -197,13 +198,15 @@ export const KeyboardAwareChatLayout: React.FC<{
   style?: React.CSSProperties;
   /** Mirrors the app's light/dark choice onto the chat shell (see index.css). */
   'data-chat-mode'?: 'light' | 'dark';
-}> = ({ children, className = '', style, 'data-chat-mode': chatMode }) => {
+  }> = ({ children, className = '', style, 'data-chat-mode': chatMode }) => {
   return (
-    <KeyboardSafeContainer className={`flex-1 w-full bg-transparent ${className}`} style={style}>
-      {/* display:contents wrapper: carries the theme scope without affecting layout */}
-      <div data-chat-mode={chatMode} className="contents">
-        {children}
-      </div>
+    // No bg-* utility here: it would fight the caller's .chat-shell-bg /
+    // .chat-panel-bg background declaration on this same element.
+    // data-chat-mode lives on THIS element (not an inner wrapper) because CSS
+    // custom properties only inherit downward: the --chat-* variables must be
+    // scoped on the same element that consumes them via .chat-shell-bg.
+    <KeyboardSafeContainer className={`flex-1 w-full ${className}`} style={style} data-chat-mode={chatMode}>
+      {children}
     </KeyboardSafeContainer>
   );
 };

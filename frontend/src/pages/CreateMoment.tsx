@@ -156,12 +156,12 @@ export default function CreateMoment() {
 
         .cm-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; padding: 36px; }
         .cm-header { display: flex; align-items: center; gap: 16px; margin-bottom: 28px; }
-        .cm-header-icon { color: #FF6B8B; flex-shrink: 0; }
+        .cm-header-icon { color: #ff2d87; flex-shrink: 0; }
         .cm-header h1 { font-size: 1.4rem; font-weight: 900; color: white; margin: 0 0 4px; }
         .cm-header p { font-size: 0.85rem; color: rgba(255,255,255,0.5); margin: 0; }
 
         .cm-upload-zone { border: 2px dashed rgba(255,255,255,0.15); border-radius: 20px; padding: 50px 20px; text-align: center; cursor: pointer; transition: 0.3s; margin-bottom: 24px; }
-        .cm-upload-zone:hover { border-color: #FF6B8B; background: rgba(255,107,139,0.05); }
+        .cm-upload-zone:hover { border-color: #ff2d87; background: rgba(255,107,139,0.05); }
         .cm-upload-inner { display: flex; flex-direction: column; align-items: center; gap: 12px; }
         .cm-upload-icons { display: flex; gap: 16px; color: rgba(255,255,255,0.3); }
         .cm-upload-title { color: white; font-weight: 700; font-size: 1rem; margin: 0; }
@@ -179,16 +179,16 @@ export default function CreateMoment() {
 
         .cm-progress { display: flex; align-items: center; gap: 12px; margin-top: 16px; }
         .cm-progress-track { flex: 1; height: 6px; background: rgba(255,255,255,0.1); border-radius: 999px; overflow: hidden; }
-        .cm-progress-fill { height: 100%; background: linear-gradient(90deg, #FF6B8B, #FF3D6D); border-radius: 999px; transition: width 0.3s ease; }
+        .cm-progress-fill { height: 100%; background: linear-gradient(90deg, #ff2d87, #ff1493); border-radius: 999px; transition: width 0.3s ease; }
         .cm-progress-label { font-size: 0.78rem; font-weight: 800; color: rgba(255,255,255,0.6); font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
         .cm-field textarea { width: 100%; padding: 14px 16px; border: 2px solid rgba(255,255,255,0.1); border-radius: 16px; font-size: 0.95rem; color: white; background: rgba(255,255,255,0.05); transition: 0.2s; box-sizing: border-box; font-family: inherit; resize: none; }
-        .cm-field textarea:focus { border-color: #FF6B8B; outline: none; background: rgba(255,107,139,0.05); }
+        .cm-field textarea:focus { border-color: #ff2d87; outline: none; background: rgba(255,107,139,0.05); }
         .cm-char-count { font-size: 12px; color: rgba(255,255,255,0.3); text-align: right; margin-top: 6px; font-weight: 600; }
 
         .cm-actions { display: flex; gap: 14px; }
         .cm-cancel-btn { flex: 1; padding: 15px; border-radius: 16px; background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.6); border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .cm-cancel-btn:hover { background: rgba(255,255,255,0.12); }
-        .cm-submit-btn { flex: 2; padding: 15px; border-radius: 16px; background: linear-gradient(135deg, #FF6B8B, #FF3D6D); color: white; border: none; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 6px 20px rgba(255,61,109,0.35); }
+        .cm-submit-btn { flex: 2; padding: 15px; border-radius: 16px; background: #ff1493; color: white; border: none; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 6px 20px rgba(255,20,147,0.35); }
         .cm-submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
         .cm-submit-btn:not(:disabled):hover { opacity: 0.9; transform: translateY(-2px); }
 
@@ -208,10 +208,10 @@ export default function CreateMoment() {
         html:not(.dark) .cm-card { background: rgba(255,255,255,0.9); border-color: rgba(0,0,0,0.06); }
         html:not(.dark) .cm-header h1 { color: #111827; }
         html:not(.dark) .cm-header p { color: rgba(0,0,0,0.55); }
-        html:not(.dark) .cm-header-icon { color: #e11d48; }
+        html:not(.dark) .cm-header-icon { color: #ff1493; }
 
         html:not(.dark) .cm-upload-zone { border-color: rgba(0,0,0,0.15); }
-        html:not(.dark) .cm-upload-zone:hover { border-color: #e11d48; background: rgba(225,29,72,0.05); }
+        html:not(.dark) .cm-upload-zone:hover { border-color: #ff1493; background: rgba(225,29,72,0.05); }
         html:not(.dark) .cm-upload-icons { color: rgba(0,0,0,0.45); }
         html:not(.dark) .cm-upload-title { color: #111827; }
         html:not(.dark) .cm-upload-sub { color: rgba(0,0,0,0.55); }
@@ -220,7 +220,7 @@ export default function CreateMoment() {
 
         html:not(.dark) .cm-field label { color: rgba(0,0,0,0.7); }
         html:not(.dark) .cm-field textarea { border-color: rgba(0,0,0,0.1); color: #111827; background: rgba(255,255,255,0.75); }
-        html:not(.dark) .cm-field textarea:focus { border-color: #e11d48; background: #ffffff; }
+        html:not(.dark) .cm-field textarea:focus { border-color: #ff1493; background: #ffffff; }
         html:not(.dark) .cm-char-count { color: rgba(0,0,0,0.45); }
 
         html:not(.dark) .cm-cancel-btn { background: rgba(0,0,0,0.05); color: rgba(0,0,0,0.65); }

@@ -48,20 +48,20 @@ export default function CreatorStudio() {
   }, [fetchStats]);
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#f8e7ed] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
       `}</style>
 
       {/* Header */}
-      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-zinc-800 border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
           </button>
           <div>
             <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Creator Studio</h1>
-            <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Content command center</p>
+            <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Content command center</p>
           </div>
         </div>
         <button onClick={fetchStats} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
@@ -72,14 +72,14 @@ export default function CreatorStudio() {
       <main className="max-w-[1000px] mx-auto p-4 md:p-6 space-y-6">
         {loading ? (
           <div className="flex items-center justify-center py-40">
-            <Spinner size="large" color="text-[#FF1F6D]" />
+            <Spinner size="large" color="text-[#ff1493]" />
           </div>
         ) : (
           <div className="relative z-0">
             {/* Quick Actions Panel */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: 'Moment upload', desc: 'Share dynamic short videos.', icon: <Video size={18} />, color: 'from-[#FF1F6D] to-[#ff6b35]', onClick: () => navigate('/moments/create') },
+                { title: 'Moment upload', desc: 'Share dynamic short videos.', icon: <Video size={18} />, color: 'from-[#ff1493] to-[#ff6b35]', onClick: () => navigate('/moments/create') },
                 { title: 'Create Story', desc: 'Post stories on student wall.', icon: <Sparkles size={18} />, color: 'from-violet-500 to-purple-500', onClick: () => navigate('/afterglow/create') },
                 { title: 'Go Live Stream', desc: 'Go live with your followers.', icon: <Radio size={18} />, color: 'from-amber-500 to-orange-500', onClick: () => navigate('/streams') },
               ].map((act, i) => (
@@ -87,7 +87,7 @@ export default function CreatorStudio() {
                   key={i}
                   whileHover={{ y: -3, scale: 1.02 }}
                   onClick={act.onClick}
-                  className="glass-card p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border-slate-100 hover:border-[#FF1F6D]/20 transition-all bg-white dark:bg-[#1b1b24]"
+                  className="glass-card p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border-slate-100 hover:border-[#ff1493]/20 transition-all bg-white dark:bg-zinc-800"
                 >
                   <div className="space-y-2">
                     <h3 className="text-xs font-black text-slate-800 uppercase italic tracking-wider">{act.title}</h3>
@@ -107,10 +107,10 @@ export default function CreatorStudio() {
                 <div className="space-y-3">
                   {[
                     { label: 'Followers Gained', value: stats?.followers || 0, icon: <Flame size={16} className="text-amber-500" /> },
-                    { label: 'Sparks Received', value: stats?.totalSparks || 0, icon: <Flame size={16} className="text-[#FF1F6D]" /> },
+                    { label: 'Sparks Received', value: stats?.totalSparks || 0, icon: <Flame size={16} className="text-[#ff1493]" /> },
                     { label: 'Video Performance', value: stats?.videoViews || 0, icon: <Play size={16} className="text-indigo-500" /> },
                   ].map((st, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-[#101217] border border-slate-200/50 rounded-2xl">
+                    <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 rounded-2xl">
                       <div className="flex items-center gap-2">
                         {st.icon}
                         <span className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">{st.label}</span>
@@ -127,10 +127,10 @@ export default function CreatorStudio() {
                 {content.length > 0 ? (
                   <div className="space-y-3">
                     {content.map((item) => (
-                      <div key={item.id} className="p-4 bg-slate-50 dark:bg-[#101217] border border-slate-200/50 rounded-2xl flex items-center justify-between">
+                      <div key={item.id} className="p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 rounded-2xl flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-[#1b1b24] border border-slate-200 flex items-center justify-center">
-                            {item.type === 'Video' ? <Video size={16} className="text-[#FF1F6D]" /> :
+                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 flex items-center justify-center">
+                            {item.type === 'Video' ? <Video size={16} className="text-[#ff1493]" /> :
                              item.type === 'Image' ? <ImageIcon size={16} className="text-pink-500" /> :
                             <FileText size={16} className="text-purple-500" />}
                           </div>

@@ -170,7 +170,7 @@ export default function Search() {
   ];
 
   return (
-    <div className="block lg:flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="block lg:flex bg-[#f8e7ed] dark:bg-zinc-800 min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">
@@ -181,7 +181,7 @@ export default function Search() {
       <main className="flex-1 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
-        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-[#101217]/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
+        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-zinc-800/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
           <div className="max-w-3xl mx-auto flex items-center gap-4">
                 <button 
                   onClick={() => navigate(-1)} 
@@ -204,7 +204,7 @@ export default function Search() {
                   {query && (
                       <button 
                         onClick={() => { setQuery(''); setResults({}); }} 
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-[#101217] rounded-lg text-gray-400 hover:text-gray-900 transition-all"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-900 transition-all"
                       >
                           <X size={14} strokeWidth={3} />
                       </button>
@@ -254,7 +254,7 @@ export default function Search() {
                         <section>
                             <div className="flex items-center justify-between mb-6 px-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-[#101217] flex items-center justify-center text-gray-400">
+                                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-400">
                                         <Clock size={20} />
                                     </div>
                                     <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Recent</h2>
@@ -306,7 +306,7 @@ export default function Search() {
                 </div>
             ) : (
                 <div className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
-                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[81px] md:top-[105px] z-50 bg-white/80 dark:bg-[#101217]/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03] dark:border-white/[0.03]">
+                    <div className="flex gap-2 overflow-x-auto no-scrollbar pb-2 sticky top-[81px] md:top-[105px] z-50 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-xl py-4 -mx-4 px-4 border-b border-black/[0.03] dark:border-white/[0.03]">
                         {tabs.map(tab => (
                             <button
                                 key={tab.id}
@@ -350,7 +350,7 @@ export default function Search() {
                                         <div 
                                           key={`res-g-${g.id || j}`} 
                                           onClick={() => navigate(type === 'hashtags' ? `/hashtag/${g.title?.replace('#', '')}` : `/${type}/${g.id}`)} 
-                                          className="flex items-center gap-4 p-5 bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
+                                          className="flex items-center gap-4 p-5 bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/10 hover:border-primary/20 rounded-2xl transition-all cursor-pointer group active:scale-[0.98] duration-300 shadow-sm"
                                         >
                                             {type === 'hashtags' ? (
                                                 <div className="w-14 h-14 rounded-xl bg-primary/5 flex items-center justify-center group-hover:bg-primary/10 shrink-0 transition-all">
@@ -407,7 +407,7 @@ export default function Search() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-[#1b1b24] rounded-t-[48px] p-10 max-w-2xl mx-auto shadow-2xl"
+              className="fixed bottom-0 left-0 right-0 z-[1001] bg-white dark:bg-zinc-800 rounded-t-[48px] p-10 max-w-2xl mx-auto shadow-2xl"
             >
                 <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-10" />
                 

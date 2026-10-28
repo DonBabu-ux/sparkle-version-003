@@ -100,8 +100,14 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
       // Native HLS support (Safari/iOS)
       video.src = streamingSrc || src || '';
     } else if (src) {
-      // Fallback to regular MP4
-      video.src = src;
+      // Fallback to regular MP4. Assign only when it actually changes —
+      // re-assigning the same src re-runs the media load algorithm and
+      // aborts the in-flight request (React StrictMode double-effects
+      // made a healthy URL fire ERR_ABORTED, which the global handler
+      // then surfaced as "Media Unavailable").
+      if (video.getAttribute('src') !== src) {
+        video.src = src;
+      }
     }
 
     return () => {

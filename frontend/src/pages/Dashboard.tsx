@@ -263,7 +263,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <Navbar />
 
       <main className="flex-1 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
-        <div className="bg-white dark:bg-[#1b1b24] rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
+        <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
             <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#18181b] dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
@@ -300,11 +300,11 @@ const posts = orderedPostIds.map(id => postsById[id]);
           </div>
         </div>
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
-          <section className="flex flex-col gap-0 bg-white dark:bg-black">
+          <section className="flex flex-col gap-0 bg-white dark:bg-zinc-900">
             {/* Aesthetic Glassmorphism Profile Completion Banner */}
             <AestheticProfileCompletionBanner />
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
-            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-black sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
+            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-zinc-900 sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
                 {/* Add Story Card — 118×210 */}
                 {(() => {
@@ -327,7 +327,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
                           ? navigate(`/stories/${user?.user_id || user?.id}`, { state: { userStoryGroup: myStoryGroup } })
                           : navigate('/afterglow/create')
                       }
-                      className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-black rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10"
+                      className="flex-shrink-0 w-[118px] h-[210px] bg-white dark:bg-zinc-900 rounded-xl shadow-lg cursor-pointer group relative overflow-hidden transition-all hover:brightness-95 active:scale-[0.98] border border-black/5 dark:border-white/10"
                     >
                       <div className="h-[158px] w-full overflow-hidden relative">
                         <img
@@ -341,8 +341,8 @@ const posts = orderedPostIds.map(id => postsById[id]);
                           <div className="absolute inset-0 border-[3px] border-purple-500 rounded-t-xl pointer-events-none shadow-[0_0_12px_rgba(168,85,247,0.5)]" />
                         )}
                       </div>
-                      <div className="h-[52px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-[#121212]">
-                        <div className={`absolute top-[-20px] w-10 h-10 ${myStoryGroup ? 'bg-purple-500' : 'bg-primary'} rounded-full border-4 border-white dark:border-[#121212] flex items-center justify-center text-white shadow-xl z-10`}>
+                      <div className="h-[52px] w-full flex flex-col items-center justify-end pb-3 relative bg-white dark:bg-zinc-800">
+                        <div className={`absolute top-[-20px] w-10 h-10 ${myStoryGroup ? 'bg-purple-500' : 'bg-primary'} rounded-full border-4 border-white dark:border-[#27272a] flex items-center justify-center text-white shadow-xl z-10`}>
                           <Plus size={24} strokeWidth={4} />
                         </div>
                         <span className="text-[11px] font-black uppercase tracking-widest text-[#18181b] dark:text-white">
@@ -653,7 +653,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
 
           {/* Sidebar */}
           <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
-            <div className="bg-white dark:bg-[#121212] rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Connect</h3>
                 <Link to="/connect" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
@@ -661,7 +661,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
               <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-black/30 dark:text-white/30" /><p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
             </div>
             {/* Trending */}
-            <div className="bg-white dark:bg-[#121212] rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
+            <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
                <div className="flex flex-col gap-6">
                   <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Hot Right Now</h3>
                    {trendingTags.length === 0 ? (

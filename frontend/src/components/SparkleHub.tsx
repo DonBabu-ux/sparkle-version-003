@@ -1,47 +1,72 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  ShoppingBag, 
-  Users, 
-  BarChart3, 
-  MessageSquare, 
-  PlayCircle, 
-  Zap, 
-  Activity, 
-  Search as SearchIcon, 
-  UserPlus, 
-  History, 
-  Image as ImageIcon, 
-  Send, 
-  CheckCircle2, 
-  Briefcase, 
-  LifeBuoy, 
-  HelpCircle, 
-  User, 
-  X, 
-  ChevronRight, 
-  LayoutGrid, 
-  LogOut 
+import {
+  ShoppingBag,
+  Users,
+  BarChart3,
+  MessageSquare,
+  PlayCircle,
+  Activity,
+  Search as SearchIcon,
+  UserPlus,
+  History,
+  Image as ImageIcon,
+  Send,
+  CheckCircle2,
+  Briefcase,
+  LifeBuoy,
+  HelpCircle,
+  User,
+  X,
+  ChevronRight,
+  LayoutGrid,
+  LogOut,
+  Pen,
+  Hammer,
+  Calendar,
+  Sparkles,
+  Store,
+  Vote,
+  Ghost,
+  PackageSearch,
+  Tag,
+  Receipt,
+  ListChecks,
+  Wallet,
+  Megaphone,
+  PenTool,
+  Radio,
+  Images,
+  Star,
+  Bot,
+  BadgeCheck,
+  Shield,
+  Settings,
+  Terminal
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';
+import { useModalStore } from '../store/modalStore';
+import { getRoleFromToken } from '../utils/tokenUtils';
+import { isAdminRole } from '../utils/adminRoute';
 import api from '../api/api';
 
 interface SparkleHubProps {
   onClose?: () => void;
+  embedded?: boolean;
 }
 
 // Sparkle Spy icon for Anonymous confessions (crisp stroke and clear geometry)
 const SpyIcon = ({ size = 24, className = "" }: { size?: number; className?: string }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2.3" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.3"
+    strokeLinecap="round"
+    strokeLinejoin="round"
     className={className}
     aria-hidden="true"
   >
@@ -112,11 +137,12 @@ const SparkleCardAura = ({ className = "" }: { className?: string }) => (
   </svg>
 );
 
-export default function SparkleHub({ onClose }: SparkleHubProps) {
+export default function SparkleHub({ onClose, embedded = false }: SparkleHubProps) {
   const navigate = useNavigate();
-  const { user, logout } = useUserStore();
+  const { user, token, logout } = useUserStore();
   const storeConversations = useChatStore((s) => s.conversations);
   const storeUnreadCounts = useChatStore((s) => s.unreadCounts);
+  const { setActiveModal } = useModalStore();
 
   // 1. Dynamic Greeting based on time of day (morning, afternoon, evening, night)
   const [greetingState, setGreetingState] = useState<{
@@ -239,45 +265,95 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
     navigate('/login');
   };
 
-  // Sparkle features with clear, vibrant, modern icons and high-contrast styling
-  const FEATURE_ITEMS = [
-    { name: 'Marketplace', icon: ShoppingBag, color: 'text-amber-500 dark:text-amber-400', path: '/marketplace' },
-    { name: 'Groups', icon: Users, color: 'text-blue-500 dark:text-blue-400', path: '/groups' },
-    { name: 'Polls', icon: BarChart3, color: 'text-emerald-500 dark:text-emerald-400', path: '/polls' },
-    { name: 'Messages', icon: MessageSquare, color: 'text-[#ff006e] dark:text-[#ff2d87]', path: '/messages' },
-    { name: 'Shorts', icon: PlayCircle, color: 'text-cyan-500 dark:text-cyan-400', path: '/moments' },
-    { name: 'Anonymous', icon: SpyIcon, color: 'text-slate-700 dark:text-zinc-200', path: '/confessions' },
-    { name: 'Services', icon: Zap, color: 'text-yellow-500 dark:text-yellow-400', path: '/skill-market' },
-    { name: 'Live Video', icon: Activity, color: 'text-rose-500 dark:text-rose-400', path: '/streams' },
-    { name: 'Search', icon: SearchIcon, color: 'text-slate-600 dark:text-zinc-300', path: '/search' },
-    { name: 'Find Friends', icon: UserPlus, color: 'text-pink-500 dark:text-pink-400', path: '/connect' },
-    { name: 'Archive', icon: History, color: 'text-indigo-500 dark:text-indigo-400', path: '/memories' },
-    { name: 'Photos', icon: ImageIcon, color: 'text-fuchsia-500 dark:text-fuchsia-400', path: '/gallery' },
-    { name: 'Share App', icon: Send, color: 'text-teal-500 dark:text-teal-400', path: '/invite' },
-    { name: 'Get Verified', icon: CheckCircle2, color: 'text-sky-500 dark:text-sky-400', path: '/verified' },
-    { name: 'Professional Dashboard', icon: Briefcase, color: 'text-orange-500 dark:text-orange-400', path: '/professional-dashboard' },
-    { name: 'Moment Studio', icon: BarChart3, color: 'text-fuchsia-500 dark:text-fuchsia-400', path: '/moments/studio' },
+  const runCreate = (fn: () => void) => {
+    if (onClose) onClose();
+    fn();
+  };
+
+  // Creation shortcuts — everything a member can start from the hub.
+  const CREATE_ITEMS = [
+    { name: 'Post', icon: Pen, action: () => setActiveModal('post') },
+    { name: 'Story', icon: History, action: () => navigate('/afterglow/create') },
+    { name: 'Moment', icon: PlayCircle, action: () => navigate('/moments/create') },
+    { name: 'Listing', icon: Store, action: () => setActiveModal('listing') },
+    { name: 'Skill Offer', icon: Hammer, action: () => setActiveModal('skill_offer') },
+    { name: 'Poll', icon: BarChart3, action: () => setActiveModal('poll') },
+    { name: 'Event', icon: Calendar, action: () => setActiveModal('event') },
+    { name: 'Confession', icon: SpyIcon, action: () => setActiveModal('confession') },
+    { name: 'Highlight', icon: Sparkles, action: () => setActiveModal('highlight') },
   ];
 
-  const ACCOUNT_ITEMS = [
-    { name: 'Account Settings', icon: User, path: '/settings' },
-    { name: 'Account Center', icon: Users, path: '/settings/accounts' },
-    { name: 'Help Center', icon: HelpCircle, path: '/help' },
-    { name: 'Contact Support', icon: LifeBuoy, path: '/support' },
+  // Grouped menu — every destination in the app, grouped by relevance.
+  const ROLE = getRoleFromToken(token);
+  const HUB_SECTIONS: { title: string; items: { name: string; icon: typeof Home; path: string }[] }[] = [
+    {
+      title: 'Community',
+      items: [
+        { name: 'Messages', icon: MessageSquare, path: '/messages' },
+        { name: 'Campus Groups', icon: Users, path: '/groups' },
+        { name: 'Campus Polls', icon: Vote, path: '/polls' },
+        { name: 'Upcoming Events', icon: Calendar, path: '/events' },
+        { name: 'Campus Clubs', icon: Sparkles, path: '/clubs' },
+        { name: 'Confessions', icon: Ghost, path: '/confessions' },
+        { name: 'Lost & Found', icon: PackageSearch, path: '/lost-found' },
+      ],
+    },
+    {
+      title: 'Sell & earn',
+      items: [
+        { name: 'Marketplace', icon: ShoppingBag, path: '/marketplace' },
+        { name: 'Skill Market', icon: Briefcase, path: '/skill-market' },
+        { name: 'Skill Hub', icon: Briefcase, path: '/skill-market/hub' },
+        { name: 'Sell an item', icon: Tag, path: '/marketplace/sell' },
+        { name: 'My orders', icon: Receipt, path: '/marketplace/orders' },
+        { name: 'My listings', icon: ListChecks, path: '/marketplace/my-listings' },
+        { name: 'My shop', icon: Store, path: '/marketplace/my-shop' },
+        { name: 'Wallet', icon: Wallet, path: '/wallet/history' },
+        { name: 'Ads manager', icon: Megaphone, path: '/ads' },
+        { name: 'Creator Studio', icon: PenTool, path: '/studio' },
+        { name: 'Analytics', icon: BarChart3, path: '/analytics' },
+        { name: 'Professional dashboard', icon: Briefcase, path: '/professional-dashboard' },
+      ],
+    },
+    {
+      title: 'Watch & explore',
+      items: [
+        { name: 'Live streams', icon: Radio, path: '/streams' },
+        { name: 'Moments', icon: PlayCircle, path: '/moments' },
+        { name: 'Memories', icon: Images, path: '/memories' },
+        { name: 'Gallery', icon: Images, path: '/gallery' },
+        { name: 'Wishlist', icon: Star, path: '/wishlist' },
+        { name: 'Sparkly AI', icon: Bot, path: '/sparkly' },
+      ],
+    },
+    {
+      title: 'Account',
+      items: [
+        { name: 'Verified account', icon: BadgeCheck, path: '/verified' },
+        { name: 'Invite friends', icon: UserPlus, path: '/invite' },
+        { name: 'Search history', icon: History, path: '/search/history' },
+        ...(isAdminRole(ROLE) ? [{ name: 'Admin panel', icon: Shield, path: '/admin' }] : []),
+        { name: 'App Settings', icon: Settings, path: '/settings' },
+        { name: 'Account Center', icon: Users, path: '/settings/accounts' },
+        { name: 'Help center', icon: HelpCircle, path: '/help' },
+        { name: 'Support', icon: LifeBuoy, path: '/support' },
+        { name: 'Developer Hub', icon: Terminal, path: '/developer' },
+      ],
+    },
   ];
 
   return (
-    <div 
-      className="fixed inset-0 z-[2000] bg-slate-50/98 dark:bg-[#0a0a0c]/98 backdrop-blur-2xl flex flex-col overflow-y-auto no-scrollbar animate-fade-in text-slate-900 dark:text-zinc-100"
-      onClick={onClose}
+    <div
+      className={embedded
+        ? "w-full h-full flex flex-col overflow-y-auto no-scrollbar text-slate-900 dark:text-zinc-100"
+        : "fixed inset-0 z-[2000] bg-slate-50/98 dark:bg-[#0a0a0c]/98 backdrop-blur-2xl flex flex-col overflow-y-auto no-scrollbar animate-fade-in text-slate-900 dark:text-zinc-100"}
+      onClick={embedded ? undefined : onClose}
     >
-      <div 
-        className="w-full max-w-xl md:max-w-2xl mx-auto px-4 py-5 sm:px-6 sm:py-8 flex flex-col gap-5 sm:gap-6"
+      <div
+        className={`${embedded ? 'w-full px-4 py-4' : 'w-full max-w-xl md:max-w-2xl mx-auto px-4 py-5 sm:px-6 sm:py-8'} flex flex-col gap-4 sm:gap-5`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ==================================================
-            2. HEADER
-            ================================================== */}
+        {/* HEADER */}
         <header className="flex items-center justify-between pt-1 pb-1">
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
@@ -293,7 +369,7 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
           </div>
 
           {onClose && (
-            <button 
+            <button
               onClick={onClose}
               aria-label="Close Sparkle Hub"
               className="w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-white dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-800 dark:text-zinc-100 shadow-sm border border-slate-200/90 dark:border-zinc-700/80 flex items-center justify-center transition-all active:scale-95"
@@ -303,9 +379,7 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
           )}
         </header>
 
-        {/* ==================================================
-            3. DYNAMIC GREETING CARD
-            ================================================== */}
+        {/* DYNAMIC GREETING CARD */}
         <div className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 bg-gradient-to-r from-pink-50 via-white to-pink-50/70 dark:from-zinc-900 dark:via-zinc-900 dark:to-pink-950/25 border border-pink-200/90 dark:border-pink-900/50 shadow-sm flex items-center justify-between">
           <div className="relative z-10 flex flex-col pr-4">
             <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">
@@ -321,120 +395,81 @@ export default function SparkleHub({ onClose }: SparkleHubProps) {
           </div>
         </div>
 
-        {/* ==================================================
-            4. FEATURES SECTION HEADER
-            ================================================== */}
+        {/* CREATE SHORTCUTS */}
         <div className="flex items-center justify-between px-1 pt-1">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-pink-100 dark:bg-pink-900/40 flex items-center justify-center text-[#ff006e] dark:text-[#ff2d87]">
-              <LayoutGrid size={15} strokeWidth={2.5} />
+              <Pen size={15} strokeWidth={2.5} />
             </div>
             <span className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
-              Features
+              Create
             </span>
           </div>
-          <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200 flex items-center gap-1 cursor-default select-none transition-colors">
-            Explore &amp; do more <ChevronRight size={14} className="stroke-[2.5]" />
+          <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-zinc-400 select-none">
+            Start something new
           </span>
         </div>
 
-        {/* ==================================================
-            5 & 6. FEATURE GRID (With interest-filtered relevance badges)
-            ================================================== */}
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3.5">
-          {FEATURE_ITEMS.map((item) => {
-            const isMessages = item.name === 'Messages';
-            const badgeCount = isMessages 
-              ? Math.max(unreadMessagesCount, relevanceCounts['Messages'] || 0)
-              : (relevanceCounts[item.name] || 0);
-            const hasBadge = badgeCount > 0;
+          {CREATE_ITEMS.map((item) => (
+            <button
+              key={item.name}
+              onClick={() => runCreate(item.action)}
+              className="group flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 hover:border-pink-500/50 dark:hover:border-pink-500/60 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] text-center min-h-[84px]"
+            >
+              <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800/90 border border-slate-100 dark:border-zinc-700/60 text-slate-700 dark:text-zinc-200 group-hover:text-[#ff006e] group-hover:border-pink-300 dark:group-hover:border-pink-800 flex items-center justify-center transition-colors">
+                <item.icon size={19} strokeWidth={2.4} />
+              </div>
+              <span className="text-[11px] font-bold text-slate-900 dark:text-zinc-100 tracking-tight leading-snug">
+                {item.name}
+              </span>
+            </button>
+          ))}
+        </div>
 
-            return (
-              <button 
-                key={item.name}
-                onClick={() => handleNavigate(item.path)}
-                className="group relative flex flex-col items-center justify-between p-3 sm:p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 hover:border-pink-500/50 dark:hover:border-pink-500/60 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] text-center min-h-[112px] sm:min-h-[122px]"
-              >
-                {/* Top Row: Spacer, Category Icon, Subtle Chevron */}
-                <div className="w-full flex items-start justify-between">
-                  <div className="w-3.5" />
-                  <div className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-slate-50 dark:bg-zinc-800/90 border border-slate-100 dark:border-zinc-700/60 ${item.color} group-hover:scale-105 transition-transform duration-200 flex items-center justify-center shadow-xs`}>
-                    <item.icon size={24} strokeWidth={2.3} />
-                  </div>
-                  <ChevronRight 
-                    size={14} 
-                    strokeWidth={2.5}
-                    className="text-slate-300 dark:text-zinc-600 group-hover:text-[#ff006e] group-hover:translate-x-0.5 transition-all duration-200 shrink-0 mt-1" 
-                  />
-                </div>
+        {/* GROUPED MENU */}
+        {HUB_SECTIONS.map((section) => (
+          <div key={section.title} className="pt-1">
+            <div className="flex items-center gap-2 px-1 mb-2.5">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-zinc-500">
+                {section.title}
+              </span>
+              <div className="h-px flex-1 bg-slate-200/80 dark:bg-zinc-800" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {section.items.map((item) => {
+                const isMessages = item.name === 'Messages';
+                const badgeCount = isMessages
+                  ? Math.max(unreadMessagesCount, relevanceCounts['Messages'] || 0)
+                  : (relevanceCounts[item.name] || 0);
 
-                {/* Bottom Row: Feature Name + Relevance Badge */}
-                <div className="w-full mt-2.5 flex items-center justify-center gap-1.5 flex-wrap">
-                  <span className="text-xs sm:text-[13px] font-bold text-slate-900 dark:text-zinc-100 tracking-tight leading-snug line-clamp-2">
-                    {item.name}
-                  </span>
-                  {hasBadge && (
-                    <span 
-                      aria-label={`${badgeCount} relevant updates`}
-                      className="shrink-0 min-w-[20px] h-[20px] px-1.5 rounded-full bg-[#ff006e] text-white text-[11px] font-black flex items-center justify-center shadow-sm"
-                    >
-                      {badgeCount > 99 ? '99+' : badgeCount}
+                return (
+                  <button
+                    key={item.name}
+                    onClick={() => handleNavigate(item.path)}
+                    className="group w-full flex items-center gap-2.5 p-2.5 rounded-xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 hover:border-pink-500/50 dark:hover:border-pink-500/60 shadow-sm hover:shadow-md transition-all duration-200 active:scale-[0.98] text-left min-w-0"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-zinc-800/90 border border-slate-100 dark:border-zinc-700/60 text-slate-700 dark:text-zinc-200 group-hover:text-[#ff006e] flex items-center justify-center transition-colors shrink-0">
+                      <item.icon size={16} strokeWidth={2.3} />
+                    </div>
+                    <span className="text-[11px] font-bold text-slate-900 dark:text-zinc-100 tracking-tight leading-snug truncate flex-1">
+                      {item.name}
                     </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* ==================================================
-            9. ACCOUNT SECTION
-            ================================================== */}
-        <div className="pt-2">
-          <div className="h-px w-full bg-slate-200/80 dark:bg-zinc-800 mb-5 sm:mb-6" />
-
-          <div className="flex items-center gap-2 mb-3.5 px-1">
-            <div className="w-6 h-6 rounded-lg bg-slate-200 dark:bg-zinc-800 flex items-center justify-center text-slate-800 dark:text-zinc-200">
-              <User size={15} strokeWidth={2.5} />
-            </div>
-            <div>
-              <h3 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight leading-none">
-                Account
-              </h3>
-              <p className="text-xs text-slate-600 dark:text-zinc-400 font-medium mt-0.5">
-                Manage your profile &amp; settings
-              </p>
+                    {badgeCount > 0 && (
+                      <span className="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-[#ff006e] text-white text-[10px] font-black flex items-center justify-center shadow-sm">
+                        {badgeCount > 99 ? '99+' : badgeCount}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
+        ))}
 
-          <div className="rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/90 dark:border-zinc-800 shadow-sm overflow-hidden divide-y divide-slate-100 dark:divide-zinc-800/80">
-            {ACCOUNT_ITEMS.map((item) => (
-              <button
-                key={item.name}
-                onClick={() => handleNavigate(item.path)}
-                className="group w-full px-4 py-3.5 sm:py-4 flex items-center gap-3.5 hover:bg-slate-50 dark:hover:bg-zinc-800/60 transition-colors text-left"
-              >
-                <div className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 flex items-center justify-center border border-slate-200/60 dark:border-zinc-700/60 group-hover:text-[#ff006e] group-hover:border-pink-300 dark:group-hover:border-pink-800 transition-colors shrink-0 shadow-xs">
-                  <item.icon size={20} strokeWidth={2.2} />
-                </div>
-                <span className="text-sm sm:text-base font-bold text-slate-900 dark:text-zinc-100 group-hover:text-black dark:group-hover:text-white transition-colors">
-                  {item.name}
-                </span>
-                <ChevronRight 
-                  size={18} 
-                  strokeWidth={2.5}
-                  className="text-slate-400 dark:text-zinc-500 ml-auto group-hover:text-[#ff006e] group-hover:translate-x-0.5 transition-all shrink-0" 
-                />
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* ==================================================
-            10. LOGOUT BUTTON (Crisp, High Visibility, Solid Contrast)
-            ================================================== */}
+        {/* LOGOUT */}
         <div className="pt-2 pb-6">
-          <button 
+          <button
             onClick={handleLogout}
             className="w-full py-4 px-5 bg-pink-50 hover:bg-pink-100/90 dark:bg-pink-950/40 dark:hover:bg-pink-900/60 text-[#ff006e] dark:text-[#ff2d87] font-bold text-sm sm:text-base rounded-2xl border border-pink-200 dark:border-pink-800/60 flex items-center justify-center gap-3 transition-all duration-200 active:scale-[0.99] shadow-sm hover:shadow"
           >

@@ -175,7 +175,7 @@ export default function ListingDetail() {
   };
 
   if (loading) return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-slate-900 justify-center items-center">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-slate-900 justify-center items-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
@@ -187,10 +187,10 @@ export default function ListingDetail() {
   
 
   return (
-    <div className="flex flex-col bg-white dark:bg-[#1b1b24] min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
+    <div className="flex flex-col bg-white dark:bg-zinc-800 min-h-dvh text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)] max-w-screen-md mx-auto shadow-sm">
       
       {/* 1. Header */}
-      <header className="sticky top-0 z-[1100] bg-white dark:bg-[#1b1b24] border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-3 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />

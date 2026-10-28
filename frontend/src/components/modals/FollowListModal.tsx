@@ -79,7 +79,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
         onClick={onClose}
       />
       
-      <div className="relative bg-[#262626] rounded-xl w-full max-w-[400px] max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative bg-[#3f3f46] rounded-xl w-full max-w-[400px] max-h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         {/* Header */}
         <div className="flex items-center justify-center p-4 border-b border-white/10 relative">
           <h2 className="text-white font-bold text-base">{title}</h2>
@@ -125,7 +125,7 @@ export default function FollowListModal({ isOpen, onClose, title, profileId }: F
                     }}
                   >
                     <div className={`w-12 h-12 rounded-full shrink-0 ${u.has_story ? 'p-[2px] bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-500' : ''}`}>
-                      <div className={`w-full h-full rounded-full ${u.has_story ? 'p-[2px] bg-[#262626]' : ''}`}>
+                      <div className={`w-full h-full rounded-full ${u.has_story ? 'p-[2px] bg-[#3f3f46]' : ''}`}>
                         <img 
                           src={u.profile_picture || '/uploads/avatars/no-profile.png'}
                           alt="" 

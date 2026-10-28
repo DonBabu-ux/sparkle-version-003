@@ -101,7 +101,7 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
         
         <button
           onClick={() => navigate('/dashboard')}
-          className="flex-1 px-8 py-4 bg-gray-100 dark:bg-[#101217] text-gray-600 dark:text-zinc-300 font-bold rounded-2xl uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center gap-2"
+          className="flex-1 px-8 py-4 bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 font-bold rounded-2xl uppercase tracking-widest hover:bg-gray-200 active:scale-95 transition-all flex items-center justify-center gap-2"
         >
           <Home size={18} />
           Go Home

@@ -64,7 +64,7 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
             animate={{ opacity: 1, scale: 1 }}
             className="flex items-center gap-2 bg-rose-500 px-4 py-2 rounded-full text-white font-black italic uppercase tracking-wider text-xs shadow-lg shadow-rose-500/20"
           >
-            <div className="w-2.5 h-2.5 bg-white dark:bg-[#1b1b24] rounded-full animate-pulse" />
+            <div className="w-2.5 h-2.5 bg-white dark:bg-zinc-800 rounded-full animate-pulse" />
             <span>REC {formatTimer(recordingSeconds)}</span>
           </motion.div>
         )}

@@ -56,12 +56,12 @@ const showBootFailure = (reason: unknown) => {
         <h1 style="font-size:22px;font-weight:700;color:#2D3436;margin:0 0 10px">
           Sparkle needs a quick restart
         </h1>
-        <p style="color:#636E72;line-height:1.6;margin:0 0 24px">
+        <p style="color:#475569;line-height:1.6;margin:0 0 24px">
           Something interrupted startup. Reloading usually fixes it.
         </p>
         <button onclick="window.location.reload()"
           style="padding:12px 28px;border:none;border-radius:14px;cursor:pointer;font-weight:600;font-size:15px;
-                 color:#fff;background:linear-gradient(135deg,#FF3D6D,#FF8E53)">
+                 color:#fff;background:#ff1493">
           Reload Sparkle
         </button>
       </div>

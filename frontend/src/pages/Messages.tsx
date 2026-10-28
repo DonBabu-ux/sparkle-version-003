@@ -4332,17 +4332,17 @@ export default function Messages() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div className="relative cursor-pointer hover:scale-105 active:scale-95 transition-all" onClick={() => navigate(`/profile/${user?.username || user?.user_id}`)}>
-                    <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-white/[0.12] shadow-lg" alt="" />
+                    <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-12 h-12 rounded-full object-cover border-2 border-black/10 dark:border-white/[0.12] shadow-lg" alt="" />
                   </div>
-                  <h1 className="text-[26px] font-bold text-white/90 tracking-tight">Chats</h1>
+                  <h1 className="text-[26px] font-bold text-[#18181b]/90 dark:text-white/90 tracking-tight">Chats</h1>
                 </div>
                 <div className="flex items-center gap-1">
-                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60">
+                  <button onClick={() => setShowCameraModal(true)} className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60">
                     <Camera size={22} strokeWidth={2.2} />
                   </button>
                   <button
                     onClick={() => navigate('/messages/settings')}
-                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
+                    className="w-10 h-10 flex items-center justify-center text-[#ff1493] hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                     title="Message Settings"
                   >
                     <Settings size={22} strokeWidth={2.2} />
@@ -4351,23 +4351,18 @@ export default function Messages() {
               </div>
 
               <div className="relative mb-4 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-[#ff1493]/80" size={16} />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/40 dark:text-white/40 transition-colors group-focus-within:text-[#ff1493]/80" size={16} />
                 <input
                   type="text"
                   placeholder="Search messages..."
                   value={messageSearch}
                   onChange={e => setMessageSearch(e.target.value)}
-                  className="w-full h-[46px] rounded-2xl pl-11 pr-4 text-[14.5px] font-medium text-white/90 placeholder:text-white/40 transition-all outline-none focus:shadow-[0_0_0_2px_rgba(255,20,147,0.18)]"
-                  style={{
-                    background: 'rgba(255,255,255,0.07)',
-                    border: '1px solid rgba(255,255,255,0.13)',
-                    boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.25), inset 0 0 0 1px rgba(255,255,255,0.04)'
-                  }}
+                  className="w-full h-[46px] rounded-2xl pl-11 pr-4 text-[14.5px] font-medium text-[#18181b] dark:text-white/90 placeholder:text-black/40 dark:placeholder:text-white/40 transition-all outline-none border border-black/10 dark:border-white/[0.13] bg-black/[0.04] dark:bg-white/[0.07] focus:shadow-[0_0_0_2px_rgba(255,20,147,0.18)]"
                 />
               </div>
 
               {searchLoading && (
-                <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-white/40">
+                <div className="mb-3 text-[10px] font-bold uppercase tracking-wider text-black/40 dark:text-white/40">
                   Searching full history…
                 </div>
               )}
@@ -4387,7 +4382,7 @@ export default function Messages() {
                         'shrink-0 px-3 py-1.5 text-[11px] font-bold transition-all duration-200 select-none touch-none rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60',
                         activeFilter === tab.id
                           ? 'bg-[#ff1493] text-white shadow-[0_0_12px_rgba(255,20,147,0.28)]'
-                          : 'bg-white/[0.16] text-white hover:bg-white/[0.25] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] border border-white/[0.08]'
+                          : 'bg-black/[0.05] text-black/70 dark:bg-white/[0.16] dark:text-white hover:bg-black/[0.08] dark:hover:bg-white/[0.25] border border-black/10 dark:border-white/[0.08]'
                       )}
                     >
                       <span className="flex items-center gap-1.5 pointer-events-none">
@@ -4402,7 +4397,7 @@ export default function Messages() {
                               "inline-flex items-center justify-center px-1.5 py-0.5 text-[9px] font-black rounded-sm leading-none min-w-[14px]",
                               activeFilter === tab.id
                                 ? "bg-white text-[#ff1493]"
-                                : "bg-white/20 text-white"
+                                : "bg-black/10 text-black/60 dark:bg-white/20 dark:text-white"
                             )}>
                               {displayCount}
                             </span>
@@ -4420,7 +4415,7 @@ export default function Messages() {
                     setListSelectedChats([]);
                     setShowNewListFlow('name');
                   }}
-                  className="w-8 h-8 shrink-0 flex items-center justify-center bg-white/[0.08] border border-white/[0.06] hover:bg-white/[0.15] text-white rounded-md transition-all active:scale-95 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
+                  className="w-8 h-8 shrink-0 flex items-center justify-center bg-black/[0.04] border border-black/10 hover:bg-black/[0.08] text-black/70 dark:bg-white/[0.08] dark:border-white/[0.06] dark:hover:bg-white/[0.15] dark:text-white rounded-md transition-all active:scale-95 shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                 >
                   <Plus size={14} strokeWidth={3} />
                 </button>
@@ -5967,12 +5962,12 @@ export default function Messages() {
             </PullUpDisappearingGesture>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-white/[0.02] pointer-events-none" aria-hidden>
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.03] dark:text-white/[0.02] pointer-events-none" aria-hidden>
                 <Sparkles size={400} strokeWidth={0.5} className="animate-spin-slow" />
               </div>
-              <Sparkles size={120} strokeWidth={1} className="text-white/5 mb-12 relative z-10" />
+              <Sparkles size={120} strokeWidth={1} className="text-black/5 dark:text-white/5 mb-12 relative z-10" />
               <h2 className="text-5xl font-black chat-input-text mb-4 tracking-tighter italic uppercase underline decoration-[#ff1493]/20 decoration-8 underline-offset-8 relative z-10">Messages</h2>
-              <p className="text-white font-medium opacity-40 max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
+              <p className="text-black/40 dark:text-white/40 font-medium max-w-sm uppercase tracking-widest text-[11px]">Select a contact to start chatting.</p>
               <button
                 onClick={() => setShowNewChatModal(true)}
                 className="mt-12 flex items-center gap-3 px-10 py-5 bg-[#ff1493] text-white rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-pink-500/20 hover:scale-[1.02] transition-all italic group"

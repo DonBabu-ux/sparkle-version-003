@@ -104,7 +104,7 @@ export default function Gallery() {
   });
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden">
       <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
         {/* Subtle ambient glow */}
         <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />

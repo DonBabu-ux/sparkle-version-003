@@ -59,13 +59,13 @@ export default function UserActionModal({ user, onClose }: Props) {
                     <motion.div 
                         initial={{ opacity: 0, scale: 0.9, y: 5 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 5 }}
                         transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                        className="bg-white/95 dark:bg-[#121212]/95 backdrop-blur-2xl w-full max-w-[150px] rounded-[20px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] border border-black/5 dark:border-white/10 overflow-hidden pointer-events-auto"
+                        className="bg-white/95 dark:bg-zinc-800/95 backdrop-blur-2xl w-full max-w-[150px] rounded-[20px] shadow-[0_20px_40px_-10px_rgba(0,0,0,0.2)] border border-black/5 dark:border-white/10 overflow-hidden pointer-events-auto"
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex flex-col items-center text-center pt-4 pb-2 px-3">
                             <div className="relative mb-2">
-                                <img src={user.avatar_url || user.avatar || '/uploads/avatars/no-profile.png'} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-[#121212] shadow-sm" alt="" />
-                                <div className="absolute -bottom-0.5 -right-0.5 bg-blue-500 p-0.5 rounded-full text-white border-2 border-white dark:border-[#121212] shadow-sm">
+                                <img src={user.avatar_url || user.avatar || '/uploads/avatars/no-profile.png'} className="w-10 h-10 rounded-full object-cover border-2 border-white dark:border-[#27272a] shadow-sm" alt="" />
+                                <div className="absolute -bottom-0.5 -right-0.5 bg-blue-500 p-0.5 rounded-full text-white border-2 border-white dark:border-[#27272a] shadow-sm">
                                     <UserIcon size={8} strokeWidth={3} />
                                 </div>
                             </div>

@@ -11,7 +11,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
       <div className="error-container h-dvh flex items-center justify-center p-5">
         <div className="error-card bg-white/70 dark:bg-zinc-900/80 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-[32px] p-10 md:p-[60px_40px] max-w-[500px] w-full text-center shadow-[0_25px_50px_-12px_rgba(0,0,0,0.1)] animate-[cardFloat_1s_ease-out]">
           <div className="error-icon text-[80px] mb-[30px] inline-block animate-[errPulse_2s_infinite]">
-            <Sparkles size={80} className="text-[#FF3D6D] drop-shadow-lg" />
+            <Sparkles size={80} className="text-[#ff1493] drop-shadow-lg" />
           </div>
           <h1 className="font-['Outfit'] text-[32px] font-bold mb-[15px] text-[#2D3436] dark:text-zinc-50 leading-tight">
             Oops! Something Sparkled... Differently.
@@ -27,7 +27,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
             </div>
           )}
 
-          <a href="/dashboard" className="btn-premium inline-flex items-center justify-center gap-2.5 p-[16px_32px] bg-gradient-to-br from-[#FF3D6D] to-[#FF8E53] color-white text-white rounded-2xl font-semibold text-[16px] shadow-[0_10px_20px_rgba(255,61,109,0.2)] transition-all hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_15px_30px_rgba(255,61,109,0.3)] active:translate-y-0">
+          <a href="/dashboard" className="btn-premium inline-flex items-center justify-center gap-2.5 p-[16px_32px] bg-gradient-to-br from-[#ff1493] to-[#ff2d87] color-white text-white rounded-2xl font-semibold text-[16px] shadow-[0_10px_20px_rgba(255,20,147,0.2)] transition-all hover:-translate-y-1 hover:scale-[1.02] hover:shadow-[0_15px_30px_rgba(255,20,147,0.3)] active:translate-y-0">
             <Home size={18} /> Back to Dashboard
           </a>
         </div>
@@ -36,7 +36,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
       <style>{`
         .mesh-bg {
           background:
-            radial-gradient(circle at 20% 20%, rgba(255, 61, 109, 0.15) 0%, transparent 40%),
+            radial-gradient(circle at 20% 20%, rgba(255, 20, 147, 0.15) 0%, transparent 40%),
             radial-gradient(circle at 80% 80%, rgba(255, 142, 83, 0.15) 0%, transparent 40%),
             radial-gradient(circle at 50% 50%, rgba(108, 92, 231, 0.1) 0%, transparent 50%);
           filter: blur(80px);

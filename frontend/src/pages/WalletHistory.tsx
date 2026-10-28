@@ -74,20 +74,20 @@ export default function WalletHistory() {
   );
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#f8e7ed] text-slate-800 font-sans pb-16 relative">
       <style>{`
         .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
       `}</style>
 
       {/* Header */}
-      <div className="bg-white dark:bg-[#1b1b24] border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-white dark:bg-zinc-800 border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
           </button>
           <div>
             <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Transaction History</h1>
-            <p className="text-[8px] font-black text-[#FF1F6D] uppercase tracking-widest italic mt-0.5">Your recent transactions</p>
+            <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Your recent transactions</p>
           </div>
         </div>
         <button onClick={fetchHistory} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
@@ -98,7 +98,7 @@ export default function WalletHistory() {
       <main className="max-w-[800px] mx-auto p-4 md:p-6 space-y-4">
         {/* Search & Filters */}
         <div className="glass-card p-4 rounded-3xl space-y-3 shadow-sm">
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-2xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-2xl px-3 py-2">
             <Search size={16} className="text-slate-400" />
             <input
               type="text"
@@ -118,7 +118,7 @@ export default function WalletHistory() {
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
+              className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
             >
               <option value="">All Types</option>
               <option value="Deposit">Deposit</option>
@@ -132,7 +132,7 @@ export default function WalletHistory() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
+              className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
             >
               <option value="">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -146,7 +146,7 @@ export default function WalletHistory() {
         <div className="glass-card rounded-3xl p-6 shadow-sm min-h-[400px] flex flex-col justify-between">
           {loading ? (
             <div className="flex items-center justify-center flex-1 py-20">
-              <Spinner size="large" color="text-[#FF1F6D]" />
+              <Spinner size="large" color="text-[#ff1493]" />
             </div>
           ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-20 flex-1 flex flex-col items-center justify-center space-y-3">
@@ -166,7 +166,7 @@ export default function WalletHistory() {
                     className="flex items-center justify-between py-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-[#101217] border border-slate-200 flex items-center justify-center">
+                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 flex items-center justify-center">
                         {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500 dark:text-zinc-400" />}
                       </div>
                       <div>
@@ -221,7 +221,7 @@ export default function WalletHistory() {
 
         {/* Security / System compliance info */}
         <div className="flex items-center justify-center gap-2 py-4 text-center">
-          <ShieldCheck size={16} className="text-[#FF1F6D]" />
+          <ShieldCheck size={16} className="text-[#ff1493]" />
           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
             Audit Ledger Powered by Sparkle Payment System
           </span>

@@ -219,7 +219,7 @@ const SideSheet: React.FC<SideSheetProps> = ({ open, onClose, title, children })
         <button
           type="button"
           onClick={onClose}
-          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors"
+          className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 flex items-center justify-center transition-colors"
           aria-label="Close panel"
         >
           <ChevronLeft size={18} className="text-gray-600 dark:text-zinc-300" />
@@ -243,12 +243,12 @@ interface SubPageProps {
 
 const SubPage: React.FC<SubPageProps> = ({ title, onBack, children }) => (
   <div className="flex flex-col min-h-full">
-    <div className="sticky top-0 bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
+    <div className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
       <div className="flex items-center gap-3 px-4 py-3.5">
         <button
           type="button"
           onClick={onBack}
-          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
+          className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
           aria-label="Back"
         >
           <ArrowLeft size={18} className="text-gray-700 dark:text-zinc-200" />
@@ -267,7 +267,7 @@ const SectionHeader: React.FC<{ title: string; description?: string }> = ({ titl
   </div>
 );
 
-const Divider = () => <div className="h-px bg-gray-100 dark:bg-[#101217] mx-4" />;
+const Divider = () => <div className="h-px bg-gray-100 dark:bg-zinc-800 mx-4" />;
 
 interface ConfirmModalProps {
   open: boolean;
@@ -291,14 +291,14 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-[#1b1b24] rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white dark:bg-zinc-800 rounded-2xl max-w-sm w-full p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
         <h3 className="text-base font-bold text-gray-900">{title}</h3>
         <div className="text-sm text-gray-500 dark:text-zinc-400 mt-2 leading-relaxed">{message}</div>
         <div className="flex gap-3 mt-6">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-sm font-semibold text-gray-700 dark:text-zinc-200 transition-colors"
+            className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 text-sm font-semibold text-gray-700 dark:text-zinc-200 transition-colors"
           >
             Cancel
           </button>
@@ -812,14 +812,14 @@ export default function MessagesSettings() {
 
   const renderHome = () => (
     <div className="flex flex-col min-h-full">
-      <div className="sticky top-0 bg-white dark:bg-[#1b1b24] border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
+      <div className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
         <div className="flex items-center gap-3 px-4 py-3.5">
           <button
             type="button"
             onClick={() =>
               navigate(initialChatId ? `/messages?chat=${initialChatId}` : '/messages')
             }
-            className="w-9 h-9 rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
+            className="w-9 h-9 rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 flex items-center justify-center transition-colors active:scale-95"
             aria-label="Back to messages"
           >
             <ArrowLeft size={18} className="text-gray-700 dark:text-zinc-200" />
@@ -834,7 +834,7 @@ export default function MessagesSettings() {
       <div className="flex-1 overflow-y-auto pb-24">
         <div className="mt-2">
           <SectionHeader title="Activity" />
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<Activity size={18} className="text-green-600" />}
               iconBg="bg-green-50"
@@ -845,7 +845,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Notifications & Sound" />
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<Bell size={18} className="text-blue-600" />}
               iconBg="bg-blue-50"
@@ -856,7 +856,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Messaging" />
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<MessageCircle size={18} className="text-purple-600" />}
               iconBg="bg-purple-50"
@@ -883,7 +883,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Privacy & Security" />
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">
             <SettingsRow
               icon={<Lock size={18} className="text-gray-700 dark:text-zinc-200" />}
               iconBg="bg-gray-100"
@@ -918,7 +918,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="Data & Storage" />
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-6">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-6">
             <SettingsRow
               icon={<Wifi size={18} className="text-teal-600" />}
               iconBg="bg-teal-50"
@@ -939,7 +939,7 @@ export default function MessagesSettings() {
   const renderActiveStatus = () => (
     <SubPage title="Active Status" onBack={goBack}>
       <div className="pb-24">
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 mt-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 mt-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-4 flex items-start gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Show when you are active</p>
@@ -966,7 +966,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Who can see your active status" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             { value: 'everyone', label: 'Everyone', desc: 'All Sparkle users' },
             { value: 'followers', label: 'Followers only', desc: 'Only people who follow you' },
@@ -993,7 +993,7 @@ export default function MessagesSettings() {
           ))}
         </div>
 
-        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-zinc-800 rounded-xl">
           <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
             Turn off your active status everywhere you use Sparkle. This preference is applied to your account across all devices.
           </p>
@@ -1108,14 +1108,14 @@ export default function MessagesSettings() {
 
           <div className="px-4 pt-2">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-[#101217] flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-zinc-800 flex items-center justify-center">
                 {page.icon}
               </div>
               <h2 className="text-lg font-bold text-gray-900">{page.title}</h2>
             </div>
             <div className="space-y-4">
               {page.content.map((item, i) => (
-                <div key={i} className="bg-white dark:bg-[#1b1b24] rounded-xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
+                <div key={i} className="bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-white/10 p-4 shadow-sm">
                   <p className="text-sm font-bold text-gray-900 mb-1">{item.head}</p>
                   <p className="text-sm text-gray-600 dark:text-zinc-300 leading-relaxed">{item.body}</p>
                 </div>
@@ -1169,7 +1169,7 @@ export default function MessagesSettings() {
           title="Conversation Alert Settings"
           description="Select a conversation to configure its dedicated mute state and custom alert tone."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setChatSelectSheet(true)}
@@ -1186,7 +1186,7 @@ export default function MessagesSettings() {
                   alt=""
                 />
               ) : (
-                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center">
                   <MessageCircle size={14} className="text-gray-400" />
                 </div>
               )}
@@ -1248,7 +1248,7 @@ export default function MessagesSettings() {
           title="Sound Theme Profile"
           description="Applies to all sounds across Sparkle."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setSoundThemeSheet(true)}
@@ -1269,7 +1269,7 @@ export default function MessagesSettings() {
           title="Default Notification Sound"
           description="Alert tone when no per-chat override is configured."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setNotifSoundSheet(true)}
@@ -1290,7 +1290,7 @@ export default function MessagesSettings() {
           title="Volume Levels"
           description="Adjust master, message, notification, and UI audio channels."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {(
             [
               { label: 'Master Volume', key: 'master' as const },
@@ -1326,7 +1326,7 @@ export default function MessagesSettings() {
           title="Toggles & Customization"
           description="Independently enable or disable each audio category."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               key: 'masterSounds',
@@ -1357,7 +1357,7 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-center gap-4 justify-between">
                 <div className="flex items-center gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-zinc-800 flex items-center justify-center shrink-0">
                     {item.icon}
                   </div>
                   <div>
@@ -1379,14 +1379,14 @@ export default function MessagesSettings() {
           title="Test Preview"
           description="Audit sound and vibration response safely without sending real messages."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-4 grid grid-cols-3 gap-3">
             {(['send', 'receive', 'notification'] as const).map(t => (
               <button
                 key={t}
                 type="button"
                 onClick={() => handleTestPreview(t)}
-                className="py-2.5 px-2 bg-gray-50 dark:bg-[#101217] hover:bg-gray-100 active:scale-95 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold text-gray-700 dark:text-zinc-200 flex items-center justify-center gap-1.5 transition-all capitalize"
+                className="py-2.5 px-2 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 active:scale-95 border border-gray-200 dark:border-white/10 rounded-xl text-xs font-bold text-gray-700 dark:text-zinc-200 flex items-center justify-center gap-1.5 transition-all capitalize"
               >
                 <Play size={11} fill="currentColor" className="text-[#ff1493]" />
                 {t}
@@ -1399,7 +1399,7 @@ export default function MessagesSettings() {
           <button
             type="button"
             onClick={() => setResetAudioModal(true)}
-            className="w-full py-3 bg-white dark:bg-[#1b1b24] border border-gray-200 dark:border-white/10 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 hover:text-red-600 transition-all flex items-center justify-center gap-2 active:scale-98"
+            className="w-full py-3 bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-semibold text-gray-500 dark:text-zinc-400 hover:text-red-600 transition-all flex items-center justify-center gap-2 active:scale-98"
           >
             <RotateCcw size={15} />
             Reset Audio Settings
@@ -1417,7 +1417,7 @@ export default function MessagesSettings() {
     <SubPage title="Messages Behavior & Security" onBack={goBack}>
       <div className="pb-24">
         <SectionHeader title="Account General" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-900">Push Notifications</p>
@@ -1460,7 +1460,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Security" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <SettingsRow
             icon={<Lock size={18} className="text-gray-700 dark:text-zinc-200" />}
             iconBg="bg-gray-100"
@@ -1496,7 +1496,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Global Defaults" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               label: 'Read Receipts',
@@ -1535,7 +1535,7 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                     {item.icon}
                   </div>
                   <div>
@@ -1560,7 +1560,7 @@ export default function MessagesSettings() {
           title="Screen Protection"
           description="Android-native security features — availability depends on platform support."
         />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {[
             {
               label: 'Screenshot Notifications',
@@ -1583,7 +1583,7 @@ export default function MessagesSettings() {
               {i > 0 && <Divider />}
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div className="flex items-start gap-3 flex-1">
-                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-[#101217] flex items-center justify-center shrink-0 mt-0.5">
+                  <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-zinc-800 flex items-center justify-center shrink-0 mt-0.5">
                     {item.icon}
                   </div>
                   <div>
@@ -1617,14 +1617,14 @@ export default function MessagesSettings() {
     return (
       <SubPage title="Chat Themes" onBack={goBack}>
         <div className="pb-24">
-          <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+          <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-zinc-800 rounded-xl">
             <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
               This is the <strong>global default theme</strong> applied to all conversations that do not have a per-chat theme override. Changing the global theme does not affect conversations with explicit overrides set in their individual chat settings.
             </p>
           </div>
 
           <SectionHeader title="Global Default Theme" />
-          <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+          <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
             <button
               type="button"
               onClick={() => setChatThemeGlobalSheet(true)}
@@ -1645,7 +1645,7 @@ export default function MessagesSettings() {
           </div>
 
           <SectionHeader title="How themes work" />
-          <div className="mx-4 bg-white dark:bg-[#1b1b24] rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-4 space-y-3">
+          <div className="mx-4 bg-white dark:bg-zinc-800 rounded-xl border border-gray-100 dark:border-white/10 shadow-sm p-4 space-y-3">
             {[
               { label: 'Global Default', desc: 'Applied to all chats without an explicit override.' },
               {
@@ -1678,7 +1678,7 @@ export default function MessagesSettings() {
   const renderChatLock = () => (
     <SubPage title="Chat Lock" onBack={goBack}>
       <div className="pb-24">
-        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 rounded-xl flex gap-2">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-xl flex gap-2">
           <Lock size={14} className="text-gray-600 dark:text-zinc-300 shrink-0 mt-0.5" />
           <p className="text-xs text-gray-600 dark:text-zinc-300 leading-relaxed">
             Chat Lock is a <strong>local device security</strong> feature. Locked conversations require a PIN to open on this device only. The PIN is never sent to Sparkle servers. Locking does not delete messages, affect delivery, alter read receipts, or block the other person.
@@ -1686,7 +1686,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="PIN" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {pinSet ? (
             <>
               <div className="px-4 py-3.5 flex items-center gap-3">
@@ -1721,7 +1721,7 @@ export default function MessagesSettings() {
               onClick={() => setShowPinSetup(true)}
               className="w-full flex items-center gap-3 px-4 py-3.5 hover:bg-gray-50 transition-colors"
             >
-              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-[#101217] flex items-center justify-center">
+              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-zinc-800 flex items-center justify-center">
                 <Lock size={16} className="text-gray-500 dark:text-zinc-400" />
               </div>
               <div className="text-left">
@@ -1736,7 +1736,7 @@ export default function MessagesSettings() {
         {pinSet && (
           <>
             <SectionHeader title="Visibility" />
-            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               <div className="px-4 py-3.5 flex items-start gap-4 justify-between">
                 <div>
                   <p className="text-sm font-semibold text-gray-900">Hide Locked Chats</p>
@@ -1765,7 +1765,7 @@ export default function MessagesSettings() {
               title="Locked Conversations"
               description="Select which conversations to lock."
             />
-            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {loadingConversations ? (
                 <div className="px-4 py-6 text-center text-xs text-gray-400">
                   Loading conversations...
@@ -1814,7 +1814,7 @@ export default function MessagesSettings() {
 
       {showPinSetup && (
         <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-[#1b1b24] rounded-2xl max-w-xs w-full p-6 shadow-2xl">
+          <div className="bg-white dark:bg-zinc-800 rounded-2xl max-w-xs w-full p-6 shadow-2xl">
             <div className="w-12 h-12 rounded-2xl bg-pink-50 flex items-center justify-center mx-auto mb-4">
               <Lock size={22} className="text-[#ff1493]" />
             </div>
@@ -1835,7 +1835,7 @@ export default function MessagesSettings() {
                 setNewPinValue(e.target.value.replace(/\D/g, '').slice(0, 4));
                 setPinError('');
               }}
-              className="w-full mt-4 text-center text-2xl font-mono tracking-widest bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 rounded-xl py-3 text-gray-900 outline-none focus:border-[#ff1493] focus:ring-2 focus:ring-[#ff1493]/20"
+              className="w-full mt-4 text-center text-2xl font-mono tracking-widest bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-xl py-3 text-gray-900 outline-none focus:border-[#ff1493] focus:ring-2 focus:ring-[#ff1493]/20"
             />
             {pinError && (
               <p className="text-xs text-red-500 text-center mt-1.5 font-medium">{pinError}</p>
@@ -1848,7 +1848,7 @@ export default function MessagesSettings() {
                   setNewPinValue('');
                   setPinError('');
                 }}
-                className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-[#101217] text-sm font-semibold text-gray-700 dark:text-zinc-200 hover:bg-gray-200 transition-colors"
+                className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-zinc-800 text-sm font-semibold text-gray-700 dark:text-zinc-200 hover:bg-gray-200 transition-colors"
               >
                 Cancel
               </button>
@@ -1873,7 +1873,7 @@ export default function MessagesSettings() {
   const renderArchivedChats = () => (
     <SubPage title="Archived Chats" onBack={goBack}>
       <div className="pb-24">
-        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-[#101217] rounded-xl">
+        <div className="mx-4 mt-4 p-3 bg-gray-50 dark:bg-zinc-800 rounded-xl">
           <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
             Archived conversations remain fully intact — all messages are preserved. Archiving does not delete or block any conversation.
           </p>
@@ -1883,7 +1883,7 @@ export default function MessagesSettings() {
           <div className="py-12 text-center text-sm text-gray-400">Loading archived chats...</div>
         ) : archivedChats.length === 0 ? (
           <div className="py-12 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
               <Archive size={24} className="text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400">No archived chats</p>
@@ -1896,7 +1896,7 @@ export default function MessagesSettings() {
                 archivedChats.length !== 1 ? 's' : ''
               }`}
             />
-            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {archivedChats.map((c: any, i) => {
                 const name = sanitizePartnerName(c.partner_name, c.partner_username);
                 return (
@@ -1917,7 +1917,7 @@ export default function MessagesSettings() {
                       <button
                         type="button"
                         onClick={() => setUnarchiveChatId(c.chat_id)}
-                        className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
+                        className="px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
                       >
                         Unarchive
                       </button>
@@ -1943,7 +1943,7 @@ export default function MessagesSettings() {
           <div className="py-12 text-center text-sm text-gray-400">Loading blocked users...</div>
         ) : blockedUsers.length === 0 ? (
           <div className="py-12 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center mb-3">
+            <div className="w-14 h-14 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center mb-3">
               <UserX size={24} className="text-gray-300" />
             </div>
             <p className="text-sm font-semibold text-gray-500 dark:text-zinc-400">No blocked contacts</p>
@@ -1956,7 +1956,7 @@ export default function MessagesSettings() {
                 blockedUsers.length !== 1 ? 's' : ''
               }`}
             />
-            <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+            <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
               {blockedUsers.map((u: any, i) => (
                 <React.Fragment key={u.user_id}>
                   {i > 0 && <Divider />}
@@ -1975,7 +1975,7 @@ export default function MessagesSettings() {
                     <button
                       type="button"
                       onClick={() => setUnblockUserId(u.user_id)}
-                      className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
+                      className="px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 text-xs font-bold text-gray-600 dark:text-zinc-300 rounded-lg transition-colors shrink-0"
                     >
                       Unblock
                     </button>
@@ -2021,7 +2021,7 @@ export default function MessagesSettings() {
           description="Review devices that have recently accessed your Sparkle account."
         />
 
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           {loadingSessions && deviceSessions.length === 0 && (
             <div className="px-4 py-6 text-center text-xs text-gray-400">Loading sessions…</div>
           )}
@@ -2068,7 +2068,7 @@ export default function MessagesSettings() {
                             type="button"
                             disabled={revokingSession === session.session_id}
                             onClick={() => revokeSession(session.session_id)}
-                            className="px-3 py-1.5 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 text-xs font-bold text-gray-700 dark:text-zinc-200 rounded-lg transition-colors disabled:opacity-50"
+                            className="px-3 py-1.5 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 text-xs font-bold text-gray-700 dark:text-zinc-200 rounded-lg transition-colors disabled:opacity-50"
                           >
                             {revokingSession === session.session_id ? 'Signing out…' : 'Log out'}
                           </button>
@@ -2087,7 +2087,7 @@ export default function MessagesSettings() {
             <button
               type="button"
               onClick={logoutAllOtherDevices}
-              className="w-full py-3 bg-white dark:bg-[#1b1b24] border border-red-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 hover:text-red-600 transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 bg-white dark:bg-zinc-800 border border-red-200 hover:border-red-300 hover:bg-red-50 rounded-xl text-sm font-bold text-red-500 hover:text-red-600 transition-all flex items-center justify-center gap-2"
             >
               <LogOut size={15} />
               Log out all other devices
@@ -2106,7 +2106,7 @@ export default function MessagesSettings() {
     <SubPage title="Media & Storage" onBack={goBack}>
       <div className="pb-24">
         <SectionHeader title="Network & Downloads" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setMediaDownloadSheet(true)}
@@ -2168,7 +2168,7 @@ export default function MessagesSettings() {
         </div>
 
         <SectionHeader title="Data Management" />
-        <div className="bg-white dark:bg-[#1b1b24] mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 mx-4 rounded-2xl border border-gray-100 dark:border-white/10 shadow-sm overflow-hidden">
           <button
             type="button"
             onClick={() => setClearHistoryModal(true)}
@@ -2225,8 +2225,8 @@ export default function MessagesSettings() {
   }, [view, fetchDeviceSessions]);
 
   return (
-    <div className="min-h-dvh bg-gray-50 dark:bg-[#101217] text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
-      <div className="min-h-dvh max-w-lg mx-auto bg-gray-50 dark:bg-[#101217] relative shadow-xl border-x border-gray-100 dark:border-white/10">
+    <div className="min-h-dvh bg-gray-50 dark:bg-zinc-800 text-gray-900 font-sans selection:bg-pink-100 animate-in fade-in duration-200">
+      <div className="min-h-dvh max-w-lg mx-auto bg-gray-50 dark:bg-zinc-800 relative shadow-xl border-x border-gray-100 dark:border-white/10">
         {renderView()}
       </div>
 

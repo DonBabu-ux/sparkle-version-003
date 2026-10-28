@@ -117,7 +117,7 @@ const Invite = lazyWithRetry(() => import('./pages/Invite'));
 const Help = lazyWithRetry(() => import('./pages/Help'));
 const Onboarding = lazyWithRetry(() => import('./pages/Onboarding'));
 import OnboardingSheet from './components/onboarding/OnboardingSheet';
-const Ecosystem = lazyWithRetry(() => import('./pages/Ecosystem'));
+const Developer = lazyWithRetry(() => import('./pages/Developer'));
 
 const BlockedUsers = lazyWithRetry(() => import('./pages/BlockedUsers'));
 import AudioDiagnostics from './audio/diagnostics/AudioDiagnostics';
@@ -663,7 +663,7 @@ function App() {
 
                     {/* ── Phase 4: Utility & Features ── */}
                     <Route path="/hub" element={isAuthenticated ? <SparkleHubPage /> : <Navigate to="/login" />} />
-                    <Route path="/ecosystem" element={isAuthenticated ? <Ecosystem /> : <Navigate to="/login" />} />
+                    <Route path="/developer" element={isAuthenticated ? <Developer /> : <Navigate to="/login" />} />
                     <Route path="/lost-found" element={isAuthenticated ? <LostFound /> : <Navigate to="/login" />} />
                     <Route path="/support" element={isAuthenticated ? <Support /> : <Navigate to="/login" />} />
                     <Route path="/support/ticket/:ticketId" element={isAuthenticated ? <TicketDetail /> : <Navigate to="/login" />} />

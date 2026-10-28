@@ -528,7 +528,7 @@ const ReelItem = React.memo(({
           />
           {/* Thumb */}
           <div
-            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white dark:bg-[#1b1b24] shadow-lg opacity-0 group-hover/scrub:opacity-100 transition-opacity"
+            className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full bg-white dark:bg-zinc-800 shadow-lg opacity-0 group-hover/scrub:opacity-100 transition-opacity"
             style={{ left: `calc(${progress}% - 6px)` }}
           />
         </div>
@@ -1413,12 +1413,12 @@ export default function Moments() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[60vh] bg-white dark:bg-[#1b1b24] rounded-t-3xl z-[1001] flex flex-col shadow-2xl overflow-hidden"
+              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[60vh] bg-white dark:bg-zinc-800 rounded-t-3xl z-[1001] flex flex-col shadow-2xl overflow-hidden"
             >
               <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold text-gray-900">Comments</span>
-                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-[#101217] text-gray-500 dark:text-zinc-400 rounded-full text-[10px] font-bold">{comments.length}</span>
+                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-full text-[10px] font-bold">{comments.length}</span>
                 </div>
                 <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all">
                   <X size={20} />
@@ -1448,7 +1448,7 @@ export default function Moments() {
               </div>
 
               {/* Interaction Bar Area */}
-              <div className="relative p-4 pb-8 bg-white dark:bg-[#1b1b24] border-t border-gray-100 dark:border-white/10 flex flex-col gap-3">
+              <div className="relative p-4 pb-8 bg-white dark:bg-zinc-800 border-t border-gray-100 dark:border-white/10 flex flex-col gap-3">
                 {/* Sticker Picker Overlay (Now relative to bar) */}
                 <AnimatePresence>
                   {showStickers && (
@@ -1468,7 +1468,7 @@ export default function Moments() {
                           placeholder="Search Giphy..."
                           value={giphySearch}
                           onChange={(e) => setGiphySearch(e.target.value)}
-                          className="w-full bg-gray-100 dark:bg-[#101217] rounded-xl py-2 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                          className="w-full bg-gray-100 dark:bg-zinc-800 rounded-xl py-2 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
                         />
                         <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       </div>
@@ -1481,7 +1481,7 @@ export default function Moments() {
                               <button 
                                 key={gif.id}
                                 onClick={() => handleAddComment(undefined, gif.images.fixed_height.url)}
-                                className="aspect-square rounded-lg overflow-hidden bg-gray-50 dark:bg-[#101217] hover:scale-105 active:scale-95 transition-all"
+                                className="aspect-square rounded-lg overflow-hidden bg-gray-50 dark:bg-zinc-800 hover:scale-105 active:scale-95 transition-all"
                               >
                                 <img src={gif.images.fixed_height.url} className="w-full h-full object-cover" alt="" />
                               </button>

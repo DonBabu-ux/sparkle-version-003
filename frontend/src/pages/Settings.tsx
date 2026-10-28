@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import 'axios';
 import api, { authApi } from '../api/api';
 import { useUserStore } from '../store/userStore';
-import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone } from 'lucide-react';
+import { User as UserIcon, Shield, EyeOff, MessageSquare, LogOut, Trash2, CheckCircle2, AlertCircle, Lock, Sparkles, FileText, ShoppingBag, ArrowLeft, ChevronRight, Volume2, Moon, Sun, HardDrive, Download, X, UserCheck, PauseCircle, ShieldAlert, Smartphone, Terminal, Layers, Cpu } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { getPublicLegalDocuments } from '../config/legalDocuments';
 import { getRoleFromToken } from '../utils/tokenUtils';
@@ -384,7 +384,56 @@ export default function Settings() {
           />
         </SettingCardGroup>
 
-        {/* GROUP 5: DANGER ZONE */}
+        {/* GROUP 5: ECOSYSTEM & DEVELOPER — deep by design, not on the surface */}
+        <SettingCardGroup title="Ecosystem & Developer">
+          <SettingRow
+            icon={Terminal}
+            title="Developer Hub"
+            description="API keys, webhooks, sandbox playgrounds and code samples"
+            rightElement="chevron"
+            onClick={() => navigate('/developer')}
+          />
+          <SettingRow
+            icon={Sparkles}
+            title="Sparkle Social Core"
+            description="The main dashboard, feed, stories, and social connection hub for students."
+            rightElement="badge"
+            badgeText="active"
+            badgeVariant="green"
+          />
+          <SettingRow
+            icon={Layers}
+            title="Sparkle Chat"
+            description="Realtime desktop & mobile instant messaging app with visual safety scanning."
+            rightElement="badge"
+            badgeText="100k+ Active"
+            badgeVariant="pink"
+          />
+          <SettingRow
+            icon={Smartphone}
+            title="Sparkle Marketplace"
+            description="Campus community classifieds to buy, sell, or trade textbooks, housing, and goods safely."
+            rightElement="badge"
+            badgeText="active"
+            badgeVariant="green"
+          />
+          <SettingRow
+            icon={Cpu}
+            title="Sparkle Skill Market"
+            description="Student freelancer hub to hire or offer services including tutoring, design, and code."
+            rightElement="badge"
+            badgeText="popular"
+            badgeVariant="amber"
+          />
+          <SettingRow
+            icon={Download}
+            title="Download the App"
+            description="Builds are not publicly distributed yet — check back soon."
+            value="Android 10.0+ (API 29) · iOS 15.0+"
+          />
+        </SettingCardGroup>
+
+        {/* GROUP 6: DANGER ZONE */}
         <SettingCardGroup title="Danger Zone">
           <SettingRow
             icon={Trash2}

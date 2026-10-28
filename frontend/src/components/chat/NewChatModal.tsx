@@ -395,40 +395,40 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           initial="initial"
           animate="animate"
           exit="exit"
-          className="w-full lg:max-w-xl h-full bg-[#111118] text-white flex flex-col shadow-2xl relative overflow-hidden select-none"
+          className="w-full lg:max-w-xl h-full bg-white dark:bg-[#111118] text-[#18181b] dark:text-white flex flex-col shadow-2xl relative overflow-hidden select-none"
         >
           {/* Header */}
-          <header className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-white/[0.08] flex items-center justify-between bg-[#13131a] sticky top-0 z-20">
+          <header className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-black/10 dark:border-white/[0.08] flex items-center justify-between bg-white dark:bg-[#13131a] sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 -ml-1 text-white/80 hover:text-white rounded-full hover:bg-white/10 active:bg-white/20 transition-colors"
+                className="p-1.5 -ml-1 text-black/70 hover:text-black dark:text-white/80 dark:hover:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/20 transition-colors"
                 aria-label="Back to messages"
               >
                 <ArrowLeft size={22} strokeWidth={2.2} />
               </button>
-              <h2 className="text-lg font-bold text-white tracking-tight">New message</h2>
+              <h2 className="text-lg font-bold text-[#18181b] dark:text-white tracking-tight">New message</h2>
             </div>
           </header>
 
           {/* Search Field */}
-          <div className="px-4 py-2.5 border-b border-white/[0.06] bg-[#111118] sticky top-[57px] z-10">
-            <div className="relative flex items-center bg-white/[0.06] border border-white/10 rounded-full px-3.5 py-2 focus-within:border-[#ff1493]/60 focus-within:ring-1 focus-within:ring-[#ff1493]/40 transition-all">
-              <Search size={18} className="text-zinc-400 shrink-0 mr-2.5" />
+          <div className="px-4 py-2.5 border-b border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#111118] sticky top-[57px] z-10">
+            <div className="relative flex items-center bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-full px-3.5 py-2 focus-within:border-[#ff1493]/60 focus-within:ring-1 focus-within:ring-[#ff1493]/40 transition-all">
+              <Search size={18} className="text-zinc-500 dark:text-zinc-400 shrink-0 mr-2.5" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search people..."
-                className="w-full bg-transparent text-sm text-white placeholder-zinc-400 focus:outline-none"
+                className="w-full bg-transparent text-sm text-[#18181b] dark:text-white placeholder-zinc-500 dark:placeholder-zinc-400 focus:outline-none"
                 autoFocus
               />
               {searchQuery && (
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="p-1 text-zinc-400 hover:text-white rounded-full hover:bg-white/10 transition-colors shrink-0"
+                  className="p-1 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
                   aria-label="Clear search"
                 >
                   <X size={16} />
@@ -445,8 +445,8 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 <span className="text-xs text-zinc-400">Loading contacts...</span>
               </div>
             ) : totalVisibleCount === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 px-6 text-center text-zinc-400">
-                <p className="text-sm font-semibold text-white/80">No people found</p>
+              <div className="flex flex-col items-center justify-center py-24 px-6 text-center text-zinc-500 dark:text-zinc-400">
+                <p className="text-sm font-semibold text-black/80 dark:text-white/80">No people found</p>
                 <p className="text-xs mt-1 text-zinc-500">
                   {debouncedQuery
                     ? 'Try searching with a different name or username.'
@@ -458,7 +458,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 1: Recents */}
                 {filteredSections.recents.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
                       Recents
                     </div>
                     <div>
@@ -477,7 +477,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 2: Followers */}
                 {filteredSections.followers.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-t border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Followers
                     </div>
                     <div>
@@ -496,7 +496,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 3: Following */}
                 {filteredSections.following.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-t border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Following
                     </div>
                     <div>
@@ -515,7 +515,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 4: Everyone */}
                 {filteredSections.everyone.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-400 uppercase tracking-wider border-t border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Everyone
                     </div>
                     <div>
@@ -542,9 +542,9 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           </div>
 
           {/* Persistent Bottom Action Bar */}
-          <div className="absolute bottom-0 left-0 right-0 z-30 px-4 py-3 bg-[#13131a]/98 backdrop-blur-md border-t border-white/[0.08] flex items-center justify-between pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+          <div className="absolute bottom-0 left-0 right-0 z-30 px-4 py-3 bg-white/98 dark:bg-[#13131a]/98 backdrop-blur-md border-t border-black/10 dark:border-white/[0.08] flex items-center justify-between pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {/* Left side: selection count or instruction */}
-            <div className="text-xs sm:text-sm font-medium text-zinc-400 truncate pr-2">
+            <div className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">
               {selectedCount === 0 && 'Select people to start a chat'}
               {selectedCount === 1 && '1 person selected'}
               {selectedCount > 1 && `${selectedCount} people selected`}
@@ -559,7 +559,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 "px-5 py-2.5 rounded-full font-semibold text-sm flex items-center gap-2 transition-all select-none shrink-0",
                 selectedCount > 0 && !isSubmitting
                   ? "bg-[#ff1493] text-white hover:brightness-110 active:scale-95 shadow-md shadow-[#ff1493]/30 cursor-pointer"
-                  : "bg-white/10 text-white/30 cursor-not-allowed"
+                  : "bg-black/5 text-black/30 dark:bg-white/10 dark:text-white/30 cursor-not-allowed"
               )}
             >
               {isSubmitting ? (
@@ -605,7 +605,7 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onToggle }
       onClick={() => onToggle(contact)}
       className={clsx(
         "w-full flex items-center gap-3 px-4 py-2.5 transition-colors text-left group select-none cursor-pointer",
-        isSelected ? "bg-[#ff1493]/10" : "hover:bg-white/[0.04] active:bg-white/[0.08]"
+        isSelected ? "bg-[#ff1493]/10" : "hover:bg-black/[0.04] dark:hover:bg-white/[0.04] active:bg-black/[0.05] dark:active:bg-white/[0.08]"
       )}
       aria-pressed={isSelected}
       aria-label={`${contact.name || contact.username}, @${contact.username}${isSelected ? ', selected' : ''}`}
@@ -616,23 +616,23 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onToggle }
           <img
             src={getAvatarUrl(contact.avatar_url, contact.username)}
             alt=""
-            className="w-10 h-10 rounded-full object-cover border border-white/10 bg-zinc-800"
+            className="w-10 h-10 rounded-full object-cover border border-black/10 dark:border-white/10 bg-zinc-200 dark:bg-zinc-800"
             onError={() => setImgError(true)}
           />
         ) : (
-          <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 flex items-center justify-center text-xs font-semibold text-white/90">
+          <div className="w-10 h-10 rounded-full bg-zinc-200 dark:bg-zinc-800 border border-black/10 dark:border-white/10 flex items-center justify-center text-xs font-semibold text-black/60 dark:text-white/90">
             {initials}
           </div>
         )}
         {contact.is_online && (
-          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-[#111118]" />
+          <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#111118]" />
         )}
       </div>
 
       {/* Center: Name & Username */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
-          <span className="text-sm font-medium text-white truncate">
+          <span className="text-sm font-medium text-[#18181b] dark:text-white truncate">
             {contact.name || contact.username}
           </span>
           {contact.is_verified && (
@@ -650,7 +650,7 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onToggle }
           "w-5 h-5 rounded-full flex items-center justify-center transition-all shrink-0",
           isSelected
             ? "bg-[#ff1493] text-white shadow-sm"
-            : "border-2 border-white/30 bg-transparent group-hover:border-white/50"
+            : "border-2 border-black/25 dark:border-white/30 bg-transparent group-hover:border-black/40 dark:group-hover:border-white/50"
         )}
         aria-hidden="true"
       >

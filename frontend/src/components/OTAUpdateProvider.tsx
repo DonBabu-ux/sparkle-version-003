@@ -131,7 +131,7 @@ export const OTAUpdateProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                                 width: 48,
                                 height: 48,
                                 border: '3px solid rgba(255, 255, 255, 0.1)',
-                                borderTop: '3px solid #6366f1',
+                                borderTop: '3px solid #ff1493',
                                 borderRadius: '50%',
                                 animation: 'ota-spin 0.8s linear infinite'
                             }}

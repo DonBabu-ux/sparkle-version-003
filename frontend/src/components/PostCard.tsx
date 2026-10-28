@@ -274,7 +274,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
   if (post.post_type === 'private' && !isOwner) {
     return (
-      <div className="bg-white dark:bg-black rounded-none sm:rounded-[12px] shadow-sm overflow-hidden mb-3 p-4 border border-black/5 dark:border-white/10 flex flex-col items-center justify-center text-center">
+      <div className="bg-white dark:bg-zinc-900 rounded-none sm:rounded-[12px] shadow-sm overflow-hidden mb-3 p-4 border border-black/5 dark:border-white/10 flex flex-col items-center justify-center text-center">
         <div className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center mb-2">
           <Lock size={20} className="text-black/40 dark:text-white/40" />
         </div>
@@ -297,7 +297,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   return (
     <div 
       ref={cardRef}
-      className={`bg-white dark:bg-black rounded-none sm:rounded-[12px] shadow-sm dark:shadow-none overflow-hidden border-b sm:border border-black/5 dark:border-white/10 transition-opacity duration-300 ${
+      className={`bg-white dark:bg-zinc-900 rounded-none sm:rounded-[12px] shadow-sm dark:shadow-none overflow-hidden border-b sm:border border-black/5 dark:border-white/10 transition-opacity duration-300 ${
         deleting ? 'opacity-30 pointer-events-none' : ''
       }`}
     >
@@ -402,7 +402,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.12, ease: 'easeOut' }}
                   style={{ top: dropdownPos.top, left: dropdownPos.left, position: 'fixed' }}
-                  className="w-[380px] bg-white dark:bg-black rounded-[14px] shadow-2xl dark:shadow-none z-[9991] relative border border-black/5 dark:border-white/10"
+                  className="w-[380px] bg-white dark:bg-zinc-900 rounded-[14px] shadow-2xl dark:shadow-none z-[9991] relative border border-black/5 dark:border-white/10"
                   onClick={e => e.stopPropagation()}
                 >
                   <div
@@ -546,7 +546,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       {/* Media Grid */}
       {!isTextOnly && (
         <div 
-          className="relative bg-black/5 dark:bg-black cursor-pointer overflow-hidden w-full"
+          className="relative bg-black/5 dark:bg-zinc-900 cursor-pointer overflow-hidden w-full"
           onClick={(e) => {
             spawnTikTokHeart(e.clientX, e.clientY);
             setActiveModal('media_preview', null, { post });

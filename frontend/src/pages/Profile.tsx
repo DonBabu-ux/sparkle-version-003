@@ -202,7 +202,7 @@ export default function Profile() {
 
   if (loading) {
     return (
-      <div className="flex bg-[#fdf2f4] dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
+      <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
         <div className="flex-1 flex flex-col items-center justify-center transition-all text-[#18181b] dark:text-white">
           <div className="relative mb-20">
             <Spinner size="xl" color="text-primary" />
@@ -218,7 +218,7 @@ export default function Profile() {
   if (!profile) {
     const isGenuinelyMissing = profileError === 'not_found';
     return (
-        <div className="flex bg-white dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
+        <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pb-[var(--safe-area-inset-bottom,env(safe-area-inset-bottom))]">
         <div className="flex-1 flex items-center justify-center p-12">
            <ModernOfflineState
              type="error"
@@ -242,10 +242,10 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
 
   return (
-    <div className="flex bg-white dark:bg-black min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
+    <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
 
       {/* Top Navigation Bar */}
-      <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top)))] pb-4 transition-all">
+      <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-zinc-900/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top)))] pb-4 transition-all">
         <a className="flex items-center gap-2.5 active:scale-95 transition-transform" href="/dashboard" data-discover="true">
           <span className="font-heading font-black text-xl tracking-tighter text-[#18181b] dark:text-white">Sparkle</span>
         </a>
@@ -263,7 +263,7 @@ export default function Profile() {
           </button>
         )}
         {showAccountMenu && (
-          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-black rounded-xl shadow-2xl border border-black/5 dark:border-white/10 p-2 z-[1001]">
+          <div className="absolute right-0 mt-2 w-72 bg-white dark:bg-zinc-900 rounded-xl shadow-2xl border border-black/5 dark:border-white/10 p-2 z-[1001]">
             <div className="px-3 py-2 border-b border-black/5 dark:border-white/5 mb-2">
               <span className="text-[10px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest">Accounts</span>
             </div>
@@ -365,7 +365,7 @@ export default function Profile() {
                   role="button"
                   tabIndex={0}
                 >
-                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-white dark:bg-black' : ''}`}>
+                  <div className={`w-full h-full rounded-full ${profile?.has_story ? 'p-1 bg-white dark:bg-zinc-900' : ''}`}>
                     <img
                       src={identity.avatar}
                       alt={profile?.username ? `${profile.username}'s profile picture` : 'Profile picture'}
@@ -398,7 +398,7 @@ export default function Profile() {
                          initial={{ opacity: 0, x: 20 }}
                          animate={{ opacity: 1, x: 0 }}
                          exit={{ opacity: 0, x: 20 }}
-                         className="absolute top-0 left-full ml-4 z-[1001] bg-white dark:bg-black rounded-[14px] shadow-2xl border border-black/5 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[180px]"
+                         className="absolute top-0 left-full ml-4 z-[1001] bg-white dark:bg-zinc-900 rounded-[14px] shadow-2xl border border-black/5 dark:border-white/10 p-2 flex flex-col gap-1 min-w-[180px]"
                       >
                          <button
                            onClick={(e) => { e.stopPropagation(); setShowAvatarMenu(false); navigate(`/stories/${profile?.id || profile?.user_id}`); }}
@@ -516,7 +516,7 @@ export default function Profile() {
                           Requested
                         </button>
                       ) : (
-                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-[#FF1F6D] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#FF1F6D]/20 uppercase tracking-widest">
+                        <button onClick={handleFollowToggle} className="px-6 py-3 bg-[#ff1493] hover:scale-105 active:scale-95 rounded-lg text-xs font-bold text-white transition-all shadow-lg shadow-[#ff1493]/20 uppercase tracking-widest">
                           Follow
                         </button>
                       )}
@@ -545,7 +545,7 @@ export default function Profile() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-bold text-gray-600 dark:text-gray-300 uppercase tracking-widest">Reputation</span>
-                    <span className="text-xs font-bold text-[#FF1F6D] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
+                    <span className="text-xs font-bold text-[#ff1493] uppercase tracking-widest">{profile.reputation?.prestigeScore || 0}% Power</span>
                   </div>
                   <div className="h-2 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                     <div
@@ -561,7 +561,7 @@ export default function Profile() {
                       {[
                         { id: 'spark_seed', color: 'from-amber-400 to-orange-500', icon: <Zap size={12} fill="currentColor" />, active: (profile.reputation?.trustLevel || 0) >= 1 },
                         { id: 'viral_node', color: 'from-emerald-400 to-cyan-500', icon: <TrendingUp size={12} />, active: (profile.reputation?.trustLevel || 0) >= 3 },
-                        { id: 'verified_node', color: 'from-[#FF1F6D] to-purple-600', icon: <Heart size={12} fill="currentColor" />, active: !!profile.is_verified }
+                        { id: 'verified_node', color: 'from-[#ff1493] to-purple-600', icon: <Heart size={12} fill="currentColor" />, active: !!profile.is_verified }
                       ].filter(b => b.active).map((badge, idx) => (
                         <div
                           key={idx}
@@ -588,7 +588,7 @@ export default function Profile() {
               </div>
 
               {profile?.website && (
-                <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-[#FF1F6D] hover:underline mb-6 tracking-tight">
+                <a href={`https://${profile.website.replace(/^https?:\/\//, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-xs font-bold text-[#ff1493] hover:underline mb-6 tracking-tight">
                   <LinkIcon size={14} strokeWidth={2.5} />
                   {profile.website.replace(/^https?:\/\//, '')}
                 </a>
@@ -597,7 +597,7 @@ export default function Profile() {
               {showOwnerActions && (
                 <div
                   onClick={() => navigate('/professional-dashboard')}
-                  className="bg-white/40 dark:bg-black/40 backdrop-blur-sm border border-black/[0.03] dark:border-white/5 rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
+                  className="bg-white/40 dark:bg-zinc-900/40 backdrop-blur-sm border border-black/[0.03] dark:border-white/5 rounded-2xl p-4 flex items-center justify-between group cursor-pointer hover:bg-white dark:hover:bg-white/5 hover:shadow-xl hover:shadow-primary/5 transition-all max-w-sm mb-6"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary/10 to-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
@@ -645,7 +645,7 @@ export default function Profile() {
                 tabIndex={0}
               >
                 <div className="w-16 h-16 md:w-20 md:h-20 rounded-full p-0.5 bg-black/10 dark:bg-white/10 group-hover:bg-black/20 dark:group-hover:bg-white/20 transition-colors">
-                  <div className="w-full h-full bg-white dark:bg-black rounded-full p-0.5 overflow-hidden">
+                  <div className="w-full h-full bg-white dark:bg-zinc-900 rounded-full p-0.5 overflow-hidden">
                     {h.cover_url ? (
                       <img src={h.cover_url} className="w-full h-full rounded-full object-cover" alt={h.title} />
                     ) : (

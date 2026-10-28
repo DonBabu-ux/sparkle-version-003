@@ -63,7 +63,7 @@ export default function MyListings() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
       <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">

@@ -92,7 +92,7 @@ export const ButtonSpinner = ({ color = '#ffffff' }: { color?: string }) => (
   <Spinner size="small" color={color} />
 );
 export const SpinnerFullscreen = ({ color = '#ff1493' }: { color?: string }) => (
-  <div className="fixed inset-0 z-(--z-top) flex items-center justify-center bg-white/80 dark:bg-black/80 backdrop-blur-sm">
+  <div className="fixed inset-0 z-(--z-top) flex items-center justify-center bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm">
     <Spinner size="xl" color={color} />
   </div>
 );

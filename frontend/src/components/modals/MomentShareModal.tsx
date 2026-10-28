@@ -130,10 +130,10 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
       <div ref={storyComposerRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
         <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
         
-        <div className="relative bg-white dark:bg-[#1b1b24] w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
+        <div className="relative bg-white dark:bg-zinc-800 w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
           <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
           <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
-            <button onClick={() => setShowStoryComposer(false)} className="absolute left-6 p-2 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
+            <button onClick={() => setShowStoryComposer(false)} className="absolute left-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
               <ChevronLeft size={20} />
             </button>
             <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Add to Story</h3>
@@ -150,7 +150,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 placeholder="Add a caption..."
                 value={storyCaption}
                 onChange={e => setStoryCaption(e.target.value)}
-                className="w-full h-12 bg-gray-100 dark:bg-[#101217] rounded-xl px-4 text-[14px] font-medium text-gray-900 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition-all text-center mb-6"
+                className="w-full h-12 bg-gray-100 dark:bg-zinc-800 rounded-xl px-4 text-[14px] font-medium text-gray-900 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition-all text-center mb-6"
              />
              
              <button 
@@ -171,11 +171,11 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-[6000] flex items-end sm:items-center justify-center p-0 sm:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
       
-      <div className="relative bg-white dark:bg-[#1b1b24] w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
+      <div className="relative bg-white dark:bg-zinc-800 w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
         <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
         <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
           <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Share Moment</h3>
-          <button onClick={onClose} className="absolute right-6 p-2 bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
+          <button onClick={onClose} className="absolute right-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
             <X size={20} />
           </button>
         </div>
@@ -186,7 +186,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
             <input 
               type="text" 
               placeholder="Search for friends..."
-              className="w-full h-11 bg-gray-100 dark:bg-[#101217] rounded-xl px-12 text-[14px] font-medium text-gray-900 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition-all text-center"
+              className="w-full h-11 bg-gray-100 dark:bg-zinc-800 rounded-xl px-12 text-[14px] font-medium text-gray-900 focus:bg-white border border-transparent focus:border-blue-500 outline-none transition-all text-center"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -225,7 +225,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">WhatsApp</span>
              </button>
              <button onClick={() => shareToExternal('twitter')} className="flex flex-col items-center gap-2">
-                <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-[#101217] text-gray-900 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
+                <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-zinc-800 text-gray-900 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
                    <Share2 size={18} />
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">X</span>
@@ -243,7 +243,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">{copied ? 'Copied' : 'Link'}</span>
              </button>
              <button onClick={handleNativeShare} className="flex flex-col items-center gap-2">
-                <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-[#101217] text-gray-600 dark:text-zinc-300 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
+                <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
                    <MoreHorizontal size={18} />
                 </div>
                 <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">More</span>
@@ -265,7 +265,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 onClick={handleDownload}
                 className="flex items-center gap-3 p-3 rounded-2xl hover:bg-gray-100 transition-colors w-full text-left group"
               >
-                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-[#101217] text-gray-600 dark:text-zinc-300 flex items-center justify-center group-hover:bg-gray-200 transition-colors shadow-sm">
+                  <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 flex items-center justify-center group-hover:bg-gray-200 transition-colors shadow-sm">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   </div>
                   <div>

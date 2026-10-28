@@ -65,13 +65,13 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
   return (
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="modal-inner">
       <div className="modal-header border-none">
-        <div className="modal-title text-slate-900 font-black">
-          <div className="p-2 bg-indigo-50 rounded-lg">
-            <Repeat2 size={20} className="text-indigo-600" />
+        <div className="modal-title text-[#18181b] dark:text-zinc-100 font-black">
+          <div className="p-2 bg-pink-500/10 dark:bg-pink-500/15 rounded-lg">
+            <Repeat2 size={20} className="text-[#ff1493] dark:text-pink-400" />
           </div>
           Add Your Thoughts
         </div>
-        <button className="p-2 hover:bg-slate-100 rounded-full transition-colors" onClick={onClose}><X size={20} /></button>
+        <button className="p-2 text-slate-600 dark:text-zinc-400 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 hover:text-[#18181b] dark:hover:text-zinc-100 rounded-full transition-colors" onClick={onClose}><X size={20} /></button>
       </div>
 
       <div className="modal-body px-6 pb-6 gap-4">
@@ -89,24 +89,25 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
             options={suggestions}
             loading={loading}
             onSelect={(u) => selectMention(u.username)}
-            className="absolute top-full left-0 w-full z-50 mt-1 bg-white dark:bg-[#1b1b24] border border-slate-100 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
+            className="absolute top-full left-0 w-full z-50 mt-1 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2"
           />
         </div>
 
-        <div className="original-post-preview group hover:border-indigo-200 transition-colors">
+        <div className="original-post-preview group hover:border-[#ff1493] dark:hover:border-pink-400 transition-colors">
           <div className="preview-header">
             <img src={originalPost.avatar_url || '/uploads/avatars/no-profile.png'} alt="" className="preview-avatar" />
             <span className="preview-username">{originalPost.username}</span>
-            <span className="text-slate-400 text-xs font-medium ml-auto">Original Post</span>
+            <span className="text-slate-600 dark:text-zinc-400 text-xs font-medium ml-auto">Original Post</span>
           </div>
           <div className="preview-content">
             {originalPost.content && <p className="preview-text text-slate-600 dark:text-zinc-300 italic">{originalPost.content}</p>}
+
             {originalPost.media_url && (
               <div className="preview-media grayscale-[0.2] group-hover:grayscale-0 transition-all duration-500">
                 {originalPost.media_type === 'video' ? (
-                  <div className="video-placeholder bg-slate-100 dark:bg-[#101217] flex items-center justify-center gap-2 py-8">
+                  <div className="video-placeholder bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center gap-2 py-8">
                     <Spinner size="small" color="text-primary" />
-                    <span className="text-slate-500 dark:text-zinc-400 font-bold">Video Clip</span>
+                    <span className="text-slate-600 dark:text-zinc-400 font-bold">Video Clip</span>
                   </div>
                 ) : (
                   <img src={originalPost.media_url} alt="" />
@@ -118,16 +119,16 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
 
         <div className="flex items-center justify-between mt-2">
            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2 text-slate-400">
-                 <AtSign size={14} />
-                 <span className="text-[10px] font-bold">Press @ to mention</span>
-              </div>
-              <span className={`text-[10px] font-black ${comment.length > 450 ? 'text-red-500' : 'text-slate-300'}`}>
-                {comment.length} / 500
-              </span>
+               <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-400">
+                  <AtSign size={14} />
+                  <span className="text-[10px] font-bold">Press @ to mention</span>
+                </div>
+               <span className={`text-[10px] font-black ${comment.length > 450 ? 'text-red-500 dark:text-red-400' : 'text-slate-600 dark:text-zinc-400'}`}>
+                 {comment.length} / 500
+               </span>
            </div>
            <button 
-             className="px-8 py-3 rounded-2xl bg-indigo-600 text-white font-black text-sm shadow-lg shadow-indigo-200 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
+              className="px-8 py-3 rounded-2xl bg-[#ff1493] text-white font-black text-sm shadow-lg shadow-pink-500/25 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 flex items-center gap-2"
              onClick={handleSubmit} 
              disabled={resharing}
            >
@@ -137,24 +138,25 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
       </div>
 
       <style>{`
-        .modal-inner { display: flex; flex-direction: column; height: auto; max-height: 90vh; border-radius: 32px; background: white; overflow: hidden; width: 100%; max-width: 500px; }
-        .reshare-input { width: 100%; border: none; font-family: inherit; outline: none; background: transparent; padding: 0; resize: none; color: #1e293b; }
-        .reshare-input::placeholder { color: #cbd5e1; }
-        .original-post-preview { border: 2px dashed #f1f5f9; border-radius: 20px; padding: 16px; background: #fcfdfe; }
+        .modal-inner { display: flex; flex-direction: column; height: auto; max-height: 90vh; border-radius: 32px; background: #fdf8fa; border: 1px solid #e6d8e1; overflow: hidden; width: 100%; max-width: 500px; }
+        .reshare-input { width: 100%; border: none; font-family: inherit; outline: none; background: transparent; padding: 0; resize: none; color: #18181b; }
+        .reshare-input::placeholder { color: #475569; }
+        .original-post-preview { border: 2px dashed #e6d8e1; border-radius: 20px; padding: 16px; background: #f6eef3; }
         .preview-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-        .preview-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; }
-        .preview-username { font-weight: 800; font-size: 0.85rem; color: #1e293b; }
-        .preview-text { font-size: 0.85rem; color: #64748b; line-height: 1.5; margin-bottom: 8px; }
+        .preview-avatar { width: 22px; height: 22px; border-radius: 50%; object-fit: cover; border: 1px solid #ede3e9; }
+        .preview-username { font-weight: 800; font-size: 0.85rem; color: #18181b; }
+        .preview-text { font-size: 0.85rem; color: #475569; line-height: 1.5; margin-bottom: 8px; }
         .preview-media { border-radius: 12px; overflow: hidden; max-height: 140px; }
         .preview-media img { width: 100%; height: 100%; object-fit: cover; }
 
-        /* Dark mode: authored light-only */
-        .dark .modal-inner { background: #1b1b24; }
-        .dark .reshare-input { color: #f0f0f5; }
-        .dark .reshare-input::placeholder { color: #6b7280; }
-        .dark .original-post-preview { border-color: rgba(255,255,255,0.14); background: rgba(255,255,255,0.03); }
-        .dark .preview-username { color: #f0f0f5; }
-        .dark .preview-text { color: #a8a8a8; }
+        /* Dark mode: same roles, zinc family */
+        .dark .modal-inner { background: #27272a; border-color: #3f3f46; }
+        .dark .reshare-input { color: #f4f4f5; }
+        .dark .reshare-input::placeholder { color: #a1a1aa; }
+        .dark .original-post-preview { border-color: #3f3f46; background: #18181b; }
+        .dark .preview-avatar { border-color: #18181b; }
+        .dark .preview-username { color: #f4f4f5; }
+        .dark .preview-text { color: #a1a1aa; }
       `}</style>
     </div>
   );

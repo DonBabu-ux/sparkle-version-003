@@ -118,8 +118,8 @@ export default function MomentStudio() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-black text-[#18181b] dark:text-white pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-black/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-white pb-[env(safe-area-inset-bottom)]">
+      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 px-4 py-3 flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
           aria-label="Go back"
@@ -135,7 +135,7 @@ export default function MomentStudio() {
         </div>
         <button
           onClick={() => navigate('/streams')}
-          className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#FF1F6D] text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-transform shrink-0"
+          className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#ff1493] text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-transform shrink-0"
         >
           <Radio size={14} strokeWidth={2.5} />
           Go Live
@@ -147,7 +147,7 @@ export default function MomentStudio() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
           {[
             { label: 'Views', value: totals.views, icon: Eye, tile: 'text-blue-500' },
-            { label: 'Sparks', value: totals.sparks, icon: Heart, tile: 'text-[#FF1F6D]' },
+            { label: 'Sparks', value: totals.sparks, icon: Heart, tile: 'text-[#ff1493]' },
             { label: 'Comments', value: totals.comments, icon: MessageSquare, tile: 'text-emerald-500' },
             { label: 'Shares', value: totals.shares, icon: Share2, tile: 'text-amber-500' },
           ].map(({ label, value, icon: Icon, tile }) => (

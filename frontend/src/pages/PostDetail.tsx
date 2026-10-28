@@ -97,7 +97,7 @@ export default function PostDetail() {
 
   if (loading) {
     return (
-      <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
+      <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center">
           <Spinner size="large" color="text-primary" />
         </div>
@@ -107,7 +107,7 @@ export default function PostDetail() {
 
   if (!post) {
     return (
-      <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
+      <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
         <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
             <Orbit size={120} strokeWidth={1} className="text-black/5" />
             <h2 className="text-4xl font-black text-[#18181b] dark:text-white mt-8 mb-4 tracking-tight italic">Post Not Found.</h2>
@@ -119,7 +119,7 @@ export default function PostDetail() {
   }
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
       
       <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-red-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
 
@@ -175,7 +175,7 @@ export default function PostDetail() {
               
               <button 
                 onClick={() => setShowSortModal(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-[#1b1b24] border border-black/5 dark:border-white/5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 group"
+                className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-800 border border-black/5 dark:border-white/5 rounded-full shadow-sm hover:shadow-md transition-all active:scale-95 group"
               >
                 <span className="text-[10px] font-black uppercase tracking-widest text-black/60 group-hover:text-primary">
                   {sortMode === 'relevant' ? 'Most relevant' : 
@@ -258,7 +258,7 @@ export default function PostDetail() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
-              className="fixed bottom-0 left-0 lg:left-72 right-0 bg-white dark:bg-[#1b1b24] rounded-t-[48px] z-[1001] shadow-2xl p-8 pb-12 md:p-12"
+              className="fixed bottom-0 left-0 lg:left-72 right-0 bg-white dark:bg-zinc-800 rounded-t-[48px] z-[1001] shadow-2xl p-8 pb-12 md:p-12"
             >
               <div className="w-12 h-1.5 bg-black/5 rounded-full mx-auto mb-8" />
               

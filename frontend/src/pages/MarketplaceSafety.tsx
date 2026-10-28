@@ -110,7 +110,7 @@ export default function MarketplaceSafety() {
                 x: { type: "spring", stiffness: 300, damping: 30 },
                 opacity: { duration: 0.2 }
               }}
-              className="absolute inset-0 bg-[#121212] border border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center text-center shadow-2xl"
+              className="absolute inset-0 bg-[#27272a] border border-white/10 rounded-[32px] p-8 flex flex-col items-center justify-center text-center shadow-2xl"
             >
               {/* Glassmorphic Icon Container */}
               <div className="w-16 h-16 bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-2xl flex items-center justify-center mb-8 shadow-inner">

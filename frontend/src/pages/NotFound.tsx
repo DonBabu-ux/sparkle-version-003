@@ -9,7 +9,7 @@ export default function NotFound() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'linear-gradient(135deg, #f8fafc 0%, #f0f4ff 100%)',
+      background: '#f8e7ed',
       padding: '40px 20px',
       textAlign: 'center',
       fontFamily: "'Outfit', sans-serif",
@@ -19,7 +19,7 @@ export default function NotFound() {
         <div style={{
           fontSize: '9rem',
           fontWeight: 900,
-          color: '#FF3D6D',
+          color: '#ff1493',
           letterSpacing: '-8px',
           lineHeight: 1,
           userSelect: 'none',
@@ -67,14 +67,14 @@ export default function NotFound() {
           display: 'inline-flex',
           alignItems: 'center',
           gap: 8,
-          background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)',
+          background: '#ff1493',
           color: 'white',
           textDecoration: 'none',
           padding: '14px 28px',
           borderRadius: 16,
           fontWeight: 800,
           fontSize: '0.95rem',
-          boxShadow: '0 8px 24px rgba(255,61,109,0.25)',
+          boxShadow: '0 8px 24px rgba(255,20,147,0.25)',
           transition: 'all 0.2s',
         }}>
           <Home size={18} /> Go Home
@@ -90,7 +90,7 @@ export default function NotFound() {
           borderRadius: 16,
           fontWeight: 700,
           fontSize: '0.95rem',
-          border: '1px solid #e2e8f0',
+          border: '1px solid #e6d8e1',
           boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
         }}>
           <Search size={18} /> Search

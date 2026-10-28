@@ -179,12 +179,12 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           }
         }}
         className={clsx(
-          "relative z-10 px-5 py-3.5 transition-colors duration-150 cursor-pointer flex items-center gap-3.5 bg-[#13131a]",
+          "relative z-10 px-5 py-3.5 transition-colors duration-150 cursor-pointer flex items-center gap-3.5 bg-white dark:bg-[#13131a]",
           isSelected
             ? 'bg-[#ff1493]/15'
             : isActive
-              ? 'bg-white/[0.07] shadow-[inset_3px_0_0_0_#ff1493]'
-              : 'hover:bg-white/[0.06] active:bg-white/[0.04]',
+              ? 'bg-black/[0.06] dark:bg-white/[0.07] shadow-[inset_3px_0_0_0_#ff1493]'
+              : 'hover:bg-black/[0.04] dark:hover:bg-white/[0.06] active:bg-black/[0.05] dark:active:bg-white/[0.04]',
           isPressing && 'scale-[0.99] opacity-90',
           'focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[#ff1493]/60'
         )}
@@ -204,12 +204,12 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           ) : (
             <img
               src={(chatAvatar && chatAvatar !== '/logo.png') ? chatAvatar : '/uploads/avatars/no-profile.png'}
-              className="w-[52px] h-[52px] rounded-full object-cover border border-white/10 shadow-md"
+              className="w-[52px] h-[52px] rounded-full object-cover border border-black/10 dark:border-white/10 shadow-md"
               alt=""
             />
           )}
           {itemIdentity.presence.showPresence && itemIdentity.presence.isOnline && !isSelfChat && !isSelected && (
-            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-[2.5px] border-[#13131a] rounded-full" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-[2.5px] border-white dark:border-[#13131a] rounded-full" />
           )}
         </div>
 
@@ -219,7 +219,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
           <div className="flex justify-between items-center mb-0.5">
             <h4 className={clsx(
               "text-[15px] tracking-tight truncate leading-tight flex items-center gap-1.5",
-              liveUnread > 0 ? 'font-black text-[#f5f5f5]' : 'font-semibold text-[#f5f5f5]/90'
+              liveUnread > 0 ? 'font-black text-[#18181b] dark:text-[#f5f5f5]' : 'font-semibold text-[#18181b]/90 dark:text-[#f5f5f5]/90'
             )}>
               {displayName}
               {!isSelfChat && (
@@ -259,7 +259,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                       <p className="text-[13px] font-bold text-[#ff1493] italic truncate">
                         {typingUser.name ? `${typingUser.name} is typing • • •` : 'is typing • • •'}
                       </p>
-                      <span className="text-[10px] font-bold text-white/20 lowercase shrink-0">· {timeLabel}</span>
+                      <span className="text-[10px] font-bold text-black/20 dark:text-white/20 lowercase shrink-0">· {timeLabel}</span>
                     </div>
                   );
                 }
@@ -267,10 +267,10 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                 if (displayInfo.mode === 'unread_summary') {
                   return (
                     <div className="flex items-center gap-1.5 truncate">
-                      <p className="text-[13px] font-bold text-white/80 truncate flex-1">
+                      <p className="text-[13px] font-bold text-black/80 dark:text-white/80 truncate flex-1">
                         {displayInfo.unreadSummary}
                       </p>
-                      <span className="text-[10px] font-bold text-white/30 lowercase shrink-0">· {timeLabel}</span>
+                      <span className="text-[10px] font-bold text-black/30 dark:text-white/30 lowercase shrink-0">· {timeLabel}</span>
                     </div>
                   );
                 }
@@ -285,7 +285,7 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
 
                 return (
                   <div className="flex items-center gap-1.5 truncate">
-                    <p className="text-[13px] font-normal text-white/45 truncate flex-1 min-w-0">
+                    <p className="text-[13px] font-normal text-black/45 dark:text-white/45 truncate flex-1 min-w-0">
                       {previewText}
                     </p>
                     {displayInfo.middleLabel && (
@@ -294,13 +294,13 @@ export const SparkleSwipeableChatItem: React.FC<SparkleSwipeableChatItemProps> =
                         displayInfo.middleLabel === 'Seen' ? "text-sky-400/90" :
                         displayInfo.middleLabel === 'Active now' ? "text-emerald-400/90" :
                         displayInfo.middleLabel === 'Failed' ? "text-rose-400/90" :
-                        "text-white/50"
+                        "text-black/50 dark:text-white/50"
                       )}>
                         · {displayInfo.middleLabel}
                       </span>
                     )}
                     {timeLabel && (
-                      <span className="text-[10px] font-bold text-white/30 lowercase shrink-0">· {timeLabel}</span>
+                      <span className="text-[10px] font-bold text-black/30 dark:text-white/30 lowercase shrink-0">· {timeLabel}</span>
                     )}
                   </div>
                 );

@@ -315,47 +315,49 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           position: relative;
           width: 100%;
           max-width: 520px;
-          background: #fff;
+          background: #fdf8fa;
           border-radius: 28px 28px 0 0;
           overflow: hidden;
           display: flex; flex-direction: column;
           max-height: 92vh;
           box-shadow: 0 -20px 60px rgba(0,0,0,0.2);
         }
-        .dark .sof-sheet { background: #000; border: 1px solid rgba(255,255,255,0.1); border-bottom: none; }
+        .dark .sof-sheet { background: #27272a; border: 1px solid #3f3f46; border-bottom: none; }
         @media (min-width: 640px) {
           .sof-sheet { border-radius: 28px; box-shadow: 0 40px 120px rgba(0,0,0,0.25); }
-          .dark .sof-sheet { border-bottom: 1px solid rgba(255,255,255,0.1); }
+          .dark .sof-sheet { border-bottom: 1px solid #3f3f46; }
         }
 
         /* Header */
         .sof-header {
           padding: 24px 24px 16px;
           display: flex; align-items: flex-start; justify-content: space-between;
-          border-bottom: 1px solid #f3f4f6;
+          border-bottom: 1px solid #ede3e9;
         }
-        .dark .sof-header { border-color: rgba(255,255,255,0.1); }
-        .sof-header__title { font-size: 20px; font-weight: 800; color: #111827; margin-bottom: 8px; }
-        .dark .sof-header__title { color: #fff; }
+        .dark .sof-header { border-color: #18181b; }
+        .sof-header__title { font-size: 20px; font-weight: 800; color: #18181b; margin-bottom: 8px; }
+        .dark .sof-header__title { color: #f4f4f5; }
         .sof-steps { display: flex; align-items: center; gap: 6px; }
         .sof-step {
           height: 4px; width: 28px; border-radius: 99px;
-          background: #e5e7eb; transition: background 0.2s, width 0.2s;
+          background: #ede3e9; transition: background 0.2s, width 0.2s;
         }
-        .dark .sof-step { background: rgba(255,255,255,0.1); }
-        .sof-step--active { background: #e11d48; width: 40px; }
+        .dark .sof-step { background: #3f3f46; }
+        .sof-step--active { background: #ff1493; width: 40px; }
         .sof-step--done { background: #10b981; }
-        .sof-steps__label { font-size: 12px; font-weight: 500; color: #9ca3af; margin-left: 4px; }
+        .dark .sof-step--done { background: #10b981; }
+        .sof-steps__label { font-size: 12px; font-weight: 500; color: #475569; margin-left: 4px; }
+        .dark .sof-steps__label { color: #a1a1aa; }
         .sof-close {
           width: 36px; height: 36px;
-          background: #f3f4f6; border: none; border-radius: 12px;
+          background: #f6eef3; border: 1px solid #ede3e9; border-radius: 12px;
           display: flex; align-items: center; justify-content: center;
-          color: #6b7280; cursor: pointer;
+          color: #475569; cursor: pointer;
           transition: background 0.18s, color 0.18s;
         }
-        .dark .sof-close { background: rgba(255,255,255,0.1); color: #fff; }
-        .sof-close:hover { background: #e5e7eb; color: #111827; }
-        .dark .sof-close:hover { background: rgba(255,255,255,0.15); }
+        .dark .sof-close { background: #27272a; border-color: #3f3f46; color: #a1a1aa; }
+        .sof-close:hover { background: #e7dae3; color: #18181b; border-color: #e6d8e1; }
+        .dark .sof-close:hover { background: #3f3f46; color: #f4f4f5; border-color: #52525b; }
 
         /* Body */
         .sof-body { flex: 1; overflow-y: auto; padding: 20px 24px; scrollbar-width: none; }
@@ -364,9 +366,10 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
 
         /* Field */
         .sof-field { display: flex; flex-direction: column; gap: 8px; }
-        .sof-label { font-size: 12px; font-weight: 600; color: #374151; letter-spacing: 0.01em; }
-        .dark .sof-label { color: #9ca3af; }
-        .sof-char { font-size: 11px; color: #9ca3af; text-align: right; margin-top: -4px; }
+        .sof-label { font-size: 12px; font-weight: 600; color: #334155; letter-spacing: 0.01em; }
+        .dark .sof-label { color: #a1a1aa; }
+        .sof-char { font-size: 11px; color: #475569; text-align: right; margin-top: -4px; }
+        .dark .sof-char { color: #a1a1aa; }
 
         /* Category grid */
         .sof-cat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
@@ -374,34 +377,35 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         .sof-cat {
           display: flex; align-items: center; gap: 8px;
           padding: 10px 12px;
-          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          background: #f6eef3; border: 1.5px solid #ede3e9;
           border-radius: 14px;
-          font-size: 13px; font-weight: 600; color: #6b7280;
+          font-size: 13px; font-weight: 600; color: #475569;
           cursor: pointer; transition: all 0.18s;
         }
-        .dark .sof-cat { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #9ca3af; }
-        .sof-cat:hover { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
-        .dark .sof-cat:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .sof-cat--active { background: #111827; color: #fff; border-color: #111827; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
-        .dark .sof-cat--active { background: #fff; color: #000; border-color: #fff; }
+        .dark .sof-cat { background: #18181b; border-color: #3f3f46; color: #a1a1aa; }
+        .sof-cat:hover { background: #f0e5ec; color: #334155; border-color: #e6d8e1; }
+        .dark .sof-cat:hover { background: #3f3f46; color: #f4f4f5; border-color: #52525b; }
+        .sof-cat--active { background: #ff1493; color: #fff; border-color: #ff1493; box-shadow: 0 4px 12px rgba(255,20,147,0.25); }
+        .dark .sof-cat--active { background: #ff1493; color: #ffffff; border-color: #ff1493; box-shadow: 0 4px 12px rgba(255,20,147,0.25); }
 
         /* Text inputs */
         .sof-input, .sof-textarea {
           width: 100%; padding: 12px 16px;
-          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          background: #f6eef3; border: 1.5px solid #ede3e9;
           border-radius: 14px;
-          font-family: inherit; font-size: 14px; font-weight: 500; color: #111827;
+          font-family: inherit; font-size: 14px; font-weight: 500; color: #18181b;
           outline: none; transition: border-color 0.18s, box-shadow 0.18s;
           resize: none;
         }
-        .dark .sof-input, .dark .sof-textarea { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); color: #fff; }
-        .sof-input::placeholder, .sof-textarea::placeholder { color: #9ca3af; }
+        .dark .sof-input, .dark .sof-textarea { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
+        .sof-input::placeholder, .sof-textarea::placeholder { color: #475569; }
+        .dark .sof-input::placeholder, .dark .sof-textarea::placeholder { color: #a1a1aa; }
         .sof-input:focus, .sof-textarea:focus {
-          border-color: rgba(225,29,72,0.35);
-          box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
-          background: #fff;
+          border-color: rgba(255,20,147,0.35);
+          box-shadow: 0 0 0 3px rgba(255,20,147,0.08);
+          background: #fdf8fa;
         }
-        .dark .sof-input:focus, .dark .sof-textarea:focus { background: #000; border-color: #e11d48; }
+        .dark .sof-input:focus, .dark .sof-textarea:focus { background: #27272a; border-color: #ff1493; }
         .sof-textarea--over {
           border-color: rgba(239,68,68,0.4) !important;
           box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;
@@ -411,16 +415,19 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         .sof-wc-bar { display: flex; flex-direction: column; gap: 6px; }
         .sof-wc-track {
           height: 4px; border-radius: 99px;
-          background: #f3f4f6; overflow: hidden;
+          background: #ede3e9; overflow: hidden;
         }
-        .dark .sof-wc-track { background: rgba(255,255,255,0.05); }
+        .dark .sof-wc-track { background: #3f3f46; }
         .sof-wc-fill {
           height: 100%; border-radius: 99px;
           transition: width 0.25s ease, background 0.25s ease;
         }
         .sof-wc-fill--low  { background: #ef4444; }
+        .dark .sof-wc-fill--low { background: #ef4444; }
         .sof-wc-fill--ok   { background: #10b981; }
+        .dark .sof-wc-fill--ok { background: #10b981; }
         .sof-wc-fill--over { background: #f97316; }
+        .dark .sof-wc-fill--over { background: #f97316; }
         .sof-wc-info {
           display: flex; align-items: center; justify-content: space-between;
         }
@@ -428,112 +435,120 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
           font-size: 12px; font-weight: 600;
           transition: color 0.2s;
         }
-        .sof-wc-msg--low  { color: #ef4444; }
-        .sof-wc-msg--ok   { color: #10b981; }
-        .sof-wc-msg--over { color: #f97316; }
+        .sof-wc-msg--low  { color: #dc2626; }
+        .dark .sof-wc-msg--low { color: #f87171; }
+        .sof-wc-msg--ok   { color: #059669; }
+        .dark .sof-wc-msg--ok { color: #34d399; }
+        .sof-wc-msg--over { color: #ea580c; }
+        .dark .sof-wc-msg--over { color: #fb923c; }
         .sof-wc-count {
-          font-size: 12px; font-weight: 600; color: #9ca3af;
+          font-size: 12px; font-weight: 600; color: #475569;
           transition: color 0.2s;
         }
-        .sof-wc-count--ok   { color: #10b981; }
-        .sof-wc-count--over { color: #f97316; }
+        .dark .sof-wc-count { color: #a1a1aa; }
+        .sof-wc-count--ok   { color: #059669; }
+        .dark .sof-wc-count--ok { color: #34d399; }
+        .sof-wc-count--over { color: #ea580c; }
+        .dark .sof-wc-count--over { color: #fb923c; }
 
         .sof-types { display: flex; flex-direction: column; gap: 8px; }
         .sof-type {
           display: flex; align-items: center; justify-content: space-between;
           padding: 14px 16px;
-          background: #f9fafb; border: 1.5px solid #f3f4f6;
+          background: #f6eef3; border: 1.5px solid #ede3e9;
           border-radius: 16px;
           cursor: pointer; transition: all 0.18s; text-align: left;
         }
-        .dark .sof-type { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
-        .sof-type:hover { background: #f3f4f6; border-color: #e5e7eb; }
-        .dark .sof-type:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.1); }
-        .sof-type--active { background: #111827; border-color: #111827; box-shadow: 0 4px 16px rgba(0,0,0,0.15); }
-        .dark .sof-type--active { background: #fff; border-color: #fff; }
-        .sof-type__name { font-size: 14px; font-weight: 700; color: #111827; margin-bottom: 2px; }
-        .dark .sof-type__name { color: #fff; }
-        .sof-type--active .sof-type__name { color: #fff; }
-        .dark .sof-type--active .sof-type__name { color: #000; }
-        .sof-type__desc { font-size: 12px; font-weight: 500; color: #6b7280; }
-        .dark .sof-type__desc { color: #9ca3af; }
-        .sof-type--active .sof-type__desc { color: rgba(255,255,255,0.6); }
-        .dark .sof-type--active .sof-type__desc { color: rgba(0,0,0,0.6); }
-        .sof-type__check { color: #e11d48; flex-shrink: 0; }
+        .dark .sof-type { background: #18181b; border-color: #3f3f46; }
+        .sof-type:hover { background: #f0e5ec; border-color: #e6d8e1; }
+        .dark .sof-type:hover { background: #3f3f46; border-color: #52525b; }
+        .sof-type--active { background: #ff1493; border-color: #ff1493; box-shadow: 0 4px 16px rgba(255,20,147,0.25); }
+        .dark .sof-type--active { background: #ff1493; border-color: #ff1493; }
+        .sof-type__name { font-size: 14px; font-weight: 700; color: #18181b; margin-bottom: 2px; }
+        .dark .sof-type__name { color: #f4f4f5; }
+        .sof-type--active .sof-type__name { color: #ffffff; }
+        .dark .sof-type--active .sof-type__name { color: #ffffff; }
+        .sof-type__desc { font-size: 12px; font-weight: 500; color: #475569; }
+        .dark .sof-type__desc { color: #a1a1aa; }
+        .sof-type--active .sof-type__desc { color: rgba(255,255,255,0.85); }
+        .dark .sof-type--active .sof-type__desc { color: rgba(255,255,255,0.85); }
+        .sof-type__check { color: #ff1493; flex-shrink: 0; }
 
         /* Pricing */
         .sof-pricing { display: flex; gap: 10px; align-items: stretch; }
         .sof-price-wrap {
           flex: 1; position: relative;
           display: flex; align-items: center;
-          background: #f9fafb; border: 1.5px solid #f3f4f6; border-radius: 14px;
+          background: #f6eef3; border: 1.5px solid #ede3e9; border-radius: 14px;
           padding: 0 16px; transition: opacity 0.2s;
         }
-        .dark .sof-price-wrap { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
+        .dark .sof-price-wrap { background: #18181b; border-color: #3f3f46; }
         .sof-price-wrap:focus-within {
-          border-color: rgba(225,29,72,0.35);
-          box-shadow: 0 0 0 3px rgba(225,29,72,0.08);
-          background: #fff;
+          border-color: rgba(255,20,147,0.35);
+          box-shadow: 0 0 0 3px rgba(255,20,147,0.08);
+          background: #fdf8fa;
         }
-        .dark .sof-price-wrap:focus-within { background: #000; border-color: #e11d48; }
+        .dark .sof-price-wrap:focus-within { background: #27272a; border-color: #ff1493; }
         .sof-price-wrap--disabled { opacity: 0.35; pointer-events: none; }
-        .sof-price-prefix { font-size: 13px; font-weight: 700; color: #9ca3af; margin-right: 8px; }
+        .sof-price-prefix { font-size: 13px; font-weight: 700; color: #475569; margin-right: 8px; }
+        .dark .sof-price-prefix { color: #a1a1aa; }
         .sof-price-input {
           flex: 1; background: transparent; border: none; outline: none;
-          font-family: inherit; font-size: 20px; font-weight: 700; color: #111827;
+          font-family: inherit; font-size: 20px; font-weight: 700; color: #18181b;
           padding: 14px 0;
         }
-        .dark .sof-price-input { color: #fff; }
+        .dark .sof-price-input { color: #f4f4f5; }
         .sof-free-btn {
           display: flex; flex-direction: column; align-items: center; justify-content: center;
           gap: 4px; padding: 0 20px;
-          background: #f9fafb; border: 1.5px solid #f3f4f6; border-radius: 14px;
-          font-size: 12px; font-weight: 700; color: #9ca3af;
+          background: #f6eef3; border: 1.5px solid #ede3e9; border-radius: 14px;
+          font-size: 12px; font-weight: 700; color: #475569;
           cursor: pointer; transition: all 0.18s; min-height: 56px;
         }
-        .dark .sof-free-btn { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.05); }
-        .sof-free-btn:hover { background: #f3f4f6; color: #374151; }
-        .dark .sof-free-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-        .sof-free-btn--active { background: #ecfdf5; border-color: #10b981; color: #10b981; }
-        .dark .sof-free-btn--active { background: rgba(16,185,129,0.1); }
-        .sof-hint { font-size: 11px; font-weight: 500; color: #9ca3af; margin-top: -4px; }
+        .dark .sof-free-btn { background: #18181b; border-color: #3f3f46; color: #a1a1aa; }
+        .sof-free-btn:hover { background: #f0e5ec; color: #334155; border-color: #e6d8e1; }
+        .dark .sof-free-btn:hover { background: #3f3f46; color: #f4f4f5; border-color: #52525b; }
+        .sof-free-btn--active { background: #ecfdf5; border-color: #10b981; color: #059669; }
+        .dark .sof-free-btn--active { background: rgba(16,185,129,0.15); border-color: #10b981; color: #34d399; }
+        .sof-hint { font-size: 11px; font-weight: 500; color: #475569; margin-top: -4px; }
+        .dark .sof-hint { color: #a1a1aa; }
 
         /* Footer */
         .sof-footer {
           display: flex; gap: 10px;
           padding: 16px 24px 28px;
-          border-top: 1px solid #f3f4f6;
+          border-top: 1px solid #ede3e9;
         }
-        .dark .sof-footer { border-color: rgba(255,255,255,0.1); }
+        .dark .sof-footer { border-color: #18181b; }
         @media (min-width: 640px) { .sof-footer { padding-bottom: 20px; } }
         .sof-back {
           padding: 0 20px; height: 52px;
-          background: #f3f4f6; border: none; border-radius: 14px;
-          font-family: inherit; font-size: 14px; font-weight: 600; color: #374151;
+          background: #f6eef3; border: 1px solid #ede3e9; border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 600; color: #334155;
           cursor: pointer; transition: background 0.18s;
         }
-        .dark .sof-back { background: rgba(255,255,255,0.1); color: #fff; }
-        .sof-back:hover { background: #e5e7eb; }
+        .dark .sof-back { background: #18181b; border-color: #3f3f46; color: #d4d4d8; }
+        .sof-back:hover { background: #e7dae3; color: #18181b; border-color: #e6d8e1; }
+        .dark .sof-back:hover { background: #3f3f46; color: #f4f4f5; border-color: #52525b; }
         .sof-next {
           flex: 1; height: 52px;
           display: flex; align-items: center; justify-content: center; gap: 8px;
-          background: #111827; border: none; border-radius: 14px;
-          font-family: inherit; font-size: 14px; font-weight: 700; color: #fff;
+          background: #ff1493; border: none; border-radius: 14px;
+          font-family: inherit; font-size: 14px; font-weight: 700; color: #ffffff;
           cursor: pointer; transition: background 0.18s, box-shadow 0.18s, transform 0.12s;
         }
-        .dark .sof-next { background: #fff; color: #000; }
-        .sof-next:hover:not(:disabled) { background: #e11d48; box-shadow: 0 8px 24px rgba(225,29,72,0.3); }
-        .dark .sof-next:hover:not(:disabled) { color: #fff; }
+        .dark .sof-next { background: #ff1493; color: #ffffff; }
+        .sof-next:hover:not(:disabled) { background: #e0117f; box-shadow: 0 8px 24px rgba(255,20,147,0.3); }
+        .dark .sof-next:hover:not(:disabled) { background: #ff2d87; box-shadow: 0 8px 24px rgba(255,20,147,0.3); }
         .sof-next:active:not(:disabled) { transform: scale(0.98); }
         .sof-next:disabled { opacity: 0.35; cursor: not-allowed; }
         .sof-spinner {
           width: 18px; height: 18px;
           border: 2.5px solid rgba(255,255,255,0.3);
-          border-top-color: #fff;
+          border-top-color: #ffffff;
           border-radius: 50%;
           animation: sof-spin 0.65s linear infinite;
         }
-        .dark .sof-spinner { border-top-color: #000; }
 
         /* Success */
         .sof-success {
@@ -543,20 +558,16 @@ export default function SkillOfferModal({ onClose, onSuccess }: { onClose: () =>
         }
         .sof-success__circle {
           width: 80px; height: 80px;
-          background: #ecfdf5; border-radius: 50%;
+          background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 50%;
           display: flex; align-items: center; justify-content: center;
-          color: #10b981; margin-bottom: 20px;
+          color: #059669; margin-bottom: 20px;
           box-shadow: 0 8px 32px rgba(16,185,129,0.2);
         }
-        .dark .sof-success__circle { background: rgba(16,185,129,0.1); }
-        .sof-success__title { font-size: 22px; font-weight: 800; color: #111827; margin-bottom: 8px; }
-        .dark .sof-success__title { color: #fff; }
-        .sof-success__sub { font-size: 14px; font-weight: 500; color: #6b7280; }
-        .dark .sof-success__sub { color: #9ca3af; }
-
-        .dark .sof-wc-fill--over { background: #ea580c; }
-        .dark .sof-wc-msg--ok { color: #34d399; }
-        .dark .sof-wc-count--ok { color: #34d399; }
+        .dark .sof-success__circle { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); color: #34d399; box-shadow: none; }
+        .sof-success__title { font-size: 22px; font-weight: 800; color: #18181b; margin-bottom: 8px; }
+        .dark .sof-success__title { color: #f4f4f5; }
+        .sof-success__sub { font-size: 14px; font-weight: 500; color: #475569; }
+        .dark .sof-success__sub { color: #a1a1aa; }
       `}</style>
     </div>
   );

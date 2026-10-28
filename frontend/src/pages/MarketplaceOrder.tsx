@@ -91,13 +91,13 @@ export default function MarketplaceOrder() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#1b1b24] flex items-center justify-center">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 flex items-center justify-center">
       <Spinner size="medium" color="text-primary" />
     </div>
   );
 
   if (!listing) return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-[#101217] flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-800 flex flex-col items-center justify-center px-6 text-center">
       <h1 className="text-xl font-black text-[#18181b] dark:text-white mb-2">Listing unavailable</h1>
       <p className="text-sm text-black/60 mb-6">{loadError || 'This listing is no longer available.'}</p>
       <button
@@ -112,8 +112,8 @@ export default function MarketplaceOrder() {
   const isOwner = user?.user_id && listing.seller_id === user.user_id;
 
   return (
-    <div className="min-h-dvh bg-slate-50 dark:bg-[#101217] pb-10">
-      <div className="bg-white dark:bg-[#1b1b24] sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
+    <div className="min-h-dvh bg-slate-50 dark:bg-zinc-800 pb-10">
+      <div className="bg-white dark:bg-zinc-800 sticky top-0 z-50 border-b border-slate-100 px-4 h-16 flex items-center gap-4">
         <button onClick={() => navigate(-1)} className="p-2 -ml-2 hover:bg-slate-50 rounded-full transition-colors">
           <ChevronLeft size={24} />
         </button>
@@ -121,7 +121,7 @@ export default function MarketplaceOrder() {
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pt-6">
-        <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
+        <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-slate-100 mb-6">
           <div className="flex gap-4">
             <img 
               src={listing.media_url || listing.image_url || listing.thumbnail || '/uploads/defaults/no-image.png'}
@@ -139,7 +139,7 @@ export default function MarketplaceOrder() {
         </div>
 
         {isOwner ? (
-          <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 border border-slate-100 text-center">
+          <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 border border-slate-100 text-center">
             <p className="font-bold text-[#18181b] dark:text-white mb-1">This is your listing.</p>
             <p className="text-sm text-black/60 mb-4">You cannot send an order request to yourself.</p>
             <button onClick={() => navigate(`/marketplace/listings/${listingId}`)} className="px-6 py-3 bg-black text-white rounded-2xl font-bold text-sm">
@@ -148,7 +148,7 @@ export default function MarketplaceOrder() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-slate-100">
               <div className="flex items-center gap-3 mb-4">
                 <CreditCard className="text-blue-500" size={20} />
                 <h3 className="font-black text-[#18181b] dark:text-white">Agreed Price</h3>
@@ -159,13 +159,13 @@ export default function MarketplaceOrder() {
                   type="number"
                   value={agreedPrice}
                   onChange={(e) => setAgreedPrice(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 pl-14 pr-4 text-xl font-black text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                  className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl py-4 pl-14 pr-4 text-xl font-black text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                 />
               </div>
               <p className="text-xs text-black/50 mt-2">This is the price you propose to the seller. Nothing is charged in the app.</p>
             </div>
 
-            <div className="bg-white dark:bg-[#1b1b24] rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-zinc-800 rounded-3xl p-6 shadow-sm border border-slate-100">
               <div className="flex items-center gap-3 mb-4">
                 <MapPin className="text-emerald-500" size={20} />
                 <h3 className="font-black text-[#18181b] dark:text-white">Meetup Details</h3>
@@ -178,7 +178,7 @@ export default function MarketplaceOrder() {
                     value={campus}
                     onChange={(e) => setCampus(e.target.value)}
                     placeholder="e.g. Main Campus"
-                    className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl p-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl p-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -188,7 +188,7 @@ export default function MarketplaceOrder() {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="e.g. Student Union, Library Gate"
-                    className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl p-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl p-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                   />
                 </div>
                 <div>
@@ -199,7 +199,7 @@ export default function MarketplaceOrder() {
                       type="datetime-local"
                       value={scheduledTime}
                       onChange={(e) => { setScheduledTime(e.target.value); setTimeError(''); }}
-                      className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
+                      className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl py-4 pl-12 pr-4 font-bold text-[#18181b] dark:text-white focus:ring-2 ring-blue-500/20 outline-none transition-all"
                     />
                   </div>
                   {timeError && <p className="text-xs font-bold text-rose-600 mt-2">{timeError}</p>}

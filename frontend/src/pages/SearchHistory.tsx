@@ -68,7 +68,7 @@ export default function SearchHistory() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden selection:bg-primary/10">
       
       {/* Cinematic Background Elements */}
       <div className="fixed inset-0 pointer-events-none z-0">

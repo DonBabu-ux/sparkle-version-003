@@ -93,11 +93,11 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
-            className="fixed inset-x-0 bottom-0 bg-white dark:bg-[#1b1b24] rounded-t-[32px] z-[1501] px-6 pt-8 pb-10 max-w-lg mx-auto"
+            className="fixed inset-x-0 bottom-0 bg-white dark:bg-zinc-800 rounded-t-[32px] z-[1501] px-6 pt-8 pb-10 max-w-lg mx-auto"
           >
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl font-black tracking-tighter">Share Profile</h2>
-              <button onClick={onClose} className="p-2 bg-slate-100 dark:bg-[#101217] rounded-full hover:bg-slate-200 transition-colors">
+              <button onClick={onClose} className="p-2 bg-slate-100 dark:bg-zinc-800 rounded-full hover:bg-slate-200 transition-colors">
                 <X size={20} />
               </button>
             </div>
@@ -132,7 +132,7 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
                   initial={{ opacity: 0, scale: 0.9 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.9 }}
-                  className="mb-8 flex flex-col items-center bg-slate-50 dark:bg-[#101217] p-8 rounded-[24px] border border-slate-100"
+                  className="mb-8 flex flex-col items-center bg-slate-50 dark:bg-zinc-800 p-8 rounded-[24px] border border-slate-100"
                 >
                   <img src={qrCodeUrl} alt="Profile QR Code" className="w-48 h-48 rounded-xl shadow-lg mb-4" />
                   <p className="text-sm font-bold text-slate-500 dark:text-zinc-400">Scan to view {username}'s shop</p>
@@ -145,7 +145,7 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
                 type="text"
                 readOnly
                 value={profileUrl}
-                className="w-full bg-slate-100 dark:bg-[#101217] border-none rounded-[18px] py-4 pl-5 pr-24 font-bold text-slate-600 dark:text-zinc-300 text-sm focus:ring-2 focus:ring-marketplace-text transition-all"
+                className="w-full bg-slate-100 dark:bg-zinc-800 border-none rounded-[18px] py-4 pl-5 pr-24 font-bold text-slate-600 dark:text-zinc-300 text-sm focus:ring-2 focus:ring-marketplace-text transition-all"
               />
               <button
                 onClick={copyToClipboard}

@@ -102,7 +102,7 @@ export default function Streams() {
       <div className="min-h-dvh bg-gradient-to-b from-[#090514] via-[#0e0720] to-[#04020a] flex flex-col items-center justify-center text-white">
         <Spinner size="large" color="text-primary" />
         <p className="text-[10px] font-black uppercase tracking-widest text-[#ff4db8] mt-4 animate-pulse">
-          Tuning frequencies...
+          Loading streams...
         </p>
       </div>
     );
@@ -254,7 +254,7 @@ export default function Streams() {
                   
                   {/* Floating Tags */}
                   <div className="absolute top-3 left-3 bg-[#ff008a] text-white px-2 py-0.5 rounded text-[9px] font-black tracking-widest uppercase shadow-md flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-[#1b1b24] animate-pulse" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-white dark:bg-zinc-800 animate-pulse" />
                     LIVE
                   </div>
                   <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[9px] font-bold tracking-wider flex items-center gap-1">
@@ -268,7 +268,7 @@ export default function Streams() {
                 {/* Content Area */}
                 <div className="p-5 flex-1 flex flex-col pt-0 transform -translate-y-5">
                   <div className="flex items-end gap-3 mb-4">
-                    <img src={stream.avatar_url} className="w-12 h-12 rounded-xl border-4 border-[#120b22] shadow-lg object-cover bg-white dark:bg-[#1b1b24]" alt="streamer" />
+                    <img src={stream.avatar_url} className="w-12 h-12 rounded-xl border-4 border-[#120b22] shadow-lg object-cover bg-white dark:bg-zinc-800" alt="streamer" />
                     <div className="pb-1 min-w-0 flex-1">
                       <h3 className="font-bold text-white text-sm leading-tight truncate">{stream.title}</h3>
                       <div className="text-[10px] font-bold text-white/40 uppercase tracking-tight mt-0.5">@{stream.streamer_name}</div>

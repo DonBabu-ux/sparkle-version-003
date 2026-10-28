@@ -12,10 +12,10 @@ interface Heart {
 }
 
 const GRADIENTS = [
-  { id: 'heart-grad-1', colors: ['#FF0000', '#FF006E', '#8338EC'] }, // Red -> Pink -> Purple
-  { id: 'heart-grad-2', colors: ['#FF006E', '#3A86FF'] },           // Pink -> Blue
+  { id: 'heart-grad-1', colors: ['#FF0000', '#ff1493', '#8338EC'] }, // Red -> Pink -> Purple
+  { id: 'heart-grad-2', colors: ['#ff1493', '#3A86FF'] },           // Pink -> Blue
   { id: 'heart-grad-3', colors: ['#3A86FF', '#8338EC'] },           // Blue -> Purple
-  { id: 'heart-grad-4', colors: ['#FF006E', '#FF006E', '#FB5607'] } // Pink -> Orange
+  { id: 'heart-grad-4', colors: ['#ff1493', '#ff1493', '#FB5607'] } // Pink -> Orange
 ];
 
 export const TikTokHearts = () => {

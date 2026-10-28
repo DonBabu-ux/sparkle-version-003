@@ -24,13 +24,26 @@ export default function GlobalEffects() {
       } else if (target.tagName === 'VIDEO') {
         const video = target as HTMLVideoElement;
         if (video.dataset.fallbackApplied) return;
-        video.dataset.fallbackApplied = "true";
-        
-        video.style.display = 'none';
-        const placeholder = document.createElement('div');
-        placeholder.className = 'video-error-placeholder';
-        placeholder.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Media Unavailable</span>';
-        video.parentElement?.appendChild(placeholder);
+        // The player components retry once with the original URL when a
+        // rendition fails (HlsVideoPlayer fallbackSrc, Moments feed retry),
+        // and React re-runs their mount effect in dev — both produce a
+        // transient error on a video that recovers a moment later. This
+        // handler runs on the window CAPTURE phase, i.e. BEFORE the
+        // component's own onError retry, so an instant swap would hide a
+        // perfectly playable video under "Media Unavailable" forever.
+        // Wait out the recovery window, then only give up on videos that
+        // are still broken.
+        window.setTimeout(() => {
+          if (video.dataset.fallbackApplied) return;
+          if (!video.error && video.readyState > 0) return; // recovered — leave it alone
+          video.dataset.fallbackApplied = "true";
+
+          video.style.display = 'none';
+          const placeholder = document.createElement('div');
+          placeholder.className = 'video-error-placeholder';
+          placeholder.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Media Unavailable</span>';
+          video.parentElement?.appendChild(placeholder);
+        }, 2500);
       }
     };
 

@@ -680,7 +680,7 @@ export default function Invite() {
               </button>
             </div>
 
-            <div className="p-4 bg-white dark:bg-[#1b1b24] rounded-2xl border border-slate-100 shadow-md my-2">
+            <div className="p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-slate-100 shadow-md my-2">
               <QRCode value={canonicalInviteUrl} size={180} />
             </div>
 

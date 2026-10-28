@@ -92,7 +92,7 @@ export const PullToRefreshProvider = ({ children }: { children: ReactNode }) => 
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ type: 'spring', damping: 25, stiffness: 350 }}
               role="status" aria-live="polite"
-              className="fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top,0px)+8px)] z-(--z-sheet) flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-black/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg pointer-events-none"
+              className="fixed left-1/2 -translate-x-1/2 top-[calc(env(safe-area-inset-top,0px)+8px)] z-(--z-sheet) flex items-center gap-2 px-4 py-2 rounded-full bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md border border-black/5 dark:border-white/10 shadow-lg pointer-events-none"
             >
               <RefreshCw 
                 size={16}

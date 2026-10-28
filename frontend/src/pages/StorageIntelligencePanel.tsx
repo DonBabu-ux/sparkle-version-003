@@ -53,7 +53,7 @@ export default function StorageIntelligencePanel() {
     };
 
     return (
-        <div className="flex bg-[#fdf2f4] min-h-dvh text-[#18181b] font-sans dark:bg-[#0f0f0f] dark:text-white">
+        <div className="flex bg-[#f8e7ed] min-h-dvh text-[#18181b] font-sans dark:bg-[#0f0f0f] dark:text-white">
             <main className="flex-1 p-6 lg:p-10">
                 <div className="flex items-center justify-between mb-8">
                     <div>

@@ -45,12 +45,12 @@ const createTheme = (
 });
 
 export const PRESET_THEMES: SparkleTheme[] = [
-  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#121212', '#121212', true, '#056162', '#262d31', '#ffffff', '#ffffff', '/uploads/wallpapers/whatsapp-doodle.png', 'none', 'tile'),
+  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#27272a', '#27272a', true, '#056162', '#262d31', '#ffffff', '#ffffff', '/uploads/wallpapers/whatsapp-doodle.png', 'none', 'tile'),
   createTheme('amoled_black', 'AMOLED Black', 'Dark', '#00E5FF', '#00B8CC', '#33EAFF', '#0f0f0f', '#0f0f0f', true, '#00E5FF', '#111111', '#000000', '#ffffff'),
   createTheme('cyberpunk_neon', 'Cyberpunk Neon', 'Neon', '#00FF9D', '#00CC7D', '#33FFB0', '#090A0F', '#090A0F', true, '#FF0055', '#1a1b26', '#ffffff', '#00FF9D'),
   createTheme('purple_galaxy', 'Purple Galaxy', 'Space', '#B14AED', '#8E3BC0', '#C775F5', '#1A0B2E', '#1A0B2E', true, '#B14AED', '#2D1B4E', '#ffffff', '#e9d5ff', '/uploads/wallpapers/galaxy-stars.png', 'stars'),
   createTheme('luxury_gold', 'Luxury Gold', 'Premium', '#D4AF37', '#AA8C2C', '#E2C45E', '#111111', '#111111', true, '#D4AF37', '#222222', '#000000', '#D4AF37'),
-  createTheme('glassmorphism', 'Glassmorphism', 'Glass', '#ffffff', '#f3f4f6', '#ffffff', '#000000', '#f8fafc', false, 'rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)', '#000000', '#000000'),
+  createTheme('glassmorphism', 'Glassmorphism', 'Glass', '#ffffff', '#ede3e9', '#ffffff', '#000000', '#f6eef3', false, 'rgba(255,255,255,0.2)', 'rgba(255,255,255,0.1)', '#000000', '#000000'),
   createTheme('ocean_blue', 'Ocean Blue', 'Nature', '#0077B6', '#005F92', '#0096C7', '#03045E', '#E0FBFC', false, '#0077B6', '#CAF0F8', '#ffffff', '#03045E', '/uploads/wallpapers/ocean-waves.png'),
   createTheme('sunset_orange', 'Sunset Orange', 'Gradient', '#FF7E67', '#E66A55', '#FFA08A', '#2C1B18', '#FFE9E3', false, '#FF7E67', '#FFD1C1', '#ffffff', '#2C1B18', 'https://images.unsplash.com/photo-1495616811223-4d98c6e9c869?q=80&w=800&auto=format&fit=crop'),
   createTheme('anime_sakura', 'Anime Sakura', 'Anime', '#FFB7B2', '#E5A4A0', '#FFC8C4', '#2D2A2A', '#FDFBF7', false, '#FFB7B2', '#FFE5E5', '#ffffff', '#2D2A2A', 'https://images.unsplash.com/photo-1522383225653-ed111181a951?q=80&w=800&auto=format&fit=crop', 'particles'),

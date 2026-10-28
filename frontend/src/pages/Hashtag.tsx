@@ -39,7 +39,7 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-800 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[140px] pointer-events-none z-0" />

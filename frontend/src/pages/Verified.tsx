@@ -52,13 +52,13 @@ export default function Verified() {
   };
 
   if (loading) return (
-    <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-800 flex items-center justify-center">
       <Spinner size="large" color="text-primary" />
     </div>
   );
 
   return (
-    <div className="min-h-dvh bg-white dark:bg-[#101217] text-[#18181b] dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden relative transition-colors duration-300">
+    <div className="min-h-dvh bg-white dark:bg-zinc-800 text-[#18181b] dark:text-white font-sans pb-20 lg:pb-0 overflow-x-hidden relative transition-colors duration-300">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[300px] md:w-[700px] h-[300px] md:h-[700px] bg-red-200/20 rounded-full blur-[80px] md:blur-[140px] pointer-events-none z-0" />
@@ -68,7 +68,7 @@ export default function Verified() {
         <header className="flex items-center gap-5 md:gap-8 mb-10 md:mb-12 animate-fade-in">
           <button 
             onClick={() => navigate(-1)} 
-            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-[#101217]/50 backdrop-blur-3xl flex items-center justify-center text-[#18181b] dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
+            className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white dark:bg-zinc-800/50 backdrop-blur-3xl flex items-center justify-center text-[#18181b] dark:text-white shadow-lg border border-white dark:border-white/10 hover:scale-105 active:scale-95 transition-all"
           >
             <ArrowLeft size={22} strokeWidth={3} />
           </button>
@@ -82,7 +82,7 @@ export default function Verified() {
           {step === 1 && (
             <div className="space-y-6">
               {/* Profile Trust Card */}
-              <div className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-10 text-center relative overflow-hidden">
+              <div className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-10 text-center relative overflow-hidden">
                 <div className="absolute top-0 right-0 p-6 opacity-5">
                    <Shield size={120} strokeWidth={1} />
                 </div>
@@ -93,7 +93,7 @@ export default function Verified() {
                     alt="" 
                     className="w-full h-full rounded-full object-cover border-4 border-white dark:border-black shadow-2xl"
                   />
-                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-[#101217] rounded-full p-1.5 shadow-lg">
+                  <div className="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-800 rounded-full p-1.5 shadow-lg">
                     {stats.trustLevel >= 3 ? (
                       <BadgeCheck size={32} fill="#ff1f6d" color="white" strokeWidth={1} />
                     ) : (
@@ -105,7 +105,7 @@ export default function Verified() {
                 <h3 className="text-2xl font-black text-[#18181b] dark:text-white tracking-tight italic mb-2 uppercase">Level {stats.trustLevel}: {['', 'Recognized', 'Trusted', 'Established', 'Confirmed', 'Verified'][stats.trustLevel]}</h3>
                 <div className="flex justify-center gap-1 mb-8">
                    {[1,2,3,4,5].map(lvl => (
-                     <div key={lvl} className={`h-1.5 w-8 rounded-full transition-all ${lvl <= stats.trustLevel ? 'bg-[#FF1F6D] shadow-[0_0_10px_rgba(255,31,109,0.5)]' : 'bg-slate-200 dark:bg-white/10'}`} />
+                     <div key={lvl} className={`h-1.5 w-8 rounded-full transition-all ${lvl <= stats.trustLevel ? 'bg-[#ff1493] shadow-[0_0_10px_rgba(255,31,109,0.5)]' : 'bg-slate-200 dark:bg-white/10'}`} />
                    ))}
                 </div>
 
@@ -119,21 +119,21 @@ export default function Verified() {
                            </div>
                            <span className="text-xs font-black italic">{stats.followers}/1,000</span>
                         </div>
-                        <div className="h-2.5 bg-white/50 dark:bg-black/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
+                        <div className="h-2.5 bg-white/50 dark:bg-zinc-900/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
                            <div className="h-full bg-black rounded-full transition-all duration-1000" style={{ width: `${Math.min((stats.followers / 1000) * 100, 100)}%` }} />
                         </div>
                      </div>
 
-                     <div className="p-6 bg-[#FF1F6D]/5 rounded-[32px] border border-[#FF1F6D]/10">
+                     <div className="p-6 bg-[#ff1493]/5 rounded-[32px] border border-[#ff1493]/10">
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
-                              <Zap size={16} className="text-[#FF1F6D]" />
-                              <span className="text-[10px] font-black uppercase italic tracking-widest text-[#FF1F6D]">Engagement</span>
+                              <Zap size={16} className="text-[#ff1493]" />
+                              <span className="text-[10px] font-black uppercase italic tracking-widest text-[#ff1493]">Engagement</span>
                            </div>
-                           <span className="text-xs font-black italic text-[#FF1F6D]">{stats.engagement}%/70%</span>
+                           <span className="text-xs font-black italic text-[#ff1493]">{stats.engagement}%/70%</span>
                         </div>
-                        <div className="h-2.5 bg-white/50 dark:bg-black/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
-                           <div className="h-full bg-[#FF1F6D] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,31,109,0.3)]" style={{ width: `${Math.min((stats.engagement / 70) * 100, 100)}%` }} />
+                        <div className="h-2.5 bg-white/50 dark:bg-zinc-900/40 rounded-full overflow-hidden p-0.5 border border-white dark:border-white/10">
+                           <div className="h-full bg-[#ff1493] rounded-full transition-all duration-1000 shadow-[0_0_10px_rgba(255,31,109,0.3)]" style={{ width: `${Math.min((stats.engagement / 70) * 100, 100)}%` }} />
                         </div>
                      </div>
 
@@ -194,7 +194,7 @@ export default function Verified() {
                    { label: 'Priority Support', icon: <Zap size={18} />, color: 'bg-indigo-50 text-indigo-600' },
                    { label: 'Global Search', icon: <Target size={18} />, color: 'text-emerald-600 bg-emerald-50' },
                    { label: 'Account Protection', icon: <Shield size={18} />, color: 'text-amber-600 bg-amber-50' },
-                   { label: 'Legacy Badge', icon: <Star size={18} />, color: 'text-[#FF1F6D] bg-pink-50' }
+                   { label: 'Legacy Badge', icon: <Star size={18} />, color: 'text-[#ff1493] bg-pink-50' }
                  ].map((perk, i) => (
                    <div key={i} className="bg-white/60 dark:bg-white/5 backdrop-blur-xl p-4 rounded-3xl border border-white dark:border-white/10 flex flex-col items-center gap-2 text-center">
                       <div className={`w-10 h-10 rounded-2xl ${perk.color} flex items-center justify-center border border-white dark:border-white/10 shadow-sm`}>
@@ -208,7 +208,7 @@ export default function Verified() {
           )}
 
           {step === 2 && (
-            <form onSubmit={handleSubmit} className="bg-white/70 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-12 transition-all">
+            <form onSubmit={handleSubmit} className="bg-white/70 dark:bg-zinc-800/80 backdrop-blur-3xl rounded-[40px] shadow-2xl shadow-black/5 border border-white/60 dark:border-white/5 p-8 md:p-12 transition-all">
               <div className="space-y-6">
                 <div className="space-y-3">
                   <label className="text-[10px] font-black text-black/40 dark:text-white/40 uppercase tracking-widest pl-2 italic">Select Evolution Category</label>
@@ -217,7 +217,7 @@ export default function Verified() {
                       required
                       value={formData.category}
                       onChange={e => setFormData({ ...formData, category: e.target.value })}
-                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#ff1493] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">What best describes you?</option>
                       <option value="creator">Creator Elite</option>
@@ -237,7 +237,7 @@ export default function Verified() {
                       required
                       value={formData.documentType}
                       onChange={e => setFormData({ ...formData, documentType: e.target.value })}
-                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all cursor-pointer shadow-sm italic"
+                      className="w-full appearance-none bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#ff1493] transition-all cursor-pointer shadow-sm italic"
                     >
                       <option value="">Select identity source</option>
                       <option value="passport">Passport</option>
@@ -271,15 +271,15 @@ export default function Verified() {
                     />
                     <label 
                       htmlFor="id-upload" 
-                      className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[32px] bg-white/40 dark:bg-white/5 group-hover:bg-white/60 dark:group-hover:bg-white/10 group-hover:border-[#FF1F6D]/30 transition-all cursor-pointer"
+                      className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-black/10 dark:border-white/10 rounded-[32px] bg-white/40 dark:bg-white/5 group-hover:bg-white/60 dark:group-hover:bg-white/10 group-hover:border-[#ff1493]/30 transition-all cursor-pointer"
                     >
-                      <div className="w-14 h-14 rounded-full bg-white dark:bg-[#101217] shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#FF1F6D] transition-colors mb-3">
+                      <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-800 shadow-md flex items-center justify-center text-black/20 dark:text-white/20 group-hover:text-[#ff1493] transition-colors mb-3">
                         <Upload size={24} strokeWidth={2.5} />
                       </div>
                       <span className="text-[10px] font-black text-black/60 dark:text-white/60 uppercase italic tracking-widest">Upload Document</span>
                       <span className="text-[8px] font-bold text-black/30 dark:text-white/20 mt-1 uppercase italic tracking-widest">JPG, PNG, PDF (10MB MAX)</span>
                       {idFile && (
-                        <span className="text-[9px] font-bold text-[#FF1F6D] mt-1 uppercase italic tracking-widest break-all px-4 text-center">
+                        <span className="text-[9px] font-bold text-[#ff1493] mt-1 uppercase italic tracking-widest break-all px-4 text-center">
                           ✓ {idFile.name}
                         </span>
                       )}
@@ -295,13 +295,13 @@ export default function Verified() {
                     required
                     value={formData.description}
                     onChange={e => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#FF1F6D] transition-all shadow-sm placeholder:text-black/20 dark:placeholder:text-white/20 italic"
+                    className="w-full bg-white/80 dark:bg-white/5 border-2 border-white/50 dark:border-white/10 text-[#18181b] dark:text-white text-sm font-bold rounded-2xl px-6 py-4 focus:outline-none focus:border-[#ff1493] transition-all shadow-sm placeholder:text-black/20 dark:placeholder:text-white/20 italic"
                   ></textarea>
                 </div>
 
                 <button 
                   type="submit" 
-                  className="w-full py-5 rounded-[22px] bg-[#FF1F6D] text-white font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#FF1F6D]/20 flex items-center justify-center gap-3 uppercase tracking-wider italic"
+                  className="w-full py-5 rounded-[22px] bg-[#ff1493] text-white font-black text-lg hover:scale-[1.02] active:scale-[0.98] transition-all shadow-xl shadow-[#ff1493]/20 flex items-center justify-center gap-3 uppercase tracking-wider italic"
                 >
                   <Send size={20} strokeWidth={3} />
                   Submit Evolution

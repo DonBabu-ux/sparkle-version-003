@@ -56,7 +56,7 @@ export default function AccountsCenter() {
 
   if (!hydrated) {
     return (
-      <div className="flex bg-[#fdf2f4] dark:bg-zinc-950 min-h-dvh items-center justify-center text-marketplace-text">
+      <div className="flex bg-[#f8e7ed] dark:bg-zinc-950 min-h-dvh items-center justify-center text-marketplace-text">
         <Spinner size="xl" color="text-primary" />
       </div>
     );
@@ -119,7 +119,7 @@ export default function AccountsCenter() {
                 ) : (
                   <button
                     onClick={() => { switchAccount(acc.user.user_id); navigate('/dashboard'); }}
-                    className="px-4 py-2 rounded-xl bg-[#FF1F6D] hover:bg-[#ff3d80] text-white text-[11px] font-black uppercase tracking-widest transition-colors active:scale-95 shrink-0"
+                    className="px-4 py-2 rounded-xl bg-[#ff1493] hover:bg-[#ff3d80] text-white text-[11px] font-black uppercase tracking-widest transition-colors active:scale-95 shrink-0"
                   >
                     Switch
                   </button>
@@ -132,7 +132,7 @@ export default function AccountsCenter() {
             onClick={() => navigate('/login')}
             className="flex items-center gap-3.5 p-3.5 rounded-2xl border border-dashed border-marketplace-border hover:bg-marketplace-bg transition-colors text-left group"
           >
-            <div className="w-12 h-12 rounded-xl bg-marketplace-bg group-hover:bg-[#FF1F6D] flex items-center justify-center text-marketplace-muted group-hover:text-white transition-colors shrink-0">
+            <div className="w-12 h-12 rounded-xl bg-marketplace-bg group-hover:bg-[#ff1493] flex items-center justify-center text-marketplace-muted group-hover:text-white transition-colors shrink-0">
               <Plus size={20} strokeWidth={2.5} />
             </div>
             <div className="flex-1 min-w-0">
@@ -171,7 +171,7 @@ export default function AccountsCenter() {
 
         <button
           onClick={() => navigate('/login')}
-          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl border border-marketplace-border text-marketplace-muted hover:text-[#FF1F6D] hover:border-[#FF1F6D]/30 transition-colors text-left"
+          className="w-full flex items-center gap-3.5 p-3.5 rounded-2xl border border-marketplace-border text-marketplace-muted hover:text-[#ff1493] hover:border-[#ff1493]/30 transition-colors text-left"
         >
           <LogOut size={18} strokeWidth={2.2} />
           <span className="text-[13px] font-bold tracking-tight">Sign out of this account</span>

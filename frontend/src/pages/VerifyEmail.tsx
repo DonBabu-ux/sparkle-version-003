@@ -42,8 +42,8 @@ export default function VerifyEmail() {
     };
 
     return (
-        <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center px-4">
-            <div className="w-full max-w-md bg-white/80 dark:bg-[#121212]/80 backdrop-blur-3xl rounded-[36px] shadow-2xl border border-black/5 dark:border-white/10 p-8 text-center">
+        <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-800 flex items-center justify-center px-4">
+            <div className="w-full max-w-md bg-white/80 dark:bg-zinc-800/80 backdrop-blur-3xl rounded-[36px] shadow-2xl border border-black/5 dark:border-white/10 p-8 text-center">
                 <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-6">
                     <MailCheck className="text-primary" size={30} strokeWidth={2.5} />
                 </div>

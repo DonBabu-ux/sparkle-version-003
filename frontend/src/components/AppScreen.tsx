@@ -81,7 +81,7 @@ export const AppScreen: React.FC<AppScreenProps> = ({
         (theme === 'dark' ? 'transparent-dark' : 'transparent-light');
 
     // 2. Resolve background color class based on theme
-    const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f0f2f5] text-[#18181b]';
+    const bgClass = theme === 'dark' ? 'bg-black text-white' : 'bg-[#f8e7ed] text-[#18181b]';
 
     return (
         <div

@@ -115,7 +115,7 @@ export const AudioPreviewModal: React.FC<AudioPreviewModalProps> = ({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
           transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative z-10 w-full max-w-sm bg-[#121212]/95 border border-white/15 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-white flex flex-col items-center gap-6"
+          className="relative z-10 w-full max-w-sm bg-[#27272a]/95 border border-white/15 rounded-3xl p-6 shadow-2xl backdrop-blur-2xl text-white flex flex-col items-center gap-6"
         >
           {/* Header */}
           <div className="w-full flex items-center justify-between">

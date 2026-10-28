@@ -118,7 +118,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-[#1b1b24] w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[95vh] relative"
+        className="bg-white dark:bg-zinc-800 w-full max-w-lg rounded-xl shadow-2xl overflow-hidden flex flex-col h-[85vh] max-h-[95vh] relative"
         onClick={e => e.stopPropagation()}
       >
         {showSelector && (
@@ -139,7 +139,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
           </h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-[#101217] hover:bg-gray-200 transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 transition-colors"
           >
             <X size={18} className="text-gray-600 dark:text-zinc-300" strokeWidth={2.5} />
           </button>
@@ -196,14 +196,14 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
 
                     <button 
                       onClick={() => setSelections({ feeling: null, activity: null, subOption: null, taggedUsers: [] })}
-                      className="ml-1 w-4 h-4 rounded-full bg-gray-100 dark:bg-[#101217] flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      className="ml-1 w-4 h-4 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center hover:bg-gray-200 transition-colors"
                     >
                       <X size={10} />
                     </button>
                   </div>
                 )}
               </div>
-              <div className="mt-1 flex items-center gap-1 bg-gray-50 dark:bg-[#101217] px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/10 w-fit">
+              <div className="mt-1 flex items-center gap-1 bg-gray-50 dark:bg-zinc-800 px-2 py-0.5 rounded-lg border border-gray-100 dark:border-white/10 w-fit">
                 <span className="text-[10px] font-extrabold text-primary uppercase tracking-wider italic">Member</span>
               </div>
             </div>
@@ -223,7 +223,7 @@ export default function GroupPostModal({ groupId, groupName, onClose, onSuccess,
             <div className="mx-5 mb-3 border border-gray-200 dark:border-white/10 rounded-lg overflow-hidden">
               <div className={`grid gap-1 ${previews.length === 1 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {previews.map((p, i) => (
-                  <div key={i} className="relative aspect-square bg-gray-100 dark:bg-[#101217]">
+                  <div key={i} className="relative aspect-square bg-gray-100 dark:bg-zinc-800">
                     <img src={p} alt="" className="w-full h-full object-cover" />
                     <button
                       onClick={() => removeFile(i)}

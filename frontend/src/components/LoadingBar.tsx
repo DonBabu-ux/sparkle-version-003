@@ -40,7 +40,7 @@ export default function LoadingBar() {
   return (
     <div className="fixed top-0 left-0 w-full z-(--z-max) pointer-events-none">
       <div 
-        className="h-1 bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] shadow-[0_0_10px_rgba(255,61,109,0.5)] transition-all duration-300 ease-out" 
+        className="h-1 bg-gradient-to-r from-[#ff1493] to-[#ff2d87] shadow-[0_0_10px_rgba(255,20,147,0.5)] transition-all duration-300 ease-out" 
         style={{ width: `${progress}%` }}
       />
     </div>

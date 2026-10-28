@@ -161,15 +161,15 @@ export default function Notifications() {
 
   const getBadgeColor = (type: string) => {
     switch (type) {
-      case 'follow': return '#1877f2';
+      case 'follow': return '#ff1493';
       case 'spark': return '#f59e0b';
-      case 'comment': return '#31a24c';
-      case 'mention': return '#ec4899';
-      case 'group': return '#8b5cf6';
-      case 'marketplace': return '#14b8a6';
-      case 'poke': return '#6366f1';
+      case 'comment': return '#059669';
+      case 'mention': return '#ff2d87';
+      case 'group': return '#334155';
+      case 'marketplace': return '#ea580c';
+      case 'poke': return '#ec4899';
       case 'capture_attempt': return '#ef4444';
-      default: return '#1877f2';
+      default: return '#ff1493';
     }
   };
 
@@ -362,7 +362,7 @@ export default function Notifications() {
         className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-black/[0.04] dark:border-white/[0.04] last:border-0 relative active:scale-[0.995] ${
           isUnread
             ? 'bg-[#fff0f7] dark:bg-[#ff149310]'
-            : 'bg-white dark:bg-[#101217] hover:bg-black/[0.015] dark:hover:bg-white/[0.025]'
+            : 'bg-white dark:bg-zinc-800 hover:bg-black/[0.015] dark:hover:bg-white/[0.025]'
         }`}
       >
         {/* Left accent bar for unread */}
@@ -382,7 +382,7 @@ export default function Notifications() {
             alt={displayName}
           />
           <div
-            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-[#101217] shadow-sm"
+            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 shadow-sm"
             style={{ backgroundColor: getBadgeColor(notif.type) }}
           >
             {getFacebookIcon(notif.type)}
@@ -490,7 +490,7 @@ export default function Notifications() {
 
       <main className="flex-1 pb-20 max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
         {/* Sticky Header */}
-        <header className="sticky top-[70px] z-[1100] bg-white/90 dark:bg-[#101217]/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
+        <header className="sticky top-[70px] z-[1100] bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <button
@@ -556,7 +556,7 @@ export default function Notifications() {
         )}
 
         {/* Notifications list */}
-        <div className="bg-white dark:bg-[#101217]">
+        <div className="bg-white dark:bg-zinc-800">
           {loading ? (
             <div className="flex justify-center py-16">
               <Spinner size="medium" color="text-primary" />

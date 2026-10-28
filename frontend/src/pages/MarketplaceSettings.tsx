@@ -111,7 +111,7 @@ const MarketplaceSettings = () => {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-[#fdf2f4] dark:bg-[#101217] flex items-center justify-center">
+      <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-800 flex items-center justify-center">
         <Spinner size="medium" color="text-primary" />
       </div>
     );
@@ -119,8 +119,8 @@ const MarketplaceSettings = () => {
 
   if (!settings) {
     return (
-      <div className="min-h-dvh bg-gray-50 dark:bg-[#101217] pb-[env(safe-area-inset-bottom)]">
-        <div className="bg-white dark:bg-[#1b1b24] border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
+      <div className="min-h-dvh bg-gray-50 dark:bg-zinc-800 pb-[env(safe-area-inset-bottom)]">
+        <div className="bg-white dark:bg-zinc-800 border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft size={20} />
           </button>
@@ -143,9 +143,9 @@ const MarketplaceSettings = () => {
   }
 
   return (
-    <div className="min-h-dvh bg-gray-50 dark:bg-[#101217] pb-[env(safe-area-inset-bottom)]">
+    <div className="min-h-dvh bg-gray-50 dark:bg-zinc-800 pb-[env(safe-area-inset-bottom)]">
       {/* Header */}
-      <div className="bg-white dark:bg-[#1b1b24] border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
+      <div className="bg-white dark:bg-zinc-800 border-b sticky top-0 z-10 px-4 py-4 flex items-center gap-4">
         <button
           onClick={() => (activeView !== 'main' ? setActiveView('main') : navigate(-1))}
           className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -189,10 +189,10 @@ const MarketplaceSettings = () => {
                       key={item.id}
                       onClick={item.disabled ? undefined : item.action}
                       disabled={item.disabled}
-                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-800' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98] dark:bg-[#101217] dark:hover:bg-zinc-800'}`}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-800' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98] dark:bg-zinc-800 dark:hover:bg-zinc-800'}`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
+                        <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
                           {item.icon}
                         </div>
                         <div className="text-left">
@@ -210,7 +210,7 @@ const MarketplaceSettings = () => {
             ))}
 
         {/* Section 1: Privacy */}
-        <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <Shield size={18} className="text-blue-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Messaging Privacy</h2>
@@ -222,7 +222,7 @@ const MarketplaceSettings = () => {
               <select 
                 value={settings.who_can_message_me}
                 onChange={(e) => handleSave({ who_can_message_me: e.target.value as any })}
-                className="w-full bg-gray-50 dark:bg-[#101217] border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
+                className="w-full bg-gray-50 dark:bg-zinc-800 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:outline-none transition-all"
               >
                 <option value="everyone">Everyone</option>
                 <option value="vouched_only">Vouched Users Only (Trust Score 2.0+)</option>
@@ -240,14 +240,14 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ message_filter: !settings.message_filter })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.message_filter ? 'bg-blue-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.message_filter ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-zinc-800 transition-all ${settings.message_filter ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Section 2: Experience */}
-        <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <Eye size={18} className="text-indigo-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Chat Experience</h2>
@@ -263,7 +263,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ read_receipts: !settings.read_receipts })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.read_receipts ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.read_receipts ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-zinc-800 transition-all ${settings.read_receipts ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
 
@@ -276,7 +276,7 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ typing_indicators: !settings.typing_indicators })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.typing_indicators ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.typing_indicators ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-zinc-800 transition-all ${settings.typing_indicators ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
 
@@ -289,14 +289,14 @@ const MarketplaceSettings = () => {
                 onClick={() => handleSave({ show_online_status: !settings.show_online_status })}
                 className={`w-12 h-6 rounded-full transition-colors relative ${settings.show_online_status ? 'bg-indigo-600' : 'bg-gray-200'}`}
               >
-                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-[#1b1b24] transition-all ${settings.show_online_status ? 'right-1' : 'left-1'}`} />
+                <div className={`absolute top-1 w-4 h-4 rounded-full bg-white dark:bg-zinc-800 transition-all ${settings.show_online_status ? 'right-1' : 'left-1'}`} />
               </button>
             </div>
           </div>
         </div>
 
         {/* Section 3: Safety */}
-        <div className="bg-white dark:bg-[#1b1b24] rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
+        <div className="bg-white dark:bg-zinc-800 rounded-2xl shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden">
           <div className="px-6 py-4 border-b border-gray-50 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02]">
             <UserX size={18} className="text-red-600" />
             <h2 className="font-bold text-gray-900 uppercase tracking-wider text-xs">Safety & Blocks</h2>
@@ -327,22 +327,22 @@ const MarketplaceSettings = () => {
               <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
             ) : viewData ? (
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-6 bg-slate-50 dark:bg-[#101217] rounded-lg">
+                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><Eye size={20} /></div>
                   <div className="text-3xl font-black">{viewData.views}</div>
                   <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Total Views</div>
                 </div>
-                <div className="p-6 bg-slate-50 dark:bg-[#101217] rounded-lg">
+                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle2 size={20} /></div>
                   <div className="text-3xl font-black">{viewData.sales}</div>
                   <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Total Sales</div>
                 </div>
-                <div className="p-6 bg-slate-50 dark:bg-[#101217] rounded-lg">
+                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4"><Package size={20} /></div>
                   <div className="text-3xl font-black">{viewData.listings}</div>
                   <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Active Listings</div>
                 </div>
-                <div className="p-6 bg-slate-50 dark:bg-[#101217] rounded-lg">
+                <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-4"><TrendingUp size={20} /></div>
                   <div className="text-3xl font-black">{(viewData.engagement_rate * 100).toFixed(1)}%</div>
                   <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Engagement</div>
@@ -364,9 +364,9 @@ const MarketplaceSettings = () => {
               <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
             ) : viewData && viewData.length > 0 ? (
               viewData.map((payout: any) => (
-                <div key={payout.payout_id} className="p-6 bg-slate-50 dark:bg-[#101217] border border-slate-200 rounded-lg flex items-center justify-between">
+                <div key={payout.payout_id} className="p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-lg flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-white dark:bg-[#1b1b24] rounded-xl shadow-sm flex items-center justify-center font-black text-amber-600 uppercase">
+                    <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl shadow-sm flex items-center justify-center font-black text-amber-600 uppercase">
                       {payout.provider.substring(0,2)}
                     </div>
                     <div>
@@ -380,8 +380,8 @@ const MarketplaceSettings = () => {
                 </div>
               ))
             ) : (
-              <div className="text-center py-20 bg-slate-50 dark:bg-[#101217] rounded-xl border-2 border-dashed border-slate-200">
-                <div className="w-16 h-16 bg-white dark:bg-[#1b1b24] rounded-full flex items-center justify-center shadow-sm mx-auto mb-4">
+              <div className="text-center py-20 bg-slate-50 dark:bg-zinc-800 rounded-xl border-2 border-dashed border-slate-200">
+                <div className="w-16 h-16 bg-white dark:bg-zinc-800 rounded-full flex items-center justify-center shadow-sm mx-auto mb-4">
                   <CreditCard size={24} className="text-slate-400" />
                 </div>
                 <div className="font-black text-slate-800 mb-2">No Payout Methods</div>
@@ -393,14 +393,14 @@ const MarketplaceSettings = () => {
 
         {activeView === 'privacy' && (
           <div className="space-y-6">
-             <div className="p-6 bg-slate-50 dark:bg-[#101217] rounded-lg space-y-6">
+             <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg space-y-6">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-black">Private Shop Mode</div>
                     <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Only verified users can see your items</div>
                   </div>
                   <div className="w-12 h-6 bg-slate-300 rounded-full relative cursor-pointer">
-                    <div className="absolute left-1 top-1 w-4 h-4 bg-white dark:bg-[#1b1b24] rounded-full"></div>
+                    <div className="absolute left-1 top-1 w-4 h-4 bg-white dark:bg-zinc-800 rounded-full"></div>
                   </div>
                 </div>
                 <hr className="border-slate-200" />
@@ -409,7 +409,7 @@ const MarketplaceSettings = () => {
                     <div className="font-black">Direct Messages</div>
                     <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Who can message you</div>
                   </div>
-                  <select className="bg-white dark:bg-[#1b1b24] border border-slate-200 rounded-xl px-4 py-2 font-bold text-sm outline-none">
+                  <select className="bg-white dark:bg-zinc-800 border border-slate-200 rounded-xl px-4 py-2 font-bold text-sm outline-none">
                     <option>Everyone</option>
                     <option>Verified Only</option>
                     <option>Nobody</option>
@@ -509,15 +509,15 @@ function MarketplaceSupportView() {
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <button onClick={() => setMode('bot')} className="p-6 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
-            <div className="w-12 h-12 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <button onClick={() => setMode('bot')} className="p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
+            <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
               <Users size={24} className="text-indigo-600" />
             </div>
             <div className="font-black text-slate-800">Ask Sparky Bot</div>
             <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Instant Answers</div>
           </button>
-          <button onClick={() => setMode('form')} className="p-6 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
-            <div className="w-12 h-12 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
+          <button onClick={() => setMode('form')} className="p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-lg text-left hover:border-indigo-200 transition-all group">
+            <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm mb-4 group-hover:scale-110 transition-transform">
               <ShieldAlert size={24} className="text-indigo-600" />
             </div>
             <div className="font-black text-slate-800">Open Ticket</div>
@@ -525,9 +525,9 @@ function MarketplaceSupportView() {
           </button>
         </div>
 
-        <button onClick={fetchTickets} className="w-full p-6 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-lg flex items-center justify-between group">
+        <button onClick={fetchTickets} className="w-full p-6 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-lg flex items-center justify-between group">
           <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white dark:bg-[#1b1b24] rounded-xl flex items-center justify-center shadow-sm"><Package size={20} className="text-slate-400" /></div>
+            <div className="w-10 h-10 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm"><Package size={20} className="text-slate-400" /></div>
             <div className="font-black text-slate-800">Your Support History</div>
           </div>
           <ChevronRight size={18} className="text-slate-300 dark:text-zinc-600 group-hover:text-slate-600 dark:group-hover:text-zinc-300" />
@@ -549,7 +549,7 @@ function MarketplaceSupportView() {
           ))}
           {loading && (
             <div className="flex justify-start">
-              <div className="bg-slate-100 dark:bg-[#101217] p-4 rounded-xl rounded-tl-none flex gap-1">
+              <div className="bg-slate-100 dark:bg-zinc-800 p-4 rounded-xl rounded-tl-none flex gap-1">
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce" />
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]" />
                 <div className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]" />
@@ -557,14 +557,14 @@ function MarketplaceSupportView() {
             </div>
           )}
         </div>
-        <div className="sticky bottom-0 bg-white dark:bg-[#1b1b24] pt-4 border-t border-slate-100">
+        <div className="sticky bottom-0 bg-white dark:bg-zinc-800 pt-4 border-t border-slate-100">
           <div className="flex gap-2">
             <input 
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && askBot()}
               placeholder="Ask anything..." 
-              className="flex-1 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-xl px-5 py-4 font-bold text-sm outline-none focus:border-indigo-300 transition-colors"
+              className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-xl px-5 py-4 font-bold text-sm outline-none focus:border-indigo-300 transition-colors"
             />
             <button onClick={askBot} className="bg-indigo-600 text-white p-4 rounded-xl shadow-xl shadow-indigo-100 active:scale-90 transition-transform">
               <TrendingUp size={20} />
@@ -581,7 +581,7 @@ function MarketplaceSupportView() {
       <form onSubmit={submitTicket} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Category</label>
-          <select name="category" required className="w-full p-4 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors appearance-none">
+          <select name="category" required className="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors appearance-none">
             <option value="verification">Verification Issue</option>
             <option value="payment">Payment & Payouts</option>
             <option value="abuse">Safety & Abuse</option>
@@ -592,11 +592,11 @@ function MarketplaceSupportView() {
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Subject</label>
-          <input name="subject" required placeholder="Brief title of your issue" className="w-full p-4 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors" />
+          <input name="subject" required placeholder="Brief title of your issue" className="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors" />
         </div>
         <div className="space-y-2">
           <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Description</label>
-          <textarea name="description" required rows={4} placeholder="Describe the problem in detail..." className="w-full p-4 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors resize-none" />
+          <textarea name="description" required rows={4} placeholder="Describe the problem in detail..." className="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-xl font-bold text-sm outline-none focus:border-indigo-300 transition-colors resize-none" />
         </div>
         <div className="p-4 bg-indigo-50 rounded-xl border border-indigo-100 flex items-center gap-3">
           <Package size={20} className="text-indigo-600" />
@@ -623,7 +623,7 @@ function MarketplaceSupportView() {
           <div className="flex justify-center py-20"><Spinner size="medium" color="text-primary" /></div>
         ) : tickets.length > 0 ? (
           tickets.map((t) => (
-            <div key={t.ticket_id} className="p-5 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-lg hover:border-slate-200 transition-colors cursor-pointer group">
+            <div key={t.ticket_id} className="p-5 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-lg hover:border-slate-200 transition-colors cursor-pointer group">
               <div className="flex justify-between items-start mb-2">
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${t.status === 'open' ? 'bg-blue-100 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300' : t.status === 'resolved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300' : 'bg-slate-200 text-slate-600 dark:bg-zinc-700 dark:text-zinc-300'}`}>
                   {t.status}
@@ -691,7 +691,7 @@ function BlockedUsersView() {
       <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-500">
           {blockedUsers.length > 0 ? (
               blockedUsers.map(u => (
-                  <div key={u.user_id} className="p-4 bg-slate-50 dark:bg-[#101217] rounded-xl flex items-center justify-between border border-slate-100">
+                  <div key={u.user_id} className="p-4 bg-slate-50 dark:bg-zinc-800 rounded-xl flex items-center justify-between border border-slate-100">
                       <div className="flex items-center gap-3">
                           <img src={u.avatar_url || `https://ui-avatars.com/api/?name=${u.username}`} className="w-10 h-10 rounded-full object-cover border border-white shadow-sm" alt="" />
                           <div>
@@ -702,14 +702,14 @@ function BlockedUsersView() {
                       <div className="flex items-center gap-2">
                         <button 
                           onClick={() => handleReport(u.user_id)} 
-                          className="p-2 bg-white dark:bg-[#1b1b24] border border-slate-200 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
+                          className="p-2 bg-white dark:bg-zinc-800 border border-slate-200 rounded-lg text-rose-500 hover:bg-rose-50 transition-colors"
                           title="Report User"
                         >
                           <Flag size={14} />
                         </button>
                         <button 
                           onClick={() => handleUnblock(u.user_id)} 
-                          className="px-4 py-2 bg-white dark:bg-[#1b1b24] border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-zinc-300 hover:bg-slate-100 transition-colors"
+                          className="px-4 py-2 bg-white dark:bg-zinc-800 border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-zinc-300 hover:bg-slate-100 transition-colors"
                         >
                           Unblock
                         </button>
@@ -717,7 +717,7 @@ function BlockedUsersView() {
                   </div>
               ))
           ) : (
-              <div className="text-center py-20 bg-slate-50 dark:bg-[#101217] rounded-xl border-2 border-dashed border-slate-200">
+              <div className="text-center py-20 bg-slate-50 dark:bg-zinc-800 rounded-xl border-2 border-dashed border-slate-200">
                  <ShieldAlert size={32} className="text-slate-300 mx-auto mb-4" />
                  <div className="font-black text-slate-800">No Blocked Users</div>
                  <div className="text-xs font-bold text-slate-500 dark:text-zinc-400">People you block will appear here.</div>

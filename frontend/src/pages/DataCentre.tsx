@@ -140,32 +140,32 @@ export default function DataCentre() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 pb-20">
+        <div className="min-h-screen bg-[#f8e7ed] text-[#18181b] dark:bg-zinc-900 dark:text-zinc-100 pb-20">
             {/* Header */}
-            <div className="sticky top-0 z-30 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3">
+            <div className="sticky top-0 z-30 bg-[#fdf8fa]/90 dark:bg-zinc-800/90 backdrop-blur-md border-b border-[#e6d8e1] dark:border-zinc-700 px-4 py-3">
                 <div className="max-w-4xl mx-auto flex items-center justify-between">
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(-1)}
-                            className="p-2 -ml-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition"
+                            className="p-2 -ml-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition"
                             aria-label="Back"
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </button>
                         <div>
-                            <h1 className="text-lg font-bold text-white flex items-center gap-2">
-                                <Shield className="w-5 h-5 text-sky-400" />
+                            <h1 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 flex items-center gap-2">
+                                <Shield className="w-5 h-5 text-[#ff1493]" />
                                 Personal Data Export Centre
                             </h1>
-                            <p className="text-xs text-slate-400">Download a verified personal archive under GDPR & CCPA</p>
+                            <p className="text-xs text-slate-600 dark:text-zinc-400">Download a verified personal archive under GDPR & CCPA</p>
                         </div>
                     </div>
                     <button
                         onClick={fetchHistory}
-                        className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition flex items-center gap-1.5 text-xs font-semibold"
+                            className="p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition flex items-center gap-1.5 text-xs font-semibold"
                         title="Refresh Status"
                     >
-                        <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin text-sky-400' : ''}`} />
+                        <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin text-[#ff1493]' : ''}`} />
                         <span className="hidden sm:inline">Refresh</span>
                     </button>
                 </div>
@@ -173,10 +173,10 @@ export default function DataCentre() {
 
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
                 {/* Privacy & Security Disclosure Card */}
-                <div className="p-4 rounded-2xl bg-gradient-to-r from-sky-950/40 via-slate-900 to-indigo-950/40 border border-sky-800/40 flex items-start gap-3.5 shadow-lg">
-                    <Lock className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs leading-relaxed text-slate-300">
-                        <p className="font-semibold text-sky-200">Protected & Sanitized Personal Archive</p>
+                <div className="p-4 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 flex items-start gap-3.5 shadow-sm">
+                    <Lock className="w-5 h-5 text-[#ff1493] shrink-0 mt-0.5" />
+                    <div className="space-y-1 text-xs leading-relaxed text-slate-600 dark:text-zinc-400">
+                        <p className="font-semibold text-[#18181b] dark:text-zinc-100">Protected & Sanitized Personal Archive</p>
                         <p>
                             Exports contain strictly your personal data. Password hashes, session tokens, OTP secrets,
                             administrative risk scoring, and other users' private profiles are excluded.
@@ -189,31 +189,31 @@ export default function DataCentre() {
                 {statusMessage && (
                     <div className={`p-4 rounded-2xl flex items-center gap-3 border ${
                         statusMessage.type === 'success'
-                            ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200'
-                            : 'bg-rose-950/40 border-rose-500/40 text-rose-200'
+                            ? 'bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-500/10 dark:border-emerald-500/30 dark:text-emerald-300'
+                            : 'bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-500/10 dark:border-rose-500/30 dark:text-rose-300'
                     }`}>
                         {statusMessage.type === 'success' ? (
-                            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+                            <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
                         ) : (
-                            <AlertCircle className="w-5 h-5 text-rose-400 shrink-0" />
+                            <AlertCircle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />
                         )}
                         <span className="text-sm">{statusMessage.text}</span>
                     </div>
                 )}
 
                 {/* Step 1: Select Categories */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                                <span className="w-5 h-5 rounded-full bg-sky-500 text-slate-950 text-xs font-black flex items-center justify-center">1</span>
+                            <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                                <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">1</span>
                                 Select Personal Data Categories
                             </h2>
-                            <p className="text-xs text-slate-400 mt-0.5">Choose which activity segments to include in your archive</p>
+                            <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Choose which activity segments to include in your archive</p>
                         </div>
                         <button
                             onClick={handleSelectAll}
-                            className="text-xs font-semibold text-sky-400 hover:text-sky-300 transition"
+                            className="text-xs font-semibold text-[#ff1493] hover:text-[#e0127f] dark:hover:text-[#ff2d87] transition"
                         >
                             {selectedCategories.length === CATEGORIES.length ? 'Deselect All' : 'Select All'}
                         </button>
@@ -230,25 +230,25 @@ export default function DataCentre() {
                                     onClick={() => toggleCategory(cat.id)}
                                     className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3.5 ${
                                         isSelected
-                                            ? 'bg-sky-950/20 border-sky-500/50 text-white shadow-sm ring-1 ring-sky-500/30'
-                                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                            ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#18181b] dark:text-zinc-100 shadow-sm ring-1 ring-[#ff1493]/25'
+                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                                        isSelected ? 'bg-sky-500/20 text-sky-400' : 'bg-slate-800 text-slate-500'
+                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
                                     }`}>
                                         <Icon className="w-4 h-4" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center justify-between">
-                                            <span className="text-xs font-bold text-slate-200">{cat.label}</span>
+                                            <span className="text-xs font-bold text-[#18181b] dark:text-zinc-100">{cat.label}</span>
                                             <div className={`w-4 h-4 rounded-md border flex items-center justify-center ${
-                                                isSelected ? 'bg-sky-500 border-sky-500 text-slate-950' : 'border-slate-700'
+                                                isSelected ? 'bg-[#ff1493] border-[#ff1493] text-white' : 'border-[#e6d8e1] dark:border-zinc-600'
                                             }`}>
                                                 {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                                             </div>
                                         </div>
-                                        <p className="text-[11px] text-slate-400 mt-1 line-clamp-2 leading-tight">{cat.desc}</p>
+                                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-tight">{cat.desc}</p>
                                     </div>
                                 </button>
                             );
@@ -257,13 +257,13 @@ export default function DataCentre() {
                 </div>
 
                 {/* Step 2: Select Format */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                     <div>
-                        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-sky-500 text-slate-950 text-xs font-black flex items-center justify-center">2</span>
+                        <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">2</span>
                             Select Archive Format
                         </h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Formats are formatted and sanitized against formula injection</p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Formats are formatted and sanitized against formula injection</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -277,25 +277,25 @@ export default function DataCentre() {
                                     onClick={() => setSelectedFormat(fmt.id)}
                                     className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3.5 ${
                                         isSelected
-                                            ? 'bg-sky-950/20 border-sky-500/50 text-white shadow-sm ring-1 ring-sky-500/30'
-                                            : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700'
+                                            ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#18181b] dark:text-zinc-100 shadow-sm ring-1 ring-[#ff1493]/25'
+                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                                        isSelected ? 'bg-sky-500/20 text-sky-400' : 'bg-slate-800 text-slate-500'
+                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
                                     }`}>
                                         <Icon className="w-4 h-4" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2">
-                                            <span className="text-xs font-bold text-slate-200">{fmt.label}</span>
-                                            {fmt.badge && (
-                                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30">
-                                                    {fmt.badge}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <p className="text-[11px] text-slate-400 mt-1 leading-tight">{fmt.desc}</p>
+                                                <span className="text-xs font-bold text-[#18181b] dark:text-zinc-100">{fmt.label}</span>
+                                                {fmt.badge && (
+                                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-[#ff1493]/10 text-[#ff1493] border border-[#ff1493]/30">
+                                                        {fmt.badge}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-tight">{fmt.desc}</p>
                                     </div>
                                 </button>
                             );
@@ -304,51 +304,51 @@ export default function DataCentre() {
                 </div>
 
                 {/* Step 3: Destination & Confirmation */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
+                <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
                     <div>
-                        <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                            <span className="w-5 h-5 rounded-full bg-sky-500 text-slate-950 text-xs font-black flex items-center justify-center">3</span>
+                        <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">3</span>
                             Delivery Destination & Confirmation
                         </h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Where would you like us to notify you with your download link?</p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Where would you like us to notify you with your download link?</p>
                     </div>
 
                     <div className="space-y-3 pt-2">
                         <label className={`p-3.5 rounded-2xl border flex items-center gap-3 cursor-pointer transition ${
-                            deliveryMode === 'primary' ? 'bg-sky-950/20 border-sky-500/50' : 'bg-slate-900/60 border-slate-800'
+                            deliveryMode === 'primary' ? 'bg-[#ff1493]/10 border-[#ff1493]/40' : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700'
                         }`}>
                             <input
                                 type="radio"
                                 name="deliveryMode"
                                 checked={deliveryMode === 'primary'}
                                 onChange={() => setDeliveryMode('primary')}
-                                className="w-4 h-4 text-sky-500 focus:ring-0"
+                                className="w-4 h-4 text-[#ff1493] focus:ring-0"
                             />
                             <div className="flex-1 text-xs">
-                                <span className="font-bold text-slate-200">Verified Primary Email</span>
-                                <span className="block text-slate-400 mt-0.5">{user?.email || 'Your account email'}</span>
+                                <span className="font-bold text-[#18181b] dark:text-zinc-100">Verified Primary Email</span>
+                                <span className="block text-slate-600 dark:text-zinc-400 mt-0.5">{user?.email || 'Your account email'}</span>
                             </div>
                         </label>
 
                         <label className={`p-3.5 rounded-2xl border flex items-start gap-3 cursor-pointer transition ${
-                            deliveryMode === 'alternate' ? 'bg-sky-950/20 border-sky-500/50' : 'bg-slate-900/60 border-slate-800'
+                            deliveryMode === 'alternate' ? 'bg-[#ff1493]/10 border-[#ff1493]/40' : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700'
                         }`}>
                             <input
                                 type="radio"
                                 name="deliveryMode"
                                 checked={deliveryMode === 'alternate'}
                                 onChange={() => setDeliveryMode('alternate')}
-                                className="w-4 h-4 text-sky-500 focus:ring-0 mt-1"
+                                className="w-4 h-4 text-[#ff1493] focus:ring-0 mt-1"
                             />
                             <div className="flex-1 text-xs space-y-2">
-                                <span className="font-bold text-slate-200">Alternative Destination</span>
+                                                                <span className="font-bold text-[#18181b] dark:text-zinc-100">Alternative Destination</span>
                                 {deliveryMode === 'alternate' && (
                                     <input
                                         type="email"
                                         placeholder="Enter alternative email address"
                                         value={alternateEmail}
                                         onChange={(e) => setAlternateEmail(e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 placeholder-slate-500 text-xs focus:outline-none focus:border-sky-500"
+                                        className="w-full px-3 py-2 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-[#18181b] dark:text-zinc-100 placeholder-slate-600 dark:placeholder-zinc-500 text-xs focus:outline-none focus:border-[#ff1493]"
                                     />
                                 )}
                             </div>
@@ -358,7 +358,7 @@ export default function DataCentre() {
                     <button
                         onClick={handleRequestExport}
                         disabled={loading || selectedCategories.length === 0}
-                        className="w-full mt-4 py-3.5 px-4 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-slate-950 font-bold text-sm shadow-lg shadow-sky-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="w-full mt-4 py-3.5 px-4 rounded-2xl bg-[#ff1493] hover:bg-[#e0127f] text-white font-bold text-sm shadow-md shadow-[#ff1493]/25 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
                         {loading ? (
                             <>
@@ -375,19 +375,19 @@ export default function DataCentre() {
                 </div>
 
                 {/* Export Job History */}
-                <div className="bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-4">
-                    <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                        <Clock className="w-4 h-4 text-sky-400" />
+                <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-5 sm:p-6 shadow-sm space-y-4">
+                    <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 uppercase tracking-wider flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-[#ff1493]" />
                         Recent Export Archives & Status
                     </h2>
 
                     {historyLoading && history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-500 dark:text-zinc-400 flex items-center justify-center gap-2">
-                            <RefreshCw className="w-4 h-4 animate-spin text-sky-400" />
+                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-400 flex items-center justify-center gap-2">
+                            <RefreshCw className="w-4 h-4 animate-spin text-[#ff1493]" />
                             Loading archive history...
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-500 dark:text-zinc-400 border border-dashed border-slate-800 rounded-2xl">
+                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-400 border border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-2xl">
                             No export requests found for this account.
                         </div>
                     ) : (
@@ -400,28 +400,28 @@ export default function DataCentre() {
                                 return (
                                     <div
                                         key={job.jobId}
-                                        className="p-4 rounded-2xl bg-slate-950/60 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
+                                        className="p-4 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                                     >
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <span className="font-bold text-slate-200 uppercase">{job.format} Archive</span>
+                                                <span className="font-bold text-[#18181b] dark:text-zinc-100 uppercase">{job.format} Archive</span>
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                                     job.status === 'READY' && !isExpired
-                                                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                                                        ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
                                                         : job.status === 'PROCESSING' || job.status === 'QUEUED'
-                                                        ? 'bg-sky-500/20 text-sky-400 border border-sky-500/30 animate-pulse'
+                                                        ? 'bg-[#ff1493]/10 text-[#ff1493] border border-[#ff1493]/30 animate-pulse'
                                                         : job.status === 'FAILED'
-                                                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                                                        : 'bg-slate-800 text-slate-400'
+                                                        ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
+                                                        : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
                                                 }`}>
                                                     {isExpired ? 'EXPIRED' : job.status}
                                                 </span>
                                             </div>
-                                            <p className="text-slate-400 text-[11px]">
+                                            <p className="text-slate-600 dark:text-zinc-400 text-[11px]">
                                                 Requested on {new Date(job.createdAt).toLocaleString()} • Delivered to {job.deliveryEmail}
                                             </p>
                                             {job.fileSizeBytes && (
-                                                <p className="text-slate-500 dark:text-zinc-400 text-[10px]">
+                                                <p className="text-slate-600 dark:text-zinc-400 text-[10px]">
                                                     Size: {(job.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • {job.categories?.length || 0} Categories
                                                 </p>
                                             )}
@@ -433,18 +433,18 @@ export default function DataCentre() {
                                                     href={`${appUrl}/api/users/data-centre/download/${job.downloadToken}`}
                                                     target="_blank"
                                                     rel="noreferrer"
-                                                    className="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold flex items-center gap-1.5 transition shadow"
+                                                    className="px-4 py-2 rounded-xl bg-[#ff1493] hover:bg-[#e0127f] text-white font-bold flex items-center gap-1.5 transition shadow"
                                                 >
                                                     <Download className="w-3.5 h-3.5" />
                                                     Download
                                                 </a>
                                             ) : job.status === 'PROCESSING' || job.status === 'QUEUED' ? (
-                                                <span className="text-slate-400 flex items-center gap-1 text-[11px]">
-                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-sky-400" />
+                                                <span className="text-slate-600 dark:text-zinc-400 flex items-center gap-1 text-[11px]">
+                                                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#ff1493]" />
                                                     Compiling...
                                                 </span>
                                             ) : (
-                                                <span className="text-slate-500 dark:text-zinc-400 text-[11px]">Archive unavailable</span>
+                                                <span className="text-slate-600 dark:text-zinc-400 text-[11px]">Archive unavailable</span>
                                             )}
                                         </div>
                                     </div>

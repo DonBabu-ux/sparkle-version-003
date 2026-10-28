@@ -41,8 +41,8 @@ export default function CreateGroup() {
   };
 
   return (
-    <div className="min-h-dvh font-sans" style={{ background: '#fdf2f4' }}>
-      <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
+    <div className="min-h-dvh font-sans" style={{ background: '#f8e7ed' }}>
+      <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,20,147,0.18) 0%, transparent 70%)' }} />
       <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
 
       <main className="max-w-4xl mx-auto px-6 py-32 relative z-10">
@@ -55,12 +55,12 @@ export default function CreateGroup() {
         </button>
 
         <header className="mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5" style={{ background: 'rgba(255,61,109,0.12)', border: '1px solid rgba(255,61,109,0.25)' }}>
-            <Sparkles size={13} style={{ color: '#FF3D6D' }} />
-            <span style={{ fontSize: '10px', fontWeight: 800, color: '#FF3D6D', letterSpacing: '0.12em', textTransform: 'uppercase', fontStyle: 'normal' }}>New Community</span>
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-5" style={{ background: 'rgba(255,20,147,0.12)', border: '1px solid rgba(255,20,147,0.25)' }}>
+            <Sparkles size={13} style={{ color: '#ff1493' }} />
+            <span style={{ fontSize: '10px', fontWeight: 800, color: '#ff1493', letterSpacing: '0.12em', textTransform: 'uppercase', fontStyle: 'normal' }}>New Community</span>
           </div>
           <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)', fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.05, color: '#1a1a2e', fontStyle: 'normal', textTransform: 'none', marginBottom: '12px' }}>
-            Create a <span style={{ color: '#FF3D6D' }}>Circle</span>
+            Create a <span style={{ color: '#ff1493' }}>Circle</span>
           </h1>
           <p style={{ fontSize: '1rem', color: '#64748b', fontWeight: 500, fontStyle: 'normal', textTransform: 'none' }}>
             Build a space for your tribe, interests, or project.
@@ -68,10 +68,10 @@ export default function CreateGroup() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 animate-in fade-in slide-in-from-bottom-6 duration-1000 delay-200">
-           <div className="lg:col-span-7 p-10 rounded-[40px]" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 4px 32px rgba(255,61,109,0.07)' }}>
+           <div className="lg:col-span-7 p-10 rounded-[40px]" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,20,147,0.12)', boxShadow: '0 4px 32px rgba(255,20,147,0.07)' }}>
               {error && (
                 <div className="mb-8 p-4 bg-rose-50 border border-rose-100 text-rose-600 text-xs font-bold rounded-2xl animate-shake flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-[#1b1b24] flex items-center justify-center shadow-sm">⚠️</div>
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-sm">⚠️</div>
                   {error}
                 </div>
               )}
@@ -85,7 +85,7 @@ export default function CreateGroup() {
                       value={formData.name}
                       onChange={e => setFormData({...formData, name: e.target.value})}
                       placeholder="e.g. Photography Club" 
-                      className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-slate-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300"
+                      className="w-full h-14 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl px-6 text-slate-900 font-bold focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300"
                     />
                  </div>
 
@@ -95,7 +95,7 @@ export default function CreateGroup() {
                       value={formData.description}
                       onChange={e => setFormData({...formData, description: e.target.value})}
                       placeholder="What is this community about?" 
-                      className="w-full bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl py-4 px-6 text-slate-900 font-medium focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none"
+                      className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl py-4 px-6 text-slate-900 font-medium focus:bg-white focus:ring-4 focus:ring-primary/5 focus:border-primary outline-none transition-all placeholder:text-slate-300 min-h-[120px] resize-none"
                     />
                  </div>
 
@@ -107,7 +107,7 @@ export default function CreateGroup() {
                        <select 
                          value={formData.campus}
                          onChange={e => setFormData({...formData, campus: e.target.value})}
-                         className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
+                         className="w-full h-14 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
                        >
                          <option value="main">Main Campus</option>
                          <option value="north">North Campus</option>
@@ -122,7 +122,7 @@ export default function CreateGroup() {
                        <select 
                          value={formData.category}
                          onChange={e => setFormData({...formData, category: e.target.value})}
-                         className="w-full h-14 bg-slate-50 dark:bg-[#101217] border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
+                         className="w-full h-14 bg-slate-50 dark:bg-zinc-800 border border-slate-100 rounded-2xl px-6 text-sm font-bold text-slate-600 dark:text-zinc-300 focus:bg-white focus:ring-4 focus:ring-primary/5 outline-none transition-all appearance-none cursor-pointer"
                        >
                          <option value="general">General</option>
                          <option value="tech">Technology</option>
@@ -135,7 +135,7 @@ export default function CreateGroup() {
 
                  <div 
                    onClick={() => setFormData({...formData, is_public: !formData.is_public})}
-                   className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex items-center justify-between ${formData.is_public ? 'bg-white dark:bg-[#1b1b24] border-primary/20 shadow-lg shadow-primary/5' : 'bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/10 opacity-60 hover:opacity-100'}`}
+                   className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex items-center justify-between ${formData.is_public ? 'bg-white dark:bg-zinc-800 border-primary/20 shadow-lg shadow-primary/5' : 'bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/10 opacity-60 hover:opacity-100'}`}
                  >
                     <div className="flex items-center gap-4">
                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.is_public ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
@@ -156,7 +156,7 @@ export default function CreateGroup() {
                  <button
                    type="submit"
                    disabled={loading}
-                   style={{ width: '100%', height: '56px', background: 'linear-gradient(135deg, #FF3D6D, #e01f55)', color: '#fff', borderRadius: '18px', fontWeight: 800, fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 8px 28px rgba(255,61,109,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontStyle: 'normal', textTransform: 'none', opacity: loading ? 0.6 : 1, transition: 'all 0.2s' }}
+                   style={{ width: '100%', height: '56px', background: '#ff1493', color: '#fff', borderRadius: '18px', fontWeight: 800, fontSize: '14px', border: 'none', cursor: 'pointer', boxShadow: '0 8px 28px rgba(255,20,147,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontStyle: 'normal', textTransform: 'none', opacity: loading ? 0.6 : 1, transition: 'all 0.2s' }}
                  >
                    {loading ? (
                      <Spinner size="small" color="text-white" />
@@ -189,7 +189,7 @@ export default function CreateGroup() {
                  </div>
               </div>
 
-              <div className="flex items-center gap-4 p-6 rounded-[24px]" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,61,109,0.12)', boxShadow: '0 2px 16px rgba(255,61,109,0.05)' }}>
+              <div className="flex items-center gap-4 p-6 rounded-[24px]" style={{ background: 'rgba(255,255,255,0.92)', border: '1.5px solid rgba(255,20,147,0.12)', boxShadow: '0 2px 16px rgba(255,20,147,0.05)' }}>
                  <div className="w-12 h-12 rounded-2xl bg-amber-50 flex items-center justify-center text-amber-500">
                     <Shield size={24} />
                  </div>

@@ -83,7 +83,7 @@ export default function LostFound() {
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
 
       {/* Background orbs */}
       <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
@@ -95,7 +95,7 @@ export default function LostFound() {
           <header className="mb-24 animate-fade-in px-4">
              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-16">
                 <div className="max-w-4xl space-y-8">
-                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-3xl border border-white dark:border-white/10 rounded-full shadow-xl shadow-primary/5">
+                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-3xl border border-white dark:border-white/10 rounded-full shadow-xl shadow-primary/5">
                       <PackageOpen size={18} strokeWidth={3} className="text-primary" />
                        <span className="text-[10px] font-black text-[#18181b] dark:text-white uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
                    </div>
@@ -103,7 +103,7 @@ export default function LostFound() {
                       Lost & <span className="text-primary italic">Found.</span>
                    </h1>
                     <p className="text-xl font-bold text-[#18181b] dark:text-white opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
-                      Broadcast missing harmonics or report found signals. Maintaining the village collective organized.
+                       Report a lost item or share one you found. Keep your campus community organized.
                     </p>
                 </div>
                 
@@ -123,11 +123,11 @@ export default function LostFound() {
                    <button 
                     key={t}
                     onClick={() => setFilter(t)}
-                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white dark:bg-[#1b1b24] border-white dark:border-white/10 text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 dark:bg-white/[0.03] border-white dark:border-white/10 text-[#18181b] dark:text-white opacity-30 hover:opacity-100 hover:bg-white dark:hover:bg-white/[0.06]'}`}
+                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white dark:bg-zinc-800 border-white dark:border-white/10 text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 dark:bg-white/[0.03] border-white dark:border-white/10 text-[#18181b] dark:text-white opacity-30 hover:opacity-100 hover:bg-white dark:hover:bg-white/[0.06]'}`}
                    >
                      {t === 'lost' && <AlertCircle size={16} strokeWidth={3} />}
                      {t === 'found' && <CheckCircle2 size={16} strokeWidth={3} />}
-                     <span>{t === 'all' ? 'Universal Stream' : `${t} Frequencies`}</span>
+                      <span>{t === 'all' ? 'Universal Stream' : `${t} Items`}</span>
                    </button>
                 ))}
              </div>
@@ -138,7 +138,7 @@ export default function LostFound() {
                   type="text" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Scan village items..." 
+                  placeholder="Scan campus items..."
                   className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-[#18181b] dark:text-white placeholder:text-black/5 dark:text-white/10 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
                 />
              </div>
@@ -157,7 +157,7 @@ export default function LostFound() {
                <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
                <div className="space-y-6">
                   <h3 className="text-5xl font-black text-[#18181b] dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
-                  <p className="text-[10px] font-black text-[#18181b] dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items intercepted in this harmonic sector yet.</p>
+                  <p className="text-[10px] font-black text-[#18181b] dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items reported in this category yet.</p>
                   <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Report an Item</button>
                </div>
             </div>
@@ -169,7 +169,7 @@ export default function LostFound() {
                 }).map((item, i) => (
                    <div 
                     key={item.id} 
-                    className="bg-white/80 dark:bg-[#1b1b24]/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white dark:border-white/10 p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
+                    className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white dark:border-white/10 p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
                     style={{ animationDelay: `${i * 50}ms` }}
                    >
                      {/* Media Content */}
@@ -207,7 +207,7 @@ export default function LostFound() {
                                  showSuccess('Link copied to clipboard!');
                                } catch { /* clipboard unavailable */ }
                              }}
-                             className="w-12 h-12 bg-white/20 dark:bg-black/40 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
+                             className="w-12 h-12 bg-white/20 dark:bg-zinc-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
                            >
                               <Share2 size={20} strokeWidth={3} />
                            </button>
@@ -220,14 +220,14 @@ export default function LostFound() {
                            {item.category || 'General Spectrum'}
                         </div>
                         <h3 className="text-3xl font-black text-[#18181b] dark:text-white mb-4 tracking-tighter italic leading-none group-hover:text-primary transition-colors uppercase">{item.title}</h3>
-                        <p className="text-base font-bold text-[#18181b] dark:text-white opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No detailed harmonic data provided.'}</p>
+                        <p className="text-base font-bold text-[#18181b] dark:text-white opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No details provided.'}</p>
                         
                         <div className="space-y-4 mb-12 flex-grow">
                            <div className="flex items-center gap-5 group/info">
                               <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
                                  <MapPin size={20} strokeWidth={4} />
                               </div>
-                              <span className="text-xs font-black text-[#18181b] dark:text-white italic uppercase tracking-widest truncate">{item.location || 'GLOBAL SECTOR'}</span>
+                              <span className="text-xs font-black text-[#18181b] dark:text-white italic uppercase tracking-widest truncate">{item.location || 'Campus-wide'}</span>
                            </div>
                            <div className="flex items-center gap-5 group/info">
                               <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
@@ -256,7 +256,7 @@ export default function LostFound() {
                                onClick={() => handleResolve(item.id)}
                                className="h-14 px-8 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-500/20 active:scale-95"
                              >
-                                Resolve Sync
+                                 Mark as Resolved
                              </button>
                            ) : (
                              <button 
@@ -278,7 +278,7 @@ export default function LostFound() {
       {/* High-Fidelity Report Step Modal */}
       {showReport && (
         <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
-          <div className="bg-white/90 dark:bg-[#1b1b24]/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white dark:border-white/10 overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
+          <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white dark:border-white/10 overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
              
              {/* Progress Bar Top */}
              <div className="absolute top-0 inset-x-0 h-3 bg-black/5">
@@ -333,7 +333,7 @@ export default function LostFound() {
                           className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-lg font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none appearance-none italic shadow-inner"
                         >
                           {['Electronics', 'Documents', 'Keys', 'Clothing', 'Bags', 'Other'].map(c => (
-                              <option key={c} value={c} className="bg-white dark:bg-[#1b1b24]">{c.toUpperCase()} FREQUENCY</option>
+                              <option key={c} value={c} className="bg-white dark:bg-zinc-800">{c.toUpperCase()}</option>
                           ))}
                         </select>
                     </div>
@@ -353,7 +353,7 @@ export default function LostFound() {
                             type="text" 
                             value={form.title}
                             onChange={e => setForm({...form, title: e.target.value})}
-                            placeholder="e.g. Silver Harmonic Laptop..."
+                            placeholder="e.g. Silver laptop..."
                             className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-xl font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
                           />
                        </div>

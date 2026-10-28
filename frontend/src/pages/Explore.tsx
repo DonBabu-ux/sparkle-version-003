@@ -190,23 +190,23 @@ export default function Explore() {
   })();
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-black min-h-dvh text-[#18181b] dark:text-white font-sans overflow-hidden transition-colors duration-300">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans overflow-hidden transition-colors duration-300">
 
       {/* Main Content Area */}
       <div className="flex-1 w-full">
         {/* Sticky Header with Search & Filters */}
-        <div className="sticky top-0 z-40 bg-white/80 dark:bg-black/80 backdrop-blur-3xl border-b border-black/[0.03] dark:border-white/10 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
+        <div className="sticky top-0 z-40 bg-[#fdf8fa]/80 dark:bg-zinc-800/80 backdrop-blur-3xl border-b border-[#ede3e9] dark:border-zinc-700 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
              <div className="flex items-center gap-3">
               <div className="relative flex-1 group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-black/20 dark:text-white/20 group-focus-within:text-primary transition-colors duration-300" size={18} />
-                <input 
-                  type="text" 
-                  placeholder="Search Sparkle Discovery..." 
-                  value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-black/5 dark:!bg-white/5 focus:!bg-white dark:focus:!bg-white/10 dark:text-white border-none shadow-sm"
-              />
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400 group-focus-within:text-primary transition-colors duration-300" size={18} />
+                 <input
+                   type="text"
+                   placeholder="Search Sparkle Discovery..."
+                   value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="sparkle-input pl-12 h-11 md:h-12 !rounded-full !bg-[#f6eef3] dark:!bg-zinc-900 focus:!bg-[#fdf8fa] dark:focus:!bg-zinc-800 text-[#18181b] dark:text-zinc-100 border-none shadow-sm"
+               />
             </div>
             </div>
             
@@ -217,9 +217,9 @@ export default function Explore() {
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 border ${
-                    activeCategory === cat 
-                      ? 'bg-black dark:bg-white border-black dark:border-white text-white dark:text-black shadow-lg shadow-black/10' 
-                      : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-black/40 dark:text-white/40 hover:border-primary/20 hover:text-primary'
+                    activeCategory === cat
+                      ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
+                      : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary/20 hover:text-primary'
                   }`}
                 >
                   {cat}
@@ -234,7 +234,7 @@ export default function Explore() {
           {loading && page === 1 && mediaItems.length === 0 ? (
             <div className="grid grid-cols-3 gap-1 md:gap-6">
               {[...Array(12)].map((_, i) => (
-                <Skeleton key={i} className="aspect-square border border-black/5 dark:border-white/5 rounded-md md:rounded-2xl" />
+                <Skeleton key={i} className="aspect-square border border-[#ede3e9] dark:border-zinc-700 rounded-md md:rounded-2xl" />
               ))}
             </div>
           ) : fetchError && mediaItems.length === 0 ? (
@@ -273,7 +273,7 @@ export default function Explore() {
                    <div 
                     ref={isLastElement ? lastElementRef : null}
                     key={`${m.id}-${i}`} 
-                    className={`group relative cursor-pointer overflow-hidden rounded-xl md:rounded-3xl bg-white dark:bg-black border border-black/5 dark:border-white/10 ${spanClass}`}
+                     className={`group relative cursor-pointer overflow-hidden rounded-xl md:rounded-3xl bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 ${spanClass}`}
                     onClick={() => {
                       if (m.type === 'moment') {
                         navigate(`/moments/${m.id}`);

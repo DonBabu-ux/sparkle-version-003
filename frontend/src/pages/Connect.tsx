@@ -134,7 +134,7 @@ export default function Connect() {
   
 
   return (
-    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
+    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-zinc-100 overflow-x-hidden font-sans selection:bg-[#ff1493]/30">
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full">
         
@@ -145,9 +145,9 @@ export default function Connect() {
               <div className="w-10 h-10 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/20">
                 <Orbit className="text-white" size={22} />
               </div>
-              <h1 className="text-3xl font-black text-[#18181b] dark:text-white tracking-tighter uppercase italic">Discovery Hub</h1>
+               <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tighter uppercase italic">Discovery Hub</h1>
             </div>
-            <p className="text-[13px] font-bold text-black/40 dark:text-white/40 uppercase tracking-[0.2em] ml-13">
+            <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] ml-13">
               Expanding your sparkle matrix
             </p>
           </div>
@@ -155,27 +155,27 @@ export default function Connect() {
 
         {/* ── Search + Tabs Bar ── */}
         <div className="sticky top-6 z-50 mb-12 animate-fade-in">
-          <div className="bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/10 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-lg dark:shadow-2xl">
+          <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-lg dark:shadow-2xl">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-black/30 dark:text-white/30 group-focus-within:text-primary transition-all duration-500 z-10" size={20} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400 group-focus-within:text-primary transition-all duration-500 z-10" size={20} />
               <input
                 type="text"
                 placeholder="Search by name, major, or campus..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-[#18181b] dark:text-white placeholder:text-black/20 dark:placeholder:text-white/10 transition-all outline-none"
+                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 transition-all outline-none"
               />
             </div>
-            
-            <div className="flex items-center gap-2 p-1.5 bg-black/5 dark:bg-[#101217]/40 rounded-[1.5rem] border border-transparent dark:border-white/5">
+
+            <div className="flex items-center gap-2 p-1.5 bg-[#f0e5ec] dark:bg-zinc-700 rounded-[1.5rem] border border-[#e6d8e1] dark:border-zinc-700">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}
                   onClick={() => setActiveTab(label)}
                   className={`flex items-center gap-2.5 h-11 px-6 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap
-                    ${activeTab === label 
-                      ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105' 
-                      : 'text-black/40 hover:text-black/60 dark:text-white/30 dark:hover:text-white/60 hover:bg-black/5 dark:hover:bg-white/5'}`}
+                    ${activeTab === label
+                      ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
+                      : 'text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600'}`}
                 >
                   <Icon size={16} strokeWidth={2.5} />
                   {label}
@@ -190,22 +190,22 @@ export default function Connect() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="bg-black/[0.03] dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
-                   <div className="w-20 h-20 bg-black/10 dark:bg-white/10 rounded-full mb-6" />
-                   <div className="w-2/3 h-5 bg-black/10 dark:bg-white/10 rounded-full mb-3" />
-                   <div className="w-1/2 h-4 bg-black/10 dark:bg-white/10 rounded-full" />
+                <div key={i} className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
+                   <div className="w-20 h-20 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-6" />
+                   <div className="w-2/3 h-5 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-3" />
+                   <div className="w-1/2 h-4 bg-[#ede3e9] dark:bg-zinc-700 rounded-full" />
                 </div>
               ))}
             </div>
           ) : users.length === 0 ? (
             error ? (
-              <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
-                <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
-                  <Compass size={40} className="text-black/20 dark:text-white/10" />
+              <div className="py-32 flex flex-col items-center gap-8 text-center bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-[3rem] backdrop-blur-xl animate-fade-in">
+                <div className="w-24 h-24 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center">
+                  <Compass size={40} className="text-slate-600 dark:text-zinc-400" />
                 </div>
                 <div className="space-y-3 px-4">
-                  <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic">CONNECTION LOST</h3>
-                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
+                  <h3 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 italic">CONNECTION LOST</h3>
+                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
                 </div>
                 <button
                   onClick={() => fetchUsers(false)}
@@ -215,13 +215,13 @@ export default function Connect() {
                 </button>
               </div>
             ) : (
-              <div className="py-32 flex flex-col items-center gap-8 text-center bg-white/[0.02] border border-white/10 rounded-[3rem] backdrop-blur-xl animate-fade-in">
-                <div className="w-24 h-24 bg-black/5 dark:bg-white/5 rounded-full flex items-center justify-center">
-                  <Search size={40} className="text-black/20 dark:text-white/10" />
+              <div className="py-32 flex flex-col items-center gap-8 text-center bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-[3rem] backdrop-blur-xl animate-fade-in">
+                <div className="w-24 h-24 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center">
+                  <Search size={40} className="text-slate-600 dark:text-zinc-400" />
                 </div>
                 <div className="space-y-3 px-4">
-                  <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic">NO RESULTS FOUND</h3>
-                  <p className="text-[13px] font-bold text-black/30 dark:text-white/30 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
+                  <h3 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 italic">NO RESULTS FOUND</h3>
+                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
                 </div>
               </div>
             )
@@ -244,10 +244,10 @@ export default function Connect() {
               {/* Load More Skeleton */}
               {offset > 0 && loadingMore && (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={`load-more-${i}`} className="bg-black/[0.03] dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-black/10 dark:bg-white/10 rounded-full mb-4" />
-                    <div className="w-2/3 h-4 bg-black/10 dark:bg-white/10 rounded-full mb-2" />
-                    <div className="w-1/2 h-3 bg-black/10 dark:bg-white/10 rounded-full" />
+                  <div key={`load-more-${i}`} className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
+                    <div className="w-16 h-16 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-4" />
+                    <div className="w-2/3 h-4 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-2" />
+                    <div className="w-1/2 h-3 bg-[#ede3e9] dark:bg-zinc-700 rounded-full" />
                   </div>
                 ))
               )}

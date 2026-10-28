@@ -35,11 +35,7 @@ export default function Groups() {
   ) ?? [];
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#101217] min-h-dvh text-[#1a1a2e] dark:text-white font-sans">
-
-      {/* Decorative blobs */}
-      <div className="fixed top-[-80px] right-[-80px] w-[420px] h-[420px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,61,109,0.18) 0%, transparent 70%)' }} />
-      <div className="fixed bottom-[-60px] left-[-60px] w-[360px] h-[360px] rounded-full pointer-events-none z-0" style={{ background: 'radial-gradient(circle, rgba(255,100,150,0.14) 0%, transparent 70%)' }} />
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans">
 
       <main className="flex-1 px-4 lg:px-10 relative z-10 max-w-7xl mx-auto w-full pb-[calc(6rem+env(safe-area-inset-bottom))]">
 
@@ -51,24 +47,24 @@ export default function Groups() {
               <div className="flex items-center gap-3 mb-5">
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="w-8 h-8 flex items-center justify-center bg-white dark:bg-white/10 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white hover:text-gray-900 active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 active:scale-95"
                   aria-label="Go to Dashboard"
                 >
                   <ArrowLeft size={16} />
                 </button>
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full" style={{ background: 'rgba(255,61,109,0.12)', border: '1px solid rgba(255,61,109,0.25)' }}>
-                  <Sparkles size={13} style={{ color: '#FF3D6D' }} />
-                  <span style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '0.12em', color: '#FF3D6D', textTransform: 'uppercase', fontStyle: 'normal' }}>Sparkle Communities</span>
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#ff1493]/10 border border-[#ff1493]/25">
+                  <Sparkles size={13} className="text-[#ff1493]" />
+                  <span className="text-[10px] font-extrabold tracking-[0.12em] text-[#ff1493] uppercase">Sparkle Communities</span>
                 </div>
               </div>
               {/* Heading — inline style bypasses global heading overrides */}
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-gray-900 dark:text-white mb-3">
+              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#18181b] dark:text-zinc-100 mb-3">
                 Discover{' '}
                 <span className="text-primary">Circles</span>
               </h1>
-              <p className="text-base text-gray-500 dark:text-gray-400 font-medium">
+              <p className="text-base text-slate-600 dark:text-zinc-400 font-medium">
                 Connect with like-minded people at{' '}
-                <strong className="text-gray-900 dark:text-white underline decoration-primary/40 decoration-[3px]">
+                <strong className="text-[#18181b] dark:text-zinc-100 underline decoration-primary/40 decoration-[3px]">
                   {user?.campus || 'your campus'}
                 </strong>.
               </p>
@@ -76,8 +72,7 @@ export default function Groups() {
 
             <button
               onClick={() => navigate('/groups/create')}
-              className="flex items-center gap-2.5 whitespace-nowrap active:scale-95 transition-transform"
-              style={{ padding: '14px 28px', background: 'linear-gradient(135deg, #FF3D6D 0%, #e01f55 100%)', color: '#fff', borderRadius: '18px', fontWeight: 800, fontSize: '13px', letterSpacing: '0.02em', boxShadow: '0 8px 24px rgba(255,61,109,0.35)', border: 'none', cursor: 'pointer', fontStyle: 'normal', textTransform: 'none' }}
+              className="flex items-center gap-2.5 whitespace-nowrap active:scale-95 transition-transform px-7 py-3.5 bg-[#ff1493] hover:bg-[#e0127f] text-white rounded-[18px] shadow-lg shadow-[#ff1493]/30 text-[13px] font-extrabold tracking-[0.02em]"
             >
               <Plus size={18} strokeWidth={3} />
               Create Circle
@@ -90,18 +85,18 @@ export default function Groups() {
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2" size={18} style={{ color: '#94a3b8' }} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={18} />
               <input
                 type="text"
                 value={query}
                 onChange={e => setQuery(e.target.value)}
                 placeholder="Search by name or interest..."
-                className="w-full h-[52px] bg-white dark:bg-[#101217] border border-primary/15 dark:border-white/10 rounded-2xl pl-12 pr-4 text-sm text-gray-900 dark:text-white outline-none shadow-sm focus:border-primary/50 dark:focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
+                className="w-full h-[52px] bg-[#fdf8fa] dark:bg-zinc-800 border border-primary/15 dark:border-zinc-700 rounded-2xl pl-12 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder-slate-600 dark:placeholder-zinc-400 outline-none shadow-sm focus:border-primary/50 dark:focus:border-primary focus:ring-4 focus:ring-primary/5 transition-all"
               />
             </div>
 
             {/* Filter tabs */}
-            <div className="flex items-center gap-1 p-1 rounded-2xl bg-white/80 dark:bg-white/5 border border-primary/10 dark:border-white/10 shadow-sm">
+            <div className="flex items-center gap-1 p-1 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
               {[
                 { key: 'all', label: 'All', icon: Globe },
                 { key: 'my', label: 'Joined', icon: Users },
@@ -110,16 +105,11 @@ export default function Groups() {
                 <button
                   key={f.key}
                   onClick={() => setFilter(f.key)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '6px',
-                    padding: '8px 16px', borderRadius: '12px',
-                    fontWeight: 700, fontSize: '12px', border: 'none', cursor: 'pointer',
-                    fontStyle: 'normal', textTransform: 'none', letterSpacing: '0.01em',
-                    transition: 'all 0.2s',
-                    background: filter === f.key ? 'linear-gradient(135deg, #FF3D6D, #e01f55)' : 'transparent',
-                    color: filter === f.key ? '#fff' : '#94a3b8',
-                    boxShadow: filter === f.key ? '0 4px 12px rgba(255,61,109,0.3)' : 'none',
-                  }}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    filter === f.key
+                      ? 'bg-[#ff1493] text-white shadow-md shadow-[#ff1493]/30'
+                      : 'bg-transparent text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                  }`}
                 >
                   <f.icon size={13} strokeWidth={2.5} />
                   {f.label}
@@ -133,7 +123,7 @@ export default function Groups() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
             {[1, 2, 3, 4, 5, 6].map(i => (
-              <div key={i} className="h-64 rounded-3xl animate-pulse bg-white/70 dark:bg-white/5 border border-primary/10 dark:border-white/10" />
+              <div key={i} className="h-64 rounded-3xl animate-pulse bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700" />
             ))}
           </div>
         ) : !filtered.length ? (
@@ -142,7 +132,7 @@ export default function Groups() {
               type="empty"
               title={query ? "Search Blank" : "No Circles Yet"}
               message={query 
-                ? `We couldn't find any circles matching "${query}". Try a different frequency!` 
+                ? `We couldn't find any circles matching "${query}". Try a different interest!` 
                 : "The campus hasn't formed any circles in this category yet. Be the first to spark one!"
               }
               onRetry={() => { setQuery(''); setFilter('all'); }}
@@ -154,16 +144,16 @@ export default function Groups() {
               <div
                 key={group.group_id}
                 onClick={() => navigate(`/groups/${group.group_id}`)}
-                className="cursor-pointer flex flex-col relative overflow-hidden bg-white dark:bg-[#101217] border border-primary/10 dark:border-white/10 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30 transition-all duration-300"
+                className="cursor-pointer flex flex-col relative overflow-hidden bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-[#ff1493]/10 hover:border-[#ff1493]/30 transition-all duration-300"
                 style={{
                   animation: `grpSlideUp 0.5s ${idx * 0.05}s ease both`,
                 }}
               >
                 {/* Pink accent top line */}
-                <div style={{ position: 'absolute', top: 0, left: '24px', right: '24px', height: '2px', background: 'linear-gradient(90deg, #FF3D6D, transparent)', borderRadius: '0 0 4px 4px', opacity: 0.5, zIndex: 10 }} />
+                <div className="absolute top-0 left-6 right-6 h-0.5 bg-[#ff1493] rounded-b z-10" />
 
                 {/* Watermark */}
-                <div className="absolute -right-5 -bottom-5 text-black/[0.02] -rotate-12 z-0 pointer-events-none" aria-hidden>
+                <div className="absolute -right-5 -bottom-5 text-[#18181b]/[0.04] dark:text-zinc-100/[0.04] -rotate-12 z-0 pointer-events-none" aria-hidden>
                   <Users size={160} strokeWidth={0.75} />
                 </div>
 
@@ -189,30 +179,30 @@ export default function Groups() {
                     alt={group.name}
                   />
                   <div className="pt-1 min-w-0 flex-1">
-                    <h3 className="text-[16px] font-black text-gray-900 dark:text-white leading-snug mb-1 truncate">
+                    <h3 className="text-[16px] font-black text-[#18181b] dark:text-zinc-100 leading-snug mb-1 truncate">
                       {group.name}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-gray-400 dark:text-gray-500 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 text-[11px] font-bold">
                       <Users size={11} />
                       <span>{group.member_count ?? 0} members</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-[13px] text-gray-500 dark:text-gray-400 leading-relaxed mb-4 line-clamp-2 flex-1">
+                <p className="text-[13px] text-slate-600 dark:text-zinc-400 leading-relaxed mb-4 line-clamp-2 flex-1">
                   {group.description || 'A community space for members to connect and share.'}
                 </p>
 
                 {/* Footer */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100 dark:border-white/5">
+                <div className="flex items-center justify-between pt-4 border-t border-[#ede3e9] dark:border-zinc-900">
                   <div className="flex items-center">
                     {[1, 2, 3].map(j => (
-                      <div key={j} className="w-7 h-7 rounded-full border-2 border-white dark:border-black overflow-hidden -ml-2 first:ml-0 bg-gray-100 dark:bg-white/5">
+                      <div key={j} className="w-7 h-7 rounded-full border-2 border-[#fdf8fa] dark:border-zinc-800 overflow-hidden -ml-2 first:ml-0 bg-[#f6eef3] dark:bg-zinc-900">
                         <img src={`https://ui-avatars.com/api/?name=U+${j}&background=random&color=fff`} className="w-full h-full object-cover" alt="" />
                       </div>
                     ))}
                     {(group.member_count || 0) > 3 && (
-                      <div className="w-7 h-7 rounded-full border-2 border-white dark:border-black bg-primary/10 dark:bg-primary/20 flex items-center justify-center -ml-2">
+                      <div className="w-7 h-7 rounded-full border-2 border-[#fdf8fa] dark:border-zinc-800 bg-primary/10 dark:bg-primary/20 flex items-center justify-center -ml-2">
                         <span className="text-[9px] font-black text-primary">+{group.member_count - 3}</span>
                       </div>
                     )}
@@ -230,8 +220,8 @@ export default function Groups() {
       </main>
 
       <style>{`
-        
-        input::placeholder { color: #94a3b8; font-style: normal; }
+        input::placeholder { color: #475569; font-style: normal; }
+        .dark input::placeholder { color: #a1a1aa; }
       `}</style>
     </div>
   );

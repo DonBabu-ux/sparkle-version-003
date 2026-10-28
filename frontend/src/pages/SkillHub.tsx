@@ -242,98 +242,102 @@ export default function SkillHub() {
       </AnimatePresence>
 
       <style>{`
-        .sh-layout { min-height: 100dvh; background: #fff; padding-top: 70px; padding-bottom: 80px; font-family: 'Inter', sans-serif; }
+        .sh-layout { min-height: 100dvh; background: #f8e7ed; padding-top: 70px; padding-bottom: 80px; font-family: 'Inter', sans-serif; }
         .sh-main { max-width: 600px; margin: 0 auto; }
         
-        .sh-header { display: flex; align-items: center; gap: 16px; padding: 20px; border-bottom: 1px solid #f3f4f6; }
-        .sh-back { width: 40px; height: 40px; border-radius: 50%; border: none; background: #f3f4f6; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #111827; }
-        .sh-title { font-size: 20px; font-weight: 800; color: #111827; margin: 0; }
-        .sh-subtitle { font-size: 13px; color: #6b7280; margin: 0; }
+        .sh-header { display: flex; align-items: center; gap: 16px; padding: 20px; border-bottom: 1px solid #ede3e9; }
+        .sh-back { width: 40px; height: 40px; border-radius: 50%; border: none; background: #f0e5ec; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #18181b; }
+        .sh-title { font-size: 20px; font-weight: 800; color: #18181b; margin: 0; }
+        .sh-subtitle { font-size: 13px; color: #475569; margin: 0; }
 
-        .sh-tabs { display: flex; padding: 0 20px; border-bottom: 1px solid #f3f4f6; }
-        .sh-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; background: none; border: none; font-size: 14px; font-weight: 600; color: #6b7280; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
-        .sh-tab--active { color: #e11d48; border-bottom-color: #e11d48; }
+        .sh-tabs { display: flex; padding: 0 20px; border-bottom: 1px solid #ede3e9; }
+        .sh-tab { flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 16px 0; background: none; border: none; font-size: 14px; font-weight: 600; color: #475569; border-bottom: 2px solid transparent; cursor: pointer; transition: all 0.2s; }
+        .sh-tab--active { color: #ff1493; border-bottom-color: #ff1493; }
 
         .sh-content { padding: 20px; }
-        .sh-loading { text-align: center; padding: 40px; color: #6b7280; font-size: 14px; }
-        .sh-empty { text-align: center; padding: 60px 20px; color: #9ca3af; font-size: 14px; background: #f9fafb; border-radius: 16px; }
+        .sh-loading { text-align: center; padding: 40px; color: #475569; font-size: 14px; }
+        .sh-empty { text-align: center; padding: 60px 20px; color: #475569; font-size: 14px; background: #f6eef3; border-radius: 16px; }
 
         .sh-list { display: flex; flex-direction: column; gap: 16px; }
-        .sh-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 16px; overflow: hidden; }
+        .sh-card { background: #fdf8fa; border: 1px solid #e6d8e1; border-radius: 16px; overflow: hidden; }
         
-        .sh-card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f9fafb; border-bottom: 1px solid #f3f4f6; }
+        .sh-card-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f6eef3; border-bottom: 1px solid #ede3e9; }
         .sh-card-user { display: flex; align-items: center; gap: 12px; }
         .sh-avatar { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-        .sh-name { font-size: 14px; font-weight: 700; color: #111827; margin: 0; }
-        .sh-user { font-size: 12px; color: #6b7280; margin: 0; }
+        .sh-name { font-size: 14px; font-weight: 700; color: #18181b; margin: 0; }
+        .sh-user { font-size: 12px; color: #475569; margin: 0; }
         
         .sh-status { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 99px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .sh-status--pending { background: #fef3c7; color: #d97706; }
-        .sh-status--accepted { background: #dbeafe; color: #2563eb; }
-        .sh-status--declined { background: #fee2e2; color: #dc2626; }
-        .sh-status--completed { background: #ecfdf5; color: #10b981; }
+        .sh-status--pending { background: #fef3c7; color: #b45309; }
+        .sh-status--accepted { background: rgba(255,20,147,0.12); color: #ff1493; }
+        .sh-status--declined { background: #fee2e2; color: #b91c1c; }
+        .sh-status--completed { background: #dcfce7; color: #15803d; }
 
         .sh-card-body { padding: 16px; }
-        .sh-service-title { font-size: 16px; font-weight: 700; color: #111827; margin: 0 0 8px 0; }
-        .sh-details { font-size: 13px; color: #4b5563; margin: 0 0 8px 0; }
-        .sh-notes { font-size: 13px; color: #6b7280; font-style: italic; background: #f9fafb; padding: 10px; border-radius: 8px; margin: 0; }
+        .sh-service-title { font-size: 16px; font-weight: 700; color: #18181b; margin: 0 0 8px 0; }
+        .sh-details { font-size: 13px; color: #334155; margin: 0 0 8px 0; }
+        .sh-notes { font-size: 13px; color: #475569; font-style: italic; background: #f6eef3; padding: 10px; border-radius: 8px; margin: 0; }
 
-        .sh-card-actions { display: flex; gap: 8px; padding: 16px; border-top: 1px solid #f3f4f6; }
-        .sh-card-footer { padding: 16px; border-top: 1px solid #f3f4f6; display: flex; justify-content: flex-end; }
+        .sh-card-actions { display: flex; gap: 8px; padding: 16px; border-top: 1px solid #ede3e9; }
+        .sh-card-footer { padding: 16px; border-top: 1px solid #ede3e9; display: flex; justify-content: flex-end; }
         
         .sh-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; flex: 1; transition: background 0.2s; }
-        .sh-btn--primary { background: #111827; color: #fff; }
-        .sh-btn--primary:hover { background: #000; }
-        .sh-btn--success { background: #ecfdf5; color: #10b981; }
+        .sh-btn--primary { background: #ff1493; color: #ffffff; }
+        .sh-btn--primary:hover { background: #ff2d87; }
+        .sh-btn--success { background: #ecfdf5; color: #047857; }
         .sh-btn--success:hover { background: #d1fae5; }
-        .sh-btn--danger { background: #fee2e2; color: #dc2626; }
+        .sh-btn--danger { background: #fee2e2; color: #b91c1c; }
         .sh-btn--danger:hover { background: #fecaca; }
-        .sh-btn--ghost { background: transparent; color: #6b7280; }
-        .sh-btn--ghost:hover { background: #f3f4f6; }
+        .sh-btn--ghost { background: transparent; color: #475569; }
+        .sh-btn--ghost:hover { background: #f6eef3; }
         
         .sh-rated { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #ca8a04; }
 
         /* Review Modal */
-        .sh-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
-        .sh-modal { background: #fff; border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
-        .sh-modal h2 { font-size: 20px; font-weight: 800; color: #111827; margin: 0 0 4px 0; text-align: center; }
-        .sh-modal-sub { font-size: 13px; color: #6b7280; text-align: center; margin: 0 0 20px 0; }
+        .sh-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 1000; }
+        .sh-modal { background: #fdf8fa; border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); }
+        .sh-modal h2 { font-size: 20px; font-weight: 800; color: #18181b; margin: 0 0 4px 0; text-align: center; }
+        .sh-modal-sub { font-size: 13px; color: #475569; text-align: center; margin: 0 0 20px 0; }
         
         .sh-stars { display: flex; justify-content: center; gap: 8px; margin-bottom: 24px; }
-        .sh-star { background: none; border: none; padding: 0; cursor: pointer; color: #d1d5db; transition: transform 0.1s; }
+        .sh-star { background: none; border: none; padding: 0; cursor: pointer; color: #475569; transition: transform 0.1s; }
         .sh-star:hover { transform: scale(1.1); }
         .sh-star--active { color: #eab308; }
 
-        .sh-textarea { width: 100%; padding: 12px; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; font-family: inherit; font-size: 14px; outline: none; resize: none; margin-bottom: 20px; }
-        .sh-textarea:focus { border-color: #111827; }
+        .sh-textarea { width: 100%; padding: 12px; background: #f6eef3; border: 1px solid #e6d8e1; border-radius: 12px; font-family: inherit; font-size: 14px; outline: none; resize: none; margin-bottom: 20px; }
+        .sh-textarea:focus { border-color: #ff1493; }
 
         .sh-modal-actions { display: flex; gap: 12px; }
 
-        /* Dark mode: authored light-only */
-        .dark .sh-layout { background: #0d0f13; }
-        .dark .sh-header, .dark .sh-tabs { border-bottom-color: rgba(255,255,255,0.08); }
-        .dark .sh-back { background: rgba(255,255,255,0.08); color: #f0f0f5; }
-        .dark .sh-title, .dark .sh-name, .dark .sh-service-title, .dark .sh-modal h2 { color: #f0f0f5; }
-        .dark .sh-subtitle, .dark .sh-user, .dark .sh-details, .dark .sh-notes, .dark .sh-loading, .dark .sh-tab, .dark .sh-modal-sub { color: #a8a8a8; }
-        .dark .sh-empty { background: rgba(255,255,255,0.04); color: #a8a8a8; }
-        .dark .sh-card { background: #1b1b24; border-color: rgba(255,255,255,0.08); }
-        .dark .sh-card-header, .dark .sh-card-actions, .dark .sh-card-footer { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); }
-        .dark .sh-status--pending { background: rgba(217,119,6,0.2); color: #fbbf24; }
-        .dark .sh-status--accepted { background: rgba(37,99,235,0.2); color: #60a5fa; }
-        .dark .sh-status--declined { background: rgba(220,38,38,0.2); color: #f87171; }
-        .dark .sh-status--completed { background: rgba(16,185,129,0.2); color: #34d399; }
-        .dark .sh-notes { background: rgba(255,255,255,0.04); }
-        .dark .sh-btn--primary { background: #f0f0f5; color: #0d0f13; }
-        .dark .sh-btn--primary:hover { background: #ffffff; }
+        /* Dark mode: zinc token system */
+        .dark .sh-layout { background: #18181b; }
+        .dark .sh-header, .dark .sh-tabs { border-bottom-color: #27272a; }
+        .dark .sh-back { background: #3f3f46; color: #f4f4f5; }
+        .dark .sh-title, .dark .sh-name, .dark .sh-service-title, .dark .sh-modal h2 { color: #f4f4f5; }
+        .dark .sh-subtitle, .dark .sh-user, .dark .sh-notes, .dark .sh-loading, .dark .sh-tab, .dark .sh-modal-sub { color: #a1a1aa; }
+        .dark .sh-details { color: #d4d4d8; }
+        .dark .sh-empty { background: #3f3f46; color: #a1a1aa; }
+        .dark .sh-card { background: #27272a; border-color: #3f3f46; }
+        .dark .sh-card-header, .dark .sh-card-actions, .dark .sh-card-footer { background: #18181b; border-color: #18181b; }
+        .dark .sh-status--pending { background: #78350f; color: #fbbf24; }
+        .dark .sh-status--accepted { background: rgba(255,20,147,0.18); color: #ff1493; }
+        .dark .sh-status--declined { background: #7f1d1d; color: #f87171; }
+        .dark .sh-status--completed { background: #064e3b; color: #4ade80; }
+        .dark .sh-notes { background: #18181b; }
+        .dark .sh-btn--primary { background: #ff1493; color: #ffffff; }
+        .dark .sh-btn--primary:hover { background: #ff2d87; }
         .dark .sh-btn--success { background: rgba(16,185,129,0.15); color: #34d399; }
         .dark .sh-btn--danger { background: rgba(220,38,38,0.15); color: #f87171; }
-        .dark .sh-btn--danger:hover { background: rgba(220,38,38,0.3); }
-        .dark .sh-btn--ghost { color: #a8a8a8; }
-        .dark .sh-btn--ghost:hover { background: rgba(255,255,255,0.06); }
-        .dark .sh-modal { background: #1b1b24; }
-        .dark .sh-textarea { background: #12151c; border-color: rgba(255,255,255,0.12); color: #f0f0f5; }
-        .dark .sh-textarea:focus { border-color: #f0f0f5; }
-        .dark .sh-star { color: #4b5563; }
+        .dark .sh-btn--danger:hover { background: rgba(239,68,68,0.3); }
+        .dark .sh-btn--ghost { color: #a1a1aa; }
+        .dark .sh-btn--ghost:hover { background: #3f3f46; }
+        .dark .sh-rated { color: #fbbf24; }
+        .dark .sh-modal { background: #27272a; }
+        .dark .sh-textarea { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
+        .dark .sh-textarea:focus { border-color: #ff1493; }
+        .dark .sh-star { color: #a1a1aa; }
+        .dark .sh-tab--active { color: #ff1493; }
+        .dark .sh-star--active { color: #eab308; }
       `}</style>
     </div>
   );

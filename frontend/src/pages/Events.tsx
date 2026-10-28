@@ -1,15 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Calendar, 
-  Users, 
-  UserCheck, 
-  ChevronDown, 
-  Plus, 
-  Clock, 
-  Search, 
-  Ticket, 
-  Sparkles, 
+import {
+  Calendar,
+  Users,
+  ChevronDown,
+  Plus,
+  Clock,
+  Search,
+  Ticket,
   X
 } from 'lucide-react';
 import api from '../api/api';
@@ -18,20 +16,24 @@ import { useModalStore } from '../store/modalStore';
 import { logger } from '../utils/logger';
 import { showError } from '../utils/toast';
 
-const TABS = ['all', 'my campus', 'my events'];
+const TABS = [
+  { key: 'all', label: 'All events' },
+  { key: 'my campus', label: 'My campus' },
+  { key: 'my events', label: 'My events' },
+];
 
 interface CampusEvent {
-  event_id: string;
-  title: string;
-  campus?: string;
-  username?: string;
-  start_time: string;
-  total_rsvps?: number;
-  total_attended?: number;
-  max_attendees?: number;
-  user_status?: 'pending' | 'accepted' | 'rejected' | 'attended' | null;
-  is_creator?: boolean;
-  requirements?: string;
+    event_id: string;
+    title: string;
+    campus?: string;
+    username?: string;
+    start_time: string;
+    total_rsvps?: number;
+    total_attended?: number;
+    max_attendees?: number;
+    user_status?: 'pending' | 'accepted' | 'rejected' | 'attended' | null;
+    is_creator?: boolean;
+    requirements?: string;
 }
 
 export default function Events() {
@@ -109,256 +111,245 @@ export default function Events() {
 
   const statusBadge = (status: string | null | undefined) => {
     if (!status) return null;
-    const map: Record<string, { label: string; cls: string; icon: typeof Calendar }> = {
-      pending: { label: 'PENDING SYNC', cls: 'bg-black/5 text-black/40 border-black/5', icon: Clock },
-      accepted: { label: 'SYNCHRONIZED', cls: 'bg-primary text-white border-primary shadow-2xl shadow-primary/30', icon: Sparkles },
-      rejected: { label: 'REJECTED', cls: 'bg-red-500 text-white border-red-500 shadow-xl shadow-red-500/20', icon: X },
-      attended: { label: 'ATTENDED', cls: 'bg-emerald-500 text-white border-emerald-500 shadow-xl shadow-emerald-500/20', icon: UserCheck },
+    const map: Record<string, { label: string; cls: string }> = {
+      pending: { label: 'Request pending', cls: 'bg-[#f0e5ec] text-slate-600 border-[#e6d8e1] dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-700' },
+      accepted: { label: 'Going', cls: 'bg-primary text-white border-primary' },
+      rejected: { label: 'Not going', cls: 'bg-red-500 text-white border-red-500' },
+      attended: { label: 'Attended', cls: 'bg-emerald-500 text-white border-emerald-500' },
     };
-    const s = map[status] || { label: status.toUpperCase(), cls: 'bg-black/5 text-[#18181b] border-black/5', icon: Sparkles };
+    const s = map[status] || { label: status, cls: 'bg-[#f0e5ec] text-slate-600 border-[#e6d8e1] dark:bg-zinc-700 dark:text-zinc-300 dark:border-zinc-700' };
     return (
-      <div className={`inline-flex items-center gap-3 px-8 py-3 rounded-2xl border text-[10px] font-black tracking-[0.2em] shadow-lg animate-fade-in italic ${s.cls}`}>
-        <s.icon size={16} strokeWidth={4} />
+      <span className={`inline-flex items-center px-2.5 py-1 rounded-full border text-[11px] font-semibold ${s.cls}`}>
         {s.label}
-      </div>
+      </span>
     );
   };
 
   return (
-    <div className="flex bg-[#fdf2f4] dark:bg-[#1b1b24] min-h-dvh text-[#18181b] dark:text-white font-sans overflow-x-hidden">
-      
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans overflow-x-hidden">
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
+      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-5xl mx-auto w-full">
         {/* Header */}
-        <header className="mb-24 animate-fade-in px-4">
-           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-12">
-              <div className="max-w-4xl space-y-8">
-                 <div className="inline-flex items-center gap-4 px-6 py-2.5 rounded-full bg-white/80 border border-white backdrop-blur-3xl shadow-xl shadow-primary/5">
-                    <Calendar size={18} strokeWidth={3} className="text-primary" />
-                    <span className="text-[10px] font-black text-[#18181b] dark:text-white uppercase tracking-[0.4em] italic">Campus Events</span>
-                 </div>
-                 <h1 className="text-5xl md:text-9xl font-black text-[#18181b] dark:text-white tracking-tighter leading-none italic uppercase">
-                    Village <span className="text-primary">Live</span>
-                 </h1>
-                  <p className="text-xl font-bold text-[#18181b] dark:text-white opacity-60 leading-relaxed italic max-w-2xl">
-                    Experience the village vibe. Upcoming workshops, social gathering harmonics, and memories at <span className="text-primary">{user?.campus || 'the village'}</span>.
-                  </p>
+        <header className="mb-8 px-1">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full mb-4">
+                <Calendar size={14} className="text-primary" />
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wide">Campus events</span>
               </div>
-              
-              <button 
-                onClick={() => setActiveModal('event', fetchEvents)}
-                className="flex items-center gap-4 px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all active:scale-95 italic whitespace-nowrap"
-              >
-                <Plus size={24} strokeWidth={4} />
-                Host Gathering
-              </button>
-           </div>
+              <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">
+                Events
+              </h1>
+              <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1.5 max-w-xl">
+                Workshops, gatherings and parties happening at {user?.campus || 'your campus'}. Create one and invite people.
+              </p>
+            </div>
+
+            <button
+              onClick={() => setActiveModal('event', fetchEvents)}
+              className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors self-start"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              Create event
+            </button>
+          </div>
         </header>
 
         {/* Controls */}
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-10 mb-20 px-4">
-           <div className="flex items-center gap-4 overflow-x-auto pb-4 lg:pb-0 no-scrollbar w-full lg:w-auto">
-              {TABS.map(tab => (
-                 <button 
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`px-10 py-4.5 rounded-[22px] font-black text-[11px] uppercase tracking-widest transition-all duration-500 whitespace-nowrap shadow-lg border flex items-center gap-3 italic ${activeTab === tab ? 'bg-white border-primary text-primary scale-105 shadow-primary/5' : 'bg-white/40 border-white text-black/20 hover:bg-white hover:text-black'}`}
-                 >
-                   <span className={activeTab === tab ? 'text-primary' : 'text-black/10'}><Calendar size={18} strokeWidth={3} /></span>
-                   {tab}
-                 </button>
-              ))}
-           </div>
+        <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3 mb-6">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 no-scrollbar">
+            {TABS.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`px-4 py-2 rounded-full text-xs font-bold transition-colors whitespace-nowrap border ${
+                  activeTab === tab.key
+                    ? 'bg-primary border-primary text-white'
+                    : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-           <div className="relative w-full lg:w-[400px] group">
-              <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search events..."
-                className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-[#18181b] dark:text-white placeholder:text-black/5 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
-              />
-           </div>
+          <div className="relative w-full lg:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={16} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search events..."
+              className="w-full h-10 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+            />
+          </div>
         </div>
 
         {/* List */}
-        <div className="space-y-12 pb-48 px-2">
+        <div className="space-y-4 pb-24">
           {loading ? (
-             [1,2,3].map(i => (
-                <div key={i} className="h-72 bg-white/40 border-4 border-dashed border-white rounded-[56px] animate-pulse shadow-sm" />
-             ))
+            [1, 2, 3].map(i => (
+              <div key={i} className="h-40 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
+            ))
           ) : events.length === 0 ? (
-             <div className="py-48 flex flex-col items-center text-center px-8 bg-white/20 border-4 border-dashed border-white rounded-[64px] shadow-inner animate-fade-in mx-4">
-                <Ticket size={140} strokeWidth={1} className="text-black/5 animate-spin-slow" />
-                <h3 className="text-5xl font-black text-black/10 italic mb-8 uppercase tracking-tighter">No Events Yet.</h3>
-                <p className="text-[11px] font-black text-black/30 uppercase tracking-[0.4em] max-w-sm mx-auto mb-12 italic leading-loose">
-                   No gathering signals detected in this sector. Initialize a new event pulse!
-                </p>
-                <button 
-                  onClick={() => setActiveModal('event', fetchEvents)}
-                  className="px-12 py-6 bg-primary text-white rounded-[24px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 italic transition-all hover:scale-[1.05]"
-                >
-                   Host Pulse
-                </button>
-             </div>
+            <div className="py-16 flex flex-col items-center text-center px-6 bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl">
+              <Calendar size={40} className="text-slate-600 dark:text-zinc-400 mb-3" />
+              <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 mb-1">No events yet</h3>
+              <p className="text-sm text-slate-600 dark:text-zinc-400 max-w-sm">
+                Nothing happening here right now. Create an event and your campus can join.
+              </p>
+              <button
+                onClick={() => setActiveModal('event', fetchEvents)}
+                className="mt-5 px-5 py-2.5 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors"
+              >
+                Create event
+              </button>
+            </div>
           ) : (
-             <div className="flex flex-col gap-12">
-               {events.filter((ev) => {
-                  const q = searchQuery.trim().toLowerCase();
-                  return !q || ev.title.toLowerCase().includes(q) || (ev.campus || '').toLowerCase().includes(q);
-                }).map((ev) => {
-                  const progress = ev.max_attendees && ev.max_attendees > 0
-                    ? Math.min(100, Math.round(((ev.total_rsvps || 0) / ev.max_attendees) * 100))
-                    : 0;
-                  const isExpanded = expandedReqs.has(ev.event_id);
+            <div className="flex flex-col gap-4">
+              {events.filter((ev) => {
+                const q = searchQuery.trim().toLowerCase();
+                return !q || ev.title.toLowerCase().includes(q) || (ev.campus || '').toLowerCase().includes(q);
+              }).map((ev) => {
+                const progress = ev.max_attendees && ev.max_attendees > 0
+                  ? Math.min(100, Math.round(((ev.total_rsvps || 0) / ev.max_attendees) * 100))
+                  : 0;
+                const isExpanded = expandedReqs.has(ev.event_id);
 
-                  return (
-                    <div 
-                      key={ev.event_id} 
-                      className="bg-white/80 backdrop-blur-3xl p-10 md:p-16 rounded-[56px] group transition-all duration-700 hover:scale-[1.01] border border-white shadow-2xl shadow-primary/5 relative overflow-hidden animate-fade-in"
-                    >
-                       {/* Context Accent */}
-                       <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-[80px] opacity-0 group-hover:opacity-100 transition-opacity"></div>
-
-                       <div className="flex flex-col lg:flex-row justify-between gap-12 relative z-10">
-                          <div className="flex-1 space-y-10">
-                             <div className="flex items-center gap-8">
-                                <div className="w-24 h-24 bg-primary/5 rounded-[32px] flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all duration-700 border border-primary/10 shadow-sm group-hover:rotate-6">
-                                   <Calendar size={36} strokeWidth={3} />
-                                </div>
-                                <div className="space-y-4">
-                                   <div className="flex items-center gap-4">
-                                      <span className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] italic">TRANSMISSION BY @{ev.username}</span>
-                                      <div className="w-1.5 h-1.5 bg-primary rounded-full"></div>
-                                      <span className="text-[10px] font-black text-primary uppercase tracking-[0.3em] italic">{ev.campus || 'VILLAGE NODE'}</span>
-                                   </div>
-                                   <h3 className="text-4xl md:text-5xl font-black text-[#18181b] dark:text-white tracking-tighter leading-none italic uppercase group-hover:text-primary transition-colors duration-700">{ev.title}</h3>
-                                </div>
-                             </div>
-
-                             <div className="flex flex-wrap items-center gap-8">
-                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5 dark:border-white/5">
-                                   <Clock size={20} strokeWidth={4} className="text-primary" />
-                                   <span className="text-sm font-black text-[#18181b] dark:text-white uppercase tracking-widest italic">
-                                      {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                                   </span>
-                                </div>
-                                <div className="flex items-center gap-4 px-8 py-4 bg-black/5 rounded-[22px] border border-black/5 dark:border-white/5">
-                                   <Users size={20} strokeWidth={4} className="text-primary" />
-                                   <span className="text-sm font-black text-[#18181b] dark:text-white uppercase tracking-widest italic">{ev.total_rsvps || 0} GOING</span>
-                                </div>
-                                {ev.max_attendees && ev.max_attendees > 0 && (
-                                   <div className="flex-1 min-w-[250px] pt-2">
-                                      <div className="flex items-center justify-between mb-3 text-[9px] font-black uppercase text-black/20 tracking-[0.3em] italic">
-                                         <span>Spots Filled</span>
-                                         <span>{progress}%</span>
-                                      </div>
-                                      <div className="h-2 w-full bg-black/5 rounded-full overflow-hidden p-[2px]">
-                                         <div 
-                                           className={`h-full rounded-full transition-all duration-1000 ${progress >= 90 ? 'bg-red-500' : 'bg-primary shadow-[0_0_10px_rgba(225,29,72,0.5)]'}`}
-                                           style={{ width: `${progress}%` }}
-                                         />
-                                      </div>
-                                   </div>
-                                )}
-                             </div>
+                return (
+                  <div
+                    key={ev.event_id}
+                    className="bg-[#fdf8fa] dark:bg-zinc-800 p-5 md:p-6 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm"
+                  >
+                    <div className="flex flex-col lg:flex-row justify-between gap-5">
+                      <div className="flex-1">
+                        <div className="flex items-start gap-4">
+                          <div className="w-11 h-11 bg-primary/5 rounded-2xl flex items-center justify-center text-primary shrink-0 border border-primary/10">
+                            <Calendar size={20} />
                           </div>
-
-                          <div className="flex flex-col items-center lg:items-end justify-between gap-10 shrink-0">
-                             <div className="flex items-center gap-4">
-                                {ev.is_creator && (
-                                   <button 
-                                    onClick={() => navigate(`/events/admin?id=${ev.event_id}`)}
-                                    className="px-8 py-3 bg-black text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary transition-all shadow-xl shadow-black/10 italic"
-                                   >
-                                      Tune
-                                   </button>
-                                )}
-                                {statusBadge(ev.user_status)}
-                             </div>
-
-                             <div className="flex items-center gap-6 w-full lg:w-auto">
-                                {!ev.user_status && (
-                                   <button 
-                                    onClick={() => handleRSVP(ev.event_id, 'pending')}
-                                    className="flex-1 lg:px-16 h-20 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-primary/30 hover:scale-[1.05] transition-all active:scale-95 italic"
-                                   >
-                                      Join Signal
-                                   </button>
-                                )}
-                                {ev.user_status === 'accepted' && (
-                                   <div className="flex items-center gap-4 flex-1 lg:flex-none">
-                                      <button
-                                        onClick={() => openAccessPass(ev.event_id, ev.title)}
-                                        disabled={passLoading === ev.event_id}
-                                        className="flex-1 px-12 h-20 bg-black text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-black/30 hover:scale-[1.05] transition-all flex items-center justify-center gap-4 italic disabled:opacity-60"
-                                      >
-                                         <Ticket size={24} strokeWidth={4} className="text-primary" />
-                                         {passLoading === ev.event_id ? 'Loading…' : 'Access Pass'}
-                                      </button>
-                                      <button 
-                                        onClick={() => handleRSVP(ev.event_id, 'not_going')}
-                                        className="w-20 h-20 bg-black/5 hover:bg-red-500 hover:text-white text-black/10 rounded-[28px] flex items-center justify-center transition-all duration-500 shadow-sm group/close"
-                                      >
-                                         <X size={32} strokeWidth={4} className="group-hover/close:rotate-90 transition-transform" />
-                                      </button>
-                                   </div>
-                                )}
-                                {ev.user_status && ev.user_status !== 'accepted' && (
-                                   <button 
-                                     onClick={() => handleRSVP(ev.event_id, 'not_going')}
-                                     className="px-12 h-20 bg-black/5 text-black/20 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] hover:text-black transition-all italic border border-black/5 dark:border-white/5"
-                                   >
-                                      Cancel Signal
-                                   </button>
-                                )}
-                                <button 
-                                  onClick={() => toggleReqs(ev.event_id)}
-                                  className={`w-20 h-20 rounded-[28px] flex items-center justify-center transition-all duration-500 border-2 ${isExpanded ? 'bg-black border-black text-white shadow-2xl' : 'bg-white border-white text-black/10 hover:text-black hover:shadow-xl'}`}
-                                >
-                                   <ChevronDown size={32} strokeWidth={4} className={`transition-transform duration-500 ${isExpanded ? 'rotate-180' : ''}`} />
-                                </button>
-                             </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-zinc-400 mb-0.5">
+                              {ev.username && <span>Hosted by @{ev.username}</span>}
+                              {ev.username && ev.campus && <span className="w-1 h-1 rounded-full bg-slate-600 dark:bg-zinc-400" />}
+                              <span>{ev.campus || 'Campus event'}</span>
+                            </div>
+                            <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 leading-snug">{ev.title}</h3>
                           </div>
-                       </div>
+                        </div>
 
-                       {isExpanded && (
-                          <div className="mt-12 pt-12 border-t border-black/[0.03] animate-scale-in">
-                             <div className="flex items-center gap-6 mb-8 px-2">
-                                <div className="w-1.5 h-12 bg-primary rounded-full" />
-                                <div>
-                                   <h4 className="text-3xl font-black text-[#18181b] dark:text-white italic uppercase tracking-tighter">Mission Requirements</h4>
-                                   <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.4em] mt-2 italic">Urgent campus events.</p>
-                                </div>
+                        <div className="flex flex-wrap items-center gap-2 mt-4">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                            <Clock size={13} className="text-primary" />
+                            {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                          </div>
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                            <Users size={13} className="text-primary" />
+                            {ev.total_rsvps || 0} going
+                          </div>
+                          {ev.max_attendees && ev.max_attendees > 0 && (
+                            <div className="flex-1 min-w-[180px] pt-1">
+                              <div className="flex items-center justify-between mb-1 text-[11px] text-slate-600 dark:text-zinc-400">
+                                <span>Spots filled</span>
+                                <span>{progress}%</span>
                               </div>
-                              <div className="bg-white/40 backdrop-blur-3xl rounded-[40px] p-10 border border-white shadow-inner">
-                                 <p className="text-lg font-bold text-[#18181b] dark:text-white leading-loose italic opacity-70 whitespace-pre-wrap">
-                                    {ev.requirements || 'No specific signal requirements listed for this gathering.'}
-                                 </p>
+                              <div className="h-1.5 w-full bg-[#f0e5ec] dark:bg-zinc-700 rounded-full overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full transition-all duration-700 ${progress >= 90 ? 'bg-red-500' : 'bg-primary'}`}
+                                  style={{ width: `${progress}%` }}
+                                />
                               </div>
-                          </div>
-                       )}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-col items-start lg:items-end justify-between gap-3 shrink-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {ev.is_creator && (
+                            <button
+                              onClick={() => navigate(`/events/admin?id=${ev.event_id}`)}
+                              className="px-3.5 py-1.5 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full text-xs font-bold text-[#18181b] dark:text-zinc-100 hover:border-primary transition-colors"
+                            >
+                              Manage
+                            </button>
+                          )}
+                          {statusBadge(ev.user_status)}
+                        </div>
+
+                        <div className="flex items-center gap-2 w-full lg:w-auto">
+                          {!ev.user_status && (
+                            <button
+                              onClick={() => handleRSVP(ev.event_id, 'pending')}
+                              className="flex-1 lg:flex-none px-5 h-10 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors"
+                            >
+                              Request to join
+                            </button>
+                          )}
+                          {ev.user_status === 'accepted' && (
+                            <div className="flex items-center gap-2 flex-1 lg:flex-none">
+                              <button
+                                onClick={() => openAccessPass(ev.event_id, ev.title)}
+                                disabled={passLoading === ev.event_id}
+                                className="flex-1 px-5 h-10 bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 rounded-full text-sm font-bold hover:bg-zinc-700 dark:hover:bg-zinc-300 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                              >
+                                <Ticket size={16} className="text-primary" />
+                                {passLoading === ev.event_id ? 'Loading…' : 'Show pass'}
+                              </button>
+                              <button
+                                onClick={() => handleRSVP(ev.event_id, 'not_going')}
+                                className="w-10 h-10 bg-[#f0e5ec] dark:bg-zinc-700 hover:bg-red-500 hover:text-white text-slate-600 dark:text-zinc-300 rounded-full flex items-center justify-center transition-colors"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          )}
+                          {ev.user_status && ev.user_status !== 'accepted' && (
+                            <button
+                              onClick={() => handleRSVP(ev.event_id, 'not_going')}
+                              className="px-5 h-10 bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 rounded-full text-sm font-bold hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors border border-[#e6d8e1] dark:border-zinc-700"
+                            >
+                              Cancel request
+                            </button>
+                          )}
+                          <button
+                            onClick={() => toggleReqs(ev.event_id)}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${isExpanded ? 'bg-[#18181b] dark:bg-zinc-100 border-transparent text-white dark:text-zinc-900' : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary'}`}
+                          >
+                            <ChevronDown size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  );
-               })}
-             </div>
+
+                    {isExpanded && (
+                      <div className="mt-5 pt-5 border-t border-[#ede3e9] dark:border-zinc-900">
+                        <h4 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Requirements</h4>
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mb-3">What to bring or know before you go.</p>
+                        <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-4 border border-[#e6d8e1] dark:border-zinc-700">
+                          <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
+                            {ev.requirements || 'No specific requirements listed for this event.'}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       </main>
 
       {/* Access Pass QR Overlay */}
       {passQr && (
-        <div className="fixed inset-0 z-[1000] bg-black/80 flex items-center justify-center p-6" onClick={() => setPassQr(null)}>
-          <div className="bg-white dark:bg-[#1b1b24] rounded-[32px] p-6 max-w-xs w-full text-center" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-[#18181b] dark:text-white mb-1 italic">{passQr.title}</h3>
-            <p className="text-[9px] font-bold text-black/40 uppercase tracking-widest mb-4">Show this pass at the door</p>
+        <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm" onClick={() => setPassQr(null)}>
+          <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 max-w-xs w-full text-center border border-[#e6d8e1] dark:border-zinc-700 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-0.5">{passQr.title}</h3>
+            <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Show this pass at the door</p>
             <img src={passQr.src} alt="Access pass QR code" className="mx-auto w-56 h-56 rounded-2xl" />
             <button
               onClick={() => setPassQr(null)}
-              className="mt-4 w-full py-3 bg-black text-white rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              className="mt-4 w-full py-2.5 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors"
             >
               Close
             </button>
@@ -367,15 +358,9 @@ export default function Events() {
       )}
 
       <style>{`
-        
-        
-        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
       `}</style>
     </div>
   );
 }
-
-
-

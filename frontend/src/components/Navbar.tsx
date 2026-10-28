@@ -8,6 +8,7 @@ import { Home, Users, Plus, Pen, PlayCircle, History, Store, LayoutGrid, BarChar
 import { useUserStore } from '../store/userStore';
 import { useModalStore } from '../store/modalStore';
 import { useChatStore } from '../store/chatStore';
+import NotificationsPanel from './notifications/NotificationsPanel';
 import '../utils/imageUtils';
 import Avatar from './Avatar';
 
@@ -30,7 +31,7 @@ import PostOptionsModal from './modals/PostOptionsModal';
 import NoteEditorModal from './modals/NoteEditorModal';
 import FloatingAction from './FloatingAction';
 import FeelingActivitySelector from './modals/FeelingActivitySelector';
-import SparkleHub from './SparkleHub';
+import SparkleHubPanel from './SparkleHubPanel';
 
 import Sidebar from './Sidebar';
 import { logger } from '../utils/logger';
@@ -64,6 +65,7 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [gridMenuOpen, setGridMenuOpen] = useState(false);
+  const [gridMenuAnchor, setGridMenuAnchor] = useState<DOMRect | null>(null);
   const [showMobileCreate, setShowMobileCreate] = useState(false);
 
   const activeConversationId = useChatStore((s) => s.activeConversationId);
@@ -87,7 +89,7 @@ export default function Navbar() {
 
       {/* Mobile Top Navigation Bar — Glass Header */}
       {!MOBILE_HEADERLESS_PREFIXES.some(path => location.pathname.startsWith(path)) && (
-        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-black/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-zinc-900/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <span className="font-heading font-black text-xl tracking-tighter text-[#18181b] dark:text-white">Sparkle</span>
           </Link>
@@ -106,8 +108,11 @@ export default function Navbar() {
           
           <div className="flex items-center gap-3">
             <NotificationBell />
-            <button 
-                onClick={() => setGridMenuOpen(!gridMenuOpen)}
+            <button
+                onClick={(e) => {
+                  setGridMenuAnchor(e.currentTarget.getBoundingClientRect());
+                  setGridMenuOpen(v => !v);
+                }}
                 className="w-10 h-10 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 transition-colors active:scale-90"
             >
                 <LayoutGrid size={20} strokeWidth={2.5} />
@@ -125,7 +130,7 @@ export default function Navbar() {
           "md:hidden grid grid-cols-7 items-center fixed bottom-0 left-0 right-0 w-full z-(--z-chrome) transition-all duration-500 pb-[env(safe-area-inset-bottom)] h-[calc(3.5rem+env(safe-area-inset-bottom))]",
           isDarkBase
             ? "bg-black border-t border-white/10"
-            : "bg-white/95 dark:bg-black/80 backdrop-blur-3xl border-t border-black/10 dark:border-white/5 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] dark:shadow-none"
+            : "bg-white/95 dark:bg-zinc-900/80 backdrop-blur-3xl border-t border-black/10 dark:border-white/5 shadow-[0_-2px_16px_rgba(0,0,0,0.06)] dark:shadow-none"
         )}
       >
         {/* Col 1 — Home */}
@@ -201,7 +206,7 @@ export default function Navbar() {
       {showMobileCreate && (
         <div className="fixed inset-0 z-[1900] bg-black/10 backdrop-blur-sm animate-fade-in" onClick={() => setShowMobileCreate(false)}>
           <div 
-            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 dark:bg-black/95 backdrop-blur-3xl rounded-[32px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 dark:border-white/10 overflow-hidden"
+            className="absolute bottom-28 left-1/2 -translate-x-1/2 w-[calc(100%-60px)] max-w-xs bg-white/95 dark:bg-zinc-900/95 backdrop-blur-3xl rounded-[32px] shadow-2xl p-2 flex flex-col animate-slide-up border border-white/65 dark:border-white/10 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 pt-4 pb-2 border-b border-black/5 dark:border-white/5 mb-2">
@@ -222,7 +227,7 @@ export default function Navbar() {
                 onClick={() => { setShowMobileCreate(false); item.action(); }} 
                 className="w-full p-4 flex items-center gap-4 hover:bg-primary/5 active:bg-primary/10 transition-all group rounded-2xl relative"
                 >
-                <div className={`w-9 h-9 rounded-xl bg-white dark:bg-black shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
+                <div className={`w-9 h-9 rounded-xl bg-white dark:bg-zinc-900 shadow-sm flex items-center justify-center ${item.color} group-hover:scale-110 transition-transform`}>
                     <item.icon size={18} strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-[#18181b] dark:text-white text-sm">{item.name}</span>
@@ -285,7 +290,7 @@ export default function Navbar() {
         }
 
         return (
-          <div className="fixed inset-0 z-(--z-top) flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-black/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
+          <div className="fixed inset-0 z-(--z-top) flex items-center justify-center p-6 animate-fade-in bg-black/20 dark:bg-zinc-900/60 backdrop-blur-xl" onClick={() => setActiveModal(null)}>
             <div className="w-full max-w-lg animate-scale-in" onClick={(e) => e.stopPropagation()}>
               {activeModal === 'poll' && <PollModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
               {activeModal === 'event' && <EventModal onClose={() => setActiveModal(null)} onSuccess={triggerSuccess} />}
@@ -328,9 +333,11 @@ export default function Navbar() {
       })()}
 
       {/* Grid Mega Menu — Now Sparkle Hub */}
-      {gridMenuOpen && (
-        <SparkleHub onClose={() => setGridMenuOpen(false)} />
-      )}
+      <SparkleHubPanel
+        open={gridMenuOpen}
+        anchorRect={gridMenuAnchor}
+        onClose={() => setGridMenuOpen(false)}
+      />
 
       <FloatingAction />
     </>
@@ -339,6 +346,8 @@ export default function Navbar() {
 
 function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
   const theme = useUserStore((state) => state.theme);
   const isDark = theme === 'dark';
 
@@ -353,7 +362,7 @@ function NotificationBell() {
         logger.error('Failed to fetch unread count', e);
       }
     };
-    
+
     fetchUnread();
     const interval = setInterval(fetchUnread, 30000);
 
@@ -367,22 +376,34 @@ function NotificationBell() {
   }, []);
 
   return (
-    <Link
-      to="/notifications"
-      className={clsx(
-        "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90",
-        isDark ? "bg-white/5 text-white/70 hover:text-primary" : "bg-black/5 text-black/30 hover:text-primary"
-      )}
-    >
-      <Bell size={20} strokeWidth={2.5} />
-      {unreadCount > 0 && (
-        <span className={clsx(
-          "absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-[#e41e3f] text-white text-[12px] font-bold rounded-full border-2 shadow-sm flex items-center justify-center font-sans tracking-tight antialiased z-10",
-          isDark ? "border-[#1b1b24]" : "border-white"
-        )}>
-          {unreadCount > 99 ? '99+' : unreadCount}
-        </span>
-      )}
-    </Link>
+    <>
+      <button
+        type="button"
+        aria-label="Notifications"
+        onClick={(e) => {
+          setAnchorRect(e.currentTarget.getBoundingClientRect());
+          setPanelOpen(v => !v);
+        }}
+        className={clsx(
+          "relative w-10 h-10 rounded-xl flex items-center justify-center transition-all active:scale-90",
+          isDark ? "bg-white/5 text-white/70 hover:text-primary" : "bg-black/5 text-black/30 hover:text-primary"
+        )}
+      >
+        <Bell size={20} strokeWidth={2.5} />
+        {unreadCount > 0 && (
+          <span className={clsx(
+            "absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 bg-[#e41e3f] text-white text-[12px] font-bold rounded-full border-2 shadow-sm flex items-center justify-center font-sans tracking-tight antialiased z-10",
+            isDark ? "border-[#27272a]" : "border-white"
+          )}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </span>
+        )}
+      </button>
+      <NotificationsPanel
+        open={panelOpen}
+        anchorRect={anchorRect}
+        onClose={() => setPanelOpen(false)}
+      />
+    </>
   );
 }

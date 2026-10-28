@@ -15,11 +15,9 @@ describe('isAdminRole', () => {
 });
 
 describe('getPostLoginRoute', () => {
-    it('sends admins to the admin dashboard', () => {
-        expect(getPostLoginRoute('admin')).toBe('/admin');
-        expect(getPostLoginRoute('moderator')).toBe('/admin');
-    });
-    it('sends everyone else to the normal dashboard', () => {
+    it('lands every role on the normal dashboard (admin is opt-in)', () => {
+        expect(getPostLoginRoute('admin')).toBe('/dashboard');
+        expect(getPostLoginRoute('moderator')).toBe('/dashboard');
         expect(getPostLoginRoute('user')).toBe('/dashboard');
         expect(getPostLoginRoute(undefined)).toBe('/dashboard');
         expect(getPostLoginRoute('')).toBe('/dashboard');

@@ -4,8 +4,14 @@ export function isAdminRole(role: string | null | undefined): role is AdminRole 
     return role === 'admin' || role === 'moderator';
 }
 
-export function getPostLoginRoute(role: string | null | undefined): string {
-    return isAdminRole(role) ? '/admin' : '/dashboard';
+/**
+ * Post-login destination. Admins deliberately land on the normal dashboard —
+ * the admin panel is reached on purpose via the Admin entry in the sidebar /
+ * hamburger menu, not forced on every login (it also kept admins from ever
+ * seeing their own feed after signing in).
+ */
+export function getPostLoginRoute(_role: string | null | undefined): string {
+    return '/dashboard';
 }
 
 /**

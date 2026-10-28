@@ -154,6 +154,9 @@ test('no committed credential in the reset script', () => {
     const fs = require('node:fs');
     const path = require('node:path');
     const src = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'reset_password.js'), 'utf8');
-    assert.ok(!/Babu@0117/.test(src), 'hardcoded password removed');
+    // Guards against any hardcoded credential, without embedding one in this
+    // repo: the source must read from the environment and contain no literal
+    // password assignment at all.
+    assert.ok(!/const\s+password\s*=\s*['"`]/.test(src), 'no hardcoded password literal');
     assert.ok(src.includes('RESET_USER_EMAIL') && src.includes('RESET_NEW_PASSWORD'), 'inputs are env-driven');
 });

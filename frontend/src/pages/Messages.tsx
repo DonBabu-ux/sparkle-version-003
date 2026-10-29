@@ -938,14 +938,20 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
   }, [showEmojiPicker, pickerTab, giphySearch, fetchGiphy]);
 
   const themePrimary = theme?.colors?.primary || '#ff1493';
-  const themeBg = theme?.colors?.backgroundDark || '#000000';
+  // Mode-aware: the dock must follow the app's light/dark state, not paint the
+  // theme's dark background in light mode (that produced a black bar with
+  // invisible icons). Falls back to the app shell tokens per mode.
+  const themeMode = useUserStore(s => s.theme);
+  const themeBg = (themeMode === 'dark'
+    ? theme?.colors?.backgroundDark
+    : theme?.colors?.backgroundLight) || (themeMode === 'dark' ? '#18181b' : '#f8e7ed');
 
   const isBlocked = Boolean(selectedChat?.is_blocked || selectedChat?.conversation_status === 'blocked' || selectedChat?.can_send_messages === false);
   const isBlockedByMe = Boolean(selectedChat?.is_blocked_by_me);
 
   if (isBlocked) {
     return (
-      <ChatInputDock className="z-30 shrink-0 border-t border-white/10 transition-all duration-300" backgroundColor={themeBg}>
+      <ChatInputDock className="z-30 shrink-0 border-t border-[#e6d8e1] dark:border-white/10 transition-all duration-300" backgroundColor={themeBg}>
         <div className="w-full max-w-[1200px] mx-auto py-5 px-6 text-center">
           <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-red-500/10 text-red-500 mb-2 shadow-sm border border-red-500/20">
             <Ban size={22} strokeWidth={2.5} />
@@ -987,7 +993,7 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
 
   if (selectedChat?.account_type === 'system' || selectedChat?.conversation_type === 'system' || selectedChat?.is_system_account || selectedChat?.is_system || selectedChat?.partner_id === 'd75fe3b5-7a45-4581-ab13-91934d8b54de') {
     return (
-      <ChatInputDock className="z-30 shrink-0 border-t border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
+      <ChatInputDock className="z-30 shrink-0 border-t border-[#e6d8e1] dark:border-slate-800 transition-all duration-300" backgroundColor={themeBg}>
         <OfficialComposerFooter />
       </ChatInputDock>
     );
@@ -1024,7 +1030,7 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
   };
 
   return (
-    <ChatInputDock className="z-30 shrink-0 border-t border-white/5 transition-all duration-300" backgroundColor={themeBg}>
+    <ChatInputDock className="z-30 shrink-0 border-t border-[#ede3e9] dark:border-white/5 transition-all duration-300" backgroundColor={themeBg}>
       <div className="w-full max-w-[1200px] mx-auto">
         {editing.messageId && editing.chatId === selectedChat?.chat_id && (
           <div className="flex items-center justify-between gap-2 p-2 bg-white/5 border-b border-white/5 px-4 text-xs text-white/50">

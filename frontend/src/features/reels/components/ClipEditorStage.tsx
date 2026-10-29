@@ -128,7 +128,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
             type="button"
             onClick={onBack}
             className="px-6 py-3 rounded-2xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+            style={{ background: '#ff1493' }}
           >
             Back to creation
           </button>
@@ -357,7 +357,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
           type="button"
           onClick={onNext}
           className="w-full mt-4 py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+          style={{ background: '#ff1493' }}
         >
           <Check size={17} /> Done editing
         </button>

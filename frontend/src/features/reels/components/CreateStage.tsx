@@ -487,7 +487,7 @@ export default function CreateStage({
                   type="button"
                   onClick={onOpenCamera}
                   className="flex-1 py-3 rounded-2xl font-bold text-sm text-white"
-                  style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+                  style={{ background: '#ff1493' }}
                 >
                   <CameraIcon size={14} className="inline mr-1.5" /> Camera
                 </button>
@@ -499,7 +499,7 @@ export default function CreateStage({
                 type="button"
                 onClick={addSelected}
                 className="fixed left-4 right-4 bottom-6 py-3.5 rounded-2xl font-extrabold text-white z-10"
-                style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
+                style={{ background: '#ff1493', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
               >
                 Add {selectionOrder.length} to reel <Plus size={16} className="inline -mt-0.5" />
               </button>
@@ -514,7 +514,7 @@ export default function CreateStage({
           type="button"
           onClick={onNext}
           className="fixed left-4 right-4 bottom-24 py-3.5 rounded-2xl font-extrabold text-white z-10"
-          style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
+          style={{ background: '#ff1493', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
         >
           Next · {clips.length} clip{clips.length > 1 ? 's' : ''} <ChevronRight size={16} className="inline -mt-0.5" />
         </button>

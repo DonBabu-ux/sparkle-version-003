@@ -171,7 +171,7 @@ export function ConfirmDiscardDialog({
             type="button"
             onClick={onKeepEditing}
             className="w-full py-3 rounded-2xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+            style={{ background: '#ff1493' }}
           >
             Keep editing
           </button>

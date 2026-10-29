@@ -216,7 +216,7 @@ export default function CameraStage({
             type="button"
             onClick={requestPermission}
             className="py-3 rounded-2xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+            style={{ background: '#ff1493' }}
           >
             Continue
           </button>
@@ -253,7 +253,7 @@ export default function CameraStage({
             type="button"
             onClick={() => { setPermissionStage('rationale'); void startCamera(); }}
             className="py-3 rounded-2xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+            style={{ background: '#ff1493' }}
           >
             Try again
           </button>
@@ -283,7 +283,7 @@ export default function CameraStage({
           type="button"
           onClick={onOpenPicker}
           className="py-3 rounded-2xl font-bold text-white w-full max-w-xs"
-          style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+          style={{ background: '#ff1493' }}
         >
           Choose from gallery
         </button>
@@ -485,7 +485,7 @@ export default function CameraStage({
               type="button"
               onClick={() => { setAudioSheet(false); onOpenMusic(); }}
               className="w-full py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-              style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+              style={{ background: '#ff1493' }}
             >
               Change audio <ChevronRight size={16} />
             </button>
@@ -524,7 +524,7 @@ export default function CameraStage({
               type="button"
               onClick={() => { setAudioSheet(false); onOpenMusic(); }}
               className="w-full py-3 rounded-2xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+              style={{ background: '#ff1493' }}
             >
               Choose music
             </button>

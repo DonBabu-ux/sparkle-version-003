@@ -157,7 +157,7 @@ export default function PreviewStage({
             type="button"
             onClick={onBack}
             className="px-6 py-3 rounded-2xl font-bold text-white"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+            style={{ background: '#ff1493' }}
           >
             Back to creation
           </button>
@@ -352,7 +352,7 @@ export default function PreviewStage({
           type="button"
           onClick={onNext}
           className="w-full py-3.5 rounded-2xl font-extrabold text-white text-[15px] flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+          style={{ background: '#ff1493' }}
         >
           <Scissors size={16} /> Trim & arrange clips
         </button>
@@ -388,7 +388,7 @@ export default function PreviewStage({
               type="button"
               onClick={() => { setAudioSheet(false); onOpenMusic(); }}
               className="w-full py-3 rounded-2xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+              style={{ background: '#ff1493' }}
             >
               Change audio
             </button>
@@ -408,7 +408,7 @@ export default function PreviewStage({
               type="button"
               onClick={() => { setAudioSheet(false); onOpenMusic(); }}
               className="w-full py-3 rounded-2xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+              style={{ background: '#ff1493' }}
             >
               Choose music
             </button>
@@ -490,7 +490,7 @@ export default function PreviewStage({
             onClick={generateCaptions}
             disabled={captionBusy}
             className="w-full py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
-            style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', opacity: captionBusy ? 0.7 : 1 }}
+            style={{ background: '#ff1493', opacity: captionBusy ? 0.7 : 1 }}
           >
             {captionBusy ? <><Loader2 size={16} className="animate-spin" /> Generating captions…</> : <><Wand2 size={16} /> {captions.source === 'auto' ? 'Regenerate' : 'Generate'}</>}
           </button>

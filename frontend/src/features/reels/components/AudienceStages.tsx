@@ -298,7 +298,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
           disabled={saving || !dirty}
           className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
           style={{
-            background: dirty ? 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' : 'rgba(255,255,255,0.1)',
+            background: dirty ? '#ff1493' : 'rgba(255,255,255,0.1)',
             opacity: saving || !dirty ? 0.7 : 1,
           }}
         >
@@ -457,7 +457,7 @@ export function AudienceListStage({
           onClick={() => void save()}
           disabled={saving}
           className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
-          style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', opacity: saving ? 0.7 : 1 }}
+          style={{ background: '#ff1493', opacity: saving ? 0.7 : 1 }}
         >
           {saving ? <><InlineSpinner size={15} /> Saving…</> : 'Save'}
         </button>

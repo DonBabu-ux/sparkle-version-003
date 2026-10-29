@@ -482,7 +482,7 @@ export default function ComposeStage({
           disabled={!canPublish}
           className="w-full py-3.5 rounded-2xl font-extrabold text-white text-[15px] flex items-center justify-center gap-2"
           style={{
-            background: canPublish ? 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' : 'rgba(255,255,255,0.1)',
+            background: canPublish ? '#ff1493' : 'rgba(255,255,255,0.1)',
             opacity: canPublish ? 1 : 0.6,
           }}
         >

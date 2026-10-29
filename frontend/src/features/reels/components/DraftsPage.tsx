@@ -137,7 +137,7 @@ export default function DraftsPage() {
               type="button"
               onClick={() => navigate('/moments/create')}
               className="px-6 py-3 rounded-2xl font-bold text-white"
-              style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+              style={{ background: '#ff1493' }}
             >
               Create a reel
             </button>
@@ -241,7 +241,7 @@ export default function DraftsPage() {
                 type="button"
                 onClick={() => setConfirmId(null)}
                 className="w-full py-3 rounded-2xl font-bold text-white"
-                style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' }}
+                style={{ background: '#ff1493' }}
               >
                 Keep draft
               </button>

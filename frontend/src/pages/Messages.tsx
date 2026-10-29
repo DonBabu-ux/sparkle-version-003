@@ -670,15 +670,15 @@ const ChatBackground = ({ theme, mode = 'dark' }: { theme: SparkleTheme | null; 
   }, [wallpaperUrl]);
 
   const base = mode === 'light'
-    ? (theme?.colors?.backgroundLight || '#eef1f6')
-    : (theme?.colors?.backgroundDark || '#000000');
+    ? (theme?.colors?.backgroundLight || '#f8e7ed')
+    : (theme?.colors?.backgroundDark || '#18181b');
   const tint = mode === 'light'
-    ? (theme?.colors?.backgroundLight || '#ffffff')
-    : (theme?.colors?.backgroundDark || '#000000');
+    ? (theme?.colors?.backgroundLight || '#fdf8fa')
+    : (theme?.colors?.backgroundDark || '#18181b');
   const isDarkMode = mode !== 'light';
 
   if (!theme) {
-    return <div className="absolute inset-0 z-0" style={{ backgroundColor: isDarkMode ? '#000000' : '#eef1f6' }} />;
+    return <div className="absolute inset-0 z-0" style={{ backgroundColor: isDarkMode ? '#18181b' : '#f8e7ed' }} />;
   }
 
   return (

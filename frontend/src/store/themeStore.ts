@@ -45,7 +45,7 @@ const createTheme = (
 });
 
 export const PRESET_THEMES: SparkleTheme[] = [
-  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#27272a', '#27272a', true, '#056162', '#262d31', '#ffffff', '#ffffff', '/uploads/wallpapers/whatsapp-doodle.png', 'none', 'tile'),
+  createTheme('whatsapp_v5', 'Sparkle WhatsApp', 'Premium', '#25D366', '#128C7E', '#075E54', '#27272a', '#f8e7ed', true, '#056162', '#262d31', '#ffffff', '#ffffff', '/uploads/wallpapers/whatsapp-doodle.png', 'none', 'tile'),
   createTheme('amoled_black', 'AMOLED Black', 'Dark', '#00E5FF', '#00B8CC', '#33EAFF', '#0f0f0f', '#0f0f0f', true, '#00E5FF', '#111111', '#000000', '#ffffff'),
   createTheme('cyberpunk_neon', 'Cyberpunk Neon', 'Neon', '#00FF9D', '#00CC7D', '#33FFB0', '#090A0F', '#090A0F', true, '#FF0055', '#1a1b26', '#ffffff', '#00FF9D'),
   createTheme('purple_galaxy', 'Purple Galaxy', 'Space', '#B14AED', '#8E3BC0', '#C775F5', '#1A0B2E', '#1A0B2E', true, '#B14AED', '#2D1B4E', '#ffffff', '#e9d5ff', '/uploads/wallpapers/galaxy-stars.png', 'stars'),

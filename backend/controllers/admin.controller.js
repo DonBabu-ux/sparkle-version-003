@@ -628,7 +628,11 @@ const unlockAdminSession = async (req, res) => {
             status: 'success',
             data: {
                 admin_session_token: session.token,
-                expires_in_minutes: session.expiresInMinutes
+                expires_in_minutes: session.expiresInMinutes,
+                // Authoritative expiry instant (epoch ms) + server time so the
+                // client counts down from the server's clock, never its own.
+                expires_at_epoch_ms: session.expiresAtEpoch * 1000,
+                server_time_epoch_ms: session.serverTimeEpoch * 1000
             }
         });
     } catch (error) {

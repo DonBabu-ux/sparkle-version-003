@@ -99,11 +99,11 @@ export default function ClubDetail() {
     <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 overflow-x-hidden font-sans">
       <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-10">
         <div className="w-24 h-24 bg-[#f6eef3] dark:bg-zinc-900 rounded-[32px] flex items-center justify-center border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700">
-           <Users size={40} className="text-slate-600 dark:text-zinc-400" />
+           <Users size={40} className="text-slate-600 dark:text-zinc-300" />
         </div>
         <div className="space-y-4">
            <h2 className="text-5xl font-black italic tracking-tighter uppercase leading-none">Club <span className="text-primary">Not Found.</span></h2>
-           <p className="text-base font-bold text-slate-600 dark:text-zinc-400 italic">This club is no longer available.</p>
+           <p className="text-base font-bold text-slate-600 dark:text-zinc-300 italic">This club is no longer available.</p>
         </div>
         <button onClick={() => navigate('/clubs')} className="px-12 h-18 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 active:scale-95 transition-all shadow-2xl shadow-primary/30">Browse Clubs</button>
       </div>
@@ -161,20 +161,20 @@ export default function ClubDetail() {
 
                  <div className="flex flex-col gap-6 text-[11px] font-black text-[#18181b] dark:text-zinc-100 uppercase tracking-widest pt-8 border-t border-[#ede3e9] dark:border-zinc-900">
                     <div className="flex items-center gap-4 group/item">
-                       <div className="w-10 h-10 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center text-slate-600 dark:text-zinc-400 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-[#ede3e9] dark:border-zinc-800">
+                       <div className="w-10 h-10 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center text-slate-600 dark:text-zinc-300 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-[#ede3e9] dark:border-zinc-800">
                          <Users size={20} strokeWidth={3} />
                        </div>
                        <span className="italic">{club.member_count} members</span>
                     </div>
                     <div className="flex items-center gap-4 group/item">
-                       <div className="w-10 h-10 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center text-slate-600 dark:text-zinc-400 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-[#ede3e9] dark:border-zinc-800">
+                       <div className="w-10 h-10 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center text-slate-600 dark:text-zinc-300 group-hover/item:bg-primary group-hover/item:text-white transition-all shadow-inner border border-[#ede3e9] dark:border-zinc-800">
                          <MapPin size={20} strokeWidth={3} />
                        </div>
                        <span className="italic">{club.campus}</span>
                     </div>
                  </div>
 
-                 <p className="text-base font-bold text-slate-600 dark:text-zinc-400 leading-relaxed italic border-l-4 border-primary/20 pl-6">
+                 <p className="text-base font-bold text-slate-600 dark:text-zinc-300 leading-relaxed italic border-l-4 border-primary/20 pl-6">
                     {club.description}
                  </p>
 
@@ -182,7 +182,7 @@ export default function ClubDetail() {
                    <button
                      onClick={handleJoin}
                      disabled={joining}
-                     className={`w-full h-20 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${club.is_member ? 'bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-red-500 hover:border-red-500/40' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
+                     className={`w-full h-20 rounded-[28px] font-black text-sm uppercase tracking-[0.3em] italic transition-all duration-500 shadow-2xl ${club.is_member ? 'bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-red-500 hover:border-red-500/40' : 'bg-primary text-white shadow-primary/30 hover:scale-[1.03] active:scale-95'}`}
                    >
                     {joining ? 'Joining...' : club.is_member ? 'Leave Club' : 'Join Club'}
                   </button>
@@ -200,7 +200,7 @@ export default function ClubDetail() {
                    <button
                      key={tab.id}
                      onClick={() => setActiveTab(tab.id as 'posts' | 'members')}
-                     className={`flex items-center gap-4 px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] transition-all italic ${activeTab === tab.id ? 'bg-primary text-white shadow-2xl shadow-primary/20' : 'text-slate-600 dark:text-zinc-400 hover:text-primary hover:scale-105'}`}
+                     className={`flex items-center gap-4 px-10 py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] transition-all italic ${activeTab === tab.id ? 'bg-primary text-white shadow-2xl shadow-primary/20' : 'text-slate-600 dark:text-zinc-300 hover:text-primary hover:scale-105'}`}
                    >
                     <tab.icon size={18} strokeWidth={4} />
                     {tab.label}
@@ -212,12 +212,12 @@ export default function ClubDetail() {
               {activeTab === 'posts' ? (
                 posts.length === 0 ? (
                    <div className="py-64 text-center bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-[80px] flex flex-col items-center gap-10 shadow-2xl shadow-primary/5 animate-fade-in group">
-                      <div className="w-24 h-24 bg-[#fdf8fa] dark:bg-zinc-800 rounded-[32px] flex items-center justify-center text-slate-600 dark:text-zinc-400 group-hover:scale-125 transition-transform duration-1000">
+                      <div className="w-24 h-24 bg-[#fdf8fa] dark:bg-zinc-800 rounded-[32px] flex items-center justify-center text-slate-600 dark:text-zinc-300 group-hover:scale-125 transition-transform duration-1000">
                          <MessageSquare size={48} strokeWidth={2} />
                       </div>
                       <div className="space-y-6">
-                         <h3 className="text-5xl font-black text-slate-600 dark:text-zinc-400 italic uppercase tracking-tighter leading-none">No Posts Yet.</h3>
-                         <p className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No posts in this club yet. Be the first to share something.</p>
+                         <h3 className="text-5xl font-black text-slate-600 dark:text-zinc-300 italic uppercase tracking-tighter leading-none">No Posts Yet.</h3>
+                         <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No posts in this club yet. Be the first to share something.</p>
                      </div>
                   </div>
                 ) : (
@@ -243,11 +243,11 @@ export default function ClubDetail() {
                             <span className="font-black text-lg text-[#18181b] dark:text-zinc-100 uppercase italic tracking-tighter group-hover:text-primary transition-colors leading-none mb-2">@{m.username}</span>
                             <div className="flex items-center gap-2">
                                <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-                               <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-zinc-400 italic">{m.role || 'Inhabitant'}</span>
+                               <span className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-600 dark:text-zinc-300 italic">{m.role || 'Inhabitant'}</span>
                            </div>
                         </div>
                       </div>
-                       <ChevronRight size={24} strokeWidth={4} className="text-slate-600 dark:text-zinc-400 group-hover:text-primary group-hover:translate-x-3 transition-all" />
+                       <ChevronRight size={24} strokeWidth={4} className="text-slate-600 dark:text-zinc-300 group-hover:text-primary group-hover:translate-x-3 transition-all" />
                     </div>
                   ))}
                 </div>

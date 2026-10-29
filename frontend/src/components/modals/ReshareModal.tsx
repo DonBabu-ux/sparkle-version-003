@@ -71,7 +71,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
           </div>
           Add Your Thoughts
         </div>
-        <button className="p-2 text-slate-600 dark:text-zinc-400 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 hover:text-[#18181b] dark:hover:text-zinc-100 rounded-full transition-colors" onClick={onClose}><X size={20} /></button>
+        <button className="p-2 text-slate-600 dark:text-zinc-300 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 hover:text-[#18181b] dark:hover:text-zinc-100 rounded-full transition-colors" onClick={onClose}><X size={20} /></button>
       </div>
 
       <div className="modal-body px-6 pb-6 gap-4">
@@ -97,7 +97,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
           <div className="preview-header">
             <img src={originalPost.avatar_url || '/uploads/avatars/no-profile.png'} alt="" className="preview-avatar" />
             <span className="preview-username">{originalPost.username}</span>
-            <span className="text-slate-600 dark:text-zinc-400 text-xs font-medium ml-auto">Original Post</span>
+            <span className="text-slate-600 dark:text-zinc-300 text-xs font-medium ml-auto">Original Post</span>
           </div>
           <div className="preview-content">
             {originalPost.content && <p className="preview-text text-slate-600 dark:text-zinc-300 italic">{originalPost.content}</p>}
@@ -107,7 +107,7 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
                 {originalPost.media_type === 'video' ? (
                   <div className="video-placeholder bg-[#f6eef3] dark:bg-zinc-900 flex items-center justify-center gap-2 py-8">
                     <Spinner size="small" color="text-primary" />
-                    <span className="text-slate-600 dark:text-zinc-400 font-bold">Video Clip</span>
+                    <span className="text-slate-600 dark:text-zinc-300 font-bold">Video Clip</span>
                   </div>
                 ) : (
                   <img src={originalPost.media_url} alt="" />
@@ -119,11 +119,11 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
 
         <div className="flex items-center justify-between mt-2">
            <div className="flex flex-col gap-1">
-               <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-400">
+               <div className="flex items-center gap-2 text-slate-600 dark:text-zinc-300">
                   <AtSign size={14} />
                   <span className="text-[10px] font-bold">Press @ to mention</span>
                 </div>
-               <span className={`text-[10px] font-black ${comment.length > 450 ? 'text-red-500 dark:text-red-400' : 'text-slate-600 dark:text-zinc-400'}`}>
+               <span className={`text-[10px] font-black ${comment.length > 450 ? 'text-red-500 dark:text-red-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                  {comment.length} / 500
                </span>
            </div>
@@ -152,11 +152,11 @@ export default function ReshareModal({ onClose, onSuccess }: { onClose: () => vo
         /* Dark mode: same roles, zinc family */
         .dark .modal-inner { background: #27272a; border-color: #3f3f46; }
         .dark .reshare-input { color: #f4f4f5; }
-        .dark .reshare-input::placeholder { color: #a1a1aa; }
+        .dark .reshare-input::placeholder { color: #d4d4d8; }
         .dark .original-post-preview { border-color: #3f3f46; background: #18181b; }
         .dark .preview-avatar { border-color: #18181b; }
         .dark .preview-username { color: #f4f4f5; }
-        .dark .preview-text { color: #a1a1aa; }
+        .dark .preview-text { color: #d4d4d8; }
       `}</style>
     </div>
   );

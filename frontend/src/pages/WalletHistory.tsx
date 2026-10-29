@@ -112,7 +112,7 @@ export default function WalletHistory() {
           <div className="flex gap-2 overflow-x-auto pb-1">
             <div className="flex items-center gap-1.5 shrink-0">
               <Filter size={12} className="text-slate-400" />
-              <span className="text-[9px] font-black uppercase text-slate-500 dark:text-zinc-400">Filter:</span>
+              <span className="text-[9px] font-black uppercase text-slate-500 dark:text-zinc-300">Filter:</span>
             </div>
             
             <select
@@ -167,7 +167,7 @@ export default function WalletHistory() {
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 flex items-center justify-center">
-                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500 dark:text-zinc-400" />}
+                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500 dark:text-zinc-300" />}
                       </div>
                       <div>
                         <p className="text-xs font-black text-slate-900 uppercase italic">{txn.type}</p>
@@ -205,7 +205,7 @@ export default function WalletHistory() {
               >
                 <ChevronLeft size={14} /> Prev
               </button>
-              <span className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase">
+              <span className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase">
                 Page {page} of {totalPages}
               </span>
               <button

@@ -305,7 +305,7 @@ export default function Confessions() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="w-10 h-10 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 shadow-sm border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-primary transition-all active:scale-95"
+                className="w-10 h-10 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 shadow-sm border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:text-primary transition-all active:scale-95"
               >
                 <ArrowLeft size={19} strokeWidth={2.5} />
               </button>
@@ -346,7 +346,7 @@ export default function Confessions() {
                 className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 ${
                   activeCategory === cat.id
                     ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
-                    : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400 border-[#e6d8e1] dark:border-zinc-700 hover:text-primary hover:border-primary/20'
+                    : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 border-[#e6d8e1] dark:border-zinc-700 hover:text-primary hover:border-primary/20'
                 }`}
               >
                 {cat.icon}
@@ -386,7 +386,7 @@ export default function Confessions() {
                           </div>
                         ))}
                       </div>
-                      <span className="text-[9px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest">{trendingConfession.rating_count || 0} resonating</span>
+                      <span className="text-[9px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">{trendingConfession.rating_count || 0} resonating</span>
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
@@ -413,7 +413,7 @@ export default function Confessions() {
                     {stat.icon}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.18em]">{stat.label}</p>
+                    <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.18em]">{stat.label}</p>
                     <p className="text-[13px] font-black text-[#18181b] dark:text-zinc-100 uppercase italic">{stat.value}</p>
                   </div>
                 </div>
@@ -421,7 +421,7 @@ export default function Confessions() {
             </div>
           </div>
 
-          <p className="px-4 mb-4 text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider">
+          <p className="px-4 mb-4 text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
             Other people see only an alias. Moderators can see the posting account when reviewing a report.
           </p>
 
@@ -432,16 +432,16 @@ export default function Confessions() {
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.4em] animate-pulse">Loading confessions...</p>
+                <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.4em] animate-pulse">Loading confessions...</p>
               </div>
             ) : fetchError ? (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
                 <div className="w-20 h-20 rounded-3xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center">
-                  <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-400" />
+                  <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-300" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-400 uppercase italic tracking-tight">Something went wrong</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mt-1">Couldn't load confessions. Check your connection.</p>
+                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-tight">Something went wrong</h3>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest mt-1">Couldn't load confessions. Check your connection.</p>
                 </div>
                 <button
                   onClick={() => fetchConfessions()}
@@ -473,7 +473,7 @@ export default function Confessions() {
                         <span className="text-[11px] font-black text-[#18181b] dark:text-zinc-100 uppercase italic truncate">
                           {conf.author_alias || `Anonymous #${idx + 100}`}
                         </span>
-                        <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wider ml-2 flex-shrink-0">
+                        <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-300 uppercase tracking-wider ml-2 flex-shrink-0">
                           {conf.created_at ? new Date(conf.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Live'}
                         </span>
                       </div>
@@ -558,7 +558,7 @@ export default function Confessions() {
                               setShowEmojiPicker(false);
                             }}
                             className={`flex items-center gap-2 px-3 py-2 rounded-xl transition-all active:scale-90 group/react ${
-                              activeReactionMenu === conf.confession_id ? 'text-primary' : 'text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-primary/5'
+                              activeReactionMenu === conf.confession_id ? 'text-primary' : 'text-slate-600 dark:text-zinc-300 hover:text-primary hover:bg-primary/5'
                             }`}
                           >
                             <HeartIcon 
@@ -580,13 +580,13 @@ export default function Confessions() {
                               {!showEmojiPicker ? (
                                 <>
                                   <div className="flex flex-wrap gap-2 mb-3 pb-3 border-b border-[#ede3e9] dark:border-zinc-900">
-                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-400 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😂 {conf.smile_count}</div>}
-                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-400 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😭 {conf.relate_count}</div>}
-                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-400 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">❤️ {conf.heart_count}</div>}
-                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-400 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
-                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-400 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
+                                    {(conf.smile_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😂 {conf.smile_count}</div>}
+                                    {(conf.relate_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">😭 {conf.relate_count}</div>}
+                                    {(conf.heart_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">❤️ {conf.heart_count}</div>}
+                                    {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
+                                    {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
                                     {((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0)) === 0 && (
-                                      <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-wider mx-auto italic">Resonate first</span>
+                                      <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider mx-auto italic">Resonate first</span>
                                     )}
                                   </div>
                                   <div className="flex items-center justify-between gap-1">
@@ -607,7 +607,7 @@ export default function Confessions() {
                                     ))}
                                     <button
                                       onClick={() => setShowEmojiPicker(true)}
-                                      className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:bg-primary hover:text-white transition-all ml-1"
+                                      className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-primary hover:text-white transition-all ml-1"
                                     >
                                       <Plus size={18} strokeWidth={2.5} />
                                     </button>
@@ -640,7 +640,7 @@ export default function Confessions() {
                         {/* Comments */}
                         <button
                           onClick={() => toggleComments(conf.confession_id)}
-                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group/comment"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group/comment"
                         >
                           <CommentIcon size={20} className="transition-transform group-hover/comment:scale-110" />
                           <span className="text-[13px] font-bold tracking-tight">{formatCount(conf.comment_count || 0)}</span>
@@ -649,7 +649,7 @@ export default function Confessions() {
                         {/* Send / Share */}
                         <button 
                           onClick={() => handleShare(conf.confession_id)}
-                          className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group"
+                          className="flex items-center justify-center w-10 h-10 rounded-xl text-slate-600 dark:text-zinc-300 hover:text-primary hover:bg-primary/5 transition-all active:scale-90 group"
                         >
                           <SendIcon className="transition-transform group-hover:scale-110" />
                         </button>
@@ -659,7 +659,7 @@ export default function Confessions() {
                       <button 
                         onClick={() => handleSave(conf.confession_id)}
                         className={`flex items-center justify-center w-10 h-10 rounded-xl transition-colors ${
-                          savedPosts[conf.confession_id] ? 'text-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10' : 'text-slate-600 dark:text-zinc-400 hover:text-yellow-500 hover:bg-yellow-50/50 dark:hover:bg-yellow-500/10'
+                          savedPosts[conf.confession_id] ? 'text-yellow-500 bg-yellow-50/50 dark:bg-yellow-500/10' : 'text-slate-600 dark:text-zinc-300 hover:text-yellow-500 hover:bg-yellow-50/50 dark:hover:bg-yellow-500/10'
                         }`}
                       >
                         <BookmarkIcon active={savedPosts[conf.confession_id]} />
@@ -671,11 +671,11 @@ export default function Confessions() {
             ) : (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
                 <div className="w-20 h-20 rounded-3xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center">
-                  <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-400 animate-spin-slow" />
+                  <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-300 animate-spin-slow" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-400 uppercase italic tracking-tight">No Confessions Yet</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
+                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-tight">No Confessions Yet</h3>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
                 </div>
                 <button
                   onClick={() => setShowComposeModal(true)}
@@ -765,7 +765,7 @@ export default function Confessions() {
                   <div className="h-px bg-[#ede3e9] dark:bg-zinc-900 my-1 mx-2" />
                   <button 
                     onClick={() => { setPreviewImage(null); setPreviewConfessionId(null); setPreviewOptionsOpen(false); }}
-                    className="w-full flex items-center gap-3 px-3 py-3 text-left text-slate-600 dark:text-zinc-400 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-xl transition-colors"
+                    className="w-full flex items-center gap-3 px-3 py-3 text-left text-slate-600 dark:text-zinc-300 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-xl transition-colors"
                   >
                     <ShieldOff size={16} />
                     <span className="text-[13px] font-bold">I don't want to see this</span>
@@ -798,12 +798,12 @@ export default function Confessions() {
                 </div>
                 <div>
                   <h3 className="text-sm font-black uppercase tracking-wider text-[#18181b] dark:text-zinc-100">Anonymous Replies</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
+                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
                 </div>
               </div>
               <button
                 onClick={() => { setActiveCommentsModal(null); setReplyTo(null); }}
-                className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors"
+                className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors"
               >
                 <X size={20} strokeWidth={2.5} />
               </button>
@@ -814,11 +814,11 @@ export default function Confessions() {
               {commentsLoading[activeCommentsModal] ? (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">
                   <Spinner size="large" color="text-primary" />
-                  <p className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.3em]">Loading replies...</p>
+                  <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.3em]">Loading replies...</p>
                 </div>
               ) : commentsError[activeCommentsModal] ? (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">
-                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest">Couldn't load replies.</p>
+                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">Couldn't load replies.</p>
                   <button
                     onClick={() => toggleComments(activeCommentsModal)}
                     className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
@@ -829,9 +829,9 @@ export default function Confessions() {
               ) : commentsData[activeCommentsModal]?.length === 0 ? (
                 <div className="py-20 flex flex-col items-center gap-3 text-center">
                   <div className="w-16 h-16 rounded-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center">
-                    <SpyIcon size={24} className="text-slate-600 dark:text-zinc-400" />
+                    <SpyIcon size={24} className="text-slate-600 dark:text-zinc-300" />
                   </div>
-                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest">No replies yet. Whisper first.</p>
+                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">No replies yet. Whisper first.</p>
                 </div>
               ) : (
                 (commentsData[activeCommentsModal] || [])
@@ -845,7 +845,7 @@ export default function Confessions() {
                         {/* Parent Comment */}
                         <div className="flex gap-3 group/comment mb-3">
                           <div className="w-10 h-10 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center flex-shrink-0">
-                            <SpyIcon size={18} className="text-slate-600 dark:text-zinc-400" />
+                            <SpyIcon size={18} className="text-slate-600 dark:text-zinc-300" />
                           </div>
                           <div className="flex-1">
                             <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3">
@@ -858,18 +858,18 @@ export default function Confessions() {
                                     <span className="ml-1.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[8px] normal-case not-italic tracking-normal">OP</span>
                                   )}
                                 </span>
-                                <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-400">
+                                <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-300">
                                   {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              <p className="text-[14px] font-medium text-slate-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
+                              <p className="text-[14px] font-medium text-slate-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{comment.content}</p>
                             </div>
                             
                             {/* Reply action & Toggle */}
                             <div className="mt-1 ml-2 flex items-center gap-4">
                               <button 
                                 onClick={() => setReplyTo({ id: comment.comment_id, author: comment.author })}
-                                className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 hover:text-primary uppercase tracking-wider transition-colors"
+                                className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 hover:text-primary uppercase tracking-wider transition-colors"
                               >
                                 Reply
                               </button>
@@ -893,7 +893,7 @@ export default function Confessions() {
                             {replies.map((reply: any, rIdx: number) => (
                               <div key={reply.comment_id || rIdx} className="flex gap-3 group/reply">
                                 <div className="w-8 h-8 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center flex-shrink-0">
-                                  <SpyIcon size={14} className="text-slate-600 dark:text-zinc-400" />
+                                  <SpyIcon size={14} className="text-slate-600 dark:text-zinc-300" />
                                 </div>
                                 <div className="flex-1">
                                   <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-3 py-2 border-[#ede3e9] dark:border-zinc-700">
@@ -906,11 +906,11 @@ export default function Confessions() {
                                           <span className="ml-1 px-1 py-0.5 bg-primary/10 text-primary rounded text-[7px] normal-case not-italic tracking-normal">OP</span>
                                         )}
                                       </span>
-                                      <span className="text-[8px] font-semibold text-slate-600 dark:text-zinc-400">
+                                      <span className="text-[8px] font-semibold text-slate-600 dark:text-zinc-300">
                                         {new Date(reply.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </span>
                                     </div>
-                                    <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
+                                    <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">{reply.content}</p>
                                   </div>
                                 </div>
                               </div>
@@ -930,7 +930,7 @@ export default function Confessions() {
                   <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
                     <ArrowLeft size={10} /> Replying to {replyTo.author}
                   </span>
-                  <button onClick={() => setReplyTo(null)} className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100">Cancel</button>
+                  <button onClick={() => setReplyTo(null)} className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100">Cancel</button>
                 </div>
               )}
               <div className="flex gap-3">
@@ -943,7 +943,7 @@ export default function Confessions() {
                     onChange={e => setCommentInputs(prev => ({ ...prev, [activeCommentsModal]: e.target.value }))}
                     placeholder="Whisper your reply..."
                     onKeyPress={(e) => e.key === 'Enter' && handleAddComment(activeCommentsModal)}
-                    className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl px-4 text-[14px] font-medium text-[#18181b] dark:text-zinc-100 outline-none focus:ring-2 focus:ring-primary/20 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 transition-all border border-[#e6d8e1] dark:border-zinc-700 focus:border-primary/40 placeholder:text-slate-600 dark:placeholder:text-zinc-400"
+                    className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl px-4 text-[14px] font-medium text-[#18181b] dark:text-zinc-100 outline-none focus:ring-2 focus:ring-primary/20 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 transition-all border border-[#e6d8e1] dark:border-zinc-700 focus:border-primary/40 placeholder:text-slate-600 dark:placeholder:text-zinc-300"
                   />
                   <button 
                     onClick={() => handleAddComment(activeCommentsModal)}

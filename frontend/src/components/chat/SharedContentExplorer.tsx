@@ -168,12 +168,12 @@ export const SharedContentExplorer: React.FC<SharedContentExplorerProps> = ({
       {/* Main Full Page Scrollable Content */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 no-scrollbar">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-3">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-300 gap-3">
             <Spinner size="large" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />
             <p className="text-xs">Loading shared content...</p>
           </div>
         ) : data.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-400 gap-2">
+          <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-300 gap-2">
             <div className="p-4 bg-white/5 rounded-full text-white/40">
               <FileText className="w-8 h-8 opacity-60" />
             </div>

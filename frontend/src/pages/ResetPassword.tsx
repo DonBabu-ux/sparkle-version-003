@@ -186,7 +186,7 @@ export default function ResetPassword() {
               <CheckCircle2 size={36} strokeWidth={2.5} />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Updated</h2>
-            <p className="text-gray-500 dark:text-zinc-400 text-sm text-center max-w-xs leading-relaxed">
+            <p className="text-gray-500 dark:text-zinc-300 text-sm text-center max-w-xs leading-relaxed">
               Your account has been secured.<br />Redirecting...
             </p>
           </div>
@@ -198,7 +198,7 @@ export default function ResetPassword() {
             <Shield size={32} strokeWidth={2} />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sparkle Security</h1>
-          <p className="text-gray-500 dark:text-zinc-400 text-sm mt-2 max-w-sm leading-relaxed">
+          <p className="text-gray-500 dark:text-zinc-300 text-sm mt-2 max-w-sm leading-relaxed">
             Protect your account with a strong password. This keeps your conversations, profile, and data secure.
           </p>
         </div>
@@ -232,7 +232,7 @@ export default function ResetPassword() {
           {/* Identity Verification OTP Blocks */}
           <div className="space-y-3 bg-white/40 border border-pink-500/10 rounded-2xl p-5 shadow-sm">
             <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600">Verify Your Sparkle Identity</h3>
-            <p className="text-xs text-gray-500 dark:text-zinc-400 leading-relaxed">
+            <p className="text-xs text-gray-500 dark:text-zinc-300 leading-relaxed">
               We've sent a verification code to <span className="text-gray-900 font-semibold">{maskEmail(emailParam)}</span>. Enter the code below to continue.
             </p>
 
@@ -253,7 +253,7 @@ export default function ResetPassword() {
               ))}
             </div>
 
-            <div className="flex items-center justify-between mt-4 pt-2 border-t border-black/5 dark:border-white/5 text-[11px] text-gray-500 dark:text-zinc-400">
+            <div className="flex items-center justify-between mt-4 pt-2 border-t border-black/5 dark:border-white/5 text-[11px] text-gray-500 dark:text-zinc-300">
               <span>Didn't receive it?</span>
               <button
                 type="button"
@@ -308,7 +308,7 @@ export default function ResetPassword() {
                 </div>
 
                 <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
-                  <div className="flex justify-between items-center text-[10px] text-gray-500 dark:text-zinc-400">
+                  <div className="flex justify-between items-center text-[10px] text-gray-500 dark:text-zinc-300">
                     <span>Password Strength</span>
                     <span className="font-bold" style={{ color: strengthInfo.color }}>
                       {strengthInfo.label}

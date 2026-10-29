@@ -95,7 +95,7 @@ export default function Developer() {
                 <button
                   key={cat}
                   onClick={() => setApiCategory(cat)}
-                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${apiCategory === cat ? 'bg-[#ff1493] text-white' : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400 hover:bg-[#e7dae3] dark:hover:bg-zinc-600'}`}
+                  className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-colors ${apiCategory === cat ? 'bg-[#ff1493] text-white' : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 hover:bg-[#e7dae3] dark:hover:bg-zinc-600'}`}
                 >
                   {cat === 'auth' ? 'POST Auth' : cat === 'posts' ? 'GET Feed' : 'WebSocket connection'}
                 </button>
@@ -158,7 +158,7 @@ export default function Developer() {
         .eco-hero p { margin: 0; color: #475569; font-size: 1.05rem; }
         .dark .eco-hero { background: #27272a; border-color: #3f3f46; box-shadow: none; }
         .dark .eco-hero h1 { color: #f4f4f5; }
-        .dark .eco-hero p { color: #a1a1aa; }
+        .dark .eco-hero p { color: #d4d4d8; }
 
         .eco-section-title { font-size: 0.7rem; font-weight: 900; letter-spacing: 0.4em; text-transform: uppercase; font-style: italic; color: rgba(0,0,0,0.25); margin: 40px 0 16px; }
         .dark .eco-section-title { color: rgba(255,255,255,0.3); }

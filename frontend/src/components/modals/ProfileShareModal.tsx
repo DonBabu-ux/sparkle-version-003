@@ -135,7 +135,7 @@ export default function ProfileShareModal({ isOpen, onClose, username, name }: P
                   className="mb-8 flex flex-col items-center bg-slate-50 dark:bg-zinc-800 p-8 rounded-[24px] border border-slate-100"
                 >
                   <img src={qrCodeUrl} alt="Profile QR Code" className="w-48 h-48 rounded-xl shadow-lg mb-4" />
-                  <p className="text-sm font-bold text-slate-500 dark:text-zinc-400">Scan to view {username}'s shop</p>
+                  <p className="text-sm font-bold text-slate-500 dark:text-zinc-300">Scan to view {username}'s shop</p>
                 </motion.div>
               )}
             </AnimatePresence>

@@ -80,7 +80,7 @@ export default function Help() {
                       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenFaq(openFaq === i ? null : i); } }}
                     >
                       <span>{faq.q}</span>
-                      <ChevronRight size={18} className="text-slate-600 dark:text-zinc-400 group-hover:rotate-90 transition-transform" />
+                      <ChevronRight size={18} className="text-slate-600 dark:text-zinc-300 group-hover:rotate-90 transition-transform" />
                     </div>
                     <div className="faq-answer">{faq.a}</div>
                   </div>
@@ -129,11 +129,11 @@ export default function Help() {
         .header-info h1 { font-size: 2.2rem; font-weight: 800; color: #18181b; margin-bottom: 4px; font-family: 'Outfit', sans-serif; }
         .dark .header-info h1 { color: #f4f4f5; }
         .header-info p { color: #475569; font-size: 1.1rem; }
-        .dark .header-info p { color: #a1a1aa; }
+        .dark .header-info p { color: #d4d4d8; }
 
         .help-search { position: relative; margin-bottom: 40px; }
         .search-icon { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); color: #475569; }
-        .dark .search-icon { color: #a1a1aa; }
+        .dark .search-icon { color: #d4d4d8; }
         .help-search input { width: 100%; padding: 18px 20px 18px 56px; border-radius: 24px; border: 1.5px solid #e6d8e1; background: #fdf8fa; outline: none; font-size: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.03); transition: all 0.2s; }
         .dark .help-search input { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
         .help-search input:focus { border-color: #ff1493; box-shadow: 0 4px 20px rgba(255, 20, 147, 0.12); }
@@ -148,7 +148,7 @@ export default function Help() {
         .cat-card h4 { font-weight: 800; color: #18181b; margin-bottom: 4px; }
         .dark .cat-card h4 { color: #f4f4f5; }
         .cat-card p { font-size: 0.8rem; color: #475569; }
-        .dark .cat-card p { color: #a1a1aa; }
+        .dark .cat-card p { color: #d4d4d8; }
 
         .section-title { font-size: 1rem; font-weight: 800; color: #18181b; margin-bottom: 20px; padding-left: 10px; text-transform: uppercase; letter-spacing: 1px; }
         .dark .section-title { color: #f4f4f5; }
@@ -162,7 +162,7 @@ export default function Help() {
         .faq-item:hover .faq-question { background: #f6eef3; }
         .dark .faq-item:hover .faq-question { background: #18181b; }
         .faq-answer { padding: 0 24px 20px; color: #475569; font-size: 0.95rem; line-height: 1.6; display: none; }
-        .dark .faq-answer { color: #a1a1aa; }
+        .dark .faq-answer { color: #d4d4d8; }
         .faq-item:hover .faq-answer { display: block; }
         .faq-item.open .faq-answer { display: block; }
         .faq-item.open .faq-question { background: #f6eef3; }
@@ -186,7 +186,7 @@ export default function Help() {
           .contact-cards { grid-template-columns: 1fr; }
         }
 
-        .dark .contact-info span { color: #a1a1aa; }
+        .dark .contact-info span { color: #d4d4d8; }
       `}</style>
     </div>
   );

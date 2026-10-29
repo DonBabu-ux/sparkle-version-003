@@ -474,7 +474,7 @@ export default function AdvancedSettingsDetail() {
               <h1 className="text-xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
                 {currentMeta.title}
               </h1>
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-slate-500 dark:text-zinc-300">
                 {currentMeta.subtitle}
               </p>
             </div>
@@ -837,7 +837,7 @@ export default function AdvancedSettingsDetail() {
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-400 mb-3">
+              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-zinc-300 mb-3">
                 <span className="font-semibold text-slate-800 dark:text-zinc-200">
                   {storageStats.usedMb} MB Used
                 </span>
@@ -1130,7 +1130,7 @@ export default function AdvancedSettingsDetail() {
                   />
                 ))
               ) : (
-                <div className="p-4 text-xs text-slate-500 dark:text-zinc-400 text-center">
+                <div className="p-4 text-xs text-slate-500 dark:text-zinc-300 text-center">
                   1 Active Session (Current Device)
                 </div>
               )}

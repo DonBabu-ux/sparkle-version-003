@@ -95,7 +95,7 @@ export default function Onboarding() {
           <span>About Sparkle</span>
         </button>
 
-        <span className="text-xs font-medium text-slate-500 dark:text-zinc-400 bg-white dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full shadow-sm">
+        <span className="text-xs font-medium text-slate-500 dark:text-zinc-300 bg-white dark:bg-zinc-900/80 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full shadow-sm">
           Step {Math.min(currentSlide, 5)} of 5
         </span>
       </div>

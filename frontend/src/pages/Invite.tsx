@@ -221,7 +221,7 @@ export default function Invite() {
                 Earn Together <Heart size={26} className="text-[#ff006e] fill-[#ff006e]/20 ml-1.5 inline" strokeWidth={2.5} />
               </span>
             </h1>
-            <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-400 font-medium leading-relaxed mt-2.5">
+            <p className="text-sm sm:text-base text-slate-600 dark:text-zinc-300 font-medium leading-relaxed mt-2.5">
               Invite your friends to join Sparkle and get rewarded for every active friend. The more you share, the more you earn!
             </p>
           </div>
@@ -248,7 +248,7 @@ export default function Invite() {
             </div>
 
             <div className="flex flex-col min-w-0">
-              <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+              <span className="text-xs font-semibold text-slate-500 dark:text-zinc-300">
                 Your Referral Code
               </span>
               <div className="flex items-center gap-3 mt-0.5">
@@ -262,7 +262,7 @@ export default function Invite() {
                     <button
                       onClick={handleCopyCode}
                       aria-label="Copy Referral Code"
-                      className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 hover:text-[#ff006e] transition-colors flex items-center gap-1 active:scale-95"
+                      className="p-1.5 rounded-xl hover:bg-white dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-300 hover:text-[#ff006e] transition-colors flex items-center gap-1 active:scale-95"
                     >
                       {copiedCode ? <Check size={18} className="text-emerald-600" /> : <Copy size={18} />}
                       {copiedCode && <span className="text-xs font-bold text-emerald-600">Copied!</span>}
@@ -270,7 +270,7 @@ export default function Invite() {
                   </>
                 )}
               </div>
-              <span className="text-xs text-slate-500 dark:text-zinc-400 mt-1 truncate max-w-sm">
+              <span className="text-xs text-slate-500 dark:text-zinc-300 mt-1 truncate max-w-sm">
                 Canonical Link: <span className="font-mono">{canonicalInviteUrl}</span>
               </span>
             </div>
@@ -315,7 +315,7 @@ export default function Invite() {
               <Users size={20} strokeWidth={2.2} />
             </div>
             <div className="mt-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 block">
+              <span className="text-xs font-bold text-slate-500 dark:text-zinc-300 block">
                 Total Invites
               </span>
               {loading ? (
@@ -325,7 +325,7 @@ export default function Invite() {
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
                     {totalInvited}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-500 mt-1.5 block">
+                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-300 mt-1.5 block">
                     {weeklyInvites > 0 ? `+${weeklyInvites} this week` : 'Shared invites'}
                   </span>
                 </>
@@ -339,7 +339,7 @@ export default function Invite() {
               <UserCheck size={20} strokeWidth={2.2} />
             </div>
             <div className="mt-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 block">
+              <span className="text-xs font-bold text-slate-500 dark:text-zinc-300 block">
                 Friends Joined
               </span>
               {loading ? (
@@ -349,7 +349,7 @@ export default function Invite() {
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
                     {activeReferrals}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-500 mt-1.5 block">
+                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-300 mt-1.5 block">
                     {weeklyActive > 0 ? `+${weeklyActive} this week` : 'Confirmed accounts'}
                   </span>
                 </>
@@ -363,7 +363,7 @@ export default function Invite() {
               <Coins size={20} strokeWidth={2.2} />
             </div>
             <div className="mt-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 block">
+              <span className="text-xs font-bold text-slate-500 dark:text-zinc-300 block">
                 Total Earned
               </span>
               {loading ? (
@@ -373,7 +373,7 @@ export default function Invite() {
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
                     {currency} {totalEarnings.toLocaleString()}
                   </span>
-                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-500 mt-1.5 block">
+                  <span className="text-xs font-bold text-slate-400 dark:text-zinc-300 mt-1.5 block">
                     {weeklyEarnings > 0 ? `+${currency} ${weeklyEarnings} this week` : 'Credited to wallet'}
                   </span>
                 </>
@@ -387,7 +387,7 @@ export default function Invite() {
               <Star size={20} strokeWidth={2.2} />
             </div>
             <div className="mt-3">
-              <span className="text-xs font-bold text-slate-500 dark:text-zinc-400 block">
+              <span className="text-xs font-bold text-slate-500 dark:text-zinc-300 block">
                 Pending Rewards
               </span>
               {loading ? (
@@ -397,7 +397,7 @@ export default function Invite() {
                   <span className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight mt-0.5 block">
                     {currency} {pendingRewards.toLocaleString()}
                   </span>
-                  <span className="text-xs font-medium text-slate-400 dark:text-zinc-500 mt-1.5 block">
+                  <span className="text-xs font-medium text-slate-400 dark:text-zinc-300 mt-1.5 block">
                     Awaiting verification
                   </span>
                 </>
@@ -420,7 +420,7 @@ export default function Invite() {
                     Top Referrers
                   </h2>
                 </div>
-                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-500">
+                <span className="text-xs font-semibold text-slate-400 dark:text-zinc-300">
                   Community Ranking
                 </span>
               </div>
@@ -441,10 +441,10 @@ export default function Invite() {
               ) : topReferrers.length === 0 ? (
                 <div className="py-8 text-center flex flex-col items-center">
                   <Users size={32} className="text-slate-300 dark:text-zinc-700 mb-2" />
-                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-300">
                     No leaderboard data yet.
                   </p>
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-300 mt-0.5">
                     Be the first to invite friends and top the community ranking!
                   </p>
                 </div>
@@ -474,7 +474,7 @@ export default function Invite() {
                             <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
                               @{leader.username}
                             </span>
-                            <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                            <span className="text-[11px] text-slate-400 dark:text-zinc-300 font-medium">
                               {leader.invites} invites
                             </span>
                           </div>
@@ -491,14 +491,14 @@ export default function Invite() {
             </div>
 
             {/* Current user standing */}
-            <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs text-slate-600 dark:text-zinc-400 bg-slate-50/70 dark:bg-zinc-800/50 p-3 rounded-2xl">
+            <div className="mt-4 pt-3.5 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between text-xs text-slate-600 dark:text-zinc-300 bg-slate-50/70 dark:bg-zinc-800/50 p-3 rounded-2xl">
               <span className="font-semibold">
                 Your position:{' '}
                 <strong className="text-slate-900 dark:text-white">
                   {userRank?.rank && userRank.rank > 0 ? `#${userRank.rank}` : 'Unranked'}
                 </strong>
               </span>
-              <span className="font-medium text-slate-500 dark:text-zinc-400">
+              <span className="font-medium text-slate-500 dark:text-zinc-300">
                 {activeReferrals} successful referrals
               </span>
             </div>
@@ -531,7 +531,7 @@ export default function Invite() {
                           {rule.reward}
                         </span>
                       </div>
-                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                      <p className="text-[11px] sm:text-xs text-slate-500 dark:text-zinc-300 mt-0.5 leading-relaxed">
                         {rule.description}
                       </p>
                     </div>
@@ -560,7 +560,7 @@ export default function Invite() {
               <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight">
                 Referral Activity
               </h2>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 font-medium mt-0.5">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 font-medium mt-0.5">
                 Track status and rewards for invited friends
               </p>
             </div>
@@ -595,7 +595,7 @@ export default function Invite() {
               <h3 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white mb-1">
                 No referrals yet
               </h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm leading-relaxed mb-4">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 max-w-sm leading-relaxed mb-4">
                 Invite your friends to Sparkle and your referral activity will appear here.
               </p>
               <button
@@ -627,7 +627,7 @@ export default function Invite() {
                         <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100">
                           @{item.username}
                         </span>
-                        <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                        <span className="text-[11px] text-slate-400 dark:text-zinc-300 font-medium">
                           {item.joinedDate}
                         </span>
                       </div>
@@ -649,7 +649,7 @@ export default function Invite() {
         </section>
 
         {/* Footer */}
-        <footer className="pt-2 pb-8 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400 dark:text-zinc-500 select-none">
+        <footer className="pt-2 pb-8 flex items-center justify-center gap-2 text-xs font-semibold text-slate-400 dark:text-zinc-300 select-none">
           <Sparkles size={14} className="text-[#ff006e]" />
           <span>Together we make Sparkle brighter</span>
           <Sparkles size={14} className="text-[#ff006e]" />
@@ -674,7 +674,7 @@ export default function Invite() {
               </span>
               <button 
                 onClick={() => setShowQrModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -685,10 +685,10 @@ export default function Invite() {
             </div>
 
             <div className="flex flex-col text-center">
-              <span className="text-xs text-slate-500 dark:text-zinc-400">
+              <span className="text-xs text-slate-500 dark:text-zinc-300">
                 Referral code: <strong className="text-slate-900 dark:text-white font-mono">{inviteCode}</strong>
               </span>
-              <span className="text-[11px] text-slate-400 dark:text-zinc-500 mt-1">
+              <span className="text-[11px] text-slate-400 dark:text-zinc-300 mt-1">
                 Scan with any phone camera or QR reader
               </span>
             </div>
@@ -721,7 +721,7 @@ export default function Invite() {
               </h3>
               <button 
                 onClick={() => setShowShareModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -773,7 +773,7 @@ export default function Invite() {
             </div>
 
             <div className="p-3 rounded-2xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-between text-xs">
-              <span className="text-slate-600 dark:text-zinc-400 font-mono truncate mr-2">
+              <span className="text-slate-600 dark:text-zinc-300 font-mono truncate mr-2">
                 {canonicalInviteUrl}
               </span>
               <button 
@@ -808,7 +808,7 @@ export default function Invite() {
               </div>
               <button 
                 onClick={() => setShowRulesModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -842,7 +842,7 @@ export default function Invite() {
                 </p>
               </div>
 
-              <div className="p-3 rounded-2xl bg-pink-50/70 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-900/40 text-[11px] text-slate-600 dark:text-zinc-400">
+              <div className="p-3 rounded-2xl bg-pink-50/70 dark:bg-pink-950/30 border border-pink-100 dark:border-pink-900/40 text-[11px] text-slate-600 dark:text-zinc-300">
                 Rewards are credited to your Sparkle wallet in {currency}.
               </div>
             </div>
@@ -875,7 +875,7 @@ export default function Invite() {
               </h3>
               <button 
                 onClick={() => setShowHistoryModal(false)}
-                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white"
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 flex items-center justify-center text-slate-500 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white"
               >
                 <X size={16} />
               </button>
@@ -895,7 +895,7 @@ export default function Invite() {
                       <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-zinc-100">
                         @{item.username}
                       </span>
-                      <span className="text-[11px] text-slate-400 dark:text-zinc-500 font-medium">
+                      <span className="text-[11px] text-slate-400 dark:text-zinc-300 font-medium">
                         {item.joinedDate}
                       </span>
                     </div>

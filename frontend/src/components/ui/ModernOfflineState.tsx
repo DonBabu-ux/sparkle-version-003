@@ -78,7 +78,7 @@ const ModernOfflineState: React.FC<ModernOfflineStateProps> = ({
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.3 }}
-        className="text-gray-500 dark:text-zinc-400 max-w-[280px] mb-10 leading-relaxed font-medium"
+        className="text-gray-500 dark:text-zinc-300 max-w-[280px] mb-10 leading-relaxed font-medium"
       >
         {message || defaultMessage}
       </motion.p>

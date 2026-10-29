@@ -222,7 +222,7 @@ export const ChangePassword: React.FC = () => {
           <button
             type="button"
             onClick={() => navigate(-1)}
-            className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700 transition-all shadow-sm active:scale-95"
+            className="w-10 h-10 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:text-slate-900 dark:hover:text-white hover:border-slate-300 dark:hover:border-zinc-700 transition-all shadow-sm active:scale-95"
             aria-label="Back"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -232,7 +232,7 @@ export const ChangePassword: React.FC = () => {
               <Key className="w-5 h-5 text-[#ff1493]" />
               Change password
             </h1>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
+            <p className="text-xs text-slate-500 dark:text-zinc-300">
               Create a new password to keep your Sparkle account secure.
             </p>
           </div>
@@ -259,7 +259,7 @@ export const ChangePassword: React.FC = () => {
             <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-pink-500">
               <Shield className="w-4 h-4" /> Step 1: Verify it's you
             </div>
-            <p className="text-sm text-slate-600 dark:text-zinc-400">
+            <p className="text-sm text-slate-600 dark:text-zinc-300">
               Select an available security factor to verify your account identity before setting a new password.
             </p>
 
@@ -283,7 +283,7 @@ export const ChangePassword: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">Email verification</div>
-                        <div className="text-xs text-slate-500 dark:text-zinc-400">Send code to {factors.email_masked}</div>
+                        <div className="text-xs text-slate-500 dark:text-zinc-300">Send code to {factors.email_masked}</div>
                       </div>
                     </div>
                     <span className="text-xs font-semibold text-pink-500 group-hover:translate-x-0.5 transition-transform">Verify →</span>
@@ -303,7 +303,7 @@ export const ChangePassword: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">SMS verification</div>
-                        <div className="text-xs text-slate-500 dark:text-zinc-400">Send code to {factors.phone_masked}</div>
+                        <div className="text-xs text-slate-500 dark:text-zinc-300">Send code to {factors.phone_masked}</div>
                       </div>
                     </div>
                     <span className="text-xs font-semibold text-pink-500 group-hover:translate-x-0.5 transition-transform">Verify →</span>
@@ -323,7 +323,7 @@ export const ChangePassword: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">Recovery code</div>
-                        <div className="text-xs text-slate-500 dark:text-zinc-400">Use one of your saved backup codes ({factors.backup_codes_remaining} left)</div>
+                        <div className="text-xs text-slate-500 dark:text-zinc-300">Use one of your saved backup codes ({factors.backup_codes_remaining} left)</div>
                       </div>
                     </div>
                     <span className="text-xs font-semibold text-pink-500 group-hover:translate-x-0.5 transition-transform">Verify →</span>
@@ -343,7 +343,7 @@ export const ChangePassword: React.FC = () => {
                       </div>
                       <div>
                         <div className="text-sm font-semibold text-slate-900 dark:text-white">Current account password</div>
-                        <div className="text-xs text-slate-500 dark:text-zinc-400">Verify using your existing password</div>
+                        <div className="text-xs text-slate-500 dark:text-zinc-300">Verify using your existing password</div>
                       </div>
                     </div>
                     <span className="text-xs font-semibold text-pink-500 group-hover:translate-x-0.5 transition-transform">Verify →</span>
@@ -370,7 +370,7 @@ export const ChangePassword: React.FC = () => {
               </button>
             </div>
 
-            <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
               {selectedFactor === 'password'
                 ? 'Enter your current account password to proceed.'
                 : selectedFactor === 'recovery_code'
@@ -428,7 +428,7 @@ export const ChangePassword: React.FC = () => {
                   <button
                     type="button"
                     onClick={handleCopyGenerated}
-                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-400 transition-colors flex items-center gap-1 text-[11px] font-semibold"
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-zinc-700 text-slate-500 dark:text-zinc-300 transition-colors flex items-center gap-1 text-[11px] font-semibold"
                   >
                     {hasCopied ? (
                       <>

@@ -30,7 +30,7 @@ function formatBytes(bytes: number | null): string {
 }
 
 const STATUS_META: Record<UpdateStatus, { label: string; color: string; icon: React.ElementType | null }> = {
-  idle:             { label: 'Ready',                 color: 'text-slate-500 dark:text-zinc-400',  icon: PackageCheck },
+  idle:             { label: 'Ready',                 color: 'text-slate-500 dark:text-zinc-300',  icon: PackageCheck },
   checking:         { label: 'Checking for updates…', color: 'text-blue-500',                       icon: null },
   up_to_date:       { label: 'Up to date',            color: 'text-emerald-500',                    icon: CheckCircle2 },
   update_available: { label: 'Update available',      color: 'text-amber-500',                      icon: Download },
@@ -71,8 +71,8 @@ function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) =>
 function SectionHeader({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div className="mb-2 px-1">
-      <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400">{title}</h3>
-      {subtitle && <p className="text-xs text-slate-400 dark:text-zinc-500 mt-0.5">{subtitle}</p>}
+      <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-300">{title}</h3>
+      {subtitle && <p className="text-xs text-slate-400 dark:text-zinc-300 mt-0.5">{subtitle}</p>}
     </div>
   );
 }
@@ -115,7 +115,7 @@ function Row({
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100 truncate">{title}</p>
           {description && (
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 leading-snug">{description}</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-300 mt-0.5 leading-snug">{description}</p>
           )}
         </div>
       </div>
@@ -246,7 +246,7 @@ export default function AppUpdates() {
           </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">App Updates</h1>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">OTA &amp; version management</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-300">OTA &amp; version management</p>
           </div>
         </div>
 
@@ -298,7 +298,7 @@ export default function AppUpdates() {
                   ? 'bg-sky-500/10 border-sky-500/20 text-sky-600 dark:text-sky-400'
                   : versionInfo.networkType === 'offline'
                   ? 'bg-red-500/10 border-red-500/20 text-red-500'
-                  : 'bg-slate-100 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-400'
+                  : 'bg-slate-100 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700 text-slate-500 dark:text-zinc-300'
               }`}>
                 {versionInfo.networkType === 'wifi' ? <Wifi className="w-3 h-3" /> : <Signal className="w-3 h-3" />}
                 {networkLabel[versionInfo.networkType] || 'Unknown'}
@@ -308,12 +308,12 @@ export default function AppUpdates() {
             {/* Version info grid */}
             <div className="grid grid-cols-2 gap-2 mb-4">
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-zinc-800">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-0.5">Installed</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300 mb-0.5">Installed</p>
                 <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">{installedLabel}</p>
-                <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5 truncate">{bundleLabel}</p>
+                <p className="text-[10px] text-slate-400 dark:text-zinc-300 mt-0.5 truncate">{bundleLabel}</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-zinc-800">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500 mb-0.5">Latest</p>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300 mb-0.5">Latest</p>
                 <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 truncate">
                   {versionInfo.latestVersion
                     ? `v${versionInfo.latestVersion}`
@@ -322,13 +322,13 @@ export default function AppUpdates() {
                     : '—'}
                 </p>
                 {versionInfo.downloadSize && (
-                  <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">{formatBytes(versionInfo.downloadSize)}</p>
+                  <p className="text-[10px] text-slate-400 dark:text-zinc-300 mt-0.5">{formatBytes(versionInfo.downloadSize)}</p>
                 )}
               </div>
             </div>
 
             {/* Last checked */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-zinc-500 mb-4">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-zinc-300 mb-4">
               <Clock className="w-3.5 h-3.5" />
               <span>Last checked: {formatRelativeTime(versionInfo.lastChecked)}</span>
             </div>
@@ -336,7 +336,7 @@ export default function AppUpdates() {
             {/* Download progress bar */}
             {status === 'downloading' && versionInfo.downloadProgress !== null && (
               <div className="mb-4">
-                <div className="flex justify-between text-xs text-slate-500 dark:text-zinc-400 mb-1">
+                <div className="flex justify-between text-xs text-slate-500 dark:text-zinc-300 mb-1">
                   <span>Downloading…</span>
                   <span>{versionInfo.downloadProgress}%</span>
                 </div>
@@ -400,7 +400,7 @@ export default function AppUpdates() {
             <div className="border-t border-slate-100 dark:border-zinc-800">
               <button
                 onClick={() => setShowReleaseNotes(v => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-400 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors"
+                className="w-full flex items-center justify-between px-4 py-3 text-xs font-semibold text-slate-500 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors"
               >
                 <span>Release Notes</span>
                 {showReleaseNotes ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -535,7 +535,7 @@ export default function AppUpdates() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
                         {ch === 'base' ? 'Stable' : ch === 'beta' ? 'Beta' : 'Canary (Edge)'}
                       </p>
-                      <p className="text-xs text-slate-500 dark:text-zinc-400">
+                      <p className="text-xs text-slate-500 dark:text-zinc-300">
                         {ch === 'base'
                           ? 'Recommended — stable production releases'
                           : ch === 'beta'
@@ -568,7 +568,7 @@ export default function AppUpdates() {
               ['Platform', isNative ? 'Android / Capacitor' : 'Web Browser'],
             ] as [string, string][]).map(([label, value]) => (
               <div key={label} className="flex items-center justify-between gap-4">
-                <span className="text-xs text-slate-500 dark:text-zinc-400 shrink-0">{label}</span>
+                <span className="text-xs text-slate-500 dark:text-zinc-300 shrink-0">{label}</span>
                 <span className="text-xs font-mono font-semibold text-slate-800 dark:text-zinc-200 text-right truncate max-w-[60%]">{value}</span>
               </div>
             ))}
@@ -577,8 +577,8 @@ export default function AppUpdates() {
 
         {/* Security Notice */}
         <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-slate-100/70 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-700/60 mb-6">
-          <Shield className="w-4 h-4 text-slate-400 dark:text-zinc-500 mt-0.5 shrink-0" />
-          <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+          <Shield className="w-4 h-4 text-slate-400 dark:text-zinc-300 mt-0.5 shrink-0" />
+          <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
             All OTA bundles are cryptographically verified by OtaKit before installation. Tampered bundles are automatically rejected and rolled back.
           </p>
         </div>

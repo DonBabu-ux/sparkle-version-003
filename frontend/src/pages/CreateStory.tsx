@@ -837,7 +837,7 @@ export default function CreateStory() {
                               className="rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group aspect-square"
                           >
                               <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
-                              <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-500 group-hover:text-primary transition-colors">Load Media</span>
+                              <span className="text-[9px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-300 group-hover:text-primary transition-colors">Load Media</span>
                           </button>
                       </div>
                       {deviceMedia.length === 0 && (

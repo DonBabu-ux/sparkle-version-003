@@ -16,7 +16,7 @@
 
   --color-marketplace-bg: #FFFFFF;
   --color-marketplace-text: #18181B;
-  --color-marketplace-muted: #71717A;
+  --color-marketplace-muted: #d4d4d8;
   --color-marketplace-border: #E4E4E7;
   --color-secondary: #00C9A7;
 
@@ -411,11 +411,11 @@ body {
 }
 
 .dark.theme-legacy .text-black\/30, .dark.theme-legacy .text-black\/40 {
-  color: #a1a1aa !important;
+  color: #d4d4d8 !important;
 }
 
 .dark.theme-legacy .text-gray-600, .dark.theme-legacy .text-gray-500, .dark.theme-legacy .text-gray-400, .dark.theme-legacy .text-slate-500 {
-  color: #a1a1aa !important;
+  color: #d4d4d8 !important;
 }
 
 .dark .sparkle-input {

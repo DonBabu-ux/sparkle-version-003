@@ -315,7 +315,7 @@ export default function PollDetail() {
                  </button>
                  <button 
                   onClick={() => { navigator.clipboard.writeText(window.location.href); showSuccess('Link copied!'); }}
-                  className="flex-1 h-12 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-xl font-bold uppercase tracking-wider text-[10px] hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 h-12 bg-gray-50 dark:bg-zinc-800 text-gray-500 dark:text-zinc-300 rounded-xl font-bold uppercase tracking-wider text-[10px] hover:bg-gray-100 active:scale-95 transition-all flex items-center justify-center gap-2"
                  >
                    <ArrowLeft size={14} className="rotate-180" /> Share
                  </button>
@@ -366,7 +366,7 @@ export default function PollDetail() {
                   <div key={opt.option_id} className="space-y-4">
                     <div className="flex items-center gap-3">
                        <div className="h-6 w-1 bg-primary rounded-full" />
-                       <h4 className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-400">{opt.option_text} {opt.voters.length > 0 ? `(${opt.voters.length})` : ''}</h4>
+                       <h4 className="text-[11px] font-black uppercase tracking-widest text-gray-500 dark:text-zinc-300">{opt.option_text} {opt.voters.length > 0 ? `(${opt.voters.length})` : ''}</h4>
                     </div>
                     <div className="grid grid-cols-1 gap-2">
                        {opt.voters.map(voter => (
@@ -381,7 +381,7 @@ export default function PollDetail() {
                              {currentUser?.user_id !== voter.user_id && (
                               <button 
                                 onClick={() => handleFollow(voter.user_id, voter.is_following)}
-                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500' : requestedIds.has(voter.user_id) ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-500 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
+                                className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${voter.is_following ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-300' : requestedIds.has(voter.user_id) ? 'bg-white dark:bg-zinc-800 border border-gray-200 dark:border-white/10 text-gray-400 dark:text-zinc-300 cursor-default' : 'bg-primary text-white shadow-md shadow-primary/10 hover:scale-105'}`}
                               >
                                 {voter.is_following ? <UserCheck size={12} /> : requestedIds.has(voter.user_id) ? 'Requested' : 'Follow'}
                               </button>

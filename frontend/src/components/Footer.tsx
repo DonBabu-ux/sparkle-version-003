@@ -18,7 +18,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '', compact = false 
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-pink-500" />
             <span className="font-bold text-slate-300">Sparkle</span>
-            <span className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium">© {new Date().getFullYear()}</span>
+            <span className="text-[10px] text-slate-500 dark:text-zinc-300 font-medium">© {new Date().getFullYear()}</span>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap justify-center">
@@ -88,7 +88,7 @@ export const Footer: React.FC<FooterProps> = ({ className = '', compact = false 
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-zinc-400">
+      <div className="max-w-7xl mx-auto mt-8 pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 dark:text-zinc-300">
         <p>© {new Date().getFullYear()} Sparkle Platform. All official policies are governed by the registered documents.</p>
         <p className="text-[11px]">Official Documents Source: Kenya Edition</p>
       </div>

@@ -16,7 +16,7 @@ export default function ErrorPage({ error }: ErrorPageProps) {
           <h1 className="font-['Outfit'] text-[32px] font-bold mb-[15px] text-[#2D3436] dark:text-zinc-50 leading-tight">
             Oops! Something Sparkled... Differently.
           </h1>
-          <p className="text-[#636E72] dark:text-zinc-400 text-[18px] leading-[1.6] mb-[35px]">
+          <p className="text-[#636E72] dark:text-zinc-300 text-[18px] leading-[1.6] mb-[35px]">
             Our magical servers encountered a little hiccup. Don't worry, even the brightest stars flicker sometimes.
           </p>
 

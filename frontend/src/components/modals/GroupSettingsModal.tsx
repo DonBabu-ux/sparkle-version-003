@@ -225,9 +225,9 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
              <div className="flex items-center justify-between mb-8">
                 <div>
                    <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-                   <p className="text-sm font-medium text-gray-500 dark:text-zinc-400 mt-1">Manage your circle</p>
+                   <p className="text-sm font-medium text-gray-500 dark:text-zinc-300 mt-1">Manage your circle</p>
                 </div>
-                <button onClick={onClose} className="w-10 h-10 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-400 active:scale-95 transition-all">
+                <button onClick={onClose} className="w-10 h-10 bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 rounded-full flex items-center justify-center text-gray-500 dark:text-zinc-300 active:scale-95 transition-all">
                    <X size={20} />
                 </button>
              </div>
@@ -262,14 +262,14 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
 
              <div className="mt-4 pt-6 border-t border-gray-50">
                  <div className="bg-gray-50 dark:bg-zinc-800 p-4 rounded-2xl border border-gray-100 dark:border-white/10">
-                   <p className="text-xs font-semibold text-gray-500 dark:text-zinc-400 mb-3 uppercase tracking-wider">Your Role</p>
+                   <p className="text-xs font-semibold text-gray-500 dark:text-zinc-300 mb-3 uppercase tracking-wider">Your Role</p>
                    <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-white dark:bg-zinc-800 rounded-lg shadow-sm flex items-center justify-center text-primary">
                          <Shield size={16} />
                       </div>
                       <div>
                          <p className="font-bold text-gray-900 text-sm capitalize">{userRole.replace('_', ' ')}</p>
-                         <p className="text-xs text-gray-500 dark:text-zinc-400">Access Level</p>
+                         <p className="text-xs text-gray-500 dark:text-zinc-300">Access Level</p>
                       </div>
                    </div>
                 </div>
@@ -292,7 +292,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">Circle Identity</h3>
-                      <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Visual presence and manifesto</p>
+                      <p className="text-gray-500 dark:text-zinc-300 font-medium text-sm">Visual presence and manifesto</p>
                    </header>
 
                    <section className="space-y-10">
@@ -372,7 +372,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-gray-900 mb-1">Access Control</h3>
-                      <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Who can join and contribute</p>
+                      <p className="text-gray-500 dark:text-zinc-300 font-medium text-sm">Who can join and contribute</p>
                    </header>
  
                     <div className="space-y-4">
@@ -397,7 +397,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-1">Squad Members</h3>
-                        <p className="text-gray-500 dark:text-zinc-400 font-medium text-sm">Direct member management and hierarchy</p>
+                        <p className="text-gray-500 dark:text-zinc-300 font-medium text-sm">Direct member management and hierarchy</p>
                       </div>
                    </header>
 
@@ -431,13 +431,13 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                                      )}
                                      <button 
                                        onClick={() => handleMemberAction(member.user_id, 'mute', !member.muted)}
-                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.muted ? 'bg-orange-50 dark:bg-orange-500/15 text-orange-500 dark:text-orange-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-400 hover:text-orange-500'}`}
+                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.muted ? 'bg-orange-50 dark:bg-orange-500/15 text-orange-500 dark:text-orange-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-300 hover:text-orange-500'}`}
                                      >
                                         <VolumeX size={18} />
                                      </button>
                                      <button 
                                        onClick={() => handleMemberAction(member.user_id, 'ban', !member.banned)}
-                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.banned ? 'bg-red-50 dark:bg-red-500/15 text-red-500 dark:text-red-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-400 hover:text-red-500'}`}
+                                       className={`w-10 h-10 rounded-xl transition-all flex items-center justify-center border border-gray-100 dark:border-white/10 ${member.banned ? 'bg-red-50 dark:bg-red-500/15 text-red-500 dark:text-red-400' : 'bg-gray-50 dark:bg-white/5 text-gray-400 dark:text-zinc-300 hover:text-red-500'}`}
                                      >
                                         <Ban size={18} />
                                      </button>
@@ -462,7 +462,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                    {requests.length === 0 ? (
                       <div className="py-16 bg-white dark:bg-zinc-800 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center gap-3">
                          <UserCheck size={32} className="text-gray-300" />
-                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">No pending requests</p>
+                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-300">No pending requests</p>
                       </div>
                    ) : (
                       <div className="space-y-4">
@@ -489,7 +489,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                    {pendingPosts.length === 0 ? (
                       <div className="py-16 bg-white dark:bg-zinc-800 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col items-center gap-3">
                          <MessageSquare size={32} className="text-gray-300" />
-                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-400">Nothing to review</p>
+                         <p className="text-sm font-medium text-gray-500 dark:text-zinc-300">Nothing to review</p>
                       </div>
                    ) : (
                       <div className="space-y-4">
@@ -499,7 +499,7 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                                   <img src={getAvatarUrl(post.avatar_url, post.username)} className="w-10 h-10 rounded-full object-cover" alt="" />
                                   <div>
                                      <p className="font-bold text-gray-900 text-sm leading-tight">{post.name || post.username}</p>
-                                     <p className="text-xs text-gray-500 dark:text-zinc-400 font-medium mt-0.5">{new Date(post.created_at).toLocaleString()}</p>
+                                     <p className="text-xs text-gray-500 dark:text-zinc-300 font-medium mt-0.5">{new Date(post.created_at).toLocaleString()}</p>
                                   </div>
                                </div>
                                <p className="text-gray-800 font-medium text-sm">{post.content}</p>
@@ -518,14 +518,14 @@ export default function GroupSettingsModal({ groupId, groupData, userRole, onClo
                 <div className="max-w-xl space-y-6">
                    <header>
                       <h3 className="text-xl font-bold text-red-600 mb-1">Danger Zone</h3>
-                      <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">Irreversible circle actions</p>
+                      <p className="text-sm text-gray-500 dark:text-zinc-300 font-medium">Irreversible circle actions</p>
                    </header>
 
                    <div className="space-y-4">
                       <div className="p-6 bg-white dark:bg-zinc-800 rounded-xl border border-red-100 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
                          <div>
                             <p className="text-lg font-bold text-red-600 mb-1">Leave Circle</p>
-                            <p className="text-sm text-gray-500 dark:text-zinc-400 font-medium">You will lose access to member-only content.</p>
+                            <p className="text-sm text-gray-500 dark:text-zinc-300 font-medium">You will lose access to member-only content.</p>
                          </div>
                          <button onClick={handleLeaveCircle} className="w-full md:w-auto h-11 px-6 bg-red-50 text-red-600 rounded-lg font-semibold text-sm hover:bg-red-600 hover:text-white transition-all">Leave Circle</button>
                       </div>
@@ -554,7 +554,7 @@ function ToggleCard({ title, desc, icon: Icon, active, onToggle }: any) {
              </div>
              <div>
                 <p className="text-sm font-bold text-gray-900">{title}</p>
-                <p className="text-xs font-medium text-gray-500 dark:text-zinc-400 mt-0.5 max-w-[180px] sm:max-w-xs">{desc}</p>
+                <p className="text-xs font-medium text-gray-500 dark:text-zinc-300 mt-0.5 max-w-[180px] sm:max-w-xs">{desc}</p>
              </div>
           </div>
           <button 

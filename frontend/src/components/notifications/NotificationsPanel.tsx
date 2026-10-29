@@ -170,9 +170,9 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
             ))
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
-              <BellOff size={28} className="text-slate-600 dark:text-zinc-400 mb-2" />
+              <BellOff size={28} className="text-slate-600 dark:text-zinc-300 mb-2" />
               <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">No notifications yet</p>
-              <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Likes, comments and follows will show up here.</p>
+              <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Likes, comments and follows will show up here.</p>
             </div>
           ) : (
             items.map(n => {
@@ -190,11 +190,11 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
                     className="w-9 h-9 rounded-full object-cover shrink-0 border border-[#e6d8e1] dark:border-zinc-700"
                   />
                   <div className="min-w-0 flex-1">
-                    <p className={`text-[13px] leading-snug truncate ${isRead(n) ? 'text-slate-600 dark:text-zinc-400' : 'font-semibold text-[#18181b] dark:text-zinc-100'}`}>
+                    <p className={`text-[13px] leading-snug truncate ${isRead(n) ? 'text-slate-600 dark:text-zinc-300' : 'font-semibold text-[#18181b] dark:text-zinc-100'}`}>
                       {title}
                     </p>
-                    {body && <p className="text-xs text-slate-600 dark:text-zinc-400 truncate mt-0.5">{body}</p>}
-                    <p className="text-[11px] text-slate-600 dark:text-zinc-500 mt-0.5">{relativeTime(n.created_at)}</p>
+                    {body && <p className="text-xs text-slate-600 dark:text-zinc-300 truncate mt-0.5">{body}</p>}
+                    <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-0.5">{relativeTime(n.created_at)}</p>
                   </div>
                   {n.thumbnail_url ? (
                     <img src={n.thumbnail_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0 border border-[#e6d8e1] dark:border-zinc-700" />
@@ -209,7 +209,7 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
 
         <button
           onClick={() => { onClose(); navigate('/notifications'); }}
-          className="h-10 w-full text-xs font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 border-t border-[#ede3e9] dark:border-zinc-900 transition-colors shrink-0"
+          className="h-10 w-full text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 border-t border-[#ede3e9] dark:border-zinc-900 transition-colors shrink-0"
         >
           See all
         </button>

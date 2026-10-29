@@ -208,7 +208,7 @@ export default function GroupDetail() {
                     </div>
                   )}
                 </div>
-                <div className="flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest">
+                <div className="flex items-center justify-center gap-2 text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest">
                   <Globe size={11} className="text-primary" />
                   <span>{group.is_public ? 'Public circle' : 'Private circle'}</span>
                   <span className="text-[#ede3e9] dark:text-zinc-700">|</span>
@@ -230,7 +230,7 @@ export default function GroupDetail() {
                 )}
 
                 {isMember ? (
-                  <div className="flex-1 h-9 bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-[#e6d8e1] dark:border-zinc-700">
+                  <div className="flex-1 h-9 bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 border border-[#e6d8e1] dark:border-zinc-700">
                       <Check size={12} strokeWidth={4} className="text-primary" /> Joined
                   </div>
                 ) : (
@@ -260,7 +260,7 @@ export default function GroupDetail() {
                 key={t}
                 onClick={() => setActiveTab(t)}
                 className={`px-4 py-4 text-[11px] font-black uppercase tracking-widest relative transition-colors ${
-                  activeTab === t ? 'text-primary' : 'text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                  activeTab === t ? 'text-primary' : 'text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100'
                 }`}
               >
                 {t}
@@ -284,7 +284,7 @@ export default function GroupDetail() {
                   <Globe size={18} className="text-primary" />
                   <div>
                     <p className="text-[13px]">{group.is_public ? 'Public Circle' : 'Private Circle'}</p>
-                    <p className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium uppercase tracking-wider leading-none mt-1">
+                    <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium uppercase tracking-wider leading-none mt-1">
                       {group.is_public ? 'Anyone can see content' : 'Approved members only'}
                     </p>
                   </div>
@@ -310,7 +310,7 @@ export default function GroupDetail() {
                   ))}
                 </div>
                 {group.member_count > 5 && (
-                  <span className="text-[10px] text-slate-600 dark:text-zinc-400 font-black tracking-widest ml-1">+{group.member_count - 5} MORE</span>
+                  <span className="text-[10px] text-slate-600 dark:text-zinc-300 font-black tracking-widest ml-1">+{group.member_count - 5} MORE</span>
                 )}
               </div>
               <button 
@@ -338,7 +338,7 @@ export default function GroupDetail() {
                           />
                           <button 
                             onClick={() => { setPostModalView('post'); setShowPostModal(true); }}
-                            className="flex-1 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#e7dae3] dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-400 text-left px-4 py-3 rounded-[10px] font-bold text-sm transition-all"
+                            className="flex-1 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#e7dae3] dark:hover:bg-zinc-800 text-slate-600 dark:text-zinc-300 text-left px-4 py-3 rounded-[10px] font-bold text-sm transition-all"
                           >
                             What's on your mind?
                           </button>
@@ -346,15 +346,15 @@ export default function GroupDetail() {
                         <div className="grid grid-cols-3 gap-2">
                           <button onClick={() => { setPostModalView('post'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <ImageIcon size={16} className="text-primary" />
-                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest group-hover/btn:text-primary">Photo</span>
+                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest group-hover/btn:text-primary">Photo</span>
                           </button>
                           <button onClick={() => setShowInviteModal(true)} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <UserPlus size={16} className="text-primary" />
-                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest group-hover/btn:text-primary">Invite</span>
+                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest group-hover/btn:text-primary">Invite</span>
                           </button>
                           <button onClick={() => { setPostModalView('feeling'); setShowPostModal(true); }} className="flex flex-col items-center justify-center gap-1 py-2.5 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-primary/5 rounded-[10px] transition-all group/btn border border-transparent hover:border-primary/20">
                             <Activity size={16} className="text-primary" />
-                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest group-hover/btn:text-primary">Feeling</span>
+                            <span className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest group-hover/btn:text-primary">Feeling</span>
                           </button>
                         </div>
                       </div>
@@ -364,7 +364,7 @@ export default function GroupDetail() {
                       {posts && posts.length > 0 ? posts.map(post => (
                         <PostCard key={post.post_id} post={post} />
                       )) : (
-                        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-xl shadow-sm border border-[#e6d8e1] dark:border-zinc-700 p-12 text-center text-slate-600 dark:text-zinc-400 font-bold uppercase tracking-widest text-[10px]">
+                        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-xl shadow-sm border border-[#e6d8e1] dark:border-zinc-700 p-12 text-center text-slate-600 dark:text-zinc-300 font-bold uppercase tracking-widest text-[10px]">
                           No posts yet
                         </div>
                       )}
@@ -376,7 +376,7 @@ export default function GroupDetail() {
                       <Lock size={32} />
                     </div>
                     <h3 className="text-xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight uppercase italic">This Circle is Private</h3>
-                    <p className="text-slate-600 dark:text-zinc-400 font-medium max-w-sm mx-auto text-sm">Join this circle to view posts, participate in discussions, and connect with the community.</p>
+                    <p className="text-slate-600 dark:text-zinc-300 font-medium max-w-sm mx-auto text-sm">Join this circle to view posts, participate in discussions, and connect with the community.</p>
                     <button 
                       onClick={handleJoin}
                       className="px-10 py-3 bg-primary text-white rounded-xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary/30 hover:scale-105 transition-all"
@@ -403,7 +403,7 @@ export default function GroupDetail() {
                         <Avatar src={member.avatar} name={member.username} size="md" />
                         <div>
                           <p className="text-[13px] font-bold text-[#18181b] dark:text-zinc-100 leading-none mb-1">{member.name || member.username}</p>
-                          <p className="text-[10px] text-slate-600 dark:text-zinc-400 font-semibold leading-none">@{member.username}</p>
+                          <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-semibold leading-none">@{member.username}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
@@ -435,11 +435,11 @@ export default function GroupDetail() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div className="p-4 bg-[#f6eef3] dark:bg-zinc-900 rounded-xl">
-                        <h5 className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-1">Created By</h5>
+                        <h5 className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest mb-1">Created By</h5>
                         <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{group.creator_name || 'Original Member'}</p>
                      </div>
                      <div className="p-4 bg-[#f6eef3] dark:bg-zinc-900 rounded-xl">
-                        <h5 className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest mb-1">Born On</h5>
+                        <h5 className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-widest mb-1">Born On</h5>
                         <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{new Date(group.created_at).toLocaleDateString()}</p>
                      </div>
                   </div>

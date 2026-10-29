@@ -92,19 +92,19 @@ export default function CreatorAnalytics() {
 
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Followers</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">Followers</span>
                     <p className="text-2xl font-black text-[#ff1493] italic mt-0.5">{(data.followers || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Account Reach</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">Account Reach</span>
                     <p className="text-2xl font-black text-slate-900 italic mt-0.5">{(data.accountReach || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Profile Views</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">Profile Views</span>
                     <p className="text-2xl font-black text-slate-900 italic mt-0.5">{(data.profileViews || 0).toLocaleString()}</p>
                   </div>
                   <div>
-                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">Gained this Month</span>
+                    <span className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">Gained this Month</span>
                     <p className="text-2xl font-black text-emerald-600 italic mt-0.5">+{(data.followersGrowth || 0).toLocaleString()}</p>
                   </div>
                 </div>
@@ -164,7 +164,7 @@ export default function CreatorAnalytics() {
                   <h3 className="text-base font-black text-slate-900 italic uppercase flex items-center gap-2">
                     <Award size={18} className="text-[#ff1493]" /> Sparkle Creator Milestone
                   </h3>
-                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-400 leading-relaxed mt-2">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-zinc-300 leading-relaxed mt-2">
                     Complete monetization triggers by building high quality content and matching community interaction guidelines.
                   </p>
                 </div>

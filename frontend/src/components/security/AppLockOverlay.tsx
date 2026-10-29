@@ -315,7 +315,7 @@ export const AppLockOverlay: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowResetModal(false)}
-                className="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors"
+                className="p-1.5 rounded-xl hover:bg-zinc-800 text-zinc-300 hover:text-white transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -335,7 +335,7 @@ export const AppLockOverlay: React.FC = () => {
                 <p className="text-sm text-zinc-300 leading-relaxed">
                   Your App PIN is stored locally and cannot be revealed or recovered by Sparkle , sparkle servers or any related infrastructure.
                 </p>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-xs text-zinc-300 leading-relaxed">
                   To keep your account secure, resetting App Lock requires verifying your identity through an existing security factor.
                 </p>
 
@@ -357,7 +357,7 @@ export const AppLockOverlay: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setShowResetModal(false)}
-                    className="w-full py-2.5 rounded-xl text-zinc-400 hover:text-white text-xs font-semibold"
+                    className="w-full py-2.5 rounded-xl text-zinc-300 hover:text-white text-xs font-semibold"
                   >
                     Cancel
                   </button>
@@ -368,7 +368,7 @@ export const AppLockOverlay: React.FC = () => {
             {/* Step: Choose Factor */}
             {resetStep === 'factors' && (
               <div className="mt-5 space-y-4">
-                <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                <p className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                   Verify your identity
                 </p>
 
@@ -382,7 +382,7 @@ export const AppLockOverlay: React.FC = () => {
                     >
                       <div>
                         <div className="text-sm font-semibold text-white">Email verification</div>
-                        <div className="text-xs text-zinc-400">Send code to {factors.email_masked}</div>
+                        <div className="text-xs text-zinc-300">Send code to {factors.email_masked}</div>
                       </div>
                       <span className="text-xs text-pink-400 font-semibold">Select</span>
                     </button>
@@ -397,7 +397,7 @@ export const AppLockOverlay: React.FC = () => {
                     >
                       <div>
                         <div className="text-sm font-semibold text-white">SMS verification</div>
-                        <div className="text-xs text-zinc-400">Send code to {factors.phone_masked}</div>
+                        <div className="text-xs text-zinc-300">Send code to {factors.phone_masked}</div>
                       </div>
                       <span className="text-xs text-pink-400 font-semibold">Select</span>
                     </button>
@@ -412,7 +412,7 @@ export const AppLockOverlay: React.FC = () => {
                     >
                       <div>
                         <div className="text-sm font-semibold text-white">Recovery code</div>
-                        <div className="text-xs text-zinc-400">Use one of your saved backup codes</div>
+                        <div className="text-xs text-zinc-300">Use one of your saved backup codes</div>
                       </div>
                       <span className="text-xs text-pink-400 font-semibold">Select</span>
                     </button>
@@ -427,7 +427,7 @@ export const AppLockOverlay: React.FC = () => {
                     >
                       <div>
                         <div className="text-sm font-semibold text-white">Account password</div>
-                        <div className="text-xs text-zinc-400">Verify using your account password</div>
+                        <div className="text-xs text-zinc-300">Verify using your account password</div>
                       </div>
                       <span className="text-xs text-pink-400 font-semibold">Select</span>
                     </button>
@@ -437,7 +437,7 @@ export const AppLockOverlay: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setResetStep('explain')}
-                  className="w-full py-2 text-zinc-400 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5"
+                  className="w-full py-2 text-zinc-300 hover:text-white text-xs font-semibold flex items-center justify-center gap-1.5"
                 >
                   <ArrowLeft className="w-3.5 h-3.5" /> Back
                 </button>
@@ -447,7 +447,7 @@ export const AppLockOverlay: React.FC = () => {
             {/* Step: Enter Code */}
             {resetStep === 'verify' && (
               <div className="mt-5 space-y-4">
-                <p className="text-xs text-zinc-400">
+                <p className="text-xs text-zinc-300">
                   {selectedFactor === 'password'
                     ? 'Enter your account password to verify identity.'
                     : selectedFactor === 'recovery_code'
@@ -475,7 +475,7 @@ export const AppLockOverlay: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => setResetStep('factors')}
-                    className="w-full py-2 text-zinc-400 hover:text-white text-xs font-semibold"
+                    className="w-full py-2 text-zinc-300 hover:text-white text-xs font-semibold"
                   >
                     Choose another method
                   </button>
@@ -492,7 +492,7 @@ export const AppLockOverlay: React.FC = () => {
 
                 <div className="space-y-3">
                   <div>
-                    <label className="text-xs font-semibold text-zinc-400">New 6-Digit PIN</label>
+                    <label className="text-xs font-semibold text-zinc-300">New 6-Digit PIN</label>
                     <input
                       type="password"
                       inputMode="numeric"
@@ -504,7 +504,7 @@ export const AppLockOverlay: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs font-semibold text-zinc-400">Confirm New PIN</label>
+                    <label className="text-xs font-semibold text-zinc-300">Confirm New PIN</label>
                     <input
                       type="password"
                       inputMode="numeric"

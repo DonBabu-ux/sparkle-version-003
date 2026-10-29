@@ -108,11 +108,11 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
           </div>
           <div>
             <h3 className="text-2xl font-black text-gray-900 dark:text-zinc-100 tracking-tight leading-none uppercase">{isEdit ? 'Edit Poll' : 'Create Poll'}</h3>
-            <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-500 uppercase tracking-[0.3em] mt-2">Start a conversation</p>
+            <p className="text-[10px] font-bold text-gray-400 dark:text-zinc-300 uppercase tracking-[0.3em] mt-2">Start a conversation</p>
           </div>
         </div>
         <button 
-          className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-white dark:bg-zinc-800/5 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-primary hover:bg-primary/5 transition-all active:scale-90" 
+          className="w-12 h-12 rounded-2xl bg-gray-50 dark:bg-white dark:bg-zinc-800/5 flex items-center justify-center text-gray-400 dark:text-zinc-300 hover:text-primary hover:bg-primary/5 transition-all active:scale-90" 
           onClick={onClose}
         >
           <X size={20} strokeWidth={3} />
@@ -124,7 +124,7 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
         <div className="space-y-4">
           <div className="flex items-center gap-3 px-1">
             <Zap size={14} className="text-primary" />
-            <label className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Poll Question</label>
+            <label className="text-[10px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest">Poll Question</label>
           </div>
           <textarea
             className="w-full p-8 bg-gray-50 dark:bg-white dark:bg-zinc-800/5/50 dark:bg-white dark:bg-zinc-800/[0.03] border-2 border-transparent rounded-2xl outline-none font-bold text-xl text-gray-900 dark:text-zinc-100 placeholder:text-gray-300 dark:text-zinc-600 dark:placeholder:text-zinc-600 focus:bg-white dark:bg-zinc-800 focus:border-primary/20 focus:shadow-xl focus:shadow-primary/5 transition-all min-h-[140px] resize-none leading-tight"
@@ -138,7 +138,7 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
         <div className="space-y-4">
           <div className="flex items-center gap-3 px-1">
              <Layers size={14} className="text-primary" />
-             <label className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Poll Options</label>
+             <label className="text-[10px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest">Poll Options</label>
           </div>
           <div className="space-y-3">
             <AnimatePresence mode="popLayout">
@@ -174,7 +174,7 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
             
             {options.length < 5 && (
               <button 
-                className="w-full p-5 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-xl text-[11px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest flex items-center justify-center gap-3 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all group" 
+                className="w-full p-5 border-2 border-dashed border-gray-100 dark:border-zinc-800 rounded-xl text-[11px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest flex items-center justify-center gap-3 hover:border-primary/30 hover:text-primary hover:bg-primary/5 transition-all group" 
                 onClick={addOption}
               >
                 <Plus size={16} strokeWidth={3} className="group-hover:rotate-90 transition-transform" />
@@ -190,14 +190,14 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
            <div className="space-y-4">
               <div className="flex items-center gap-3 px-1">
                  <Clock size={14} className="text-primary" />
-                 <label className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Voting Time</label>
+                 <label className="text-[10px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest">Voting Time</label>
               </div>
               <div className="flex flex-wrap gap-2">
                  {['1h', '12h', '24h', '3d', '7d'].map(time => (
                    <button
                      key={time}
                      onClick={() => setExpiresIn(time)}
-                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border-2 ${expiresIn === time ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105' : 'bg-gray-50 dark:bg-white dark:bg-zinc-800/5 border-transparent text-gray-400 dark:text-zinc-500 hover:bg-gray-100 dark:bg-white dark:bg-zinc-800/5 dark:hover:bg-white dark:bg-zinc-800/10'}`}
+                     className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tighter transition-all border-2 ${expiresIn === time ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105' : 'bg-gray-50 dark:bg-white dark:bg-zinc-800/5 border-transparent text-gray-400 dark:text-zinc-300 hover:bg-gray-100 dark:bg-white dark:bg-zinc-800/5 dark:hover:bg-white dark:bg-zinc-800/10'}`}
                    >
                      {time}
                    </button>
@@ -209,14 +209,14 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
            <div className="space-y-4">
               <div className="flex items-center gap-3 px-1">
                  <Shield size={14} className="text-primary" />
-                 <label className="text-[10px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Settings</label>
+                 <label className="text-[10px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest">Settings</label>
               </div>
               <div className="space-y-2">
                  <div 
                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white dark:bg-zinc-800/5/50 dark:bg-white dark:bg-zinc-800/[0.03] rounded-2xl cursor-pointer hover:bg-gray-100 dark:bg-white dark:bg-zinc-800/5 dark:hover:bg-white dark:bg-zinc-800/10/50 transition-all"
                    onClick={() => setIsAnonymous(!isAnonymous)}
                  >
-                   <span className="text-[11px] font-bold text-gray-600 dark:text-zinc-400 uppercase">Anonymous Poll</span>
+                   <span className="text-[11px] font-bold text-gray-600 dark:text-zinc-300 uppercase">Anonymous Poll</span>
                    <div className={`w-10 h-5 rounded-full transition-all flex items-center p-1 ${isAnonymous ? 'bg-primary' : 'bg-gray-200'}`}>
                       <div className={`w-3 h-3 bg-white dark:bg-zinc-800 rounded-full transition-all shadow-sm ${isAnonymous ? 'translate-x-5' : 'translate-x-0'}`} />
                    </div>
@@ -225,7 +225,7 @@ export default function PollModal({ onClose, onSuccess, poll }: PollModalProps) 
                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white dark:bg-zinc-800/5/50 dark:bg-white dark:bg-zinc-800/[0.03] rounded-2xl cursor-pointer hover:bg-gray-100 dark:bg-white dark:bg-zinc-800/5 dark:hover:bg-white dark:bg-zinc-800/10/50 transition-all"
                    onClick={() => setAllowInvites(!allowInvites)}
                  >
-                   <span className="text-[11px] font-bold text-gray-600 dark:text-zinc-400 uppercase">Allow Sharing</span>
+                   <span className="text-[11px] font-bold text-gray-600 dark:text-zinc-300 uppercase">Allow Sharing</span>
                    <div className={`w-10 h-5 rounded-full transition-all flex items-center p-1 ${allowInvites ? 'bg-emerald-500' : 'bg-gray-200'}`}>
                       <div className={`w-3 h-3 bg-white dark:bg-zinc-800 rounded-full transition-all shadow-sm ${allowInvites ? 'translate-x-5' : 'translate-x-0'}`} />
                    </div>

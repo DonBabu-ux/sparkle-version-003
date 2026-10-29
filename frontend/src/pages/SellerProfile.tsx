@@ -409,7 +409,7 @@ export default function SellerProfile() {
                   )}
                   {!seller.is_verified && (
                     <div className="flex items-center gap-4 p-4 bg-white dark:bg-zinc-800 rounded-2xl border border-marketplace-border shadow-sm">
-                      <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400 flex items-center justify-center">
+                      <div className="w-11 h-11 rounded-xl bg-slate-100 dark:bg-zinc-800 text-slate-500 dark:text-zinc-300 flex items-center justify-center">
                         <ShieldAlert size={20} />
                       </div>
                       <div>

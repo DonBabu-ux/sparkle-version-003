@@ -143,7 +143,7 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
         <h2 role="heading" aria-level={2} className="text-xl font-bold text-zinc-900 dark:text-white mb-2">
           All quiet for now
         </h2>
-        <p className="text-zinc-500 dark:text-zinc-400 max-w-sm text-sm sm:text-base leading-relaxed">
+        <p className="text-zinc-300 dark:text-zinc-300 max-w-sm text-sm sm:text-base leading-relaxed">
           When people like your posts, spark moments, or Sparkle sends official updates, they'll show up here.
         </p>
       </div>
@@ -164,7 +164,7 @@ export const NotificationRenderer: React.FC<NotificationRendererProps> = ({ noti
           <h4 
             role="heading" 
             aria-level={4} 
-            className="text-xs font-black uppercase tracking-widest text-zinc-400 dark:text-zinc-500 select-none"
+            className="text-xs font-black uppercase tracking-widest text-zinc-300 dark:text-zinc-300 select-none"
           >
             {item.label}
           </h4>

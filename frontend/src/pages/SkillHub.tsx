@@ -314,9 +314,9 @@ export default function SkillHub() {
         .dark .sh-header, .dark .sh-tabs { border-bottom-color: #27272a; }
         .dark .sh-back { background: #3f3f46; color: #f4f4f5; }
         .dark .sh-title, .dark .sh-name, .dark .sh-service-title, .dark .sh-modal h2 { color: #f4f4f5; }
-        .dark .sh-subtitle, .dark .sh-user, .dark .sh-notes, .dark .sh-loading, .dark .sh-tab, .dark .sh-modal-sub { color: #a1a1aa; }
+        .dark .sh-subtitle, .dark .sh-user, .dark .sh-notes, .dark .sh-loading, .dark .sh-tab, .dark .sh-modal-sub { color: #d4d4d8; }
         .dark .sh-details { color: #d4d4d8; }
-        .dark .sh-empty { background: #3f3f46; color: #a1a1aa; }
+        .dark .sh-empty { background: #3f3f46; color: #d4d4d8; }
         .dark .sh-card { background: #27272a; border-color: #3f3f46; }
         .dark .sh-card-header, .dark .sh-card-actions, .dark .sh-card-footer { background: #18181b; border-color: #18181b; }
         .dark .sh-status--pending { background: #78350f; color: #fbbf24; }
@@ -329,13 +329,13 @@ export default function SkillHub() {
         .dark .sh-btn--success { background: rgba(16,185,129,0.15); color: #34d399; }
         .dark .sh-btn--danger { background: rgba(220,38,38,0.15); color: #f87171; }
         .dark .sh-btn--danger:hover { background: rgba(239,68,68,0.3); }
-        .dark .sh-btn--ghost { color: #a1a1aa; }
+        .dark .sh-btn--ghost { color: #d4d4d8; }
         .dark .sh-btn--ghost:hover { background: #3f3f46; }
         .dark .sh-rated { color: #fbbf24; }
         .dark .sh-modal { background: #27272a; }
         .dark .sh-textarea { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
         .dark .sh-textarea:focus { border-color: #ff1493; }
-        .dark .sh-star { color: #a1a1aa; }
+        .dark .sh-star { color: #d4d4d8; }
         .dark .sh-tab--active { color: #ff1493; }
         .dark .sh-star--active { color: #eab308; }
       `}</style>

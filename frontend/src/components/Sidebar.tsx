@@ -135,7 +135,7 @@ export default function Sidebar() {
                   ? "bg-gradient-to-r from-[#ff1493]/5 to-[#fb7185]/5 border border-[#ff1493]/20 hover:bg-[#ff1493]/10 hover:border-[#ff1493]/45 dark:from-[#ff1493]/10 dark:to-[#fb7185]/10 dark:border-[#ff1493]/30 dark:hover:bg-[#ff1493]/20 text-[#ff1493] dark:text-pink-400 font-bold"
                   : isActive(item.path) 
                     ? "bg-slate-200/70 dark:bg-white/10 text-[#ff1493] dark:text-white font-bold" 
-                    : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
+                    : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white"
               )}
               onClick={(e) => {
                 if (item.action) {
@@ -167,7 +167,7 @@ export default function Sidebar() {
                         ? "text-[#ff1493]"
                         : isActive(item.path) 
                           ? "text-[#ff1493] dark:text-white" 
-                          : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-400 dark:group-hover:text-white"
+                          : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-300 dark:group-hover:text-white"
                     )}
                   />
                 )}
@@ -209,7 +209,7 @@ export default function Sidebar() {
             "flex items-center gap-4 p-3 rounded-lg transition-all duration-200 group cursor-pointer",
             hubOpen
               ? "bg-slate-200/70 dark:bg-white/10 text-[#ff1493] dark:text-white font-bold"
-              : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-white"
+              : "hover:bg-slate-200/40 dark:hover:bg-white/5 text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-white"
           )}
         >
           <div className="shrink-0 w-6 h-6 flex items-center justify-center transition-transform group-hover:scale-105">
@@ -219,7 +219,7 @@ export default function Sidebar() {
               className={cn(
                 hubOpen
                   ? "text-[#ff1493] dark:text-white"
-                  : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-400 dark:group-hover:text-white"
+                  : "text-slate-500 group-hover:text-slate-800 dark:text-zinc-300 dark:group-hover:text-white"
               )}
             />
           </div>

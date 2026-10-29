@@ -982,7 +982,7 @@ export default function Signup() {
           border-color: rgba(255,255,255,0.12);
           color: #fafafa;
         }
-        .dark .su-input::placeholder { color: #a1a1aa; }
+        .dark .su-input::placeholder { color: #d4d4d8; }
         .dark .su-input:focus {
           border-color: #fb7185;
           background: rgba(255,255,255,0.06);
@@ -992,7 +992,7 @@ export default function Signup() {
         .dark .su-affil {
           background: rgba(255,255,255,0.04);
           border-color: rgba(255,255,255,0.15);
-          color: #a1a1aa;
+          color: #d4d4d8;
         }
 
         .dark .su-review {
@@ -1006,7 +1006,7 @@ export default function Signup() {
         .dark .su-nav-back {
           background: rgba(255,255,255,0.05);
           border-color: rgba(255,255,255,0.15);
-          color: #a1a1aa;
+          color: #d4d4d8;
         }
         .dark .su-nav-back:hover { color: #fb7185; }
 
@@ -1028,11 +1028,11 @@ export default function Signup() {
           border-color: #fb7185;
           background: rgba(255,255,255,0.06);
         }
-        .dark .su-otp-input::placeholder { color: #a1a1aa; }
+        .dark .su-otp-input::placeholder { color: #d4d4d8; }
 
         /* Inline-styled hint text + suggestion chips (see JSX): !important
            beats the inline light values they carry. */
-        .dark .su-muted { color: #a1a1aa !important; }
+        .dark .su-muted { color: #d4d4d8 !important; }
         .dark .su-suggest {
           background: rgba(255,255,255,0.06) !important;
           border-color: rgba(255,255,255,0.15) !important;

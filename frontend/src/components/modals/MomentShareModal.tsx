@@ -133,7 +133,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         <div className="relative bg-white dark:bg-zinc-800 w-full sm:max-w-[420px] rounded-t-[40px] sm:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom duration-300 mb-0 sm:mb-0 pb-safe">
           <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
           <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
-            <button onClick={() => setShowStoryComposer(false)} className="absolute left-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
+            <button onClick={() => setShowStoryComposer(false)} className="absolute left-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-300">
               <ChevronLeft size={20} />
             </button>
             <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Add to Story</h3>
@@ -175,7 +175,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         <div className="h-1.5 w-12 bg-gray-200 dark:bg-zinc-700 rounded-full mx-auto mt-4 mb-1 sm:hidden" />
         <div className="p-4 pt-2 border-b border-gray-100 dark:border-white/10 flex items-center justify-between">
           <h3 className="text-[17px] font-bold text-gray-900 mx-auto">Share Moment</h3>
-          <button onClick={onClose} className="absolute right-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-400">
+          <button onClick={onClose} className="absolute right-6 p-2 bg-gray-100 dark:bg-zinc-800 hover:bg-gray-200 rounded-full transition-colors text-gray-500 dark:text-zinc-300">
             <X size={20} />
           </button>
         </div>
@@ -222,31 +222,31 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                 <div className="w-11 h-11 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100 transition-all border border-green-100 shadow-sm">
                    <MessageCircle size={20} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">WhatsApp</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-300 uppercase tracking-tight">WhatsApp</span>
              </button>
              <button onClick={() => shareToExternal('twitter')} className="flex flex-col items-center gap-2">
                 <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-zinc-800 text-gray-900 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
                    <Share2 size={18} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">X</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-300 uppercase tracking-tight">X</span>
              </button>
              <button onClick={() => shareToExternal('telegram')} className="flex flex-col items-center gap-2">
                 <div className="w-11 h-11 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center hover:bg-blue-100 transition-all border border-blue-100 shadow-sm">
                    <Send size={18} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">Telegram</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-300 uppercase tracking-tight">Telegram</span>
              </button>
              <button onClick={handleCopyLink} className="flex flex-col items-center gap-2">
                 <div className={`w-11 h-11 rounded-full flex items-center justify-center transition-all border shadow-sm ${copied ? 'bg-green-500 text-white border-green-500' : 'bg-gray-50 dark:bg-white/5 text-gray-600 dark:text-zinc-300 hover:bg-gray-100 dark:hover:bg-white/10 border-gray-100 dark:border-white/10'}`}>
                    <Link size={18} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">{copied ? 'Copied' : 'Link'}</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-300 uppercase tracking-tight">{copied ? 'Copied' : 'Link'}</span>
              </button>
              <button onClick={handleNativeShare} className="flex flex-col items-center gap-2">
                 <div className="w-11 h-11 rounded-full bg-gray-50 dark:bg-zinc-800 text-gray-600 dark:text-zinc-300 flex items-center justify-center hover:bg-gray-100 transition-all border border-gray-100 dark:border-white/10 shadow-sm">
                    <MoreHorizontal size={18} />
                 </div>
-                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-400 uppercase tracking-tight">More</span>
+                <span className="text-[10px] font-bold text-gray-500 dark:text-zinc-300 uppercase tracking-tight">More</span>
              </button>
           </div>
 
@@ -258,7 +258,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                   <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-100 transition-colors shadow-sm"><PlusCircle size={22}/></div>
                   <div>
                       <div className="text-[15px] font-bold text-gray-900">Add to story</div>
-                      <div className="text-[12px] text-gray-500 dark:text-zinc-400">Share this Moment to your campus story</div>
+                      <div className="text-[12px] text-gray-500 dark:text-zinc-300">Share this Moment to your campus story</div>
                   </div>
               </button>
               <button 
@@ -270,7 +270,7 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
                   </div>
                   <div>
                       <div className="text-[15px] font-bold text-gray-900">Download</div>
-                      <div className="text-[12px] text-gray-500 dark:text-zinc-400">Save this video to your device</div>
+                      <div className="text-[12px] text-gray-500 dark:text-zinc-300">Save this video to your device</div>
                   </div>
               </button>
           </div>

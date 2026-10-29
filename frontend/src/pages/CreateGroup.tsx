@@ -48,7 +48,7 @@ export default function CreateGroup() {
       <main className="max-w-4xl mx-auto px-6 py-32 relative z-10">
         <button 
           onClick={() => navigate('/groups')}
-          className="flex items-center gap-2 text-slate-500 dark:text-zinc-400 hover:text-slate-900 font-bold mb-12 transition-colors group"
+          className="flex items-center gap-2 text-slate-500 dark:text-zinc-300 hover:text-slate-900 font-bold mb-12 transition-colors group"
         >
           <ArrowLeft size={18} className="group-hover:-translate-x-1 transition-transform" />
           <span className="text-sm">Back to Circles</span>
@@ -138,12 +138,12 @@ export default function CreateGroup() {
                    className={`p-6 rounded-3xl border-2 cursor-pointer transition-all flex items-center justify-between ${formData.is_public ? 'bg-white dark:bg-zinc-800 border-primary/20 shadow-lg shadow-primary/5' : 'bg-slate-50 dark:bg-white/[0.03] border-slate-100 dark:border-white/10 opacity-60 hover:opacity-100'}`}
                  >
                     <div className="flex items-center gap-4">
-                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.is_public ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-400'}`}>
+                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${formData.is_public ? 'bg-primary text-white' : 'bg-slate-200 dark:bg-zinc-800 text-slate-500 dark:text-zinc-300'}`}>
                           {formData.is_public ? <Eye size={24} /> : <EyeOff size={24} />}
                        </div>
                        <div>
                          <h4 className="text-sm font-bold text-slate-900 dark:text-white">Public Visibility</h4>
-                         <p className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold uppercase tracking-tight">
+                         <p className="text-[10px] text-slate-400 dark:text-zinc-300 font-bold uppercase tracking-tight">
                            {formData.is_public ? 'Anyone can join and see posts' : 'Membership requires approval'}
                          </p>
                        </div>

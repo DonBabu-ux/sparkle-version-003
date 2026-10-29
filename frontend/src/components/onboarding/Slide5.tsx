@@ -71,7 +71,7 @@ export default function Slide5({ onNext, onBack }: SlideProps) {
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-1.5">
           Choose <span className="text-[#ff2d87]">Interests.</span>
         </h1>
-        <p className="text-sm font-normal text-slate-500 dark:text-zinc-400 max-w-[42ch]">
+        <p className="text-sm font-normal text-slate-500 dark:text-zinc-300 max-w-[42ch]">
           Pick at least <strong className="text-slate-700 dark:text-zinc-200">3 topics</strong> to tune your campus feed.
         </p>
 
@@ -83,7 +83,7 @@ export default function Slide5({ onNext, onBack }: SlideProps) {
               {selectedSlugs.length} topics selected
             </span>
           ) : (
-            <span className="inline-flex items-center text-xs font-medium text-slate-500 dark:text-zinc-400 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full">
+            <span className="inline-flex items-center text-xs font-medium text-slate-500 dark:text-zinc-300 bg-slate-100 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-3 py-1 rounded-full">
               {3 - selectedSlugs.length} more needed
             </span>
           )}

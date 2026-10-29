@@ -163,8 +163,8 @@ export default function TicketDetail() {
                 .dark .back-btn { background: rgba(255,255,255,0.08); }
                 .dark .back-btn:hover { background: rgba(255,255,255,0.14); }
                 .dark .header-info h1 { color: #f4f4f5; }
-                .dark .header-meta, .dark .date-tag { color: #a1a1aa; }
-                .dark .category-tag { background: rgba(255,255,255,0.08); color: #a1a1aa; }
+                .dark .header-meta, .dark .date-tag { color: #d4d4d8; }
+                .dark .category-tag { background: rgba(255,255,255,0.08); color: #d4d4d8; }
                 .dark .status-badge.open, .dark .status-badge.resolved { background: rgba(22,163,74,0.2); color: #4ade80; }
                 .dark .status-badge.in_progress { background: rgba(202,138,4,0.2); color: #facc15; }
                 .dark .status-badge.closed { background: rgba(255,255,255,0.08); color: #475569; }
@@ -172,7 +172,7 @@ export default function TicketDetail() {
                 .dark .bot .message-bubble { background: #27272a; color: #f4f4f5; border-color: rgba(255,255,255,0.1); }
                 .dark .reply-form input { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
                 .dark .reply-form input:focus { background: #27272a; }
-                .dark .closed-info { background: rgba(255,255,255,0.06); color: #a1a1aa; }
+                .dark .closed-info { background: rgba(255,255,255,0.06); color: #d4d4d8; }
             `}</style>
         </div>
     );

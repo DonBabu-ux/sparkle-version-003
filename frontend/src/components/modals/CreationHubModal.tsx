@@ -58,7 +58,7 @@ export default function CreationHubModal({ onClose }: CreationHubModalProps) {
                 <h3 className="font-heading font-black text-4xl text-[#18181b] dark:text-white tracking-tighter italic uppercase leading-none">Matrix Hub</h3>
                 <p className="text-[10px] font-black text-black/25 dark:text-white/30 uppercase tracking-[0.4em] mt-3 italic">Create Something New</p>
             </div>
-            <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/20 dark:text-zinc-500 hover:text-black dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:rotate-90">
+            <button onClick={onClose} className="w-14 h-14 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-black/20 dark:text-zinc-300 hover:text-black dark:hover:text-white hover:bg-black/10 dark:hover:bg-white/10 transition-all active:rotate-90">
               <X size={24} strokeWidth={4} />
             </button>
           </div>

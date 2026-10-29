@@ -115,7 +115,7 @@ export default function Verified() {
                         <div className="flex justify-between items-center mb-4">
                            <div className="flex items-center gap-2">
                               <Users size={16} className="text-[#18181b] dark:text-white" />
-                              <span className="text-[10px] font-black uppercase italic tracking-widest text-slate-500 dark:text-zinc-400">Global Followers</span>
+                              <span className="text-[10px] font-black uppercase italic tracking-widest text-slate-500 dark:text-zinc-300">Global Followers</span>
                            </div>
                            <span className="text-xs font-black italic">{stats.followers}/1,000</span>
                         </div>

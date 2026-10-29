@@ -147,7 +147,7 @@ export default function Connect() {
               </div>
                <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tighter uppercase italic">Discovery Hub</h1>
             </div>
-            <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] ml-13">
+            <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em] ml-13">
               Expanding your sparkle matrix
             </p>
           </div>
@@ -157,13 +157,13 @@ export default function Connect() {
         <div className="sticky top-6 z-50 mb-12 animate-fade-in">
           <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 backdrop-blur-3xl rounded-[2rem] p-2 flex flex-col md:flex-row gap-2 items-center shadow-lg dark:shadow-2xl">
             <div className="relative flex-1 w-full group">
-              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400 group-focus-within:text-primary transition-all duration-500 z-10" size={20} />
+              <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300 group-focus-within:text-primary transition-all duration-500 z-10" size={20} />
               <input
                 type="text"
                 placeholder="Search by name, major, or campus..."
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 transition-all outline-none"
+                className="w-full h-14 bg-transparent border-none rounded-2xl px-16 text-base font-bold text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-300 transition-all outline-none"
               />
             </div>
 
@@ -175,7 +175,7 @@ export default function Connect() {
                   className={`flex items-center gap-2.5 h-11 px-6 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap
                     ${activeTab === label
                       ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
-                      : 'text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600'}`}
+                      : 'text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600'}`}
                 >
                   <Icon size={16} strokeWidth={2.5} />
                   {label}
@@ -201,11 +201,11 @@ export default function Connect() {
             error ? (
               <div className="py-32 flex flex-col items-center gap-8 text-center bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-[3rem] backdrop-blur-xl animate-fade-in">
                 <div className="w-24 h-24 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center">
-                  <Compass size={40} className="text-slate-600 dark:text-zinc-400" />
+                  <Compass size={40} className="text-slate-600 dark:text-zinc-300" />
                 </div>
                 <div className="space-y-3 px-4">
                   <h3 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 italic">CONNECTION LOST</h3>
-                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
+                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest max-w-xs mx-auto">{error}</p>
                 </div>
                 <button
                   onClick={() => fetchUsers(false)}
@@ -217,11 +217,11 @@ export default function Connect() {
             ) : (
               <div className="py-32 flex flex-col items-center gap-8 text-center bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-[3rem] backdrop-blur-xl animate-fade-in">
                 <div className="w-24 h-24 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center">
-                  <Search size={40} className="text-slate-600 dark:text-zinc-400" />
+                  <Search size={40} className="text-slate-600 dark:text-zinc-300" />
                 </div>
                 <div className="space-y-3 px-4">
                   <h3 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 italic">NO RESULTS FOUND</h3>
-                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
+                  <p className="text-[13px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest max-w-xs mx-auto">Try refining your search or exploring other areas.</p>
                 </div>
               </div>
             )

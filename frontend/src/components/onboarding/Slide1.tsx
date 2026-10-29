@@ -25,7 +25,7 @@ export default function Slide1({ onNext, onViewSheet }: SlideProps) {
         Forget the <span className="text-[#ff2d87]">Noise.</span>
       </h1>
 
-      <p className="text-sm sm:text-base font-normal text-slate-600 dark:text-zinc-400 leading-relaxed mb-8 max-w-[42ch]">
+      <p className="text-sm sm:text-base font-normal text-slate-600 dark:text-zinc-300 leading-relaxed mb-8 max-w-[42ch]">
         Sparkle is built to bring your campus community closer. No algorithmic spam or noisy feeds — just real moments with real students.
       </p>
 
@@ -54,7 +54,7 @@ export default function Slide1({ onNext, onViewSheet }: SlideProps) {
         {onViewSheet && (
           <button
             onClick={onViewSheet}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-900/70 dark:hover:bg-zinc-800 text-slate-600 hover:text-slate-900 dark:text-zinc-400 dark:hover:text-zinc-200 text-xs font-medium rounded-xl border border-slate-200 dark:border-zinc-800 transition-colors"
+            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-900/70 dark:hover:bg-zinc-800 text-slate-600 hover:text-slate-900 dark:text-zinc-300 dark:hover:text-zinc-200 text-xs font-medium rounded-xl border border-slate-200 dark:border-zinc-800 transition-colors"
           >
             Learn more about Sparkle
           </button>

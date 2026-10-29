@@ -363,7 +363,7 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
               </h1>
               <SparkleBrandMark size={20} className="shrink-0 mt-0.5" />
             </div>
-            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-400 font-semibold tracking-wide mt-0.5">
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-zinc-300 font-semibold tracking-wide mt-0.5">
               Everything in one place ♡
             </p>
           </div>
@@ -405,7 +405,7 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
               Create
             </span>
           </div>
-          <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-zinc-400 select-none">
+          <span className="text-xs sm:text-sm font-semibold text-slate-500 dark:text-zinc-300 select-none">
             Start something new
           </span>
         </div>
@@ -431,7 +431,7 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
         {HUB_SECTIONS.map((section) => (
           <div key={section.title} className="pt-1">
             <div className="flex items-center gap-2 px-1 mb-2.5">
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-zinc-500">
+              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-zinc-300">
                 {section.title}
               </span>
               <div className="h-px flex-1 bg-slate-200/80 dark:bg-zinc-800" />

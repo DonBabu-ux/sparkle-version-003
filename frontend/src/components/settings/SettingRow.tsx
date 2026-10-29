@@ -61,7 +61,7 @@ export const SettingRow: React.FC<SettingRowProps> = ({
             </h4>
           </div>
           {description && (
-            <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5 leading-snug line-clamp-2">
+            <p className="text-xs text-slate-500 dark:text-zinc-300 mt-0.5 leading-snug line-clamp-2">
               {description}
             </p>
           )}
@@ -108,7 +108,7 @@ export const SettingRow: React.FC<SettingRowProps> = ({
         {rightElement === 'custom' && customRight}
 
         {rightElement === 'chevron' && (
-          <ChevronRight className="w-4 h-4 text-slate-400 dark:text-zinc-500 group-hover:translate-x-0.5 transition-transform" />
+          <ChevronRight className="w-4 h-4 text-slate-400 dark:text-zinc-300 group-hover:translate-x-0.5 transition-transform" />
         )}
       </div>
     </div>

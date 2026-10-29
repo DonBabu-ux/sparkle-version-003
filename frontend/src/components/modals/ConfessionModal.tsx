@@ -147,7 +147,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           </div>
         </div>
         <button
-          className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white dark:bg-zinc-800/5 flex items-center justify-center text-gray-400 dark:text-zinc-500 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
+          className="w-9 h-9 rounded-xl bg-gray-50 dark:bg-white dark:bg-zinc-800/5 flex items-center justify-center text-gray-400 dark:text-zinc-300 hover:text-primary hover:bg-primary/5 transition-all active:scale-90"
           onClick={attemptClose}
         >
           <X size={18} strokeWidth={2.5} />
@@ -166,7 +166,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
                 className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
                   subType === t
                     ? 'border-primary bg-primary text-white shadow-lg shadow-primary/20'
-                    : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-white dark:bg-zinc-800/5 text-gray-400 dark:text-zinc-500 hover:border-primary/20 hover:bg-white dark:bg-zinc-800'
+                    : 'border-gray-100 dark:border-zinc-800 bg-gray-50 dark:bg-white dark:bg-zinc-800/5 text-gray-400 dark:text-zinc-300 hover:border-primary/20 hover:bg-white dark:bg-zinc-800'
                 }`}
                 onClick={() => setSubType(t)}
               >
@@ -184,7 +184,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           <div>
             <div className="flex items-center gap-2 mb-2 px-1">
               <Sparkles size={12} className="text-primary" />
-              <label className="text-[9px] font-black text-gray-400 dark:text-zinc-500 uppercase tracking-widest">Your Confession</label>
+              <label className="text-[9px] font-black text-gray-400 dark:text-zinc-300 uppercase tracking-widest">Your Confession</label>
             </div>
             <textarea
               className="w-full p-5 bg-gray-50 dark:bg-white dark:bg-zinc-800/5 border-2 border-transparent rounded-2xl outline-none font-semibold text-lg text-gray-800 dark:text-zinc-200 placeholder:text-gray-300 dark:text-zinc-600 dark:placeholder:text-zinc-600 focus:bg-white dark:bg-zinc-800 focus:border-primary/20 transition-all min-h-[140px] resize-none leading-snug"
@@ -216,16 +216,16 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
           {showImageWarning && (
             <div className="border border-gray-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-800 p-4">
               <div className="flex items-start gap-3">
-                <AlertTriangle size={16} className="text-gray-400 dark:text-zinc-500 mt-0.5 flex-shrink-0" />
+                <AlertTriangle size={16} className="text-gray-400 dark:text-zinc-300 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-gray-900 dark:text-zinc-100 mb-1">This may reduce your anonymity</p>
-                  <p className="text-sm text-gray-500 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-sm text-gray-500 dark:text-zinc-300 leading-relaxed">
                     Images can carry hidden metadata — device info, GPS coordinates, or identifiable content. Only attach an image if you're confident it can't be traced back to you.
                   </p>
                   <div className="flex items-center gap-3 mt-4">
                     <button
                       onClick={() => setShowImageWarning(false)}
-                      className="text-sm font-medium text-gray-400 dark:text-zinc-500 hover:text-gray-600 dark:text-zinc-400 transition-colors"
+                      className="text-sm font-medium text-gray-400 dark:text-zinc-300 hover:text-gray-600 dark:text-zinc-300 transition-colors"
                     >
                       Cancel
                     </button>
@@ -259,7 +259,7 @@ export default function ConfessionModal({ onClose, onSuccess }: ConfessionModalP
         {!imagePreview && !showImageWarning && (
           <button
             onClick={handleImageClick}
-            className="w-full h-11 rounded-2xl border-2 border-dashed border-gray-200 dark:border-zinc-800 flex items-center justify-center gap-2 text-gray-400 dark:text-zinc-500 hover:border-primary/30 hover:text-primary transition-all group"
+            className="w-full h-11 rounded-2xl border-2 border-dashed border-gray-200 dark:border-zinc-800 flex items-center justify-center gap-2 text-gray-400 dark:text-zinc-300 hover:border-primary/30 hover:text-primary transition-all group"
           >
             <ImageIcon size={16} className="group-hover:scale-110 transition-transform" />
             <span className="text-[10px] font-black uppercase tracking-widest">Attach Image (optional)</span>

@@ -330,7 +330,7 @@ export default function ForgotPassword() {
           border-color: rgba(255,255,255,0.12);
           color: #fafafa;
         }
-        .dark .fp-input::placeholder { color: #a1a1aa; }
+        .dark .fp-input::placeholder { color: #d4d4d8; }
         .dark .fp-input:focus {
           border-color: #fb7185;
           background: rgba(255,255,255,0.06);

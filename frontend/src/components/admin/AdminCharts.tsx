@@ -79,7 +79,7 @@ export function LineSeries({ data, color = '#ff1493', height = 120 }: { data: Po
 
 function EmptyChart() {
     return (
-        <div className="h-[120px] flex items-center justify-center text-xs text-slate-600 dark:text-zinc-400">
+        <div className="h-[120px] flex items-center justify-center text-xs text-slate-600 dark:text-zinc-300">
             No data in this range
         </div>
     );

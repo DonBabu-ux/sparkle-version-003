@@ -320,7 +320,7 @@ export default function MarketplaceModals() {
                   </div>
 
                   <div className="p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-100 flex items-center justify-between">
-                    <div className="truncate text-xs font-bold text-slate-500 dark:text-zinc-400 flex-1 pr-4">
+                    <div className="truncate text-xs font-bold text-slate-500 dark:text-zinc-300 flex-1 pr-4">
                       {window.location.origin}/marketplace/listings/{selectedListing.listing_id}
                     </div>
                     <button 
@@ -380,7 +380,7 @@ export default function MarketplaceModals() {
               {/* DISTANCE MODAL */}
               {activeModal === 'distance' && (
                 <div className="space-y-6">
-                  <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100">
+                  <p className="text-sm text-slate-500 dark:text-zinc-300 bg-slate-50 dark:bg-zinc-800 p-4 rounded-xl border border-slate-100">
                     To provide more relevant results, your device's estimated location is used. Adjust the radius to see items further away.
                   </p>
                   <div className="space-y-2">
@@ -452,7 +452,7 @@ export default function MarketplaceModals() {
                       </button>
                     </div>
                     
-                    <p className="text-xs text-slate-500 dark:text-zinc-400 mb-4 uppercase font-bold tracking-wider">Counties (2x2)</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-300 mb-4 uppercase font-bold tracking-wider">Counties (2x2)</p>
                     <div className="grid grid-cols-2 gap-2 mb-6">
                       {[
                         { name: 'Nairobi', lat: -1.2921, lng: 36.8219 },
@@ -561,7 +561,7 @@ export default function MarketplaceModals() {
                     <h3 className="font-bold text-lg mb-4">Price</h3>
                     <div className="flex items-center gap-4">
                       <div className="flex-1">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mb-1 block">Min</label>
+                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-300 mb-1 block">Min</label>
                         <input 
                           type="number" 
                           placeholder="Any" 
@@ -572,7 +572,7 @@ export default function MarketplaceModals() {
                       </div>
                       <span className="text-slate-300 font-bold mt-4">-</span>
                       <div className="flex-1">
-                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 mb-1 block">Max</label>
+                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-300 mb-1 block">Max</label>
                         <input 
                           type="number" 
                           placeholder="Any" 

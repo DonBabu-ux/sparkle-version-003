@@ -189,7 +189,7 @@ const MarketplaceSettings = () => {
                       key={item.id}
                       onClick={item.disabled ? undefined : item.action}
                       disabled={item.disabled}
-                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-500 dark:hover:bg-zinc-800' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98] dark:bg-zinc-800 dark:hover:bg-zinc-800'}`}
+                      className={`w-full flex items-center justify-between p-4 rounded-lg transition-all group ${item.disabled ? 'bg-slate-100 text-slate-400 hover:bg-slate-100 cursor-not-allowed dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-800' : 'bg-slate-50 hover:bg-slate-100 active:scale-[0.98] dark:bg-zinc-800 dark:hover:bg-zinc-800'}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-xl flex items-center justify-center shadow-sm group-hover:shadow-md transition-shadow">
@@ -199,10 +199,10 @@ const MarketplaceSettings = () => {
                           <div className={`font-black flex items-center gap-2 ${item.disabled ? 'text-slate-400' : 'text-slate-800'}`}>
                             {item.label}
                           </div>
-                          <div className={`text-xs font-bold ${item.disabled ? 'text-slate-400 dark:text-zinc-500' : 'text-slate-500 dark:text-zinc-400'}`}>{item.desc}</div>
+                          <div className={`text-xs font-bold ${item.disabled ? 'text-slate-400 dark:text-zinc-300' : 'text-slate-500 dark:text-zinc-300'}`}>{item.desc}</div>
                         </div>
                       </div>
-                          <ChevronRight size={18} className={`text-slate-300 dark:text-zinc-600 group-hover:text-slate-600 dark:group-hover:text-zinc-300 transition-colors ${item.disabled ? 'text-slate-400 dark:text-zinc-500 cursor-not-allowed' : ''}`} />
+                          <ChevronRight size={18} className={`text-slate-300 dark:text-zinc-600 group-hover:text-slate-600 dark:group-hover:text-zinc-300 transition-colors ${item.disabled ? 'text-slate-400 dark:text-zinc-300 cursor-not-allowed' : ''}`} />
                     </button>
                   ))}
                 </div>
@@ -228,13 +228,13 @@ const MarketplaceSettings = () => {
                 <option value="vouched_only">Vouched Users Only (Trust Score 2.0+)</option>
                 <option value="none">No One (Disable New Chats)</option>
               </select>
-              <p className="text-xs text-gray-500 dark:text-zinc-400">Controls who can initiate a new marketplace conversation with you.</p>
+              <p className="text-xs text-gray-500 dark:text-zinc-300">Controls who can initiate a new marketplace conversation with you.</p>
             </div>
 
             <div className="flex items-center justify-between py-2">
               <div className="space-y-1">
                 <p className="text-[15px] font-bold text-gray-900">Spam Filter</p>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Automatically hide suspicious or spammy messages.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-300">Automatically hide suspicious or spammy messages.</p>
               </div>
               <button 
                 onClick={() => handleSave({ message_filter: !settings.message_filter })}
@@ -257,7 +257,7 @@ const MarketplaceSettings = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-[15px] font-bold text-gray-900">Read Receipts</p>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Show when you've read messages.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-300">Show when you've read messages.</p>
               </div>
               <button 
                 onClick={() => handleSave({ read_receipts: !settings.read_receipts })}
@@ -270,7 +270,7 @@ const MarketplaceSettings = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-[15px] font-bold text-gray-900">Typing Indicators</p>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Show when you're typing a message.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-300">Show when you're typing a message.</p>
               </div>
               <button 
                 onClick={() => handleSave({ typing_indicators: !settings.typing_indicators })}
@@ -283,7 +283,7 @@ const MarketplaceSettings = () => {
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <p className="text-[15px] font-bold text-gray-900">Online Status</p>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Show your active status in marketplace chats.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-300">Show your active status in marketplace chats.</p>
               </div>
               <button 
                 onClick={() => handleSave({ show_online_status: !settings.show_online_status })}
@@ -309,7 +309,7 @@ const MarketplaceSettings = () => {
             >
               <div className="text-left">
                 <p className="text-[15px] font-bold text-gray-900">Blocked Users</p>
-                <p className="text-sm text-gray-500 dark:text-zinc-400">Manage users you've blocked globally.</p>
+                <p className="text-sm text-gray-500 dark:text-zinc-300">Manage users you've blocked globally.</p>
               </div>
               <ArrowLeft size={18} className="text-gray-400 group-hover:text-gray-600 rotate-180 transition-all" />
             </button>
@@ -330,26 +330,26 @@ const MarketplaceSettings = () => {
                 <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-indigo-100 text-indigo-600 rounded-xl flex items-center justify-center mb-4"><Eye size={20} /></div>
                   <div className="text-3xl font-black">{viewData.views}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Total Views</div>
+                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Total Views</div>
                 </div>
                 <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center mb-4"><CheckCircle2 size={20} /></div>
                   <div className="text-3xl font-black">{viewData.sales}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Total Sales</div>
+                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Total Sales</div>
                 </div>
                 <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center mb-4"><Package size={20} /></div>
                   <div className="text-3xl font-black">{viewData.listings}</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Active Listings</div>
+                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Active Listings</div>
                 </div>
                 <div className="p-6 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                   <div className="w-10 h-10 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center mb-4"><TrendingUp size={20} /></div>
                   <div className="text-3xl font-black">{(viewData.engagement_rate * 100).toFixed(1)}%</div>
-                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Engagement</div>
+                  <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Engagement</div>
                 </div>
               </div>
             ) : (
-              <div className="text-center py-20 text-slate-500 dark:text-zinc-400 font-bold">No analytics data available yet.</div>
+              <div className="text-center py-20 text-slate-500 dark:text-zinc-300 font-bold">No analytics data available yet.</div>
             )}
           </div>
         )}
@@ -371,7 +371,7 @@ const MarketplaceSettings = () => {
                     </div>
                     <div>
                       <div className="font-black">{payout.account_name}</div>
-                      <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">{payout.provider.toUpperCase()} ••••</div>
+                      <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">{payout.provider.toUpperCase()} ••••</div>
                     </div>
                   </div>
                   {payout.is_default ? (
@@ -397,7 +397,7 @@ const MarketplaceSettings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-black">Private Shop Mode</div>
-                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Only verified users can see your items</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Only verified users can see your items</div>
                   </div>
                   <div className="w-12 h-6 bg-slate-300 rounded-full relative cursor-pointer">
                     <div className="absolute left-1 top-1 w-4 h-4 bg-white dark:bg-zinc-800 rounded-full"></div>
@@ -407,7 +407,7 @@ const MarketplaceSettings = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="font-black">Direct Messages</div>
-                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-400">Who can message you</div>
+                    <div className="text-sm font-bold text-slate-500 dark:text-zinc-300">Who can message you</div>
                   </div>
                   <select className="bg-white dark:bg-zinc-800 border border-slate-200 rounded-xl px-4 py-2 font-bold text-sm outline-none">
                     <option>Everyone</option>
@@ -424,7 +424,7 @@ const MarketplaceSettings = () => {
         )}
 
         {saving && (
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-zinc-400 animate-pulse">
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-zinc-300 animate-pulse">
             <Spinner size="small" color="text-primary" />
             <span>Saving changes...</span>
           </div>
@@ -570,7 +570,7 @@ function MarketplaceSupportView() {
               <TrendingUp size={20} />
             </button>
           </div>
-          <button onClick={() => setMode('options')} className="w-full py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
+          <button onClick={() => setMode('options')} className="w-full py-2 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-300 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
         </div>
       </div>
     );
@@ -606,7 +606,7 @@ function MarketplaceSupportView() {
           <button type="submit" disabled={loading} className="w-full py-5 bg-indigo-600 text-white rounded-lg font-black text-sm shadow-xl shadow-indigo-100 hover:scale-[1.02] active:scale-95 transition-all">
             {loading ? 'Submitting...' : 'Submit Support Ticket'}
           </button>
-          <button type="button" onClick={() => setMode('options')} className="w-full py-4 text-slate-400 dark:text-zinc-500 font-black text-sm hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Cancel</button>
+          <button type="button" onClick={() => setMode('options')} className="w-full py-4 text-slate-400 dark:text-zinc-300 font-black text-sm hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Cancel</button>
         </div>
       </form>
     );
@@ -631,13 +631,13 @@ function MarketplaceSupportView() {
                 <span className="text-[10px] font-bold text-slate-400">{new Date(t.created_at).toLocaleDateString()}</span>
               </div>
               <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors">{t.subject}</div>
-              <div className="text-xs font-bold text-slate-500 dark:text-zinc-400 line-clamp-1 mt-1">{t.description}</div>
+              <div className="text-xs font-bold text-slate-500 dark:text-zinc-300 line-clamp-1 mt-1">{t.description}</div>
             </div>
           ))
         ) : (
           <div className="text-center py-20 text-slate-400 font-bold">You haven't submitted any tickets yet.</div>
         )}
-        <button onClick={() => setMode('options')} className="w-full py-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
+        <button onClick={() => setMode('options')} className="w-full py-4 text-center text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-zinc-300 hover:text-slate-600 dark:hover:text-zinc-300 transition-colors">Back to Options</button>
       </div>
     );
   }
@@ -720,7 +720,7 @@ function BlockedUsersView() {
               <div className="text-center py-20 bg-slate-50 dark:bg-zinc-800 rounded-xl border-2 border-dashed border-slate-200">
                  <ShieldAlert size={32} className="text-slate-300 mx-auto mb-4" />
                  <div className="font-black text-slate-800">No Blocked Users</div>
-                 <div className="text-xs font-bold text-slate-500 dark:text-zinc-400">People you block will appear here.</div>
+                 <div className="text-xs font-bold text-slate-500 dark:text-zinc-300">People you block will appear here.</div>
               </div>
           )}
       </div>

@@ -120,19 +120,36 @@ const createAdminSession = async (userId, candidate) => {
     if (!(await verifyAdminPassword(userId, candidate))) return null;
     const token = crypto.randomBytes(32).toString('base64url');
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    // The expiry instant is computed on THIS app server's clock and stored as
+    // Unix epoch seconds. Epoch values are timezone-proof: they survive a DB
+    // server move or host timezone change, unlike NOW()-based wall clocks
+    // (this DB host runs hours off UTC - see ops notes).
+    const ttlSeconds = ADMIN_SESSION_TTL_MINUTES * 60;
+    const expiresAtEpoch = Math.floor(Date.now() / 1000) + ttlSeconds;
     await pool.query(
-        'INSERT INTO admin_sessions (token_hash, user_id, expires_at) VALUES (?, ?, DATE_ADD(NOW(), INTERVAL ? MINUTE))',
-        [tokenHash, userId, ADMIN_SESSION_TTL_MINUTES]
+        'INSERT INTO admin_sessions (token_hash, user_id, expires_at, expires_epoch) VALUES (?, ?, FROM_UNIXTIME(?), ?)',
+        [tokenHash, userId, expiresAtEpoch, expiresAtEpoch]
     );
-    return { token, expiresInMinutes: ADMIN_SESSION_TTL_MINUTES };
+    return {
+        token,
+        expiresInMinutes: ADMIN_SESSION_TTL_MINUTES,
+        expiresAtEpoch,
+        serverTimeEpoch: Math.floor(Date.now() / 1000)
+    };
 };
 
 /** Resolve a token to its user id, or null (expired/unknown/revoked). */
 const verifyAdminSession = async (token) => {
     if (!token || typeof token !== 'string') return null;
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    // Epoch comparison is the authority (timezone-proof). Legacy rows written
+    // before expires_epoch existed fall back to the wall-clock comparison.
     const [rows] = await pool.query(
-        'SELECT user_id FROM admin_sessions WHERE token_hash = ? AND expires_at > NOW() LIMIT 1',
+        `SELECT user_id FROM admin_sessions
+         WHERE token_hash = ?
+           AND (expires_epoch > UNIX_TIMESTAMP()
+                OR (expires_epoch IS NULL AND expires_at > NOW()))
+         LIMIT 1`,
         [tokenHash]
     );
     return rows[0] ? rows[0].user_id : null;

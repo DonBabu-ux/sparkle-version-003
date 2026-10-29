@@ -99,7 +99,7 @@ export default function MediaPreviewModal() {
                   </div>
                   <div>
                     <p className="text-[15px] font-bold text-gray-900">Save to device</p>
-                    <p className="text-[12px] text-gray-500 dark:text-zinc-400">Download this to your storage</p>
+                    <p className="text-[12px] text-gray-500 dark:text-zinc-300">Download this to your storage</p>
                   </div>
                 </button>
 
@@ -112,7 +112,7 @@ export default function MediaPreviewModal() {
                   </div>
                   <div>
                     <p className="text-[15px] font-bold text-gray-900">I don't want to see this</p>
-                    <p className="text-[12px] text-gray-500 dark:text-zinc-400">Hide this post from your feed</p>
+                    <p className="text-[12px] text-gray-500 dark:text-zinc-300">Hide this post from your feed</p>
                   </div>
                 </button>
 
@@ -122,7 +122,7 @@ export default function MediaPreviewModal() {
                   </div>
                   <div>
                     <p className="text-[15px] font-bold text-gray-900">Find support or report video</p>
-                    <p className="text-[12px] text-gray-500 dark:text-zinc-400">I'm concerned about this post</p>
+                    <p className="text-[12px] text-gray-500 dark:text-zinc-300">I'm concerned about this post</p>
                   </div>
                 </button>
               </div>

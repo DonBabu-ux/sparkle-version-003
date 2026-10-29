@@ -41,7 +41,7 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
           <div className="w-full flex justify-center max-w-sm sm:max-w-md">
             <OnboardingProgressCard />
           </div>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1">
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-300 mt-1">
             {formattedTime()}
           </span>
         </div>
@@ -65,7 +65,7 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
               </p>
             </div>
           </div>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5">
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-300 mt-1.5">
             {formattedTime()}
           </span>
         </div>
@@ -89,7 +89,7 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
               </p>
             </div>
           </div>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5">
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-300 mt-1.5">
             {formattedTime()}
           </span>
         </div>
@@ -113,7 +113,7 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
               </p>
             </div>
           </div>
-          <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5">
+          <span className="text-[10px] text-zinc-300 dark:text-zinc-300 mt-1.5">
             {formattedTime()}
           </span>
         </div>
@@ -124,19 +124,19 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
     return (
       <div key={msg.message_id} className="flex flex-col items-center w-full py-4 select-none">
         <div className="p-5 rounded-2xl bg-zinc-50/60 dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 shadow-sm max-w-sm sm:max-w-md w-full flex gap-3">
-          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-500 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-zinc-100 dark:bg-zinc-800 text-zinc-300 flex items-center justify-center flex-shrink-0">
             <Info size={20} />
           </div>
           <div className="flex-1 flex flex-col gap-1 min-w-0">
             <h4 role="heading" aria-level={4} className="font-bold text-zinc-800 dark:text-zinc-300 text-sm">
               Official Update
             </h4>
-            <p className="text-xs text-zinc-650 dark:text-zinc-400 leading-relaxed break-words">
+            <p className="text-xs text-zinc-650 dark:text-zinc-300 leading-relaxed break-words">
               {text}
             </p>
           </div>
         </div>
-        <span className="text-[10px] text-zinc-400 dark:text-zinc-500 mt-1.5">
+        <span className="text-[10px] text-zinc-300 dark:text-zinc-300 mt-1.5">
           {formattedTime()}
         </span>
       </div>
@@ -156,7 +156,7 @@ export const OfficialConversationRenderer: React.FC<OfficialConversationRenderer
         <h2 role="heading" aria-level={2} className="text-base font-black text-zinc-800 dark:text-white mb-1">
           Sparkle Official
         </h2>
-        <p className="text-[11px] text-zinc-400 dark:text-zinc-500 max-w-xs">
+        <p className="text-[11px] text-zinc-300 dark:text-zinc-300 max-w-xs">
           Verify security alerts, track account achievements, and explore official features.
         </p>
       </div>

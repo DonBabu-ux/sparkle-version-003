@@ -63,7 +63,7 @@ export default function Success() {
         You're <span className="text-[#ff2d87]">All Set!</span>
       </h1>
 
-      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-400 leading-relaxed mb-8 max-w-[40ch]">
+      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-300 leading-relaxed mb-8 max-w-[40ch]">
         Your Sparkle profile is ready. Welcome to your campus community!
       </p>
 

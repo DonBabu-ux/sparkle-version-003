@@ -1418,7 +1418,7 @@ export default function Moments() {
               <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-white/10">
                 <div className="flex items-center gap-2">
                   <span className="text-lg font-bold text-gray-900">Comments</span>
-                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-full text-[10px] font-bold">{comments.length}</span>
+                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-300 rounded-full text-[10px] font-bold">{comments.length}</span>
                 </div>
                 <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all">
                   <X size={20} />

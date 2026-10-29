@@ -68,7 +68,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-zinc-400 gap-2">
+            <div className="flex flex-col items-center justify-center py-12 text-slate-500 dark:text-zinc-300 gap-2">
               <Spinner size="medium" text-blue-500 />
               <p className="text-xs">Fetching message details...</p>
             </div>
@@ -102,7 +102,7 @@ export const MessageInfoModal: React.FC<MessageInfoModalProps> = ({
                         </p>
                       </div>
                     </div>
-                    <span className="text-[10px] text-slate-500 dark:text-zinc-400">{new Date(info.timeline?.sent_at).toLocaleDateString()}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-zinc-300">{new Date(info.timeline?.sent_at).toLocaleDateString()}</span>
                   </div>
 
                   {/* Delivered */}

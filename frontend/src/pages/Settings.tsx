@@ -224,7 +224,7 @@ export default function Settings() {
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">
               Settings
             </h1>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
+            <p className="text-xs text-slate-500 dark:text-zinc-300">
               Account & Application Preferences
             </p>
           </div>
@@ -256,7 +256,7 @@ export default function Settings() {
             <h2 className="text-base font-bold text-slate-900 dark:text-zinc-100 truncate">
               {user?.name || user?.username || 'Sparkle Member'}
             </h2>
-            <p className="text-xs text-slate-500 dark:text-zinc-400 truncate">
+            <p className="text-xs text-slate-500 dark:text-zinc-300 truncate">
               @{user?.username || 'user'} • {user?.email || 'member@sparkle.app'}
             </p>
             <span className="inline-block mt-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-600 dark:text-pink-400 border border-pink-500/20">
@@ -491,8 +491,8 @@ export default function Settings() {
                 />
 
                 {/* Top Hint & Close bar */}
-                <div className="flex items-center justify-between px-5 pt-3.5 pb-2 text-[11px] text-slate-400 dark:text-zinc-500 border-b border-slate-100 dark:border-zinc-800/60 select-none">
-                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 dark:text-zinc-500">
+                <div className="flex items-center justify-between px-5 pt-3.5 pb-2 text-[11px] text-slate-400 dark:text-zinc-300 border-b border-slate-100 dark:border-zinc-800/60 select-none">
+                  <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 dark:text-zinc-300">
                     <ChevronRight size={14} className="text-[#ff2d87] animate-pulse" />
                     <span>Swipe right to close</span>
                   </div>
@@ -523,7 +523,7 @@ export default function Settings() {
                          acTab === 'hide' ? 'Hide from Users' :
                          acTab === 'terminate' ? 'Terminate Account' : 'Delete Account'}
                       </h2>
-                      <p className="text-[11px] text-slate-400 dark:text-zinc-500">
+                      <p className="text-[11px] text-slate-400 dark:text-zinc-300">
                         {acTab === 'menu' ? 'Manage your account visibility and lifecycle' :
                          acTab === 'hide' ? 'Ghost mode — stay active but invisible' :
                          acTab === 'terminate' ? 'Reversible — suspend your profile' : 'Permanent — irreversibly delete data'}
@@ -576,7 +576,7 @@ export default function Settings() {
                               </div>
                               <div>
                                 <p className="text-sm font-bold text-slate-800 dark:text-zinc-100">Hide from Users</p>
-                                <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">Ghost mode — stay hidden in search & discover</p>
+                                <p className="text-xs text-slate-500 dark:text-zinc-300 mt-0.5">Ghost mode — stay hidden in search & discover</p>
                               </div>
                             </div>
                             <button
@@ -589,7 +589,7 @@ export default function Settings() {
                             </button>
                           </div>
                           <div className="mt-3 pt-3 border-t border-slate-200/60 dark:border-zinc-800/80 flex items-center justify-between text-xs">
-                            <span className="text-slate-500 dark:text-zinc-400">
+                            <span className="text-slate-500 dark:text-zinc-300">
                               {isHidden ? '🙈 You are currently hidden' : '👁 Profile is currently visible'}
                             </span>
                             <button
@@ -660,7 +660,7 @@ export default function Settings() {
                       >
                         <div className="p-4 rounded-2xl bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
                           <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200 mb-2">What "Hidden" means:</p>
-                          <ul className="text-xs text-slate-600 dark:text-zinc-400 space-y-1.5 list-disc list-inside">
+                          <ul className="text-xs text-slate-600 dark:text-zinc-300 space-y-1.5 list-disc list-inside">
                             <li>Your profile won't appear in search, campus feeds, or discover</li>
                             <li>Existing followers can still see your posts</li>
                             <li>You can browse and use Sparkle normally</li>
@@ -702,7 +702,7 @@ export default function Settings() {
                           </ul>
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Reason <span className="font-normal text-slate-400">(optional)</span>
                           </label>
                           <select
@@ -718,7 +718,7 @@ export default function Settings() {
                           </select>
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Confirm your password
                           </label>
                           <input
@@ -762,7 +762,7 @@ export default function Settings() {
                           </ul>
                         </div>
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Reason <span className="font-normal text-slate-400">(optional)</span>
                           </label>
                           <select
@@ -777,7 +777,7 @@ export default function Settings() {
                             <option value="other">Other reason</option>
                           </select>
                         </div>
-                        <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 dark:text-zinc-400 select-none">
+                        <label className="flex items-start gap-2.5 cursor-pointer text-xs text-slate-600 dark:text-zinc-300 select-none">
                           <input
                             type="checkbox"
                             checked={acAcknowledgeTerminate}
@@ -787,7 +787,7 @@ export default function Settings() {
                           <span>I understand that terminating my account permanently revokes access and cannot be undone by signing in.</span>
                         </label>
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Confirm your password
                           </label>
                           <input
@@ -832,7 +832,7 @@ export default function Settings() {
 
                         {/* Reason Dropdown */}
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Why are you leaving? <span className="font-normal text-slate-400">(optional)</span>
                           </label>
                           <select
@@ -865,7 +865,7 @@ export default function Settings() {
                                   Download my data before deleting
                                 </span>
                               </div>
-                              <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                              <p className="text-xs text-slate-500 dark:text-zinc-300 mt-0.5">
                                 We will compile and dispatch your personal data package prior to permanent deletion.
                               </p>
                             </div>
@@ -877,7 +877,7 @@ export default function Settings() {
                               initial={{ opacity: 0, height: 0 }}
                               animate={{ opacity: 1, height: 'auto' }}
                               exit={{ opacity: 0, height: 0 }}
-                              className="pt-2 border-t border-slate-200/80 dark:border-zinc-800 space-y-2 text-xs text-slate-600 dark:text-zinc-400"
+                              className="pt-2 border-t border-slate-200/80 dark:border-zinc-800 space-y-2 text-xs text-slate-600 dark:text-zinc-300"
                             >
                               <div className="flex items-center justify-between py-1 px-2.5 rounded-lg bg-white dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700/60">
                                 <span>Export Format:</span>
@@ -889,7 +889,7 @@ export default function Settings() {
                                   {(user as any)?.email || 'Account registered email'}
                                 </span>
                               </div>
-                              <p className="text-[11px] text-slate-400 dark:text-zinc-500 italic">
+                              <p className="text-[11px] text-slate-400 dark:text-zinc-300 italic">
                                 ℹ️ A secure link will be emailed to you with your account history and media assets.
                               </p>
                             </motion.div>
@@ -898,7 +898,7 @@ export default function Settings() {
 
                         {/* Password confirmation */}
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Confirm your password
                           </label>
                           <input
@@ -913,7 +913,7 @@ export default function Settings() {
 
                         {/* Type DELETE confirmation */}
                         <div>
-                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mb-1.5 block">
+                          <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-1.5 block">
                             Type <span className="font-mono font-bold text-red-500">DELETE</span> to confirm
                           </label>
                           <input
@@ -960,7 +960,7 @@ export default function Settings() {
                 >
                   <div>
                     <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">{doc.title}</h4>
-                    <p className="text-xs text-slate-500 dark:text-zinc-400">{doc.description}</p>
+                    <p className="text-xs text-slate-500 dark:text-zinc-300">{doc.description}</p>
                   </div>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
                 </div>

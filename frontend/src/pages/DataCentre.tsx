@@ -147,7 +147,7 @@ export default function DataCentre() {
                     <div className="flex items-center gap-3">
                         <button
                             onClick={() => navigate(-1)}
-                            className="p-2 -ml-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition"
+                            className="p-2 -ml-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition"
                             aria-label="Back"
                         >
                             <ArrowLeft className="w-5 h-5" />
@@ -157,12 +157,12 @@ export default function DataCentre() {
                                 <Shield className="w-5 h-5 text-[#ff1493]" />
                                 Personal Data Export Centre
                             </h1>
-                            <p className="text-xs text-slate-600 dark:text-zinc-400">Download a verified personal archive under GDPR & CCPA</p>
+                            <p className="text-xs text-slate-600 dark:text-zinc-300">Download a verified personal archive under GDPR & CCPA</p>
                         </div>
                     </div>
                     <button
                         onClick={fetchHistory}
-                            className="p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition flex items-center gap-1.5 text-xs font-semibold"
+                            className="p-2 rounded-xl text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 transition flex items-center gap-1.5 text-xs font-semibold"
                         title="Refresh Status"
                     >
                         <RefreshCw className={`w-4 h-4 ${historyLoading ? 'animate-spin text-[#ff1493]' : ''}`} />
@@ -175,7 +175,7 @@ export default function DataCentre() {
                 {/* Privacy & Security Disclosure Card */}
                 <div className="p-4 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 flex items-start gap-3.5 shadow-sm">
                     <Lock className="w-5 h-5 text-[#ff1493] shrink-0 mt-0.5" />
-                    <div className="space-y-1 text-xs leading-relaxed text-slate-600 dark:text-zinc-400">
+                    <div className="space-y-1 text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
                         <p className="font-semibold text-[#18181b] dark:text-zinc-100">Protected & Sanitized Personal Archive</p>
                         <p>
                             Exports contain strictly your personal data. Password hashes, session tokens, OTP secrets,
@@ -209,7 +209,7 @@ export default function DataCentre() {
                                 <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">1</span>
                                 Select Personal Data Categories
                             </h2>
-                            <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Choose which activity segments to include in your archive</p>
+                            <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Choose which activity segments to include in your archive</p>
                         </div>
                         <button
                             onClick={handleSelectAll}
@@ -231,11 +231,11 @@ export default function DataCentre() {
                                     className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3.5 ${
                                         isSelected
                                             ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#18181b] dark:text-zinc-100 shadow-sm ring-1 ring-[#ff1493]/25'
-                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
+                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
+                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
                                     }`}>
                                         <Icon className="w-4 h-4" />
                                     </div>
@@ -248,7 +248,7 @@ export default function DataCentre() {
                                                 {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                                             </div>
                                         </div>
-                                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 line-clamp-2 leading-tight">{cat.desc}</p>
+                                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-1 line-clamp-2 leading-tight">{cat.desc}</p>
                                     </div>
                                 </button>
                             );
@@ -263,7 +263,7 @@ export default function DataCentre() {
                             <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">2</span>
                             Select Archive Format
                         </h2>
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Formats are formatted and sanitized against formula injection</p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Formats are formatted and sanitized against formula injection</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
@@ -278,11 +278,11 @@ export default function DataCentre() {
                                     className={`p-3.5 rounded-2xl border text-left transition flex items-start gap-3.5 ${
                                         isSelected
                                             ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#18181b] dark:text-zinc-100 shadow-sm ring-1 ring-[#ff1493]/25'
-                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
+                                            : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-[#ff1493]/40 dark:hover:border-zinc-600'
                                     }`}
                                 >
                                     <div className={`p-2 rounded-xl shrink-0 mt-0.5 ${
-                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
+                                        isSelected ? 'bg-[#ff1493]/15 text-[#ff1493]' : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
                                     }`}>
                                         <Icon className="w-4 h-4" />
                                     </div>
@@ -295,7 +295,7 @@ export default function DataCentre() {
                                                     </span>
                                                 )}
                                             </div>
-                                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1 leading-tight">{fmt.desc}</p>
+                                            <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-1 leading-tight">{fmt.desc}</p>
                                     </div>
                                 </button>
                             );
@@ -310,7 +310,7 @@ export default function DataCentre() {
                             <span className="w-5 h-5 rounded-full bg-[#ff1493] text-white text-xs font-black flex items-center justify-center">3</span>
                             Delivery Destination & Confirmation
                         </h2>
-                        <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Where would you like us to notify you with your download link?</p>
+                        <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Where would you like us to notify you with your download link?</p>
                     </div>
 
                     <div className="space-y-3 pt-2">
@@ -326,7 +326,7 @@ export default function DataCentre() {
                             />
                             <div className="flex-1 text-xs">
                                 <span className="font-bold text-[#18181b] dark:text-zinc-100">Verified Primary Email</span>
-                                <span className="block text-slate-600 dark:text-zinc-400 mt-0.5">{user?.email || 'Your account email'}</span>
+                                <span className="block text-slate-600 dark:text-zinc-300 mt-0.5">{user?.email || 'Your account email'}</span>
                             </div>
                         </label>
 
@@ -382,12 +382,12 @@ export default function DataCentre() {
                     </h2>
 
                     {historyLoading && history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-400 flex items-center justify-center gap-2">
+                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-300 flex items-center justify-center gap-2">
                             <RefreshCw className="w-4 h-4 animate-spin text-[#ff1493]" />
                             Loading archive history...
                         </div>
                     ) : history.length === 0 ? (
-                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-400 border border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-2xl">
+                        <div className="py-8 text-center text-xs text-slate-600 dark:text-zinc-300 border border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-2xl">
                             No export requests found for this account.
                         </div>
                     ) : (
@@ -412,16 +412,16 @@ export default function DataCentre() {
                                                         ? 'bg-[#ff1493]/10 text-[#ff1493] border border-[#ff1493]/30 animate-pulse'
                                                         : job.status === 'FAILED'
                                                         ? 'bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30'
-                                                        : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'
+                                                        : 'bg-[#e7dae3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'
                                                 }`}>
                                                     {isExpired ? 'EXPIRED' : job.status}
                                                 </span>
                                             </div>
-                                            <p className="text-slate-600 dark:text-zinc-400 text-[11px]">
+                                            <p className="text-slate-600 dark:text-zinc-300 text-[11px]">
                                                 Requested on {new Date(job.createdAt).toLocaleString()} • Delivered to {job.deliveryEmail}
                                             </p>
                                             {job.fileSizeBytes && (
-                                                <p className="text-slate-600 dark:text-zinc-400 text-[10px]">
+                                                <p className="text-slate-600 dark:text-zinc-300 text-[10px]">
                                                     Size: {(job.fileSizeBytes / (1024 * 1024)).toFixed(2)} MB • {job.categories?.length || 0} Categories
                                                 </p>
                                             )}
@@ -439,12 +439,12 @@ export default function DataCentre() {
                                                     Download
                                                 </a>
                                             ) : job.status === 'PROCESSING' || job.status === 'QUEUED' ? (
-                                                <span className="text-slate-600 dark:text-zinc-400 flex items-center gap-1 text-[11px]">
+                                                <span className="text-slate-600 dark:text-zinc-300 flex items-center gap-1 text-[11px]">
                                                     <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#ff1493]" />
                                                     Compiling...
                                                 </span>
                                             ) : (
-                                                <span className="text-slate-600 dark:text-zinc-400 text-[11px]">Archive unavailable</span>
+                                                <span className="text-slate-600 dark:text-zinc-300 text-[11px]">Archive unavailable</span>
                                             )}
                                         </div>
                                     </div>

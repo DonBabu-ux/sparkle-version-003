@@ -34,7 +34,7 @@ export default function Slide2({ onNext, onBack }: SlideProps) {
         Find Your <span className="text-[#ff2d87]">People.</span>
       </h1>
 
-      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-400 leading-relaxed mb-8 max-w-[42ch]">
+      <p className="text-sm sm:text-base font-normal text-slate-500 dark:text-zinc-300 leading-relaxed mb-8 max-w-[42ch]">
         Sparkle brings together students across your campus. Connect genuinely, share what's happening, and build real friendships.
       </p>
 

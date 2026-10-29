@@ -661,7 +661,7 @@ export default function SparklyBot() {
         {/* Conversation Search Bar */}
         <div className="px-3 mb-2">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-2.5 text-slate-500 dark:text-zinc-400" />
+            <Search size={14} className="absolute left-3 top-2.5 text-slate-500 dark:text-zinc-300" />
             <input
               type="text"
               placeholder="Search chats..."
@@ -675,7 +675,7 @@ export default function SparklyBot() {
         {/* Conversation History List */}
         <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1 custom-scrollbar">
           {filteredConversations.length === 0 ? (
-            <div className="text-center py-8 text-slate-500 dark:text-zinc-400 text-xs">
+            <div className="text-center py-8 text-slate-500 dark:text-zinc-300 text-xs">
               No conversations found.
             </div>
           ) : (
@@ -700,7 +700,7 @@ export default function SparklyBot() {
                   </div>
                   <button
                     onClick={(e) => handleDeleteConversation(c.id, e)}
-                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 dark:text-zinc-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
+                    className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 dark:text-zinc-300 hover:text-rose-400 rounded-lg hover:bg-rose-500/20 transition-all"
                     title="Delete chat"
                   >
                     <Trash2 size={13} />
@@ -725,7 +725,7 @@ export default function SparklyBot() {
               <Settings size={15} className="text-purple-400" />
               <span>Settings & Personalization</span>
             </div>
-            <ChevronRight size={14} className="text-slate-500 dark:text-zinc-400" />
+            <ChevronRight size={14} className="text-slate-500 dark:text-zinc-300" />
           </button>
         </div>
       </aside>
@@ -796,7 +796,7 @@ export default function SparklyBot() {
                   >
                     <div className="flex items-center justify-between">
                       <span className="text-2xl">{action.icon}</span>
-                      <ChevronRight size={16} className="text-slate-500 dark:text-zinc-400 group-hover:text-purple-400 transition-colors" />
+                      <ChevronRight size={16} className="text-slate-500 dark:text-zinc-300 group-hover:text-purple-400 transition-colors" />
                     </div>
                     <div>
                       <span className="text-[10px] font-bold uppercase tracking-wider text-purple-400 block mb-0.5">

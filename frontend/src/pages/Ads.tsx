@@ -49,7 +49,7 @@ export default function Ads() {
               <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Campus campaigns in KES</p>
             </div>
           </div>
-          <button onClick={fetchWallet} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors text-slate-600 dark:text-zinc-400">
+          <button onClick={fetchWallet} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
             <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -65,7 +65,7 @@ export default function Ads() {
               </div>
               <div>
                   <h2 className="text-base font-black text-[#18181b] dark:text-zinc-100 italic uppercase leading-none">Ad Campaigns</h2>
-                  <p className="text-[9px] text-slate-600 dark:text-zinc-400 font-bold uppercase italic tracking-wider mt-0.5">Reach students on Sparkle</p>
+                  <p className="text-[9px] text-slate-600 dark:text-zinc-300 font-bold uppercase italic tracking-wider mt-0.5">Reach students on Sparkle</p>
               </div>
             </div>
 
@@ -82,9 +82,9 @@ export default function Ads() {
           <div className="glass-card rounded-3xl p-6 shadow-sm space-y-4">
             <h3 className="text-base font-black text-[#18181b] dark:text-zinc-100 italic uppercase">My Campaigns</h3>
             <div className="p-8 text-center bg-[#f6eef3] dark:bg-zinc-900 border border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-2xl">
-              <Megaphone size={28} className="text-slate-600 dark:text-zinc-400 mx-auto mb-2" />
-              <p className="text-xs font-bold text-slate-600 dark:text-zinc-400">No campaigns yet.</p>
-              <p className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium mt-1">Campaign creation isn't available yet.</p>
+              <Megaphone size={28} className="text-slate-600 dark:text-zinc-300 mx-auto mb-2" />
+              <p className="text-xs font-bold text-slate-600 dark:text-zinc-300">No campaigns yet.</p>
+              <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium mt-1">Campaign creation isn't available yet.</p>
             </div>
           </div>
         </div>
@@ -95,7 +95,7 @@ export default function Ads() {
           <div className="glass-card glass-card--pink rounded-3xl p-6 shadow-sm relative overflow-hidden">
             <div className="relative z-10 space-y-4">
               <div>
-                <span className="text-[9px] font-black text-slate-600 dark:text-zinc-400 uppercase italic tracking-widest">Available Balance</span>
+                <span className="text-[9px] font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-widest">Available Balance</span>
                 <p className="text-3xl font-black text-[#18181b] dark:text-zinc-100 italic mt-1">
                   KES {loading ? '...' : balance.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                 </p>
@@ -122,7 +122,7 @@ export default function Ads() {
                   <h4 className="text-[10px] font-black text-[#18181b] dark:text-zinc-100 uppercase italic flex items-center gap-1.5">
                     <Play size={10} className="text-[#ff1493]" fill="currentColor" /> {obj.title}
                   </h4>
-                  <p className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium leading-normal pl-3.5">{obj.desc}</p>
+                  <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium leading-normal pl-3.5">{obj.desc}</p>
                 </div>
               ))}
             </div>
@@ -134,7 +134,7 @@ export default function Ads() {
               <Zap size={14} className="text-amber-500" fill="currentColor" />
               <span className="text-[9px] font-black text-slate-700 dark:text-zinc-300 uppercase italic">Pro Tip</span>
             </div>
-            <p className="text-[10px] text-slate-600 dark:text-zinc-400 font-medium leading-relaxed">
+            <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium leading-relaxed">
               Boost a post from your profile to reach more students right away.
             </p>
           </div>

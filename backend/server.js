@@ -90,7 +90,7 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token', 'X-Device-Id'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token', 'X-Device-Id', 'X-Admin-Session'],
     // H26 renewal adoption: without this the browser hides x-refresh-token
     // from JS on cross-origin responses and adoptServerToken() is a no-op
     // in every deployed config (UI_AUDIT P0 #21).

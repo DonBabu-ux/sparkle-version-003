@@ -129,7 +129,7 @@ export default function AdvancedSettings() {
             <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-[#ff1493] via-[#fb7185] to-[#ff1493] bg-clip-text text-transparent">
               Advanced Settings
             </h1>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">
+            <p className="text-xs text-slate-500 dark:text-zinc-300">
               Control Centre & System Architecture
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function AdvancedSettings() {
             <h3 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">
               System Control Centre
             </h3>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5 leading-relaxed">
+            <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5 leading-relaxed">
               Fine-tune how Sparkle behaves, protects your data, and interacts with your account. All settings are server-authoritative and synchronized in real-time.
             </p>
           </div>
@@ -152,7 +152,7 @@ export default function AdvancedSettings() {
 
         {/* Search Bar */}
         <div className="relative mb-6">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-zinc-300" />
           <input
             type="text"
             placeholder="Search advanced settings..."
@@ -185,7 +185,7 @@ export default function AdvancedSettings() {
 
         {filteredSections.length === 0 && (
           <div className="text-center py-12 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800">
-            <p className="text-sm text-slate-500 dark:text-zinc-400">
+            <p className="text-sm text-slate-500 dark:text-zinc-300">
               No matching settings found for "{searchQuery}".
             </p>
           </div>

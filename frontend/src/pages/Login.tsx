@@ -1121,7 +1121,7 @@ export default function Login() {
           border-color: rgba(255,255,255,0.12);
           color: #fafafa;
         }
-        .dark .login-input::placeholder { color: #a1a1aa; }
+        .dark .login-input::placeholder { color: #d4d4d8; }
         .dark .login-input:focus {
           border-color: #fb7185;
           background: rgba(255,255,255,0.06);
@@ -1158,7 +1158,7 @@ export default function Login() {
           color: #fb7185 !important;
         }
         .dark .login-pin:focus { border-color: #fb7185 !important; }
-        .dark .login-pin + p { color: #a1a1aa !important; }
+        .dark .login-pin + p { color: #d4d4d8 !important; }
 
         .dark .login-back:hover { color: #fb7185; }
       `}</style>

@@ -494,7 +494,7 @@ const MarketplaceChat = () => {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-gray-900 leading-tight">{opponentName}</span>
-              <span className="text-xs text-gray-500 dark:text-zinc-400">
+              <span className="text-xs text-gray-500 dark:text-zinc-300">
                 @{opponentUsername} • {isOpponentOnline ? <span className="text-green-600 font-medium">Online</span> : 'Offline'}
               </span>
             </div>
@@ -705,7 +705,7 @@ const MarketplaceChat = () => {
                   )}
                   <div className="flex flex-col gap-2">
                     {msg.reply_to_id && (
-                      <div className={`p-2 rounded text-xs border-l-4 ${isMine ? 'bg-blue-700 border-white/50 text-blue-100' : 'bg-gray-50 dark:bg-white/[0.04] border-purple-400 text-gray-500 dark:text-zinc-400'}`}>
+                      <div className={`p-2 rounded text-xs border-l-4 ${isMine ? 'bg-blue-700 border-white/50 text-blue-100' : 'bg-gray-50 dark:bg-white/[0.04] border-purple-400 text-gray-500 dark:text-zinc-300'}`}>
                         <div className="font-bold opacity-80 mb-0.5">Replied to</div>
                         <p className="truncate italic">{messages.find(m => m.id === msg.reply_to_id)?.message_text || "Original message removed"}</p>
                       </div>
@@ -768,19 +768,19 @@ const MarketplaceChat = () => {
                     })()}
                   </div>
                   <div className={`absolute top-0 ${isMine ? '-left-8' : '-right-8'} opacity-0 group-hover:opacity-100 transition-opacity`}>
-                     <button onClick={() => setReplyToMessage(msg)} className="p-1.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-400 rounded-full hover:bg-gray-200"><ArrowLeft size={14} className="rotate-180" /></button>
+                     <button onClick={() => setReplyToMessage(msg)} className="p-1.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-300 rounded-full hover:bg-gray-200"><ArrowLeft size={14} className="rotate-180" /></button>
                   </div>
                   {msg.reactions && msg.reactions.length > 0 && (
                     <div className="absolute -bottom-3 right-2 flex gap-1 bg-white dark:bg-zinc-800 shadow-sm border border-gray-100 dark:border-white/10 rounded-full px-1.5 py-0.5 text-xs z-10">
                       {[...new Set(msg.reactions.map((r: any) => r.reaction))].map((emoji: any, idx) => (<span key={idx} className="cursor-pointer">{emoji}</span>))}
-                      {msg.reactions.length > 1 && <span className="text-gray-500 dark:text-zinc-400 font-bold text-[10px] ml-0.5">{msg.reactions.length}</span>}
+                      {msg.reactions.length > 1 && <span className="text-gray-500 dark:text-zinc-300 font-bold text-[10px] ml-0.5">{msg.reactions.length}</span>}
                     </div>
                   )}
                   {contextMenuId === msg.id && (
                     <div className="absolute top-full mt-1 right-0 bg-white dark:bg-zinc-800 shadow-lg rounded-md border border-gray-200 dark:border-white/10 z-20 overflow-hidden min-w-[150px]">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-white/10 bg-gray-50 dark:bg-zinc-800">
                         {['👍', '❤️', '😂', '🔥', '🙏'].map(emoji => (<button key={emoji} onClick={(e) => { e.stopPropagation(); handleReact(msg.id, emoji); }} className="hover:scale-125 transition-transform">{emoji}</button>))}
-                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 dark:text-zinc-400 transition-colors">➕</button>
+                        <button onClick={(e) => { e.stopPropagation(); setReactingToMessageId(msg.id); setContextMenuId(null); }} className="hover:bg-gray-200 rounded-full p-1 text-gray-500 dark:text-zinc-300 transition-colors">➕</button>
                       </div>
                       {isMine && (
                         <>
@@ -811,7 +811,7 @@ const MarketplaceChat = () => {
              <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-zinc-800 flex items-center justify-center">
                <Smile size={16} className="text-gray-400" />
              </div>
-             <div className="bg-gray-100 dark:bg-zinc-800 rounded-2xl px-4 py-2 text-xs font-bold text-gray-500 dark:text-zinc-400 italic shadow-sm">
+             <div className="bg-gray-100 dark:bg-zinc-800 rounded-2xl px-4 py-2 text-xs font-bold text-gray-500 dark:text-zinc-300 italic shadow-sm">
                {opponentName} is typing...
              </div>
           </div>
@@ -855,7 +855,7 @@ const MarketplaceChat = () => {
              <h4 className="text-base font-black text-slate-900 mb-2 leading-tight">
                {isBlockedByMe ? 'Conversation Blocked' : 'Message Not Sent'}
              </h4>
-             <p className="text-sm font-bold text-slate-500 dark:text-zinc-400 mb-8 leading-relaxed">
+             <p className="text-sm font-bold text-slate-500 dark:text-zinc-300 mb-8 leading-relaxed">
                {isBlockedByMe 
                  ? 'You have blocked this user. Unblock them to continue chatting or delete this conversation.' 
                  : 'Not everyone can message this user. You cannot send messages to this person at this time.'}
@@ -914,7 +914,7 @@ const MarketplaceChat = () => {
             <div className="bg-gray-50 dark:bg-zinc-800 px-4 py-2 flex justify-between items-center border-b border-gray-100 dark:border-white/10 text-sm">
               <div className="flex flex-col overflow-hidden">
                 <span className="text-[10px] font-bold text-blue-600 uppercase">Replying to</span>
-                <p className="text-gray-500 dark:text-zinc-400 truncate italic text-xs">{replyToMessage.message_text || 'Media message'}</p>
+                <p className="text-gray-500 dark:text-zinc-300 truncate italic text-xs">{replyToMessage.message_text || 'Media message'}</p>
               </div>
               <button type="button" onClick={() => setReplyToMessage(null)} className="p-1 hover:bg-gray-200 rounded-full text-gray-400"><ArrowLeft size={16} className="rotate-90" /></button>
             </div>
@@ -932,7 +932,7 @@ const MarketplaceChat = () => {
                     </div>
                   )}
                   <button onClick={() => setStagedMedia(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-2 -right-2 bg-white dark:bg-zinc-800 rounded-full shadow-md p-1 border border-gray-100 dark:border-white/10 hover:bg-gray-100">
-                    <X size={12} className="text-gray-500 dark:text-zinc-400" />
+                    <X size={12} className="text-gray-500 dark:text-zinc-300" />
                   </button>
                 </div>
               ))}

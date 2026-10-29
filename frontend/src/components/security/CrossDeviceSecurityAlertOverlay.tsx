@@ -127,27 +127,27 @@ export const CrossDeviceSecurityAlertOverlay: React.FC = () => {
         <h2 className="text-xl font-bold tracking-tight text-white mb-2">
           Your Sparkle password was changed
         </h2>
-        <p className="text-xs text-zinc-400 leading-relaxed mb-6">
+        <p className="text-xs text-zinc-300 leading-relaxed mb-6">
           This password change happened on another device or session. If this wasn't you, your account may be compromised.
         </p>
 
         {/* Activity Details Card */}
         <div className="w-full p-4 rounded-2xl bg-zinc-800/80 border border-zinc-700/60 text-left space-y-2.5 mb-6 text-xs">
           <div className="flex justify-between items-center">
-            <span className="text-zinc-400">Device</span>
+            <span className="text-zinc-300">Device</span>
             <span className="font-semibold text-zinc-200">{parseDevice(activeAlert.user_agent)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-zinc-400">Time</span>
+            <span className="text-zinc-300">Time</span>
             <span className="font-semibold text-zinc-200">{formattedTime}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-zinc-400">IP Address</span>
+            <span className="text-zinc-300">IP Address</span>
             <span className="font-mono text-zinc-300">{activeAlert.ip_address || 'Unavailable'}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-zinc-400">MAC Address</span>
-            <span className="font-mono text-zinc-500">MAC address unavailable</span>
+            <span className="text-zinc-300">MAC Address</span>
+            <span className="font-mono text-zinc-300">MAC address unavailable</span>
           </div>
         </div>
 

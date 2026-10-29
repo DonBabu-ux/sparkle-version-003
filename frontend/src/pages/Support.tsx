@@ -76,7 +76,7 @@ export default function Support() {
         case 'open': return 'bg-pink-500/10 text-pink-600 dark:text-pink-400';
         case 'in_progress': return 'bg-amber-500/10 text-amber-600 dark:text-amber-400';
         case 'resolved': return 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400';
-        default: return 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-400';
+        default: return 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300';
     }
   };
 
@@ -85,7 +85,7 @@ export default function Support() {
         case 'open': return 'text-[#ff1493]';
         case 'in_progress': return 'text-amber-500';
         case 'resolved': return 'text-emerald-500';
-        default: return 'text-slate-600 dark:text-zinc-400';
+        default: return 'text-slate-600 dark:text-zinc-300';
     }
   };
 
@@ -147,7 +147,7 @@ export default function Support() {
             
             <div className="flex flex-col gap-3">
                 {loading ? (
-                    <div className="p-10 text-center text-slate-600 dark:text-zinc-400">Loading your tickets...</div>
+                    <div className="p-10 text-center text-slate-600 dark:text-zinc-300">Loading your tickets...</div>
                 ) : tickets.length > 0 ? (
                     tickets.map(ticket => (
                         <div 
@@ -161,7 +161,7 @@ export default function Support() {
                                 </div>
                                 <div>
                                     <div className="font-bold text-[#18181b] dark:text-zinc-100">{ticket.subject}</div>
-                                    <div className="text-xs text-slate-600 dark:text-zinc-400 uppercase font-semibold mt-0.5">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</div>
+                                    <div className="text-xs text-slate-600 dark:text-zinc-300 uppercase font-semibold mt-0.5">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</div>
                                 </div>
                             </div>
                             <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${getStatusStyle(ticket.status)}`}>
@@ -171,8 +171,8 @@ export default function Support() {
                     ))
                 ) : (
                     <div className="bg-[#f6eef3] border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-10 text-center flex flex-col items-center">
-                        <MessageCircle size={48} className="text-slate-600 dark:text-zinc-400 mb-3" />
-                        <div className="text-slate-600 dark:text-zinc-400 font-medium">No active support tickets</div>
+                        <MessageCircle size={48} className="text-slate-600 dark:text-zinc-300 mb-3" />
+                        <div className="text-slate-600 dark:text-zinc-300 font-medium">No active support tickets</div>
                         <button onClick={() => setShowForm(true)} className="mt-4 text-[#ff1493] font-bold text-sm">Need help? Create one now</button>
                     </div>
                 )}
@@ -202,11 +202,11 @@ export default function Support() {
                         onClick={() => setShowForm(false)}
                         className="absolute top-6 right-6 p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors"
                     >
-                        <Plus className="rotate-45 text-gray-500 dark:text-zinc-400" size={24} />
+                        <Plus className="rotate-45 text-gray-500 dark:text-zinc-300" size={24} />
                     </button>
 
                     <h2 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 mb-2">Need a hand?</h2>
-                    <p className="text-slate-600 dark:text-zinc-400 mb-8">Tell us what's going on and we'll jump in.</p>
+                    <p className="text-slate-600 dark:text-zinc-300 mb-8">Tell us what's going on and we'll jump in.</p>
 
                     <form className="sup-contact-form" onSubmit={handleSubmit}>
                         <div className="sup-form-field">
@@ -320,15 +320,15 @@ export default function Support() {
         /* Dark mode: these surfaces were authored light-only */
         .dark .sup-hero { background: #27272a; border-color: #3f3f46; box-shadow: none; }
         .dark .sup-hero h1 { color: #f4f4f5; }
-        .dark .sup-hero p { color: #a1a1aa; }
+        .dark .sup-hero p { color: #d4d4d8; }
         .dark .sup-quick-card, .dark .sup-faq-item { background: #27272a; border-color: #3f3f46; }
         .dark .sup-quick-title, .dark .sup-section-header h2, .dark .sup-faq-question, .dark .sup-form-field label { color: #f4f4f5; }
-        .dark .sup-quick-sub, .dark .sup-faq-answer { color: #a1a1aa; }
+        .dark .sup-quick-sub, .dark .sup-faq-answer { color: #d4d4d8; }
         .dark .sup-faq-answer { border-top-color: #18181b; }
-        .dark .sup-quick-arrow { color: #a1a1aa; }
+        .dark .sup-quick-arrow { color: #d4d4d8; }
         .dark .sup-form-field input, .dark .sup-form-field select, .dark .sup-form-field textarea { background: #18181b; border-color: #3f3f46; color: #f4f4f5; }
         .dark .sup-form-field input:focus, .dark .sup-form-field select:focus, .dark .sup-form-field textarea:focus { background: #18181b; }
-        .dark .sup-form-field input::placeholder, .dark .sup-form-field textarea::placeholder { color: #a1a1aa; }
+        .dark .sup-form-field input::placeholder, .dark .sup-form-field textarea::placeholder { color: #d4d4d8; }
 
         .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 

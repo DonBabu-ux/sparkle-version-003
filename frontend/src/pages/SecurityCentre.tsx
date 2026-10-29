@@ -175,7 +175,7 @@ const AppPinSetupModal: React.FC<AppPinSetupModalProps> = ({ onSuccess, onClose 
         </div>
 
         <div className="p-5 space-y-4">
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700/60 text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+          <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/80 border border-slate-200/60 dark:border-zinc-700/60 text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
             Your PIN stays on this device only. It protects opening Sparkle and is never sent to servers.
           </div>
 
@@ -253,7 +253,7 @@ const AppPinSetupModal: React.FC<AppPinSetupModalProps> = ({ onSuccess, onClose 
 
           {step === 'timeout' && (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-slate-500 dark:text-zinc-300">
                 Choose when Sparkle should lock automatically. You can change this anytime.
               </p>
               <div className="space-y-2">
@@ -277,7 +277,7 @@ const AppPinSetupModal: React.FC<AppPinSetupModalProps> = ({ onSuccess, onClose 
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{opt.desc}</p>
+                      <p className="text-[11px] text-slate-400 dark:text-zinc-300 mt-0.5">{opt.desc}</p>
                     </div>
                     {timeout === opt.val && <Check className="w-4 h-4 text-[#ff1493] shrink-0" />}
                   </button>
@@ -348,7 +348,7 @@ const AutoLockTimeoutModal: React.FC<AutoLockTimeoutModalProps> = ({ currentTime
         </div>
 
         <div className="p-5 space-y-2">
-          <p className="text-xs text-slate-500 dark:text-zinc-400 mb-3">
+          <p className="text-xs text-slate-500 dark:text-zinc-300 mb-3">
             Choose how long after leaving Sparkle the app should lock with your PIN.
           </p>
 
@@ -373,7 +373,7 @@ const AutoLockTimeoutModal: React.FC<AutoLockTimeoutModalProps> = ({ currentTime
                     </span>
                   )}
                 </div>
-                <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{opt.desc}</p>
+                <p className="text-[11px] text-slate-400 dark:text-zinc-300 mt-0.5">{opt.desc}</p>
               </div>
               {selected === opt.val && <Check className="w-4 h-4 text-[#ff1493] shrink-0" />}
             </button>
@@ -480,7 +480,7 @@ const AppPinManageModal: React.FC<AppPinManageModalProps> = ({ onUpdate, onOpenT
               <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Auto-Lock Period</p>
-                  <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{getTimeoutLabel(timeout)}</p>
+                  <p className="text-[11px] text-slate-400 dark:text-zinc-300 mt-0.5">{getTimeoutLabel(timeout)}</p>
                 </div>
                 <button
                   type="button"
@@ -587,7 +587,7 @@ const AppPinManageModal: React.FC<AppPinManageModalProps> = ({ onUpdate, onOpenT
 
           {action === 'disable' && (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500 dark:text-zinc-400">
+              <p className="text-xs text-slate-500 dark:text-zinc-300">
                 Enter your current PIN to remove local App PIN protection from this device.
               </p>
               <div>
@@ -712,7 +712,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
         </div>
 
         <div className="p-5 space-y-4">
-          <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">{description}</p>
+          <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">{description}</p>
 
           {destination && (
             <div className="p-2.5 rounded-lg bg-slate-50 dark:bg-zinc-800 text-xs font-medium text-slate-600 dark:text-zinc-300">
@@ -759,7 +759,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-center text-xl font-bold tracking-widest text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500/40"
                   autoFocus
                 />
-                <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-500 text-center">
+                <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-300 text-center">
                   Code expires in 10 minutes
                 </p>
               </div>
@@ -774,7 +774,7 @@ const OTPModal: React.FC<OTPModalProps> = ({
               <button
                 onClick={handleSend}
                 disabled={sending || cooldown > 0}
-                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
+                className="w-full text-xs text-slate-400 dark:text-zinc-300 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
               >
                 {sending ? 'Sending…' : cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
@@ -950,7 +950,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
           {/* Step 1: Choose verification factor */}
           {step === 'choose_factor' && (
             <>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
                 {description || 'For your security, verify your identity using one of your enrolled authentication methods to turn off two-factor authentication.'}
               </p>
 
@@ -978,11 +978,11 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                       }`}
                     >
                       <div className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-700 flex items-center justify-center shrink-0">
-                        <f.icon className="w-4 h-4 text-slate-500 dark:text-zinc-400" />
+                        <f.icon className="w-4 h-4 text-slate-500 dark:text-zinc-300" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">{f.label}</p>
-                        <p className="text-[11px] text-slate-400 dark:text-zinc-500 mt-0.5">{f.desc}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-300 mt-0.5">{f.desc}</p>
                       </div>
                       {selectedFactor === f.key && loading ? (
                         <Spinner size="medium" className="w-4 h-4 text-[#ff1493] shrink-0" />
@@ -992,7 +992,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                     </button>
                   ))}
                   {factorOptions.filter(f => f.available).length === 0 && (
-                    <p className="text-xs text-slate-400 dark:text-zinc-500 text-center py-4">
+                    <p className="text-xs text-slate-400 dark:text-zinc-300 text-center py-4">
                       No verification factors are available. Please contact support.
                     </p>
                   )}
@@ -1012,7 +1012,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
           {/* Step 2: Enter verification code */}
           {step === 'enter_code' && (
             <>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
                 {selectedFactor === 'recovery_code'
                   ? 'Enter one of your single-use recovery backup codes. This code will be permanently burned after use.'
                   : `A 6-digit verification code has been sent to ${destinationMasked || 'your registered contact'}. Enter it below.`
@@ -1040,7 +1040,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                   autoFocus
                 />
                 {selectedFactor !== 'recovery_code' && (
-                  <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-500 text-center">
+                  <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-300 text-center">
                     Code expires in 10 minutes
                   </p>
                 )}
@@ -1070,7 +1070,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                   type="button"
                   onClick={() => handleInitiate(selectedFactor)}
                   disabled={loading || cooldown > 0}
-                  className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
+                  className="w-full text-xs text-slate-400 dark:text-zinc-300 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
                 >
                   {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
                 </button>
@@ -1086,7 +1086,7 @@ const Disable2FAModal: React.FC<Disable2FAModalProps> = ({ title, description, p
                   <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                 </div>
                 <p className="text-sm font-bold text-slate-900 dark:text-zinc-100 text-center mb-1">Identity verified</p>
-                <p className="text-xs text-slate-500 dark:text-zinc-400 text-center leading-relaxed max-w-[250px]">
+                <p className="text-xs text-slate-500 dark:text-zinc-300 text-center leading-relaxed max-w-[250px]">
                   You've confirmed your identity. Are you sure you want to turn off two-factor authentication?
                 </p>
               </div>
@@ -1226,7 +1226,7 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
 
           {step === 'enter_email' && (
             <>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
                 Enter an alternate email address to use for two-factor authentication. A 6-digit verification code will be sent to this email.
               </p>
               <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/20 border border-blue-200/60 dark:border-blue-800/30 text-[11px] text-blue-700 dark:text-blue-300">
@@ -1262,7 +1262,7 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
 
           {step === 'verify_code' && (
             <>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+              <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
                 Enter the 6-digit code sent to <span className="text-[#ff1493] font-semibold">{email}</span>.
               </p>
               <div>
@@ -1277,7 +1277,7 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
                   className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 text-center text-xl font-bold tracking-widest text-slate-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-pink-500/40"
                   autoFocus
                 />
-                <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-500 text-center">Code expires in 10 minutes</p>
+                <p className="mt-1.5 text-[11px] text-slate-400 dark:text-zinc-300 text-center">Code expires in 10 minutes</p>
               </div>
               <div className="flex gap-2">
                 <button type="button" onClick={() => { setStep('enter_email'); setCode(''); setError(null); }} className="flex-1 h-10 rounded-xl text-xs font-medium bg-slate-100 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 transition-colors">
@@ -1297,7 +1297,7 @@ const AlternateEmailModal: React.FC<AlternateEmailModalProps> = ({ onSuccess, on
                 type="button"
                 onClick={handleRequest}
                 disabled={loading || cooldown > 0}
-                className="w-full text-xs text-slate-400 dark:text-zinc-500 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
+                className="w-full text-xs text-slate-400 dark:text-zinc-300 hover:text-slate-600 dark:hover:text-zinc-300 text-center py-1 transition-colors disabled:opacity-50"
               >
                 {cooldown > 0 ? `Resend code (${cooldown}s)` : 'Resend code'}
               </button>
@@ -1379,7 +1379,7 @@ const RecoveryGenerateModal: React.FC<RecoveryGenerateModalProps> = ({ onGenerat
 
         {step === 'confirm' && (
           <form onSubmit={handleGenerate} className="p-5 space-y-4">
-            <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+            <p className="text-xs text-slate-500 dark:text-zinc-300 leading-relaxed">
               Recovery codes let you access your account if you lose access to your other verification methods. Each code can only be used once.
             </p>
             <div className="p-3 rounded-xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-xs text-amber-700 dark:text-amber-400">
@@ -1611,7 +1611,7 @@ export default function SecurityCentre() {
           </button>
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-zinc-100">Security Centre</h1>
-            <p className="text-xs text-slate-500 dark:text-zinc-400">Protect Sparkle on this device and across your account</p>
+            <p className="text-xs text-slate-500 dark:text-zinc-300">Protect Sparkle on this device and across your account</p>
           </div>
         </div>
 
@@ -1632,14 +1632,14 @@ export default function SecurityCentre() {
           <>
             {/* Architectural Distinction Banner */}
             <div className="mb-5 p-4 rounded-2xl bg-white dark:bg-zinc-900/90 border border-slate-200/80 dark:border-zinc-800/80 shadow-sm">
-              <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-3">Two Layers of Protection</p>
+              <p className="text-[11px] font-bold text-slate-400 dark:text-zinc-300 uppercase tracking-widest mb-3">Two Layers of Protection</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="p-3 rounded-xl bg-slate-50 dark:bg-zinc-800/50 border border-slate-200/60 dark:border-zinc-700/60">
                   <div className="w-8 h-8 rounded-full bg-pink-500/10 flex items-center justify-center mb-2">
                     <Lock className="w-4 h-4 text-[#ff1493]" />
                   </div>
                   <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">1. App PIN (Device)</p>
-                  <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 leading-snug">
+                  <p className="text-[10px] text-slate-400 dark:text-zinc-300 mt-1 leading-snug">
                     Protects Sparkle on this device. Stays on this device and is never sent to servers.
                   </p>
                 </div>
@@ -1648,7 +1648,7 @@ export default function SecurityCentre() {
                     <Shield className="w-4 h-4 text-blue-500" />
                   </div>
                   <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">2. Account 2FA</p>
-                  <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-1 leading-snug">
+                  <p className="text-[10px] text-slate-400 dark:text-zinc-300 mt-1 leading-snug">
                     Protects your identity when logging in from any browser or phone anywhere in the world.
                   </p>
                 </div>
@@ -1690,7 +1690,7 @@ export default function SecurityCentre() {
                     <h4 className="text-sm font-semibold text-slate-900 dark:text-zinc-100">Account 2FA Status</h4>
                     <StatusDot active={is2FAActive} />
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-zinc-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-zinc-300 mt-0.5">
                     {is2FAActive
                       ? 'Extra sign-in protection is active.'
                       : 'Not enabled. Your account relies only on password.'}
@@ -1806,7 +1806,7 @@ export default function SecurityCentre() {
                 <Key className="w-4 h-4 shrink-0 text-blue-500 mt-0.5" />
                 <div className="space-y-1">
                   <p className="font-semibold text-slate-800 dark:text-zinc-200">How to use recovery codes:</p>
-                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-relaxed">
                     If you lose access to your phone or email, tap <strong className="text-[#ff1493] font-semibold">"Lost your device? Use a recovery backup code"</strong> on the sign-in screen. Each backup code is 10 characters, single-use, and is permanently burned after you sign in.
                   </p>
                 </div>
@@ -1836,7 +1836,7 @@ export default function SecurityCentre() {
                   />
                 ))
               ) : (
-                <div className="px-4 py-4 text-xs text-slate-400 dark:text-zinc-500 text-center">
+                <div className="px-4 py-4 text-xs text-slate-400 dark:text-zinc-300 text-center">
                   1 active session (this device)
                 </div>
               )}

@@ -243,7 +243,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
         {/* Header */}
         <div className="p-6 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase tracking-widest italic">
+            <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase tracking-widest italic">
               {step === 1 ? 'Step 1 of 2' : step === 2 ? 'Step 2 of 2' : 'Processing'}
             </p>
             <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Add Funds</h2>
@@ -439,7 +439,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
         className="bg-white dark:bg-zinc-800 border border-[#ff1493]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-800">
           <div>
-            <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase tracking-widest italic">Creator Payout</p>
+            <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase tracking-widest italic">Creator Payout</p>
             <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Withdraw</h2>
           </div>
           <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-100 transition-colors">
@@ -505,7 +505,7 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
                         placeholder="Enter account number"
                         className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm" />
                       <button onClick={resolveAccount} disabled={resolving || !accountNumber || !bankCode}
-                        className="px-3 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-slate-500 dark:text-zinc-400 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
+                        className="px-3 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-slate-500 dark:text-zinc-300 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
                         {resolving ? <Spinner size="small" /> : <CheckCircle2 size={14} />}
                       </button>
                     </div>
@@ -726,7 +726,7 @@ export default function ProfessionalDashboard() {
           <div className="relative p-6 md:p-8">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-[0.25em] italic">Creator Wallet</p>
+                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-[0.25em] italic">Creator Wallet</p>
                 <p className="text-[9px] font-bold text-[#ff1493] mt-0.5 uppercase italic">{user?.name || 'Creator'} · KES</p>
               </div>
               <div className="w-10 h-10 rounded-xl glass flex items-center justify-center border border-[#ff1493]/10">
@@ -736,7 +736,7 @@ export default function ProfessionalDashboard() {
 
             {/* Balance */}
             <div className="mb-8">
-              <p className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-2">Available Balance</p>
+              <p className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-2">Available Balance</p>
               {loadingWallet ? (
                 <Skeleton className="h-12 w-48 bg-slate-200/50 dark:bg-white/[0.06]" />
               ) : (
@@ -781,7 +781,7 @@ export default function ProfessionalDashboard() {
                   { label: 'Total Earned',    value: wallet.lifetime_earnings },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{stat.label}</p>
+                    <p className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{stat.label}</p>
                     <p className="text-sm font-black text-slate-900 italic mt-0.5">{formatKES(stat.value)}</p>
                   </div>
                 ))}
@@ -792,12 +792,12 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 2: Revenue Analytics ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Revenue Analytics</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Revenue Analytics</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {revenueCards.map((card, i) => (
               <motion.div key={i} whileHover={{ y: -3, scale: 1.02 }}
                 className="glass rounded-2xl p-4 cursor-pointer transition-all shadow-sm border-slate-100 hover:border-[#ff1493]/20">
-                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{card.label}</p>
+                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{card.label}</p>
                 {loadingWallet ? (
                   <Skeleton className="h-7 w-24 mt-2 bg-slate-200/50 dark:bg-white/[0.06]" />
                 ) : (
@@ -820,7 +820,7 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 3: Creator Insights ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Creator Insights</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Creator Insights</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
               { label: 'Profile Visits',   value: stats.profileViews,    icon: <Eye size={16} />,            color: '#ff1493' },
@@ -832,7 +832,7 @@ export default function ProfessionalDashboard() {
             ].map((item, i) => (
               <motion.div key={i} whileHover={{ y: -2 }} className="glass rounded-2xl p-4 cursor-pointer shadow-sm border-slate-100 hover:border-[#ff1493]/20">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[9px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{item.label}</p>
+                  <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{item.label}</p>
                   <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-zinc-800 flex items-center justify-center border border-[#ff1493]/5" style={{ color: item.color }}>
                     {item.icon}
                   </div>
@@ -856,7 +856,7 @@ export default function ProfessionalDashboard() {
           <div className="flex justify-between items-start mb-5">
             <div>
               <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight leading-none">Monetization</h2>
-              <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black italic uppercase mt-1 tracking-widest">Creator Earnings Overview</p>
+              <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black italic uppercase mt-1 tracking-widest">Creator Earnings Overview</p>
             </div>
             <div className="w-10 h-10 glass rounded-xl flex items-center justify-center text-[#ff1493] border-slate-100">
               <DollarSign size={18} strokeWidth={2.5} />
@@ -871,7 +871,7 @@ export default function ProfessionalDashboard() {
               { label: 'Est. Next Payout',    value: Math.round((wallet?.available_balance || 0) * 0.9), color: '#a855f7' },
             ].map((item, i) => (
               <div key={i} className="bg-slate-50 dark:bg-zinc-800 rounded-xl p-3 border border-slate-200/50">
-                <p className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic">{item.label}</p>
+                <p className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{item.label}</p>
                 {loadingWallet ? (
                   <Skeleton className="h-6 w-20 mt-1.5 bg-slate-200/50 dark:bg-white/[0.06]" />
                 ) : (
@@ -904,7 +904,7 @@ export default function ProfessionalDashboard() {
           <div className="flex justify-between items-center mb-5">
             <div>
               <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Transactions</h2>
-              <p className="text-[9px] text-slate-500 dark:text-zinc-400 font-black uppercase italic tracking-widest mt-0.5">Recent Activity</p>
+              <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase italic tracking-widest mt-0.5">Recent Activity</p>
             </div>
             <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
               <RefreshCw size={14} className="text-slate-600 dark:text-zinc-300" />
@@ -922,7 +922,7 @@ export default function ProfessionalDashboard() {
           ) : (
             <div className="text-center py-12">
               <Wallet size={32} className="text-slate-400 mx-auto mb-3" />
-              <p className="text-[11px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">No transactions yet</p>
+              <p className="text-[11px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">No transactions yet</p>
               <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium mt-1">Add funds to get started</p>
               <button onClick={() => setShowDeposit(true)}
                 className="mt-4 px-6 py-2.5 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#ff1493]/30 hover:scale-105 transition-all">
@@ -933,7 +933,7 @@ export default function ProfessionalDashboard() {
 
           {transactions.length > 0 && (
             <button onClick={() => navigate('/wallet/history')}
-              className="mt-4 w-full py-3 glass rounded-xl text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic hover:text-[#ff1493] hover:bg-[#ff1493]/5 transition-all border-slate-100 hover:border-[#ff1493]/20">
+              className="mt-4 w-full py-3 glass rounded-xl text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic hover:text-[#ff1493] hover:bg-[#ff1493]/5 transition-all border-slate-100 hover:border-[#ff1493]/20">
               View All Transactions
             </button>
           )}
@@ -965,7 +965,7 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 7: Quick Actions ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase tracking-widest italic mb-3">Quick Actions</h2>
+          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Quick Actions</h2>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
             {quickActions.map((action, i) => (
               <motion.button key={i} onClick={action.onClick} whileHover={{ y: -3, scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -986,7 +986,7 @@ export default function ProfessionalDashboard() {
           className="glass rounded-3xl p-6 shadow-sm border-slate-100">
           <div className="flex justify-between items-center mb-5">
             <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Content Performance</h2>
-            <span className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
+            <span className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
           </div>
           <div className="flex items-center gap-6">
             <div className="relative w-20 h-20 shrink-0">
@@ -1010,7 +1010,7 @@ export default function ProfessionalDashboard() {
               ].map((item, i) => (
                 <div key={i} className="space-y-1">
                   <div className="flex justify-between text-[9px]">
-                    <span className="font-black text-slate-500 dark:text-zinc-400 uppercase italic">{item.label}</span>
+                    <span className="font-black text-slate-500 dark:text-zinc-300 uppercase italic">{item.label}</span>
                     <span className="font-black italic" style={{ color: item.color }}>{item.pct}%</span>
                   </div>
                   <div className="h-1.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
@@ -1040,7 +1040,7 @@ export default function ProfessionalDashboard() {
               <div className={`w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/[0.04] ${item.color} flex items-center justify-center border border-slate-100`}>
                 {item.icon}
               </div>
-              <span className="text-[8px] font-black text-slate-500 dark:text-zinc-400 uppercase italic tracking-widest text-center">{item.label}</span>
+              <span className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase italic tracking-widest text-center">{item.label}</span>
             </motion.button>
           ))}
         </div>

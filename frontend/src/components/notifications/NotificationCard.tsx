@@ -17,7 +17,7 @@ const TYPE_ICON_MAP: Record<string, { Icon: React.ElementType; color: string }> 
   story:    { Icon: BookOpen,      color: 'text-orange-500' },
   payment:  { Icon: DollarSign,    color: 'text-amber-500' },
   verified: { Icon: BadgeCheck,    color: 'text-blue-400' },
-  default:  { Icon: Bell,          color: 'text-zinc-400' },
+  default:  { Icon: Bell,          color: 'text-zinc-300' },
 };
 
 function getTypeIcon(type: string) {
@@ -161,7 +161,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
 
           <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
             <PriorityBadge priority={notification.priority} />
-            <span className="text-[10px] capitalize px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+            <span className="text-[10px] capitalize px-2 py-0.5 rounded-md bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-300">
               {notification.category}
             </span>
           </div>
@@ -171,7 +171,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
         <button
           type="button"
           onClick={() => handleNotificationClick(notification)}
-          className="text-left font-bold text-[13px] text-zinc-500 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-zinc-200 leading-normal focus:outline-none w-full"
+          className="text-left font-bold text-[13px] text-zinc-300 dark:text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-200 leading-normal focus:outline-none w-full"
         >
           {notification.body}
         </button>
@@ -189,7 +189,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
                     ? 'bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white shadow-md'
                     : act.style === 'secondary'
                     ? 'bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 border border-zinc-200 dark:border-zinc-700'
-                    : 'bg-transparent text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800/30'}
+                    : 'bg-transparent text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800/30'}
                 `}
                 aria-label={`Action: ${act.label}`}
               >
@@ -201,7 +201,7 @@ export const NotificationCard: React.FC<NotificationCardProps> = ({ notification
         )}
 
         {/* Timestamp — 400 weight, xs */}
-        <span className="text-xs text-zinc-400 dark:text-zinc-500 mt-1.5 self-end" style={{ fontWeight: 400 }}>
+        <span className="text-xs text-zinc-300 dark:text-zinc-300 mt-1.5 self-end" style={{ fontWeight: 400 }}>
           {formattedTime(notification.createdAt)}
         </span>
       </div>
@@ -276,7 +276,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
               {first.body}
             </p>
           </div>
-          <span className="text-[11px] text-zinc-400 dark:text-zinc-500" style={{ fontWeight: 400 }}>
+          <span className="text-[11px] text-zinc-300 dark:text-zinc-300" style={{ fontWeight: 400 }}>
             {formattedTime(first.createdAt)}
           </span>
         </div>
@@ -290,7 +290,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded(v => !v); }}
-          className="flex-shrink-0 self-start p-1 text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
+          className="flex-shrink-0 self-start p-1 text-zinc-300 hover:text-zinc-700 dark:hover:text-zinc-200 transition-colors"
           aria-label={expanded ? 'Collapse' : 'Expand'}
         >
           {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
@@ -313,7 +313,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
                 <img src={avatar} alt={name || ''} className="w-8 h-8 rounded-full object-cover border border-zinc-200 dark:border-zinc-700 flex-shrink-0" />
                 <span className="text-sm text-[#18181b] dark:text-white truncate" style={{ fontWeight: 700 }}>{name}</span>
                 {username && (
-                  <span className="text-xs text-zinc-400 dark:text-zinc-500 truncate ml-1" style={{ fontWeight: 400 }}>@{username}</span>
+                  <span className="text-xs text-zinc-300 dark:text-zinc-300 truncate ml-1" style={{ fontWeight: 400 }}>@{username}</span>
                 )}
               </div>
             );
@@ -322,7 +322,7 @@ export const GroupedNotificationCard: React.FC<GroupedNotificationCardProps> = (
             <button
               type="button"
               onClick={() => setExpanded(false)}
-              className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-semibold transition-colors"
+              className="text-xs text-zinc-300 hover:text-zinc-800 dark:hover:text-zinc-200 font-semibold transition-colors"
             >
               Hide
             </button>

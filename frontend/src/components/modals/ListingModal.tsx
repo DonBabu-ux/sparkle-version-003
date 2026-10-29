@@ -94,22 +94,22 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
             <span className="font-heading font-black text-xl text-[#18181b] dark:text-zinc-100 tracking-tighter uppercase italic">Create Listing</span>
           </div>
         </div>
-        <button className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:bg-[#e7dae3] dark:hover:bg-zinc-600 hover:text-[#18181b] dark:hover:text-zinc-100 transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
+        <button className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#e7dae3] dark:hover:bg-zinc-600 hover:text-[#18181b] dark:hover:text-zinc-100 transition-all lg:flex hidden" onClick={onClose}><X size={18} strokeWidth={3}/></button>
       </div>
 
       <div className="modal-body p-8 space-y-8">
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em] flex items-center gap-3"><Package size={14} strokeWidth={3} /> Item Name</label>
           <input type="text" placeholder="e.g. Psychology Textbook..." className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
 
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
+            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em] flex items-center gap-3"><DollarSign size={14} strokeWidth={3} /> Price</label>
             <input type="number" placeholder="0.00" className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all" value={price} onChange={(e) => setPrice(e.target.value)} />
           </div>
           <div className="space-y-3">
-            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
+            <label className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em] flex items-center gap-3"><Tag size={14} strokeWidth={3} /> Category</label>
             <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all appearance-none cursor-pointer">
               <option value="student_market">Student Market</option>
               <option value="blackmarket">Black Market</option>
@@ -120,12 +120,12 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
         </div>
 
         <div className="space-y-3">
-          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em]">Detailed description</label>
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em]">Detailed description</label>
           <textarea placeholder="State condition, pick-up location, etc..." className="w-full p-5 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl outline-none font-bold text-[#18181b] dark:text-zinc-100 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 focus:border-[#ff1493] transition-all min-h-[120px] resize-none" value={description} onChange={(e) => setDescription(e.target.value)} />
         </div>
 
         <div className="space-y-4">
-          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-400 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
+          <label className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.2em] flex items-center gap-3"><Camera size={14} strokeWidth={3} /> Media Attachments</label>
           <div className="flex gap-4 flex-wrap">
             {previews.map((p, i) => (
               <div key={i} className="relative w-20 h-20 rounded-2xl overflow-hidden border border-[#ede3e9] dark:border-zinc-900 group">
@@ -134,7 +134,7 @@ export default function ListingModal({ onClose, onSuccess }: ListingModalProps) 
               </div>
             ))}
             {previews.length < 4 && (
-              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 hover:border-[#e6d8e1] dark:hover:border-zinc-600 hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all" onClick={() => fileRef.current?.click()}>
+              <button className="w-20 h-20 rounded-2xl border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 hover:border-[#e6d8e1] dark:hover:border-zinc-600 hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all" onClick={() => fileRef.current?.click()}>
                 <Plus size={24} strokeWidth={3} />
                 <input type="file" ref={fileRef} hidden multiple accept="image/*" onChange={handleFile} />
               </button>

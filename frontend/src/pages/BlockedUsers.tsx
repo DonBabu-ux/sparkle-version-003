@@ -65,7 +65,7 @@ export default function BlockedUsers() {
           </button>
           <div>
             <h1 className="text-2xl font-black text-slate-900 tracking-tight">Blocked Users</h1>
-            <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1">Manage accounts you have restricted from interacting with you</p>
+            <p className="text-slate-500 dark:text-zinc-300 text-sm mt-1">Manage accounts you have restricted from interacting with you</p>
           </div>
         </div>
 
@@ -86,7 +86,7 @@ export default function BlockedUsers() {
           {loading ? (
             <div className="p-12 flex flex-col items-center justify-center gap-4">
               <Spinner size="medium" color="text-primary" />
-              <p className="text-slate-500 dark:text-zinc-400 text-sm font-medium">Loading blocked users...</p>
+              <p className="text-slate-500 dark:text-zinc-300 text-sm font-medium">Loading blocked users...</p>
             </div>
           ) : filteredUsers.length > 0 ? (
             <div className="divide-y divide-slate-50">
@@ -100,7 +100,7 @@ export default function BlockedUsers() {
                     />
                     <div>
                       <h3 className="font-bold text-slate-800 text-sm">{user.name}</h3>
-                      <p className="text-slate-500 dark:text-zinc-400 text-xs">@{user.username}</p>
+                      <p className="text-slate-500 dark:text-zinc-300 text-xs">@{user.username}</p>
                     </div>
                   </div>
                   <button 
@@ -118,7 +118,7 @@ export default function BlockedUsers() {
                 <UserX size={32} />
               </div>
               <h3 className="font-bold text-slate-800">No Blocked Users</h3>
-              <p className="text-slate-500 dark:text-zinc-400 text-sm mt-1 max-w-xs">
+              <p className="text-slate-500 dark:text-zinc-300 text-sm mt-1 max-w-xs">
                 {searchQuery ? `No users matching "${searchQuery}" found in your block list.` : "You haven't blocked any users yet. When you block someone, they will appear here."}
               </p>
             </div>

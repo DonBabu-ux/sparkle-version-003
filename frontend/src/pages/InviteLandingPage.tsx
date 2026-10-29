@@ -120,7 +120,7 @@ export default function InviteLandingPage() {
     return (
       <div className="min-h-screen bg-[#0a0a0c] text-white flex flex-col items-center justify-center p-4">
         <Spinner size="xl" color="#ff006e" className="w-12 h-12 mb-4" />
-        <p className="text-zinc-400 text-sm font-medium">Validating Sparkle invite...</p>
+        <p className="text-zinc-300 text-sm font-medium">Validating Sparkle invite...</p>
       </div>
     );
   }

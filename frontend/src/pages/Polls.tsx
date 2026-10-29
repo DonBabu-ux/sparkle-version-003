@@ -308,7 +308,7 @@ export default function Polls() {
                   
                   <div className="flex justify-between items-center gap-4 mb-4 relative z-10">
                      <div className="flex items-center gap-2">
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 rounded-xl text-[10px] font-semibold text-gray-500 dark:text-zinc-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-zinc-800 rounded-xl text-[10px] font-semibold text-gray-500 dark:text-zinc-300 uppercase tracking-wider">
                           <Calendar size={12} strokeWidth={2.5} /> {new Date(poll.created_at).toLocaleDateString()}
                        </div>
                        {(poll.engagement_score ?? 0) > 10 ? (
@@ -336,7 +336,7 @@ export default function Polls() {
                      {poll.question}
                   </h3>
 
-                  <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500 dark:text-zinc-400">
+                  <div className="flex items-center gap-2 mb-6 relative z-10 text-[11px] font-semibold text-gray-500 dark:text-zinc-300">
                      {!poll.is_anonymous && (
                        <img src={poll.creator_avatar || '/uploads/avatars/no-profile.png'} className="w-4 h-4 rounded-full" alt="" />
                      )}

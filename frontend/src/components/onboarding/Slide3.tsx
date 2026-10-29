@@ -88,7 +88,7 @@ export default function Slide3({ onNext, onBack }: SlideProps) {
         <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white mb-1.5">
           Popular <span className="text-[#ff2d87]">Creators.</span>
         </h1>
-        <p className="text-sm font-normal text-slate-500 dark:text-zinc-400 max-w-[42ch]">
+        <p className="text-sm font-normal text-slate-500 dark:text-zinc-300 max-w-[42ch]">
           Follow creators to instantly seed your feed with campus updates.
         </p>
       </div>
@@ -96,16 +96,16 @@ export default function Slide3({ onNext, onBack }: SlideProps) {
       {loading ? (
         <div className="flex flex-col items-center justify-center py-14 gap-3">
           <Spinner size="large" className="text-[#ff2d87]" />
-          <span className="text-sm font-medium text-slate-400 dark:text-zinc-400">Loading campus creators...</span>
+          <span className="text-sm font-medium text-slate-400 dark:text-zinc-300">Loading campus creators...</span>
         </div>
       ) : creators.length === 0 ? (
         <div className="text-center py-10 bg-slate-50 dark:bg-zinc-900/50 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 mb-6">
-          <p className="text-slate-500 dark:text-zinc-400 font-medium text-sm">No creators found right now.</p>
+          <p className="text-slate-500 dark:text-zinc-300 font-medium text-sm">No creators found right now.</p>
         </div>
       ) : (
         <>
           <div className="flex justify-between items-center mb-3 px-1">
-            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-400 dark:text-zinc-300 uppercase tracking-wider">
               {creators.length} Suggested
             </span>
             <button
@@ -144,7 +144,7 @@ export default function Slide3({ onNext, onBack }: SlideProps) {
                         <p className="text-xs text-[#ff2d87] font-medium truncate">
                           @{c.username}
                         </p>
-                        <p className="text-[11px] text-slate-400 dark:text-zinc-500 truncate">
+                        <p className="text-[11px] text-slate-400 dark:text-zinc-300 truncate">
                           {c.headline || `${c.follower_count || 0} followers`}
                         </p>
                       </div>

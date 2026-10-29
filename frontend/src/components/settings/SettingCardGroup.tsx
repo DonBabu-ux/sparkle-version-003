@@ -14,7 +14,7 @@ export const SettingCardGroup: React.FC<SettingCardGroupProps> = ({
   return (
     <div className={`mb-6 ${className}`}>
       {title && (
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-400 mb-2 px-1">
+        <h3 className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-zinc-300 mb-2 px-1">
           {title}
         </h3>
       )}

@@ -44,7 +44,7 @@ export const OnboardingProgressCard: React.FC = () => {
           <h4 role="heading" aria-level={4} className="font-extrabold text-zinc-900 dark:text-white text-base sm:text-lg">
              Profile Completed!
           </h4>
-          <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400">
+          <p className="text-xs sm:text-sm text-zinc-300 dark:text-zinc-300">
             You're all set up! Find people to follow and share your first Spark.
           </p>
           <button
@@ -74,11 +74,11 @@ export const OnboardingProgressCard: React.FC = () => {
           </div>
 
           {/* Step suggestions / check list */}
-          <div className="grid grid-cols-2 gap-2 text-xs text-zinc-500 dark:text-zinc-400 mt-1">
+          <div className="grid grid-cols-2 gap-2 text-xs text-zinc-300 dark:text-zinc-300 mt-1">
             {stats.steps.map((st, idx) => (
               <div key={idx} className="flex items-center gap-2">
                 <span className={`w-2 h-2 rounded-full ${st.done ? 'bg-green-500 shadow-sm shadow-green-500/50' : 'bg-zinc-300 dark:bg-zinc-700'}`} />
-                <span className={st.done ? 'line-through text-zinc-400 dark:text-zinc-600' : ''}>
+                <span className={st.done ? 'line-through text-zinc-300 dark:text-zinc-600' : ''}>
                   {st.name}
                 </span>
               </div>

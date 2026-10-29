@@ -135,12 +135,12 @@ export default function Events() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full mb-4">
                 <Calendar size={14} className="text-primary" />
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wide">Campus events</span>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">Campus events</span>
               </div>
               <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">
                 Events
               </h1>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1.5 max-w-xl">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 mt-1.5 max-w-xl">
                 Workshops, gatherings and parties happening at {user?.campus || 'your campus'}. Create one and invite people.
               </p>
             </div>
@@ -165,7 +165,7 @@ export default function Events() {
                 className={`px-4 py-2 rounded-full text-xs font-bold transition-colors whitespace-nowrap border ${
                   activeTab === tab.key
                     ? 'bg-primary border-primary text-white'
-                    : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                    : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100'
                 }`}
               >
                 {tab.label}
@@ -174,13 +174,13 @@ export default function Events() {
           </div>
 
           <div className="relative w-full lg:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300" size={16} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search events..."
-              className="w-full h-10 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+              className="w-full h-10 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-300 focus:border-primary outline-none transition-colors"
             />
           </div>
         </div>
@@ -193,9 +193,9 @@ export default function Events() {
             ))
           ) : events.length === 0 ? (
             <div className="py-16 flex flex-col items-center text-center px-6 bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl">
-              <Calendar size={40} className="text-slate-600 dark:text-zinc-400 mb-3" />
+              <Calendar size={40} className="text-slate-600 dark:text-zinc-300 mb-3" />
               <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 mb-1">No events yet</h3>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 max-w-sm">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 max-w-sm">
                 Nothing happening here right now. Create an event and your campus can join.
               </p>
               <button
@@ -228,7 +228,7 @@ export default function Events() {
                             <Calendar size={20} />
                           </div>
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-zinc-400 mb-0.5">
+                            <div className="flex items-center gap-2 text-[11px] text-slate-600 dark:text-zinc-300 mb-0.5">
                               {ev.username && <span>Hosted by @{ev.username}</span>}
                               {ev.username && ev.campus && <span className="w-1 h-1 rounded-full bg-slate-600 dark:bg-zinc-400" />}
                               <span>{ev.campus || 'Campus event'}</span>
@@ -238,17 +238,17 @@ export default function Events() {
                         </div>
 
                         <div className="flex flex-wrap items-center gap-2 mt-4">
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-300">
                             <Clock size={13} className="text-primary" />
                             {new Date(ev.start_time).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
                           </div>
-                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                          <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-300">
                             <Users size={13} className="text-primary" />
                             {ev.total_rsvps || 0} going
                           </div>
                           {ev.max_attendees && ev.max_attendees > 0 && (
                             <div className="flex-1 min-w-[180px] pt-1">
-                              <div className="flex items-center justify-between mb-1 text-[11px] text-slate-600 dark:text-zinc-400">
+                              <div className="flex items-center justify-between mb-1 text-[11px] text-slate-600 dark:text-zinc-300">
                                 <span>Spots filled</span>
                                 <span>{progress}%</span>
                               </div>
@@ -313,7 +313,7 @@ export default function Events() {
                           )}
                           <button
                             onClick={() => toggleReqs(ev.event_id)}
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${isExpanded ? 'bg-[#18181b] dark:bg-zinc-100 border-transparent text-white dark:text-zinc-900' : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary'}`}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors border ${isExpanded ? 'bg-[#18181b] dark:bg-zinc-100 border-transparent text-white dark:text-zinc-900' : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-primary'}`}
                           >
                             <ChevronDown size={16} className={`transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
                           </button>
@@ -324,9 +324,9 @@ export default function Events() {
                     {isExpanded && (
                       <div className="mt-5 pt-5 border-t border-[#ede3e9] dark:border-zinc-900">
                         <h4 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Requirements</h4>
-                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mb-3">What to bring or know before you go.</p>
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 mb-3">What to bring or know before you go.</p>
                         <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-4 border border-[#e6d8e1] dark:border-zinc-700">
-                          <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed whitespace-pre-wrap">
+                          <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
                             {ev.requirements || 'No specific requirements listed for this event.'}
                           </p>
                         </div>
@@ -345,7 +345,7 @@ export default function Events() {
         <div className="fixed inset-0 z-(--z-modal) flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm" onClick={() => setPassQr(null)}>
           <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 max-w-xs w-full text-center border border-[#e6d8e1] dark:border-zinc-700 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <h3 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-0.5">{passQr.title}</h3>
-            <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Show this pass at the door</p>
+            <p className="text-xs text-slate-600 dark:text-zinc-300 mb-4">Show this pass at the door</p>
             <img src={passQr.src} alt="Access pass QR code" className="mx-auto w-56 h-56 rounded-2xl" />
             <button
               onClick={() => setPassQr(null)}

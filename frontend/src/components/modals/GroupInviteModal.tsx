@@ -92,7 +92,7 @@ export default function GroupInviteModal({ groupId, groupName, onClose }: GroupI
             onClick={onClose}
             className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-50 dark:bg-zinc-800 hover:bg-gray-100 transition-colors"
           >
-            <X size={20} className="text-gray-500 dark:text-zinc-400" strokeWidth={2.5} />
+            <X size={20} className="text-gray-500 dark:text-zinc-300" strokeWidth={2.5} />
           </button>
         </div>
 

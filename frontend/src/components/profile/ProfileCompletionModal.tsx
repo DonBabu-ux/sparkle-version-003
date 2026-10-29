@@ -213,7 +213,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
               <h2 className="text-[15px] font-bold text-slate-900 dark:text-white tracking-tight">
                 {done ? 'Profile complete' : 'Add your details'}
               </h2>
-              <p className="text-[12px] text-slate-500 dark:text-zinc-400 truncate">
+              <p className="text-[12px] text-slate-500 dark:text-zinc-300 truncate">
                 {done ? 'Looks great — you are all set' : 'A complete profile helps you connect with campus peers'}
               </p>
             </div>
@@ -248,7 +248,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[13px] font-bold text-slate-900 dark:text-white">Profile photo</p>
-                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">Pick a photo friends will recognize</p>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-300">Pick a photo friends will recognize</p>
                 </div>
                 <input
                   ref={fileRef} type="file" accept="image/*" className="hidden"
@@ -267,7 +267,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
               {/* Name + Username */}
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Name</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">Name</span>
                   <input
                     value={draft.name}
                     onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))}
@@ -276,7 +276,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Username</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">Username</span>
                   <div className="relative">
                     <input
                       value={draft.username}
@@ -301,7 +301,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
 
               {/* Bio */}
               <label className="block">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Bio</span>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">Bio</span>
                 <textarea
                   value={draft.bio}
                   onChange={(e) => setDraft((d) => ({ ...d, bio: e.target.value }))}
@@ -316,7 +316,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
               {/* Campus + Major */}
               <div className="grid grid-cols-2 gap-3">
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Campus</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">Campus</span>
                   <input
                     value={draft.campus}
                     onChange={(e) => setDraft((d) => ({ ...d, campus: e.target.value }))}
@@ -325,7 +325,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
                   />
                 </label>
                 <label className="block">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">Major</span>
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">Major</span>
                   <input
                     value={draft.major}
                     onChange={(e) => setDraft((d) => ({ ...d, major: e.target.value }))}
@@ -348,7 +348,7 @@ export const ProfileCompletionModal: React.FC<ProfileCompletionModalProps> = ({
             <div className="flex items-center gap-2 p-4 border-t border-black/[0.06] dark:border-white/[0.08]">
               <button
                 type="button" onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 dark:text-zinc-400 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
+                className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-slate-500 dark:text-zinc-300 hover:bg-black/[0.04] dark:hover:bg-white/[0.06] transition-colors"
               >
                 Skip for now
               </button>

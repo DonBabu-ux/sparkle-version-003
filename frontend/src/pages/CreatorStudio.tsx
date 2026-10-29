@@ -91,7 +91,7 @@ export default function CreatorStudio() {
                 >
                   <div className="space-y-2">
                     <h3 className="text-xs font-black text-slate-800 uppercase italic tracking-wider">{act.title}</h3>
-                    <p className="text-[10px] text-slate-500 dark:text-zinc-400 font-medium leading-relaxed">{act.desc}</p>
+                    <p className="text-[10px] text-slate-500 dark:text-zinc-300 font-medium leading-relaxed">{act.desc}</p>
                   </div>
                   <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${act.color} flex items-center justify-center text-white shadow-md`}>
                     {act.icon}
@@ -113,7 +113,7 @@ export default function CreatorStudio() {
                     <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 rounded-2xl">
                       <div className="flex items-center gap-2">
                         {st.icon}
-                        <span className="text-[10px] font-black text-slate-500 dark:text-zinc-400 uppercase italic">{st.label}</span>
+                        <span className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">{st.label}</span>
                       </div>
                       <span className="text-sm font-black text-slate-900 italic">{st.value.toLocaleString()}</span>
                     </div>
@@ -160,7 +160,7 @@ export default function CreatorStudio() {
                 ) : (
                   <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
                     <FileText size={32} className="text-slate-400 mb-3" />
-                    <p className="text-xs font-bold text-slate-500 dark:text-zinc-400 uppercase tracking-widest">No publications yet</p>
+                    <p className="text-xs font-bold text-slate-500 dark:text-zinc-300 uppercase tracking-widest">No publications yet</p>
                     <p className="text-[10px] text-slate-400 mt-1">Your uploaded content will appear here.</p>
                   </div>
                 )}

@@ -248,7 +248,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                     {remaining} left
                   </span>
                 </div>
-                <p className="text-[12px] text-slate-500 dark:text-zinc-400 truncate mt-0.5 leading-snug">
+                <p className="text-[12px] text-slate-500 dark:text-zinc-300 truncate mt-0.5 leading-snug">
                   {nextIncompleteItem ? (
                     <span>
                       Next: <strong className="font-semibold text-slate-700 dark:text-zinc-200">{nextIncompleteItem.actionText}</strong>
@@ -311,7 +311,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                       exit={{ opacity: 0, scale: 0.95, y: -4 }}
                       className="absolute right-0 top-full mt-1.5 w-44 rounded-xl bg-white dark:bg-[#1a1a1c] border border-black/10 dark:border-white/10 shadow-xl p-1.5 z-50 text-left"
                     >
-                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-500">
+                      <div className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-zinc-300">
                         Dismiss options
                       </div>
                       <button
@@ -378,7 +378,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                             className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
                               item.isCompleted
                                 ? 'bg-emerald-500 text-white'
-                                : 'bg-white dark:bg-zinc-800 text-slate-400 dark:text-zinc-400 shadow-sm'
+                                : 'bg-white dark:bg-zinc-800 text-slate-400 dark:text-zinc-300 shadow-sm'
                             }`}
                           >
                             {item.isCompleted ? (
@@ -407,7 +407,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
                   </div>
 
                   <div className="flex items-center justify-between pt-1">
-                    <span className="text-[12px] text-slate-400 dark:text-zinc-500">A complete profile helps you connect with campus peers.</span>
+                    <span className="text-[12px] text-slate-400 dark:text-zinc-300">A complete profile helps you connect with campus peers.</span>
                     <button
                       type="button"
                       onClick={() => handleDismissHours(24)}

@@ -66,7 +66,7 @@ export const ReplyPreview: React.FC<ReplyPreviewProps> = ({
       >
         <div className="flex-1 min-w-0">
           <div className="text-[11px] font-bold text-[#ff1493]">Replying to message</div>
-          <div className="truncate text-xs text-slate-300 dark:text-zinc-400 mt-0.5">Click to view referenced message</div>
+          <div className="truncate text-xs text-slate-300 dark:text-zinc-300 mt-0.5">Click to view referenced message</div>
         </div>
         <button
           onClick={handleClear}

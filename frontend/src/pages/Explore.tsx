@@ -199,7 +199,7 @@ export default function Explore() {
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
              <div className="flex items-center gap-3">
               <div className="relative flex-1 group">
-                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400 group-focus-within:text-primary transition-colors duration-300" size={18} />
+                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300 group-focus-within:text-primary transition-colors duration-300" size={18} />
                  <input
                    type="text"
                    placeholder="Search Sparkle Discovery..."
@@ -219,7 +219,7 @@ export default function Explore() {
                   className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 border ${
                     activeCategory === cat
                       ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
-                      : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary/20 hover:text-primary'
+                      : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-primary/20 hover:text-primary'
                   }`}
                 >
                   {cat}

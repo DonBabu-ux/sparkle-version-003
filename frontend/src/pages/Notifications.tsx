@@ -331,7 +331,7 @@ export default function Notifications() {
     return (
       <div className="mb-1">
         <div className="px-4 py-2.5 flex items-center gap-2">
-          <span className="text-[12px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">{title}</span>
+          <span className="text-[12px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-300">{title}</span>
           <div className="flex-1 h-px bg-black/5 dark:bg-white/5" />
         </div>
         <div className="flex flex-col">
@@ -421,7 +421,7 @@ export default function Notifications() {
           {/* Timestamp + unread dot row */}
           <div className="flex items-center gap-1.5 mt-1">
             <span className={`text-[11px] font-semibold ${
-              isUnread ? 'text-[#ff1493]' : 'text-slate-400 dark:text-zinc-500'
+              isUnread ? 'text-[#ff1493]' : 'text-slate-400 dark:text-zinc-300'
             }`}>
               {relativeTime(notif.created_at)}
             </span>
@@ -477,7 +477,7 @@ export default function Notifications() {
         {/* More options */}
         <button
           onClick={(e) => { e.stopPropagation(); setSelectedNotif(notif); }}
-          className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 dark:text-zinc-500 hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
+          className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
         >
           <MoreHorizontal size={16} />
         </button>
@@ -510,7 +510,7 @@ export default function Notifications() {
                     ? 'text-emerald-500 bg-emerald-500/10'
                     : unreadCount > 0
                     ? 'text-[#ff1493] bg-[#ff1493]/10 hover:bg-[#ff1493]/20 active:scale-95 cursor-pointer'
-                    : 'text-slate-400 dark:text-zinc-500 hover:bg-black/5 dark:hover:bg-white/5 opacity-50 cursor-default'
+                    : 'text-slate-400 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 opacity-50 cursor-default'
                 }`}
                 title={unreadCount > 0 ? "Mark all as read" : "All caught up"}
               >
@@ -529,7 +529,7 @@ export default function Notifications() {
               </button>
               <button
                 onClick={() => navigate('/search')}
-                className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-400"
+                className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-300"
                 title="Search"
               >
                 <Search size={18} />
@@ -613,7 +613,7 @@ export default function Notifications() {
                 className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0"
                 alt=""
               />
-              <p className="text-[13px] text-slate-600 dark:text-zinc-400 leading-snug flex-1 min-w-0">
+              <p className="text-[13px] text-slate-600 dark:text-zinc-300 leading-snug flex-1 min-w-0">
                 {selectedNotif.actor_name ? (
                   <><span className="font-semibold text-slate-900 dark:text-white">{selectedNotif.actor_name}</span>{' '}{selectedNotif.content || selectedNotif.message}</>
                 ) : (
@@ -637,7 +637,7 @@ export default function Notifications() {
                   </div>
                   <div>
                     <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Mark as read</p>
-                    <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Keeps it in your list, clears the unread badge</p>
+                    <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Keeps it in your list, clears the unread badge</p>
                   </div>
                 </button>
               )}
@@ -651,7 +651,7 @@ export default function Notifications() {
                 </div>
                 <div>
                   <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Remove this notification</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Won't show up in your updates</p>
+                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Won't show up in your updates</p>
                 </div>
               </button>
 
@@ -664,7 +664,7 @@ export default function Notifications() {
                 </div>
                 <div>
                   <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Turn off for this post</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Stop receiving updates for this activity</p>
+                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Stop receiving updates for this activity</p>
                 </div>
               </button>
 
@@ -677,7 +677,7 @@ export default function Notifications() {
                 </div>
                 <div>
                   <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Report issue</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-500 mt-0.5">Let us know if something is wrong</p>
+                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Let us know if something is wrong</p>
                 </div>
               </button>
             </div>

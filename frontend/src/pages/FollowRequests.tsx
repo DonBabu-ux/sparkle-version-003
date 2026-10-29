@@ -167,12 +167,12 @@ export default function FollowRequests() {
         /* Dark mode: zinc token system */
         .dark .fr-page-header, .dark .fr-card, .dark .fr-skeleton, .dark .fr-empty { background: #27272a; border-color: #3f3f46; }
         .dark .fr-page-header h1, .dark .fr-details h4, .dark .fr-empty h3 { color: #f4f4f5; }
-        .dark .fr-page-header p, .dark .fr-details p, .dark .fr-empty p { color: #a1a1aa; }
-        .dark .fr-reject-btn { background: #3f3f46; color: #a1a1aa; }
+        .dark .fr-page-header p, .dark .fr-details p, .dark .fr-empty p { color: #d4d4d8; }
+        .dark .fr-reject-btn { background: #3f3f46; color: #d4d4d8; }
         .dark .fr-reject-btn:hover { background: #7f1d1d; color: #f87171; }
         .dark .fr-avatar { border-color: #3f3f46; }
         .dark .frs-avatar, .dark .frs-line, .dark .frs-btn-box { background: #3f3f46; }
-        .dark .fr-empty-icon { background: #18181b; color: #a1a1aa; }
+        .dark .fr-empty-icon { background: #18181b; color: #d4d4d8; }
       `}</style>
     </div>
   );

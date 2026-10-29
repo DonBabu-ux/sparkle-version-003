@@ -47,7 +47,7 @@ export default function Groups() {
               <div className="flex items-center gap-3 mb-5">
                 <button 
                   onClick={() => navigate('/dashboard')}
-                  className="w-8 h-8 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 active:scale-95"
+                  className="w-8 h-8 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 backdrop-blur-md rounded-full shadow-sm hover:shadow-md transition-all border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 active:scale-95"
                   aria-label="Go to Dashboard"
                 >
                   <ArrowLeft size={16} />
@@ -62,7 +62,7 @@ export default function Groups() {
                 Discover{' '}
                 <span className="text-primary">Circles</span>
               </h1>
-              <p className="text-base text-slate-600 dark:text-zinc-400 font-medium">
+              <p className="text-base text-slate-600 dark:text-zinc-300 font-medium">
                 Connect with like-minded people at{' '}
                 <strong className="text-[#18181b] dark:text-zinc-100 underline decoration-primary/40 decoration-[3px]">
                   {user?.campus || 'your campus'}
@@ -85,7 +85,7 @@ export default function Groups() {
           <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
             {/* Search */}
             <div className="relative flex-1">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={18} />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300" size={18} />
               <input
                 type="text"
                 value={query}
@@ -108,7 +108,7 @@ export default function Groups() {
                   className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                     filter === f.key
                       ? 'bg-[#ff1493] text-white shadow-md shadow-[#ff1493]/30'
-                      : 'bg-transparent text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                      : 'bg-transparent text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100'
                   }`}
                 >
                   <f.icon size={13} strokeWidth={2.5} />
@@ -182,14 +182,14 @@ export default function Groups() {
                     <h3 className="text-[16px] font-black text-[#18181b] dark:text-zinc-100 leading-snug mb-1 truncate">
                       {group.name}
                     </h3>
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 text-[11px] font-bold">
                       <Users size={11} />
                       <span>{group.member_count ?? 0} members</span>
                     </div>
                   </div>
                 </div>
 
-                <p className="text-[13px] text-slate-600 dark:text-zinc-400 leading-relaxed mb-4 line-clamp-2 flex-1">
+                <p className="text-[13px] text-slate-600 dark:text-zinc-300 leading-relaxed mb-4 line-clamp-2 flex-1">
                   {group.description || 'A community space for members to connect and share.'}
                 </p>
 
@@ -221,7 +221,7 @@ export default function Groups() {
 
       <style>{`
         input::placeholder { color: #475569; font-style: normal; }
-        .dark input::placeholder { color: #a1a1aa; }
+        .dark input::placeholder { color: #d4d4d8; }
       `}</style>
     </div>
   );

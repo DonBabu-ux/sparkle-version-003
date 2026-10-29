@@ -131,7 +131,7 @@ export default function LegalViewer() {
                   <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
                     <div className="space-y-0.5">
                       <p className="font-semibold text-slate-300">Version {item.version}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-400">Effective {item.effectiveDate}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-zinc-300">Effective {item.effectiveDate}</p>
                     </div>
                     <span className="inline-flex items-center gap-1 font-bold text-pink-400 group-hover:translate-x-1 transition-transform">
                       View document <ChevronRight className="w-4 h-4" />
@@ -267,7 +267,7 @@ export default function LegalViewer() {
       </main>
 
       {/* Footer Info */}
-      <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 dark:text-zinc-400">
+      <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 dark:text-zinc-300">
         <p>© {new Date().getFullYear()} Sparkle. Official Legal &amp; Policy Documentation (Kenya Edition).</p>
       </footer>
     </div>

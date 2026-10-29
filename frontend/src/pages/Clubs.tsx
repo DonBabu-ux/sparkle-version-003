@@ -71,10 +71,10 @@ export default function Clubs() {
             <div>
               <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full mb-4">
                 <Users size={14} className="text-primary" />
-                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-400 uppercase tracking-wide">Campus clubs</span>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-zinc-300 uppercase tracking-wide">Campus clubs</span>
               </div>
               <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Clubs</h1>
-              <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1.5 max-w-xl">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 mt-1.5 max-w-xl">
                 Discover clubs that match your interests at {user?.campus || 'your campus'}, or start your own.
               </p>
             </div>
@@ -99,7 +99,7 @@ export default function Clubs() {
                 className={`px-4 py-2 rounded-full text-xs font-bold transition-colors whitespace-nowrap border ${
                   activeCategory === cat
                     ? 'bg-primary border-primary text-white'
-                    : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                    : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100'
                 }`}
               >
                 {CATEGORY_LABELS[cat] || cat}
@@ -108,13 +108,13 @@ export default function Clubs() {
           </div>
 
           <div className="relative w-full lg:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={16} />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300" size={16} />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search clubs..."
-              className="w-full h-10 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+              className="w-full h-10 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-300 focus:border-primary outline-none transition-colors"
             />
           </div>
         </div>
@@ -128,9 +128,9 @@ export default function Clubs() {
           </div>
         ) : clubs.length === 0 ? (
           <div className="py-16 flex flex-col items-center text-center px-6 bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl">
-            <Users size={40} className="text-slate-600 dark:text-zinc-400 mb-3" />
+            <Users size={40} className="text-slate-600 dark:text-zinc-300 mb-3" />
             <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 mb-1">No clubs yet</h3>
-            <p className="text-sm text-slate-600 dark:text-zinc-400 max-w-sm">
+            <p className="text-sm text-slate-600 dark:text-zinc-300 max-w-sm">
               Nothing in this category yet. Start the first club and your campus can join.
             </p>
             <button
@@ -172,16 +172,16 @@ export default function Clubs() {
                     </div>
                   </div>
                   <h3 className="text-base font-bold text-[#18181b] dark:text-zinc-100 leading-snug mb-1 group-hover:text-primary transition-colors">{club.name}</h3>
-                  <p className="text-[13px] text-slate-600 dark:text-zinc-400 line-clamp-2 leading-relaxed mb-4 flex-1">
+                  <p className="text-[13px] text-slate-600 dark:text-zinc-300 line-clamp-2 leading-relaxed mb-4 flex-1">
                     {club.description || 'A space for members to connect and share.'}
                   </p>
 
                   <div className="flex items-center justify-between pt-4 border-t border-[#ede3e9] dark:border-zinc-900 w-full">
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 text-[11px] font-bold">
                       <Users size={13} />
                       <span>{club.member_count || 0} members</span>
                     </div>
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-400 group-hover:text-primary transition-colors text-[11px] font-bold">
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-zinc-300 group-hover:text-primary transition-colors text-[11px] font-bold">
                       <MapPin size={13} />
                       <span>{club.campus}</span>
                     </div>
@@ -200,20 +200,20 @@ export default function Clubs() {
             <div className="p-6 pb-0 flex items-center justify-between">
               <div>
                 <h3 className="text-xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Create a club</h3>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Start a new club on your campus.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Start a new club on your campus.</p>
               </div>
-              <button onClick={() => setShowModal(false)} className="w-9 h-9 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors">
+              <button onClick={() => setShowModal(false)} className="w-9 h-9 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-[#fdf8fa] dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-[#e6d8e1] dark:border-zinc-700 group">
+                <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-zinc-300 hover:text-primary hover:bg-[#fdf8fa] dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-[#e6d8e1] dark:border-zinc-700 group">
                   <Camera size={28} className="transition-transform group-hover:scale-110" />
                   <span className="text-xs font-bold">Club logo</span>
                 </div>
-                <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-[#fdf8fa] dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-[#e6d8e1] dark:border-zinc-700 group">
+                <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-6 flex flex-col items-center justify-center gap-2 text-slate-600 dark:text-zinc-300 hover:text-primary hover:bg-[#fdf8fa] dark:hover:bg-zinc-800 transition-colors cursor-pointer border border-[#e6d8e1] dark:border-zinc-700 group">
                   <ImageIcon size={28} className="transition-transform group-hover:scale-110" />
                   <span className="text-xs font-bold">Club banner</span>
                 </div>
@@ -221,7 +221,7 @@ export default function Clubs() {
 
               <div className="space-y-4">
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-zinc-400 ml-1">Club name</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 ml-1">Club name</label>
                   <input
                     type="text"
                     value={form.name}
@@ -234,7 +234,7 @@ export default function Clubs() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400 ml-1">Category</label>
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 ml-1">Category</label>
                     <select
                       value={form.category}
                       onChange={e => setForm({ ...form, category: e.target.value })}
@@ -244,13 +244,13 @@ export default function Clubs() {
                     </select>
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400 ml-1">Campus</label>
-                    <input type="text" value={form.campus} readOnly className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-4 text-sm text-slate-600 dark:text-zinc-400 cursor-not-allowed" />
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 ml-1">Campus</label>
+                    <input type="text" value={form.campus} readOnly className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-4 text-sm text-slate-600 dark:text-zinc-300 cursor-not-allowed" />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-slate-600 dark:text-zinc-400 ml-1">About</label>
+                  <label className="text-xs font-bold text-slate-600 dark:text-zinc-300 ml-1">About</label>
                   <textarea
                     rows={3}
                     value={form.description}
@@ -266,7 +266,7 @@ export default function Clubs() {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-red-500 transition-colors"
+                  className="flex-1 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-red-500 transition-colors"
                 >
                   Cancel
                 </button>

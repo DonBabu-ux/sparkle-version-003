@@ -415,7 +415,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           {/* Search Field */}
           <div className="px-4 py-2.5 border-b border-black/10 dark:border-white/[0.06] bg-white dark:bg-[#111118] sticky top-[57px] z-10">
             <div className="relative flex items-center bg-black/[0.04] dark:bg-white/[0.06] border border-black/10 dark:border-white/10 rounded-full px-3.5 py-2 focus-within:border-[#ff1493]/60 focus-within:ring-1 focus-within:ring-[#ff1493]/40 transition-all">
-              <Search size={18} className="text-zinc-500 dark:text-zinc-400 shrink-0 mr-2.5" />
+              <Search size={18} className="text-zinc-300 dark:text-zinc-300 shrink-0 mr-2.5" />
               <input
                 type="text"
                 value={searchQuery}
@@ -428,7 +428,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="p-1 text-zinc-500 hover:text-black dark:text-zinc-400 dark:hover:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+                  className="p-1 text-zinc-300 hover:text-black dark:text-zinc-300 dark:hover:text-white rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
                   aria-label="Clear search"
                 >
                   <X size={16} />
@@ -442,12 +442,12 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
             {loading && !recentUsers.length ? (
               <div className="flex flex-col items-center justify-center py-20 gap-3">
                 <Spinner size="large" className="text-[#ff1493]" />
-                <span className="text-xs text-zinc-400">Loading contacts...</span>
+                <span className="text-xs text-zinc-300">Loading contacts...</span>
               </div>
             ) : totalVisibleCount === 0 ? (
-              <div className="flex flex-col items-center justify-center py-24 px-6 text-center text-zinc-500 dark:text-zinc-400">
+              <div className="flex flex-col items-center justify-center py-24 px-6 text-center text-zinc-300 dark:text-zinc-300">
                 <p className="text-sm font-semibold text-black/80 dark:text-white/80">No people found</p>
-                <p className="text-xs mt-1 text-zinc-500">
+                <p className="text-xs mt-1 text-zinc-300">
                   {debouncedQuery
                     ? 'Try searching with a different name or username.'
                     : 'Connect with people on Sparkle to start chatting.'}
@@ -458,7 +458,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 1: Recents */}
                 {filteredSections.recents.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-300 dark:text-zinc-300 uppercase tracking-wider">
                       Recents
                     </div>
                     <div>
@@ -477,7 +477,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 2: Followers */}
                 {filteredSections.followers.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-300 dark:text-zinc-300 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Followers
                     </div>
                     <div>
@@ -496,7 +496,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 3: Following */}
                 {filteredSections.following.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-300 dark:text-zinc-300 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Following
                     </div>
                     <div>
@@ -515,7 +515,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 {/* Section 4: Everyone */}
                 {filteredSections.everyone.length > 0 && (
                   <div className="mb-2">
-                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-500 dark:text-zinc-400 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
+                    <div className="px-4 pt-3 pb-1.5 text-[11px] font-semibold text-zinc-300 dark:text-zinc-300 uppercase tracking-wider border-t border-black/5 dark:border-white/[0.04]">
                       Everyone
                     </div>
                     <div>
@@ -532,7 +532,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
                 )}
 
                 {isSearchingServer && (
-                  <div className="flex items-center justify-center gap-2 py-4 text-xs text-zinc-400">
+                  <div className="flex items-center justify-center gap-2 py-4 text-xs text-zinc-300">
                     <Spinner size="small" className="text-[#ff1493]" />
                     <span>Searching more users...</span>
                   </div>
@@ -544,7 +544,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           {/* Persistent Bottom Action Bar */}
           <div className="absolute bottom-0 left-0 right-0 z-30 px-4 py-3 bg-white/98 dark:bg-[#13131a]/98 backdrop-blur-md border-t border-black/10 dark:border-white/[0.08] flex items-center justify-between pb-[max(0.75rem,env(safe-area-inset-bottom))]">
             {/* Left side: selection count or instruction */}
-            <div className="text-xs sm:text-sm font-medium text-zinc-500 dark:text-zinc-400 truncate pr-2">
+            <div className="text-xs sm:text-sm font-medium text-zinc-300 dark:text-zinc-300 truncate pr-2">
               {selectedCount === 0 && 'Select people to start a chat'}
               {selectedCount === 1 && '1 person selected'}
               {selectedCount > 1 && `${selectedCount} people selected`}
@@ -639,7 +639,7 @@ const ContactRow: React.FC<ContactRowProps> = ({ contact, isSelected, onToggle }
             <VerifiedBadge isVerified={true} size="xs" />
           )}
         </div>
-        <span className="text-xs text-zinc-400 truncate block">
+        <span className="text-xs text-zinc-300 truncate block">
           @{contact.username}
         </span>
       </div>

@@ -186,7 +186,7 @@ export function AutoWithdrawalModal({
                 <div className="flex items-center justify-between p-4 rounded-2xl bg-amber-50/60 border border-amber-200/60">
                   <div>
                     <h4 className="text-sm font-black text-slate-900">Enable Auto-Payouts</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 font-medium">Funds will automatically transfer when rules trigger</p>
+                    <p className="text-[11px] text-slate-500 dark:text-zinc-300 font-medium">Funds will automatically transfer when rules trigger</p>
                   </div>
                   <button
                     type="button"
@@ -226,7 +226,7 @@ export function AutoWithdrawalModal({
                         >
                           <Sliders className={`w-4 h-4 mb-1 ${mode === 'threshold' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Threshold</div>
-                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">When balance reaches limit</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-300">When balance reaches limit</div>
                         </button>
 
                         <button
@@ -240,7 +240,7 @@ export function AutoWithdrawalModal({
                         >
                           <Calendar className={`w-4 h-4 mb-1 ${mode === 'scheduled' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Scheduled</div>
-                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">Daily / Weekly / Monthly</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-300">Daily / Weekly / Monthly</div>
                         </button>
 
                         <button
@@ -254,7 +254,7 @@ export function AutoWithdrawalModal({
                         >
                           <Zap className={`w-4 h-4 mb-1 ${mode === 'hybrid' ? 'text-amber-600' : 'text-slate-400'}`} />
                           <div className="text-xs font-black">Hybrid</div>
-                          <div className="text-[10px] text-slate-500 dark:text-zinc-400">Schedule + Threshold</div>
+                          <div className="text-[10px] text-slate-500 dark:text-zinc-300">Schedule + Threshold</div>
                         </button>
                       </div>
                     </div>
@@ -342,7 +342,7 @@ export function AutoWithdrawalModal({
 
                       {method === 'mpesa' ? (
                         <div>
-                          <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
+                          <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-300 uppercase mb-1">
                             M-Pesa Phone Number
                           </label>
                           <input
@@ -356,7 +356,7 @@ export function AutoWithdrawalModal({
                       ) : (
                         <div className="space-y-2">
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
+                            <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-300 uppercase mb-1">
                               Account Holder Name
                             </label>
                             <input
@@ -369,7 +369,7 @@ export function AutoWithdrawalModal({
                           </div>
                           <div className="grid grid-cols-2 gap-2">
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-300 uppercase mb-1">
                                 Bank Code
                               </label>
                               <input
@@ -381,7 +381,7 @@ export function AutoWithdrawalModal({
                               />
                             </div>
                             <div>
-                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-400 uppercase mb-1">
+                              <label className="block text-[10px] font-bold text-slate-500 dark:text-zinc-300 uppercase mb-1">
                                 Account Number
                               </label>
                               <input
@@ -414,7 +414,7 @@ export function AutoWithdrawalModal({
                 )}
 
                 {/* Security Note */}
-                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-400 bg-slate-100/60 dark:bg-white/[0.06] p-3 rounded-xl">
+                <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-zinc-300 bg-slate-100/60 dark:bg-white/[0.06] p-3 rounded-xl">
                   <ShieldCheck size={16} className="text-emerald-600 shrink-0" />
                   <span>Atomic balance locking and idempotency protection active on all automated payouts.</span>
                 </div>

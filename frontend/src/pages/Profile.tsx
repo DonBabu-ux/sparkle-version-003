@@ -1,7 +1,9 @@
 import { showError, showInfo } from '../utils/toast';
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
+import { useUploadStore } from '../store/uploadStore';
+import { UploadEventBus } from '../utils/UploadEventBus';
 import api from '../api/api';
 import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
@@ -20,12 +22,17 @@ import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import { logger } from '../utils/logger';
 import DraftPreview from '../features/reels/components/DraftPreview';
+import PendingReelTile from '../features/reels/components/PendingReelTile';
 import { listDrafts, formatBytes, type DraftListItem } from '../features/reels/services/draftService';
 
 export default function Profile() {
   const { username } = useParams();
   const { user: currentUser, accounts, switchAccount } = useUserStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reelsTabParamRef = useRef(searchParams.get('tab') === 'reels');
+  // Monotonic token: a slow fetchProfile response can never clobber a newer one.
+  const fetchSeqRef = useRef(0);
   
   const [profile, setProfile] = useState<User | null>(null);
   // null = loaded fine. 'not_found' = 404, the account genuinely doesn't exist.
@@ -35,7 +42,9 @@ export default function Profile() {
   const [reels, setReels] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>(
+    reelsTabParamRef.current ? 'reels' : 'posts',
+  );
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
@@ -74,6 +83,15 @@ export default function Profile() {
     return () => { alive = false; };
   }, [currentUser, profile, username]);
 
+  // ── Background reel upload jobs → pending tiles in the Reels tab ──
+  const uploadJobs = useUploadStore((s) => s.jobs);
+  const pendingMomentJobs = uploadJobs.filter(
+    (j) => j.type === 'MOMENT' && j.status !== 'PUBLISHED' && j.status !== 'CANCELLED',
+  );
+
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
+
   const identity = IdentityManager.resolveIdentity(profile);
 
   const handleOpenChat = async () => {
@@ -104,11 +122,16 @@ export default function Profile() {
   const [highlights, setHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
 
   const fetchProfile = useCallback(async () => {
+    // Concurrent invocations (mount + ?tab=reels + UPLOAD_COMPLETED) race;
+    // only the latest call may apply state, and moments must never be
+    // appended twice (duplicate React keys in the grid).
+    const seq = ++fetchSeqRef.current;
     setLoading(true);
-    setActiveTab('posts'); 
+    setActiveTab(reelsTabParamRef.current ? 'reels' : 'posts'); 
     try {
       const endpoint = username === 'me' ? '/users/me' : `/users/${encodeURIComponent(username || '')}`;
       const profileRes = await api.get(endpoint);
+      if (seq !== fetchSeqRef.current) return;
       if (profileRes.data) {
         const profileData = profileRes.data;
         setProfile(profileData);
@@ -118,12 +141,14 @@ export default function Profile() {
         // Posts are secondary: a failure here must not wipe the loaded profile
         try {
           const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
+          if (seq !== fetchSeqRef.current) return;
           if (postsRes.data && Array.isArray(postsRes.data)) {
             const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
             setPosts(allPosts);
             setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
           }
         } catch (err) {
+          if (seq !== fetchSeqRef.current) return;
           logger.error('Failed to fetch posts:', err);
           setPosts([]);
           setReels([]);
@@ -133,6 +158,7 @@ export default function Profile() {
         // for the REELS tab. The endpoint enforces audience server-side.
         try {
           const reelsRes = await api.get(`/moments/users/${profileData.id || profileData.user_id}/moments`);
+          if (seq !== fetchSeqRef.current) return;
           const moments: Post[] = (Array.isArray(reelsRes.data?.moments) ? reelsRes.data.moments : []).map(
             (m: {
               moment_id: string | number;
@@ -167,17 +193,24 @@ export default function Profile() {
             })
           );
           if (moments.length > 0) {
-            setReels((prev) =>
-              [...prev, ...moments].sort(
+            setReels((prev) => {
+              // Dedupe by post_id so a double-invocation (or a moment that is
+              // also a video post) never produces duplicate React keys.
+              const seen = new Set(prev.map((p) => p.post_id));
+              const fresh = moments.filter((m) => !seen.has(m.post_id));
+              if (fresh.length === 0) return prev;
+              return [...prev, ...fresh].sort(
                 (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-              )
-            );
+              );
+            });
           }
         } catch (err) {
+          if (seq !== fetchSeqRef.current) return;
           logger.warn('Failed to fetch profile reels:', err);
         }
       }
     } catch (err) {
+      if (seq !== fetchSeqRef.current) return;
       logger.error('Failed to fetch profile:', err);
       const status = (err as { response?: { status?: number } })?.response?.status;
       // Only a 404 means the account truly doesn't exist. A 500, network error,
@@ -185,7 +218,8 @@ export default function Profile() {
       setProfileError(status === 404 ? 'not_found' : 'unavailable');
       setProfile(null);
     } finally {
-      setLoading(false);
+      // Only the latest invocation may clear the loading flag.
+      if (seq === fetchSeqRef.current) setLoading(false);
     }
   }, [username]);
 
@@ -210,6 +244,24 @@ export default function Profile() {
   useEffect(() => {
     if (currentUser) fetchProfile();
   }, [fetchProfile, currentUser]);
+
+  // When a background reel finishes publishing, refresh the grid so the
+  // pending tile is replaced by the real reel (idempotent server fetch).
+  // NOTE: must sit below the fetchProfile declaration — a dep array that
+  // references a later const throws "Cannot access before initialization".
+  useEffect(() => {
+    const currentId = currentUser?.id || currentUser?.user_id;
+    const profileId = profile?.id || profile?.user_id;
+    const owner = (!!currentId && !!profileId && String(currentId) === String(profileId)) || username === 'me';
+    if (!owner) return;
+    const off = UploadEventBus.on('UPLOAD_COMPLETED', (data) => {
+      const job = useUploadStore.getState().jobs.find((j) => j.uploadId === data?.uploadId);
+      if (job?.type !== 'MOMENT') return;
+      const tab = activeTabRef.current;
+      void fetchProfile().then(() => setActiveTab(tab));
+    });
+    return off;
+  }, [currentUser, profile, username, fetchProfile]);
 
   // Fetch highlights when profile is loaded
   useEffect(() => {
@@ -321,6 +373,7 @@ export default function Profile() {
   const showOwnerActions = isOwnProfile || isMeAlias;
   const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : [];
   const showDraftsTile = showOwnerActions && (activeTab === 'posts' || activeTab === 'reels');
+  const showPendingReels = showOwnerActions && activeTab === 'reels' && pendingMomentJobs.length > 0;
 
   return (
     <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
@@ -817,7 +870,13 @@ export default function Profile() {
               </div>
             )}
 
-            {gridItems.length > 0 ? (
+            {/* Pending background reel uploads — first in the owner's reels
+                grid with real thumbnail + live progress ring. */}
+            {showPendingReels && pendingMomentJobs.map((job) => (
+              <PendingReelTile key={job.uploadId} job={job} viewMode={viewMode} />
+            ))}
+
+            {gridItems.length > 0 || showPendingReels ? (
               gridItems.map((post) => (
                 <div
                     key={post.post_id}

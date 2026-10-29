@@ -68,13 +68,14 @@ const showBootFailure = (reason: unknown) => {
     </div>`;
 };
 
+import { ServerFailoverManager } from './services/ServerFailoverManager';
+
 (async () => {
   try {
     logger.log('APP STARTED');
-    // NOTE: the chunk-reload guard is deliberately NOT cleared on boot — it is
-    // timestamp-bounded (max 2 hard reloads / 10 min, see lazyWithRetry) so a
-    // persistently stale HTML can never reload-loop forever, while the next
-    // deploy skew still self-heals once the window rolls over.
+    // Initialize active server failover manager early before React mounts
+    ServerFailoverManager.init();
+    
     // Expose realtime logger globally for debugging
     (window as any).__realtimeLogger = realtimeLogger;
 

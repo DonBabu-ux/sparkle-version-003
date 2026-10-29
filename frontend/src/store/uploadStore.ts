@@ -28,9 +28,22 @@ export interface StoryMetadata {
   storyTheme?: string;
 }
 
+export interface MomentMetadata {
+  /** Multipart fields for POST /moments (caption, audience, idempotency_key, ...). */
+  fields: Record<string, string>;
+  title: string;
+  durationSec?: number;
+  shareToStory?: boolean;
+  saveToDevice?: boolean;
+  /** Original file extension for save-to-device naming. */
+  fileExt?: string;
+}
+
 export interface UploadJob {
   uploadId: string;
   serverStoryId?: string;
+  /** Published moment id (MOMENT jobs). */
+  serverMomentId?: string;
   type: 'STORY' | 'MOMENT' | 'CHAT' | 'PROFILE';
   priority: JobPriority;
   localUri: string; // Preview URL (blob: URL)
@@ -39,7 +52,7 @@ export interface UploadJob {
   progress: number;
   retryCount: number;
   error: string | null;
-  metadata: StoryMetadata; // Can be unioned with MomentMetadata | ChatMetadata, etc.
+  metadata: StoryMetadata | MomentMetadata;
 }
 
 interface UploadState {

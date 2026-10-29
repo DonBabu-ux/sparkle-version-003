@@ -191,6 +191,49 @@ describe('reels-visibility — stripPrivateFields (viewer-facing redaction)', ()
         assert.deepEqual(visibility.stripPrivateFields(source), source);
         assert.equal(visibility.stripPrivateFields(null), null);
     });
+
+    it('owner retains per-moment exclusion columns (privacy editor seeding)', () => {
+        const stripped = visibility.stripPrivateFields(row({
+            hide_from_user_ids: JSON.stringify([VIEWER]),
+            show_only_user_ids: JSON.stringify([STRANGER]),
+            idempotency_key: 'secret-key',
+        }), { isOwner: true });
+        assert.deepEqual(JSON.parse(stripped.hide_from_user_ids), [VIEWER]);
+        assert.deepEqual(JSON.parse(stripped.show_only_user_ids), [STRANGER]);
+        // The idempotency key is author-only publish state and never leaves,
+        // even for the owner.
+        assert.equal('idempotency_key' in stripped, false);
+    });
+
+    it('owner retains overlays hide_from/show_only (string and object forms)', () => {
+        const asString = visibility.stripPrivateFields(row({
+            overlays: JSON.stringify({ text: [1], hide_from: [VIEWER] }),
+        }), { isOwner: true });
+        assert.deepEqual(JSON.parse(asString.overlays), { text: [1], hide_from: [VIEWER] });
+
+        const asObject = visibility.stripPrivateFields(row({
+            overlays: { text: ['a'], show_only: [STRANGER] },
+        }), { isOwner: true });
+        assert.deepEqual(asObject.overlays, { text: ['a'], show_only: [STRANGER] });
+    });
+
+    it('viewer (no opts / isOwner false) still loses every private field', () => {
+        const forViewer = visibility.stripPrivateFields(row({
+            hide_from_user_ids: JSON.stringify([VIEWER]),
+            show_only_user_ids: JSON.stringify([STRANGER]),
+            overlays: { hide_from: [VIEWER], show_only: [STRANGER] },
+            idempotency_key: 'k',
+        }));
+        assert.equal('hide_from_user_ids' in forViewer, false);
+        assert.equal('show_only_user_ids' in forViewer, false);
+        assert.equal('idempotency_key' in forViewer, false);
+        assert.deepEqual(forViewer.overlays, {});
+
+        const explicitFalse = visibility.stripPrivateFields(row({
+            hide_from_user_ids: JSON.stringify([VIEWER]),
+        }), { isOwner: false });
+        assert.equal('hide_from_user_ids' in explicitFalse, false);
+    });
 });
 
 describe('reels-visibility — publicPoolSql / canCommentOn building blocks', () => {

@@ -228,24 +228,25 @@ export default function CreateReelFlow() {
     }
   }, [addClips, clips.length, pushStage]);
 
-  // ── Published ──
-  const handlePublished = useCallback((momentId: string) => {
+  // ── Background publish accepted → close composer, land on profile Reels ──
+  const handlePublishedBackground = useCallback((_uploadId: string) => {
     stopPreview();
     const draftId = useReelCreatorStore.getState().draftId;
     if (draftId) {
-      // The draft was posted — remove it (record + local media) from this device.
+      // The draft was handed off for publishing — remove it from this device.
       void deleteDraft(draftId).catch(err => logger.warn('[ReelFlow] draft cleanup failed:', err));
     }
-    // Small delay so the success UI registers before teardown
-    setTimeout(() => {
-      useReelCreatorStore.getState().clips.forEach(c => {
-        if (c.previewUrl.startsWith('blob:')) {
-          try { URL.revokeObjectURL(c.previewUrl); } catch (_) { /* already gone */ }
-        }
-      });
-      resetSession();
-      navigate(`/moments/${momentId}`, { replace: true });
-    }, 600);
+    useReelCreatorStore.getState().clips.forEach(c => {
+      if (c.previewUrl.startsWith('blob:')) {
+        try { URL.revokeObjectURL(c.previewUrl); } catch (_) { /* already gone */ }
+      }
+    });
+    resetSession();
+    // Drop the flow's history stack, then land on the profile Reels tab where
+    // the pending upload tile shows live progress.
+    const unwind = Math.max(depthRef.current - 1, 0);
+    if (unwind > 0) window.history.go(-unwind);
+    navigate('/profile/me?tab=reels', { replace: true });
   }, [navigate, resetSession]);
 
   // ── Draft saved → close compose, unwind to a fresh create-new-reel page ──
@@ -359,7 +360,7 @@ export default function CreateReelFlow() {
             onBack={requestBack}
             onOpenAudience={() => pushStage('audience')}
             onOpenShareStory={() => pushStage('shareStory')}
-            onPublished={handlePublished}
+            onPublishedBackground={handlePublishedBackground}
             onDraftSaved={handleDraftSaved}
           />
         );
@@ -383,7 +384,7 @@ export default function CreateReelFlow() {
             onBack={requestBack}
             onOpenAudience={() => pushStage('audience')}
             onOpenShareStory={() => pushStage('shareStory')}
-            onPublished={handlePublished}
+            onPublishedBackground={handlePublishedBackground}
             onDraftSaved={handleDraftSaved}
           />
         );
@@ -398,7 +399,7 @@ export default function CreateReelFlow() {
     }
   }, [
     booting, loadingDraft, stage, listMode,
-    pushStage, requestBack, handleRecorded, handleOpenPicker, handlePublished, handleDraftSaved,
+    pushStage, requestBack, handleRecorded, handleOpenPicker, handlePublishedBackground, handleDraftSaved,
   ]);
 
   // The create stage renders inside the app shell (not full-screen) so the

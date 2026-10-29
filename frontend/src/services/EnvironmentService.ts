@@ -1,15 +1,8 @@
 import { Capacitor } from '@capacitor/core';
+import { ServerFailoverManager } from './ServerFailoverManager';
 
-// Same-origin defaults: prod builds hit the Render backend directly; the Vite
-// dev server proxies /api and /socket.io to 127.0.0.1:3000 (vite.config.ts).
-// Override with VITE_API_URL / VITE_SOCKET_URL when the API lives elsewhere.
+// Fallback relative path for local dev proxy
 const DEFAULT_API_URL = '/api';
-// Absolute backend origin. Used whenever we run inside the native APK webview:
-// there the origin is localhost/capacitor://, so a relative /api or an
-// origin-derived socket URL would resolve against localhost and every
-// request (including login) would fail.
-const PROD_ORIGIN = 'https://sparkle-version-003-1-f4v3.onrender.com';
-const PROD_API_URL = `${PROD_ORIGIN}/api`;
 
 export class EnvironmentService {
   static isDevelopment(): boolean {
@@ -29,14 +22,24 @@ export class EnvironmentService {
   }
 
   static getApiBaseUrl(): string {
-    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
-    // Native builds have no same-origin backend — always use the absolute URL.
-    return this.isNative() ? PROD_API_URL : DEFAULT_API_URL;
+    // In local dev with Vite proxy, use relative /api
+    if (this.isDevelopment() && !this.isNative()) {
+      return DEFAULT_API_URL;
+    }
+    // On native mobile or production web, return active failover server API base
+    return ServerFailoverManager.getActiveApiBase();
   }
 
   static getSocketUrl(): string {
-    if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
-    if (this.isNative()) return PROD_ORIGIN;
-    return typeof window !== 'undefined' ? window.location.origin : '';
+    if (this.isDevelopment() && !this.isNative()) {
+      return typeof window !== 'undefined' ? window.location.origin : '';
+    }
+    // On native mobile or production web, return active failover server origin
+    return ServerFailoverManager.getActiveOrigin();
+  }
+
+  static getActiveOrigin(): string {
+    return ServerFailoverManager.getActiveOrigin();
   }
 }
+

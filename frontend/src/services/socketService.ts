@@ -6,16 +6,38 @@ import { useUserStore } from '../store/userStore';
 import { refreshTokenOnce, ensureFreshAccessToken } from './tokenRefresh';
 import { decodeTokenPayload } from '../utils/tokenUtils';
 import { EnvironmentService } from './EnvironmentService';
+import { ServerFailoverManager } from './ServerFailoverManager';
 import { logger } from '../utils/logger';
 
-// Socket URL resolved via EnvironmentService: env var override, absolute Render
-// URL inside the native APK webview, same-origin in the browser (dev server
-// proxies /socket.io to 127.0.0.1:3000).
-const SOCKET_URL = EnvironmentService.getSocketUrl();
-
 let _socket: Socket | null = null;
-
 const _sockets = new Map<string, Socket>();
+
+/**
+ * Whenever ServerFailoverManager triggers a failover, rebuild sockets
+ * against the new server origin and reconnect seamlessly.
+ */
+ServerFailoverManager.onServerChange((newServer, previousServer) => {
+  logger.warn(`🔌 [SocketService] Active server changed (${previousServer.id} -> ${newServer.id}). Reconnecting all sockets...`);
+  
+  _sockets.forEach((sock, key) => {
+    try {
+      sock.disconnect();
+      sock.removeAllListeners();
+    } catch {}
+  });
+  _sockets.clear();
+  _socket = null;
+
+  // If user is logged in, recreate the default socket immediately
+  const user = useUserStore.getState().user;
+  const token = useUserStore.getState().token;
+  const userId = user?.user_id || user?.id;
+  if (userId && token) {
+    createSocket(String(userId), token);
+  }
+});
+
+let consecutiveConnectErrors = 0;
 
 /**
  * Create a new socket instance for the given user and namespace.
@@ -25,14 +47,14 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
   let s = _sockets.get(key);
 
   if (!s) {
-    const url = namespace ? `${SOCKET_URL}${namespace}` : SOCKET_URL;
+    const socketOrigin = EnvironmentService.getSocketUrl();
+    const url = namespace ? `${socketOrigin}${namespace}` : socketOrigin;
+    
     s = io(url, {
       auth: (cb) => {
         const currentToken = useUserStore.getState().token;
         const currentUser = useUserStore.getState().user;
         const currentUserId = currentUser?.user_id || currentUser?.id;
-        // FCM device token → stored on this socket's user_sessions row so the
-        // delivery-queue worker can push offline DMs (PushService caches it).
         let fcmToken: string | null = null;
         try {
           fcmToken = localStorage.getItem('sparkle_fcm_token');
@@ -52,13 +74,6 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
       _socket = s;
     }
 
-    // H21/H26: first connect gets a fresh token when the stored one is expiring,
-    // avoiding the "Token expired" connect_error → refresh → reconnect cycle.
-    // The auth callback re-reads the store at connect time, so the refreshed
-    // token is picked up automatically. connect_error below stays as fallback.
-    // H26: if refresh is transiently unavailable (DB outage) ensureFresh hands
-    // back the OLD token, which may already be expired — connecting then only
-    // guarantees a "Token expired" rejection loop, so defer and retry instead.
     const sock = s;
     const prepConnect = async (): Promise<void> => {
       let tok: string | null = null;
@@ -68,7 +83,7 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
         tok = null;
       }
       const store = useUserStore.getState();
-      if (!store.isAuthenticated || !store.token) return; // logged out — stay down
+      if (!store.isAuthenticated || !store.token) return;
       const exp = decodeTokenPayload(tok || store.token)?.exp;
       if (typeof exp === 'number' && exp * 1000 <= Date.now()) {
         logger.warn(`⏳ Socket namespace ${namespace || '/'}: access token expired and refresh unavailable — deferring connect`);
@@ -80,7 +95,8 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
     void prepConnect();
 
     s.on('connect', () => {
-      logger.log(`🔗 Socket connected for user ${userId} in namespace ${namespace || '/'}`);
+      consecutiveConnectErrors = 0;
+      logger.log(`🔗 Socket connected for user ${userId} in namespace ${namespace || '/'} at ${EnvironmentService.getSocketUrl()}`);
     });
     s.on('disconnect', (reason) => {
       logger.warn(`⚡ Socket disconnected from namespace ${namespace || '/'}:`, reason);
@@ -103,17 +119,25 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
     });
 
     s.on('connect_error', async (err) => {
-      // H23: with no session in the store the auth callback sends an empty
-      // token — retrying can never succeed. Stop the loop instead of
-      // spamming console.error + refresh attempts while logged out.
       if (!useUserStore.getState().token) {
         logger.warn(`⚠️ Socket auth rejected with no active session in namespace ${namespace || '/'} — staying disconnected`);
         s.disconnect();
         return;
       }
-      // H24: backend can't reach the DB (auth lookup failed upstream) — the
-      // JWT itself is fine. Don't refresh-loop or spam red errors; let
-      // socket.io's own reconnection timer retry.
+
+      consecutiveConnectErrors++;
+
+      // If socket failed to connect 3+ times in a row, test failover
+      if (consecutiveConnectErrors >= 3) {
+        const active = ServerFailoverManager.getActiveServer();
+        const secondary = ServerFailoverManager.getSecondaryServer();
+        if (!ServerFailoverManager.isQuarantined(secondary.id)) {
+          logger.warn(`🚨 Socket connection failed ${consecutiveConnectErrors} times to ${active.id}. Switching to ${secondary.id}...`);
+          ServerFailoverManager.switchActiveServer(secondary.id, 'Socket connect_error threshold reached');
+          return;
+        }
+      }
+
       if (err?.message === 'ServiceUnavailable') {
         logger.warn(`⚠️ Socket auth temporarily unavailable (backend) in namespace ${namespace || '/'} — will retry`);
         return;
@@ -126,12 +150,8 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
         msg.includes('expired') ||
         msg.includes('Expired');
       if (isAuthError) {
-        // H26: auth-class rejections are self-healing (refresh + reconnect) —
-        // warn instead of a red console.error + stack on every retry.
         logger.warn(`⚠️ Socket auth rejected in namespace ${namespace || '/'} (${msg}) — will refresh and retry`);
         try {
-          // Single-flight refresh shared with api.ts (dedupes concurrent refreshes)
-          // and targeted at the configured API base, not the socket origin.
           await refreshTokenOnce();
           s.connect();
           logger.log(`🔄 Token refreshed and socket reconnected in namespace ${namespace || '/'}`);

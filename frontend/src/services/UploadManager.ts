@@ -1,10 +1,12 @@
 import { useUploadStore, type UploadJob } from '../store/uploadStore';
 import { useNetworkStore } from '../store/networkStore';
 import { runStoryUploadWorker, activeXhrRequests } from './workers/StoryUploadWorker';
+import { runMomentUploadWorker, activeMomentXhrRequests } from './workers/MomentUploadWorker';
 import { UploadEventBus } from '../utils/UploadEventBus';
 import { UploadFileDB } from '../services/uploadFileDB';
 import { UploadError } from '../utils/UploadError';
 import { logger } from '../utils/logger';
+import { initReelUploadNotifications } from './ReelUploadNotifier';
 
 const runningJobs = new Set<string>();
 const retryTimers = new Map<string, any>();
@@ -30,16 +32,18 @@ function getConcurrencyLimit(): number {
 export const UploadManager = {
   init() {
     logger.log('[UploadManager] Initializing background upload scheduler...');
+    initReelUploadNotifications();
 
     // Subscribe to store changes to trigger wake when new jobs are added
     useUploadStore.subscribe((state) => {
       // Clean up canceled requests if they are still running
       state.jobs.forEach((job) => {
         if (job.status === 'CANCELLED' && runningJobs.has(job.uploadId)) {
-          const xhr = activeXhrRequests.get(job.uploadId);
+          const xhr = activeXhrRequests.get(job.uploadId) || activeMomentXhrRequests.get(job.uploadId);
           if (xhr) {
             xhr.abort();
             activeXhrRequests.delete(job.uploadId);
+            activeMomentXhrRequests.delete(job.uploadId);
           }
           runningJobs.delete(job.uploadId);
           this.wake();
@@ -112,6 +116,8 @@ export const UploadManager = {
     try {
       if (job.type === 'STORY') {
         await runStoryUploadWorker(job);
+      } else if (job.type === 'MOMENT') {
+        await runMomentUploadWorker(job);
       } else {
         throw new Error(`Unsupported upload type: ${job.type}`);
       }

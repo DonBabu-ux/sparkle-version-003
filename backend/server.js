@@ -73,7 +73,8 @@ app.use(cors({
             'https://sparkleappweb1.vercel.app',
             'https://sparklewebapp.vercel.app',
             'https://sparkleapp.vercel.app',
-            'https://sparkle-version-003-1-f4v3.onrender.com' 
+            'https://sparkle-version-003-1-f4v3.onrender.com',
+            'https://sparkle-app-backup.onrender.com'
         ];
         
         // Allow requests with no origin (like mobile apps or curl requests)

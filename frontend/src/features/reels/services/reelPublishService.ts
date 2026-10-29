@@ -1,5 +1,8 @@
 import api from '../../../api/api';
 import { AuthService } from '../../../services/AuthService';
+import { UploadManager } from '../../../services/UploadManager';
+import { useUploadStore } from '../../../store/uploadStore';
+import { generateVideoThumbnail } from '../../../utils/thumbnailGenerator';
 import { logger } from '../../../utils/logger';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import type { AudienceKind } from '../types';
@@ -137,6 +140,7 @@ async function prepareMedia(
       keepOriginalSound: state.keepOriginalSound || !state.selectedMusic,
       musicUrl: state.selectedMusic?.audioUrl || null,
       musicVolume: 0.9,
+      watermark: state.watermark,
       width: 720,
       height: 1280,
       fps: 30,
@@ -152,6 +156,13 @@ async function prepareMedia(
       'Could not process the edits into a video on this device.',
       code !== 'COMPOSITE_UNSUPPORTED' && code !== 'MEDIA_RECORDER_UNSUPPORTED',
     );
+  }
+
+  // When the creator expects audio (original sound kept or music selected)
+  // but the recorded blob has no audio track, surface it loudly — this is
+  // exactly the class of silent-reel bug the audio-graph fix targets.
+  if (result.hasAudio === false && (state.selectedMusic || state.keepOriginalSound)) {
+    logger.warn('[ReelPublish] composite completed with NO audible track despite audio settings');
   }
 
   const ext = result.mimeType.includes('mp4') ? 'mp4' : 'webm';
@@ -258,34 +269,19 @@ export interface PublishOutcome {
   storyError?: string;
 }
 
-/**
- * Full publish flow. Idempotency key is stable per draft session so a
- * retry after a timeout cannot create a duplicate reel.
- */
-export async function publishReel(
-  onProgress: (p: PublishProgress) => void,
-  idempotencyKey?: string,
-): Promise<PublishOutcome> {
-  const state = useReelCreatorStore.getState();
-  validateState(state);
-
-  const key = idempotencyKey || (state.draftId ? `d-${state.draftId}` : uuid());
-
-  onProgress({ phase: 'rendering', percent: 0, overall: 0 });
-  const { file, wasComposited } = await prepareMedia(state, onProgress);
-
+/** Build the multipart fields for POST /moments from the current creator state. */
+function buildPublishFields(
+  state: ReturnType<typeof useReelCreatorStore.getState>,
+  key: string,
+): Record<string, string> {
   const captionParts: string[] = [];
   if (state.title.trim()) captionParts.push(state.title.trim());
   if (state.description.trim()) captionParts.push(state.description.trim());
   const baseCaption = captionParts.join('\n\n');
 
-  // Hashtags/mentions: explicit picks merged with tags typed inside the
-  // title/description so nothing the author wrote is silently dropped.
   const hashtags = [...new Set([...state.hashtags, ...extractHashtags(`${state.title} ${state.description}`)])].slice(0, 5);
   const mentions = [...new Set([...state.mentions, ...extractMentions(`${state.title} ${state.description}`)])].slice(0, 10);
 
-  // Explicit hashtag picks also surface in the visible caption (tags typed
-  // into the text are already there); metadata stays for discovery indexing.
   const tagLine = state.hashtags
     .filter(t => !baseCaption.toLowerCase().includes(`#${t}`))
     .map(t => `#${t}`)
@@ -327,6 +323,12 @@ export async function publishReel(
           title: state.selectedMusic.title,
           artist: state.selectedMusic.artist,
           thumbnail: state.selectedMusic.thumbnailUrl,
+          provider: 'deezer',
+          duration_sec: state.selectedMusic.durationSec ?? null,
+          mix: {
+            keep_original_sound: !!(state.keepOriginalSound || !state.selectedMusic),
+            volume: 0.9,
+          },
         })
       : '',
     captions_info: state.captions.enabled
@@ -334,13 +336,33 @@ export async function publishReel(
       : '',
   };
 
-  // include explicit mentions alongside caption @handles
   if (mentions.length) {
     const mentionLine = mentions.map(m => `@${m}`).join(' ');
     fields.caption = fields.caption.includes(mentionLine)
       ? fields.caption
       : `${fields.caption}\n${mentionLine}`.trim();
   }
+
+  return fields;
+}
+
+/**
+ * Full publish flow. Idempotency key is stable per draft session so a
+ * retry after a timeout cannot create a duplicate reel.
+ */
+export async function publishReel(
+  onProgress: (p: PublishProgress) => void,
+  idempotencyKey?: string,
+): Promise<PublishOutcome> {
+  const state = useReelCreatorStore.getState();
+  validateState(state);
+
+  const key = idempotencyKey || (state.draftId ? `d-${state.draftId}` : uuid());
+
+  onProgress({ phase: 'rendering', percent: 0, overall: 0 });
+  const { file, wasComposited } = await prepareMedia(state, onProgress);
+
+  const fields = buildPublishFields(state, key);
 
   let data: {
     moment?: { moment_id?: string; shared_to_story?: unknown };
@@ -404,4 +426,72 @@ export async function publishReel(
   }
 
   return { momentId, wasComposited, storyShared, storyError, savedToDevice, saveError };
+}
+
+export interface BackgroundPublishHandoff {
+  uploadId: string;
+  title: string;
+}
+
+/**
+ * Background publish: validate → render/prepare media → enqueue a MOMENT
+ * job in the upload store → return immediately. The composer can close as
+ * soon as the job is accepted; UploadManager + MomentUploadWorker handle
+ * the network leg with retries, progress, and notifications.
+ */
+export async function publishReelBackground(
+  idempotencyKey: string,
+  onProgress: (p: PublishProgress) => void,
+): Promise<BackgroundPublishHandoff> {
+  const state = useReelCreatorStore.getState();
+  validateState(state);
+
+  const key = idempotencyKey || (state.draftId ? `d-${state.draftId}` : uuid());
+
+  onProgress({ phase: 'rendering', percent: 0, overall: 0 });
+  const { file } = await prepareMedia(state, onProgress);
+
+  const fields = buildPublishFields(state, key);
+
+  // Real first-frame thumbnail for the pending grid tile.
+  let thumbnailUri: string | null = null;
+  try {
+    const thumbFile = await generateVideoThumbnail(file, 0.5);
+    thumbnailUri = URL.createObjectURL(thumbFile);
+  } catch (_) {
+    // Tile falls back to extracting from the stored file — non-fatal.
+  }
+
+  const uploadId = `moment-${uuid()}`;
+  const EXT_BY_TYPE: Record<string, string> = {
+    'video/mp4': 'mp4', 'video/quicktime': 'mov', 'video/webm': 'webm',
+  };
+
+  await useUploadStore.getState().addJob(
+    {
+      uploadId,
+      type: 'MOMENT',
+      priority: 'HIGH',
+      localUri: URL.createObjectURL(file),
+      thumbnailUri,
+      status: 'QUEUED',
+      progress: 0,
+      retryCount: 0,
+      error: null,
+      metadata: {
+        fields,
+        title: state.title.trim() || state.description.trim().slice(0, 80) || 'Untitled reel',
+        durationSec: state.totalDurationSec(),
+        shareToStory: state.shareToStory !== 'off',
+        saveToDevice: !!state.saveToDevice,
+        fileExt: EXT_BY_TYPE[file.type] || (file.type.split('/')[1] || 'mp4'),
+      },
+    },
+    file,
+  );
+
+  UploadManager.wake();
+
+  onProgress({ phase: 'done', percent: 100, overall: 100 });
+  return { uploadId, title: state.title.trim() || 'Untitled reel' };
 }

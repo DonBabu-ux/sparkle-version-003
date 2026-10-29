@@ -27,7 +27,7 @@
   "id": "com.sparkle.campus",
   "description": "Sparkle Campus App – Connect, Discover, and Follow",
   "dir": "auto",
-  "scope": "https://sparkle-version-003-1-f4v3.onrender.com",
+  "scope": "/",
   "lang": "en",
   "iarc_rating_id": "Everyone",
   "prefer_related_applications": false,
@@ -45,11 +45,11 @@
   ],
   "share_target": {
     "method": "GET",
-    "action": "https://sparkle-version-003-1-f4v3.onrender.com",
+    "action": "/",
     "params": {
       "title": "Sparkle Campus App Share",
       "text": "Check out this amazing campus social app!",
-      "url": "https://sparkle-version-003-1-f4v3.onrender.com",
+      "url": "/",
       "files": [
         {
           "name": "",

@@ -53,6 +53,24 @@ const getSafeMediaUrl = (url) => {
     return safeUrl;
 };
 
+// Deezer preview CDN audio must be same-origin for the Web Audio graph
+// (crossOrigin='anonymous' + AudioContext) and for Android WebView, which
+// blocks cleartext HTTP. Serve it through the backend preview proxy.
+const isDeezerPreviewHost = (host) => /\.dzcdn\.net$|\.deezer\.com$|^cdnt\d+\./i.test(host || '');
+
+const resolveStoryAudioUrl = (url) => {
+    if (!url) return null;
+    const safe = getSafeMediaUrl(url);
+    if (!safe || safe.startsWith('/')) return safe; // already same-origin
+    try {
+        const parsed = new URL(safe);
+        if (isDeezerPreviewHost(parsed.hostname)) {
+            return `/api/music/preview-proxy?url=${encodeURIComponent(safe)}`;
+        }
+    } catch (_) { /* not a parseable absolute URL — return as-is */ }
+    return safe;
+};
+
 // Shared gate for story interactions (like/share/view/comment).
 // Rejects expired stories (>24h) and viewers the owner hid their story from.
 // Returns null when the interaction is allowed, otherwise { status, error }.
@@ -446,10 +464,14 @@ const getStories = async (req, res) => {
                 rotation: l.rotation
             }));
             
-            const legacyAudioUrl = musicLayer ? musicLayer.data.url : s.audio_url;
+            const rawAudioUrl = musicLayer ? (musicLayer.data && musicLayer.data.url) : s.audio_url;
             const legacyMusicInfo = musicLayer ? musicLayer.data : (s.music_info ? (typeof s.music_info === 'string' ? JSON.parse(s.music_info) : s.music_info) : null);
-            const legacyAudioStart = musicLayer ? musicLayer.data.start : s.audio_start;
-            const legacyAudioDuration = musicLayer ? musicLayer.data.duration : s.audio_duration;
+            const legacyAudioStart = musicLayer ? (musicLayer.data && musicLayer.data.start) : s.audio_start;
+            const legacyAudioDuration = musicLayer ? (musicLayer.data && musicLayer.data.duration) : s.audio_duration;
+            // Music is served over the same HTTPS origin as the app. A raw Deezer
+            // CDN URL is cross-origin, so AudioContext + CORS would fail and the
+            // track would never be audible — route through the preview proxy.
+            const legacyAudioUrl = resolveStoryAudioUrl(rawAudioUrl);
 
             map[s.user_id].stories.push({
                 story_id: s.story_id,

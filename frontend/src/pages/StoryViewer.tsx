@@ -3,7 +3,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
-import { X, Send, Heart, MessageCircle, MoreHorizontal, ChevronRight, Share2, User, Eye, Repeat, Search, Trash2, Link as LinkIcon, Download, AtSign, MessageSquare, Archive, Settings, MessageCircleOff, UserMinus, Ban, EyeOff, Check, ChevronLeft, Music3 } from 'lucide-react';
+import { X, Send, Heart, MessageCircle, MoreHorizontal, ChevronRight, Share2, User, Eye, Repeat, Search, Trash2, Link as LinkIcon, Download, AtSign, MessageSquare, Archive, Settings, MessageCircleOff, UserMinus, Ban, EyeOff, Check, ChevronLeft, Music3, Volume2, VolumeX } from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import '../store/storyStore';
 import { useUserStore } from '../store/userStore';
@@ -86,6 +86,25 @@ export default function StoryViewer() {
   const [videoError, setVideoError] = useState(false);
   const [replySent, setReplySent] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Story video starts muted so autoplay is allowed; the viewer can un-mute
+  // to hear audio baked into the clip (previously it was hard-muted forever).
+  const [videoMuted, setVideoMuted] = useState(true);
+
+  // Only story music is routed through the Web Audio graph, so it is safe to
+  // un-mute the story video without leaking its audio into the visualizer.
+  const toggleVideoMute = () => {
+    const next = !videoMuted;
+    setVideoMuted(next);
+    const vid = videoRef.current;
+    if (vid) {
+      vid.muted = next;
+      // Un-muting is a user gesture, so nudge playback if it stalled.
+      if (!next && vid.paused && playbackState === 'Playing') {
+        vid.play().catch(() => {});
+      }
+    }
+  };
 
   const requestRef = useRef<number | null>(null);
   const previousTimeRef = useRef<number | null>(null);
@@ -579,10 +598,10 @@ export default function StoryViewer() {
                  <>
                    <video
                      key={currentStory.story_id}
-                     ref={videoRef}
-                     src={getMediaUrl(currentStory.media_url)}
-                     muted
-                     playsInline
+                      ref={videoRef}
+                      src={getMediaUrl(currentStory.media_url)}
+                      muted={videoMuted}
+                      playsInline
                      preload="auto"
                      className="h-full w-full object-cover"
                      onCanPlay={() => setMediaLoaded(true)}
@@ -720,6 +739,15 @@ export default function StoryViewer() {
                   </div>
 
                   <div className="flex items-center gap-3">
+                    {currentStory.media_type === 'video' && (
+                      <button
+                        onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); toggleVideoMute(); }}
+                        aria-label={videoMuted ? 'Unmute story video' : 'Mute story video'}
+                        className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"
+                      >
+                        {videoMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+                      </button>
+                    )}
                     <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Send size={20} /></button>
                     <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowMentionModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><AtSign size={20} /></button>
                     <button 

@@ -297,17 +297,21 @@ async function filterVisible(rows, viewerId) {
 /**
  * Viewer-facing copy of a moment row: exclusion lists (per-moment columns or
  * embedded in overlays) and the publish idempotency key are author-only state
- * and must never leave the server to a viewer — not even the owner's own list
- * contents are needed to render a feed item.
+ * and must never leave the server to a viewer. Owners keep the exclusion
+ * lists (but never the idempotency key) so the per-reel privacy editor can
+ * seed its state.
  */
-function stripPrivateFields(row) {
+function stripPrivateFields(row, opts) {
     if (!row || typeof row !== 'object') return row;
     const out = { ...row };
-    delete out.hide_from_user_ids;
-    delete out.show_only_user_ids;
+    const isOwner = !!(opts && opts.isOwner);
+    if (!isOwner) {
+        delete out.hide_from_user_ids;
+        delete out.show_only_user_ids;
+    }
     delete out.idempotency_key;
     const ov = parseJsonValue(out.overlays);
-    if (ov && typeof ov === 'object' && ('hide_from' in ov || 'show_only' in ov)) {
+    if (!isOwner && ov && typeof ov === 'object' && ('hide_from' in ov || 'show_only' in ov)) {
         const clean = { ...ov };
         delete clean.hide_from;
         delete clean.show_only;

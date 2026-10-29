@@ -97,6 +97,7 @@ const Moments = lazyWithRetry(() => import('./pages/Moments'));
 const MomentStudio = lazyWithRetry(() => import('./pages/MomentStudio'));
 const CreateReelFlow = lazyWithRetry(() => import('./features/reels/CreateReelFlow'));
 const ReelDrafts = lazyWithRetry(() => import('./features/reels/components/DraftsPage'));
+const CreateStickerPage = lazyWithRetry(() => import('./features/reels/components/CreateStickerPage'));
 const CreateStory = lazyWithRetry(() => import('./pages/CreateStory'));
 const StorySnapshot = lazyWithRetry(() => import('./pages/StorySnapshot'));
 const Streams = lazyWithRetry(() => import('./pages/Streams'));
@@ -549,8 +550,9 @@ function App() {
                     {/* MUST stay above '/moments/:id' — React Router matches in
                         order, so ':id' would otherwise capture 'studio'. */}
                     <Route path="/moments/studio" element={isAuthenticated ? <MomentStudio /> : <Navigate to="/login" />} />
-                    <Route path="/moments/drafts" element={isAuthenticated ? <ReelDrafts /> : <Navigate to="/login" />} />
-                    <Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
+<Route path="/moments/drafts" element={isAuthenticated ? <ReelDrafts /> : <Navigate to="/login" />} />
+<Route path="/moments/:id/sticker" element={isAuthenticated ? <CreateStickerPage /> : <Navigate to="/login" />} />
+<Route path="/moments/:id" element={isAuthenticated ? <Moments /> : <Navigate to="/login" />} />
                     <Route path="/story/:storyId" element={isAuthenticated ? <StorySnapshot /> : <Navigate to="/login" />} />
                     <Route path="/afterglow/create" element={isAuthenticated ? <CreateStory /> : <Navigate to="/login" />} />
                     <Route path="/moments/create" element={isAuthenticated ? <CreateReelFlow /> : <Navigate to="/login" />} />

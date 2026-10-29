@@ -13,6 +13,14 @@ router.get('/stream', authMiddleware, momentsController.getMomentsStream);
 // order, so '/:id' would otherwise capture 'my' as an id.
 router.get('/my/moments', authMiddleware, momentsController.getMyMoments);
 
+// Personalised search suggestions — MUST stay above '/:id' or ':id' captures 'suggestions'.
+router.get('/suggestions', authMiddleware, momentsController.getMomentSuggestions);
+
+// Saved stickers (created from the caller's own reels) — also above '/:id'
+router.get('/stickers', authMiddleware, momentsController.listStickers);
+router.post('/stickers', authMiddleware, mutationRateLimiter, momentsController.saveSticker);
+router.delete('/stickers/:id', authMiddleware, momentsController.deleteSticker);
+
 // CRUD operations
 router.get('/:id', authMiddleware, momentsController.getMomentById);
 router.post('/',
@@ -23,10 +31,13 @@ router.post('/',
 );
 
 // Interaction endpoints
+router.put('/:id', authMiddleware, momentsController.updateMomentPrivacy);
+router.post('/:id/pin', authMiddleware, momentsController.toggleMomentPin);
 router.post('/:id/spark', authMiddleware, mutationRateLimiter, momentsController.sparkMoment);
 router.post('/:id/save', authMiddleware, mutationRateLimiter, momentsController.saveMoment);
 router.post('/:id/share', authMiddleware, momentsController.trackShare);
 router.post('/:id/view', authMiddleware, momentsController.trackView);
+router.get('/:id/viewers', authMiddleware, momentsController.getMomentViewers);
 router.post('/:id/engagement', authMiddleware, momentsController.trackEngagement);
 router.get('/:id/share-data', authMiddleware, momentsController.getShareData);
 

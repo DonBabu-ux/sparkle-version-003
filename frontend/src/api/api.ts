@@ -2,16 +2,22 @@ import axios from 'axios';
 import { useUserStore } from '../store/userStore';
 
 import { EnvironmentService } from '../services/EnvironmentService';
+import { ServerFailoverManager } from '../services/ServerFailoverManager';
 import { refreshTokenOnce } from '../services/tokenRefresh';
 import { adoptServerToken } from '../utils/tokenHeaderSync';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl(),
+  baseURL: EnvironmentService.getApiBaseUrl(),
   withCredentials: true,
-  // NOTE: Do NOT set a default Content-Type here.
-  // Axios will automatically set 'application/json' for plain objects
-  // and let the browser set 'multipart/form-data; boundary=...' for FormData.
-  // Locking it to 'application/json' breaks all file/media uploads.
+  timeout: 25000,
+});
+
+// Update axios baseURL whenever active failover server changes
+ServerFailoverManager.onServerChange((newServer) => {
+  api.defaults.baseURL = EnvironmentService.getApiBaseUrl();
+  csrfToken = null;
+  csrfFetchAttempted = false;
+  logger.log(`[API] Updated default baseURL to: ${api.defaults.baseURL}`);
 });
 
 // CSRF state
@@ -30,9 +36,9 @@ const fetchCsrfToken = async (): Promise<string | null> => {
   if (csrfFetchAttempted) return null;
   csrfFetchAttempted = true;
   try {
-    const { data } = await axios.get(`${api.defaults.baseURL}/csrf-token`, { 
+    const { data } = await axios.get(`${EnvironmentService.getApiBaseUrl()}/csrf-token`, { 
       withCredentials: true,
-      timeout: 2000
+      timeout: 3000
     });
     csrfToken = data?.csrfToken || 'sparkle_csrf_disabled';
     return csrfToken;
@@ -47,8 +53,10 @@ logger.log('Sparkle API initialized at:', api.defaults.baseURL);
 // Interceptor to add auth token, CSRF token, and device info
 api.interceptors.request.use(
   async (config) => {
-    // Token comes from the user store (the legacy localStorage 'accessToken'
-    // fallback was never written by anything and is removed).
+    // Dynamically guarantee baseURL always matches the currently active server
+    config.baseURL = EnvironmentService.getApiBaseUrl();
+
+    // Token comes from the user store
     const token = useUserStore.getState().token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -102,6 +110,31 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+/**
+ * Checks if an error qualifies for server failover:
+ * - Connection refused / DNS failure / Network error (no response)
+ * - 502 Bad Gateway, 503 Service Unavailable, 504 Gateway Timeout
+ */
+const isFailoverCandidateError = (error: any): boolean => {
+  if (!error.response) {
+    // Network error / timeout / abort
+    const msg = String(error.message || '').toLowerCase();
+    const code = String(error.code || '').toLowerCase();
+    return (
+      code === 'econnaborted' ||
+      code === 'econnrefused' ||
+      code === 'enotfound' ||
+      code === 'err_network' ||
+      code === 'etimedout' ||
+      msg.includes('network error') ||
+      msg.includes('timeout') ||
+      msg.includes('failed to fetch')
+    );
+  }
+  const status = error.response.status;
+  return status === 502 || status === 503 || status === 504;
+};
+
 // Interceptor to handle common errors and refresh token
 api.interceptors.response.use(
   (response) => {
@@ -114,10 +147,35 @@ api.interceptors.response.use(
     if (error.response) adoptServerToken(error.response.headers);
     const originalRequest = error.config;
 
+    // ── AUTOMATIC FAILOVER RETRY ──
+    if (originalRequest && !originalRequest._failoverRetried && isFailoverCandidateError(error)) {
+      originalRequest._failoverRetried = true;
+      const currentActive = ServerFailoverManager.getActiveServer();
+      const secondary = ServerFailoverManager.getSecondaryServer();
+
+      if (!ServerFailoverManager.isQuarantined(secondary.id)) {
+        logger.warn(`🚨 Request to ${currentActive.id} failed (${error.response?.status || error.message}). Attempting failover to ${secondary.id}...`);
+
+        // Switch the active server
+        ServerFailoverManager.switchActiveServer(secondary.id, `Request error on ${originalRequest.url}: ${error.message || error.response?.status}`);
+
+        // Update the failed request config with the new base URL
+        originalRequest.baseURL = secondary.apiBase;
+
+        // If absolute URL was previously resolved in originalRequest, adjust it
+        if (originalRequest.url && originalRequest.url.startsWith('http')) {
+          originalRequest.url = originalRequest.url.replace(currentActive.origin, secondary.origin);
+        }
+
+        // Wait briefly for secondary connection
+        await new Promise((r) => setTimeout(r, 400));
+        return api(originalRequest);
+      }
+    }
+
     // Handle Network Errors (like ERR_CONNECTION_REFUSED) - bypass retries for login/auth to respond immediately
     const isAuthUrl = originalRequest?.url?.includes('/auth/login') || originalRequest?.url?.includes('/auth/signup');
     if (!error.response && originalRequest && !isAuthUrl) {
-      // If it's a network error and we haven't retried this specific request yet
       if (!originalRequest._networkRetry || originalRequest._networkRetry < 2) {
         originalRequest._networkRetry = (originalRequest._networkRetry || 0) + 1;
         logger.warn(`❌ Network error on ${originalRequest.url}, retrying... (${originalRequest._networkRetry})`);

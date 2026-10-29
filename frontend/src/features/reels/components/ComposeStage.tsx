@@ -7,7 +7,7 @@ import api from '../../../api/api';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import { StageShell, BottomSheet, InlineSpinner, PINK } from './shell';
 import { saveDraft } from '../services/draftService';
-import { publishReel, PublishError, AUDIENCE_LABELS, type PublishProgress } from '../services/reelPublishService';
+import { publishReelBackground, PublishError, AUDIENCE_LABELS, type PublishProgress } from '../services/reelPublishService';
 import { showError, showSuccess } from '../../../utils/toast';
 import { logger } from '../../../utils/logger';
 
@@ -34,13 +34,14 @@ export default function ComposeStage({
   onBack,
   onOpenAudience,
   onOpenShareStory,
-  onPublished,
+  onPublishedBackground,
   onDraftSaved,
 }: {
   onBack: () => void;
   onOpenAudience: () => void;
   onOpenShareStory: () => void;
-  onPublished: (momentId: string) => void;
+  /** Called once the background publish job is accepted (rendered + queued). */
+  onPublishedBackground: (uploadId: string) => void;
   /** Called after a draft save succeeds — closes the composer and returns to a fresh create-reel page. */
   onDraftSaved?: () => void;
 }) {
@@ -66,14 +67,13 @@ export default function ComposeStage({
   const [progress, setProgress] = useState<PublishProgress | null>(null);
   const [publishError, setPublishError] = useState<{ message: string; retryable: boolean } | null>(null);
   const [draftSaving, setDraftSaving] = useState(false);
-  const [publishedId, setPublishedId] = useState<string | null>(null);
   const idemKeyRef = useRef<string>(
     s.draftId ? `d-${s.draftId}` : (typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : `idem-${Date.now()}`),
   );
 
   const titleWords = s.title.trim() ? s.title.trim().split(/\s+/).length : 0;
   const duration = s.totalDurationSec();
-  const canPublish = s.clips.length > 0 && !s.submitting && !publishedId;
+  const canPublish = s.clips.length > 0 && !s.submitting;
 
   // ── Data loads ──
   useEffect(() => {
@@ -148,28 +148,25 @@ export default function ComposeStage({
     }
   };
 
-  // ── Publish ──
+  // ── Publish (background job handoff) ──
   const doPublish = async (isRetry = false) => {
     setPublishError(null);
     if (isRetry) setProgress(null);
     s.setSubmitting(true);
     s.setSubmitProgress(0);
     try {
-      const outcome = await publishReel((p) => {
+      const handoff = await publishReelBackground(idemKeyRef.current, (p) => {
         setProgress(p);
         s.setSubmitProgress(p.overall);
-      }, idemKeyRef.current);
-      setPublishedId(outcome.momentId);
-      s.setPublishedMomentId(outcome.momentId);
-      if (outcome.storyError) showError(outcome.storyError);
-      if (outcome.saveError) showError(outcome.saveError);
-      onPublished(outcome.momentId);
+      });
+      showSuccess('Publishing in the background — you can keep browsing.');
+      onPublishedBackground(handoff.uploadId);
     } catch (err) {
       if (err instanceof PublishError) {
         setPublishError({ message: err.message, retryable: err.retryable });
         if (err.code === 'AUTH') showError(err.message);
       } else {
-        setPublishError({ message: 'Something went wrong while publishing. Retry — it will not duplicate.', retryable: true });
+        setPublishError({ message: 'Something went wrong while preparing the reel. Retry — it will not duplicate.', retryable: true });
       }
       logger.warn('[Compose] publish failed:', err);
     } finally {
@@ -210,8 +207,8 @@ export default function ComposeStage({
             Share
           </button>
         ) : (
-          <span className="text-[13px] font-bold" style={{ color: publishedId ? '#7CFF6B' : 'rgba(255,255,255,0.5)' }}>
-            {publishedId ? 'Shared ✓' : s.submitting ? '…' : ''}
+          <span className="text-[13px] font-bold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+            {s.submitting ? '…' : ''}
           </span>
         )
       }

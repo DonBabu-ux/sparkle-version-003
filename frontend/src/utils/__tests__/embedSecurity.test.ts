@@ -34,6 +34,10 @@ describe('C2.5 — every createObjectURL site revokes its blob URLs', () => {
         // by CreateReelFlow on session teardown/discard/publish; getDraftPreview
         // URLs are revoked by DraftPreview on change/unmount.
         'features/reels/services/draftService.ts': 'CreateReelFlow session teardown + DraftPreview unmount (revokeObjectURL)',
+        // publishReelBackground hands thumbnailUri/localUri to the upload
+        // store; both are revoked by UploadManager.cleanupJobAssets (on
+        // success/failure) and uploadStore.cancelJob/discardJob.
+        'features/reels/services/reelPublishService.ts': 'UploadManager.cleanupJobAssets + uploadStore.cancelJob/discardJob',
     };
 
     const creators = walk(SRC).filter((f) => read(f).includes('createObjectURL'));

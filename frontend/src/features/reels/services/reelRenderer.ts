@@ -23,6 +23,8 @@ export interface RenderOptions {
   keepOriginalSound: boolean;
   musicUrl?: string | null;
   musicVolume?: number;
+  /** Burn the Sparkle watermark badge into every frame (default off). */
+  watermark?: boolean;
   onProgress?: (fraction: number) => void;
   signal?: { cancelled: boolean };
 }
@@ -33,6 +35,8 @@ export interface RenderResult {
   width: number;
   height: number;
   mimeType: string;
+  /** Best-effort probe: true/false when the runtime can detect an audio track, undefined when undetectable. */
+  hasAudio?: boolean;
 }
 
 const pickRecorderMime = (): string | null => {
@@ -51,6 +55,48 @@ const pickRecorderMime = (): string | null => {
   }
   return '';
 };
+
+/**
+ * Best-effort detection of an audio track in a recorded blob.
+ * Chromium exposes webkitAudioDecodedByteCount, Firefox mozHasAudio,
+ * Safari/others audioTracks — returns undefined when none are available.
+ */
+export async function probeBlobHasAudio(blob: Blob): Promise<boolean | undefined> {
+  if (typeof document === 'undefined') return undefined;
+  const url = URL.createObjectURL(blob);
+  const v = document.createElement('video');
+  v.preload = 'auto';
+  v.muted = true;
+  v.src = url;
+  try {
+    await new Promise<void>((resolve) => {
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      v.onloadeddata = done;
+      v.onerror = done;
+      setTimeout(done, 1500);
+    });
+    const anyV = v as HTMLVideoElement & {
+      mozHasAudio?: boolean;
+      webkitAudioDecodedByteCount?: number;
+      audioTracks?: { length: number };
+    };
+    if (typeof anyV.mozHasAudio === 'boolean') return anyV.mozHasAudio;
+    if (typeof anyV.webkitAudioDecodedByteCount === 'number') {
+      try { await v.play(); await new Promise((r) => setTimeout(r, 400)); v.pause(); } catch (_) { /* ignore */ }
+      return anyV.webkitAudioDecodedByteCount > 0;
+    }
+    if (anyV.audioTracks && typeof anyV.audioTracks.length === 'number') {
+      return anyV.audioTracks.length > 0;
+    }
+    return undefined;
+  } catch (_) {
+    return undefined;
+  } finally {
+    try { v.removeAttribute('src'); v.load(); } catch (_) { /* ignore */ }
+    URL.revokeObjectURL(url);
+  }
+}
 
 export function canComposite(): boolean {
   return (
@@ -184,6 +230,20 @@ function drawOverlays(
   }
 }
 
+/** Small persistent "Sparkle" badge burned into the bottom-right of every frame. */
+function drawWatermark(ctx: CanvasRenderingContext2D, w: number, h: number): void {
+  ctx.save();
+  const fontSize = Math.max(11, Math.round(h * 0.022));
+  ctx.font = `800 ${fontSize}px 'Varela Round', sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'bottom';
+  ctx.shadowColor = 'rgba(0,0,0,0.6)';
+  ctx.shadowBlur = 4;
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';
+  ctx.fillText('Sparkle', w - Math.round(w * 0.03), h - Math.round(h * 0.025));
+  ctx.restore();
+}
+
 /**
  * Render the reel to a video Blob.
  * Throws with a descriptive message when the runtime lacks the capability.
@@ -224,6 +284,12 @@ export async function renderReel(
 
   const stream = canvas.captureStream(fps);
   const audioCtx = new AudioContext();
+  // Autoplay policy: a fresh AudioContext can start 'suspended' — without an
+  // explicit resume() no data flows through the graph and the whole reel
+  // (music included) records silent. Resume now and again on first play.
+  if (audioCtx.state !== 'running') {
+    try { await audioCtx.resume(); } catch (_) { /* retried in the draw loop */ }
+  }
   const dest = audioCtx.createMediaStreamDestination();
   let musicEl: HTMLAudioElement | null = null;
   const micStream: MediaStream | null = null;
@@ -239,8 +305,15 @@ export async function renderReel(
       try {
         const el = audioCtx.createMediaElementSource(s.video);
         el.connect(originalGain);
+        // A MediaElementAudioSourceNode samples the element's OUTPUT, and a
+        // muted element outputs silence — un-mute only after the graph
+        // connection succeeds. Rerouted audio does NOT leak to the speakers
+        // because nothing is connected to audioCtx.destination.
+        s.video.muted = false;
+        s.video.volume = 1;
       } catch (_) {
-        // Some elements can only be wired once — acceptable, video stays muted
+        // Already wired or unsupported — keep this clip muted (no speaker leak).
+        s.video.muted = true;
       }
     }
   }
@@ -250,12 +323,13 @@ export async function renderReel(
       musicEl = new Audio(options.musicUrl);
       musicEl.loop = true;
       musicEl.crossOrigin = 'anonymous';
+      musicEl.volume = 1;
       musicSource = audioCtx.createMediaElementSource(musicEl);
       const musicGain = audioCtx.createGain();
       musicGain.gain.value = options.musicVolume ?? 0.9;
       musicSource.connect(musicGain);
       musicGain.connect(dest);
-      await musicEl.play().catch(() => { /* autoplay policy — render continues silent-music */ });
+      await musicEl.play().catch(() => { /* autoplay policy — render continues, retried below */ });
     } catch (_) {
       musicEl = null;
     }
@@ -307,12 +381,15 @@ export async function renderReel(
         return;
       }
       options.onProgress?.(1);
-      resolve({
-        blob,
-        durationSec: totalDuration,
-        width: targetW,
-        height: targetH,
-        mimeType: blob.type,
+      void probeBlobHasAudio(blob).then((hasAudio) => {
+        resolve({
+          blob,
+          durationSec: totalDuration,
+          width: targetW,
+          height: targetH,
+          mimeType: blob.type,
+          hasAudio,
+        });
       });
     };
 
@@ -364,7 +441,14 @@ export async function renderReel(
           try { v.currentTime = targetTime; } catch (_) { /* seek while playing is fine */ }
         }
         if (v.paused) {
-          try { await v.play(); } catch (_) { /* ignore */ }
+          try {
+            await v.play();
+            // The AudioContext can also be suspended by autoplay policy at
+            // the moment media first plays — resume lazily here.
+            if (audioCtx.state !== 'running') {
+              try { await audioCtx.resume(); } catch (_) { /* ignore */ }
+            }
+          } catch (_) { /* ignore */ }
         }
         if (v.readyState >= 2) {
           drawCover(ctx!, v, v.videoWidth || targetW, v.videoHeight || targetH, targetW, targetH);
@@ -379,6 +463,9 @@ export async function renderReel(
       }
 
       drawOverlays(ctx!, targetW, targetH, overlayState.textOverlays, overlayState.stickerOverlays, overlayState.cues, elapsed);
+      if (options.watermark) {
+        drawWatermark(ctx!, targetW, targetH);
+      }
 
       options.onProgress?.(Math.min(0.99, elapsed / Math.max(totalDuration, 0.1)));
       frameHandle = requestAnimationFrame(drawFrame);

@@ -2,6 +2,9 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const sessionInterestService = require('../services/session-interest.service');
 const momentsRankingService = require('../services/moments-ranking.service');
+const visibility = require('../services/reels-visibility.service');
+
+const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
 
 let tablesEnsured = false;
 
@@ -131,6 +134,7 @@ const ensureMomentColumns = async () => {
 const getMomentById = async (req, res) => {
     try {
         const { id } = req.params;
+        const viewerId = req.user?.user_id;
         const [moments] = await pool.query(`
             SELECT 
                 m.*,
@@ -142,14 +146,20 @@ const getMomentById = async (req, res) => {
                 (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
             FROM moments m 
             JOIN users u ON m.user_id = u.user_id 
-            WHERE m.moment_id = ?
-        `, [req.user?.user_id, req.user?.user_id, req.user?.user_id, id]);
+            WHERE m.moment_id = ? AND m.deleted_at IS NULL
+        `, [viewerId, viewerId, viewerId, id]);
 
         if (moments.length === 0) {
             return res.status(404).json({ error: 'Moment not found' });
         }
 
-        res.json({ success: true, moment: moments[0] });
+        // Server-side audience enforcement — hiding rows in the client is not enough
+        const allowed = await visibility.canViewMoment(moments[0], viewerId);
+        if (!allowed) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
+
+        res.json({ success: true, moment: visibility.stripPrivateFields(moments[0]) });
     } catch (error) {
         logger.error('Error loading moment detail:', error);
         res.status(500).json({ error: 'Failed to load moment' });
@@ -199,6 +209,10 @@ const getMomentsStream = async (req, res) => {
                         user_name:     item.user_name,
                         avatar_url:    item.avatar_url,
                         is_verified:   item.is_verified,
+                        audience:      item.audience || 'public',
+                        hide_from_user_ids: item.hide_from_user_ids || null,
+                        show_only_user_ids: item.show_only_user_ids || null,
+                        watermark:    item.watermark,
                         caption:       item.caption,
                         media_url:     item.media_url,
                         streaming_url: item.streaming_url,
@@ -220,6 +234,15 @@ const getMomentsStream = async (req, res) => {
             }
         }
 
+        // Final server-side audience pass — ranked pools may contain only
+        // public rows, but friends/close-friends items coming from the
+        // following pool must still be checked against the viewer's graph.
+        try {
+            momentsToReturn = await visibility.filterVisible(momentsToReturn || [], currentUserId);
+        } catch (visErr) {
+            logger.warn('[MomentsStream] visibility filter failed:', visErr.message);
+        }
+
         res.json({
             moments: momentsToReturn,
             sivActive: true,
@@ -232,11 +255,55 @@ const getMomentsStream = async (req, res) => {
     }
 };
 
+/**
+ * A single user's moments for profile REELS grids. Full audience enforcement
+ * happens in filterVisible (owner sees everything; viewers get audience,
+ * hide_from/show_only, close-friends, and block rules). Rows are stripped of
+ * author-only fields before leaving the server.
+ */
+const getUserMoments = async (req, res) => {
+    try {
+        const targetUserId = req.params.userId;
+        const currentUserId = req.user.user_id;
+        const limit = Math.min(parseInt(req.query.limit, 10) || 30, 50);
+
+        const [rows] = await pool.query(
+            `SELECT m.*, u.username, u.name as user_name, u.avatar_url,
+                    (SELECT COUNT(*) FROM moment_likes WHERE moment_id = m.moment_id AND user_id = ?) as is_liked,
+                    (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
+             FROM moments m
+             JOIN users u ON m.user_id = u.user_id
+             WHERE m.user_id = ? AND m.deleted_at IS NULL
+             ORDER BY m.created_at DESC
+             LIMIT ?`,
+            [currentUserId, currentUserId, currentUserId, targetUserId, limit]
+        );
+
+        const visible = await visibility.filterVisible(rows || [], currentUserId);
+        res.json({
+            moments: visible,
+            pagination: { limit, total: visible.length, hasMore: (rows || []).length === limit },
+        });
+    } catch (error) {
+        logger.error('User moments error:', error);
+        res.status(500).json({ error: 'Failed to load moments' });
+    }
+};
 
 const sparkMoment = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.user_id;
+
+        // Gate on audience — never let invisible moments be (un)liked
+        const [targetRows] = await pool.query(
+            'SELECT * FROM moments WHERE moment_id = ? AND deleted_at IS NULL',
+            [id]
+        );
+        if (!targetRows.length || !(await visibility.canViewMoment(targetRows[0], userId))) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
 
         // Check if already sparks
         const [existing] = await pool.query(
@@ -306,8 +373,16 @@ const sparkMoment = async (req, res) => {
 
 const createMoment = async (req, res) => {
     try {
-        const { caption, category = 'general' } = req.body;
-        
+        const {
+            caption, category = 'general',
+            title = null, description = null,
+            audience = 'public', comments_enabled = '1',
+            overlays = null, clips_info = null, music_info = null,
+            captions_info = null, duration_seconds = null,
+            watermark = '0', idempotency_key = null,
+            shared_to_story = '0',
+        } = req.body;
+
         // SUPPORT BOTH SINGLE AND ARRAY UPLOADS (Fix for redirected post requests)
         let media_url = req.body.media_url || req.body.video_url || null;
         let detected_mimetype = null;
@@ -331,6 +406,48 @@ const createMoment = async (req, res) => {
             return res.status(400).json({ error: 'Media is required' });
         }
 
+        // Idempotency: a retried publish with the same key returns the
+        // existing moment instead of creating a duplicate.
+        const idemKey = idempotency_key ? String(idempotency_key).slice(0, 64) : null;
+        if (idemKey) {
+            const [existing] = await pool.query(
+                'SELECT * FROM moments WHERE user_id = ? AND idempotency_key = ?',
+                [userId, idemKey]
+            );
+            if (existing.length > 0) {
+                return res.status(200).json({
+                    status: 'success',
+                    message: 'Moment already published (idempotent replay)',
+                    moment: existing[0],
+                    deduplicated: true,
+                });
+            }
+        }
+
+        const safeAudience = VALID_AUDIENCES.has(audience) ? audience : 'public';
+        const commentsOn = comments_enabled === '0' || comments_enabled === 0 || comments_enabled === false ? 0 : 1;
+        const watermarkOn = watermark === '1' || watermark === 1 || watermark === true ? 1 : 0;
+
+        const parseJsonField = (value) => {
+            if (value == null || value === '') return null;
+            try { return JSON.stringify(typeof value === 'string' ? JSON.parse(value) : value); }
+            catch (_) { return null; }
+        };
+
+        // Per-moment exclusion lists travel inside the composer's overlays
+        // payload — extract them into real columns so feed queries and
+        // visibility.canView can enforce them without parsing big blobs.
+        const sanitizeIdList = (list) => Array.isArray(list)
+            ? [...new Set(list.map(String).filter(Boolean))].slice(0, 500)
+            : [];
+        let overlaysObj = null;
+        if (overlays != null && overlays !== '') {
+            try { overlaysObj = typeof overlays === 'string' ? JSON.parse(overlays) : overlays; }
+            catch (_) { overlaysObj = null; }
+        }
+        const hideFromIds = sanitizeIdList(overlaysObj?.hide_from);
+        const showOnlyIds = sanitizeIdList(overlaysObj?.show_only);
+
         const momentId = require('crypto').randomUUID();
         const media_type = detected_mimetype ? detected_mimetype.split('/')[0] : (media_url.includes('video') ? 'video' : 'image');
 
@@ -347,16 +464,22 @@ const createMoment = async (req, res) => {
         let streaming_url = null;
         let thumbnail_url = null;
         
-        if (req.file && req.file.mimetype.startsWith('video/')) {
+        if (req.file && (req.file.mimetype || '').startsWith('video/')) {
             // HLS Streaming URL (requires .m3u8 extension)
             streaming_url = media_url.replace(/\.[^/.]+$/, '.m3u8');
             // HD Thumbnail (from eager jpg transformation)
             thumbnail_url = media_url.replace(/\.[^/.]+$/, '.jpg');
         }
 
-        // Extract hashtags (Max 5)
-        const tags = caption ? (caption.match(/#[a-zA-Z0-9_]+/g) || []) : [];
-        const hashtags = [...new Set(tags.map(t => t.toLowerCase()))].slice(0, 5);
+        // Extract hashtags (Max 5) — from explicit list or caption/description
+        const explicitTags = Array.isArray(req.body.hashtags)
+            ? req.body.hashtags
+            : (typeof req.body.hashtags === 'string' ? req.body.hashtags.split(',') : []);
+        const tagSource = `${caption || ''} ${description || ''} ${explicitTags.join(' ')}`;
+        const tags = tagSource.match(/#[a-zA-Z0-9_]+/g) || explicitTags.map(t => `#${t}`);
+        const hashtags = [...new Set(tags.map(t => t.toLowerCase().replace(/^#/, '#')))]
+            .filter(t => t.length > 1)
+            .slice(0, 5);
 
         // Register media in Cloudinary Architecture
         if (req.file) {
@@ -386,19 +509,39 @@ const createMoment = async (req, res) => {
         await connection.beginTransaction();
 
         try {
-            // Insert moment
+            // Insert moment (v2 columns are ensured by visibility.ensureTables at boot)
             await connection.query(
                 `INSERT INTO moments 
-                (moment_id, user_id, caption, media_url, streaming_url, thumbnail_url, media_type, category, like_count, comment_count, share_count) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0)`,
-                [momentId, userId, caption || '', media_url, streaming_url, thumbnail_url, media_type, category]
+                (moment_id, user_id, caption, title, description, media_url, streaming_url, thumbnail_url,
+                 media_type, category, like_count, comment_count, share_count,
+                 audience, comments_enabled, overlays, clips_info, music_info, captions_info,
+                 duration_seconds, watermark, idempotency_key,
+                 hide_from_user_ids, show_only_user_ids)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    momentId, userId, caption || '',
+                    title ? String(title).slice(0, 250) : null,
+                    description ? String(description).slice(0, 5000) : null,
+                    media_url, streaming_url, thumbnail_url, media_type, category,
+                    safeAudience, commentsOn,
+                    parseJsonField(overlays),
+                    parseJsonField(clips_info),
+                    parseJsonField(music_info),
+                    parseJsonField(captions_info),
+                    duration_seconds != null && duration_seconds !== '' ? Number(duration_seconds) || null : null,
+                    watermarkOn,
+                    idemKey,
+                    hideFromIds.length ? JSON.stringify(hideFromIds) : null,
+                    showOnlyIds.length ? JSON.stringify(showOnlyIds) : null,
+                ]
             );
 
-            // Insert hashtags
+            // Insert hashtags + increment the shared index used by suggestions
             for (const tag of hashtags) {
+                const clean = tag.replace(/^#/, '');
                 await connection.query(
                     'INSERT INTO moment_hashtags (moment_id, hashtag) VALUES (?, ?)',
-                    [momentId, tag.toLowerCase()]
+                    [momentId, clean]
                 );
             }
 
@@ -413,10 +556,34 @@ const createMoment = async (req, res) => {
                 [momentId]
             );
 
+            // ── Share to story: reuse the moment's already-uploaded media ──
+            // No second upload; a failure never fails the publish — the client
+            // sees story_created=false and falls back to POST /stories.
+            let storyCreated = false;
+            const wantsStory = shared_to_story === '1' || shared_to_story === 1
+                || shared_to_story === true || shared_to_story === 'true';
+            if (wantsStory && media_url) {
+                try {
+                    const storyId = require('crypto').randomUUID();
+                    const storyCaption = String(title || description || caption || '').slice(0, 255) || null;
+                    const storyType = ['image', 'video', 'text'].includes(media_type) ? media_type : 'video';
+                    await pool.query(
+                        `INSERT INTO stories (story_id, user_id, media_url, media_type, caption, thumbnail_url)
+                         VALUES (?, ?, ?, ?, ?, ?)`,
+                        [storyId, userId, media_url, storyType, storyCaption, thumbnail_url]
+                    );
+                    await pool.query('UPDATE moments SET shared_to_story = 1 WHERE moment_id = ?', [momentId]);
+                    storyCreated = true;
+                } catch (storyErr) {
+                    logger.warn('[Moments] share-to-story insert failed: ' + storyErr.message);
+                }
+            }
+
             res.status(201).json({
                 status: 'success',
                 message: 'Moment created',
-                moment: newMoment[0]
+                moment: storyCreated ? { ...newMoment[0], shared_to_story: 1 } : newMoment[0],
+                story_created: storyCreated,
             });
         } catch (error) {
             await connection.rollback();
@@ -425,6 +592,24 @@ const createMoment = async (req, res) => {
             connection.release();
         }
     } catch (error) {
+        // Unique key race on idempotency_key → return the winner row
+        if (error && (error.code === 'ER_DUP_ENTRY' || error.errno === 1062) && req.body?.idempotency_key) {
+            try {
+                const userId = req.user.user_id || req.user.userId;
+                const [existing] = await pool.query(
+                    'SELECT * FROM moments WHERE user_id = ? AND idempotency_key = ?',
+                    [userId, String(req.body.idempotency_key).slice(0, 64)]
+                );
+                if (existing.length > 0) {
+                    return res.status(200).json({
+                        status: 'success',
+                        message: 'Moment already published (idempotent replay)',
+                        moment: existing[0],
+                        deduplicated: true,
+                    });
+                }
+            } catch (_) { /* fall through to generic error */ }
+        }
         logger.error('Create Moment Error:', error);
         res.status(500).json({ error: error.message });
     }
@@ -447,6 +632,14 @@ const saveMoment = async (req, res) => {
             );
             res.json({ status: 'success', action: 'unsaved' });
         } else {
+            // Gate on audience — invisible moments cannot be saved
+            const [targetRows] = await pool.query(
+                'SELECT * FROM moments WHERE moment_id = ? AND deleted_at IS NULL',
+                [id]
+            );
+            if (!targetRows.length || !(await visibility.canViewMoment(targetRows[0], userId))) {
+                return res.status(404).json({ error: 'Moment not found' });
+            }
             await pool.query(
                 'INSERT INTO saved_moments (moment_id, user_id) VALUES (?, ?)',
                 [id, userId]
@@ -464,6 +657,22 @@ const addComment = async (req, res) => {
         const { id } = req.params;
         const { comment, parentId } = req.body;
         const userId = req.user.user_id;
+
+        // Enforce visibility + comments_enabled server-side
+        const [targetRows] = await pool.query(
+            'SELECT * FROM moments WHERE moment_id = ? AND deleted_at IS NULL',
+            [id]
+        );
+        if (!targetRows.length) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
+        const canComment = await visibility.canCommentOn(targetRows[0], userId);
+        if (!canComment) {
+            if (Number(targetRows[0].comments_enabled) === 0) {
+                return res.status(403).json({ error: 'Comments are turned off for this reel' });
+            }
+            return res.status(404).json({ error: 'Moment not found' });
+        }
 
         const commentId = require('crypto').randomUUID();
         const pid = parentId || null;
@@ -514,6 +723,15 @@ const getComments = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUserId = req.user.user_id;
+
+        // Comments are only readable on moments the viewer can see
+        const [targetRows] = await pool.query(
+            'SELECT * FROM moments WHERE moment_id = ? AND deleted_at IS NULL',
+            [id]
+        );
+        if (!targetRows.length || !(await visibility.canViewMoment(targetRows[0], currentUserId))) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
 
         const [allComments] = await pool.query(
             `SELECT c.*, u.username, u.avatar_url,
@@ -649,6 +867,12 @@ const getShareData = async (req, res) => {
         `, [id]);
 
         if (moments.length === 0) {
+            return res.status(404).json({ error: 'Moment not found' });
+        }
+
+        // Share metadata carries the caption/title — keep it off invisible reels
+        const viewerId = req.user?.user_id || req.user?.userId;
+        if (!(await visibility.canViewMoment(moments[0], viewerId))) {
             return res.status(404).json({ error: 'Moment not found' });
         }
 
@@ -790,7 +1014,6 @@ const deleteMoment = async (req, res) => {
         // Best-effort cache invalidation — a stale ranked feed serving a taken-down
         // moment is the visible bug, so clear it. Never fails the request.
         try {
-            const momentsRankingService = require('../services/momentsRanking.service');
             await momentsRankingService.invalidateFeedForOwner?.(userId);
         } catch (_) { /* cache is an optimisation; takedown already succeeded */ }
 
@@ -819,7 +1042,6 @@ const restoreMoment = async (req, res) => {
         }
 
         try {
-            const momentsRankingService = require('../services/momentsRanking.service');
             await momentsRankingService.invalidateFeedForOwner?.(userId);
         } catch (_) { /* non-fatal */ }
 
@@ -838,6 +1060,7 @@ const prewarm = async () => {
     try {
         await ensureMomentTables();
         await ensureMomentColumns();
+        await visibility.ensureTables();
         // Kick off pool generation in background (non-blocking)
         momentsRankingService.generateCandidatePools(true).catch(() => {});
         logger.info('Moments prewarm complete.');
@@ -848,6 +1071,7 @@ const prewarm = async () => {
 
 module.exports = {
     getMomentsStream,
+    getUserMoments,
     createMoment,
     sparkMoment,
     saveMoment,

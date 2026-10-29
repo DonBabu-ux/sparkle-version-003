@@ -20,4 +20,8 @@ export interface Moment {
   is_saved?: boolean;
   is_following?: boolean;
   user_id?: string;
+  /** 1/0 (or '1'/'0'); absent = default on. See utils/watermark.ts. */
+  watermark?: string | number | boolean | null;
+  /** JSON string (or object) from the composer: { id, title, artist, thumbnail }. */
+  music_info?: string | { id?: string; title?: string; artist?: string; thumbnail?: string } | null;
 }

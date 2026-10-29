@@ -129,6 +129,7 @@ class DiscoverService {
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url,
                        m.thumbnail_url, m.media_type, m.category,
                        m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
                        COALESCE(fc.cnt, 0) AS follower_count,
@@ -137,6 +138,8 @@ class DiscoverService {
                 JOIN users u ON m.user_id = u.user_id
                 LEFT JOIN (SELECT following_id, COUNT(*) AS cnt FROM follows GROUP BY following_id) fc ON fc.following_id = u.user_id
                 WHERE u.account_status = 'active'
+                  AND (m.audience IS NULL OR m.audience = 'public')
+                  AND m.deleted_at IS NULL
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY (COALESCE(m.like_count,0)*3 + COALESCE(m.comment_count,0)*5 + COALESCE(m.share_count,0)*8) DESC,
                          m.created_at DESC
@@ -155,6 +158,7 @@ class DiscoverService {
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url,
                        m.thumbnail_url, m.media_type, m.category,
                        m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
                        'trending' AS source_type
@@ -162,6 +166,8 @@ class DiscoverService {
                 JOIN users u ON m.user_id = u.user_id
                 WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)
                   AND u.account_status = 'active'
+                  AND (m.audience IS NULL OR m.audience = 'public')
+                  AND m.deleted_at IS NULL
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY ((COALESCE(m.like_count,0)*5 + COALESCE(m.comment_count,0)*10 + COALESCE(m.share_count,0)*15 + 1)
                           / (COALESCE(m.view_count,0) + 10)) DESC
@@ -186,6 +192,7 @@ class DiscoverService {
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url,
                        m.thumbnail_url, m.media_type, m.category,
                        m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
                        'interest' AS source_type
@@ -193,6 +200,8 @@ class DiscoverService {
                 JOIN users u ON m.user_id = u.user_id
                 WHERE LOWER(m.category) IN (${placeholders})
                   AND u.account_status = 'active'
+                  AND (m.audience IS NULL OR m.audience = 'public')
+                  AND m.deleted_at IS NULL
                   AND m.user_id != ?
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?
@@ -210,12 +219,15 @@ class DiscoverService {
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url,
                        m.thumbnail_url, m.media_type, m.category,
                        m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at,
                        u.username, u.name AS user_name, u.avatar_url, u.is_verified,
                        'recent' AS source_type
                 FROM moments m
                 JOIN users u ON m.user_id = u.user_id
                 WHERE u.account_status = 'active'
+                  AND (m.audience IS NULL OR m.audience = 'public')
+                  AND m.deleted_at IS NULL
                   ${userId ? 'AND m.user_id != ?' : ''}
                 ORDER BY m.created_at DESC
                 LIMIT ? OFFSET ?

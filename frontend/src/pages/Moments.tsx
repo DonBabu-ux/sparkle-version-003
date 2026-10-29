@@ -2,7 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3 } from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3, Music } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -14,6 +14,7 @@ import { useInteractionStore } from '../store/interactionStore';
 import { FeedPaginationAudit } from '../services/feedPaginationAudit';
 import '../services/TrackingService';
 import { getMediaUrl, getSafeVideoUrl } from '../utils/imageUtils';
+import { isWatermarkVisible } from '../utils/watermark';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -34,6 +35,17 @@ const formatCount = (num: number): string => {
     return (v % 1 === 0 ? v.toFixed(0) : v.toFixed(1)) + 'k';
   }
   return num.toString();
+};
+
+// music_info arrives as a JSON string (or an already-parsed object)
+const parseMusicInfo = (raw: Moment['music_info']): { title?: string; artist?: string } | null => {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try { return JSON.parse(trimmed); } catch { return null; }
+  }
+  return raw;
 };
 
 interface Comment {
@@ -300,6 +312,7 @@ const ReelItem = React.memo(({
   // mediaSrc stays as the guaranteed fallback if the safe URL 404s.
   const safeMediaSrc = rawSrc ? getSafeVideoUrl(rawSrc) : '';
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url || !!(moment.video_url || moment.media_url || moment.streaming_url)?.match(/\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i);
+  const music = parseMusicInfo(moment.music_info);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
   // multiple iframes playing simultaneously with no way to stop them.
@@ -362,6 +375,13 @@ const ReelItem = React.memo(({
         {/* Overlays */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+
+        {/* Creator watermark — honors the per-reel composer toggle (default on) */}
+        {isWatermarkVisible(moment.watermark) && (
+          <div className="absolute top-3 right-3 z-10 pointer-events-none select-none text-[10px] font-black uppercase tracking-[0.3em] text-white/70 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+            Sparkle
+          </div>
+        )}
 
         {/* Enhanced Pause/Play Indicator — Only show if active and manually paused */}
         <AnimatePresence>
@@ -471,6 +491,14 @@ const ReelItem = React.memo(({
           <p className="text-[14px] font-medium text-white/95 leading-snug drop-shadow-md pr-16 line-clamp-2">
             {moment.caption}
           </p>
+        )}
+        {music?.title && (
+          <div className="flex items-center gap-1.5 text-white/95 drop-shadow-md max-w-[75%]">
+            <Music size={12} className="shrink-0" />
+            <span className="text-[12px] font-semibold truncate">
+              {music.title}{music.artist ? ` · ${music.artist}` : ''}
+            </span>
+          </div>
         )}
         <div className="flex items-center gap-3 mt-1">
           <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">

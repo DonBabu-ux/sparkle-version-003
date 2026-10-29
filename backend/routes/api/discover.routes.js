@@ -19,9 +19,19 @@ router.get('/feed', authMiddleware, async (req, res) => {
 
         const result = await discoverService.getFeed(userId, { page, pageSize });
 
+        // Per-viewer privacy pass: owner-level audience lists and per-moment
+        // exclusions are not part of the shared discover cache.
+        let items = result.items || [];
+        try {
+            const visibility = require('../../services/reels-visibility.service');
+            items = await visibility.filterVisible(items, userId);
+        } catch (visErr) {
+            logger.warn('[Discover] visibility filter failed: ' + visErr.message);
+        }
+
         res.json({
             status: 'success',
-            data: result
+            data: { ...result, items }
         });
     } catch (error) {
         logger.error('[Discover] Feed error:', error);

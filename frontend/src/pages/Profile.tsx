@@ -7,7 +7,9 @@ import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid, List } from 'lucide-react';
+import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
+List, FileText
+} from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import SparkleHub from '../components/SparkleHub';
@@ -17,6 +19,8 @@ import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import { logger } from '../utils/logger';
+import DraftPreview from '../features/reels/components/DraftPreview';
+import { listDrafts, formatBytes, type DraftListItem } from '../features/reels/services/draftService';
 
 export default function Profile() {
   const { username } = useParams();
@@ -42,6 +46,33 @@ export default function Profile() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showSparkleHub, setShowSparkleHub] = useState(false);
+
+  // Local reel drafts (owner-only grid tile: count + total size + preview).
+  const [drafts, setDrafts] = useState<DraftListItem[]>([]);
+  const [draftBytes, setDraftBytes] = useState(0);
+
+  useEffect(() => {
+    const currentId = currentUser?.id || currentUser?.user_id;
+    const profileId = profile?.id || profile?.user_id;
+    const owner = (!!currentId && !!profileId && String(currentId) === String(profileId)) || username === 'me';
+    if (!owner) {
+      setDrafts([]);
+      setDraftBytes(0);
+      return;
+    }
+    let alive = true;
+    void listDrafts()
+      .then((res) => {
+        if (!alive) return;
+        setDrafts(res.drafts);
+        setDraftBytes(res.totalBytes);
+      })
+      .catch((err) => {
+        logger.warn('[Profile] local drafts unavailable:', err);
+        if (alive) { setDrafts([]); setDraftBytes(0); }
+      });
+    return () => { alive = false; };
+  }, [currentUser, profile, username]);
 
   const identity = IdentityManager.resolveIdentity(profile);
 
@@ -96,6 +127,54 @@ export default function Profile() {
           logger.error('Failed to fetch posts:', err);
           setPosts([]);
           setReels([]);
+        }
+
+        // Reels live in the moments table, not posts — fetch them separately
+        // for the REELS tab. The endpoint enforces audience server-side.
+        try {
+          const reelsRes = await api.get(`/moments/users/${profileData.id || profileData.user_id}/moments`);
+          const moments: Post[] = (Array.isArray(reelsRes.data?.moments) ? reelsRes.data.moments : []).map(
+            (m: {
+              moment_id: string | number;
+              user_id?: string | number;
+              username?: string;
+              user_name?: string;
+              avatar_url?: string | null;
+              title?: string | null;
+              caption?: string | null;
+              media_url?: string | null;
+              media_type?: string | null;
+              like_count?: string | number | null;
+              comment_count?: string | number | null;
+              is_liked?: number | boolean | null;
+              is_saved?: number | boolean | null;
+              created_at?: string;
+            }) => ({
+              post_id: String(m.moment_id),
+              user_id: m.user_id ? String(m.user_id) : undefined,
+              username: m.username || '',
+              name: m.user_name || '',
+              avatar_url: m.avatar_url || undefined,
+              content: m.title || m.caption || '',
+              media_url: m.media_url || undefined,
+              media_type: m.media_type || 'video',
+              spark_count: Number(m.like_count) || 0,
+              comment_count: Number(m.comment_count) || 0,
+              is_sparked: !!m.is_liked,
+              is_saved: !!m.is_saved,
+              created_at: String(m.created_at || ''),
+              is_moment: true,
+            })
+          );
+          if (moments.length > 0) {
+            setReels((prev) =>
+              [...prev, ...moments].sort(
+                (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+              )
+            );
+          }
+        } catch (err) {
+          logger.warn('Failed to fetch profile reels:', err);
         }
       }
     } catch (err) {
@@ -240,6 +319,8 @@ export default function Profile() {
   const isOwnProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
   const isMeAlias = username === 'me';
   const showOwnerActions = isOwnProfile || isMeAlias;
+  const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : [];
+  const showDraftsTile = showOwnerActions && (activeTab === 'posts' || activeTab === 'reels');
 
   return (
     <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
@@ -611,6 +692,7 @@ export default function Profile() {
                   <ChevronDown className="text-black/10 dark:text-white/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
                 </div>
               )}
+
             </div>
           </header>
 
@@ -696,16 +778,55 @@ export default function Profile() {
                 : 'flex flex-col gap-2 pb-32 animate-fade-in w-full'
             }
           >
-            {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (
-              (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map((post) => (
+            {/* Drafts tile — first cell of the owner's grid: preview rectangle,
+                draft count and total size at the top; opens the drafts page. */}
+            {showDraftsTile && (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={`Drafts: ${drafts.length} saved, ${formatBytes(draftBytes)}. Open drafts`}
+                onClick={() => navigate('/moments/drafts')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/moments/drafts');
+                  }
+                }}
+                className={`relative overflow-hidden group cursor-pointer bg-gray-100 dark:bg-white/5 ${viewMode === 'grid' ? 'aspect-square' : 'aspect-[4/3] md:aspect-[3/2] h-48'}`}
+              >
+                <div className="w-full h-full relative">
+                  <DraftPreview
+                    draft={drafts[0] || null}
+                    className="w-full h-full object-cover"
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6B8B]/25 to-purple-500/15">
+                        <FileText size={30} className="text-[#FF1F6D]" />
+                      </div>
+                    }
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/15 to-black/40" />
+                  <div className="absolute top-2 left-2 z-10 text-left">
+                    <span className="block text-white text-[13px] font-extrabold drop-shadow-md">
+                      Drafts {drafts.length}
+                    </span>
+                    <span className="block text-white/80 text-[11px] font-semibold drop-shadow-md">
+                      {formatBytes(draftBytes)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {gridItems.length > 0 ? (
+              gridItems.map((post) => (
                 <div
                     key={post.post_id}
                     className={`relative overflow-hidden group cursor-pointer bg-gray-100 dark:bg-white/5 ${viewMode === 'grid' ? 'aspect-square' : 'aspect-[4/3] md:aspect-[3/2] h-48'}`}
-                    onClick={() => navigate(`/post/${post.post_id}`)}
+                    onClick={() => navigate(post.is_moment ? `/moments/${post.post_id}` : `/post/${post.post_id}`)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigate(`/post/${post.post_id}`);
+                        navigate(post.is_moment ? `/moments/${post.post_id}` : `/post/${post.post_id}`);
                       }
                     }}
                     role="button"

@@ -1493,6 +1493,7 @@ const getHubRelevanceBadges = async (req, res) => {
                     `SELECT COUNT(*) as count 
                      FROM moments m
                      WHERE m.user_id != ?
+                       AND (m.audience IS NULL OR m.audience = 'public')
                        AND (LOWER(m.category) IN (?) OR LOWER(m.caption) REGEXP ?)
                        AND m.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)`,
                     [
@@ -1507,6 +1508,7 @@ const getHubRelevanceBadges = async (req, res) => {
                     `SELECT COUNT(*) as count 
                      FROM moments m
                      WHERE m.user_id != ?
+                       AND (m.audience IS NULL OR m.audience = 'public')
                        AND m.created_at >= DATE_SUB(NOW(), INTERVAL 2 DAY)`,
                     [userId]
                 );

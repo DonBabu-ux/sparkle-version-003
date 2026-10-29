@@ -7,6 +7,7 @@ import { generateVideoThumbnail } from '../../../utils/thumbnailGenerator';
 import { showError, showSuccess } from '../../../utils/toast';
 import { getMediaUrl } from '../../../utils/imageUtils';
 import { logger } from '../../../utils/logger';
+import { persistNewSticker, patchStickerServerId } from '../services/stickerLibraryService';
 
 interface Person {
   user_id: string;
@@ -144,13 +145,25 @@ export default function CreateStickerPage() {
     if (!id) return;
     setSaving(true);
     try {
+      // 1. Persist blob to local IndexedDB FIRST so sticker survives offline
+      const blob = await renderStickerBlob();
+      const localId = await persistNewSticker(blob, text.trim() || 'Sticker', { momentId: id }).catch(() => null);
+
+      // 2. Upload to server
       const imageData = await renderStickerDataUrl();
       const { data } = await api.post('/moments/stickers', {
         moment_id: id,
         image_data: imageData,
         caption: text.trim() || null,
       });
-      setSavedStickerId(data?.sticker?.sticker_id || null);
+      const serverId = data?.sticker?.sticker_id || null;
+      setSavedStickerId(serverId);
+
+      // 3. Patch local record with server ID so it dedupes on next sync
+      if (localId && serverId) {
+        await patchStickerServerId(localId, serverId).catch(() => {});
+      }
+
       showSuccess('Sticker saved to your library.');
     } catch (err) {
       logger.warn('[CreateSticker] save failed:', err);
@@ -158,7 +171,7 @@ export default function CreateStickerPage() {
     } finally {
       setSaving(false);
     }
-  }, [id, renderStickerDataUrl, text]);
+  }, [id, renderStickerBlob, renderStickerDataUrl, text]);
 
   const openSend = useCallback(async () => {
     setSendOpen(true);

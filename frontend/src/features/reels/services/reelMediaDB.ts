@@ -1,16 +1,32 @@
 /**
- * Reel draft storage — everything lives on this device in IndexedDB:
- * large media files as Blobs in the `reel-media` store, draft metadata
- * (composer state + media refs + size) as records in the `drafts` store.
- * Never base64 in localStorage and never in ordinary database columns.
+ * Reel draft + sticker storage — everything lives on this device in IndexedDB:
+ *  - `reel-media`       : large media Blobs for draft clips
+ *  - `drafts`           : draft metadata records
+ *  - `sparkle-stickers` : created sticker records (persistent, cross-session)
+ * Never base64 in localStorage, never in server DB columns.
  */
 
 import type { ReelDraftRecord } from '../types';
 
 const DB_NAME = 'sparkle-reel-drafts';
-const DB_VERSION = 2;
+const DB_VERSION = 3; // ↑ added sparkle-stickers store
 const STORE_MEDIA = 'reel-media';
 const STORE_DRAFTS = 'drafts';
+const STORE_STICKERS = 'sparkle-stickers';
+
+export interface LocalStickerRecord {
+  sticker_id: string;
+  /** Server-assigned ID returned by POST /moments/stickers (null until upload succeeds) */
+  server_id: string | null;
+  /** object URL — regenerated on open; only stable within a session */
+  preview_url: string;
+  /** The PNG / WEBP blob of the sticker image */
+  blob_key: string;
+  label: string;
+  created_at: string;
+  /** Extra key–value metadata (text overlays, source moment id, etc.) */
+  meta: Record<string, unknown>;
+}
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -29,6 +45,9 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains(STORE_DRAFTS)) {
         db.createObjectStore(STORE_DRAFTS);
+      }
+      if (!db.objectStoreNames.contains(STORE_STICKERS)) {
+        db.createObjectStore(STORE_STICKERS);
       }
     };
     req.onsuccess = () => resolve(req.result);
@@ -104,4 +123,37 @@ export async function estimateReelStorage(): Promise<number> {
 
 export function newMediaKey(): string {
   return `reel-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
+
+// ── Sticker library CRUD ──────────────────────────────────────────────────────
+
+export async function saveLocalSticker(record: LocalStickerRecord): Promise<void> {
+  try {
+    await tx(STORE_STICKERS, 'readwrite', (store) => store.put(record, record.sticker_id));
+  } catch (err) {
+    console.warn('[ReelMediaDB] sticker save failed:', err);
+  }
+}
+
+export async function getLocalSticker(stickerId: string): Promise<LocalStickerRecord | undefined> {
+  try {
+    return (await tx(STORE_STICKERS, 'readonly', (store) => store.get(stickerId))) as LocalStickerRecord | undefined;
+  } catch (_) {
+    return undefined;
+  }
+}
+
+export async function listLocalStickers(): Promise<LocalStickerRecord[]> {
+  try {
+    const all = (await tx(STORE_STICKERS, 'readonly', (store) => store.getAll())) as LocalStickerRecord[] | undefined;
+    return Array.isArray(all) ? all : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+export async function deleteLocalSticker(stickerId: string): Promise<void> {
+  try {
+    await tx(STORE_STICKERS, 'readwrite', (store) => store.delete(stickerId));
+  } catch (_) { /* ignore */ }
 }

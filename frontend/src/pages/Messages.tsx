@@ -1151,10 +1151,10 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
             {/* Input Area — Naturally expands as left icons collapse */}
             {/* Dotted border signals disappearing messages are active */}
             <div className={clsx(
-              "flex-1 flex items-end bg-white/5 rounded-3xl px-4 py-2 mx-1 transition-all duration-300 min-w-0 relative",
+              "flex-1 flex items-end bg-[#f6eef3] dark:bg-white/5 rounded-3xl px-4 py-2 mx-1 transition-all duration-300 min-w-0 relative",
               selectedChat?.disappearing_duration > 0
                 ? "border-2 border-dashed border-[#ff1493]/70 shadow-[0_0_10px_rgba(255,20,147,0.18)]"
-                : "border border-white/10"
+                : "border border-[#e6d8e1] dark:border-white/10"
             )}>
               {selectedChat?.disappearing_duration > 0 && (
                 <button
@@ -1174,7 +1174,7 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
                 onKeyDown={handleComposerKeyDown}
                 onFocus={() => setShowEmojiPicker(false)}
                 placeholder={editing.messageId && editing.chatId === selectedChat?.chat_id ? "Editing message…" : "Type a message..."}
-                className="flex-1 bg-transparent text-[15px] font-medium chat-input-text placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
+                className="flex-1 bg-transparent text-[15px] font-medium chat-input-text placeholder:text-slate-600 dark:placeholder:text-white/20 outline-none border-none focus:ring-0 p-0 m-0 shadow-none caret-[#18181b] dark:caret-white resize-none max-h-[120px] overflow-y-auto no-scrollbar leading-snug"
                 autoComplete="off"
                 aria-label="Message text"
               />

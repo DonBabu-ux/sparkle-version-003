@@ -87,7 +87,7 @@ export const BlockingLoader: React.FC<BlockingLoaderProps> = ({
                 type="button"
                 onClick={() => navigate(-1)}
                 aria-label="Go back"
-                className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                className="absolute top-4 left-4 w-10 h-10 rounded-full flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
             >
                 <ArrowLeft size={20} />
             </button>
@@ -95,7 +95,7 @@ export const BlockingLoader: React.FC<BlockingLoaderProps> = ({
             <Spinner size="xl" className="drop-shadow-sm" />
             <p className="mt-5 text-sm font-bold text-[#18181b] dark:text-zinc-100 drop-shadow-sm">{label}</p>
             {sublabel && (
-                <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400 drop-shadow-sm">{sublabel}</p>
+                <p className="mt-1 text-xs text-slate-600 dark:text-zinc-300 drop-shadow-sm">{sublabel}</p>
             )}
         </div>
     );

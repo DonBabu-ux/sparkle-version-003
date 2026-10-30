@@ -357,7 +357,7 @@ html.dark {
 
 body {
   @apply text-[#18181b] antialiased selection:bg-pink-400/20 font-medium;
-  background: #fdf2f4;
+  background: #f8e7ed;
   background-attachment: fixed;
   min-height: 100dvh;
   margin: 0;
@@ -366,7 +366,7 @@ body {
 }
 
 .dark body {
-  background: #1b1b24 !important;
+  background: #18181b !important;
   color: #FFFFFF !important;
 }
 

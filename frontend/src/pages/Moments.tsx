@@ -26,6 +26,11 @@ import MentionText from '../components/MentionText';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import { logger } from '../utils/logger';
 
+interface GiphyResult {
+  id: string;
+  images: { fixed_height: { url: string } };
+}
+
 // Local utility to avoid import issues
 const formatCount = (num: number): string => {
   if (!num || isNaN(num)) return '0';
@@ -148,10 +153,10 @@ const ReelItem = React.memo(({
   onQualityChange,
   muted,
   onToggleMute
-}: { 
-  moment: Moment; 
-  onLike: (id: string) => void; 
-  onSave: (id: string) => void; 
+}: {
+  moment: Moment;
+  onLike: (id: string) => void;
+  onSave: (id: string) => void;
   onOpenComments: (id: string) => void;
   onShare: (moment: Moment) => void;
   onOpenSearch: () => void;
@@ -163,7 +168,7 @@ const ReelItem = React.memo(({
   active: boolean;
   isNearActive: boolean;
   downloadProgress?: number | null;
-  currentUser?: any;
+  currentUser?: unknown;
   onQualityChange?: (quality: string) => void;
   muted: boolean;
   onToggleMute: () => void;
@@ -344,8 +349,16 @@ const ReelItem = React.memo(({
     isDragging.current = false;
   };
 
-  // Only load src when this card is active or immediately adjacent (preload 1 ahead)
-  const rawSrc = isNearActive ? (moment.video_url || moment.media_url) : undefined;
+  // Only load src when this card is active or immediately adjacent (preload
+  // ahead). Once a URL has been assigned it STAYS assigned: clearing the
+  // attribute when the card scrolls out of the window strips src from the
+  // <video>, which fires a bogus error event and starts a pointless
+  // retry storm on an element with no media.
+  const lastSrcRef = useRef<string>('');
+  if (isNearActive && (moment.video_url || moment.media_url)) {
+    lastSrcRef.current = moment.video_url || moment.media_url;
+  }
+  const rawSrc = isNearActive ? (moment.video_url || moment.media_url) : lastSrcRef.current;
   const mediaSrc = getMediaUrl(rawSrc);
   // Device-safe rendition (1080p-capped) for Android WebView decode limits;
   // mediaSrc stays as the guaranteed fallback if the safe URL 404s.
@@ -687,7 +700,7 @@ export default function Moments() {
   
   // Giphy & Sticker States
   const [showStickers, setShowStickers] = useState(false);
-  const [giphyResults, setGiphyResults] = useState<any[]>([]);
+  const [giphyResults, setGiphyResults] = useState<GiphyResult[]>([]);
   const [giphyLoading, setGiphyLoading] = useState(false);
   const [giphySearch, setGiphySearch] = useState('');
   
@@ -709,7 +722,7 @@ export default function Moments() {
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const [isFallback, setIsFallback] = useState(false);
-  const searchCache = useRef<Record<string, any>>({});
+  const searchCache = useRef<Record<string, { moments: unknown[]; isFallback?: boolean; timestamp?: number; [key: string]: unknown }>>({});
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
   // Monotonic sequence so a slow response for an old query can never
   // overwrite the results of a newer one (stale-request guard).
@@ -772,6 +785,9 @@ export default function Moments() {
     };
     window.addEventListener('refreshMomentsFeed', onNavRefresh);
     return () => window.removeEventListener('refreshMomentsFeed', onNavRefresh);
+    // Dep-light by design: the listener registers once and reads the latest
+    // handleRefresh through its closure on each event.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -850,21 +866,26 @@ export default function Moments() {
     }
   }, [id, fetchingMore]);
 
-  useEffect(() => { 
+  useEffect(() => {
     FeedPaginationAudit.reset();
-    fetchMoments(0); 
+    fetchMoments(0);
+    // Dep-light by design: fetchMoments changes identity while it runs
+    // (fetchingMore toggles), which would re-fire this mount fetch in a loop.
+    // The moment id is the intended trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Show HD Intro on first load
+  const isFeedEmpty = moments.length === 0;
   useEffect(() => {
-    if (!loading && moments.length > 0) {
+    if (!loading && !isFeedEmpty) {
       const timer = setTimeout(() => {
         setShowHDIntro(true);
         setTimeout(() => setShowHDIntro(false), 3500);
       }, 800);
       return () => clearTimeout(timer);
     }
-  }, [loading, moments.length === 0]);
+  }, [loading, isFeedEmpty]);
 
   const handleQualityChange = useCallback((quality: string) => {
     // Quality tracking without UI notification
@@ -975,6 +996,10 @@ export default function Moments() {
       }, 500);
     }
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
+    // Dep-light by design: debounce effect re-fires only when the raw input
+    // changes; handleSearch/activeSearchTab are read through the closure at
+    // fire time.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchInput]);
 
   // Re-trigger search when tab changes
@@ -982,6 +1007,9 @@ export default function Moments() {
     if (hasSearched && searchQuery) {
       handleSearch(searchQuery, activeSearchTab);
     }
+    // Dep-light by design: runs on tab switch; handleSearch/hasSearched are
+    // read through the closure and must not re-trigger the search.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeSearchTab]);
 
   // Persist real search history to this device (best-effort, quota-safe).
@@ -1030,7 +1058,7 @@ export default function Moments() {
     return () => { alive = false; };
   }, [activeIndex, moments, overlayComments]);
 
-  const handleFollow = async (userId: string, _momentId: string) => {
+  const handleFollow = async (userId: string) => {
     if (!user) {
       navigate('/login');
       return;
@@ -1101,7 +1129,7 @@ export default function Moments() {
     useInteractionStore.getState().setPending('pendingLikes', momentId, true);
     try {
       await api.post(`/moments/${momentId}/spark`);
-    } catch (err) {
+    } catch {
       // Revert UI on failure
       setMoments(prev => prev.map(item => item.moment_id === momentId ? {
         ...item, is_liked: wasLiked, like_count: (item.like_count || 0) + (wasLiked ? 1 : -1)
@@ -1454,7 +1482,7 @@ export default function Moments() {
                     </div>
                   ) : (
                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0.5 p-0.5">
-                      {searchResults.map((moment, _idx) => (
+                      {searchResults.map((moment) => (
                         <div 
                           key={moment.moment_id}
                           onClick={() => {
@@ -1553,10 +1581,10 @@ export default function Moments() {
         ) : (
             moments.map((m, idx) => (
               <div key={m.moment_id} className="h-full w-full snap-start snap-always flex items-center justify-center md:pl-(--rail-w) relative overflow-hidden">
-                <ReelItem 
+                 <ReelItem
                    active={idx === activeIndex}
-                   isNearActive={Math.abs(idx - activeIndex) <= 1}
-                   moment={m} 
+                   isNearActive={idx >= activeIndex - 1 && idx <= activeIndex + 2}
+                   moment={m}
                    onLike={handleLike} 
                    onSave={handleSave}
                    onOpenComments={openComments}
@@ -1731,7 +1759,7 @@ export default function Moments() {
                           <div className="h-full flex items-center justify-center"><Spinner size="medium" color="text-primary" /></div>
                         ) : (
                           <div className="grid grid-cols-3 gap-2">
-                            {giphyResults.map((gif: any) => (
+                            {giphyResults.map((gif) => (
                               <button 
                                 key={gif.id}
                                 onClick={() => handleAddComment(undefined, gif.images.fixed_height.url)}

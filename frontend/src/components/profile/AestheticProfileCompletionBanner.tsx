@@ -1,8 +1,7 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronRight,
-  ChevronDown,
   X,
   Clock,
   CheckCircle2,
@@ -33,26 +32,6 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
   const [completionFocus, setCompletionFocus] = useState<string | null>(null);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showDismissMenu, setShowDismissMenu] = useState(false);
-  // Facebook-style login nudge: open the completion flow once per session when
-  // the profile is incomplete (never auto-opens after a permanent dismissal).
-  const autoShownRef = useRef<string | null>(
-    (() => {
-      try {
-        return sessionStorage.getItem('profileCompletionAutoShown');
-      } catch {
-        return null;
-      }
-    })()
-  );
-  const isPermanentlyDismissed = (() => {
-    try {
-      return localStorage.getItem('profileCompletionCardDismissed') === 'true';
-    } catch {
-      return false;
-    }
-  })();
-
-  // Check if banner is currently dismissed
   const [isDismissed, setIsDismissed] = useState<boolean>(() => {
     try {
       if (localStorage.getItem('profileCompletionCardDismissed') === 'true') {
@@ -138,12 +117,14 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
 
   const remaining = checklist.length - completedCount;
 
-  // Dismissal handlers
+  // Dismissal handlers — every option is visible on click, never hidden.
   const handleDismissHours = useCallback((hours: number) => {
     try {
       const until = Date.now() + hours * 60 * 60 * 1000;
       localStorage.setItem('profileCompletionDismissedUntil', String(until));
-    } catch {}
+    } catch {
+      /* storage unavailable (private mode) — dismissal still applies for this session */
+    }
     setIsDismissed(true);
     setShowDismissMenu(false);
   }, []);
@@ -151,29 +132,12 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
   const handleDismissPermanent = useCallback(() => {
     try {
       localStorage.setItem('profileCompletionCardDismissed', 'true');
-    } catch {}
+    } catch {
+      /* storage unavailable (private mode) — dismissal still applies for this session */
+    }
     setIsDismissed(true);
     setShowDismissMenu(false);
   }, []);
-
-  const handleQuickClose = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    // Default quick-close dismisses for 24 hours
-    handleDismissHours(24);
-  }, [handleDismissHours]);
-
-  // Auto-open the focused flow once per session, shortly after the feed settles
-  useEffect(() => {
-    if (isPermanentlyDismissed || autoShownRef.current) return;
-    autoShownRef.current = '1';
-    try {
-      sessionStorage.setItem('profileCompletionAutoShown', '1');
-    } catch {
-      /* storage unavailable — still only auto-opens once per mount */
-    }
-    const t = setTimeout(() => setShowEditModal(true), 900);
-    return () => clearTimeout(t);
-  }, [isPermanentlyDismissed]);
 
   // If 100% complete or dismissed, do not render
   if (isDismissed || percentage >= 100 || !user) {
@@ -201,7 +165,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
 
           {/* Main Compact Row */}
           <div className="p-3 sm:p-3.5 flex items-center justify-between gap-3">
-            {/* Left: Progress Ring + Text */}
+            {/* Left: Progress Ring + Text — tap the card to expand the checklist */}
             <div
               className="flex items-center gap-3 min-w-0 flex-1 cursor-pointer select-none"
               onClick={() => setIsExpanded((prev) => !prev)}
@@ -260,49 +224,32 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Action Buttons & Close Control */}
+            {/* Right: one CTA + a dismiss whose options are always visible */}
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Expand Toggle Chevron */}
               <button
                 type="button"
-                onClick={() => setIsExpanded((prev) => !prev)}
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-black/6 dark:hover:bg-white/6 transition-colors"
-                title={isExpanded ? 'Collapse checklist' : 'View checklist'}
-                aria-label={isExpanded ? 'Collapse checklist' : 'View checklist'}
-              >
-                <ChevronDown
-                  size={16}
-                  className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
-                />
-              </button>
-
-              {/* Primary Action Button */}
-              <button
-                type="button"
-                onClick={() => setShowEditModal(true)}
+                onClick={() => {
+                  setCompletionFocus(nextIncompleteItem?.id ?? null);
+                  setShowEditModal(true);
+                }}
                 className="px-3.5 py-1.5 rounded-xl bg-[#ff1493] hover:bg-[#e0127f] active:scale-95 text-white text-[12px] font-bold flex items-center gap-1 shadow-sm transition-all"
               >
-                <span>Edit</span>
+                <span>{nextIncompleteItem ? 'Continue' : 'Review'}</span>
                 <ChevronRight size={13} strokeWidth={2.5} />
               </button>
 
-              {/* Close / Dismiss with snooze popover */}
               <div className="relative">
                 <button
                   type="button"
-                  onClick={handleQuickClose}
-                  onContextMenu={(e) => {
-                    e.preventDefault();
-                    setShowDismissMenu((prev) => !prev);
-                  }}
+                  onClick={() => setShowDismissMenu((prev) => !prev)}
                   className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-black/6 dark:hover:bg-white/6 transition-colors"
-                  title="Dismiss (hold for options)"
                   aria-label="Dismiss banner"
+                  aria-expanded={showDismissMenu}
                 >
                   <X size={15} strokeWidth={2.2} />
                 </button>
 
-                {/* Snooze context dropdown */}
+                {/* Snooze dropdown — plain click, no right-click */}
                 <AnimatePresence>
                   {showDismissMenu && (
                     <motion.div

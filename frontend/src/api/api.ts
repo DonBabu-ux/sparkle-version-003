@@ -57,7 +57,7 @@ const fetchCsrfToken = async (): Promise<string | null> => {
     });
     csrfToken = data?.csrfToken || 'sparkle_csrf_disabled';
     return csrfToken;
-  } catch (_err) {
+  } catch {
     csrfToken = 'sparkle_csrf_disabled';
     return null;
   }
@@ -116,9 +116,10 @@ api.interceptors.request.use(
 );
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+interface QueuedRequest { resolve: (token: string) => void; reject: (err: unknown) => void }
+let failedQueue: QueuedRequest[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -239,7 +240,7 @@ api.interceptors.response.use(
           originalRequest.headers.Authorization = `Bearer ${newToken}`;
           isRefreshing = false;
           return api(originalRequest);
-        } catch (refreshError: any) {
+        } catch (refreshError: unknown) {
           attempt++;
           const sessionDead = !useUserStore.getState().isAuthenticated;
           if (attempt >= MAX_REFRESH_RETRIES || sessionDead) {

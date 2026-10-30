@@ -1,19 +1,21 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, Users, Sparkles, Orbit, Compass } from 'lucide-react';
+import { Search, Users, Sparkles, Orbit, Compass, UserPlus } from 'lucide-react';
 import UserCard from '../components/UserCard';
 import api from '../api/api';
 import '../components/ui/Spinner';
 
 const TABS = [
   { label: 'Discovery', icon: Compass },
-  { label: 'Suggested', icon: Sparkles },
+  { label: 'Follow back', icon: UserPlus },
+  { label: 'Similar', icon: Sparkles },
   { label: 'Network', icon: Users },
 ] as const;
 
 // Backend only understands these tab values (user.controller.js getSuggestions)
 const TAB_PARAM: Record<string, string> = {
-  Discovery: 'for you',
-  Suggested: 'suggested',
+  Discovery: 'for_you',
+  'Follow back': 'follow_back',
+  Similar: 'similar',
   Network: 'following',
 };
 
@@ -87,7 +89,8 @@ export default function Connect() {
         setUsers(newUsers);
       }
       setHasMore(newUsers.length === 20);
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as { code?: string; name?: string };
       if (controller.signal.aborted || err?.code === 'ERR_CANCELED' || err?.name === 'CanceledError') return;
       if (!isLoadMore) {
         setUsers([]);
@@ -109,14 +112,14 @@ export default function Connect() {
     setError(null);
     fetchUsers(false);
     return () => { abortRef.current?.abort(); };
-  }, [activeTab]);
+  }, [activeTab, fetchUsers]);
 
   // Load more when offset changes (if > 0)
   useEffect(() => {
     if (offset > 0) {
       fetchUsers(true);
     }
-  }, [offset]);
+  }, [offset, fetchUsers]);
 
   useEffect(() => {
     if (!searchInitRef.current) { searchInitRef.current = true; return; } // skip mount — tab effect already fetches
@@ -129,7 +132,7 @@ export default function Connect() {
       fetchUsers(false);
     }, 400);
     return () => { if (searchTimeout.current) clearTimeout(searchTimeout.current); };
-  }, [searchQuery]);
+  }, [searchQuery, fetchUsers]);
 
   
 
@@ -167,12 +170,12 @@ export default function Connect() {
               />
             </div>
 
-            <div className="flex items-center gap-2 p-1.5 bg-[#f0e5ec] dark:bg-zinc-700 rounded-[1.5rem] border border-[#e6d8e1] dark:border-zinc-700">
+            <div className="flex w-full items-center gap-2 overflow-x-auto p-1.5 bg-[#f0e5ec] rounded-[1.5rem] border border-[#e6d8e1] no-scrollbar md:w-auto dark:bg-zinc-700 dark:border-zinc-700">
               {TABS.map(({ label, icon: Icon }) => (
                 <button
                   key={label}
                   onClick={() => setActiveTab(label)}
-                  className={`flex items-center gap-2.5 h-11 px-6 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap
+                  className={`flex min-w-0 flex-1 items-center justify-center gap-2.5 h-11 px-3 rounded-2xl font-black text-[12px] uppercase tracking-wider transition-all duration-500 whitespace-nowrap sm:px-6
                     ${activeTab === label
                       ? 'bg-primary text-white shadow-lg shadow-primary/30 scale-105'
                       : 'text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600'}`}
@@ -190,10 +193,15 @@ export default function Connect() {
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {Array.from({ length: 15 }).map((_, i) => (
-                <div key={i} className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
-                   <div className="w-20 h-20 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-6" />
-                   <div className="w-2/3 h-5 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-3" />
-                   <div className="w-1/2 h-4 bg-[#ede3e9] dark:bg-zinc-700 rounded-full" />
+                <div key={i} className="flex aspect-[4/5] w-full animate-pulse flex-col items-center rounded-[28px] border border-[#e6d8e1] bg-[#fdf8fa] p-5 dark:border-zinc-700 dark:bg-zinc-800">
+                   <div className="mb-3 h-20 w-20 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                   <div className="mb-1.5 h-4 w-2/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                   <div className="mb-2 h-2.5 w-1/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                   <div className="mb-3 flex gap-1.5">
+                     <div className="h-5 w-16 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                     <div className="h-5 w-12 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                   </div>
+                   <div className="mt-auto h-9 w-full rounded-2xl bg-[#ede3e9] dark:bg-zinc-700" />
                 </div>
               ))}
             </div>
@@ -244,10 +252,11 @@ export default function Connect() {
               {/* Load More Skeleton */}
               {offset > 0 && loadingMore && (
                 Array.from({ length: 4 }).map((_, i) => (
-                  <div key={`load-more-${i}`} className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 aspect-[4/5] animate-pulse flex flex-col items-center justify-center">
-                    <div className="w-16 h-16 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-4" />
-                    <div className="w-2/3 h-4 bg-[#ede3e9] dark:bg-zinc-700 rounded-full mb-2" />
-                    <div className="w-1/2 h-3 bg-[#ede3e9] dark:bg-zinc-700 rounded-full" />
+                  <div key={`load-more-${i}`} className="flex aspect-[4/5] w-full animate-pulse flex-col items-center rounded-[28px] border border-[#e6d8e1] bg-[#fdf8fa] p-5 dark:border-zinc-700 dark:bg-zinc-800">
+                    <div className="mb-3 h-20 w-20 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                    <div className="mb-1.5 h-4 w-2/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                    <div className="mb-2 h-2.5 w-1/3 rounded-full bg-[#ede3e9] dark:bg-zinc-700" />
+                    <div className="mt-auto h-9 w-full rounded-2xl bg-[#ede3e9] dark:bg-zinc-700" />
                   </div>
                 ))
               )}

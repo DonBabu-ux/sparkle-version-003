@@ -24,25 +24,37 @@ export default function GlobalEffects() {
       } else if (target.tagName === 'VIDEO') {
         const video = target as HTMLVideoElement;
         if (video.dataset.fallbackApplied) return;
-        // The player components retry once with the original URL when a
-        // rendition fails (HlsVideoPlayer fallbackSrc, Moments feed retry),
-        // and React re-runs their mount effect in dev — both produce a
-        // transient error on a video that recovers a moment later. This
-        // handler runs on the window CAPTURE phase, i.e. BEFORE the
-        // component's own onError retry, so an instant swap would hide a
-        // perfectly playable video under "Media Unavailable" forever.
-        // Wait out the recovery window, then only give up on videos that
-        // are still broken.
-        window.setTimeout(() => {
+        // The player components retry (rendition swap + a fresh media load)
+        // and React re-runs mount effects in dev — both produce transient
+        // errors on videos that recover moments later. This handler runs on
+        // the window CAPTURE phase, i.e. BEFORE the component's own onError
+        // retry, so an instant swap would hide a perfectly playable video
+        // under "Media Unavailable" forever.
+        // Only give up on a REAL MediaError, and never on a video that is
+        // still downloading (a cold 2.9MB file looks identical to a broken
+        // one for the first seconds — that killed playable videos before).
+        const giveUp = () => {
           if (video.dataset.fallbackApplied) return;
-          if (!video.error && video.readyState > 0) return; // recovered — leave it alone
+          const loading = video.networkState === video.NETWORK_LOADING;
+          if (!video.error) return;            // no real failure (recovered / buffering)
+          if (loading && video.readyState === 0) return; // still making progress — leave it
           video.dataset.fallbackApplied = "true";
 
           video.style.display = 'none';
           const placeholder = document.createElement('div');
           placeholder.className = 'video-error-placeholder';
-          placeholder.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg><span>Media Unavailable</span>';
+          placeholder.innerHTML = '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.5" y2="17.5"/></svg><span>Media Unavailable</span>';
           video.parentElement?.appendChild(placeholder);
+        };
+        // Re-check after the player's recovery attempts, then poll while it's
+        // still downloading (up to ~10s total) so a slow first frame survives.
+        window.setTimeout(giveUp, 2500);
+        let polls = 0;
+        const poll = window.setInterval(() => {
+          if (video.dataset.fallbackApplied || video.error || ++polls > 3) {
+            window.clearInterval(poll);
+            giveUp();
+          }
         }, 2500);
       }
     };

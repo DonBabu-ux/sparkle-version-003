@@ -1,6 +1,6 @@
 import { showInfo } from '../../utils/toast';
 import { motion, AnimatePresence } from 'framer-motion';
-import { User as UserIcon } from 'lucide-react';
+import { User as UserIcon, EyeOff } from 'lucide-react';
 import type { User } from '../../types/user';
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
@@ -23,9 +23,10 @@ const MessengerIcon = ({ size = 20, className = "" }: { size?: number, className
 interface Props {
     user: User;
     onClose: () => void;
+    onNotInterested?: () => void;
 }
 
-export default function UserActionModal({ user, onClose }: Props) {
+export default function UserActionModal({ user, onClose, onNotInterested }: Props) {
     const navigate = useNavigate();
     const [poking, setPoking] = useState(false);
     const a11yRef = useModalA11y(!!user, onClose);
@@ -91,8 +92,18 @@ export default function UserActionModal({ user, onClose }: Props) {
                                {poking ? 'Sent!' : 'Poke'}
                             </button>
 
-                            <button 
-                                onClick={onClose} 
+                            {onNotInterested && (
+                                <button
+                                    onClick={() => { onNotInterested(); onClose(); }}
+                                    className="w-full flex items-center justify-center gap-1.5 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl transition-all font-bold text-[11px]"
+                                >
+                                    <EyeOff size={12} />
+                                    Not interested
+                                </button>
+                            )}
+
+                            <button
+                                onClick={onClose}
                                 className="w-full py-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 font-black text-[9px] uppercase tracking-widest transition-colors"
                             >
                                 Cancel

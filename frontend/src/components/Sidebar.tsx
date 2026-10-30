@@ -29,7 +29,7 @@ function cn(...inputs: ClassValue[]) {
 }
 
 export default function Sidebar() {
-  const { user, logout, token } = useUserStore();
+  const { user, token } = useUserStore();
   const navigate = useNavigate();
   const location = useLocation();
   const [isHovered, setIsHovered] = useState(false);
@@ -52,7 +52,7 @@ export default function Sidebar() {
       try {
         const res = await api.get('/notifications');
         const list = res.data.notifications || res.data || [];
-        setUnreadCount(list.filter((n: any) => !n.is_read && !n.isRead).length);
+        setUnreadCount(list.filter((n: { is_read?: number | boolean; isRead?: boolean }) => !n.is_read && !n.isRead).length);
       } catch {
         /* silent — dot just stays off */
       }

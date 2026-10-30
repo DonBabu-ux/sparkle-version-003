@@ -15,6 +15,8 @@ router.get('/hub-relevance-badges', authMiddleware, userController.getHubRelevan
 router.get('/active-friends', authMiddleware, userController.getActiveFriends);
 router.get('/search', authMiddleware, validate(searchSchema, 'query'), userController.searchUsers);
 router.get('/suggestions', authMiddleware, userController.getSuggestions);
+router.post('/suggestions/dismiss', authMiddleware, userController.dismissSuggestion);
+router.post('/suggestions/undismiss', authMiddleware, userController.undismissSuggestion);
 router.get('/username-suggestions', authMiddleware, userController.getUsernameSuggestions);
 router.get('/following', authMiddleware, userController.searchFollowingUsers);
 router.get('/followers', authMiddleware, userController.getMyFollowers);

@@ -348,10 +348,10 @@ const getSuggestions = async (req, res) => {
       unions.push(`(${userClause})`);
     }
 
-    // Group suggestions
+    // Group suggestions (value carries the group id so the client can navigate)
     if (!type || type === 'group' || type === 'all') {
-      const groupClause = `SELECT 'group' as type, name as value, CONCAT(name, ' (Group)') as label, icon_url as image
-        FROM \`groups\` WHERE name LIKE ? LIMIT 3`;
+      const groupClause = `SELECT 'group' as type, id as value, CONCAT(name, ' (Group)') as label, icon_url as image
+        FROM \`groups\` g WHERE name LIKE ? LIMIT 3`;
       params.push(likeTerm);
       unions.push(`(${groupClause})`);
     }

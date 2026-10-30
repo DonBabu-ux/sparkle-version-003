@@ -1,13 +1,15 @@
 import { showInfo, showSuccess, showError } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, type FormEvent } from 'react';
-import api, { setAdminSession, clearAdminSession } from '../api/api';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, KeyRound, Mail, X, Search, Flag, ShoppingBag, Activity } from 'lucide-react';
+import api, { getAdminSessionExpires, getAdminClockOffset, clearAdminSession } from '../api/api';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
 import { BarSeries, LineSeries } from '../components/admin/AdminCharts';
+
+type AdminApiErr = { response?: { status?: number; data?: { code?: string; message?: string } } };
 
 interface AdminAnalytics {
     rangeDays: number;
@@ -98,14 +100,11 @@ export default function AdminDashboard() {
   // Admin access gate — the dashboard itself is behind the second password.
   // 'expired' = the login session itself died (every call 401s) — that is a
   // re-login problem, NOT a missing admin password. Never confuse the two.
-  const [gate, setGate] = useState<'loading' | 'set-password' | 'locked' | 'expired' | 'open'>('loading');
+  const [gate, setGate] = useState<'loading' | 'expired' | 'error' | 'open'>('loading');
   const [showAdminPwForm, setShowAdminPwForm] = useState(false);
   const [adminPwForm, setAdminPwForm] = useState({ current: '', next: '', confirm: '' });
   const [adminPwError, setAdminPwError] = useState('');
   const [adminPwBusy, setAdminPwBusy] = useState(false);
-  const [unlockPassword, setUnlockPassword] = useState('');
-  const [unlockError, setUnlockError] = useState('');
-  const [unlockBusy, setUnlockBusy] = useState(false);
   // Live countdown for the elevation window (15 min) — auto-locks at zero so
   // an unattended panel never stays open.
   const [sessionLeft, setSessionLeft] = useState<number | null>(null);
@@ -113,9 +112,12 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (gate !== 'open') { setSessionLeft(null); return; }
     const tick = () => {
-      const raw = sessionStorage.getItem('sparkle_admin_session_expires');
-      if (!raw) { setSessionLeft(null); return; }
-      const left = Math.max(0, Math.round((Number(raw) - Date.now()) / 1000));
+      const expires = getAdminSessionExpires();
+      if (!expires) { setSessionLeft(null); return; }
+      // Countdown against the server's clock: server expiry instant minus
+      // (browser now + measured server clock offset).
+      const serverNow = Date.now() + getAdminClockOffset();
+      const left = Math.max(0, Math.round((expires - serverNow) / 1000));
       setSessionLeft(left);
       if (left <= 0) lockAdminSession();
     };
@@ -125,42 +127,27 @@ export default function AdminDashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gate]);
 
+  // The elevation gate lives at /admin/login now; this component only renders
+  // once a valid elevation session exists (AdminLayout guard).
   const enterDashboard = async () => {
     try {
       await fetchStats();
       setGate('open');
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
       clearAdminSession();
       // 401 has TWO very different meanings here:
-      //   ADMIN_SESSION_REQUIRED → login session is FINE, elevation missing/expired
-      //                            → unlock screen (enter admin password once)
-      //   any other 401          → the login session itself is dead → re-login
-      // Conflating them loops the admin between re-login and a 401 forever.
+      //   ADMIN_SESSION_REQUIRED → elevation missing/expired → back to the
+      //                            admin login gate for the second password
+      //   any other 401          → the account session is dead → re-login
       if (err?.response?.status === 401 && err?.response?.data?.code === 'ADMIN_SESSION_REQUIRED') {
-        setGate('locked');
+        navigate('/admin/login', { replace: true });
       } else if (err?.response?.status === 401) {
         setGate('expired');
       } else {
-        setGate('locked');
-      }
-    }
-  };
-
-  const fetchAdminPwStatus = async () => {
-    try {
-      const res = await api.get('/admin/credentials/status');
-      const set = !!res.data?.data?.hasAdminPassword;
-      if (set) { setShowAdminPwForm(false); await enterDashboard(); }
-      else setGate('set-password');
-    } catch (err: any) {
-      // Only a definitive 200 tells us the credential is unset. Anything else
-      // (401 = dead login session, 5xx, network) goes to re-login, never to
-      // the set-password screen — that produced the misleading error.
-      if (err?.response?.status === 401) {
-        clearAdminSession();
-        setGate('expired');
-      } else {
-        setGate('expired');
+        // Not an auth failure (network, 5xx, CORS) — surface it as an error
+        // instead of silently opening the panel with all-zero counts.
+        setGate('error');
       }
     }
   };
@@ -180,11 +167,10 @@ export default function AdminDashboard() {
       });
       setAdminPwForm({ current: '', next: '', confirm: '' });
       setShowAdminPwForm(false);
-      showSuccess('Admin password set. Now unlock the dashboard with it.');
-      setGate('locked');
-    } catch (err: any) {
+      showSuccess('Admin password updated.');
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
       if (err.response?.status === 401) {
-        // Login session is gone — the credential could not even be attempted.
         setGate('expired');
         return;
       }
@@ -194,60 +180,32 @@ export default function AdminDashboard() {
     }
   };
 
-  const unlockAdminSession = async (e: FormEvent) => {
-    e.preventDefault();
-    setUnlockError('');
-    setUnlockBusy(true);
-    try {
-      const res = await api.post('/admin/session', { admin_password: unlockPassword });
-      setAdminSession(res.data.data.admin_session_token);
-      const mins = Number(res.data.data.expires_in_minutes) || 15;
-      sessionStorage.setItem('sparkle_admin_session_expires', String(Date.now() + mins * 60000));
-      setUnlockPassword('');
-      await enterDashboard();
-    } catch (err: any) {
-      if (err.response?.data?.code === 'admin_password_not_set') {
-        setGate('set-password');
-      } else if (err.response?.status === 401 && err.response?.data?.code !== 'admin_password_invalid') {
-        // Not the admin password — the login session itself is dead.
-        clearAdminSession();
-        setGate('expired');
-      } else {
-        setUnlockError(err.response?.data?.message || 'That admin password is incorrect.');
-      }
-    } finally {
-      setUnlockBusy(false);
-    }
-  };
-
   const lockAdminSession = async () => {
     try { await api.delete('/admin/session'); } catch { /* best effort */ }
     clearAdminSession();
-    sessionStorage.removeItem('sparkle_admin_session_expires');
     setSessionLeft(null);
-    setGate('locked');
+    navigate('/admin/login', { replace: true });
   };
 
   /**
    * Mid-session failure mapping: a call that dies while the panel is open
    * (elevation expired, login token died) must land on the right screen
    * instead of leaving tabs to fire failing requests forever.
-   * 401 + ADMIN_SESSION_REQUIRED  → elevation gone → unlock screen
-   * 401 (anything else)           → login session gone → re-login screen
+   * 401 + ADMIN_SESSION_REQUIRED  → elevation gone → admin login gate
+   * 401 (anything else)           → account session gone → re-login screen
    */
-  const onAdminCallError = (err: any) => {
+  const onAdminCallError = (e: unknown) => {
+    const err = e as AdminApiErr;
     const status = err?.response?.status;
     const code = err?.response?.data?.code;
     if (status === 401 && code === 'ADMIN_SESSION_REQUIRED') {
       clearAdminSession();
-      sessionStorage.removeItem('sparkle_admin_session_expires');
       setSessionLeft(null);
-      setGate('locked');
+      navigate('/admin/login', { replace: true });
       return true;
     }
     if (status === 401) {
       clearAdminSession();
-      sessionStorage.removeItem('sparkle_admin_session_expires');
       setGate('expired');
       return true;
     }
@@ -255,8 +213,9 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    fetchAdminPwStatus();
     document.title = 'Admin Panel | Sparkle';
+    void enterDashboard();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchStats = async () => {
@@ -264,9 +223,10 @@ export default function AdminDashboard() {
     try {
       const response = await api.get('/admin/stats');
       setStats(response.data);
-    } catch (err: any) {
-      if (onAdminCallError(err)) return;
-      logger.error('Failed to fetch admin stats:', err);
+      // Errors intentionally propagate: enterDashboard's catch classifies them
+      // (elevation expired -> admin login gate, account dead -> re-login,
+      // anything else -> visible error). Swallowing here is what made real
+      // failures render as "0 users, 0 posts" instead of an error.
     } finally {
       setLoading(false);
     }
@@ -314,8 +274,9 @@ export default function AdminDashboard() {
       await api.post(`/admin/verifications/${requestId}`, { status: decision });
       setVerifications(prev => prev.filter(r => r.request_id !== requestId));
       showSuccess(decision === 'approved' ? 'User verified.' : 'Request rejected.');
-    } catch (err: any) {
-      if (err.response?.data?.code === 'admin_password_not_set') { setGate('set-password'); return; }
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
+      if (err.response?.data?.code === 'admin_password_not_set') { setShowAdminPwForm(true); return; }
       showError(err.response?.data?.message || 'Could not update the request.');
     } finally {
       setQueueBusy(null);
@@ -329,7 +290,8 @@ export default function AdminDashboard() {
       await api.post(`/moderation/appeals/${appealId}/review`, { decision });
       setAppeals(prev => prev.filter(a => a.id !== appealId));
       showSuccess(decision === 'approve' ? 'Appeal approved.' : 'Appeal rejected.');
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
       showError(err.response?.data?.message || 'Could not review this appeal.');
     } finally {
       setQueueBusy(null);
@@ -381,7 +343,8 @@ export default function AdminDashboard() {
       });
       setTxId(res.data.data.transaction_id);
       setEmailSent(true);
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
       setStepUpError(err.response?.data?.message || 'Could not send the email code.');
     } finally {
       setStepUpBusy(false);
@@ -431,23 +394,24 @@ export default function AdminDashboard() {
         setAnnouncement('');
       }
       resetStepUp();
-    } catch (err: any) {
+    } catch (e: unknown) {
+      const err = e as AdminApiErr;
       // Fail-closed: the backend refuses admin step-up when no admin password
-      // exists yet — route the admin into the set-password form.
+      // exists yet — route the admin into the change-password form.
       if (err.response?.status === 403 && err.response?.data?.code === 'admin_password_not_set') {
         setStepUp(null);
         setStepUpError('');
         setStepUpBusy(false);
-        setGate('set-password');
+        setShowAdminPwForm(true);
         return;
       }
       // Elevation expired mid-session — the global interceptor already cleared
-      // the token; bounce back to the unlock gate.
+      // the token; bounce back to the admin login gate.
       if (err.response?.data?.code === 'ADMIN_SESSION_REQUIRED') {
         setStepUp(null);
         setStepUpError('');
         setStepUpBusy(false);
-        setGate('locked');
+        navigate('/admin/login', { replace: true });
         return;
       }
       setStepUpError(err.response?.data?.message || err.response?.data?.error || 'Verification failed. Please try again.');
@@ -478,6 +442,10 @@ export default function AdminDashboard() {
     if (activeTab !== 'overview') fetchTabData();
     if (activeTab === 'analytics') fetchAnalytics();
     if (activeTab === 'reviews') fetchQueues();
+    // Dep-light by design: fetchAnalytics/fetchQueues/onAdminCallError are
+    // recreated every render, so listing them would re-fetch on each render.
+    // The tab switch is the intentional trigger.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // ── Admin access gate ─────────────────────────────────────────────────────
@@ -494,7 +462,7 @@ export default function AdminDashboard() {
             </div>
             <div>
               <h1 className="text-base font-black text-[#18181b] dark:text-zinc-100 leading-tight">Admin panel</h1>
-              <p className="text-xs text-slate-600 dark:text-zinc-400">Protected by your admin password</p>
+              <p className="text-xs text-slate-600 dark:text-zinc-300">Protected by your admin password</p>
             </div>
           </div>
 
@@ -504,7 +472,7 @@ export default function AdminDashboard() {
 
           {gate === 'expired' && (
             <div className="space-y-4">
-              <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
                 Your session expired. Log in again to continue — your admin password is unaffected.
               </p>
               <button
@@ -514,89 +482,34 @@ export default function AdminDashboard() {
                 Log in again
               </button>
               <button
-                onClick={() => { setGate('loading'); fetchAdminPwStatus(); }}
-                className="w-full h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                onClick={() => { setGate('loading'); void enterDashboard(); }}
+                className="w-full h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
               >
                 Retry
               </button>
             </div>
           )}
 
-          {gate === 'set-password' && (
-            <form onSubmit={submitAdminPassword} className="space-y-3">
-              <p className="text-xs text-slate-600 dark:text-zinc-400 leading-relaxed">
-                This account has no admin password yet. Set one now — it must be different from your login password, and your login password can never open this panel.
+          {gate === 'error' && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 leading-relaxed">
+                The admin panel could not load its data. This is a connection problem, not your password — check that the API server is running, then retry.
               </p>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Current login password</label>
-                <input
-                  autoFocus
-                  type="password"
-                  value={adminPwForm.current}
-                  onChange={(e) => setAdminPwForm(f => ({ ...f, current: e.target.value }))}
-                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">New admin password</label>
-                <input
-                  type="password"
-                  value={adminPwForm.next}
-                  onChange={(e) => setAdminPwForm(f => ({ ...f, next: e.target.value }))}
-                  placeholder="At least 12 characters"
-                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
-                  required
-                />
-              </div>
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Confirm new admin password</label>
-                <input
-                  type="password"
-                  value={adminPwForm.confirm}
-                  onChange={(e) => setAdminPwForm(f => ({ ...f, confirm: e.target.value }))}
-                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
-                  required
-                />
-              </div>
-              {adminPwError && <p className="text-xs font-bold text-rose-600">{adminPwError}</p>}
               <button
-                type="submit"
-                disabled={adminPwBusy}
-                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+                onClick={() => { setGate('loading'); void enterDashboard(); }}
+                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors"
               >
-                {adminPwBusy ? 'Saving...' : 'Set admin password'}
+                Retry
               </button>
-            </form>
+              <button
+                onClick={() => navigate('/dashboard')}
+                className="w-full h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+              >
+                Back to dashboard
+              </button>
+            </div>
           )}
 
-          {gate === 'locked' && (
-            <form onSubmit={unlockAdminSession} className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Admin password</label>
-                <input
-                  autoFocus
-                  type="password"
-                  value={unlockPassword}
-                  onChange={(e) => setUnlockPassword(e.target.value)}
-                  placeholder="Enter your admin password"
-                  className="w-full h-11 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 px-4 text-sm text-[#18181b] dark:text-zinc-100 outline-none focus:border-primary"
-                  required
-                />
-              </div>
-              {unlockError && <p className="text-xs font-bold text-rose-600">{unlockError}</p>}
-              <button
-                type="submit"
-                disabled={unlockBusy}
-                className="w-full h-11 rounded-full bg-primary text-white text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
-              >
-                {unlockBusy ? 'Checking...' : 'Unlock panel'}
-              </button>
-              <p className="text-[11px] text-slate-600 dark:text-zinc-400 text-center leading-relaxed">
-                This is your admin password — not your login password. Access stays open for 15 minutes.
-              </p>
-            </form>
-          )}
         </div>
       </div>
     );
@@ -613,14 +526,14 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}
-                className="w-9 h-9 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 rounded-full border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                className="w-9 h-9 flex items-center justify-center bg-[#fdf8fa] dark:bg-zinc-800 rounded-full border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
                 aria-label="Back"
               >
                 <ArrowLeft size={16} />
               </button>
               <div>
                 <h1 className="text-2xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Admin panel</h1>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Moderation, users and platform activity.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Moderation, users and platform activity.</p>
               </div>
             </div>
 
@@ -668,7 +581,7 @@ export default function AdminDashboard() {
               className={`flex items-center gap-2 px-4 h-9 rounded-full text-xs font-bold whitespace-nowrap transition-colors border ${
                 activeTab === tab.key
                   ? 'bg-primary border-primary text-white'
-                  : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                  : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100'
               }`}
             >
               <tab.icon size={14} />
@@ -685,7 +598,7 @@ export default function AdminDashboard() {
         {loading ? (
           <div className="py-20 flex flex-col items-center justify-center bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl mb-8">
              <Spinner size="large" color="text-primary" />
-             <p className="text-xs font-semibold text-slate-600 dark:text-zinc-400 mt-3">Loading…</p>
+             <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mt-3">Loading…</p>
           </div>
         ) : activeTab === 'overview' ? (
           <div className="space-y-5">
@@ -703,8 +616,8 @@ export default function AdminDashboard() {
                   className={`text-left p-4 rounded-2xl border bg-[#fdf8fa] dark:bg-zinc-800 transition-colors ${s.urgent ? 'border-primary/30' : 'border-[#e6d8e1] dark:border-zinc-700'} ${s.tab ? 'hover:border-primary cursor-pointer' : 'cursor-default'}`}
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs text-slate-600 dark:text-zinc-400">{s.label}</span>
-                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${s.urgent ? 'bg-primary/10 text-primary' : 'bg-[#f6eef3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-400'}`}>
+                    <span className="text-xs text-slate-600 dark:text-zinc-300">{s.label}</span>
+                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${s.urgent ? 'bg-primary/10 text-primary' : 'bg-[#f6eef3] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'}`}>
                       <s.icon size={15} />
                     </div>
                   </div>
@@ -723,7 +636,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Storage & media</p>
-                  <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">Usage breakdown and cleanup tools</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">Usage breakdown and cleanup tools</p>
                 </div>
               </button>
               <button onClick={() => setActiveTab('reports')} className="flex items-center gap-3 p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 hover:border-primary transition-colors text-left">
@@ -732,7 +645,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Moderation queue</p>
-                  <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">{stats?.reports?.pending || 0} reports waiting for review</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">{stats?.reports?.pending || 0} reports waiting for review</p>
                 </div>
               </button>
             </div>
@@ -747,12 +660,12 @@ export default function AdminDashboard() {
                       <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-[13px] text-[#18181b] dark:text-zinc-100 leading-snug">{act.message}</p>
-                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-0.5">{act.time}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-0.5">{act.time}</p>
                       </div>
                     </div>
                   ))}
                   {(stats?.recentActivity || []).length === 0 && (
-                    <p className="text-xs text-slate-600 dark:text-zinc-400 py-6 text-center">No activity recorded yet.</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 py-6 text-center">No activity recorded yet.</p>
                   )}
                 </div>
               </div>
@@ -760,12 +673,12 @@ export default function AdminDashboard() {
               {/* Announcement composer */}
               <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl p-5 flex flex-col">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Announcement</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-3">Sent to every user. Confirmed with your admin password.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mb-3">Sent to every user. Confirmed with your admin password.</p>
                 <textarea
                   value={announcement}
                   onChange={e => setAnnouncement(e.target.value)}
                   placeholder="Write your announcement…"
-                  className="w-full flex-1 min-h-[120px] bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl p-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 outline-none focus:border-primary resize-none transition-colors"
+                  className="w-full flex-1 min-h-[120px] bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl p-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-300 outline-none focus:border-primary resize-none transition-colors"
                 />
                 <button
                   onClick={handleSendAnnouncement}
@@ -788,9 +701,9 @@ export default function AdminDashboard() {
                 { label: 'Total users', value: analytics?.kpis.totalUsers ?? 0, hint: 'all accounts' },
               ].map(k => (
                 <div key={k.label} className="p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
-                  <p className="text-xs text-slate-600 dark:text-zinc-400">{k.label}</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300">{k.label}</p>
                   <p className="text-2xl font-black text-[#18181b] dark:text-zinc-100 leading-none mt-2">{k.value.toLocaleString()}</p>
-                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 mt-1">{k.hint}</p>
+                  <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-1">{k.hint}</p>
                 </div>
               ))}
             </section>
@@ -799,12 +712,12 @@ export default function AdminDashboard() {
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">New users</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Daily signups, last {analytics?.rangeDays || 14} days</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mb-4">Daily signups, last {analytics?.rangeDays || 14} days</p>
                 <BarSeries data={analytics?.series.signups || []} />
               </div>
               <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Engagement</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Sparks + comments per day</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mb-4">Sparks + comments per day</p>
                 <LineSeries
                   data={(analytics?.series.sparks || []).map((p, i) => ({
                     day: p.day,
@@ -814,12 +727,12 @@ export default function AdminDashboard() {
               </div>
               <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Posts</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Published per day</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mb-4">Published per day</p>
                 <BarSeries data={analytics?.series.posts || []} color="#059669" />
               </div>
               <div className="p-5 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-1">Activity mix</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mb-4">Totals across the window</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mb-4">Totals across the window</p>
                 <div className="space-y-2.5">
                   {[
                     { label: 'Moments', value: sum(analytics?.series.moments) },
@@ -830,7 +743,7 @@ export default function AdminDashboard() {
                     const max = Math.max(1, sum(analytics?.series.moments), sum(analytics?.series.messages), sum(analytics?.series.listings), sum(analytics?.series.follows));
                     return (
                       <div key={row.label} className="flex items-center gap-3">
-                        <span className="text-xs text-slate-600 dark:text-zinc-400 w-16 shrink-0">{row.label}</span>
+                        <span className="text-xs text-slate-600 dark:text-zinc-300 w-16 shrink-0">{row.label}</span>
                         <div className="flex-1 h-2 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 overflow-hidden">
                           <div className="h-full rounded-full bg-primary" style={{ width: `${(row.value / max) * 100}%` }} />
                         </div>
@@ -850,7 +763,7 @@ export default function AdminDashboard() {
                 { label: 'Verification requests', value: analytics?.kpis.pendingVerifications ?? 0, tab: 'reviews' },
               ].map(q => (
                 <button key={q.label} onClick={() => setActiveTab(q.tab)} className="text-left p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 hover:border-primary transition-colors">
-                  <p className="text-xs text-slate-600 dark:text-zinc-400">{q.label}</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300">{q.label}</p>
                   <p className="text-xl font-black text-[#18181b] dark:text-zinc-100 mt-1">{q.value}</p>
                 </button>
               ))}
@@ -862,7 +775,7 @@ export default function AdminDashboard() {
             <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-[#ede3e9] dark:border-zinc-900">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Appeals</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400">Users contesting moderation decisions on their posts.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300">Users contesting moderation decisions on their posts.</p>
               </div>
               <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
                 {appeals.map(a => (
@@ -870,8 +783,8 @@ export default function AdminDashboard() {
                     <img src={getAvatarUrl(a.avatar_url, a.username)} className="w-9 h-9 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">@{a.username}</p>
-                      {a.post_excerpt && <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5 line-clamp-2">“{a.post_excerpt}”</p>}
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Reason: {a.reason}</p>
+                      {a.post_excerpt && <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5 line-clamp-2">“{a.post_excerpt}”</p>}
+                      <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Reason: {a.reason}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button onClick={() => decideAppeal(a.id, 'approve')} disabled={queueBusy === a.id} className="px-3 h-8 rounded-full bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">Restore post</button>
@@ -882,7 +795,7 @@ export default function AdminDashboard() {
                 {appeals.length === 0 && (
                   <div className="py-12 text-center">
                     <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No pending appeals</p>
-                    <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Appeals users submit will show up here.</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Appeals users submit will show up here.</p>
                   </div>
                 )}
               </div>
@@ -892,7 +805,7 @@ export default function AdminDashboard() {
             <div className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl overflow-hidden">
               <div className="px-4 py-3 border-b border-[#ede3e9] dark:border-zinc-900">
                 <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Verification requests</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400">Approving grants the verified badge.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300">Approving grants the verified badge.</p>
               </div>
               <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900">
                 {verifications.map(v => (
@@ -900,7 +813,7 @@ export default function AdminDashboard() {
                     <img src={getAvatarUrl(v.avatar_url, v.username)} className="w-9 h-9 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100 truncate">{v.user_name || v.username}</p>
-                      <p className="text-xs text-slate-600 dark:text-zinc-400 truncate">{v.email}</p>
+                      <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">{v.email}</p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <button onClick={() => decideVerification(v.request_id, 'approved')} disabled={queueBusy === v.request_id} className="px-3 h-8 rounded-full bg-emerald-500 text-white text-xs font-bold disabled:opacity-50">Approve</button>
@@ -911,7 +824,7 @@ export default function AdminDashboard() {
                 {verifications.length === 0 && (
                   <div className="py-12 text-center">
                     <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No pending requests</p>
-                    <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Verification requests appear here for review.</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Verification requests appear here for review.</p>
                   </div>
                 )}
               </div>
@@ -923,7 +836,7 @@ export default function AdminDashboard() {
              entry can never be approved or purged from here. */
           {activeTab === 'logs' && (
             <div className="flex items-center justify-between mb-3">
-              <p className="text-xs text-slate-600 dark:text-zinc-400">Every admin action, including page views.</p>
+              <p className="text-xs text-slate-600 dark:text-zinc-300">Every admin action, including page views.</p>
               <button onClick={exportLogs} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-xs font-bold text-slate-600 dark:text-zinc-300 hover:text-primary hover:border-primary transition-colors">
                 Export JSON
               </button>
@@ -933,12 +846,12 @@ export default function AdminDashboard() {
             {(activeTab === 'users' || activeTab === 'reports') && (
               <div className="p-4 border-b border-[#ede3e9] dark:border-zinc-900">
                 <div className="relative max-w-sm">
-                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={15} />
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300" size={15} />
                   <input
                     value={listQuery}
                     onChange={e => setListQuery(e.target.value)}
                     placeholder={activeTab === 'users' ? 'Search by name, username or email…' : 'Search reports…'}
-                    className="w-full h-10 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 outline-none focus:border-primary transition-colors"
+                    className="w-full h-10 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full pl-10 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-300 outline-none focus:border-primary transition-colors"
                   />
                 </div>
               </div>
@@ -949,7 +862,7 @@ export default function AdminDashboard() {
                   {activeTab === 'users' ? (
                     <img src={getAvatarUrl(item.avatar_url, item.username)} className="w-10 h-10 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0" alt="" />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0">
                       {activeTab === 'reports' ? <Flag size={16} /> : <Clock size={16} />}
                     </div>
                   )}
@@ -957,14 +870,14 @@ export default function AdminDashboard() {
                     <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100 truncate">
                       {activeTab === 'users' ? (item.name || item.username) : (item.title || item.type || item.action || 'Entry')}
                     </p>
-                    <p className="text-xs text-slate-600 dark:text-zinc-400 truncate mt-0.5">
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 truncate mt-0.5">
                       {activeTab === 'users' ? item.email : (item.details || item.action || '')}
                     </p>
                   </div>
                   <span className={`shrink-0 px-2.5 py-1 rounded-full border text-[11px] font-semibold ${
                     item.status?.toLowerCase() === 'active' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' :
                     item.status?.toLowerCase() === 'pending' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' :
-                    activeTab === 'logs' ? 'bg-[#f6eef3] dark:bg-zinc-700 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400' :
+                    activeTab === 'logs' ? 'bg-[#f6eef3] dark:bg-zinc-700 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300' :
                     'bg-red-500/10 border-red-500/20 text-red-600 dark:text-red-400'
                   }`}>
                     {item.status || (activeTab === 'logs' ? 'Logged' : 'Reported')}
@@ -979,13 +892,13 @@ export default function AdminDashboard() {
                 </div>
               )) : (
                 <div className="py-16 flex flex-col items-center text-center px-6">
-                  <div className="w-11 h-11 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 mb-3">
+                  <div className="w-11 h-11 rounded-full bg-[#f6eef3] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 mb-3">
                     {activeTab === 'users' ? <Users size={20} /> : activeTab === 'reports' ? <Flag size={20} /> : <Clock size={20} />}
                   </div>
                   <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">
                     {activeTab === 'users' ? 'No users found' : activeTab === 'reports' ? 'No pending reports' : 'No activity logged yet'}
                   </p>
-                  <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">
                     {activeTab === 'reports' ? 'Reported content shows up here for review.' : 'Nothing to review right now.'}
                   </p>
                 </div>
@@ -1002,9 +915,9 @@ export default function AdminDashboard() {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <h2 className="text-base font-black text-[#18181b] dark:text-zinc-100">Confirm it's you</h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">Sensitive admin actions need a fresh identity check.</p>
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Sensitive admin actions need a fresh identity check.</p>
               </div>
-              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400" aria-label="Close">
+              <button onClick={resetStepUp} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300" aria-label="Close">
                 <X size={16} />
               </button>
             </div>
@@ -1013,14 +926,14 @@ export default function AdminDashboard() {
               <button
                 type="button"
                 onClick={() => { setFactor('password'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-[#e6d8e1] dark:border-zinc-700'}`}
+                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'password' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 border-[#e6d8e1] dark:border-zinc-700'}`}
               >
                 <KeyRound size={14} /> Admin password
               </button>
               <button
                 type="button"
                 onClick={() => { setFactor('email'); setSecret(''); setTxId(null); setEmailSent(false); setStepUpError(''); }}
-                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-400 border-[#e6d8e1] dark:border-zinc-700'}`}
+                className={`h-11 rounded-xl text-xs font-bold flex items-center justify-center gap-2 border ${factor === 'email' ? 'bg-[#18181b] dark:bg-zinc-100 text-white dark:text-zinc-900 border-transparent' : 'bg-[#fdf8fa] dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 border-[#e6d8e1] dark:border-zinc-700'}`}
               >
                 <Mail size={14} /> Email code
               </button>
@@ -1038,7 +951,7 @@ export default function AdminDashboard() {
             ) : (
               <form onSubmit={applyStepUp} className="space-y-3">
                 {factor === 'password' && (
-                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-relaxed">
+                  <p className="text-[11px] text-slate-600 dark:text-zinc-300 leading-relaxed">
                     This is your <span className="font-bold text-[#18181b] dark:text-zinc-100">admin password</span> — a separate credential from your login password.
                   </p>
                 )}
@@ -1074,18 +987,18 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-black text-[#18181b] dark:text-zinc-100">
                   {'Change your admin password'}
                 </h2>
-                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1 leading-relaxed max-w-xs">
+                <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1 leading-relaxed max-w-xs">
                   Admin actions are protected by a separate credential. It must be different from your login password — your login password can never approve admin actions.
                 </p>
               </div>
-              <button onClick={() => setShowAdminPwForm(false)} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-400 shrink-0" aria-label="Close">
+              <button onClick={() => setShowAdminPwForm(false)} className="w-8 h-8 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 shrink-0" aria-label="Close">
                 <X size={16} />
               </button>
             </div>
 
             <form onSubmit={submitAdminPassword} className="space-y-3">
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Current login password</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300">Current login password</label>
                 <input
                   autoFocus
                   type="password"
@@ -1096,7 +1009,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">New admin password</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300">New admin password</label>
                 <input
                   type="password"
                   value={adminPwForm.next}
@@ -1107,7 +1020,7 @@ export default function AdminDashboard() {
                 />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Confirm new admin password</label>
+                <label className="text-xs font-bold text-slate-600 dark:text-zinc-300">Confirm new admin password</label>
                 <input
                   type="password"
                   value={adminPwForm.confirm}
@@ -1123,7 +1036,7 @@ export default function AdminDashboard() {
                 <button
                   type="button"
                   onClick={() => setShowAdminPwForm(false)}
-                  className="flex-1 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
+                  className="flex-1 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors"
                 >
                   Cancel
                 </button>

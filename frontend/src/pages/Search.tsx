@@ -2,10 +2,11 @@ import { showError, showSuccess } from '../utils/toast';
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search as SearchIcon, X, Clock, MoreHorizontal, ChevronRight, Hash, Trash2, User, Sparkles, Send, ArrowLeft, Hand, TrendingUp, Compass } from 'lucide-react';
+import { Search as SearchIcon, X, Clock, MoreHorizontal, ChevronRight, Hash, Trash2, User, Sparkles, Send, ArrowLeft, Hand, TrendingUp, Check, Plus } from 'lucide-react';
 import api from '../api/api';
 import UserCard from '../components/UserCard';
 import PostCard from '../components/PostCard';
+import type { Post as PostCardPost } from '../components/PostCard';
 import ListingCard from '../components/marketplace/ListingCard';
 import { useUserStore } from '../store/userStore';
 import '../utils/identityManager';
@@ -14,6 +15,13 @@ import debounce from 'lodash.debounce';
 import { logger } from '../utils/logger';
 
 type TabType = 'all' | 'users' | 'posts' | 'groups' | 'marketplace' | 'clubs';
+
+interface Suggestion {
+  type: 'user' | 'group' | 'hashtag';
+  value: string;
+  label: string;
+  image?: string;
+}
 
 interface SearchResult {
   id?: string;
@@ -56,19 +64,31 @@ export default function Search() {
   const [poking, setPoking] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchSeqRef = useRef(0);
+  const suggestSeqRef = useRef(0);
+
+  // Typeahead (Facebook-style instant suggestions before you hit Enter)
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const [suggestIndex, setSuggestIndex] = useState(-1);
+
+  const [suggested, setSuggested] = useState<SearchResult[]>([]);
 
   const fetchInitialData = useCallback(async () => {
     try {
-      const [historyRes, trendingRes] = await Promise.allSettled([
+      const [historyRes, trendingRes, suggestedRes] = await Promise.allSettled([
         api.get('/search/history'),
-        api.get('/search/trending')
+        api.get('/search/trending'),
+        api.get('/users/suggestions', { params: { tab: 'for_you', limit: 6 } })
       ]);
-      
+
       if (historyRes.status === 'fulfilled' && historyRes.value.data.status === 'success') {
           setHistory(historyRes.value.data.data || []);
       }
       if (trendingRes.status === 'fulfilled' && trendingRes.value.data.status === 'success') {
           setTrending(trendingRes.value.data.data || []);
+      }
+      if (suggestedRes.status === 'fulfilled' && suggestedRes.value.data.status === 'success') {
+          setSuggested(suggestedRes.value.data.suggestions || suggestedRes.value.data.data || []);
       }
     } catch (err) {
       logger.error('Initial fetch error:', err);
@@ -153,12 +173,97 @@ export default function Search() {
     debouncedSearch(query, activeTab);
   }, [query, activeTab, debouncedSearch]);
 
+  const handleSuggestedFollow = async (targetId: string) => {
+      try {
+          await api.post(`/users/${targetId}/follow`);
+          setSuggested(prev => prev.map(u =>
+              (u.user_id || u.id) === targetId ? { ...u, is_followed: true } : u
+          ));
+      } catch (err) {
+          logger.error('Suggested follow failed:', err);
+      }
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (suggestOpen && suggestions.length > 0) {
+          if (e.key === 'ArrowDown') {
+              e.preventDefault();
+              setSuggestIndex(i => (i + 1) % suggestions.length);
+              return;
+          }
+          if (e.key === 'ArrowUp') {
+              e.preventDefault();
+              setSuggestIndex(i => (i <= 0 ? suggestions.length - 1 : i - 1));
+              return;
+          }
+          if (e.key === 'Enter' && suggestIndex >= 0) {
+              e.preventDefault();
+              openSuggestion(suggestions[suggestIndex]);
+              return;
+          }
+          if (e.key === 'Escape') {
+              setSuggestOpen(false);
+              setSuggestIndex(-1);
+              return;
+          }
+      }
       if (e.key === 'Enter' && query.trim()) {
+          setSuggestOpen(false);
+          setSuggestIndex(-1);
           api.post('/search/history', { q: query.trim() }).catch(() => {});
           fetchInitialData();
       }
   };
+
+  const openSuggestion = (s: Suggestion) => {
+      setSuggestOpen(false);
+      setSuggestIndex(-1);
+      if (s.type === 'user') {
+          navigate(`/profile/${s.value}`);
+      } else if (s.type === 'group') {
+          navigate(`/groups/${s.value}`);
+      } else {
+          navigate(`/hashtag/${s.value.replace('#', '')}`);
+      }
+  };
+
+  const debouncedSuggest = useMemo(
+      () => debounce((q: string) => {
+          const seq = ++suggestSeqRef.current;
+          api.get('/search/suggestions', { params: { q } })
+              .then(res => {
+                  if (seq !== suggestSeqRef.current) return;
+                  const list: Suggestion[] = res.data?.status === 'success' ? (res.data.data || []) : [];
+                  setSuggestions(list);
+                  setSuggestOpen(list.length > 0);
+                  setSuggestIndex(-1);
+              })
+              .catch(() => { /* typeahead is best-effort; full search still works */ });
+      }, 300),
+      []
+  );
+
+  useEffect(() => {
+      if (!query.trim() || query.trim().length < 2) {
+          setSuggestions([]);
+          setSuggestOpen(false);
+          return;
+      }
+      debouncedSuggest(query.trim());
+  }, [query, debouncedSuggest]);
+
+  // Close the typeahead when clicking outside the header.
+  useEffect(() => {
+      if (!suggestOpen) return;
+      const onDocClick = (e: MouseEvent) => {
+          if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+              setSuggestOpen(false);
+              setSuggestIndex(-1);
+          }
+      };
+      document.addEventListener('mousedown', onDocClick);
+      return () => document.removeEventListener('mousedown', onDocClick);
+  }, [suggestOpen]);
 
   const tabs: { id: TabType; label: string }[] = [
     { id: 'all', label: 'All' },
@@ -185,7 +290,7 @@ export default function Search() {
           <div className="max-w-3xl mx-auto flex items-center gap-4">
                 <button 
                   onClick={() => navigate(-1)} 
-                  className="w-10 h-10 shrink-0 flex items-center justify-center bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 text-gray-900 dark:text-white hover:text-primary hover:border-primary/20 rounded-xl transition-all active:scale-95 group shadow-sm"
+                  className="w-10 h-10 shrink-0 flex items-center justify-center bg-black/[0.04] dark:bg-white/5 border border-black/5 dark:border-white/10 text-[#18181b] dark:text-zinc-100 hover:text-primary hover:border-primary/20 rounded-xl transition-all active:scale-95 group shadow-sm"
                 >
                   <ArrowLeft size={18} strokeWidth={2.5} className="group-hover:-translate-x-0.5 transition-transform" />
               </button>
@@ -202,12 +307,42 @@ export default function Search() {
                       autoFocus
                   />
                   {query && (
-                      <button 
-                        onClick={() => { setQuery(''); setResults({}); }} 
-                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-gray-100 dark:bg-zinc-800 rounded-lg text-gray-400 hover:text-gray-900 transition-all"
+                      <button
+                        onClick={() => { setQuery(''); setResults({}); setSuggestOpen(false); }}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-black/[0.05] dark:bg-zinc-800 rounded-lg text-slate-600 dark:text-zinc-400 hover:text-gray-900 transition-all"
                       >
                           <X size={14} strokeWidth={3} />
                       </button>
+                  )}
+
+                  {/* Instant suggestions */}
+                  {suggestOpen && suggestions.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-2 z-[120] overflow-hidden rounded-2xl border border-black/5 bg-white shadow-2xl dark:border-white/10 dark:bg-zinc-800">
+                          {suggestions.map((s, i) => (
+                              <button
+                                key={`${s.type}-${s.value}-${i}`}
+                                onClick={() => openSuggestion(s)}
+                                onMouseEnter={() => setSuggestIndex(i)}
+                                className={`flex w-full items-center gap-3 px-4 py-3 text-left transition-colors ${i === suggestIndex ? 'bg-primary/10' : 'hover:bg-black/[0.03] dark:hover:bg-white/5'}`}
+                              >
+                                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 dark:bg-zinc-700">
+                                      {s.type === 'hashtag' ? (
+                                          <Hash size={16} className="text-primary" strokeWidth={2.5} />
+                                      ) : s.image ? (
+                                          <img src={s.image} alt="" className="h-full w-full object-cover" />
+                                      ) : (
+                                          <User size={16} className="text-slate-600 dark:text-zinc-400" strokeWidth={2.5} />
+                                      )}
+                                  </div>
+                                  <div className="min-w-0 flex-1">
+                                      <p className="truncate text-sm font-bold italic tracking-tight text-[#18181b] dark:text-white">{s.label}</p>
+                                      <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 dark:text-zinc-400">
+                                          {s.type === 'user' ? 'Person' : s.type === 'group' ? 'Group' : 'Hashtag'}
+                                      </p>
+                                  </div>
+                              </button>
+                          ))}
+                      </div>
                   )}
               </div>
           </div>
@@ -226,7 +361,7 @@ export default function Search() {
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
                                     <TrendingUp size={20} />
                                 </div>
-                                <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Trending</h2>
+                                <h2 className="text-xl font-black text-[#18181b] dark:text-zinc-100 uppercase italic tracking-tight">Trending</h2>
                             </div>
                             <div className="space-y-1">
                                 {Array.isArray(trending) && trending.length > 0 ? trending.map((tag, i) => (
@@ -239,13 +374,13 @@ export default function Search() {
                                       className="flex items-center justify-between p-4 rounded-2xl bg-white dark:bg-white/5 border border-transparent hover:border-black/5 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all group"
                                     >
                                         <div className="flex items-center gap-4">
-                                            <span className="text-sm font-black text-gray-300 group-hover:text-primary transition-colors italic">0{i + 1}</span>
-                                            <span className="text-base font-bold text-gray-900 dark:text-white italic">{tag.name}</span>
+                                            <span className="text-sm font-black text-slate-600 dark:text-zinc-400 group-hover:text-primary transition-colors italic">0{i + 1}</span>
+                                            <span className="text-base font-bold text-[#18181b] dark:text-zinc-100 italic">{tag.name}</span>
                                         </div>
-                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{tag.count} Sparks</span>
+                                        <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest">{tag.count} Sparks</span>
                                     </motion.div>
                                 )) : (
-                                    <p className="text-sm font-bold text-gray-300 italic px-4">Nothing trending yet...</p>
+                                    <p className="text-sm font-bold text-slate-600 dark:text-zinc-400 italic px-4">Nothing trending yet...</p>
                                 )}
                             </div>
                         </section>
@@ -254,10 +389,10 @@ export default function Search() {
                         <section>
                             <div className="flex items-center justify-between mb-6 px-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-zinc-800 flex items-center justify-center text-gray-400">
+                                    <div className="w-10 h-10 rounded-xl bg-black/[0.05] dark:bg-zinc-800 flex items-center justify-center text-slate-600 dark:text-zinc-400">
                                         <Clock size={20} />
                                     </div>
-                                    <h2 className="text-xl font-black text-gray-900 dark:text-white uppercase italic tracking-tight">Recent</h2>
+                                    <h2 className="text-xl font-black text-[#18181b] dark:text-zinc-100 uppercase italic tracking-tight">Recent</h2>
                                 </div>
                                 <button onClick={() => navigate('/search/history')} className="text-[10px] font-bold text-primary uppercase tracking-widest hover:underline opacity-80">Full History</button>
                             </div>
@@ -273,36 +408,71 @@ export default function Search() {
                                       onClick={() => setQuery(h.query)}
                                     >
                                         <div className="flex-1 min-w-0">
-                                            <span className="block text-base font-bold text-gray-900 dark:text-white italic truncate">{h.query}</span>
+                                            <span className="block text-base font-bold text-[#18181b] dark:text-zinc-100 italic truncate">{h.query}</span>
                                         </div>
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); setActionItem({ ...h, type: 'history' }); }}
-                                            className="w-8 h-8 flex items-center justify-center text-gray-300 hover:text-primary hover:bg-primary/5 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                                            className="w-8 h-8 flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-primary hover:bg-primary/5 rounded-xl transition-all opacity-0 group-hover:opacity-100"
                                         >
                                             <MoreHorizontal size={16} strokeWidth={3} />
                                         </button>
                                     </motion.div>
                                 )) : (
-                                    <p className="text-sm font-bold text-gray-300 italic px-4">Your history is clear.</p>
+                                    <p className="text-sm font-bold text-slate-600 dark:text-zinc-400 italic px-4">Your history is clear.</p>
                                 )}
                             </div>
                         </section>
                     </div>
 
-                    {/* Explore Teaser */}
-                    <section className="relative overflow-hidden bg-gray-900 text-white rounded-[32px] p-8 md:p-12 group cursor-pointer shadow-xl" onClick={() => navigate('/explore')}>
-                        <div className="relative z-10 max-w-md">
-                            <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center mb-8 shadow-lg shadow-primary/20">
-                                <Compass size={24} className="text-white" />
+                    {/* Suggested for you */}
+                    {suggested.length > 0 && (
+                        <section>
+                            <div className="flex items-center gap-3 mb-6 px-2">
+                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
+                                    <Sparkles size={20} />
+                                </div>
+                                <h2 className="text-xl font-black text-[#18181b] dark:text-zinc-100 uppercase italic tracking-tight">Suggested for you</h2>
                             </div>
-                            <h3 className="text-3xl md:text-4xl font-black italic tracking-tight uppercase leading-none mb-4">Discover More</h3>
-                            <p className="text-gray-400 font-medium text-sm leading-relaxed">
-                                Explore trending groups, active marketplaces, and popular moments from across the Sparkle community.
-                            </p>
-                        </div>
-                        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-primary/10 to-transparent group-hover:scale-110 transition-transform duration-700" />
-                        <Sparkles size={120} className="absolute -bottom-10 -right-10 text-white/[0.03] rotate-12 group-hover:scale-110 transition-transform duration-700" />
-                    </section>
+                            <div className="space-y-1">
+                                {suggested.map((u, i) => (
+                                    <motion.div
+                                      key={`sugg-${u.user_id || u.id || i}`}
+                                      initial={{ opacity: 0, y: 6 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: i * 0.05 }}
+                                      onClick={() => navigate(`/profile/${u.username}`)}
+                                      className="flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-white/5 border border-transparent hover:border-black/5 dark:hover:border-white/10 hover:shadow-sm cursor-pointer transition-all group"
+                                    >
+                                        <img
+                                          src={u.avatar_url || '/uploads/avatars/no-profile.png'}
+                                          alt=""
+                                          className="w-12 h-12 rounded-full object-cover border-2 border-primary/20 shrink-0"
+                                        />
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-black text-[#18181b] dark:text-zinc-100 italic uppercase tracking-tight truncate">
+                                                {u.name || u.username}
+                                            </p>
+                                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-600 dark:text-zinc-400 truncate">
+                                                {u.suggestion_reason || (u.mutual_connections ? `${u.mutual_connections} mutual` : `@${u.username}`)}
+                                            </p>
+                                        </div>
+                                        {u.is_followed ? (
+                                            <span className="shrink-0 px-4 h-9 inline-flex items-center gap-1.5 rounded-xl bg-black/[0.04] dark:bg-white/5 text-[10px] font-black uppercase tracking-widest text-slate-600 dark:text-zinc-400">
+                                                <Check size={14} strokeWidth={3} /> Following
+                                            </span>
+                                        ) : (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleSuggestedFollow((u.user_id || u.id) as string); }}
+                                              className="shrink-0 px-5 h-9 inline-flex items-center gap-1.5 rounded-xl bg-primary text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/30 hover:scale-[1.03] active:scale-95 transition-all"
+                                            >
+                                                <Plus size={13} strokeWidth={3} /> Follow
+                                            </button>
+                                        )}
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </section>
+                    )}
                 </div>
             ) : (
                 <div className="animate-in fade-in duration-500 space-y-8 md:space-y-12">
@@ -311,7 +481,7 @@ export default function Search() {
                             <button
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
-                                className={`px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border ${activeTab === tab.id ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-500 dark:text-gray-400 hover:border-primary/30 hover:text-primary'}`}
+                                className={`px-6 h-10 rounded-xl font-bold text-[10px] uppercase tracking-widest transition-all whitespace-nowrap border ${activeTab === tab.id ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/10 text-gray-500 dark:text-slate-600 dark:text-zinc-400 hover:border-primary/30 hover:text-primary'}`}
                             >
                                 {tab.label}
                             </button>
@@ -330,23 +500,35 @@ export default function Search() {
                             </div>
                         )}
                         
-                        {Object.entries(results).map(([type, items]: [string, SearchResult[]], i) => (
+                        {Object.entries(results).map(([type, items]: [string, SearchResult[]], i) => {
+                            const visible = activeTab === 'all' && Array.isArray(items) ? items.slice(0, 3) : items;
+                            return (
                             <section key={`res-sec-${type}-${i}`} className="space-y-6 animate-fade-in">
                                 <div className="flex items-center gap-4">
-                                   <h3 className="text-[10px] font-black text-gray-400 dark:text-white/40 italic uppercase tracking-widest">{type}</h3>
+                                   <h3 className="text-[10px] font-black text-slate-600 dark:text-zinc-400 italic uppercase tracking-widest">
+                                       {type} {Array.isArray(items) && items.length > 0 && <span className="text-primary">({items.length})</span>}
+                                   </h3>
                                    <div className="flex-1 h-[1px] bg-gray-200/50" />
+                                   {activeTab === 'all' && type !== 'hashtags' && items.length > 3 && (
+                                       <button
+                                           onClick={() => setActiveTab(type as TabType)}
+                                           className="text-[9px] font-black uppercase tracking-widest text-primary hover:underline"
+                                       >
+                                           See all
+                                       </button>
+                                   )}
                                 </div>
-                                
+
                                 <div className="grid gap-6">
-                                    {type === 'users' && Array.isArray(items) && items.map((u, j) => (
+                                    {type === 'users' && Array.isArray(visible) && visible.map((u, j) => (
                                         <div key={`res-u-${u.user_id || u.id || j}`} className="hover:scale-[1.02] transition-transform duration-500">
                                             <UserCard u={u} />
                                         </div>
                                     ))}
-                                    {type === 'posts' && Array.isArray(items) && items.map((p, j) => (
-                                        <PostCard key={`res-p-${p.post_id || p.id || j}`} post={p as any} />
+                                    {type === 'posts' && Array.isArray(visible) && visible.map((p, j) => (
+                                        <PostCard key={`res-p-${p.post_id || p.id || j}`} post={p as unknown as PostCardPost} />
                                     ))}
-                                    {(type === 'groups' || type === 'clubs' || type === 'hashtags') && Array.isArray(items) && items.map((g, j) => (
+                                    {(type === 'groups' || type === 'clubs' || type === 'hashtags') && Array.isArray(visible) && visible.map((g, j) => (
                                         <div 
                                           key={`res-g-${g.id || j}`} 
                                           onClick={() => navigate(type === 'hashtags' ? `/hashtag/${g.title?.replace('#', '')}` : `/${type}/${g.id}`)} 
@@ -360,15 +542,15 @@ export default function Search() {
                                                 <img src={g.image || '/uploads/groups/default.png'} className="w-14 h-14 rounded-xl object-cover border border-gray-100 dark:border-white/10 group-hover:scale-105 transition-all shrink-0" alt="" />
                                             )}
                                             <div className="flex-1 min-w-0">
-                                                <div className="text-lg font-bold text-gray-900 dark:text-white leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
-                                                <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest group-hover:text-primary transition-colors">
+                                                <div className="text-lg font-bold text-[#18181b] dark:text-zinc-100 leading-none mb-1 italic uppercase tracking-tight truncate">{g.title}</div>
+                                                <div className="text-[10px] font-bold text-slate-600 dark:text-zinc-400 uppercase tracking-widest group-hover:text-primary transition-colors">
                                                     {type === 'hashtags' ? 'Hashtag' : g.subtitle || 'Community'}
                                                 </div>
                                             </div>
-                                            <ChevronRight size={18} className="text-gray-300 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
+                                            <ChevronRight size={18} className="text-slate-600 dark:text-zinc-400 group-hover:text-primary group-hover:translate-x-1 transition-all shrink-0" />
                                         </div>
                                     ))}
-                                    {type === 'marketplace' && Array.isArray(items) && items.map((item, j) => (
+                                    {type === 'marketplace' && Array.isArray(visible) && visible.map((item, j) => (
                                         <ListingCard
                                           key={`res-m-${item.id || j}`}
                                           variant="compact"
@@ -376,14 +558,15 @@ export default function Search() {
                                           onClick={() => navigate(`/marketplace/listings/${item.id}`)}
                                         />
                                     ))}
-                                    {Array.isArray(items) && items.length === 0 && (
+                                    {Array.isArray(visible) && visible.length === 0 && (
                                         <div className="text-center py-8 md:py-16 bg-black/[0.01] rounded-[24px] md:rounded-[32px] border border-dashed border-black/5 dark:border-white/5 px-6 mx-2">
-                                            <p className="text-[10px] md:text-xs font-black text-black/20 uppercase tracking-widest italic leading-relaxed">No results found matching your search.</p>
+                                            <p className="text-[10px] md:text-xs font-black text-slate-600 dark:text-zinc-400 uppercase tracking-widest italic leading-relaxed">No results found matching your search.</p>
                                         </div>
                                     )}
                                 </div>
                             </section>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
             )}
@@ -421,11 +604,11 @@ export default function Search() {
                                 </div>
                             </div>
                             <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic uppercase leading-none">{actionItem.name}</h3>
-                            <p className="text-black/20 font-bold text-[11px] uppercase tracking-widest mt-3">@{actionItem.username}</p>
+                            <p className="text-slate-600 dark:text-zinc-300 font-bold text-[11px] uppercase tracking-widest mt-3">@{actionItem.username}</p>
                         </>
                     ) : (
                         <>
-                            <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-black/10 mb-6">
+                            <div className="w-16 h-16 rounded-[24px] bg-black/5 flex items-center justify-center text-slate-600 dark:text-zinc-400 mb-6">
                                 <Clock size={32} strokeWidth={2.5} />
                             </div>
                              <h3 className="text-2xl font-black text-[#18181b] dark:text-white italic uppercase">Search History</h3>

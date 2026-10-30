@@ -116,6 +116,10 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
         hlsRef.current = null;
       }
     };
+    // Dep-light by design: this effect owns SOURCE assignment only; re-running
+    // it when `active` toggles would re-assign src and abort playback. The
+    // play/pause on active changes is handled by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [streamingSrc, src]);
 
   useEffect(() => {
@@ -153,14 +157,34 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
             hlsRef.current.destroy();
             hlsRef.current = null;
           }
+          // No real media URL on the element (video.src resolves to the page
+          // URL when the attribute is absent): retrying is pointless and the
+          // log would be meaningless — surface it once and stop.
+          if (!video.currentSrc && !video.getAttribute('src')) {
+            logger.warn('[HlsVideoPlayer] error with no src assigned — moment has no media URL in the payload');
+            return;
+          }
+          const errCode = video.error?.code;
+          const errName = ['', 'ABORTED', 'NETWORK', 'DECODE', 'SRC_NOT_SUPPORTED'][errCode] || errCode;
+          logger.warn('[HlsVideoPlayer] error code:', errName, '| network:', video.networkState, '| ready:', video.readyState, '|', video.currentSrc || video.src);
           if (fallbackSrc && video.dataset.fallbackTried !== '1') {
+            // Recovery attempt 1: swap to the other rendition.
             video.dataset.fallbackTried = '1';
             logger.warn('[HlsVideoPlayer] rendition failed, retrying original:', video.currentSrc || video.src, '->', fallbackSrc);
             video.src = fallbackSrc;
             if (active) video.play().catch(() => {});
-          } else {
-            logger.warn('[HlsVideoPlayer] playback failed with no usable fallback:', video.currentSrc || video.src);
+            return;
           }
+          if (video.dataset.reloadTried !== '1') {
+            // Recovery attempt 2: same URL, fresh media load (transient CDN
+            // blips / aborted requests recover on a clean re-fetch).
+            video.dataset.reloadTried = '1';
+            logger.warn('[HlsVideoPlayer] retrying same URL after failure:', video.currentSrc || video.src);
+            video.load();
+            if (active) video.play().catch(() => {});
+            return;
+          }
+          logger.warn('[HlsVideoPlayer] playback failed with no usable fallback:', video.currentSrc || video.src);
         }}
         className={`w-full h-full object-cover`}
       />

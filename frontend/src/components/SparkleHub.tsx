@@ -6,20 +6,12 @@ import {
   BarChart3,
   MessageSquare,
   PlayCircle,
-  Activity,
-  Search as SearchIcon,
   UserPlus,
   History,
-  Image as ImageIcon,
-  Send,
-  CheckCircle2,
   Briefcase,
   LifeBuoy,
   HelpCircle,
-  User,
   X,
-  ChevronRight,
-  LayoutGrid,
   LogOut,
   Pen,
   Hammer,
@@ -221,7 +213,7 @@ export default function SparkleHub({ onClose, embedded = false }: SparkleHubProp
       .then((res) => {
         if (!isMounted) return;
         const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
-        const total = list.reduce((acc: number, c: any) => acc + (Number(c.unread_count) || 0), 0);
+        const total = list.reduce((acc: number, c: { unread_count?: number }) => acc + (Number(c.unread_count) || 0), 0);
         setUnreadMessagesCount(total);
       })
       .catch((err) => {

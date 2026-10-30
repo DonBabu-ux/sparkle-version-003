@@ -1183,11 +1183,11 @@ const getSuggestions = async (req, res) => {
             limit,
             offset,
             seed: seed + hourlySeed,
-            tab: tab.toLowerCase(),
+            tab,
             filter: filter ? filter.toLowerCase() : null,
             query: q
         });
-        
+
         const sanitizedSuggestions = suggestions.map(u => ({
             ...u,
             id: u.user_id,
@@ -1195,7 +1195,10 @@ const getSuggestions = async (req, res) => {
             profile_picture: u.avatar_url || '/uploads/avatars/no-profile.png',
             affiliation: u.affiliation || u.campus,
             interests: u.interests || u.major,
-            experience_level: u.experience_level || u.year_of_study
+            experience_level: u.experience_level || u.year_of_study,
+            // Why this person is suggested (human strings, never auto-followed).
+            suggestion_reason: String(u.suggestion_reason || 'Suggested for you').substring(0, 120),
+            reasons: Array.isArray(u.reasons) ? u.reasons.map(r => String(r).substring(0, 80)).slice(0, 3) : []
         }));
 
         const result = { suggestions: sanitizedSuggestions };
@@ -1208,6 +1211,36 @@ const getSuggestions = async (req, res) => {
             error: 'Failed to get suggestions',
             debug: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
+    }
+};
+
+const dismissSuggestion = async (req, res) => {
+    try {
+        const currentUserId = req.user.userId || req.user.user_id;
+        const targetUserId = req.body?.user_id || req.body?.target_user_id;
+        if (!targetUserId) {
+            return res.status(400).json({ error: 'user_id is required' });
+        }
+        await User.dismissSuggestion(currentUserId, targetUserId);
+        res.json({ success: true, dismissed: targetUserId });
+    } catch (error) {
+        logger.error('Dismiss suggestion error:', error);
+        res.status(500).json({ error: 'Failed to dismiss suggestion' });
+    }
+};
+
+const undismissSuggestion = async (req, res) => {
+    try {
+        const currentUserId = req.user.userId || req.user.user_id;
+        const targetUserId = req.body?.user_id || req.body?.target_user_id;
+        if (!targetUserId) {
+            return res.status(400).json({ error: 'user_id is required' });
+        }
+        await User.undismissSuggestion(currentUserId, targetUserId);
+        res.json({ success: true, restored: targetUserId });
+    } catch (error) {
+        logger.error('Undismiss suggestion error:', error);
+        res.status(500).json({ error: 'Failed to restore suggestion' });
     }
 };
 
@@ -1627,6 +1660,8 @@ module.exports = {
     getUserPosts,
     getSuggestions,
     getUsernameSuggestions,
+    dismissSuggestion,
+    undismissSuggestion,
     updateSettings,
     getAdvancedSettings,
     exportUserData,

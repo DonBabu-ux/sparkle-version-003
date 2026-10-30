@@ -22,7 +22,7 @@ import { emitHeart as spawnTikTokHeart } from './TikTokHearts';
 import clsx from 'clsx';
 import { logger } from '../utils/logger';
 
-interface Post {
+export interface Post {
   post_id: string;
   user_id: string;
   username: string;
@@ -176,7 +176,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
     try {
       await api.post(`/posts/${post.post_id}/like`);
-    } catch (err) {
+    } catch {
       // Rollback on failure
       patchPost(post.post_id, { is_sparked: !newSparked, spark_count: sparkCount });
     }
@@ -191,7 +191,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
 
     try {
       await api.post(`/posts/${post.post_id}/save`);
-    } catch (err) {
+    } catch {
       // Rollback on failure
       patchPost(post.post_id, { is_saved: !newSaved });
     }
@@ -209,7 +209,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       }
       removePost(post.post_id);
       triggerRefresh();
-    } catch (err) {
+    } catch {
       setDeleting(false);
       showError('Failed to delete post');
     }

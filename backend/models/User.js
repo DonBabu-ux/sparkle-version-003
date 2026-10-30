@@ -339,149 +339,239 @@ class User {
      */
     static async getSuggestions(currentUserId, options = {}) {
         try {
-            const { limit = 20, offset = 0, seed = null, tab = 'suggested', filter = null, query = null } = options;
+            const { limit = 20, offset = 0, seed = null, tab = 'for_you', filter = null, query = null } = options;
 
             // Fetch current user details for ranking
             const [me] = await pool.query('SELECT major, year_of_study, campus FROM users WHERE user_id = ?', [currentUserId]);
             if (!me[0]) return [];
 
-        const numericSeed = seed ? parseInt(crypto.createHash('md5').update(String(seed)).digest('hex').substring(0, 8), 16) : null;
-        const sqlSeed = numericSeed ? `(${numericSeed})` : '()';
+            // Accept legacy ('for you') and new ('for_you') spellings; unknown tabs fall back to the blended feed.
+            const tabKey = String(tab || '').toLowerCase().replace(/\s+/g, '_');
+            const activeTab = ['for_you', 'follow_back', 'similar', 'same_campus', 'following'].includes(tabKey)
+                ? tabKey
+                : 'for_you';
 
-        const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
+            const numericSeed = seed ? parseInt(crypto.createHash('md5').update(String(seed)).digest('hex').substring(0, 8), 16) : null;
+            const sqlSeed = numericSeed ? `(${numericSeed})` : '()';
 
-        let sql = `
-            SELECT 
-                u.*,
-                (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
-                (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
-                (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count,
-                ${mutualQuery} as mutual_connections,
-                (
-                    -- 1. Mutual Connections (Weight 0.4 -> 40 points max)
-                    (LEAST(${mutualQuery}, 10) * 4) +
-                    
-                    -- 2. Academic Similarity (Weight 0.25 -> 25 points max)
-                    (CASE WHEN u.major = ? THEN 25 WHEN u.major IS NOT NULL THEN 5 ELSE 0 END) +
-                    
-                    -- 3. Campus Proximity (Weight 0.15 -> 15 points max)
-                    (CASE WHEN u.campus = ? THEN 15 ELSE 5 END) +
-                    
-                    -- 4. Activity (Weight 0.1 -> 10 points max)
-                    (CASE WHEN u.is_online = 1 OR u.last_seen_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 10 ELSE 0 END) +
-                    
-                    -- 5. Profile Completeness (Weight 0.1 -> 10 points max)
-                    (CASE WHEN u.bio IS NOT NULL AND u.bio != '' THEN 3 ELSE 0 END) +
-                    (CASE WHEN u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%default%' THEN 3 ELSE 0 END) +
-                    (CASE WHEN u.major IS NOT NULL THEN 2 ELSE 0 END) +
-                    
-                    -- Variety (5 points)
-                    (RAND${sqlSeed} * 5)
-                ) as discovery_score
-            FROM users u
-            WHERE u.user_id != ? AND u.user_id != ?
-        `;
+            // ---- Signals (Facebook "people you may know" + Instagram "suggested for you", blended) ----
+            // 1. Mutual follows - the strongest signal (Facebook's mutual friends).
+            const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
+            // 2. Second degree: people followed by the people I follow (friends-of-friends).
+            const secondDegreeQuery = `(SELECT COUNT(*) FROM follows mine JOIN follows theirs ON mine.following_id = theirs.follower_id WHERE mine.follower_id = ? AND theirs.following_id = u.user_id)`;
+            // 3. Follows me but I don't follow back (Instagram's follow-back).
+            const followsMeQuery = `(SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?)`;
+            // 4. Structured interest overlap.
+            const interestOverlapQuery = `(SELECT COUNT(*) FROM user_interests a JOIN user_interests b ON a.interest_slug = b.interest_slug WHERE a.user_id = ? AND b.user_id = u.user_id)`;
+            // 5. Engagement overlap (Instagram's interest graph): we engaged with the SAME posts / moments.
+            // NOTE: MariaDB cannot correlate u.* from inside a derived table nested in a
+            // select-list subquery, so this is a plain sum of correlated subqueries.
+            const engagementOverlapQuery = `(
+                (SELECT COUNT(*) FROM comments c
+                   WHERE c.user_id = u.user_id
+                     AND c.post_id IN (SELECT post_id FROM comments WHERE user_id = ?))
+                +
+                (SELECT COUNT(*) FROM moment_likes m
+                   WHERE m.user_id = u.user_id
+                     AND m.moment_id IN (SELECT moment_id FROM moment_likes WHERE user_id = ?))
+                +
+                (SELECT COUNT(*) FROM moment_comments mc
+                   WHERE mc.user_id = u.user_id
+                     AND mc.moment_id IN (SELECT moment_id FROM moment_comments WHERE user_id = ?))
+            )`;
 
-        const params = [
-            currentUserId, // for is_followed
-            currentUserId, // for request_status
-            currentUserId, // for mutual_connections count
-            currentUserId, // for mutual_connections in score
-            me[0].major,   // for academic similarity
-            me[0].campus,  // for campus proximity
-            currentUserId, // for u.user_id != ?
-            SPARKLE_SYSTEM_USER_ID // for u.user_id != ?
-        ];
+            let sql = `
+                SELECT
+                    u.*,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed,
+                    (SELECT status FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as request_status,
+                    (SELECT COUNT(*) FROM follows WHERE following_id = u.user_id) as follower_count,
+                    ${mutualQuery} as mutual_connections,
+                    ${secondDegreeQuery} as second_degree,
+                    ${followsMeQuery} as follows_me,
+                    ${interestOverlapQuery} as interest_overlap,
+                    ${engagementOverlapQuery} as engagement_overlap,
+                    (
+                        -- 1. Mutual connections: 8 points each, capped at 48
+                        (LEAST(${mutualQuery}, 6) * 8) +
+                        -- 2. Friends-of-friends: 2 points each, capped at 16
+                        (LEAST(${secondDegreeQuery}, 8) * 2) +
+                        -- 3. Same campus / year / major
+                        (CASE WHEN u.campus = ? THEN 12 ELSE 0 END) +
+                        (CASE WHEN u.year_of_study = ? THEN 4 ELSE 0 END) +
+                        (CASE WHEN u.major = ? THEN 10 ELSE 0 END) +
+                        -- 4. Interest overlap: 4 points each, capped at 16
+                        (LEAST(${interestOverlapQuery}, 4) * 4) +
+                        -- 5. Engagement overlap: 3 points each, capped at 15
+                        (LEAST(${engagementOverlapQuery}, 5) * 3) +
+                        -- 6. Follows me (follow-back): flat 10
+                        (CASE WHEN ${followsMeQuery} > 0 THEN 10 ELSE 0 END) +
+                        -- 7. Activity + completeness as tie-breakers
+                        (CASE WHEN u.is_online = 1 OR u.last_seen_at > DATE_SUB(NOW(), INTERVAL 24 HOUR) THEN 5 ELSE 0 END) +
+                        (CASE WHEN u.bio IS NOT NULL AND u.bio != '' THEN 2 ELSE 0 END) +
+                        (CASE WHEN u.avatar_url IS NOT NULL AND u.avatar_url NOT LIKE '%default%' THEN 2 ELSE 0 END) +
+                        -- 8. Variety so a refresh surfaces new faces
+                        (RAND${sqlSeed} * 5)
+                    ) as discovery_score
+                FROM users u
+                WHERE u.user_id != ? AND u.user_id != ?
+            `;
 
-        // Apply Tab Logic
-        if (tab === 'following') {
-            sql += ` AND u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
-            params.push(currentUserId);
-        } else if (tab === 'for you') {
-            // "For You" shows everyone (including people you follow)
-        } else if (tab === 'similar') {
-            sql += ` AND (u.major = ? OR u.campus = ?)`;
-            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
-            params.push(me[0].major, me[0].campus, currentUserId);
-        } else {
-            // Default: Suggested (people you don't follow)
-            sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
-            params.push(currentUserId);
-        }
+            const params = [
+                currentUserId, // is_followed
+                currentUserId, // request_status
+                currentUserId, // mutual_connections
+                currentUserId, // second_degree
+                currentUserId, // follows_me
+                currentUserId, // interest_overlap
+                currentUserId, // engagement: comments
+                currentUserId, // engagement: moment_likes
+                currentUserId, // engagement: moment_comments
+                currentUserId, // mutual in score
+                currentUserId, // second degree in score
+                currentUserId, // interest overlap in score
+                currentUserId, // engagement in score: comments
+                currentUserId, // engagement in score: moment_likes
+                currentUserId, // engagement in score: moment_comments
+                currentUserId, // follows_me in score
+                me[0].campus,   // campus match
+                me[0].year_of_study, // year match
+                me[0].major,    // major match
+                currentUserId, // u.user_id != ?
+                SPARKLE_SYSTEM_USER_ID // u.user_id != ?
+            ];
 
-        // Apply Filter Logic
-        if (filter === 'campus') {
-            sql += ` AND u.campus = ?`;
-            params.push(me[0].campus);
-        } else if (filter === 'interests') {
-            sql += ` AND u.major = ?`;
-            params.push(me[0].major);
-        } else if (filter === 'level') {
-            sql += ` AND u.year_of_study = ?`;
-            params.push(me[0].year_of_study);
-        }
-
-        // Apply Search Query
-        if (query && query.trim()) {
-            sql += ` AND (u.name LIKE ? OR u.username LIKE ? OR u.major LIKE ? OR u.campus LIKE ?)`;
-            params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
-        }
-
-        // Apply Sorting
-        sql += ` ORDER BY discovery_score DESC`;
-
-        sql += ` LIMIT ? OFFSET ?`;
-        params.push(limit, offset);
-
-        const [users] = await pool.query(sql, params);
-        
-        // Fetch detailed mutual connections for the avatar stack
-        const userIds = users.map(u => u.user_id);
-        let mutualDetailsMap = {};
-        
-        if (userIds.length > 0) {
-            const [mutuals] = await pool.query(`
-                SELECT f2.follower_id as target_user_id, u.user_id, u.username, u.name, u.avatar_url
-                FROM follows f1
-                JOIN follows f2 ON f1.following_id = f2.following_id
-                JOIN users u ON f1.following_id = u.user_id
-                WHERE f1.follower_id = ? AND f2.follower_id IN (?)
-            `, [currentUserId, userIds]);
-            
-            mutuals.forEach(m => {
-                if (!mutualDetailsMap[m.target_user_id]) mutualDetailsMap[m.target_user_id] = [];
-                if (mutualDetailsMap[m.target_user_id].length < 5) {
-                    mutualDetailsMap[m.target_user_id].push({
-                        id: m.user_id,
-                        name: m.name || m.username,
-                        avatar: m.avatar_url
-                    });
-                }
-            });
-        }
-        
-        // Map fields and generate "reason" for suggestion
-        return users.map(u => {
-            const mapped = this.mapGeneralizedFields(u);
-            mapped.mutual_followers = mutualDetailsMap[u.user_id] || [];
-            
-            // Add suggestion reason
-            if (u.mutual_connections > 0) {
-                mapped.suggestion_reason = `${u.mutual_connections} mutual friend${u.mutual_connections > 1 ? 's' : ''}`;
-            } else if (u.major === me[0].major) {
-                mapped.suggestion_reason = `Same major: ${u.major}`;
-            } else if (u.campus === me[0].campus) {
-                mapped.suggestion_reason = `On ${u.campus}`;
-            } else {
-                mapped.suggestion_reason = `Suggested for you`;
+            // ---- Exclusions (never force: no already-followed, no pending requests, no dismissed, no blocked) ----
+            if (activeTab !== 'following') {
+                sql += ` AND u.user_id NOT IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+                params.push(currentUserId);
             }
-            return mapped;
-        });
-    } catch (error) {
-        console.error('[User Model] getSuggestions error:', error.message, error.stack);
-        throw error;
+            sql += ` AND u.user_id NOT IN (SELECT target_user_id FROM follow_requests WHERE requester_id = ? AND status = 'pending')`;
+            params.push(currentUserId);
+            sql += ` AND u.user_id NOT IN (SELECT target_user_id FROM suggestion_dismissals WHERE user_id = ?)`;
+            params.push(currentUserId);
+            sql += ` AND u.user_id NOT IN (SELECT blocked_id FROM user_blocks WHERE blocker_id = ?)`;
+            params.push(currentUserId);
+            sql += ` AND u.user_id NOT IN (SELECT blocker_id FROM user_blocks WHERE blocked_id = ?)`;
+            params.push(currentUserId);
+
+            // ---- Tab semantics ----
+            if (activeTab === 'following') {
+                sql += ` AND u.user_id IN (SELECT following_id FROM follows WHERE follower_id = ?)`;
+                params.push(currentUserId);
+            } else if (activeTab === 'follow_back') {
+                sql += ` AND ${followsMeQuery} > 0`;
+                params.push(currentUserId);
+            } else if (activeTab === 'similar') {
+                sql += ` AND (u.major = ? OR ${interestOverlapQuery} > 0)`;
+                params.push(me[0].major, currentUserId);
+            } else if (activeTab === 'same_campus') {
+                sql += ` AND u.campus = ?`;
+                params.push(me[0].campus);
+            }
+
+            // ---- Optional filters ----
+            if (filter === 'campus') {
+                sql += ` AND u.campus = ?`;
+                params.push(me[0].campus);
+            } else if (filter === 'interests') {
+                sql += ` AND (u.major = ? OR ${interestOverlapQuery} > 0)`;
+                params.push(me[0].major, currentUserId);
+            } else if (filter === 'level') {
+                sql += ` AND u.year_of_study = ?`;
+                params.push(me[0].year_of_study);
+            }
+
+            // ---- Search query ----
+            if (query && query.trim()) {
+                sql += ` AND (u.name LIKE ? OR u.username LIKE ? OR u.major LIKE ? OR u.campus LIKE ?)`;
+                params.push(`%${query}%`, `%${query}%`, `%${query}%`, `%${query}%`);
+            }
+
+            // MariaDB rejects placeholders in LIMIT/OFFSET; inline sanitized ints.
+            const limitInt = Math.max(1, Math.min(parseInt(limit, 10) || 20, 50));
+            const offsetInt = Math.max(0, parseInt(offset, 10) || 0);
+            sql += ` ORDER BY discovery_score DESC LIMIT ${limitInt} OFFSET ${offsetInt}`;
+
+            const [users] = await pool.query(sql, params);
+
+            // Fetch detailed mutual connections for the avatar stack
+            const userIds = users.map(u => u.user_id);
+            let mutualDetailsMap = {};
+
+            if (userIds.length > 0) {
+                const [mutuals] = await pool.query(`
+                    SELECT f2.follower_id as target_user_id, u.user_id, u.username, u.name, u.avatar_url
+                    FROM follows f1
+                    JOIN follows f2 ON f1.following_id = f2.following_id
+                    JOIN users u ON f1.following_id = u.user_id
+                    WHERE f1.follower_id = ? AND f2.follower_id IN (?)
+                `, [currentUserId, userIds]);
+
+                mutuals.forEach(m => {
+                    if (!mutualDetailsMap[m.target_user_id]) mutualDetailsMap[m.target_user_id] = [];
+                    if (mutualDetailsMap[m.target_user_id].length < 5) {
+                        mutualDetailsMap[m.target_user_id].push({
+                            id: m.user_id,
+                            name: m.name || m.username,
+                            avatar: m.avatar_url
+                        });
+                    }
+                });
+            }
+
+            // Map fields and build human reasons (top 3) - the "why", so nothing feels forced.
+            return users.map(u => {
+                const mapped = this.mapGeneralizedFields(u);
+                mapped.mutual_followers = mutualDetailsMap[u.user_id] || [];
+                mapped.mutual_connections = Number(u.mutual_connections) || 0;
+
+                const reasons = [];
+                if (mapped.mutual_connections > 0) {
+                    reasons.push(`${mapped.mutual_connections} mutual connection${mapped.mutual_connections > 1 ? 's' : ''}`);
+                }
+                if (Number(u.follows_me) > 0) reasons.push('Follows you');
+                if (u.second_degree >= 2) reasons.push(`${u.second_degree} friends of your friends`);
+                if (me[0].campus && u.campus === me[0].campus) reasons.push(`Same campus: ${u.campus}`);
+                if (me[0].major && u.major === me[0].major) reasons.push(`Studies ${u.major}`);
+                if (me[0].year_of_study && u.year_of_study === me[0].year_of_study) reasons.push(`Year ${u.year_of_study}`);
+                if (Number(u.interest_overlap) > 0) reasons.push(`${u.interest_overlap} shared interest${u.interest_overlap > 1 ? 's' : ''}`);
+                if (Number(u.engagement_overlap) > 0) reasons.push('Engages with posts you like');
+
+                mapped.reasons = reasons.slice(0, 3);
+                mapped.suggestion_reason = reasons[0] || 'Suggested for you';
+                return mapped;
+            });
+        } catch (error) {
+            console.error('[User Model] getSuggestions error:', error.message, error.stack);
+            throw error;
+        }
     }
-}
+
+    /**
+     * Remember a dismissed suggestion so it never resurfaces (Facebook-style
+     * "Remove suggestion"). Idempotent.
+     */
+    static async dismissSuggestion(currentUserId, targetUserId) {
+        if (!currentUserId || !targetUserId || currentUserId === targetUserId) return false;
+        await pool.query(
+            `INSERT IGNORE INTO suggestion_dismissals (user_id, target_user_id) VALUES (?, ?)`,
+            [currentUserId, targetUserId]
+        );
+        return true;
+    }
+
+    /**
+     * Restore dismissed suggestions (used by "Undo" affordances).
+     */
+    static async undismissSuggestion(currentUserId, targetUserId) {
+        if (!currentUserId || !targetUserId) return false;
+        await pool.query(
+            `DELETE FROM suggestion_dismissals WHERE user_id = ? AND target_user_id = ?`,
+            [currentUserId, targetUserId]
+        );
+        return true;
+    }
 
     /**
      * Get user with profile stats

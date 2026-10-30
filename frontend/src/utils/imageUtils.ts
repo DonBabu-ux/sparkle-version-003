@@ -41,6 +41,7 @@ const isBackendDefaultAvatar = (url: string) =>
  * Section 5: Default Avatar Handling (APK Safe)
  */
 export const getAvatarUrl = (url?: string | null, _seed?: string | null): string => {
+  void _seed; // accepted for call-site compatibility; avatar fallbacks are bundled
   // Legacy system-avatar path (sparkle-logo.svg was removed; we ship the PNG).
   if (url && (url.includes('sparkle-logo') || url.includes('/assets/system/'))) {
     return '/logo.png';
@@ -91,43 +92,17 @@ export const getMediaUrl = (url?: string | null): string => {
 };
 
 /**
- * Device-safe video rendition for Android WebView, which commonly caps
- * hardware decoding at 1080p: a 4K/1440p MP4 answers 200 but then fails to
- * DECODE, and the global video-error handler swaps the tile for its
- * "Media Unavailable" placeholder. This returns a rendition every device
- * can play:
- *  - Cloudinary: on-the-fly transcode `w_1080,c_limit,q_auto` (verified live).
- *  - Pexels: the same video's halved `hd_` variant (verified to exist for the
- *    seeded library); if a particular video lacks it the caller MUST fall
- *    back to the original URL on the element's error event.
- * Unknown hosts pass through unchanged — the fallback chain still applies.
+ * Device-safe video rendition. All moment media now lives on OUR Cloudinary
+ * (migrated from the Pexels hotlinks — see moments-media-backup.json), and
+ * every stored URL was verified with a ranged GET. No transformation is
+ * applied client-side: the on-the-fly `w_1080` video transcode adds first-view
+ * latency, is rate-limited on the current plan, and doubles the requests when
+ * it fails. The player's reload retry is the honest fallback for a transient
+ * CDN blip.
  */
 export const getSafeVideoUrl = (url?: string | null): string => {
   if (!url) return '';
-  const u = String(url).trim();
-  if (!u) return '';
-
-  // Cloudinary video: cap at 1080p width, limit (never upscale), auto quality.
-  // Only when the version segment sits directly after /upload/ (i.e. no
-  // transformation is applied yet) so transforms never stack.
-  if (u.includes(CLOUDINARY_PREFIX) && u.includes('/video/upload/')) {
-    if (/\/video\/upload\/v\d+\//.test(u)) {
-      return u.replace(/\/video\/upload\/(v\d+\/)/, '/video/upload/w_1080,c_limit,q_auto/$1');
-    }
-    return u;
-  }
-
-  // Pexels: swap the uhd_ renditions for their halved hd_ counterparts.
-  if (u.includes('videos.pexels.com')) {
-    const m = u.match(/-uhd_(\d+)_(\d+)_(\d+fps)\.mp4$/i);
-    if (m) {
-      const w = Math.round((parseInt(m[1], 10) / 2) / 2) * 2;
-      const h = Math.round((parseInt(m[2], 10) / 2) / 2) * 2;
-      return u.replace(/-uhd_\d+_\d+_\d+fps\.mp4$/i, `-hd_${w}_${h}_${m[3]}.mp4`);
-    }
-  }
-
-  return u;
+  return String(url).trim();
 };
 
 /**

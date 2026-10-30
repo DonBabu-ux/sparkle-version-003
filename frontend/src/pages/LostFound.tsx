@@ -1,7 +1,7 @@
 import { showError, showSuccess } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, useCallback } from 'react';
-import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X, Sparkles, Orbit, ChevronRight, Share2 } from 'lucide-react';
+import { Search, PackageOpen, AlertCircle, CheckCircle2, Plus, MapPin, Calendar, Tag, X, Share2 } from 'lucide-react';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
@@ -82,353 +82,334 @@ export default function LostFound() {
     }
   };
 
+  const FILTERS: { key: FilterType; label: string }[] = [
+    { key: 'all', label: 'All items' },
+    { key: 'lost', label: 'Lost' },
+    { key: 'found', label: 'Found' },
+  ];
+
   return (
-    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans">
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans overflow-x-hidden">
 
-      {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-red-200/30 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-pink-200/30 rounded-full blur-[120px] pointer-events-none z-0" />
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full">
 
-      <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-7xl mx-auto w-full">
-          
-          {/* Editorial Header */}
-          <header className="mb-24 animate-fade-in px-4">
-             <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-16">
-                <div className="max-w-4xl space-y-8">
-                   <div className="inline-flex items-center gap-4 px-6 py-2.5 bg-white/80 dark:bg-zinc-800/80 backdrop-blur-3xl border border-white dark:border-white/10 rounded-full shadow-xl shadow-primary/5">
-                      <PackageOpen size={18} strokeWidth={3} className="text-primary" />
-                       <span className="text-[10px] font-black text-[#18181b] dark:text-white uppercase tracking-[0.4em] italic">Campus Satellite Support</span>
-                   </div>
-                   <h1 className="text-6xl md:text-9xl font-black text-[#18181b] dark:text-white tracking-tighter leading-none italic uppercase">
-                      Lost & <span className="text-primary italic">Found.</span>
-                   </h1>
-                    <p className="text-xl font-bold text-[#18181b] dark:text-white opacity-60 max-w-2xl leading-relaxed italic border-l-8 border-primary/20 pl-8 uppercase tracking-tighter">
-                       Report a lost item or share one you found. Keep your campus community organized.
-                    </p>
-                </div>
-                
-                <button 
-                  onClick={() => { setShowReport(true); setStep(1); }}
-                  className="h-24 px-16 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] hover:shadow-primary/60 transition-all active:scale-95 flex items-center justify-center gap-6"
-                >
-                  <Plus size={32} strokeWidth={4} /> Report an Item
-                </button>
-             </div>
-          </header>
+        {/* Header */}
+        <header className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Lost &amp; Found</h1>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 mt-1 max-w-xl">
+              Report a lost item or share one you found. Keep your campus community organized.
+            </p>
+          </div>
+          <button
+            onClick={() => { setShowReport(true); setStep(1); }}
+            className="flex items-center gap-2 px-5 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors self-start"
+          >
+            <Plus size={16} strokeWidth={2.5} />
+            Report an item
+          </button>
+        </header>
 
-          {/* Precision Controls */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-20 px-4">
-             <div className="flex items-center gap-4 overflow-x-auto pb-4 lg:pb-0 no-scrollbar w-full lg:w-auto">
-                {(['all', 'lost', 'found'] as FilterType[]).map(t => (
-                   <button 
-                    key={t}
-                    onClick={() => setFilter(t)}
-                    className={`h-16 px-10 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all flex items-center gap-4 border shadow-sm italic whitespace-nowrap ${filter === t ? 'bg-white dark:bg-zinc-800 border-white dark:border-white/10 text-primary shadow-2xl shadow-primary/10' : 'bg-white/40 dark:bg-white/[0.03] border-white dark:border-white/10 text-[#18181b] dark:text-white opacity-30 hover:opacity-100 hover:bg-white dark:hover:bg-white/[0.06]'}`}
-                   >
-                     {t === 'lost' && <AlertCircle size={16} strokeWidth={3} />}
-                     {t === 'found' && <CheckCircle2 size={16} strokeWidth={3} />}
-                      <span>{t === 'all' ? 'Universal Stream' : `${t} Items`}</span>
-                   </button>
-                ))}
-             </div>
-
-             <div className="relative w-full lg:w-[450px] group">
-                <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-black/10 dark:text-white/15 group-focus-within:text-primary transition-colors" size={24} strokeWidth={4} />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Scan campus items..."
-                  className="w-full h-20 bg-white/80 border border-white rounded-[32px] pl-20 pr-8 text-lg font-black text-[#18181b] dark:text-white placeholder:text-black/5 dark:text-white/10 focus:bg-white focus:border-primary transition-all outline-none shadow-2xl shadow-primary/5 italic"
-                />
-             </div>
+        {/* Controls */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 mb-5">
+          <div className="flex w-full items-center gap-2 overflow-x-auto p-1.5 bg-[#f0e5ec] dark:bg-zinc-700 rounded-[1.5rem] border border-[#e6d8e1] dark:border-zinc-700">
+            {FILTERS.map(t => (
+              <button
+                key={t.key}
+                onClick={() => setFilter(t.key)}
+                className={`flex min-w-0 flex-1 items-center justify-center gap-2 h-11 px-3 rounded-2xl text-[12px] font-bold uppercase tracking-widest transition-colors ${
+                  filter === t.key
+                    ? 'bg-[#fdf8fa] dark:bg-zinc-800 text-[#18181b] dark:text-zinc-100 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                }`}
+              >
+                {t.key === 'lost' && <AlertCircle size={14} />}
+                {t.key === 'found' && <CheckCircle2 size={14} />}
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {/* Premium Grid */}
-          <div className="pb-64 px-4">
+          <div className="relative w-full lg:w-80">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={16} />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search items..."
+              className="w-full h-11 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-[2rem] pl-11 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+            />
+          </div>
+        </div>
+
+        {/* Grid */}
+        <div className="pb-20">
           {loading ? (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-                {[1,2,3,4,5,6].map(i => (
-                   <div key={i} className="h-[500px] bg-white/40 dark:bg-white/[0.03] backdrop-blur-3xl border border-white dark:border-white/10 rounded-[56px] animate-pulse shadow-sm" />
-                ))}
-             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[1, 2, 3, 4, 5, 6].map(i => (
+                <div key={i} className="h-72 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
+              ))}
+            </div>
           ) : items.length === 0 ? (
-            <div className="py-64 flex flex-col items-center justify-center text-center gap-12 bg-white/40 dark:bg-white/[0.03] backdrop-blur-3xl border-4 border-dashed border-white dark:border-white/10 rounded-[80px] shadow-2xl shadow-primary/5 animate-fade-in group">
-               <Orbit size={140} strokeWidth={2} className="text-primary/10 animate-spin-slow" />
-               <div className="space-y-6">
-                  <h3 className="text-5xl font-black text-[#18181b] dark:text-white opacity-5 italic uppercase tracking-tighter leading-none">Nothing Reported Yet.</h3>
-                  <p className="text-[10px] font-black text-[#18181b] dark:text-white opacity-20 uppercase tracking-[0.4em] max-w-xs mx-auto italic">No {filter === 'all' ? '' : filter} items reported in this category yet.</p>
-                  <button onClick={() => setShowReport(true)} className="mt-8 h-18 px-12 bg-primary text-white rounded-[24px] font-black uppercase tracking-widest italic hover:scale-105 transition-all shadow-xl shadow-primary/30">Report an Item</button>
-               </div>
+            <div className="py-16 flex flex-col items-center text-center px-6 bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl">
+              <div className="w-14 h-14 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center mb-4">
+                <PackageOpen size={24} className="text-slate-600 dark:text-zinc-400" />
+              </div>
+              <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 mb-1">No items yet</h3>
+              <p className="text-[13px] text-slate-600 dark:text-zinc-400 max-w-sm mb-5">
+                Nothing reported yet. When someone posts a lost or found item, it will show up here.
+              </p>
+              <button
+                onClick={() => setShowReport(true)}
+                className="px-5 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors"
+              >
+                Report an item
+              </button>
             </div>
           ) : (
-             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-                {items.filter((item) => {
-                  const q = searchQuery.trim().toLowerCase();
-                  return !q || item.title.toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q);
-                }).map((item, i) => (
-                   <div 
-                    key={item.id} 
-                    className="bg-white/80 dark:bg-zinc-800/80 backdrop-blur-3xl group hover:scale-[1.03] transition-all duration-700 rounded-[56px] border border-white dark:border-white/10 p-4 pb-12 shadow-2xl shadow-primary/5 overflow-hidden flex flex-col animate-scale-in"
-                    style={{ animationDelay: `${i * 50}ms` }}
-                   >
-                     {/* Media Content */}
-                     <div className="relative h-64 overflow-hidden rounded-[42px] bg-black/5 ring-4 ring-white group-hover:ring-primary/10 transition-all duration-700">
-                        {item.image_url ? (
-                          <img 
-                            src={item.image_url} 
-                            className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-110"
-                            alt="" 
-                          />
-                        ) : (
-                          <div className="w-full h-full flex flex-col items-center justify-center text-black/5 dark:text-white/10 opacity-40">
-                             <PackageOpen size={80} strokeWidth={1} />
-                             <span className="text-[10px] font-black uppercase tracking-widest italic mt-4">No Photo Added</span>
-                          </div>
-                        )}
-                        <div className={`absolute top-6 left-6 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-2xl italic border border-white/20 ${item.type === 'lost' ? 'bg-black text-white' : 'bg-primary text-white'}`}>
-                           {item.type === 'lost' ? 'Lost' : 'Found'}
-                        </div>
-                        
-                        <div className="absolute top-6 right-6">
-                           <button
-                             onClick={async (e) => {
-                               e.stopPropagation();
-                               const url = `${window.location.origin}/lost-found`;
-                               const text = `${item.type === 'lost' ? 'Lost' : 'Found'}: ${item.title}`;
-                               if (navigator.share) {
-                                 try {
-                                   await navigator.share({ title: item.title, text, url });
-                                   return;
-                                 } catch { /* dismissed — fall through to copy */ }
-                               }
-                               try {
-                                 await navigator.clipboard.writeText(url);
-                                 showSuccess('Link copied to clipboard!');
-                               } catch { /* clipboard unavailable */ }
-                             }}
-                             className="w-12 h-12 bg-white/20 dark:bg-zinc-900/40 backdrop-blur-3xl border border-white/20 dark:border-white/10 rounded-2xl flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-all hover:bg-white hover:text-primary"
-                           >
-                              <Share2 size={20} strokeWidth={3} />
-                           </button>
-                        </div>
-                     </div>
-
-                     <div className="px-10 pt-10 flex-grow flex flex-col h-full bg-none">
-                        <div className="flex items-center gap-4 text-[9px] font-black text-primary uppercase tracking-[0.3em] mb-4 italic">
-                           <Tag size={16} strokeWidth={4} />
-                           {item.category || 'General Spectrum'}
-                        </div>
-                        <h3 className="text-3xl font-black text-[#18181b] dark:text-white mb-4 tracking-tighter italic leading-none group-hover:text-primary transition-colors uppercase">{item.title}</h3>
-                        <p className="text-base font-bold text-[#18181b] dark:text-white opacity-30 leading-tight line-clamp-2 mb-10 italic uppercase tracking-tighter">{item.description || 'No details provided.'}</p>
-                        
-                        <div className="space-y-4 mb-12 flex-grow">
-                           <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
-                                 <MapPin size={20} strokeWidth={4} />
-                              </div>
-                              <span className="text-xs font-black text-[#18181b] dark:text-white italic uppercase tracking-widest truncate">{item.location || 'Campus-wide'}</span>
-                           </div>
-                           <div className="flex items-center gap-5 group/info">
-                              <div className="w-10 h-10 rounded-2xl bg-black/5 flex items-center justify-center text-black/10 dark:text-white/15 group-hover/info:bg-primary group-hover/info:text-white transition-all shadow-inner border border-black/5 dark:border-white/5">
-                                 <Calendar size={20} strokeWidth={4} />
-                              </div>
-                              <span className="text-xs font-black text-black/20 dark:text-white/25 italic uppercase tracking-widest">
-                                 {new Date(item.createdAt || item.date_lost_found || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).toUpperCase()}
-                              </span>
-                           </div>
-                        </div>
-
-                        <div className="mt-auto pt-10 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
-                           <div className="flex items-center gap-5">
-                              <div className="relative group/avatar">
-                                 <img src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.reporter_username || 'A')}&background=e11d48&color=fff&bold=true`} className="w-14 h-14 rounded-2xl object-cover shadow-2xl border-2 border-white group-hover/avatar:rotate-12 transition-transform" alt="" />
-                                 <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-primary rounded-full border-4 border-white shadow-lg"></div>
-                              </div>
-                              <div className="flex flex-col">
-                                  <span className="text-[12px] font-black text-[#18181b] dark:text-white leading-none uppercase italic tracking-tighter group-hover:text-primary transition-colors cursor-pointer">@{item.reporter_username}</span>
-                                  <span className="text-[9px] font-black text-[#18181b] dark:text-white opacity-20 uppercase tracking-[0.2em] mt-2 italic">Reported by</span>
-                              </div>
-                           </div>
-
-                           {(user?.id === item.reporter_id || user?.user_id === item.reporter_id) ? (
-                             <button 
-                               onClick={() => handleResolve(item.id)}
-                               className="h-14 px-8 bg-emerald-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-500/20 active:scale-95"
-                             >
-                                 Mark as Resolved
-                             </button>
-                           ) : (
-                             <button 
-                               onClick={() => handleClaim(item)}
-                               className="h-14 px-10 bg-primary text-white rounded-2xl text-[10px] font-black uppercase tracking-widest italic hover:scale-110 transition-all shadow-2xl shadow-primary/30 active:scale-95"
-                             >
-                                {item.type === 'lost' ? "Mark as Found" : "Claim Item"}
-                             </button>
-                           )}
-                        </div>
-                     </div>
-                   </div>
-                ))}
-             </div>
-          )}
-          </div>
-        </main>
-
-      {/* High-Fidelity Report Step Modal */}
-      {showReport && (
-        <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center p-6 bg-black/40 backdrop-blur-2xl animate-fade-in" onClick={() => setShowReport(false)}>
-          <div className="bg-white/90 dark:bg-zinc-800/90 backdrop-blur-3xl w-full max-w-2xl rounded-[56px] shadow-2xl border border-white dark:border-white/10 overflow-hidden animate-scale-in relative" onClick={e => e.stopPropagation()}>
-             
-             {/* Progress Bar Top */}
-             <div className="absolute top-0 inset-x-0 h-3 bg-black/5">
-                <div 
-                  className="h-full bg-primary transition-all duration-1000 ease-out shadow-2xl shadow-primary"
-                  style={{ width: `${(step / 3) * 100}%` }}
-                />
-             </div>
-
-             <div className="p-16 pb-0 flex items-center justify-between">
-                <div>
-                   <h3 className="text-5xl font-black text-[#18181b] dark:text-white tracking-tighter italic uppercase">Report an Item</h3>
-                   <div className="flex items-center gap-4 mt-4">
-                      <span className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] italic leading-none">Step {step} Vector Scan</span>
-                      <div className="flex gap-1.5">
-                         {[1,2,3].map(i => (
-                            <div key={i} className={`w-3 h-1 rounded-full transition-all duration-500 ${step >= i ? 'bg-primary w-6' : 'bg-black/10'}`} />
-                         ))}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {items.filter((item) => {
+                const q = searchQuery.trim().toLowerCase();
+                return !q || item.title.toLowerCase().includes(q) || (item.description || '').toLowerCase().includes(q) || (item.category || '').toLowerCase().includes(q);
+              }).map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-sm overflow-hidden flex flex-col"
+                >
+                  {/* Media */}
+                  <div className="relative h-44 overflow-hidden bg-[#f6eef3] dark:bg-zinc-900">
+                    {item.image_url ? (
+                      <img src={item.image_url} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex flex-col items-center justify-center text-slate-600 dark:text-zinc-400">
+                        <PackageOpen size={32} strokeWidth={1.5} />
+                        <span className="text-[11px] font-semibold mt-2">No photo</span>
                       </div>
-                   </div>
-                </div>
-                <button onClick={() => setShowReport(false)} className="w-18 h-18 bg-black/5 rounded-[24px] flex items-center justify-center text-[#18181b] dark:text-white opacity-10 hover:opacity-100 hover:rotate-90 transition-all duration-500">
-                    <X size={32} strokeWidth={4} />
-                </button>
-             </div>
+                    )}
+                    <div className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[11px] font-semibold text-white ${item.type === 'lost' ? 'bg-[#18181b] dark:bg-zinc-700' : 'bg-primary'}`}>
+                      {item.type === 'lost' ? 'Lost' : 'Found'}
+                    </div>
+                    <div className="absolute top-3 right-3">
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          const url = `${window.location.origin}/lost-found`;
+                          const text = `${item.type === 'lost' ? 'Lost' : 'Found'}: ${item.title}`;
+                          if (navigator.share) {
+                            try {
+                              await navigator.share({ title: item.title, text, url });
+                              return;
+                            } catch { /* dismissed — fall through to copy */ }
+                          }
+                          try {
+                            await navigator.clipboard.writeText(url);
+                            showSuccess('Link copied to clipboard!');
+                          } catch { /* clipboard unavailable */ }
+                        }}
+                        className="w-9 h-9 bg-zinc-900/60 backdrop-blur-xl rounded-full flex items-center justify-center text-white hover:bg-primary transition-colors"
+                        aria-label="Share item"
+                      >
+                        <Share2 size={15} />
+                      </button>
+                    </div>
+                  </div>
 
-             <div className="p-16 pt-12">
-                {step === 1 && (
-                  <div className="space-y-12 animate-fade-in">
-                    <div className="grid grid-cols-2 gap-8">
-                       <button 
-                        onClick={() => setReportType('lost')}
-                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'lost' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] rotate-2' : 'bg-white dark:bg-white/[0.04] border-white dark:border-white/10 text-[#18181b] dark:text-white opacity-20 hover:border-primary/20 hover:opacity-60'}`}
-                       >
-                         <AlertCircle size={64} strokeWidth={4} className={reportType === 'lost' ? 'animate-pulse' : ''} />
-                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Lost Item</span>
-                       </button>
-                       <button 
-                        onClick={() => setReportType('found')}
-                        className={`flex flex-col items-center justify-center gap-6 h-64 rounded-[40px] border-4 transition-all duration-700 shadow-2xl ${reportType === 'found' ? 'bg-primary border-primary text-white shadow-primary/30 scale-[1.03] -rotate-2' : 'bg-white dark:bg-white/[0.04] border-white dark:border-white/10 text-[#18181b] dark:text-white opacity-20 hover:border-primary/20 hover:opacity-60'}`}
-                       >
-                         <CheckCircle2 size={64} strokeWidth={4} className={reportType === 'found' ? 'animate-pulse' : ''} />
-                         <span className="text-sm font-black uppercase tracking-[0.3em] italic">Item Found</span>
-                       </button>
+                  {/* Body */}
+                  <div className="p-5 flex-grow flex flex-col">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-600 dark:text-zinc-400 mb-1.5">
+                      <Tag size={12} />
+                      {item.category || 'General'}
+                    </div>
+                    <h3 className="text-base font-bold text-[#18181b] dark:text-zinc-100 leading-snug mb-1">{item.title}</h3>
+                    <p className="text-[13px] text-slate-600 dark:text-zinc-400 leading-relaxed line-clamp-2 mb-4">{item.description || 'No details provided.'}</p>
+
+                    <div className="flex flex-wrap items-center gap-2 mb-4">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                        <MapPin size={13} className="text-primary" />
+                        {item.location || 'Campus-wide'}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-medium text-slate-600 dark:text-zinc-400">
+                        <Calendar size={13} className="text-primary" />
+                        {new Date(item.createdAt || item.date_lost_found || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </div>
                     </div>
 
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Category</label>
-                        <select 
-                          value={form.category}
-                          onChange={e => setForm({...form, category: e.target.value})}
-                          className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-lg font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none appearance-none italic shadow-inner"
+                    <div className="mt-auto pt-4 border-t border-[#ede3e9] dark:border-zinc-900 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={`https://ui-avatars.com/api/?name=${encodeURIComponent(item.reporter_username || 'A')}&background=ff1493&color=fff&bold=true`}
+                          className="w-9 h-9 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700"
+                          alt=""
+                        />
+                        <div className="min-w-0">
+                          <p className="text-[13px] font-semibold text-[#18181b] dark:text-zinc-100 truncate">@{item.reporter_username}</p>
+                          <p className="text-[11px] text-slate-600 dark:text-zinc-400">Reported by</p>
+                        </div>
+                      </div>
+
+                      {(user?.id === item.reporter_id || user?.user_id === item.reporter_id) ? (
+                        <button
+                          onClick={() => handleResolve(item.id)}
+                          className="px-4 h-9 bg-emerald-500 text-white rounded-full text-xs font-bold hover:bg-emerald-600 transition-colors shrink-0"
                         >
-                          {['Electronics', 'Documents', 'Keys', 'Clothing', 'Bags', 'Other'].map(c => (
-                              <option key={c} value={c} className="bg-white dark:bg-zinc-800">{c.toUpperCase()}</option>
-                          ))}
-                        </select>
+                          Mark as resolved
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleClaim(item)}
+                          className="px-4 h-9 bg-primary text-white rounded-full text-xs font-bold hover:bg-[#ff2d87] transition-colors shrink-0"
+                        >
+                          {item.type === 'lost' ? 'Mark as found' : 'Claim item'}
+                        </button>
+                      )}
                     </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
 
-                    <button onClick={() => setStep(2)} className="w-full h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.03] active:scale-95 transition-all flex items-center justify-center gap-4">
-                      Initialize Vector <ChevronRight size={20} strokeWidth={4} />
+      {/* Report modal */}
+      {showReport && (
+        <div className="fixed inset-0 z-(--z-chrome) flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowReport(false)}>
+          <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 shadow-2xl w-full max-w-lg overflow-hidden relative" onClick={e => e.stopPropagation()}>
+
+            {/* Progress */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-[#f0e5ec] dark:bg-zinc-900">
+              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${(step / 3) * 100}%` }} />
+            </div>
+
+            <div className="p-6 pb-0 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">Report an item</h3>
+                <p className="text-xs text-slate-600 dark:text-zinc-400 mt-0.5">Step {step} of 3</p>
+              </div>
+              <button onClick={() => setShowReport(false)} className="w-9 h-9 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors" aria-label="Close">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-6 pt-5">
+              {step === 1 && (
+                <div className="space-y-5">
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setReportType('lost')}
+                      className={`flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border-2 transition-colors ${
+                        reportType === 'lost' ? 'bg-primary border-primary text-white' : 'bg-[#fdf8fa] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary'
+                      }`}
+                    >
+                      <AlertCircle size={32} />
+                      <span className="text-sm font-bold">I lost something</span>
+                    </button>
+                    <button
+                      onClick={() => setReportType('found')}
+                      className={`flex flex-col items-center justify-center gap-3 h-36 rounded-2xl border-2 transition-colors ${
+                        reportType === 'found' ? 'bg-primary border-primary text-white' : 'bg-[#fdf8fa] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-400 hover:border-primary'
+                      }`}
+                    >
+                      <CheckCircle2 size={32} />
+                      <span className="text-sm font-bold">I found something</span>
                     </button>
                   </div>
-                )}
 
-                {step === 2 && (
-                  <div className="space-y-12 animate-fade-in">
-                    <div className="space-y-10">
-                       <div className="space-y-4">
-                          <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Item Designation</label>
-                          <input 
-                            type="text" 
-                            value={form.title}
-                            onChange={e => setForm({...form, title: e.target.value})}
-                            placeholder="e.g. Silver laptop..."
-                            className="w-full h-20 bg-black/5 border-2 border-transparent rounded-[28px] px-10 text-xl font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
-                          />
-                       </div>
-                       <div className="space-y-4">
-                          <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Defragmented Visuals</label>
-                          <textarea 
-                            rows={3} 
-                            value={form.description}
-                            onChange={e => setForm({...form, description: e.target.value})}
-                            placeholder="Describe unique marks, colors, or details..."
-                            className="w-full bg-black/5 border-2 border-transparent rounded-[40px] px-10 py-8 text-lg font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic resize-none shadow-inner"
-                          />
-                       </div>
-                    </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Category</label>
+                    <select
+                      value={form.category}
+                      onChange={e => setForm({ ...form, category: e.target.value })}
+                      className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-4 text-sm text-[#18181b] dark:text-zinc-100 focus:border-primary outline-none transition-colors"
+                    >
+                      {['Electronics', 'Documents', 'Keys', 'Clothing', 'Bags', 'Other'].map(c => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
 
-                    <div className="flex items-center gap-6">
-                       <button onClick={() => setStep(1)} className="w-40 h-20 rounded-[28px] bg-black/5 text-[#18181b] dark:text-white opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 hover:opacity-100 italic">Retract</button>
-                       <button onClick={() => setStep(3)} disabled={!form.title} className="flex-1 h-20 bg-primary text-white rounded-[28px] font-black text-sm uppercase tracking-[0.2em] italic shadow-2xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-30">Advance Scan</button>
+                  <button onClick={() => setStep(2)} className="w-full h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">
+                    Continue
+                  </button>
+                </div>
+              )}
+
+              {step === 2 && (
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Item name</label>
+                    <input
+                      type="text"
+                      value={form.title}
+                      onChange={e => setForm({ ...form, title: e.target.value })}
+                      placeholder="e.g. Silver laptop"
+                      className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Details</label>
+                    <textarea
+                      rows={3}
+                      value={form.description}
+                      onChange={e => setForm({ ...form, description: e.target.value })}
+                      placeholder="Describe unique marks, colors, or details..."
+                      className="w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl p-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors resize-none"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setStep(1)} className="px-5 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors">Back</button>
+                    <button onClick={() => setStep(3)} disabled={!form.title} className="flex-1 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50">Continue</button>
+                  </div>
+                </div>
+              )}
+
+              {step === 3 && (
+                <div className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-600 dark:text-zinc-400">Last seen location</label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-400" size={15} />
+                      <input
+                        type="text"
+                        value={form.location}
+                        onChange={e => setForm({ ...form, location: e.target.value })}
+                        placeholder="e.g. Main Library, Blue Cafe..."
+                        className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl pl-11 pr-4 text-sm text-[#18181b] dark:text-zinc-100 placeholder:text-slate-600 dark:placeholder:text-zinc-400 focus:border-primary outline-none transition-colors"
+                      />
                     </div>
                   </div>
-                )}
 
-                {step === 3 && (
-                  <div className="space-y-16 animate-fade-in">
-                    <div className="space-y-4">
-                        <label className="text-[10px] font-black text-black/20 dark:text-white/25 uppercase tracking-[0.4em] ml-10 italic">Last Seen Location</label>
-                        <div className="relative group">
-                          <MapPin className="absolute left-10 top-1/2 -translate-y-1/2 text-black/10 dark:text-white/15 group-focus-within:text-primary transition-all scale-125" size={24} strokeWidth={4} />
-                          <input 
-                            type="text" 
-                            value={form.location}
-                            onChange={e => setForm({...form, location: e.target.value})}
-                            placeholder="e.g. Main Library, Blue Cafe..."
-                            className="w-full h-24 bg-black/5 border-2 border-transparent rounded-[32px] pl-20 pr-10 text-xl font-black text-[#18181b] dark:text-white focus:bg-white focus:border-primary transition-all outline-none italic shadow-inner"
-                          />
-                        </div>
+                  <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary shrink-0">
+                      <CheckCircle2 size={20} />
                     </div>
-
-                    <div className="p-10 bg-primary/5 rounded-[40px] flex items-center gap-8 text-left shadow-inner border border-primary/10 relative overflow-hidden group">
-                       <div className="absolute top-0 right-0 p-8 text-primary opacity-5 group-hover:rotate-12 transition-transform">
-                          <Sparkles size={100} />
-                       </div>
-                       <div className="w-18 h-18 bg-primary/10 rounded-3xl flex items-center justify-center text-primary shrink-0 animate-pulse border border-primary/20"><Sparkles size={32} strokeWidth={4} /></div>
-                       <div className="relative z-10">
-                           <h4 className="text-2xl font-black italic text-[#18181b] dark:text-white uppercase tracking-tighter leading-none mb-3">Report Posted</h4>
-                           <p className="text-[10px] font-black text-[#18181b] dark:text-white opacity-30 uppercase tracking-[0.4em] italic leading-tight">Your report will be shared with the campus immediately.</p>
-                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-6">
-                       <button onClick={() => setStep(2)} className="w-40 h-24 rounded-[32px] bg-black/5 text-[#18181b] dark:text-white opacity-20 font-black text-[10px] uppercase tracking-widest transition-all hover:bg-black/10 italic">Back</button>
-                       <button 
-                        onClick={handleSubmit} 
-                        disabled={submitting} 
-                        className="flex-1 h-24 bg-primary text-white rounded-[32px] font-black text-sm uppercase tracking-[0.4em] italic shadow-2xl shadow-primary/40 hover:scale-[1.05] active:scale-95 transition-all"
-                       >
-                           {submitting ? 'Posting...' : 'Post Report'}
-                       </button>
+                    <div>
+                      <h4 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Almost done</h4>
+                      <p className="text-xs text-slate-600 dark:text-zinc-400">Your report will be shared with your campus.</p>
                     </div>
                   </div>
-                )}
-             </div>
+
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => setStep(2)} className="px-5 h-11 rounded-full text-sm font-bold text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors">Back</button>
+                    <button
+                      onClick={handleSubmit}
+                      disabled={submitting}
+                      className="flex-1 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? 'Posting...' : 'Post report'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
 
       <style>{`
-        @keyfra  .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyfra  .animate-scale-in { animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        
       `}</style>
     </div>
   );
 }
-
-
-

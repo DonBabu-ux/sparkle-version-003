@@ -96,7 +96,7 @@ class MomentsRankingService {
             const SCORE_ENRICHED = `(${SCORE} * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0))`;
             const COLS = `m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                            m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                           m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark, m.watermark,
+                           m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                            m.created_at, m.completion_rate, m.quality_score,
                            u.username, u.name as user_name, u.avatar_url`;
             // Outer projections must use bare column names (no m./u. aliases —

@@ -1,22 +1,27 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Search, Music, ImageIcon, Camera as CameraIcon, ChevronDown, Check,
-  Video, Plus, Play, Pause, AlertCircle, FolderOpen, ChevronRight,
+  Search, Music, ImageIcon, ChevronDown, Check,
+  Play, Pause, AlertCircle, MoreVertical, LayoutGrid, FolderOpen, ChevronRight, Plus
 } from 'lucide-react';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import type { GalleryItem, MediaSourceItem, MusicTrack } from '../types';
 import { fetchTrending, stopPreview, togglePreview, subscribePlayback } from '../services/musicService';
 import {
-  filesToGalleryItems, getMediaSources, openNativePicker, pickDirectory, listFolderMedia,
+  loadDeviceMedia, filesToGalleryItems, openNativePicker, pickDirectory,
+  listFolderMedia, getMediaSources, resolveItemFile, formatDuration
 } from '../services/mediaLibraryService';
 import { InlineSpinner, PINK } from './shell';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { logger } from '../../../utils/logger';
 import { showError, showSuccess } from '../../../utils/toast';
 
 /**
- * Stage 1 — Create reel page:
- * "Use popular music" shelf (4 real chart tracks) + Gallery with real
- * source discovery and multi-selection (max 10).
+ * Stage 1 — Create Reel page:
+ * - Premium TikTok dark aesthetic (#0D080E) with subtle burgundy ambient light.
+ * - Horizontal Popular Music carousel with album art, play/pause, options, and Use button.
+ * - Auto-loaded 3-column native & device media gallery with portrait thumbnails,
+ *   video duration pills, photo badges, and circular selection indicators.
+ * - Client-side filter tabs: All | Videos | Photos + Grid density toggle.
  */
 export default function CreateStage({
   onOpenMusic,
@@ -27,32 +32,39 @@ export default function CreateStage({
   onOpenCamera: () => void;
   onNext: () => void;
 }) {
+  const { isDark } = useCreateMomentsTheme();
   const clips = useReelCreatorStore(s => s.clips);
   const selectedMusic = useReelCreatorStore(s => s.selectedMusic);
   const setMusic = useReelCreatorStore(s => s.setMusic);
   const addClips = useReelCreatorStore(s => s.addClips);
   const maxMedia = useReelCreatorStore(s => s.maxMedia);
 
+  // ── Music state ──
   const [trending, setTrending] = useState<MusicTrack[]>([]);
   const [musicState, setMusicState] = useState<'loading' | 'ready' | 'empty' | 'error'>('loading');
   const [playingId, setPlayingId] = useState<string | null>(null);
 
-  const [galleryOpen, setGalleryOpen] = useState(false);
+  // ── Gallery state ──
+  const [items, setItems] = useState<GalleryItem[]>([]);
+  const [galleryLoading, setGalleryLoading] = useState(true);
+  const [galleryError, setGalleryError] = useState<string | null>(null);
+  const [filterTab, setFilterTab] = useState<'all' | 'videos' | 'photos'>('all');
+  const [gridColumns, setGridColumns] = useState<3 | 4>(3);
+
+  // ── Sources & Selection ──
   const [sources, setSources] = useState<MediaSourceItem[]>([]);
   const [activeSource, setActiveSource] = useState<string>('camera-roll');
-  const [items, setItems] = useState<GalleryItem[]>([]);
-  const [galleryLoading, setGalleryLoading] = useState(false);
-  const [galleryError, setGalleryError] = useState<string | null>(null);
-
-  const [selectMultiple, setSelectMultiple] = useState(false);
+  const [sourceMenuOpen, setSourceMenuOpen] = useState(false);
   const [selectionOrder, setSelectionOrder] = useState<string[]>([]);
+  const [addingClips, setAddingClips] = useState(false);
+
   const objectUrlsRef = useRef<string[]>([]);
 
-  // ── Trending music (real chart data via backend) ──
+  // ── 1. Fetch Trending Music on Mount ──
   useEffect(() => {
     let alive = true;
     setMusicState('loading');
-    fetchTrending(4)
+    fetchTrending(10)
       .then((tracks) => {
         if (!alive) return;
         setTrending(tracks);
@@ -70,7 +82,26 @@ export default function CreateStage({
 
   useEffect(() => subscribePlayback(setPlayingId), []);
 
-  // ── Sources ──
+  // ── 2. Automatic Media Loading on Mount ──
+  const initGallery = useCallback(async () => {
+    setGalleryLoading(true);
+    setGalleryError(null);
+    try {
+      const media = await loadDeviceMedia();
+      setItems(media);
+    } catch (err) {
+      logger.warn('[CreateStage] Gallery auto-load failed:', err);
+      setGalleryError('Could not load device gallery automatically. Tap below to pick files.');
+    } finally {
+      setGalleryLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void initGallery();
+  }, [initGallery]);
+
+  // ── 3. Load Available Media Sources ──
   useEffect(() => {
     let alive = true;
     getMediaSources()
@@ -79,478 +110,530 @@ export default function CreateStage({
     return () => { alive = false; };
   }, []);
 
-  const loadSource = useCallback(async (sourceId: string) => {
-    setActiveSource(sourceId);
-    setGalleryOpen(true);
-    setGalleryError(null);
-    setGalleryLoading(true);
-    // Free previous thumbnails
-    objectUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch (_) { /* */ } });
-    objectUrlsRef.current = [];
-    try {
-      let files: File[] = [];
-      if (sourceId.startsWith('folder:')) {
-        const folderName = sourceId.slice('folder:'.length);
-        const folderItems = await listFolderMedia(folderName);
-        setItems(folderItems);
-        objectUrlsRef.current = folderItems
-          .filter(i => i.thumbnailUrl.startsWith('blob:'))
-          .map(i => i.thumbnailUrl);
-        return;
-      }
-      // camera-roll / browse → native picker (SAF on Android shows every album)
-      files = await openNativePicker({ multiple: true, accept: 'image/*,video/*' });
-      const picked = await filesToGalleryItems(files);
-      setItems(picked);
-      objectUrlsRef.current = picked
-        .filter(i => i.thumbnailUrl.startsWith('blob:'))
-        .map(i => i.thumbnailUrl);
-      if (!picked.length && !files.length) {
-        setGalleryError(null); // user cancelled — silent
-      } else if (files.length && !picked.length) {
-        setGalleryError('Those files are not supported photos or videos. Try MP4, MOV, JPG or PNG.');
-      }
-    } catch (err) {
-      const code = (err as Error).message;
-      if (code === 'FOLDER_PERMISSION' || code === 'FOLDER_REVOKE') {
-        setGalleryError('This folder access has expired. Re-select the folder to continue browsing.');
-      } else {
-        logger.warn('[CreateReel] gallery load failed:', err);
-        setGalleryError('Could not open that source. Use the file browser instead — your device picker shows all albums.');
-      }
-    } finally {
-      setGalleryLoading(false);
-    }
-  }, []);
-
+  // ── Cleanup temporary object URLs on unmount ──
   useEffect(() => () => {
-    objectUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch (_) { /* */ } });
+    objectUrlsRef.current.forEach((u) => { try { URL.revokeObjectURL(u); } catch (_) { /* noop */ } });
     stopPreview();
   }, []);
 
-  const selectionFull = selectionOrder.length >= maxMedia;
+  // ── Source Selection Handlers ──
+  const handleSelectSource = async (sourceId: string) => {
+    setActiveSource(sourceId);
+    setSourceMenuOpen(false);
 
-  const toggleSelect = (id: string) => {
-    if (!selectMultiple) return;
-    setSelectionOrder((prev) =>
-      prev.includes(id) ? prev.filter(x => x !== id) : selectionFull ? prev : [...prev, id],
-    );
+    if (sourceId === 'browse-file') {
+      await handlePickFiles();
+      return;
+    }
+
+    if (sourceId === 'browse-folder') {
+      const dir = await pickDirectory();
+      if (!dir) return;
+      const current = await getMediaSources();
+      setSources(current);
+      await loadFolderMedia(dir.name);
+      return;
+    }
+
+    if (sourceId.startsWith('folder:')) {
+      const folderName = sourceId.slice('folder:'.length);
+      await loadFolderMedia(folderName);
+      return;
+    }
+
+    if (sourceId === 'camera-roll') {
+      setFilterTab('all');
+      await initGallery();
+    } else if (sourceId === 'videos') {
+      setFilterTab('videos');
+    } else if (sourceId === 'photos') {
+      setFilterTab('photos');
+    }
   };
 
-  const addSelected = () => {
-    const ordered = selectionOrder
-      .map(id => items.find(i => i.id === id))
-      .filter(Boolean) as GalleryItem[];
-    const toAdd = (ordered.length ? ordered : items.slice(0, 1));
-    if (!toAdd.length) return;
-    if (clips.length + toAdd.length > 10) {
+  const loadFolderMedia = async (folderName: string) => {
+    setGalleryLoading(true);
+    setGalleryError(null);
+    try {
+      const folderItems = await listFolderMedia(folderName);
+      setItems(folderItems);
+      objectUrlsRef.current = folderItems
+        .filter(i => i.thumbnailUrl.startsWith('blob:'))
+        .map(i => i.thumbnailUrl);
+    } catch (err) {
+      logger.warn('[CreateStage] Folder load failed:', err);
+      setGalleryError('Could not read folder. Re-select the folder or choose files directly.');
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  const handlePickFiles = async () => {
+    try {
+      const files = await openNativePicker({ multiple: true, accept: 'image/*,video/*' });
+      if (!files.length) return;
+      setGalleryLoading(true);
+      const picked = await filesToGalleryItems(files);
+      setItems(prev => [...picked, ...prev]);
+      objectUrlsRef.current = [
+        ...objectUrlsRef.current,
+        ...picked.filter(i => i.thumbnailUrl.startsWith('blob:')).map(i => i.thumbnailUrl),
+      ];
+    } catch (err) {
+      logger.warn('[CreateStage] Native picker failed:', err);
+      showError('Could not open file picker.');
+    } finally {
+      setGalleryLoading(false);
+    }
+  };
+
+  // ── Filter items based on active tab ──
+  const filteredItems = useMemo(() => {
+    if (filterTab === 'videos') return items.filter(i => i.kind === 'video');
+    if (filterTab === 'photos') return items.filter(i => i.kind === 'image');
+    return items;
+  }, [items, filterTab]);
+
+  // ── Selection Toggle ──
+  const toggleSelect = (id: string) => {
+    setSelectionOrder(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(x => x !== id);
+      }
+      if (prev.length >= maxMedia) {
+        showError(`You can select up to ${maxMedia} items.`);
+        return prev;
+      }
+      return [...prev, id];
+    });
+  };
+
+  // ── Add Selected Items to Reel ──
+  const addSelected = async () => {
+    if (!selectionOrder.length) return;
+    if (clips.length + selectionOrder.length > 10) {
       showError(`You can add up to 10 clips per reel (${clips.length} already added).`);
       return;
     }
-    addClips(toAdd.map(g => ({
-      id: g.id,
-      kind: g.kind,
-      previewUrl: g.thumbnailUrl.startsWith('data:') || g.thumbnailUrl.startsWith('blob:')
-        ? (g.kind === 'video' ? createVideoObjectUrl(g) : g.thumbnailUrl)
-        : g.thumbnailUrl,
-      file: g.file,
-      storageKey: null,
-      durationSec: g.durationSec ?? (g.kind === 'image' ? 3 : 0),
-      trimStart: 0,
-      trimEnd: null,
-      width: g.width,
-      height: g.height,
-      name: g.name,
-    })));
-    showSuccess(`${toAdd.length} item${toAdd.length > 1 ? 's' : ''} added`);
-    setSelectionOrder([]);
-    setSelectMultiple(false);
-    setItems([]);
-    setGalleryOpen(false);
-    setActiveSource('camera-roll');
-    onNext();
-  };
 
-  const browseFolders = async () => {
-    const dir = await pickDirectory();
-    if (!dir) return;
-    const current = await getMediaSources();
-    setSources(current);
-    await loadSource(`folder:${dir.name}`);
+    setAddingClips(true);
+    try {
+      const ordered = selectionOrder
+        .map(id => items.find(i => i.id === id))
+        .filter(Boolean) as GalleryItem[];
+
+      const additions = await Promise.all(ordered.map(async g => {
+        const file = await resolveItemFile(g);
+        const previewUrl = g.thumbnailUrl.startsWith('blob:') || g.thumbnailUrl.startsWith('data:')
+          ? (g.kind === 'video' ? URL.createObjectURL(file) : g.thumbnailUrl)
+          : (g.thumbnailUrl || URL.createObjectURL(file));
+
+        return {
+          id: g.id,
+          kind: g.kind,
+          previewUrl,
+          file,
+          storageKey: null,
+          durationSec: g.durationSec ?? (g.kind === 'image' ? 3 : 0),
+          trimStart: 0,
+          trimEnd: null,
+          width: g.width,
+          height: g.height,
+          name: g.name,
+        };
+      }));
+
+      addClips(additions);
+      showSuccess(`${additions.length} item${additions.length > 1 ? 's' : ''} added`);
+      setSelectionOrder([]);
+      onNext();
+    } catch (err) {
+      logger.warn('[CreateStage] Failed to add clips:', err);
+      showError('Failed to add selected media. Please try again.');
+    } finally {
+      setAddingClips(false);
+    }
   };
 
   return (
-    <div className="pb-10">
-      {/* ── Use popular music ── */}
-      <section className="px-4 pt-4" aria-labelledby="popular-music-heading">
+    <div className="relative min-h-[calc(100dvh-3.5rem)] pb-32 select-none" style={{ background: isDark ? '#0D080E' : '#FFFFFF' }}>
+      {/* Subtle top ambient lighting */}
+      <div
+        className="pointer-events-none absolute top-0 left-0 right-0 h-48 -z-0"
+        style={{
+          background: isDark
+            ? 'radial-gradient(ellipse at 50% -20%, rgba(236,17,100,0.15), transparent 70%)'
+            : 'radial-gradient(ellipse at 50% -20%, rgba(236,17,100,0.08), transparent 70%)',
+        }}
+      />
+
+      {/* ── 1. POPULAR MUSIC SECTION ── */}
+      <section className="px-4 pt-3 pb-2 relative z-10" aria-labelledby="popular-music-heading">
         <div className="flex items-center justify-between mb-3">
-          <h2 id="popular-music-heading" className="text-white font-extrabold text-[15px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
-            Use popular music
-          </h2>
+          <div className="flex items-center gap-2">
+            <Music size={17} color="#EC1164" />
+            <h2 id="popular-music-heading" className={`${isDark ? 'text-white' : 'text-gray-900'} font-bold text-[15px] tracking-tight`}>
+              Use popular music
+            </h2>
+          </div>
           <button
             type="button"
             onClick={onOpenMusic}
-            className="w-9 h-9 rounded-full flex items-center justify-center"
-            style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
+            className={`w-8 h-8 rounded-full flex items-center justify-center ${
+              isDark ? 'bg-[#1F1722] hover:bg-[#2A2030] text-white/80' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            } transition-colors`}
             aria-label="Search music"
           >
-            <Search size={17} />
+            <Search size={15} />
           </button>
         </div>
 
         {musicState === 'loading' && (
-          <div className="flex items-center gap-3 py-6 text-white/60 text-sm">
-            <InlineSpinner /> Loading trending music…
+          <div className={`flex items-center gap-3 py-6 ${isDark ? 'text-white/60' : 'text-gray-500'} text-sm`}>
+            <InlineSpinner size={16} /> Loading trending music…
           </div>
         )}
+
         {musicState === 'error' && (
-          <div className="flex items-start gap-2 py-4 text-sm" style={{ color: '#FFB3C6' }}>
-            <AlertCircle size={16} className="mt-0.5 shrink-0" />
-            <div>
-              Couldn't load trending music.
-              <button type="button" onClick={onOpenMusic} className="underline ml-1" style={{ color: PINK }}>
-                Try search
-              </button>
-            </div>
+          <div className="flex items-center gap-2 py-3 text-sm text-[#FFB3C6]">
+            <AlertCircle size={15} className="shrink-0" />
+            <span>Couldn't load trending music.</span>
+            <button type="button" onClick={onOpenMusic} className="underline ml-1 font-bold" style={{ color: '#EC1164' }}>
+              Search
+            </button>
           </div>
-        )}
-        {musicState === 'empty' && (
-          <p className="py-4 text-white/50 text-sm">No trending music available right now.</p>
         )}
 
         {musicState === 'ready' && (
-          <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4" style={{ scrollbarWidth: 'none' }}>
+          <div
+            className="flex gap-2.5 overflow-x-auto pb-1 -mx-4 px-4 scroll-smooth"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+          >
             {trending.map((track) => {
               const isSelected = selectedMusic?.id === track.id;
+              const isPlaying = playingId === track.id;
+
               return (
                 <div
                   key={track.id}
-                  className="shrink-0 w-[160px] rounded-2xl p-3 flex flex-col gap-2"
+                  className="shrink-0 w-[155px] rounded-[18px] p-3 flex flex-col justify-between transition-all"
                   style={{
-                    background: isSelected ? 'rgba(255,0,110,0.16)' : 'rgba(255,255,255,0.06)',
-                    border: `1px solid ${isSelected ? PINK : 'rgba(255,255,255,0.08)'}`,
+                    background: isSelected
+                      ? (isDark ? '#1E1422' : '#FFF0F5')
+                      : (isDark ? '#18121B' : '#F9FAFB'),
+                    border: `1px solid ${isSelected ? '#EC1164' : (isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)')}`,
+                    boxShadow: isSelected ? '0 0 14px rgba(236,17,100,0.25)' : 'none',
                   }}
                 >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className="w-10 h-10 rounded-full overflow-hidden shrink-0 flex items-center justify-center"
-                      style={{ background: 'rgba(255,255,255,0.1)' }}
-                    >
-                      {track.thumbnailUrl ? (
-                        <img src={track.thumbnailUrl} alt="" className="w-full h-full object-cover" />
-                      ) : (
-                        <Music size={16} color="#FFB3C6" />
-                      )}
+                  {/* Top row: Artwork + Play/Pause + Options */}
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-10 h-10 rounded-full overflow-hidden shrink-0 ${isDark ? 'bg-white/10' : 'bg-gray-200'} flex items-center justify-center`}>
+                        {track.thumbnailUrl ? (
+                          <img src={track.thumbnailUrl} alt="" className="w-full h-full object-cover" />
+                        ) : (
+                          <Music size={16} color="#EC1164" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${
+                          isDark ? 'bg-white/10 hover:bg-white/20 text-white' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'
+                        } transition-colors`}
+                        onClick={() => togglePreview(track)}
+                        aria-label={isPlaying ? `Pause ${track.title}` : `Play ${track.title}`}
+                      >
+                        {isPlaying ? <Pause size={12} fill={isDark ? 'white' : '#111827'} /> : <Play size={12} fill={isDark ? 'white' : '#111827'} className="ml-0.5" />}
+                      </button>
                     </div>
                     <button
                       type="button"
-                      className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}
-                      onClick={() => togglePreview(track)}
-                      aria-label={playingId === track.id ? `Pause ${track.title}` : `Play ${track.title} preview`}
+                      className={`p-1 ${isDark ? 'text-white/40 hover:text-white/80' : 'text-gray-400 hover:text-gray-700'} transition-colors`}
+                      aria-label="Options"
+                      onClick={() => showSuccess(`${track.title} by ${track.artist}`)}
                     >
-                      {playingId === track.id ? <Pause size={14} /> : <Play size={14} />}
+                      <MoreVertical size={15} />
                     </button>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-white text-[13px] font-bold truncate">{track.title}</p>
-                    <p className="text-white/55 text-[11px] truncate">{track.artist}</p>
+
+                  {/* Title & Artist */}
+                  <div className="min-w-0 mb-3">
+                    <p className={`${isDark ? 'text-white' : 'text-gray-900'} text-[13px] font-bold truncate leading-tight`}>{track.title}</p>
+                    <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} text-[11px] truncate mt-0.5`}>{track.artist}</p>
                   </div>
+
+                  {/* Use button */}
                   <button
                     type="button"
                     onClick={() => {
                       setMusic(isSelected ? null : { ...track, durationSec: track.duration });
                       stopPreview();
                     }}
-                    className="py-1.5 rounded-full text-[12px] font-bold"
+                    className="w-full py-2 rounded-full text-[12px] font-bold transition-all active:scale-95"
                     style={{
-                      background: isSelected ? PINK : 'rgba(255,255,255,0.1)',
-                      color: '#fff',
+                      background: isSelected ? '#EC1164' : (isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)'),
+                      color: isSelected ? '#fff' : (isDark ? '#fff' : '#111827'),
                     }}
                   >
-                    {isSelected ? 'Selected ✓' : 'Use'}
+                    {isSelected ? 'Use' : 'Use'}
                   </button>
                 </div>
               );
             })}
           </div>
         )}
-
-        {selectedMusic && (
-          <div
-            className="mt-3 flex items-center gap-3 rounded-2xl px-3 py-2.5"
-            style={{ background: 'rgba(255,0,110,0.14)', border: `1px solid ${PINK}44` }}
-          >
-            {selectedMusic.thumbnailUrl ? (
-              <img src={selectedMusic.thumbnailUrl} alt="" className="w-9 h-9 rounded-lg object-cover" />
-            ) : (
-              <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.1)' }}>
-                <Music size={15} color="#FFB3C6" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-[13px] font-bold truncate">{selectedMusic.title}</p>
-              <p className="text-white/55 text-[11px] truncate">{selectedMusic.artist}</p>
-            </div>
-            <button
-              type="button"
-              onClick={onOpenMusic}
-              className="text-[12px] font-bold px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.12)', color: '#fff' }}
-            >
-              Change
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMusic(null); stopPreview(); }}
-              className="text-[12px] font-bold px-3 py-1.5 rounded-full"
-              style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
-              aria-label="Remove music"
-            >
-              Remove
-            </button>
-          </div>
-        )}
       </section>
 
-      {/* ── Gallery ── */}
-      <section className="px-4 pt-6" aria-labelledby="gallery-heading">
-        <button
-          type="button"
-          onClick={() => setGalleryOpen(o => !o)}
-          className="w-full flex items-center justify-between py-3"
-          aria-expanded={galleryOpen}
-          id="gallery-heading"
-        >
-          <span className="flex items-center gap-2 text-white font-extrabold text-[15px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
-            <ImageIcon size={16} color={PINK} /> Gallery
-          </span>
-          <ChevronDown
-            size={18}
-            color="rgba(255,255,255,0.6)"
-            style={{ transform: galleryOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}
-          />
-        </button>
+      {/* ── 2. GALLERY SECTION ── */}
+      <section className="px-4 pt-4 relative z-10" aria-labelledby="gallery-heading">
+        {/* Gallery Header with Album Dropdown */}
+        <div className="relative mb-3">
+          <button
+            type="button"
+            onClick={() => setSourceMenuOpen(v => !v)}
+            className={`flex items-center gap-2 ${isDark ? 'text-white' : 'text-gray-900'} font-bold text-[17px] tracking-tight group`}
+            id="gallery-heading"
+            aria-expanded={sourceMenuOpen}
+          >
+            <ImageIcon size={18} color="#EC1164" />
+            <span>Gallery</span>
+            <ChevronDown
+              size={16}
+              className={`${isDark ? 'text-white/70' : 'text-gray-500'} transition-transform duration-200 ${sourceMenuOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
 
-        {galleryOpen && (
-          <div className="mt-1">
-            {/* Source selector */}
-            <div className="flex gap-2 overflow-x-auto pb-2" style={{ scrollbarWidth: 'none' }}>
-              {sources.map((src) => (
+          {/* Sources Dropdown Menu */}
+          {sourceMenuOpen && (
+            <div
+              className={`absolute left-0 top-8 z-30 w-56 rounded-2xl p-2 ${
+                isDark ? 'bg-[#1C1420] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900 shadow-xl'
+              } border backdrop-blur-md`}
+            >
+              <div className={`${isDark ? 'text-white/40' : 'text-gray-400'} text-[11px] font-bold uppercase tracking-wider px-3 py-1.5`}>
+                Media Albums
+              </div>
+              {sources.map(src => (
                 <button
                   key={src.id}
                   type="button"
-                  onClick={() => (src.kind === 'browse' ? browseFolders() : loadSource(src.id))}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full text-[12px] font-bold"
-                  style={{
-                    background: activeSource === src.id ? 'rgba(255,0,110,0.2)' : 'rgba(255,255,255,0.07)',
-                    color: '#fff',
-                    border: `1px solid ${activeSource === src.id ? PINK : 'transparent'}`,
-                  }}
+                  onClick={() => handleSelectSource(src.id)}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-colors ${
+                    activeSource === src.id ? 'bg-[#EC1164] text-white' : (isDark ? 'text-white/80 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100')
+                  }`}
                 >
-                  {src.kind === 'camera-roll' ? <ImageIcon size={13} />
-                    : src.kind === 'browse' ? <FolderOpen size={13} />
-                    : <Video size={13} />}
-                  {src.name}
+                  {src.kind === 'camera-roll' && <ImageIcon size={14} />}
+                  {src.kind === 'videos' && <Play size={14} />}
+                  {src.kind === 'photos' && <ImageIcon size={14} />}
+                  {src.kind === 'browse' && <FolderOpen size={14} />}
+                  <span>{src.name}</span>
                 </button>
               ))}
             </div>
+          )}
+        </div>
 
-            {/* Gallery header row */}
-            <div className="flex items-center justify-between py-2">
-              <span className="text-white/50 text-xs">
-                {items.length ? `${items.length} item${items.length > 1 ? 's' : ''} · newest first` : 'Select media from your device'}
-              </span>
-              <button
-                type="button"
-                onClick={() => { setSelectMultiple(v => !v); setSelectionOrder([]); }}
-                className="text-[12px] font-bold px-3 py-1.5 rounded-full"
-                style={{
-                  background: selectMultiple ? PINK : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                }}
-                aria-pressed={selectMultiple}
-              >
-                Select multiple
-              </button>
+        {/* Media filter tabs: All | Videos | Photos + Grid Layout Toggle */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setFilterTab('all')}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                filterTab === 'all'
+                  ? 'bg-[#EC1164] text-white shadow-sm'
+                  : (isDark ? 'bg-[#1F1722] text-white/90 hover:bg-[#281F2B]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
+              }`}
+            >
+              All
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab('videos')}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                filterTab === 'videos'
+                  ? 'bg-[#EC1164] text-white shadow-sm'
+                  : (isDark ? 'bg-[#1F1722] text-white/90 hover:bg-[#281F2B]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
+              }`}
+            >
+              Videos
+            </button>
+            <button
+              type="button"
+              onClick={() => setFilterTab('photos')}
+              className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all ${
+                filterTab === 'photos'
+                  ? 'bg-[#EC1164] text-white shadow-sm'
+                  : (isDark ? 'bg-[#1F1722] text-white/90 hover:bg-[#281F2B]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200')
+              }`}
+            >
+              Photos
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setGridColumns(c => (c === 3 ? 4 : 3))}
+            className={`w-9 h-9 rounded-full flex items-center justify-center ${
+              isDark ? 'bg-[#1F1722] hover:bg-[#281F2B] text-white/80' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+            } transition-colors`}
+            aria-label="Toggle grid layout"
+          >
+            <LayoutGrid size={16} />
+          </button>
+        </div>
+
+        {/* Gallery Error Message */}
+        {galleryError && (
+          <div className="rounded-xl px-3 py-2.5 mb-3 text-xs bg-red-500/10 border border-red-500/20 text-[#FFC9C9]">
+            {galleryError}
+          </div>
+        )}
+
+        {/* Loading Skeletons */}
+        {galleryLoading && items.length === 0 && (
+          <div className={`grid ${gridColumns === 3 ? 'grid-cols-3 gap-2' : 'grid-cols-4 gap-1.5'}`}>
+            {Array.from({ length: 12 }).map((_, i) => (
+              <div
+                key={i}
+                className={`aspect-[3/4] rounded-xl ${isDark ? 'bg-white/[0.05]' : 'bg-gray-200'} animate-pulse`}
+                style={{ animationDelay: `${i * 60}ms` }}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Empty State */}
+        {!galleryLoading && filteredItems.length === 0 && (
+          <div className={`py-12 flex flex-col items-center justify-center text-center px-4 rounded-2xl ${
+            isDark ? 'bg-white/[0.03] border-white/10' : 'bg-gray-50 border-gray-200'
+          } border border-dashed`}>
+            <div className="w-12 h-12 rounded-full bg-[#EC1164]/10 flex items-center justify-center mb-3">
+              <ImageIcon size={22} color="#EC1164" />
             </div>
+            <p className={`${isDark ? 'text-white' : 'text-gray-900'} font-bold text-sm mb-1`}>
+              {filterTab === 'videos' ? 'No videos found' : filterTab === 'photos' ? 'No photos found' : 'No media found'}
+            </p>
+            <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} text-xs max-w-xs mb-4`}>
+              Select photos and videos from your device to begin creating your reel.
+            </p>
+            <button
+              type="button"
+              onClick={handlePickFiles}
+              className="px-5 py-2.5 rounded-full font-bold text-xs text-white transition-transform active:scale-95"
+              style={{ background: '#EC1164', boxShadow: '0 4px 16px rgba(236,17,100,0.35)' }}
+            >
+              Choose photos & videos
+            </button>
+          </div>
+        )}
 
-            {selectMultiple && (
-              <div className="flex items-center justify-between rounded-xl px-3 py-2 mb-2 text-[12px] font-bold"
-                style={{ background: 'rgba(255,0,110,0.14)', color: '#FFD9E7' }}>
-                <span>{selectionOrder.length} of {maxMedia} selected</span>
-                {selectionFull && <span style={{ color: '#FFB3C6' }}>Limit reached — deselect to replace</span>}
-              </div>
-            )}
+        {/* Media Grid */}
+        {filteredItems.length > 0 && (
+          <div className={`grid ${gridColumns === 3 ? 'grid-cols-3 gap-2' : 'grid-cols-4 gap-1.5'}`}>
+            {filteredItems.map((item) => {
+              const orderIdx = selectionOrder.indexOf(item.id);
+              const isSelected = orderIdx >= 0;
 
-            {galleryLoading && (
-              <div className="flex items-center gap-3 py-8 justify-center text-white/60 text-sm">
-                <InlineSpinner /> Loading media…
-              </div>
-            )}
-
-            {galleryError && (
-              <div className="rounded-xl px-3 py-3 mb-2 text-[13px]" style={{ background: 'rgba(255,80,80,0.12)', color: '#FFC9C9' }}>
-                {galleryError}
-                <button
-                  type="button"
-                  className="block mt-2 underline font-bold"
-                  onClick={() => loadSource('camera-roll')}
-                  style={{ color: '#FFD9E7' }}
+              return (
+                <div
+                  key={item.id}
+                  onClick={() => toggleSelect(item.id)}
+                  className="relative aspect-[3/4] rounded-xl overflow-hidden bg-[#18121B] select-none cursor-pointer group active:scale-[0.98] transition-transform"
+                  style={{
+                    border: isSelected ? '2px solid #EC1164' : '1px solid rgba(255,255,255,0.06)',
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={isSelected}
+                  aria-label={`${item.kind} ${item.name}`}
                 >
-                  Open the file picker instead
-                </button>
-              </div>
-            )}
+                  {/* Thumbnail Image */}
+                  <img
+                    src={item.thumbnailUrl}
+                    alt={item.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                    decoding="async"
+                  />
 
-            {!galleryLoading && !galleryError && activeSource !== 'camera-roll' && items.length === 0 && (
-              <p className="py-6 text-center text-white/45 text-sm">This folder has no photos or videos.</p>
-            )}
+                  {/* Top-Right Circular Selection Indicator */}
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleSelect(item.id);
+                    }}
+                    className="absolute top-2 right-2 z-10"
+                  >
+                    {isSelected ? (
+                      <div className="w-6 h-6 rounded-full bg-[#EC1164] border-2 border-white flex items-center justify-center text-white text-[11px] font-black shadow-md">
+                        {orderIdx + 1}
+                      </div>
+                    ) : (
+                      <div className="w-6 h-6 rounded-full border-2 border-white/85 bg-black/35 backdrop-blur-xs flex items-center justify-center transition-transform group-hover:scale-105" />
+                    )}
+                  </div>
 
-            {/* Grid */}
-            {!galleryLoading && (items.length > 0 || activeSource === 'camera-roll') && (
-              <div className="grid grid-cols-3 gap-1.5">
-                {/* Camera tile first in the grid */}
-                <button
-                  type="button"
-                  onClick={onOpenCamera}
-                  className="aspect-square rounded-xl flex flex-col items-center justify-center gap-1"
-                  style={{ background: 'rgba(255,255,255,0.07)', color: '#fff', border: '1px dashed rgba(255,255,255,0.2)' }}
-                  aria-label="Open camera"
-                >
-                  <CameraIcon size={22} color={PINK} />
-                  <span className="text-[11px] font-bold">Camera</span>
-                </button>
-
-                {items.map((item) => {
-                  const orderIdx = selectionOrder.indexOf(item.id);
-                  const selected = orderIdx >= 0;
-                  const disabled = selectMultiple && !selected && selectionFull;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => (selectMultiple ? toggleSelect(item.id) : addItemDirect(item))}
-                      disabled={disabled && selectMultiple}
-                      className="relative aspect-square rounded-xl overflow-hidden"
-                      style={{ opacity: disabled ? 0.4 : 1 }}
-                      aria-label={`${item.kind} ${item.name}${selected ? ', selected' : ''}`}
-                      aria-pressed={selected}
-                    >
-                      <img src={item.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
-                      {item.kind === 'video' && (
-                        <span
-                          className="absolute bottom-1 right-1 text-[10px] font-bold px-1 py-0.5 rounded"
-                          style={{ background: 'rgba(0,0,0,0.65)', color: '#fff' }}
-                        >
-                          {formatDuration(item.durationSec || 0)}
-                        </span>
-                      )}
-                      {selectMultiple && (
-                        <span
-                          className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold"
-                          style={{
-                            background: selected ? PINK : 'rgba(0,0,0,0.45)',
-                            border: selected ? 'none' : '2px solid rgba(255,255,255,0.8)',
-                            color: '#fff',
-                          }}
-                        >
-                          {selected ? <Check size={13} /> : ''}
-                          {selected && orderIdx >= 0 ? '' : ''}
-                        </span>
-                      )}
-                      {selectMultiple && selected && (
-                        <span
-                          className="absolute top-1.5 left-1.5 w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black"
-                          style={{ background: PINK, color: '#fff' }}
-                        >
-                          {orderIdx + 1}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-
-            {activeSource === 'camera-roll' && items.length === 0 && !galleryLoading && (
-              <div className="mt-3 flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => loadSource('camera-roll')}
-                  className="flex-1 py-3 rounded-2xl font-bold text-sm"
-                  style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
-                >
-                  <ImageIcon size={14} className="inline mr-1.5" /> Choose photos & videos
-                </button>
-                <button
-                  type="button"
-                  onClick={onOpenCamera}
-                  className="flex-1 py-3 rounded-2xl font-bold text-sm text-white"
-                  style={{ background: '#ff1493' }}
-                >
-                  <CameraIcon size={14} className="inline mr-1.5" /> Camera
-                </button>
-              </div>
-            )}
-
-            {selectMultiple && selectionOrder.length > 0 && (
-              <button
-                type="button"
-                onClick={addSelected}
-                className="fixed left-4 right-4 bottom-6 py-3.5 rounded-2xl font-extrabold text-white z-10"
-                style={{ background: '#ff1493', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
-              >
-                Add {selectionOrder.length} to reel <Plus size={16} className="inline -mt-0.5" />
-              </button>
-            )}
+                  {/* Bottom-Left Type Badge */}
+                  {item.kind === 'video' ? (
+                    <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 px-1.5 py-0.5 rounded bg-black/65 backdrop-blur-xs text-white text-[10px] font-bold pointer-events-none">
+                      <Play size={9} fill="white" className="text-white" />
+                      <span>{formatDuration(item.durationSec || 0)}</span>
+                    </div>
+                  ) : (
+                    <div className="absolute bottom-1.5 left-1.5 flex items-center justify-center w-5 h-5 rounded bg-black/65 backdrop-blur-xs text-white pointer-events-none">
+                      <ImageIcon size={11} className="text-white" />
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         )}
       </section>
 
-      {/* Forward path once media exists — the flow's only way to preview */}
-      {clips.length > 0 && !(selectMultiple && selectionOrder.length > 0) && (
-        <button
-          type="button"
-          onClick={onNext}
-          className="fixed left-4 right-4 bottom-24 py-3.5 rounded-2xl font-extrabold text-white z-10"
-          style={{ background: '#ff1493', boxShadow: '0 8px 24px rgba(255,61,109,0.4)' }}
-        >
-          Next · {clips.length} clip{clips.length > 1 ? 's' : ''} <ChevronRight size={16} className="inline -mt-0.5" />
-        </button>
+      {/* ── 3. FLOATING ACTION BAR ── */}
+      {selectionOrder.length > 0 && (
+        <div className="fixed left-4 right-4 bottom-6 z-30">
+          <button
+            type="button"
+            disabled={addingClips}
+            onClick={addSelected}
+            className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            style={{
+              background: '#EC1164',
+              boxShadow: '0 8px 24px rgba(236,17,100,0.45)',
+            }}
+          >
+            {addingClips ? (
+              <>
+                <InlineSpinner size={16} /> Adding to reel…
+              </>
+            ) : (
+              <>
+                Add {selectionOrder.length} to reel <Plus size={16} strokeWidth={2.5} />
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Advance to preview if clips already added and no current selection */}
+      {clips.length > 0 && selectionOrder.length === 0 && (
+        <div className="fixed left-4 right-4 bottom-6 z-30">
+          <button
+            type="button"
+            onClick={onNext}
+            className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            style={{
+              background: '#EC1164',
+              boxShadow: '0 8px 24px rgba(236,17,100,0.45)',
+            }}
+          >
+            Next · {clips.length} clip{clips.length > 1 ? 's' : ''} <ChevronRight size={16} strokeWidth={2.5} />
+          </button>
+        </div>
       )}
     </div>
   );
-
-  function addItemDirect(item: GalleryItem) {
-    if (clips.length >= 10) {
-      showError('You can add up to 10 clips per reel.');
-      return;
-    }
-    addClips([{
-      id: item.id,
-      kind: item.kind,
-      previewUrl: item.kind === 'video' ? createVideoObjectUrl(item) : item.thumbnailUrl,
-      file: item.file,
-      storageKey: null,
-      durationSec: item.durationSec ?? (item.kind === 'image' ? 3 : 0),
-      trimStart: 0,
-      trimEnd: null,
-      width: item.width,
-      height: item.height,
-      name: item.name,
-    }]);
-    showSuccess('Added to reel');
-    onNext();
-  }
-}
-
-function createVideoObjectUrl(item: GalleryItem): string {
-  if (item.file) return URL.createObjectURL(item.file);
-  return item.thumbnailUrl;
-}
-
-function formatDuration(sec: number): string {
-  const s = Math.max(0, Math.round(sec));
-  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }

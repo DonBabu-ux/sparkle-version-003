@@ -27,6 +27,9 @@ router.put('/audience-list', mutationRateLimiter, reelsController.setAudienceLis
 router.get('/hashtags/recent', reelsController.getRecentHashtags);
 router.get('/hashtags/suggest', reelsController.suggestHashtags);
 
+// ── AI Description Generator (server-side, never exposes API key to client) ──
+router.post('/ai/generate', mutationRateLimiter, reelsController.generateAiDescription);
+
 // ── People / mentions ──
 router.get('/people/recent', reelsController.getRecentMentions);
 router.get('/people/search', reelsController.searchPeople);
@@ -42,3 +45,4 @@ router.post(
 );
 
 module.exports = router;
+

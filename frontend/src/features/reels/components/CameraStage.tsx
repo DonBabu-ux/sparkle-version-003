@@ -6,6 +6,7 @@ import {
 import { useReelCreatorStore, cycleDuration } from "../reelCreatorStore";
 import { cameraRecorder, type RecordingResult } from "../services/cameraRecorder";
 import { BottomSheet, InlineSpinner, PINK } from "./shell";
+import { useCreateMomentsTheme } from "../useCreateMomentsTheme";
 import { showSuccess, showError } from "../../../utils/toast";
 import { logger } from "../../../utils/logger";
 
@@ -52,6 +53,7 @@ export default function CameraStage({
   const setKeepOriginalSound = useReelCreatorStore(s => s.setKeepOriginalSound);
   const setFacingMode = useReelCreatorStore(s => s.setFacingMode);
   const facingMode = useReelCreatorStore(s => s.facingMode);
+  const { isDark } = useCreateMomentsTheme();
 
   const liveVideoRef = useRef<HTMLVideoElement>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
@@ -76,6 +78,7 @@ export default function CameraStage({
         if (alive) setPhase("nocam");
         return;
       }
+      // Fast path: query existing permission without waiting for rationale
       try {
         const existing = await navigator.permissions?.query({ name: "camera" as PermissionName }).catch(() => null);
         if (existing?.state === "granted") {
@@ -83,7 +86,12 @@ export default function CameraStage({
           await startCamera();
           return;
         }
+        if (existing?.state === "denied") {
+          if (alive) setPhase("denied");
+          return;
+        }
       } catch (_) { /* fall through */ }
+      // Permissions API not available — go straight to requesting (non-blocking startup)
       if (alive) setPhase("rationale");
     };
     void boot();
@@ -106,10 +114,16 @@ export default function CameraStage({
         await liveVideoRef.current.play().catch(() => {});
       }
       setTorchAvailable(cameraRecorder.isTorchSupported());
+      // Camera is ready — show preview immediately, then preload music in background
       setPhase("ready");
+      if (!cameraRecorder.hasMicPermission) {
+        showError("Microphone permission not granted. Recording will proceed without microphone sound.");
+      }
       if (selectedMusic) {
-        await cameraRecorder.playMusic(selectedMusic.audioUrl, keepOriginalSound);
-        cameraRecorder.pauseMusic();
+        // Fire-and-forget: do NOT block camera preview on music loading
+        void cameraRecorder.playMusic(selectedMusic.audioUrl, keepOriginalSound)
+          .then(() => cameraRecorder.pauseMusic())
+          .catch(() => { /* music preload failure is non-fatal */ });
       }
     } catch (err) {
       const name = (err as DOMException)?.name || "";
@@ -160,8 +174,14 @@ export default function CameraStage({
       cameraRecorder.onElapsed = null;
       recordingActiveRef.current = false;
       logger.warn("[Camera] recording failed:", err);
+      const name = (err as DOMException)?.name || "";
+      if (name === "NotAllowedError") {
+        // This is a mic-specific denial during record (camera was already granted)
+        showError("Microphone access denied. Recording will be silent — check app permissions.");
+      } else {
+        showError("Recording failed — tap the record button to try again.");
+      }
       setPhase("ready");
-      showError("Recording failed. Check camera and microphone permission.");
     }
   };
 
@@ -251,44 +271,53 @@ export default function CameraStage({
 
   if (phase === "rationale") {
     return (
-      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: "#0B070C" }}>
+      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
         <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(255,0,110,0.18)" }}>
           <Circle size={26} color={PINK} />
         </div>
-        <h2 className="text-white font-extrabold text-lg" style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access</h2>
-        <p className="text-white/70 text-sm leading-relaxed">
+        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access</h2>
+        <p className={`text-sm leading-relaxed ${isDark ? "text-white/70" : "text-gray-600"}`}>
+          Sparkle needs camera and microphone access so you can record videos with sound.
           Sparkle needs camera and microphone access so you can record videos with sound.
         </p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button type="button" onClick={requestPermission} className="py-3 rounded-2xl font-bold text-white" style={{ background: "#ff1493" }}>Continue</button>
-          <button type="button" onClick={onClose} className="py-3 rounded-2xl font-bold" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.7)" }}>Not now</button>
+          <button type="button" onClick={onClose} className="py-3 rounded-2xl font-bold" style={{
+            background: isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6",
+            color: isDark ? "rgba(255,255,255,0.7)" : "#4B5563",
+            border: `1px solid ${isDark ? "transparent" : "#E5E7EB"}`,
+          }}>Not now</button>
         </div>
-        <p className="text-white/35 text-[11px] max-w-xs">Your device will show its own permission dialog next. You can change this anytime in Settings.</p>
+        <p className={`text-[11px] max-w-xs ${isDark ? "text-white/35" : "text-gray-500"}`}>Your device will show its own permission dialog next. You can change this anytime in Settings.</p>
       </div>
     );
   }
 
   if (phase === "denied") {
     return (
-      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: "#0B070C" }}>
+      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
         <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(255,80,80,0.15)" }}>
           <Lock size={26} color="#FF8A8A" />
         </div>
-        <h2 className="text-white font-extrabold text-lg" style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access is off</h2>
-        <p className="text-white/70 text-sm leading-relaxed">Allow camera and microphone access in your device settings to record, or pick a video from your gallery instead.</p>
+        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access is off</h2>
+        <p className={`text-sm leading-relaxed ${isDark ? "text-white/70" : "text-gray-600"}`}>Allow camera and microphone access in your device settings to record, or pick a video from your gallery instead.</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button type="button" onClick={() => { void startCamera(); }} className="py-3 rounded-2xl font-bold text-white" style={{ background: "#ff1493" }}>Try again</button>
-          <button type="button" onClick={onOpenPicker} className="py-3 rounded-2xl font-bold" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.8)" }}>Choose from gallery</button>
+          <button type="button" onClick={onOpenPicker} className="py-3 rounded-2xl font-bold" style={{
+            background: isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6",
+            color: isDark ? "rgba(255,255,255,0.8)" : "#111827",
+            border: `1px solid ${isDark ? "transparent" : "#E5E7EB"}`,
+          }}>Choose from gallery</button>
         </div>
-      </div>
+    </div>
     );
   }
 
   if (phase === "nocam") {
     return (
-      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: "#0B070C" }}>
-        <h2 className="text-white font-extrabold text-lg" style={{ fontFamily: "'Varela Round', sans-serif" }}>No camera found</h2>
-        <p className="text-white/70 text-sm">This device does not expose a usable camera to Sparkle. You can still create a reel from your gallery.</p>
+      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
+        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>No camera found</h2>
+        <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>This device does not expose a usable camera to Sparkle. You can still create a reel from your gallery.</p>
         <button type="button" onClick={onOpenPicker} className="py-3 rounded-2xl font-bold text-white w-full max-w-xs" style={{ background: "#ff1493" }}>Choose from gallery</button>
       </div>
     );
@@ -296,9 +325,9 @@ export default function CameraStage({
 
   if (phase === "error") {
     return (
-      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: "#0B070C" }}>
-        <h2 className="text-white font-extrabold text-lg">Camera error</h2>
-        <p className="text-white/70 text-sm">{error || "Unknown camera error."}</p>
+      <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
+        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>Camera error</h2>
+        <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>{error || "Unknown camera error."}</p>
         <button type="button" onClick={onClose} className="py-3 px-8 rounded-2xl font-bold text-white" style={{ background: PINK }}>Go back</button>
       </div>
     );
@@ -410,7 +439,7 @@ export default function CameraStage({
       <BottomSheet open={audioSheet} onClose={() => setAudioSheet(false)} title="Sound">
         {selectedMusic ? (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3 rounded-2xl px-3 py-3" style={{ background: "rgba(255,255,255,0.06)" }}>
+            <div className="flex items-center gap-3 rounded-2xl px-3 py-3" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6" }}>
               {selectedMusic.thumbnailUrl ? (
                 <img src={selectedMusic.thumbnailUrl} alt="" className="w-10 h-10 rounded-lg object-cover" />
               ) : (
@@ -419,25 +448,29 @@ export default function CameraStage({
                 </div>
               )}
               <div className="min-w-0 flex-1">
-                <p className="text-white text-sm font-bold truncate">{selectedMusic.title}</p>
-                <p className="text-white/55 text-xs truncate">{selectedMusic.artist}</p>
+                <p className={`text-sm font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>{selectedMusic.title}</p>
+                <p className={`text-xs truncate ${isDark ? "text-white/55" : "text-gray-500"}`}>{selectedMusic.artist}</p>
               </div>
             </div>
             <button type="button" onClick={() => { setAudioSheet(false); onOpenMusic(); }} className="w-full py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2" style={{ background: "#ff1493" }}>
               Change audio <ChevronRight size={16} />
             </button>
-            <label className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer" style={{ background: "rgba(255,255,255,0.06)" }}>
-              <span className="text-white text-sm font-bold">Keep original sound</span>
+            <label className="flex items-center justify-between rounded-2xl px-4 py-3 cursor-pointer" style={{ background: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6" }}>
+              <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Keep original sound</span>
               <input type="checkbox" checked={keepOriginalSound} onChange={(e) => setKeepOriginalSound(e.target.checked)} className="w-5 h-5 accent-pink-500" />
             </label>
-            <p className="text-white/45 text-[11px] leading-snug">
+            <p className={`text-[11px] leading-snug ${isDark ? "text-white/45" : "text-gray-500"}`}>
               {keepOriginalSound ? "Your recording sound and the music will be mixed together." : "The music replaces your recording sound in the final reel."}
             </p>
-            <button type="button" onClick={() => { setMusic(null); setAudioSheet(false); }} className="w-full py-3 rounded-2xl font-bold" style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.75)" }}>Remove music</button>
+            <button type="button" onClick={() => { setMusic(null); setAudioSheet(false); }} className="w-full py-3 rounded-2xl font-bold" style={{
+              background: isDark ? "rgba(255,255,255,0.08)" : "#F3F4F6",
+              color: isDark ? "rgba(255,255,255,0.75)" : "#374151",
+              border: `1px solid ${isDark ? "transparent" : "#E5E7EB"}`,
+            }}>Remove music</button>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
-            <p className="text-white/60 text-sm">Add a soundtrack to your reel.</p>
+            <p className={`text-sm ${isDark ? "text-white/60" : "text-gray-600"}`}>Add a soundtrack to your reel.</p>
             <button type="button" onClick={() => { setAudioSheet(false); onOpenMusic(); }} className="w-full py-3 rounded-2xl font-bold text-white" style={{ background: "#ff1493" }}>Choose music</button>
           </div>
         )}
@@ -450,3 +483,4 @@ export default function CameraStage({
     return `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}.${Math.floor((s % 1) * 10)}`;
   }
 }
+

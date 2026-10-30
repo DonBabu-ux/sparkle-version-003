@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ArrowLeft } from 'lucide-react';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 
 /** Full-screen creation stage chrome: header + scrollable body, safe-area aware. */
 export function StageShell({
@@ -9,7 +10,7 @@ export function StageShell({
   onLeft,
   right,
   children,
-  dark = true,
+  dark,
   bodyClassName = '',
 }: {
   title: ReactNode;
@@ -20,11 +21,14 @@ export function StageShell({
   dark?: boolean;
   bodyClassName?: string;
 }) {
+  const { isDark } = useCreateMomentsTheme();
+  const effectiveDark = dark !== undefined ? dark : isDark;
+
   return (
     <div
-      className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col"
+      className={`fixed inset-0 z-[var(--z-modal,60)] flex flex-col ${effectiveDark ? 'text-white' : 'text-gray-900'}`}
       style={{
-        background: dark ? '#0B070C' : 'rgba(255,255,255,0.98)',
+        background: effectiveDark ? '#0B070C' : '#FFFFFF',
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
@@ -34,20 +38,29 @@ export function StageShell({
     >
       <header
         className="flex items-center justify-between gap-2 px-3 h-14 shrink-0 border-b"
-        style={{ borderColor: dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }}
+        style={{
+          background: effectiveDark ? 'rgba(11, 7, 12, 0.98)' : 'rgba(255, 255, 255, 0.98)',
+          borderColor: effectiveDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
+        }}
       >
         <button
           type="button"
           onClick={onLeft}
           aria-label={leftIcon === 'close' ? 'Close' : 'Back'}
           className="w-10 h-10 rounded-full flex items-center justify-center transition-colors"
-          style={{ background: dark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', color: dark ? '#fff' : '#111' }}
+          style={{
+            background: effectiveDark ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)',
+            color: effectiveDark ? '#fff' : '#111827',
+          }}
         >
           {leftIcon === 'close' ? <X size={20} /> : <ArrowLeft size={20} />}
         </button>
         <h1
           className="text-[17px] font-extrabold truncate"
-          style={{ color: dark ? '#fff' : '#111', fontFamily: "'Varela Round', sans-serif" }}
+          style={{
+            color: effectiveDark ? '#fff' : '#111827',
+            fontFamily: "'Varela Round', sans-serif",
+          }}
         >
           {title}
         </h1>
@@ -65,13 +78,18 @@ export function BottomSheet({
   title,
   children,
   maxHeightsvh = 70,
+  dark,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
   maxHeightsvh?: number;
+  dark?: boolean;
 }) {
+  const { isDark } = useCreateMomentsTheme();
+  const effectiveDark = dark !== undefined ? dark : isDark;
+
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
@@ -100,11 +118,12 @@ export function BottomSheet({
             aria-hidden
           />
           <motion.div
-            className="fixed left-0 right-0 bottom-0 z-[calc(var(--z-sheet,70)+1)] rounded-t-3xl flex flex-col"
+            className={`fixed left-0 right-0 bottom-0 z-[calc(var(--z-sheet,70)+1)] rounded-t-3xl flex flex-col ${effectiveDark ? 'text-white' : 'text-gray-900'}`}
             style={{
               maxHeight: `${maxHeightsvh}dvh`,
-              background: '#16101A',
-              borderTop: '1px solid rgba(255,255,255,0.1)',
+              background: effectiveDark ? '#16101A' : '#FFFFFF',
+              borderTop: effectiveDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+              boxShadow: effectiveDark ? 'none' : '0 -10px 30px rgba(0,0,0,0.1)',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
             initial={{ y: '100%' }}
@@ -116,10 +135,16 @@ export function BottomSheet({
             aria-label={title || 'Options'}
           >
             <div className="flex justify-center pt-2 pb-1 shrink-0" aria-hidden>
-              <div className="w-10 h-1.5 rounded-full" style={{ background: 'rgba(255,255,255,0.25)' }} />
+              <div
+                className="w-10 h-1.5 rounded-full"
+                style={{ background: effectiveDark ? 'rgba(255,255,255,0.25)' : 'rgba(0,0,0,0.18)' }}
+              />
             </div>
             {title && (
-              <div className="px-5 pb-2 text-white font-extrabold text-[16px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+              <div
+                className={`px-5 pb-2 font-extrabold text-[16px] ${effectiveDark ? 'text-white' : 'text-gray-900'}`}
+                style={{ fontFamily: "'Varela Round', sans-serif" }}
+              >
                 {title}
               </div>
             )}
@@ -141,6 +166,7 @@ export function ConfirmDiscardDialog({
   onKeepEditing: () => void;
   onDiscard: () => void;
 }) {
+  const { isDark } = useCreateMomentsTheme();
   const keepRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     if (open) setTimeout(() => keepRef.current?.focus(), 50);
@@ -156,13 +182,19 @@ export function ConfirmDiscardDialog({
       aria-label="Unsaved changes"
     >
       <div
-        className="w-full max-w-sm rounded-3xl p-6 text-center"
-        style={{ background: '#16101A', border: '1px solid rgba(255,255,255,0.1)' }}
+        className="w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl"
+        style={{
+          background: isDark ? '#16101A' : '#FFFFFF',
+          border: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(0,0,0,0.08)',
+        }}
       >
-        <h2 className="text-white font-extrabold text-lg mb-2" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+        <h2
+          className={`font-extrabold text-lg mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`}
+          style={{ fontFamily: "'Varela Round', sans-serif" }}
+        >
           Discard this reel?
         </h2>
-        <p className="text-white/60 text-sm mb-6">
+        <p className={`text-sm mb-6 ${isDark ? 'text-white/60' : 'text-gray-500'}`}>
           You have unsaved edits. Leaving now will clear this session — you can save a draft instead.
         </p>
         <div className="flex flex-col gap-3">
@@ -170,7 +202,7 @@ export function ConfirmDiscardDialog({
             ref={keepRef}
             type="button"
             onClick={onKeepEditing}
-            className="w-full py-3 rounded-2xl font-bold text-white"
+            className="w-full py-3 rounded-2xl font-bold text-white shadow-sm"
             style={{ background: '#ff1493' }}
           >
             Keep editing
@@ -178,8 +210,11 @@ export function ConfirmDiscardDialog({
           <button
             type="button"
             onClick={onDiscard}
-            className="w-full py-3 rounded-2xl font-bold"
-            style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.7)' }}
+            className={`w-full py-3 rounded-2xl font-bold transition-colors ${
+              isDark
+                ? 'bg-white/10 text-white/80 hover:bg-white/15'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
           >
             Discard
           </button>

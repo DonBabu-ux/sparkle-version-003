@@ -38,6 +38,9 @@ describe('C2.5 — every createObjectURL site revokes its blob URLs', () => {
         // store; both are revoked by UploadManager.cleanupJobAssets (on
         // success/failure) and uploadStore.cancelJob/discardJob.
         'features/reels/services/reelPublishService.ts': 'UploadManager.cleanupJobAssets + uploadStore.cancelJob/discardJob',
+        // addClips object URLs live on ReelClip.previewUrl and are revoked by
+        // CreateReelFlow on session teardown/discard/publish.
+        'features/reels/components/ComposeStage.tsx': 'CreateReelFlow session teardown (revokeObjectURL)',
     };
 
     const creators = walk(SRC).filter((f) => read(f).includes('createObjectURL'));

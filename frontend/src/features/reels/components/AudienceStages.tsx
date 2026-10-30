@@ -5,6 +5,7 @@ import {
 import api from '../../../api/api';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import { StageShell, InlineSpinner, PINK } from './shell';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import type { AudienceKind } from '../types';
 import { AUDIENCE_LABELS } from '../services/reelPublishService';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -37,6 +38,7 @@ function PersonRow({
   onToggle: () => void;
   hint?: string;
 }) {
+  const { isDark } = useCreateMomentsTheme();
   return (
     <button
       type="button"
@@ -51,14 +53,14 @@ function PersonRow({
     >
       <Avatar url={person.avatar_url} name={person.display_name || person.username} />
       <span className="min-w-0 flex-1">
-        <span className="block text-white text-[14px] font-bold truncate">@{person.username}</span>
-        <span className="block text-white/50 text-[12px] truncate">{hint || person.display_name || ''}</span>
+        <span className={`block text-[14px] font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>@{person.username}</span>
+        <span className={`block text-[12px] truncate ${isDark ? "text-white/50" : "text-gray-500"}`}>{hint || person.display_name || ''}</span>
       </span>
       <span
         className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
         style={{
           background: selected ? PINK : 'transparent',
-          border: selected ? 'none' : '2px solid rgba(255,255,255,0.35)',
+          border: selected ? 'none' : `2px solid ${isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)'}`,
         }}
       >
         {selected && <Check size={12} color="#fff" />}
@@ -80,6 +82,7 @@ export function AudienceStage({
   const audience = useReelCreatorStore(s => s.audience);
   const setAudience = useReelCreatorStore(s => s.setAudience);
   const exclusions = useReelCreatorStore(s => s.audienceExclusions);
+  const { isDark } = useCreateMomentsTheme();
 
   const options: Array<{ id: AudienceKind; icon: React.ReactNode; label: string; hint: string }> = [
     { id: 'public', icon: <Globe size={18} />, label: AUDIENCE_LABELS.public, hint: 'Anyone on Sparkle can watch' },
@@ -98,29 +101,29 @@ export function AudienceStage({
             onClick={() => setAudience(o.id)}
             className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3.5 text-left"
             style={{
-              background: audience === o.id ? 'rgba(255,0,110,0.14)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${audience === o.id ? `${PINK}66` : 'transparent'}`,
+              background: audience === o.id ? 'rgba(255,0,110,0.14)' : (isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'),
+              border: `1px solid ${audience === o.id ? `${PINK}66` : (isDark ? 'transparent' : '#E5E7EB')}`,
             }}
             aria-pressed={audience === o.id}
           >
             <span
               className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
               style={{
-                background: audience === o.id ? PINK : 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                background: audience === o.id ? PINK : (isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'),
+                color: audience === o.id ? '#fff' : (isDark ? '#fff' : '#374151'),
               }}
             >
               {o.icon}
             </span>
             <span className="flex-1 min-w-0">
-              <span className="block text-white text-[15px] font-bold">{o.label}</span>
-              <span className="block text-white/50 text-[12px]">{o.hint}</span>
+              <span className={`block text-[15px] font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{o.label}</span>
+              <span className={`block text-[12px] ${isDark ? "text-white/50" : "text-gray-500"}`}>{o.hint}</span>
             </span>
             <span
               className="w-5 h-5 rounded-full shrink-0"
               style={{
                 background: audience === o.id ? PINK : 'transparent',
-                border: audience === o.id ? 'none' : '2px solid rgba(255,255,255,0.3)',
+                border: audience === o.id ? 'none' : `2px solid ${isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'}`,
               }}
             />
           </button>
@@ -128,43 +131,53 @@ export function AudienceStage({
       </div>
 
       <div className="px-4 pt-6 flex flex-col gap-2">
-        <p className="text-white/45 text-[11px] font-bold uppercase tracking-wide">Fine-tune</p>
+        <p className={`text-[11px] font-bold uppercase tracking-wide ${isDark ? "text-white/45" : "text-gray-500"}`}>Fine-tune</p>
         <button
           type="button"
           onClick={onOpenCloseFriends}
           className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left"
-          style={{ background: 'rgba(255,255,255,0.05)' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+            border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
+          }}
         >
-          <span className="flex-1 text-white text-[14px] font-bold">Edit Close Friends list</span>
-          <ChevronRight size={17} color="rgba(255,255,255,0.5)" />
+          <span className={`flex-1 text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Edit Close Friends list</span>
+          <ChevronRight size={17} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
         </button>
         <button
           type="button"
           onClick={() => onOpenList('hide_from')}
           className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left"
-          style={{ background: 'rgba(255,255,255,0.05)' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+            border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
+          }}
         >
           <span className="flex-1">
-            <span className="block text-white text-[14px] font-bold">Do not show to</span>
-            <span className="block text-white/50 text-[12px]">Hide this reel from specific people</span>
+            <span className={`block text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Do not show to</span>
+            <span className={`block text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Hide this reel from specific people</span>
           </span>
-          <span className="text-white/50 text-[12px]">{exclusions.hideFrom.length || ''}</span>
-          <ChevronRight size={17} color="rgba(255,255,255,0.5)" />
+          <span className={`text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{exclusions.hideFrom.length || ''}</span>
+          <ChevronRight size={17} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
         </button>
         <button
           type="button"
           onClick={() => onOpenList('show_only')}
           className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3 text-left"
-          style={{ background: 'rgba(255,255,255,0.05)' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6',
+            border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
+          }}
         >
           <span className="flex-1">
-            <span className="block text-white text-[14px] font-bold">Only show to</span>
-            <span className="block text-white/50 text-[12px]">Share with a few specific people</span>
+            <span className={`block text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Only show to</span>
+            <span className={`block text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Share with a few specific people</span>
           </span>
-          <span className="text-white/50 text-[12px]">{exclusions.showOnly.length || ''}</span>
-          <ChevronRight size={17} color="rgba(255,255,255,0.5)" />
+          <span className={`text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{exclusions.showOnly.length || ''}</span>
+          <ChevronRight size={17} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
         </button>
-        <p className="text-white/40 text-[11px] leading-relaxed pt-2">
+        <p className={`text-[11px] leading-relaxed pt-2 ${isDark ? "text-white/40" : "text-gray-500"}`}>
+          These rules are enforced on the server — hidden reels are never sent to other people's feeds,
           These rules are enforced on the server — hidden reels are never sent to other people's feeds,
           even if someone has the link.
         </p>
@@ -181,6 +194,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
   const [results, setResults] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { isDark } = useCreateMomentsTheme();
   const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
@@ -244,23 +258,29 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
       }
     >
       <div className="px-4 pt-4">
-        <div className="flex items-center gap-2 rounded-2xl px-3.5 h-11" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <Search size={16} color="rgba(255,255,255,0.5)" />
+        <div
+          className="flex items-center gap-2 rounded-2xl px-3.5 h-11"
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`,
+          }}
+        >
+          <Search size={16} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className="flex-1 bg-transparent outline-none text-white text-[14px] placeholder:text-white/40"
+            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/40' : 'text-gray-900 placeholder:text-gray-400'}`}
             aria-label="Search people"
           />
           {query && (
             <button type="button" onClick={() => setQuery('')} aria-label="Clear search">
-              <X size={15} color="rgba(255,255,255,0.6)" />
+              <X size={15} color={isDark ? "rgba(255,255,255,0.6)" : "#9CA3AF"} />
             </button>
           )}
         </div>
-        <p className="text-white/45 text-[12px] mt-2">
+        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/45' : 'text-gray-500'}`}>
           {query
             ? `Results for “${query}”`
             : 'Suggested from people you message and who comment on your posts'}
@@ -274,7 +294,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
           </div>
         )}
         {!loading && list.length === 0 && (
-          <p className="py-6 text-white/50 text-sm text-center">
+          <p className={`py-6 text-sm text-center ${isDark ? "text-white/50" : "text-gray-500"}`}>
             {query ? 'No people found.' : 'No suggestions right now — search above to add people.'}
           </p>
         )}
@@ -298,7 +318,8 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
           disabled={saving || !dirty}
           className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
           style={{
-            background: dirty ? '#ff1493' : 'rgba(255,255,255,0.1)',
+            background: dirty ? '#ff1493' : (isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'),
+            color: dirty ? '#fff' : (isDark ? '#fff' : '#6B7280'),
             opacity: saving || !dirty ? 0.7 : 1,
           }}
         >
@@ -402,23 +423,29 @@ export function AudienceListStage({
       right={<span className="text-[13px] font-bold" style={{ color: PINK }}>{selected.size}</span>}
     >
       <div className="px-4 pt-4">
-        <div className="flex items-center gap-2 rounded-2xl px-3.5 h-11" style={{ background: 'rgba(255,255,255,0.08)' }}>
-          <Search size={16} color="rgba(255,255,255,0.5)" />
+        <div
+          className="flex items-center gap-2 rounded-2xl px-3.5 h-11"
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`,
+          }}
+        >
+          <Search size={16} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
           <input
             type="text"
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className="flex-1 bg-transparent outline-none text-white text-[14px] placeholder:text-white/40"
+            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/40' : 'text-gray-900 placeholder:text-gray-400'}`}
             aria-label="Search people"
           />
           {query && (
             <button type="button" onClick={() => setQuery('')} aria-label="Clear search">
-              <X size={15} color="rgba(255,255,255,0.6)" />
+              <X size={15} color={isDark ? "rgba(255,255,255,0.6)" : "#9CA3AF"} />
             </button>
           )}
         </div>
-        <p className="text-white/45 text-[12px] mt-2">
+        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/45' : 'text-gray-500'}`}>
           {mode === 'hide_from'
             ? 'These people will never receive this reel.'
             : 'Only these people will receive this reel (plus you).'}
@@ -432,7 +459,7 @@ export function AudienceListStage({
           </div>
         )}
         {!loading && list.length === 0 && (
-          <p className="py-6 text-white/50 text-sm text-center">
+          <p className={`py-6 text-sm text-center ${isDark ? "text-white/50" : "text-gray-500"}`}>
             {query ? 'No people found.' : mode === 'hide_from'
               ? 'No followers yet.'
               : 'No mutual friends yet — search above.'}
@@ -465,7 +492,11 @@ export function AudienceListStage({
           type="button"
           onClick={() => { setSelected(new Set()); void save(); }}
           className="w-full py-3 rounded-2xl font-bold"
-          style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.75)' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+            color: isDark ? 'rgba(255,255,255,0.75)' : '#374151',
+            border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
+          }}
         >
           Clear list
         </button>
@@ -478,6 +509,7 @@ export function AudienceListStage({
 export function ShareStoryStage({ onBack }: { onBack: () => void }) {
   const shareToStory = useReelCreatorStore(s => s.shareToStory);
   const setShareToStory = useReelCreatorStore(s => s.setShareToStory);
+  const { isDark } = useCreateMomentsTheme();
 
   const options = [
     { id: 'off' as const, label: 'Off', hint: 'Never share reels to your story' },
@@ -495,32 +527,36 @@ export function ShareStoryStage({ onBack }: { onBack: () => void }) {
             onClick={() => setShareToStory(o.id)}
             className="w-full flex items-center gap-3 rounded-2xl px-3.5 py-3.5 text-left"
             style={{
-              background: shareToStory === o.id ? 'rgba(255,0,110,0.14)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${shareToStory === o.id ? `${PINK}66` : 'transparent'}`,
+              background: shareToStory === o.id ? 'rgba(255,0,110,0.14)' : (isDark ? 'rgba(255,255,255,0.05)' : '#F3F4F6'),
+              border: `1px solid ${shareToStory === o.id ? `${PINK}66` : (isDark ? 'transparent' : '#E5E7EB')}`,
             }}
             aria-pressed={shareToStory === o.id}
           >
             <span className="flex-1">
-              <span className="block text-white text-[15px] font-bold">{o.label}</span>
-              <span className="block text-white/50 text-[12px]">{o.hint}</span>
+              <span className={`block text-[15px] font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{o.label}</span>
+              <span className={`block text-[12px] ${isDark ? "text-white/50" : "text-gray-500"}`}>{o.hint}</span>
             </span>
             <span
               className="w-5 h-5 rounded-full shrink-0"
               style={{
                 background: shareToStory === o.id ? PINK : 'transparent',
-                border: shareToStory === o.id ? 'none' : '2px solid rgba(255,255,255,0.3)',
+                border: shareToStory === o.id ? 'none' : `2px solid ${isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.25)'}`,
               }}
             />
           </button>
         ))}
-        <p className="text-white/40 text-[11px] leading-relaxed pt-3">
+        <p className={`text-[11px] leading-relaxed pt-3 ${isDark ? "text-white/40" : "text-gray-500"}`}>
           Story shares are posted separately — if a story share fails, your reel stays published.
         </p>
         <button
           type="button"
           onClick={onBack}
           className="mt-4 w-full py-3 rounded-2xl font-bold flex items-center justify-center gap-1.5"
-          style={{ background: 'rgba(255,255,255,0.08)', color: '#fff' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#F3F4F6',
+            color: isDark ? '#fff' : '#111827',
+            border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
+          }}
         >
           <ChevronLeft size={16} /> Back to options
         </button>

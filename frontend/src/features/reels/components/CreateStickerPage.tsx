@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Check, Send, Type, ImageOff } from 'lucide-react';
 import api from '../../../api/api';
 import { StageShell, InlineSpinner, PINK } from './shell';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { generateVideoThumbnail } from '../../../utils/thumbnailGenerator';
 import { showError, showSuccess } from '../../../utils/toast';
 import { getMediaUrl } from '../../../utils/imageUtils';
@@ -26,6 +27,7 @@ const TEXT_COLORS = ['#FFFFFF', '#FF1F6D', '#FFD600', '#7CFF6B', '#00D4FF', '#00
 export default function CreateStickerPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { isDark } = useCreateMomentsTheme();
 
   const [loading, setLoading] = useState(true);
   const [frameUrl, setFrameUrl] = useState<string | null>(null);
@@ -237,7 +239,7 @@ export default function CreateStickerPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className="flex items-center gap-2 text-white/70 text-[12px] font-bold uppercase tracking-wide">
+              <label className={`flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide ${isDark ? "text-white/70" : "text-gray-700"}`}>
                 <Type size={13} /> Text (optional)
               </label>
               <input
@@ -246,7 +248,7 @@ export default function CreateStickerPage() {
                 onChange={(e) => setText(e.target.value)}
                 maxLength={40}
                 placeholder="Add a short caption…"
-                className="w-full rounded-2xl px-3.5 h-11 bg-white/8 outline-none text-white text-[14px] placeholder:text-white/35"
+                className={`w-full rounded-2xl px-3.5 h-11 outline-none text-[14px] ${isDark ? "bg-white/8 text-white placeholder:text-white/35" : "bg-gray-100 text-gray-900 placeholder:text-gray-400 border border-gray-200"}`}
                 aria-label="Sticker text"
               />
               <div className="flex items-center gap-2 pt-1">
@@ -279,7 +281,9 @@ export default function CreateStickerPage() {
                 disabled={!savedStickerId || sending}
                 className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
                 style={{
-                  background: savedStickerId && !sending ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
+                  background: savedStickerId && !sending ? (isDark ? 'rgba(255,255,255,0.12)' : '#F3F4F6') : (isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB'),
+                  color: isDark ? '#fff' : '#111827',
+                  border: `1px solid ${isDark ? 'transparent' : '#E5E7EB'}`,
                   opacity: !savedStickerId || sending ? 0.6 : 1,
                 }}
                 title={savedStickerId ? 'Send to a friend' : 'Save the sticker first'}
@@ -287,7 +291,7 @@ export default function CreateStickerPage() {
                 <Send size={15} /> Send to a friend
               </button>
               {!savedStickerId && (
-                <p className="text-white/40 text-[11px] text-center">Save the sticker to enable sending.</p>
+                <p className={`text-[11px] text-center ${isDark ? "text-white/40" : "text-gray-500"}`}>Save the sticker to enable sending.</p>
               )}
             </div>
           </>

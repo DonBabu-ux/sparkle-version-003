@@ -4,6 +4,7 @@ import {
 } from 'lucide-react';
 import { useReelCreatorStore } from '../reelCreatorStore';
 import { StageShell, PINK, InlineSpinner } from './shell';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { openNativePicker, filesToGalleryItems, probeVideo } from '../services/mediaLibraryService';
 import type { GalleryItem } from '../types';
 import { showError, showSuccess } from '../../../utils/toast';
@@ -21,6 +22,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
   const reorderClips = useReelCreatorStore(s => s.reorderClips);
   const addClips = useReelCreatorStore(s => s.addClips);
   const totalDurationSec = useReelCreatorStore(s => s.totalDurationSec);
+  const { isDark } = useCreateMomentsTheme();
 
   const [selectedId, setSelectedId] = useState<string | null>(clips[0]?.id ?? null);
   const [adding, setAdding] = useState(false);
@@ -183,14 +185,14 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
       {selected && (
         <section className="px-4 pt-4" aria-label="Trim clip">
           <div className="flex items-center justify-between mb-2">
-            <h2 className="text-white font-extrabold text-[14px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+            <h2 className={`font-extrabold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
               Trim — {selected.name || `Clip ${clips.findIndex(c => c.id === selected.id) + 1}`}
             </h2>
-            <span className="text-white/50 text-xs">min 0.5s</span>
+            <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-gray-700"}`}>min 0.5s</span>
           </div>
 
           {/* Timeline bar */}
-          <div className="relative h-14 rounded-xl overflow-hidden mb-3" style={{ background: 'rgba(255,255,255,0.06)' }}>
+          <div className="relative h-14 rounded-xl overflow-hidden mb-3" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }}>
             {/* Filmstrip thumbnails */}
             <div className="absolute inset-0 flex">
               {Array.from({ length: 8 }).map((_, i) => (
@@ -221,68 +223,139 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
             />
           </div>
 
-          <div className="space-y-3">
-            <label className="block">
-              <span className="text-white/60 text-xs">Start — {trimStart.toFixed(1)}s</span>
+          {selected.kind === 'image' ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className={`text-sm font-black ${isDark ? "text-white" : "text-gray-900"}`}>Image display duration</span>
+                <span className="text-[#FF1F6D] text-sm font-bold">{selected.durationSec.toFixed(1)}s</span>
+              </div>
               <input
                 type="range"
-                min={0}
-                max={Math.max(0, sourceDuration - 0.5)}
-                step={0.1}
-                value={trimStart}
-                onChange={(e) => onTrim({ trimStart: Number(e.target.value) })}
-                className="w-full accent-pink-500"
-                aria-label="Trim start seconds"
-              />
-            </label>
-            <label className="block">
-              <span className="text-white/60 text-xs">End — {trimEnd.toFixed(1)}s</span>
-              <input
-                type="range"
-                min={Math.min(0.5, sourceDuration)}
-                max={sourceDuration}
-                step={0.1}
-                value={trimEnd}
-                onChange={(e) => onTrim({ trimEnd: Number(e.target.value) })}
-                className="w-full accent-pink-500"
-                aria-label="Trim end seconds"
-              />
-            </label>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => onTrim({ trimStart: 0, trimEnd: null })}
-                className="flex-1 py-2 rounded-xl text-[12px] font-bold"
-                style={{ background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.8)' }}
-              >
-                Reset trim
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selected.previewUrl.startsWith('blob:')) {
-                    try { URL.revokeObjectURL(selected.previewUrl); } catch (_) { /* already gone */ }
-                  }
-                  removeClip(selected.id);
-                  showSuccess('Clip removed');
+                min={1}
+                max={Math.max(1, Math.min(60, 60 - (total - selected.durationSec)))}
+                step={0.5}
+                value={selected.durationSec}
+                onChange={(e) => {
+                  const newDur = Number(e.target.value);
+                  updateClip(selected.id, { durationSec: newDur, trimStart: 0, trimEnd: newDur });
                 }}
-                className="flex-1 py-2 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
-                style={{ background: 'rgba(255,60,60,0.16)', color: '#FF9C9C' }}
-              >
-                <Trash2 size={13} /> Delete clip
-              </button>
+                className="w-full accent-pink-500"
+                aria-label="Image duration seconds"
+              />
+              <div className="flex gap-2">
+                {[3, 5, 10, 15, 30, 60].map(sec => {
+                  const maxAllowed = 60 - (total - selected.durationSec);
+                  if (sec > maxAllowed && sec !== 3) return null;
+                  return (
+                    <button
+                      key={sec}
+                      type="button"
+                      onClick={() => updateClip(selected.id, { durationSec: sec, trimStart: 0, trimEnd: sec })}
+                      className={`flex-1 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        Math.abs(selected.durationSec - sec) < 0.1
+                          ? 'bg-[#FF1F6D] text-white shadow-sm'
+                          : isDark ? 'bg-white/10 text-white/70 hover:bg-white/20' : 'bg-white text-gray-900 border border-gray-300 shadow-sm hover:bg-gray-50'
+                      }`}
+                    >
+                      {sec}s
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selected.previewUrl.startsWith('blob:')) {
+                      try { URL.revokeObjectURL(selected.previewUrl); } catch (_) { /* already gone */ }
+                    }
+                    removeClip(selected.id);
+                    showSuccess('Clip removed');
+                  }}
+                  className="w-full py-2 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
+                  style={{
+                    background: isDark ? 'rgba(255,60,60,0.16)' : '#FEE2E2',
+                    color: isDark ? '#FF9C9C' : '#DC2626',
+                    border: isDark ? 'none' : '1px solid #FECACA',
+                  }}
+                >
+                  <Trash2 size={13} /> Delete clip
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <label className="block">
+                <span className={`text-xs font-bold ${isDark ? "text-white/80" : "text-gray-900"}`}>Start — {trimStart.toFixed(1)}s</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0, sourceDuration - 0.5)}
+                  step={0.1}
+                  value={trimStart}
+                  onChange={(e) => onTrim({ trimStart: Number(e.target.value) })}
+                  className="w-full accent-pink-500"
+                  aria-label="Trim start seconds"
+                />
+              </label>
+              <label className="block">
+                <span className={`text-xs font-bold ${isDark ? "text-white/80" : "text-gray-900"}`}>End — {trimEnd.toFixed(1)}s</span>
+                <input
+                  type="range"
+                  min={Math.min(0.5, sourceDuration)}
+                  max={sourceDuration}
+                  step={0.1}
+                  value={trimEnd}
+                  onChange={(e) => onTrim({ trimEnd: Number(e.target.value) })}
+                  className="w-full accent-pink-500"
+                  aria-label="Trim end seconds"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => onTrim({ trimStart: 0, trimEnd: null })}
+                  className="flex-1 py-2 rounded-xl text-[12px] font-bold"
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+                    color: isDark ? 'rgba(255,255,255,0.8)' : '#111827',
+                    border: isDark ? 'none' : '1px solid #D1D5DB',
+                    boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
+                  }}
+                >
+                  Reset trim
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (selected.previewUrl.startsWith('blob:')) {
+                      try { URL.revokeObjectURL(selected.previewUrl); } catch (_) { /* already gone */ }
+                    }
+                    removeClip(selected.id);
+                    showSuccess('Clip removed');
+                  }}
+                  className="flex-1 py-2 rounded-xl text-[12px] font-bold flex items-center justify-center gap-1.5"
+                  style={{
+                    background: isDark ? 'rgba(255,60,60,0.16)' : '#FEE2E2',
+                    color: isDark ? '#FF9C9C' : '#DC2626',
+                    border: isDark ? 'none' : '1px solid #FECACA',
+                  }}
+                >
+                  <Trash2 size={13} /> Delete clip
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       )}
 
       {/* Clip order list */}
       <section className="px-4 pt-5 pb-6" aria-label="Clip order">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-white font-extrabold text-[14px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+          <h2 className={`font-extrabold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
             Order ({clips.length}/10)
           </h2>
-          <span className="text-white/50 text-xs">{total.toFixed(1)}s of 60s</span>
+          <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-gray-700"}`}>{total.toFixed(1)}s of 60s</span>
         </div>
 
         <ul className="flex flex-col gap-2">
@@ -295,8 +368,9 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
               onDrop={() => dropAt(c.id)}
               className="flex items-center gap-3 rounded-2xl px-2.5 py-2"
               style={{
-                background: c.id === selected?.id ? 'rgba(255,0,110,0.14)' : 'rgba(255,255,255,0.06)',
-                border: `1px solid ${c.id === selected?.id ? `${PINK}55` : 'transparent'}`,
+                background: c.id === selected?.id ? 'rgba(255,0,110,0.14)' : (isDark ? 'rgba(255,255,255,0.06)' : '#FFFFFF'),
+                border: `1px solid ${c.id === selected?.id ? PINK : (isDark ? 'transparent' : '#E5E7EB')}`,
+                boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
               }}
             >
               <button
@@ -305,11 +379,11 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
                 className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 aria-label={`Select clip ${i + 1}`}
               >
-                <span className="w-6 text-white/45 text-xs font-bold text-center shrink-0">{i + 1}</span>
+                <span className={`w-6 text-xs font-extrabold text-center shrink-0 ${isDark ? "text-white/45" : "text-gray-700"}`}>{i + 1}</span>
                 <img src={c.previewUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
                 <span className="min-w-0 flex-1">
-                  <span className="block text-white text-[13px] font-bold truncate">{c.name || `Clip ${i + 1}`}</span>
-                  <span className="block text-white/50 text-[11px]">
+                  <span className={`block text-[14px] font-black truncate ${isDark ? "text-white" : "text-gray-900"}`}>{c.name || `Clip ${i + 1}`}</span>
+                  <span className={`block text-[12px] font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>
                     {Math.max(0, (c.trimEnd ?? c.durationSec) - c.trimStart).toFixed(1)}s · {c.kind}
                   </span>
                 </span>
@@ -321,7 +395,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
                   disabled={i === 0}
                   aria-label={`Move clip ${i + 1} up`}
                   className="w-8 h-7 flex items-center justify-center"
-                  style={{ color: i === 0 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.75)' }}
+                  style={{ color: i === 0 ? (isDark ? 'rgba(255,255,255,0.25)' : '#D1D5DB') : (isDark ? 'rgba(255,255,255,0.75)' : '#1F2937') }}
                 >
                   <ChevronUp size={16} />
                 </button>
@@ -331,7 +405,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
                   disabled={i === clips.length - 1}
                   aria-label={`Move clip ${i + 1} down`}
                   className="w-8 h-7 flex items-center justify-center"
-                  style={{ color: i === clips.length - 1 ? 'rgba(255,255,255,0.25)' : 'rgba(255,255,255,0.75)' }}
+                  style={{ color: i === clips.length - 1 ? (isDark ? 'rgba(255,255,255,0.25)' : '#D1D5DB') : (isDark ? 'rgba(255,255,255,0.75)' : '#1F2937') }}
                 >
                   <ChevronDown size={16} />
                 </button>
@@ -344,9 +418,12 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
           type="button"
           onClick={addMore}
           disabled={adding || clips.length >= 10}
-          className="w-full mt-3 py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2"
+          className="w-full mt-3 py-3 rounded-2xl font-bold flex items-center justify-center gap-2"
           style={{
-            background: 'rgba(255,255,255,0.08)',
+            background: isDark ? 'rgba(255,255,255,0.08)' : '#FFFFFF',
+            color: isDark ? '#fff' : '#111827',
+            border: `1.5px solid ${isDark ? 'transparent' : '#D1D5DB'}`,
+            boxShadow: isDark ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
             opacity: adding || clips.length >= 10 ? 0.5 : 1,
           }}
         >

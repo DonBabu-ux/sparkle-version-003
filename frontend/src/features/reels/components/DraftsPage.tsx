@@ -4,6 +4,7 @@ import { ArrowLeft, FileText, Trash2, Play, HardDrive, ChevronRight } from 'luci
 import { listDrafts, deleteDraft, formatBytes, type DraftListItem } from '../services/draftService';
 import DraftPreview from './DraftPreview';
 import { InlineSpinner, PINK } from './shell';
+import { useCreateMomentsTheme } from '../useCreateMomentsTheme';
 import { showError, showSuccess } from '../../../utils/toast';
 import { logger } from '../../../utils/logger';
 
@@ -25,6 +26,7 @@ function timeAgo(iso: string | null | undefined): string {
 /** Reel drafts manager: retrieves drafts stored on this device, resume/delete with confirm. */
 export default function DraftsPage() {
   const navigate = useNavigate();
+  const { isDark } = useCreateMomentsTheme();
   const [drafts, setDrafts] = useState<DraftListItem[]>([]);
   const [totalBytes, setTotalBytes] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -74,24 +76,30 @@ export default function DraftsPage() {
   };
 
   return (
-    <div className="min-h-[100dvh]" style={{ background: '#0B070C', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+    <div className="min-h-[100dvh]" style={{ background: isDark ? '#0B070C' : '#FFFFFF', paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <header
         className="sticky top-0 z-20 flex items-center gap-2 px-3 h-14"
-        style={{ background: 'rgba(11,7,12,0.96)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}
+        style={{
+          background: isDark ? 'rgba(11,7,12,0.96)' : 'rgba(255,255,255,0.96)',
+          borderBottom: isDark ? '1px solid rgba(255,255,255,0.07)' : '1px solid #E5E7EB',
+        }}
       >
         <button
           type="button"
           onClick={() => navigate(-1)}
           aria-label="Back"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(255,255,255,0.07)', color: '#fff' }}
+          style={{
+            background: isDark ? 'rgba(255,255,255,0.07)' : '#F3F4F6',
+            color: isDark ? '#fff' : '#111827',
+          }}
         >
           <ArrowLeft size={19} />
         </button>
-        <h1 className="text-white font-extrabold text-[17px]" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+        <h1 className={`font-extrabold text-[17px] ${isDark ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
           Drafts
         </h1>
-        <span className="ml-auto text-white/45 text-[12px] pr-2">
+        <span className={`ml-auto text-[12px] pr-2 ${isDark ? 'text-white/45' : 'text-gray-500'}`}>
           {drafts.length} saved · {formatBytes(totalBytes)}
         </span>
       </header>
@@ -102,13 +110,14 @@ export default function DraftsPage() {
           style={{ background: 'rgba(255,0,110,0.1)', border: '1px solid rgba(255,0,110,0.25)' }}
         >
           <HardDrive size={16} color={PINK} />
-          <p className="text-white/70 text-[12px] leading-snug">
+          <p className={`text-[12px] leading-snug ${isDark ? "text-white/70" : "text-gray-700"}`}>
+            Drafts are saved on this device only — clips, captions and settings stay private until you post.
             Drafts are saved on this device only — clips, captions and settings stay private until you post.
           </p>
         </div>
 
         {loading && (
-          <div className="flex items-center gap-3 justify-center py-12 text-white/60 text-sm">
+          <div className={`flex items-center gap-3 justify-center py-12 text-sm ${isDark ? "text-white/60" : "text-gray-500"}`}>
             <InlineSpinner /> Loading drafts…
           </div>
         )}
@@ -129,10 +138,10 @@ export default function DraftsPage() {
 
         {!loading && !error && drafts.length === 0 && (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.06)' }}>
-              <FileText size={26} color="rgba(255,255,255,0.5)" />
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: isDark ? 'rgba(255,255,255,0.06)' : '#F3F4F6' }}>
+              <FileText size={26} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
             </div>
-            <p className="text-white/70 text-sm">No drafts yet.</p>
+            <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-700"}`}>No drafts yet.</p>
             <button
               type="button"
               onClick={() => navigate('/moments/create')}
@@ -154,11 +163,14 @@ export default function DraftsPage() {
                 <li
                   key={d.draft_id}
                   className="rounded-2xl px-3 py-3 flex items-center gap-3"
-                  style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.06)' }}
+                  style={{
+                    background: isDark ? 'rgba(255,255,255,0.05)' : '#F9FAFB',
+                    border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB'}`,
+                  }}
                 >
                   <div
                     className="w-14 h-16 rounded-xl overflow-hidden shrink-0 flex items-center justify-center"
-                    style={{ background: 'rgba(255,255,255,0.07)' }}
+                    style={{ background: isDark ? 'rgba(255,255,255,0.07)' : '#F3F4F6' }}
                   >
                     <DraftPreview
                       draft={d}
@@ -174,15 +186,15 @@ export default function DraftsPage() {
                     className="flex-1 min-w-0 text-left"
                     aria-label={`Resume draft ${d.title || 'Untitled reel'}`}
                   >
-                    <span className="block text-white text-[14px] font-bold truncate">
+                    <span className={`block text-[14px] font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                       {d.title || 'Untitled reel'}
                     </span>
-                    <span className="block text-white/50 text-[12px] truncate">
+                    <span className={`block text-[12px] truncate ${isDark ? "text-white/50" : "text-gray-500"}`}>
                       {clipCount} clip{clipCount === 1 ? '' : 's'}
                       {duration ? ` · ${duration.toFixed(1)}s` : ''}
                       {meta.audience ? ` · ${meta.audience.replace('_', ' ')}` : ''}
                     </span>
-                    <span className="block text-white/35 text-[11px]">
+                    <span className={`block text-[11px] ${isDark ? "text-white/35" : "text-gray-400"}`}>
                       Updated {timeAgo(d.updated_at)} · {formatBytes(d.storage_bytes || 0)}
                     </span>
                   </button>
@@ -212,7 +224,7 @@ export default function DraftsPage() {
                     </button>
                   </div>
 
-                  <ChevronRight size={16} color="rgba(255,255,255,0.3)" className="shrink-0" />
+                  <ChevronRight size={16} color={isDark ? "rgba(255,255,255,0.3)" : "#9CA3AF"} className="shrink-0" />
                 </li>
               );
             })}
@@ -229,11 +241,15 @@ export default function DraftsPage() {
           aria-modal="true"
           aria-label="Delete draft"
         >
-          <div className="w-full max-w-sm rounded-3xl p-6 text-center" style={{ background: '#16101A', border: '1px solid rgba(255,255,255,0.1)' }}>
-            <h2 className="text-white font-extrabold text-lg mb-2" style={{ fontFamily: "'Varela Round', sans-serif" }}>
+          <div className="w-full max-w-sm rounded-3xl p-6 text-center" style={{
+            background: isDark ? '#16101A' : '#FFFFFF',
+            border: `1px solid ${isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'}`,
+            boxShadow: isDark ? 'none' : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          }}>
+            <h2 className={`font-extrabold text-lg mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
               Delete this draft?
             </h2>
-            <p className="text-white/60 text-sm mb-6">
+            <p className={`text-sm mb-6 ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
               The saved clips and settings for this draft will be removed. This can't be undone.
             </p>
             <div className="flex flex-col gap-3">

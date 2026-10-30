@@ -318,3 +318,36 @@ export function getClipDuration(file: File): Promise<number> {
       return 0;
     });
 }
+
+/** Automatically attempt to load media from the first cached folder if available */
+export async function loadDeviceMedia(): Promise<GalleryItem[]> {
+  try {
+    if (fsaSupported()) {
+      const folders = await getCachedFolders();
+      if (folders.length > 0) {
+        return await listFolderMedia(folders[0]);
+      }
+    }
+    return [];
+  } catch (err) {
+    logger.warn('[loadDeviceMedia] auto-load failed:', err);
+    return [];
+  }
+}
+
+/** Resolve the underlying File object from a GalleryItem */
+export async function resolveItemFile(item: GalleryItem): Promise<File> {
+  if (item.file) return item.file;
+  const res = await fetch(item.thumbnailUrl);
+  const blob = await res.blob();
+  return new File([blob], item.name || 'media', { type: blob.type });
+}
+
+/** Format duration seconds into mm:ss string */
+export function formatDuration(sec: number): string {
+  const s = Math.max(0, Math.floor(sec));
+  const m = Math.floor(s / 60);
+  const rem = s % 60;
+  return `${m}:${String(rem).padStart(2, '0')}`;
+}
+

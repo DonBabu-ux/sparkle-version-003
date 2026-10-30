@@ -587,11 +587,12 @@ const createMoment = async (req, res) => {
                 ]
             );
 
-            // Insert hashtags + increment the shared index used by suggestions
+            // Insert hashtags idempotently (INSERT IGNORE handles retried publishes)
             for (const tag of hashtags) {
-                const clean = tag.replace(/^#/, '');
+                const clean = tag.replace(/^#/, '').toLowerCase().replace(/[^a-z0-9_]/g, '').slice(0, 100);
+                if (!clean) continue;
                 await connection.query(
-                    'INSERT INTO moment_hashtags (moment_id, hashtag) VALUES (?, ?)',
+                    'INSERT IGNORE INTO moment_hashtags (id, moment_id, hashtag) VALUES (UUID(), ?, ?)',
                     [momentId, clean]
                 );
             }

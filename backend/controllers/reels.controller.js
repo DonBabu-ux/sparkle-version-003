@@ -339,8 +339,22 @@ const setAudienceList = async (req, res) => {
 const getRecentHashtags = async (req, res) => {
     try {
         const userId = req.user.user_id || req.user.userId;
+        // Get user's recently used hashtags with real combined post counts
         const [rows] = await pool.query(
-            `SELECT mh.hashtag, MAX(mh.created_at) AS last_used
+            `SELECT
+                 mh.hashtag,
+                 MAX(mh.created_at) AS last_used,
+                 (
+                     SELECT COUNT(*)
+                     FROM moment_hashtags mh2
+                     JOIN moments m2 ON m2.moment_id = mh2.moment_id
+                     WHERE mh2.hashtag = mh.hashtag AND m2.deleted_at IS NULL
+                 ) +
+                 (
+                     SELECT COUNT(*)
+                     FROM post_hashtags ph2
+                     WHERE ph2.tag = mh.hashtag
+                 ) AS post_count
                FROM moment_hashtags mh
                JOIN moments m ON m.moment_id = mh.moment_id
               WHERE m.user_id = ? AND m.deleted_at IS NULL
@@ -349,7 +363,15 @@ const getRecentHashtags = async (req, res) => {
               LIMIT 20`,
             [userId]
         );
-        res.json({ success: true, hashtags: (rows || []).map(r => r.hashtag) });
+        res.json({
+            success: true,
+            hashtags: (rows || []).map(r => r.hashtag),
+            // Also include counts so the frontend can display them for recent tags
+            hashtagsWithCounts: (rows || []).map(r => ({
+                tag: r.hashtag,
+                post_count: Number(r.post_count) || 0,
+            })),
+        });
     } catch (error) {
         logger.error('[Reels] getRecentHashtags failed:', error.message);
         res.status(500).json({ error: 'Failed to load recent hashtags' });
@@ -361,25 +383,96 @@ const suggestHashtags = async (req, res) => {
         const raw = String(req.query.q || '').trim();
         const tag = sanitizeHashtag(raw);
         if (!tag) return res.json({ success: true, suggestions: [] });
+
+        // Merge counts from moment_hashtags (reels/moments) AND post_hashtags (posts)
+        // Only count moments that haven't been soft-deleted.
         const [rows] = await pool.query(
-            `SELECT hashtag, COUNT(*) AS post_count
-               FROM moment_hashtags
-              WHERE hashtag LIKE ?
-              GROUP BY hashtag
-              ORDER BY post_count DESC
-              LIMIT 20`,
-            [`${tag}%`]
+            `SELECT
+                 tag,
+                 SUM(cnt) AS post_count
+               FROM (
+                 SELECT mh.hashtag AS tag, COUNT(*) AS cnt
+                   FROM moment_hashtags mh
+                   JOIN moments m ON m.moment_id = mh.moment_id
+                  WHERE mh.hashtag LIKE ? AND m.deleted_at IS NULL
+                  GROUP BY mh.hashtag
+                 UNION ALL
+                 SELECT ph.tag, COUNT(*) AS cnt
+                   FROM post_hashtags ph
+                  WHERE ph.tag LIKE ?
+                  GROUP BY ph.tag
+               ) combined
+               GROUP BY tag
+               ORDER BY post_count DESC
+               LIMIT 20`,
+            [`${tag}%`, `${tag}%`]
         );
         res.json({
             success: true,
             suggestions: (rows || []).map(r => ({
-                tag: r.hashtag,
+                tag: r.tag,
                 post_count: Number(r.post_count) || 0,
             })),
         });
     } catch (error) {
         logger.error('[Reels] suggestHashtags failed:', error.message);
         res.status(500).json({ error: 'Failed to search hashtags' });
+    }
+};
+
+// ───────────────────────────── AI Description Generator ─────────────────────────────
+
+const generateAiDescription = async (req, res) => {
+    try {
+        const { action, currentDescription, title, hashtags: reqHashtags } = req.body || {};
+        const validActions = ['generate', 'improve', 'shorten', 'engaging', 'hashtags', 'grammar', 'title'];
+        if (!action || !validActions.includes(action)) {
+            return res.status(400).json({ error: 'Invalid action. Must be one of: ' + validActions.join(', ') });
+        }
+
+        // Use the existing LLM service which already has Groq/OpenRouter fallback
+        const llmService = require('../services/sparkly/llm.service');
+
+        const contextParts = [];
+        if (title) contextParts.push(`Reel title: "${String(title).slice(0, 250)}"`);
+        if (currentDescription) contextParts.push(`Current description: "${String(currentDescription).slice(0, 1000)}"`);
+        if (reqHashtags && reqHashtags.length) contextParts.push(`Current hashtags: ${reqHashtags.map(t => '#' + t).join(' ')}`);
+        const context = contextParts.length ? contextParts.join('\n') : 'No existing content.';
+
+        const systemPrompt = 'You are a creative social media writing assistant for Sparkle, a short-video platform. You write punchy, authentic, and engaging content in a casual tone. Always respond with ONLY the requested text—no preamble, no labels, no quotation marks.';
+
+        const actionPrompts = {
+            generate: `Generate a fresh, engaging description for this social media reel. Keep it under 150 characters, use emojis naturally, and make it feel authentic.\n${context}`,
+            improve: `Improve this description to be more engaging while keeping the same meaning. Keep it under 200 characters.\n${context}`,
+            shorten: `Shorten this description to under 80 characters while keeping the key message.\n${context}`,
+            engaging: `Rewrite this description to be more attention-grabbing and shareable. Use strong verbs and 1-2 emojis.\n${context}`,
+            hashtags: `Suggest 5 relevant hashtags for this content. Reply with ONLY the hashtags separated by spaces, starting with #.\n${context}`,
+            grammar: `Fix any grammar and spelling errors in this description. Return ONLY the corrected text.\n${context}`,
+            title: `Write a short, catchy reel title under 60 characters.\n${context}`,
+        };
+
+        const userPrompt = actionPrompts[action];
+        // LLMService.runModel is the static method (Groq → Together → OpenRouter fallback)
+        const result = await llmService.runModel({
+            systemPrompt,
+            messages: [{ role: 'user', content: userPrompt }],
+            maxTokens: 300,
+            temperature: 0.85,
+        });
+
+        const text = (result?.content || '').trim();
+        if (!text) {
+            return res.status(503).json({ error: 'AI service unavailable. Try again in a moment.' });
+        }
+
+        res.json({ success: true, result: text, action });
+    } catch (error) {
+        logger.error('[Reels] generateAiDescription failed:', error.message);
+        // Do not expose internal error details
+        if (error.message && error.message.includes('No AI provider')) {
+            return res.status(503).json({ error: 'AI service is not configured. Check OPENROUTER_API_KEY, GROQ_API_KEY, or TOGETHER_API_KEY in your .env.' });
+        }
+        res.status(500).json({ error: 'Failed to generate AI description.' });
     }
 };
 
@@ -654,6 +747,7 @@ module.exports = {
     setAudienceList,
     getRecentHashtags,
     suggestHashtags,
+    generateAiDescription,
     getRecentMentions,
     searchPeople,
     getFriendsList,

@@ -21,6 +21,7 @@ import { useLongPress } from '../hooks/useLongPress';
 import { MessageInfoModal } from '../components/chat/MessageInfoModal';
 import type { MessagePermissions } from '../types/messagePermissions';
 import { KeyboardAwareChatLayout, ChatInputDock } from '../components/SafeLayout';
+import { BlockingLoader, useBlockingLoader } from '../components/ui/BlockingLoader';
 import type { SparkleTheme } from '../store/themeStore';
 import { OfficialAccountBanner } from '../components/chat/OfficialAccountBanner';
 import { OfficialComposerFooter } from '../components/chat/OfficialComposerFooter';
@@ -1790,6 +1791,21 @@ export default function Messages() {
   const messages = useChatStore(state => state.messagesByConversation[chatId] ?? EMPTY_MESSAGES_ARRAY);
   const paging = useChatStore(state => (chatId ? state.chatPaging[chatId] : undefined));
   const socketStatus = useChatStore(state => state.socketStatus);
+  // Facebook-style connection handling. The amber banner that used to live
+  // here fired on every routine sync because the sync routine reuses the
+  // 'connecting' status, so tab-switching alone made it appear while the
+  // server was healthy. Only a real loss (disconnected, after having been
+  // connected at least once) now raises the blocking loader.
+  const { show: reconnectBlocked, start: startReconnectBlock, done: endReconnectBlock } = useBlockingLoader();
+  const hadConnectedRef = useRef(false);
+  useEffect(() => {
+    if (socketStatus === 'connected') {
+      hadConnectedRef.current = true;
+      endReconnectBlock();
+    } else if (socketStatus === 'disconnected' && hadConnectedRef.current) {
+      startReconnectBlock('Reconnecting');
+    }
+  }, [socketStatus, startReconnectBlock, endReconnectBlock]);
   const setStoreMessages = useChatStore(state => state.setMessages);
   const setChatPaging = useChatStore(state => state.setChatPaging);
   useChatStore(state => state.addMessage);
@@ -4690,15 +4706,13 @@ export default function Messages() {
                 })()}
               </header>
 
-              {/* Reconnecting banner — visible whenever the realtime socket is down */}
-              {socketStatus !== 'connected' && (
-                <div className="flex items-center justify-center gap-2 py-1.5 bg-amber-500/10 border-b border-amber-500/20 text-amber-400 text-[11px] font-semibold tracking-tight shrink-0" role="status">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" aria-hidden />
-                  {socketStatus === 'disconnected'
-                    ? 'Reconnecting… messages will send automatically'
-                    : 'Connecting…'}
-                </div>
-              )}
+              {/* Connection loss is handled by the blocking loader (below),
+                  not a banner — the old banner false-fired on routine sync. */}
+              <BlockingLoader
+                show={reconnectBlocked}
+                label="Reconnecting"
+                sublabel="Messages will send automatically"
+              />
 
               {/* Instagram-style top loading bar while the chat's first messages load */}
               <AnimatePresence>

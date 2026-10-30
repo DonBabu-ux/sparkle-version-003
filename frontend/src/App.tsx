@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, Suspense } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Capacitor } from '@capacitor/core';
 import { App as CapApp } from '@capacitor/app';
 import { OtaKit } from '@otakit/capacitor-updater';
@@ -52,6 +52,9 @@ const Notifications = lazyWithRetry(() => import('./pages/Notifications'));
 const Search = lazyWithRetry(() => import('./pages/Search'));
 const SearchHistory = lazyWithRetry(() => import('./pages/SearchHistory'));
 const AdminDashboard = lazyWithRetry(() => import('./pages/AdminDashboard'));
+const AdminUnlock = lazyWithRetry(() => import('./pages/admin/AdminUnlock'));
+import AdminLayout from './components/admin/AdminLayout';
+import { clearAdminSession } from './api/api';
 const StorageIntelligencePanel = lazyWithRetry(() => import('./pages/StorageIntelligencePanel'));
 const PostDetail = lazyWithRetry(() => import('./pages/PostDetail'));
 const StoryViewer = lazyWithRetry(() => import('./pages/StoryViewer'));
@@ -137,6 +140,7 @@ import { getPostLoginRoute, resolveAdminAccess } from './utils/adminRoute';
 import { ensureFreshAccessToken } from './services/tokenRefresh';
 import { useAppPermissions } from './hooks/useAppPermissions';
 import Spinner from './components/ui/Spinner';
+import { BlockingLoader } from './components/ui/BlockingLoader';
 import { isDefinitiveAuthFailure } from './utils/startupAuth';
 import { installGlobalImageFallback } from './utils/imageFallback';
 import { logger } from './utils/logger';
@@ -148,6 +152,14 @@ const AccountRecoveryPortal = lazyWithRetry(() => import('./pages/AccountRecover
 
 function App() {
   const { isAuthenticated, token } = useUserStore();
+
+  // The admin elevation session lives only while you are inside /admin:
+  // leaving the admin area drops it, so the next visit re-asks for the admin
+  // password (the account session above is untouched by this).
+  const location = useLocation();
+  useEffect(() => {
+    if (!location.pathname.startsWith('/admin')) clearAdminSession();
+  }, [location.pathname]);
   // Zustand persist hydrates synchronously from localStorage on subsequent
   // loads — check immediately so the splash NEVER appears on SPA navigation
   // or page reloads where the user is already logged in.
@@ -469,7 +481,7 @@ function App() {
             <h1 className="font-heading text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-[#ff1493] via-[#fb7185] to-[#ff1493] -webkit-background-clip: text-webkit-text-fill-color bg-clip-text text-transparent italic animate-shimmer">
               Sparkle
             </h1>
-            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-zinc-500 mt-2">
+            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-zinc-300 mt-2">
               Connect. Share. Shine.
             </p>
           </div>
@@ -520,9 +532,7 @@ function App() {
                   <CrossDeviceSecurityAlertOverlay />
                   <UploadNotificationCenter />
                   <Suspense fallback={
-                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
-                                <Spinner size="xl" />
-                        </div>
+                        <BlockingLoader show label="Loading" sublabel="Just a moment" />
                       }>
                     <Routes>
                     {/* ── Phase 1: Auth & Core ── */}
@@ -594,8 +604,11 @@ function App() {
                     <Route path="/notifications" element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />} />
                     <Route path="/search" element={isAuthenticated ? <Search /> : <Navigate to="/login" />} />
                     <Route path="/search/history" element={isAuthenticated ? <SearchHistory /> : <Navigate to="/login" />} />
-                    <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminDashboard />) : <Navigate to="/login" />} />
-                    <Route path="/admin/storage" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <StorageIntelligencePanel />) : <Navigate to="/login" />} />
+                    <Route path="/admin/login" element={isAuthenticated ? <AdminUnlock /> : <Navigate to="/login" />} />
+                    <Route path="/admin" element={isAuthenticated ? (resolveAdminAccess(getRoleFromToken(token)) === 'deny' ? <Navigate to="/dashboard" replace /> : <AdminLayout />) : <Navigate to="/login" />}>
+                      <Route index element={isAuthenticated ? <AdminDashboard /> : <Navigate to="/login" />} />
+                      <Route path="storage" element={isAuthenticated ? <StorageIntelligencePanel /> : <Navigate to="/login" />} />
+                    </Route>
                     <Route path="/post/:id" element={isAuthenticated ? <PostDetail /> : <Navigate to="/login" />} />
                     <Route path="/groups/create" element={isAuthenticated ? <CreateGroup /> : <Navigate to="/login" />} />
                     <Route path="/groups/:id/settings" element={isAuthenticated ? <GroupAdmin /> : <Navigate to="/login" />} />
@@ -635,9 +648,7 @@ function App() {
                         isAuthenticated ? (
                           <Suspense
                             fallback={
-                              <div className="fixed inset-0 z-50 flex items-center justify-center bg-white dark:bg-zinc-950">
-                          <Spinner size="xl" />
-                              </div>
+                              <BlockingLoader show label="Loading" sublabel="Just a moment" />
                             }
                           >
                             <LearnMorePage />

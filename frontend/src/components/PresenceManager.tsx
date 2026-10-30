@@ -1,6 +1,6 @@
 /**
  * PresenceManager
- * ─────────────────────────────────────────────────────────────────────────────
+ * â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
  * Mounted ONCE at the root of the authenticated app (inside App.tsx).
  *
  * Responsibilities:
@@ -11,9 +11,9 @@
  *  5. Reconnects automatically after network recovery.
  *  6. Emits a clean presence:offline before the browser tab closes.
  *
- * This component renders nothing — it is a pure side-effect manager.
+ * This component renders nothing â€” it is a pure side-effect manager.
  */
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSocket } from '../hooks/useSocket';
 import { useUserStore } from '../store/userStore';
 import { logger } from '../utils/logger';
@@ -24,13 +24,16 @@ const BACKGROUND_GRACE_MS   = 30_000;   // keep online 30 s after tab hides
 export default function PresenceManager() {
   const socket  = useSocket();
   const { user, isAuthenticated } = useUserStore();
-  const [isReconnecting, setIsReconnecting] = useState(false);
+  // NOTE: this component previously rendered a second global "Reconnecting..."
+  // banner. It duplicated the chat's connection UI, false-fired on routine
+  // reconnects, and sat over content while the chat handled the same state
+  // properly. Connection UI now lives in BlockingLoader (see Messages.tsx).
 
   const heartbeatTimer    = useRef<ReturnType<typeof setInterval> | null>(null);
   const backgroundTimer   = useRef<ReturnType<typeof setTimeout>  | null>(null);
   const isHiddenRef       = useRef(false);
 
-  // ─── Helpers ────────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const clearHeartbeat = () => {
     if (heartbeatTimer.current) {
       clearInterval(heartbeatTimer.current);
@@ -51,16 +54,16 @@ export default function PresenceManager() {
     }, HEARTBEAT_INTERVAL_MS);
   };
 
-  // ─── Main effect ────────────────────────────────────────────────────────────
+  // â”€â”€â”€ Main effect â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   useEffect(() => {
     if (!socket || !isAuthenticated || !user) return;
 
     // Start heartbeat immediately
     startHeartbeat(socket);
 
-    // ── Socket lifecycle ──
+    // â”€â”€ Socket lifecycle â”€â”€
     const onConnect = () => {
-      logger.log('📡 PresenceManager: socket connected → presence ONLINE');
+      logger.log('ðŸ“¡ PresenceManager: socket connected â†’ presence ONLINE');
       // Cancel any pending background offline timer
       if (backgroundTimer.current) {
         clearTimeout(backgroundTimer.current);
@@ -72,14 +75,14 @@ export default function PresenceManager() {
     };
 
     const onDisconnect = (reason: string) => {
-      logger.warn('📡 PresenceManager: socket disconnected →', reason);
+      logger.warn('ðŸ“¡ PresenceManager: socket disconnected â†’', reason);
       // socket.io will auto-reconnect; do NOT immediately mark offline
     };
 
     socket.on('connect',    onConnect);
     socket.on('disconnect', onDisconnect);
 
-    // ── Page Visibility (tab hidden / app backgrounded) ──
+    // â”€â”€ Page Visibility (tab hidden / app backgrounded) â”€â”€
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden') {
         isHiddenRef.current = true;
@@ -95,7 +98,7 @@ export default function PresenceManager() {
           clearTimeout(backgroundTimer.current);
           backgroundTimer.current = null;
         }
-        // Coming back to foreground — ensure socket is alive
+        // Coming back to foreground â€” ensure socket is alive
         if (!socket.connected) {
           socket.connect();
         } else {
@@ -104,17 +107,17 @@ export default function PresenceManager() {
       }
     };
 
-    // ── Network events ──
+    // â”€â”€ Network events â”€â”€
     const handleOnline = () => {
-      logger.log('✅ Network restored — reconnecting socket');
+      logger.log('âœ… Network restored â€” reconnecting socket');
       if (!socket.connected) socket.connect();
     };
 
     const handleOffline = () => {
-      logger.warn('❌ Network lost — socket will auto-recover on reconnect');
+      logger.warn('âŒ Network lost â€” socket will auto-recover on reconnect');
     };
 
-    // ── Unload (tab/window close) ──
+    // â”€â”€ Unload (tab/window close) â”€â”€
     const handleBeforeUnload = () => {
       // Best-effort synchronous emit before the page tears down
       if (socket.connected) {
@@ -122,21 +125,10 @@ export default function PresenceManager() {
       }
     };
 
-    // ── Manager Reconnect Events ──
+    // â”€â”€ Manager Reconnect Events â”€â”€ (logging only â€” no UI, see BlockingLoader)
     const handleReconnectAttempt = (attempt: number) => {
-      logger.log(`📡 Socket reconnecting... (Attempt ${attempt})`);
-      setIsReconnecting(true);
+      logger.log(`ðŸ“¡ Socket reconnecting... (Attempt ${attempt})`);
     };
-    const handleReconnect = () => {
-      setIsReconnecting(false);
-    };
-    const handleReconnectFailed = () => {
-      setIsReconnecting(false);
-    };
-
-    socket.io.on('reconnect_attempt', handleReconnectAttempt);
-    socket.io.on('reconnect', handleReconnect);
-    socket.io.on('reconnect_failed', handleReconnectFailed);
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('online',  handleOnline);
@@ -149,8 +141,6 @@ export default function PresenceManager() {
       socket.off('connect',    onConnect);
       socket.off('disconnect', onDisconnect);
       socket.io.off('reconnect_attempt', handleReconnectAttempt);
-      socket.io.off('reconnect', handleReconnect);
-      socket.io.off('reconnect_failed', handleReconnectFailed);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('online',  handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -158,31 +148,6 @@ export default function PresenceManager() {
     };
   }, [socket, isAuthenticated, user?.user_id]);
 
-  if (!isReconnecting) return null;
-
-  return (
-    <div style={{
-      position: 'fixed',
-      top: 10,
-      left: '50%',
-      transform: 'translateX(-50%)',
-      backgroundColor: '#f59e0b',
-      color: '#fff',
-      padding: '6px 16px',
-      borderRadius: '20px',
-      fontSize: '0.875rem',
-      fontWeight: 500,
-      zIndex: 9999,
-      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px'
-    }}>
-      <div style={{
-        width: 12, height: 12, borderRadius: '50%', border: '2px solid #fff', borderTopColor: 'transparent', animation: 'spin 1s linear infinite'
-      }} />
-      Reconnecting...
-    </div>
-  );
+  return null;
 }
 

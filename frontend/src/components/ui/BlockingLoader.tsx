@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import Spinner from './Spinner';
 
 /**
  * Facebook-style blocking loader.
@@ -91,10 +92,7 @@ export const BlockingLoader: React.FC<BlockingLoaderProps> = ({
                 <ArrowLeft size={20} />
             </button>
 
-            <div
-                className="w-10 h-10 rounded-full border-2 border-[#e6d8e1] dark:border-zinc-700 border-t-[#ff1493] animate-spin drop-shadow-sm"
-                aria-hidden
-            />
+            <Spinner size="xl" className="drop-shadow-sm" />
             <p className="mt-5 text-sm font-bold text-[#18181b] dark:text-zinc-100 drop-shadow-sm">{label}</p>
             {sublabel && (
                 <p className="mt-1 text-xs text-slate-600 dark:text-zinc-400 drop-shadow-sm">{sublabel}</p>

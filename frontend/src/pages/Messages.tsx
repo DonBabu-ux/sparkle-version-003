@@ -4715,27 +4715,9 @@ export default function Messages() {
                 variant="translucent"
               />
 
-              {/* Instagram-style top loading bar while the chat's first messages load */}
-              <AnimatePresence>
-                {isChatOpening && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="fixed top-0 left-0 right-0 h-[3px] z-(--z-max) pointer-events-none overflow-hidden bg-white/[0.04]"
-                    role="status"
-                    aria-label="Opening chat"
-                  >
-                    <motion.div
-                      className="h-full w-2/5 rounded-full bg-gradient-to-r from-[#FF3D6D] to-[#FF8E53] shadow-[0_0_12px_rgba(255,61,109,0.6)]"
-                      initial={{ x: '-110%' }}
-                      animate={{ x: '320%' }}
-                      transition={{ duration: 1.05, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {/* Top load progress is the global PageLoadBar (App-level): it is
+                  driven by real request completion, so the chat's first-messages
+                  load is measured there rather than by a looping sweep. */}
 
               {/* Selection Mode Top Bar */}
               <AnimatePresence>

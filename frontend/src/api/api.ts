@@ -4,6 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { EnvironmentService } from '../services/EnvironmentService';
 import { refreshTokenOnce } from '../services/tokenRefresh';
 import { adoptServerToken } from '../utils/tokenHeaderSync';
+import { pageLoad } from '../components/ui/PageLoadBar';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl(),
@@ -18,12 +19,26 @@ const api = axios.create({
 let csrfToken: string | null = null;
 let csrfFetchAttempted = false;
 
-// Admin elevation session (second password). Short-lived, in-memory only —
-// sessionStorage so a tab refresh keeps it but closing the browser drops it.
-const ADMIN_SESSION_KEY = 'sparkle_admin_session';
-export const getAdminSession = (): string | null => sessionStorage.getItem(ADMIN_SESSION_KEY);
-export const setAdminSession = (token: string) => sessionStorage.setItem(ADMIN_SESSION_KEY, token);
-export const clearAdminSession = () => sessionStorage.removeItem(ADMIN_SESSION_KEY);
+// Admin elevation session — the SECOND, separate session that gates /admin.
+// Deliberately memory-only (never sessionStorage/localStorage): it is minted
+// by POST /admin/session with the admin password, expires server-side
+// (15 min), and disappears on every refresh/tab-close so each access of the
+// admin route re-authenticates. The account session above stays untouched.
+let adminSessionMemory: string | null = null;
+// Authoritative expiry instant (epoch ms) minted by the SERVER, plus the
+// measured offset between the server clock and this browser's clock, so the
+// countdown stays truthful even when the local machine clock is wrong.
+let adminSessionExpiresMemory: number | null = null;
+let adminClockOffsetMemory = 0;
+
+export const getAdminSession = (): string | null => adminSessionMemory;
+export const setAdminSession = (token: string) => { adminSessionMemory = token; };
+export const setAdminSessionExpires = (ts: number) => { adminSessionExpiresMemory = ts; };
+export const getAdminSessionExpires = (): number | null => adminSessionExpiresMemory;
+export const setAdminClockOffset = (serverTimeMs: number) => { adminClockOffsetMemory = serverTimeMs - Date.now(); };
+export const getAdminClockOffset = (): number => adminClockOffsetMemory;
+export const hasAdminSession = (): boolean => !!adminSessionMemory;
+export const clearAdminSession = () => { adminSessionMemory = null; adminSessionExpiresMemory = null; adminClockOffsetMemory = 0; };
 
 const fetchCsrfToken = async (): Promise<string | null> => {
   if (csrfToken) return csrfToken;
@@ -53,6 +68,10 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Honest load-progress accounting: the bar tracks real requests, so it
+    // fills as the page's own work settles instead of on a timer.
+    pageLoad.requestStart();
 
     // Admin elevation: send the session token on every /admin/* call so the
     // dashboard is authorized by the second password, not just the role.
@@ -107,11 +126,13 @@ api.interceptors.response.use(
   (response) => {
     // H26: renewal rides on every authenticated response past half-life
     adoptServerToken(response.headers);
+    pageLoad.requestEnd();
     return response;
   },
   async (error) => {
     // Same adoption on 4xx/5xx where auth still ran (401s carry no renewal)
     if (error.response) adoptServerToken(error.response.headers);
+    pageLoad.requestEnd();
     const originalRequest = error.config;
 
     // Handle Network Errors (like ERR_CONNECTION_REFUSED) - bypass retries for login/auth to respond immediately

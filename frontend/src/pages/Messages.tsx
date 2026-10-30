@@ -5080,17 +5080,17 @@ export default function Messages() {
                             <div className="relative flex flex-col">
                               {/* Forwarded indicator */}
                               {(msg.forwarded || msg.forward_count > 0 || msg.source_message_id) && !msg.is_deleted_for_everyone && (
-                                <div className="flex items-center gap-1 mb-1 select-none text-white/75">
+                                <div className="flex items-center gap-1 mb-1 select-none text-zinc-300">
                                   {(msg.forward_count || 0) > 20 ? (
                                     <>
-                                      <Forward size={11} strokeWidth={2.2} className="text-white/70" />
-                                      <Forward size={11} strokeWidth={2.2} className="text-white/70 -ml-1.5" />
-                                      <span className="text-[10.5px] text-white/75 italic font-normal tracking-tight">Forwarded many times</span>
+                                      <Forward size={11} strokeWidth={2.2} className="text-zinc-400" />
+                                      <Forward size={11} strokeWidth={2.2} className="text-zinc-400 -ml-1.5" />
+                                      <span className="text-[10.5px] text-zinc-300 italic font-normal tracking-tight">Forwarded many times</span>
                                     </>
                                   ) : (
                                     <>
-                                      <Forward size={11} strokeWidth={2.2} className="text-white/70" />
-                                      <span className="text-[10.5px] text-white/75 italic font-normal tracking-tight">Forwarded</span>
+                                      <Forward size={11} strokeWidth={2.2} className="text-zinc-400" />
+                                      <span className="text-[10.5px] text-zinc-300 italic font-normal tracking-tight">Forwarded</span>
                                     </>
                                   )}
                                 </div>
@@ -5192,7 +5192,7 @@ export default function Messages() {
                                       </span>
                                       <span className={clsx(
                                         "text-[12px] line-clamp-1 leading-snug mt-0.5 truncate",
-                                        isRefDeleted || isRefExpired ? "text-white/40 italic" : "text-white/80"
+                                        isRefDeleted || isRefExpired ? "text-zinc-500 italic" : "text-zinc-300"
                                       )}>
                                         {replyContent}
                                       </span>
@@ -5209,7 +5209,7 @@ export default function Messages() {
                                 ) : msg.is_deleted_for_everyone ? (
                                   <>
                                     {logger.log('[DELETE_RENDER]', msg.message_id)}
-                                    <span className="italic text-white/40 select-none">
+                                    <span className="italic text-zinc-500 select-none">
                                       {getDeletedMessageText(msg, isMe)}
                                     </span>
                                     {/* Spacer to prevent timestamp overlap */}

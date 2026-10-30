@@ -1,8 +1,7 @@
 const { Worker } = require('bullmq');
 const { connection } = require('../utils/queue');
-const NotificationService = require('../services/notification.service');
+const { deliverNotificationToUser } = require('../services/notificationDelivery');
 const logger = require('../utils/logger');
-const pool = require('../config/database');
 
 let worker = null;
 
@@ -21,31 +20,10 @@ if (connection) {
 
         for (const userId of userIds) {
             try {
-                const shouldSend = await NotificationService.canSendToUser(userId, eventId);
-                if (!shouldSend) continue;
-
-                await pool.query(
-                    'INSERT INTO notifications (notification_id, user_id, type, title, content, action_url) VALUES (?, ?, ?, ?, ?, ?)',
-                    [require('crypto').randomUUID(), userId, type, data.title, data.content, data.url || null]
-                );
-
-                // --- Mobile Push (FCM) ---
-                try {
-                    const [tokens] = await pool.query('SELECT token FROM fcm_tokens WHERE user_id = ?', [userId]);
-                    if (tokens.length > 0) {
-                        const { sendFcmNotification } = require('../utils/fcm');
-                        const tokenList = tokens.map(t => t.token);
-                        await sendFcmNotification(tokenList, data.title, data.content, { 
-                            type, 
-                            url: data.url || '/',
-                            // Stable per-event id → FCM tray `tag` collapses
-                            // retries/duplicates of the same notification.
-                            eventId: eventId || undefined
-                        });
-                    }
-                } catch (fcmError) {
-                    logger.error(`FCM: Delivery failed for user ${userId}:`, fcmError.message);
-                }
+                // Shared with the service's degraded direct path (the
+                // path when Redis is down) so both deliver identically,
+                // including the full event payload for deep links + avatars.
+                await deliverNotificationToUser(userId, { type, priority, data, eventId });
             } catch (error) {
                 logger.error(`Failed to deliver notification to ${userId}:`, error);
             }

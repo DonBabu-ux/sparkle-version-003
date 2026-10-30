@@ -15,7 +15,12 @@ class NotificationService {
         const { type, priority, recipients, data, eventId } = event;
 
         if (!notificationQueue) {
-            logger.warn('NotificationService: Queue is disabled. Skipping async delivery.');
+            // F2: Redis/BullMQ unavailable. Previously this returned early and
+            // the event vanished — no bell row AND no push, silently. Deliver
+            // in-process instead; the DB circuit breaker keeps it fast, and
+            // canSendToUser fails open so dedupe never blocks delivery here.
+            logger.warn('NotificationService: Queue unavailable — delivering directly (degraded mode).');
+            await this.sendDirect(event);
             return;
         }
 
@@ -62,6 +67,28 @@ class NotificationService {
                 queueLagging = true;
                 logger.warn(`NotificationService: queue add lagging (${e.message}); remaining batches enqueue without awaiting.`);
                 addPromise.catch(() => { }); // race already subscribed; keep explicit consumer
+            }
+        }
+    }
+
+    /**
+     * Degraded-mode delivery: run the same per-user pipeline (bell row +
+     * FCM) in-process when no queue is available. Shared logic lives in
+     * notificationDelivery so this and the worker cannot drift apart.
+     */
+    static async sendDirect(event) {
+        const { type, priority, recipients, data, eventId } = event;
+        const userIds = Array.isArray(recipients) ? recipients : [recipients];
+        const MAX_FANOUT = 50000;
+        const resolvedEventId = eventId || crypto.randomUUID();
+
+        for (const userId of userIds.slice(0, MAX_FANOUT)) {
+            try {
+                await require('./notificationDelivery').deliverNotificationToUser(userId, {
+                    type, priority, data, eventId: resolvedEventId
+                });
+            } catch (e) {
+                logger.error(`NotificationService: direct delivery failed for ${userId}:`, e.message);
             }
         }
     }

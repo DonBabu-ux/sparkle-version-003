@@ -4712,6 +4712,7 @@ export default function Messages() {
                 show={reconnectBlocked}
                 label="Reconnecting"
                 sublabel="Messages will send automatically"
+                variant="translucent"
               />
 
               {/* Instagram-style top loading bar while the chat's first messages load */}

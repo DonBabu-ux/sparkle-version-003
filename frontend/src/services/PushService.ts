@@ -12,10 +12,21 @@ let initialized = false;
 let listenersReady = false;
 let lastSyncKey: string | null = null;
 
-/** Notification types that deserve a native heads-up while the app is open.
- *  Social events (likes/follows/comments) stay in the bell + in-app surface
- *  while foregrounded — the system tray takes over once the app is backgrounded. */
-const FOREGROUND_HEADS_UP_TYPES = new Set(['message', 'marketplace_contact', 'call']);
+/** Notification types that ALWAYS deserve a heads-up while the app is open:
+ *  time-sensitive things (messages, marketplace contacts, calls). Social
+ *  events (likes/follows/comments) still surface, but only when they carry
+ *  a real title — a payload with neither a whitelisted type NOR displayable
+ *  content would show an empty card, so those stay bell-only. This closes
+ *  the gap where a queue notification missing `type` was silent. */
+const ALWAYS_HEADS_UP = new Set(['message', 'marketplace_contact', 'call']);
+
+const shouldHeadsUp = (n: { title?: string; body?: string; data?: unknown }): boolean => {
+    const type = n.data ? String((n.data as Record<string, unknown>).type || '') : '';
+    if (ALWAYS_HEADS_UP.has(type)) return true;
+    // Whitelisted types are the rule; anything else must at least have
+    // something to show, so the tray card is never blank.
+    return Boolean((n.title && n.title.trim()) || (n.body && n.body.trim()));
+};
 
 // In-memory conversation aggregation for recent messages (Phase 3 & 4)
 interface RecentMessageRecord {
@@ -44,19 +55,67 @@ const SUMMARY_NOTIFICATION_ID = 999_999_001;
  * Clear notification(s) for a specific conversation when the user opens or reads it.
  */
 export async function clearNotificationForChat(chatId: string): Promise<void> {
-  if (!Capacitor.isNativePlatform() || !chatId) return;
-  try {
-    recentChatMessages.delete(chatId);
-    const notifId = getStableNotificationId(`chat_${chatId}`);
-    await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
-    
-    // If no more active chat messages, dismiss summary notification as well
-    if (recentChatMessages.size === 0) {
-      await LocalNotifications.cancel({ notifications: [{ id: SUMMARY_NOTIFICATION_ID }] }).catch(() => {});
+    if (!Capacitor.isNativePlatform() || !chatId) return;
+    try {
+        recentChatMessages.delete(chatId);
+        const notifId = getStableNotificationId(`chat_${chatId}`);
+        await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+        
+        // If no more active chat messages, dismiss summary notification as well
+        if (recentChatMessages.size === 0) {
+            await LocalNotifications.cancel({ notifications: [{ id: SUMMARY_NOTIFICATION_ID }] }).catch(() => {});
+        }
+    } catch (err) {
+        logger.warn('[Push] clearNotificationForChat failed:', err);
     }
-  } catch (err) {
-    logger.warn('[Push] clearNotificationForChat failed:', err);
-  }
+}
+
+/** Recently-delivered social keys (eventId) so reading the event in the app
+ *  can dismiss its tray card. Capped to stay small. */
+const SOCIAL_TRAY_KEYS = new Set<string>();
+const SOCIAL_TRAY_LIMIT = 100;
+
+const trackSocialTrayKey = (eventId: string): number => {
+    if (!SOCIAL_TRAY_KEYS.has(eventId)) {
+        SOCIAL_TRAY_KEYS.add(eventId);
+        if (SOCIAL_TRAY_KEYS.size > SOCIAL_TRAY_LIMIT) {
+            const oldest = SOCIAL_TRAY_KEYS.values().next().value;
+            if (oldest) SOCIAL_TRAY_KEYS.delete(oldest);
+        }
+    }
+    return getStableNotificationId(`social_${eventId}`);
+};
+
+/**
+ * Clear the tray card for a social notification once the user has handled it
+ * in-app (read the post, opened the profile). Chat cards were already cleared
+ * via clearNotificationForChat; social ones lingered until swiped away.
+ */
+export async function clearNotificationByEvent(eventId: string | null | undefined): Promise<void> {
+    if (!Capacitor.isNativePlatform() || !eventId) return;
+    try {
+        const notifId = getStableNotificationId(`social_${eventId}`);
+        await LocalNotifications.cancel({ notifications: [{ id: notifId }] }).catch(() => {});
+        SOCIAL_TRAY_KEYS.delete(eventId);
+    } catch (err) {
+        logger.warn('[Push] clearNotificationByEvent failed:', err);
+    }
+}
+
+/** Cancel every tray card we have delivered this session (used on logout). */
+export async function clearAllLocalNotifications(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) return;
+    try {
+        await LocalNotifications.cancel({
+            notifications: [
+                { id: SUMMARY_NOTIFICATION_ID },
+                ...[...SOCIAL_TRAY_KEYS].map(k => ({ id: getStableNotificationId(`social_${k}`) })),
+            ]
+        }).catch(() => {});
+        SOCIAL_TRAY_KEYS.clear();
+    } catch (err) {
+        logger.warn('[Push] clearAllLocalNotifications failed:', err);
+    }
 }
 
 /** Deep link target from an FCM/local notification data payload. */
@@ -201,11 +260,17 @@ async function showForegroundHeadsUp(title: string | undefined, body: string | u
     finalBody = `(${unreadInChat}) ${preview}`;
   }
 
+  // Social (non-chat) notifications get a stable, trackable id derived from
+  // the event, so reading the event in-app can dismiss the exact card.
+  const socialKey = !chatId ? String(d.eventId || d.id || '') : '';
+  let socialNotifId: number | null = null;
+  if (socialKey) socialNotifId = trackSocialTrayKey(socialKey);
+
   try {
     const isChatMessage = type === 'message' || type === 'chat_message' || !type;
     const notificationsToSchedule: any[] = [
       {
-        id: notificationId,
+        id: socialNotifId ?? notificationId,
         title: finalTitle,
         body: finalBody,
         channelId: channelForType(type),
@@ -312,8 +377,7 @@ export async function initPushNotifications(): Promise<void> {
       // Foreground: system does NOT auto-display notification payloads —
       // surface message-ish events as a native heads-up ourselves.
       await PushNotifications.addListener('pushNotificationReceived', (n) => {
-        const type = n.data ? String((n.data as Record<string, unknown>).type || '') : '';
-        if (!FOREGROUND_HEADS_UP_TYPES.has(type)) return;
+        if (!shouldHeadsUp(n)) return;
         void showForegroundHeadsUp(n.title, n.body, n.data);
       });
 

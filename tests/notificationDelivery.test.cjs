@@ -31,8 +31,18 @@ test('delivery forwards the caller data payload, not just three fields', () => {
 
 test('delivery sends senderAvatar through to the tray image', () => {
     const s = delivery();
-    assert.ok(/sendFcmNotification\(tokens\.map/.test(s), 'sends to the user device tokens');
-    assert.ok(/fcmData/.test(s) && /data\.title, data\.content, fcmData/.test(s), 'full payload handed to the FCM layer');
+    assert.ok(/sendFcmNotification/.test(s), 'sends to the user device tokens');
+    assert.ok(/fcmData/.test(s) && /data\.title, data\.content/.test(s), 'full payload handed to the FCM layer');
+});
+
+test('delivery scopes the tray tag per token so multi-device does not overwrite', () => {
+    const s = delivery();
+    // F7: one multicast carries a single tag — a second device joining the
+    // same event replaced the first device's card. Sends are now per-token.
+    assert.ok(/for \(const t of tokens\)/.test(s), 'iterates tokens individually');
+    assert.ok(/perToken\.tag = /.test(s), 'each token gets its own tag');
+    assert.ok(/shortHash\(t\.token\)/.test(s), 'tag is device-scoped via token hash');
+    assert.ok(/sendFcmNotification\(\[t\.token\]/.test(s), 'single-token send');
 });
 
 test('oversized payloads degrade to core fields instead of failing', () => {

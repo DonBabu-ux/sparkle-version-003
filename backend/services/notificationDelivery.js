@@ -14,6 +14,17 @@ const logger = require('../utils/logger');
 // guard anyway so a bloated payload can never fail the whole send.
 const MAX_FCM_DATA_BYTES = 3000;
 
+/** Rebuilds the same tray tag fcm.js computes, so we can scope it per token. */
+const stringifiedEventTag = (d) => {
+    if (d.tag) return String(d.tag);
+    if (d.chatId) return `chat_${String(d.chatId)}`;
+    if (d.eventId) return String(d.eventId);
+    return null;
+};
+
+const shortHash = (s) =>
+    require('crypto').createHash('sha256').update(String(s)).digest('hex').slice(0, 8);
+
 async function deliverNotificationToUser(userId, { type, priority, data, eventId }) {
     // Required lazily: notification.service requires THIS module for its
     // degraded path, so a top-level require would be a cycle.
@@ -66,7 +77,17 @@ async function pushToUserDevices(userId, type, data, eventId) {
             return;
         }
 
-        await sendFcmNotification(tokens.map(t => t.token), data.title, data.content, fcmData);
+        // F7: send per-token with a token-scoped tag. One multicast carries a
+        // single `tag`, so a second device joining the same event REPLACED the
+        // first device's card instead of both showing. A short hash of the
+        // token keeps the tag stable for that device (retries still collapse)
+        // while letting each device keep its own card.
+        const tag = stringifiedEventTag(fcmData);
+        for (const t of tokens) {
+            const perToken = { ...fcmData };
+            if (tag) perToken.tag = `${tag}_${shortHash(t.token)}`;
+            await sendFcmNotification([t.token], data.title, data.content, perToken);
+        }
     } catch (err) {
         logger.error(`FCM: Delivery failed for user ${userId}:`, err.message);
     }

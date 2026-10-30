@@ -49,7 +49,7 @@ export default function Orders() {
   return (
     <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/marketplace')} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
@@ -62,12 +62,12 @@ export default function Orders() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Spinner size="large" color="text-primary" />
-            <p className="text-marketplace-muted font-bold animate-pulse">Reading ledgers...</p>
+            <p className="text-marketplace-muted font-medium animate-pulse">Loading your orders...</p>
           </div>
         ) : error ? (
           <ErrorRetry onRetry={fetchOrders} />
         ) : orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-center">
+          <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-3xl border-2 border-dashed border-marketplace-border text-center">
             <ShoppingCart size={64} className="text-marketplace-muted/30 mb-6" />
             <h3 className="text-2xl font-black mb-2">No orders found</h3>
             <p className="text-marketplace-muted font-medium mb-8">Your transaction history is empty.</p>
@@ -95,12 +95,12 @@ export default function Orders() {
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-center mb-1">
-                    <span className="text-[11px] font-black text-marketplace-muted uppercase tracking-[0.2em]">#{order.order_id.slice(-6).toUpperCase()}</span>
+                    <span className="text-xs font-medium text-marketplace-muted tracking-tight">#{order.order_id.slice(-6).toUpperCase()}</span>
                     <span className={clsx(
-                      "text-[10px] font-black uppercase px-2 py-1 rounded-lg",
-                      order.status?.toLowerCase() === 'completed' ? "bg-emerald-50 text-emerald-600"
-                        : ['cancelled', 'rejected', 'disputed'].includes(order.status?.toLowerCase() || '') ? "bg-rose-50 text-rose-600"
-                        : "bg-blue-50 text-blue-600"
+                      "text-[11px] font-semibold px-2.5 py-0.5 rounded-full",
+                      order.status?.toLowerCase() === 'completed' ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        : ['cancelled', 'rejected', 'disputed'].includes(order.status?.toLowerCase() || '') ? "bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400"
+                        : "bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
                     )}>
                       {order.status || 'Pending'}
                     </span>

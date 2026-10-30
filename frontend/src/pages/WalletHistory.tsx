@@ -74,20 +74,21 @@ export default function WalletHistory() {
   );
 
   return (
-    <div className="min-h-dvh bg-[#f8e7ed] text-slate-800 font-sans pb-16 relative">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 font-sans pb-16 relative">
       <style>{`
-        .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
+        .glass-card { background: #fdf8fa; border: 1px solid #e6d8e1; }
+        .dark .glass-card { background: #27272a; border-color: #3f3f46; }
       `}</style>
 
       {/* Header */}
-      <div className="bg-white dark:bg-zinc-800 border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-[#fdf8fa] dark:bg-zinc-800 border-b border-[#ede3e9] dark:border-zinc-700 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
           </button>
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Transaction History</h1>
-            <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Your recent transactions</p>
+            <h1 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 tracking-tight leading-none">Transaction history</h1>
+            <p className="text-xs text-slate-600 dark:text-zinc-400 font-medium mt-0.5">Your recent transactions</p>
           </div>
         </div>
         <button onClick={fetchHistory} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
@@ -98,27 +99,27 @@ export default function WalletHistory() {
       <main className="max-w-[800px] mx-auto p-4 md:p-6 space-y-4">
         {/* Search & Filters */}
         <div className="glass-card p-4 rounded-3xl space-y-3 shadow-sm">
-          <div className="flex items-center gap-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-2xl px-3 py-2">
-            <Search size={16} className="text-slate-400" />
+          <div className="flex items-center gap-2 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl px-3 py-2">
+            <Search size={16} className="text-slate-600 dark:text-zinc-300" />
             <input
               type="text"
               placeholder="Search reference or transaction type..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-none text-sm text-slate-800 focus:outline-none placeholder-slate-400 font-semibold"
+              className="w-full bg-transparent border-none text-sm text-[#18181b] dark:text-zinc-100 focus:outline-none placeholder:text-slate-600 dark:placeholder:text-zinc-300 font-medium"
             />
           </div>
 
           <div className="flex gap-2 overflow-x-auto pb-1">
             <div className="flex items-center gap-1.5 shrink-0">
-              <Filter size={12} className="text-slate-400" />
-              <span className="text-[9px] font-black uppercase text-slate-500 dark:text-zinc-300">Filter:</span>
+              <Filter size={12} className="text-slate-600 dark:text-zinc-300" />
+              <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Filter:</span>
             </div>
             
             <select
               value={typeFilter}
               onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
+              className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs font-medium text-[#18181b] dark:text-zinc-100 focus:outline-none"
             >
               <option value="">All Types</option>
               <option value="Deposit">Deposit</option>
@@ -132,7 +133,7 @@ export default function WalletHistory() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-              className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl px-2 py-1 text-[10px] font-bold text-slate-600 dark:text-zinc-300 focus:outline-none"
+              className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-xl px-3 py-1.5 text-xs font-medium text-[#18181b] dark:text-zinc-100 focus:outline-none"
             >
               <option value="">All Statuses</option>
               <option value="Completed">Completed</option>
@@ -150,12 +151,12 @@ export default function WalletHistory() {
             </div>
           ) : filteredTransactions.length === 0 ? (
             <div className="text-center py-20 flex-1 flex flex-col items-center justify-center space-y-3">
-              <Calendar size={40} className="text-slate-300" />
-              <p className="text-sm font-black text-slate-400 uppercase italic">No transactions found</p>
-              <p className="text-xs text-slate-400 font-medium">Try resetting your search query or filters.</p>
+              <Calendar size={40} className="text-slate-600 dark:text-zinc-300" />
+              <p className="text-base font-bold text-[#18181b] dark:text-zinc-100">No transactions found</p>
+              <p className="text-[13px] text-slate-600 dark:text-zinc-400 font-medium">Try resetting your search query or filters.</p>
             </div>
           ) : (
-            <div className="divide-y divide-slate-100 flex-1">
+            <div className="divide-y divide-[#ede3e9] dark:divide-zinc-900 flex-1">
               {filteredTransactions.map((txn) => {
                 const isCredit = ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Refund'].includes(txn.type);
                 return (
@@ -166,25 +167,25 @@ export default function WalletHistory() {
                     className="flex items-center justify-between py-4"
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 flex items-center justify-center">
-                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-500 dark:text-zinc-300" />}
+                      <div className="w-10 h-10 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center">
+                        {TXN_ICONS[txn.type] || <Activity size={18} className="text-slate-600 dark:text-zinc-300" />}
                       </div>
                       <div>
-                        <p className="text-xs font-black text-slate-900 uppercase italic">{txn.type}</p>
-                        <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">
+                        <p className="text-[13px] font-semibold text-[#18181b] dark:text-zinc-100">{txn.type}</p>
+                        <p className="text-[11px] text-slate-600 dark:text-zinc-400 font-medium mt-0.5">
                           {txn.reference} • {new Date(txn.created_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}
                         </p>
                       </div>
                     </div>
-                    
+
                     <div className="flex flex-col items-end gap-1.5">
-                      <span className={`text-sm font-black italic ${isCredit ? 'text-emerald-600' : 'text-red-500'}`}>
+                      <span className={`text-sm font-bold ${isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500 dark:text-red-400'}`}>
                         {isCredit ? '+' : '−'}{formatKES(txn.amount)}
                       </span>
-                      <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
-                        txn.status === 'Completed' ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
-                        txn.status === 'Pending' ? 'bg-amber-50 border-amber-200 text-amber-600' :
-                        'bg-red-50 border-red-200 text-red-600'
+                      <span className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                        txn.status === 'Completed' ? 'bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-500/10 dark:border-emerald-500/20 dark:text-emerald-400' :
+                        txn.status === 'Pending' ? 'bg-amber-50 border-amber-200 text-amber-600 dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400' :
+                        'bg-red-50 border-red-200 text-red-600 dark:bg-red-500/10 dark:border-red-500/20 dark:text-red-400'
                       }`}>
                         {txn.status}
                       </span>
@@ -197,21 +198,21 @@ export default function WalletHistory() {
 
           {/* Pagination */}
           {totalPages > 1 && !loading && (
-            <div className="flex items-center justify-between pt-6 border-t border-slate-100 mt-6">
+            <div className="flex items-center justify-between pt-6 border-t border-[#ede3e9] dark:border-zinc-900 mt-6">
               <button
                 disabled={page === 1}
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                className="px-4 h-9 border border-[#e6d8e1] dark:border-zinc-700 rounded-full text-xs font-semibold text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 <ChevronLeft size={14} /> Prev
               </button>
-              <span className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase">
+              <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">
                 Page {page} of {totalPages}
               </span>
               <button
                 disabled={page === totalPages}
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                className="px-4 py-2 border border-slate-200 rounded-xl text-[10px] font-black uppercase text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-slate-50 disabled:opacity-40 disabled:hover:bg-transparent"
+                className="px-4 h-9 border border-[#e6d8e1] dark:border-zinc-700 rounded-full text-xs font-semibold text-slate-600 dark:text-zinc-300 flex items-center gap-1 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 disabled:opacity-40 disabled:hover:bg-transparent"
               >
                 Next <ChevronRight size={14} />
               </button>
@@ -221,9 +222,9 @@ export default function WalletHistory() {
 
         {/* Security / System compliance info */}
         <div className="flex items-center justify-center gap-2 py-4 text-center">
-          <ShieldCheck size={16} className="text-[#ff1493]" />
-          <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
-            Audit Ledger Powered by Sparkle Payment System
+          <ShieldCheck size={16} className="text-primary" />
+          <span className="text-[11px] font-medium text-slate-600 dark:text-zinc-400">
+            Your transactions are secured by the Sparkle payment system
           </span>
         </div>
       </main>

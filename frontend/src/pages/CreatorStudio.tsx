@@ -48,23 +48,20 @@ export default function CreatorStudio() {
   }, [fetchStats]);
 
   return (
-    <div className="min-h-dvh bg-[#f8e7ed] text-slate-800 font-sans pb-16 relative">
-      <style>{`
-        .glass-card { background: rgba(255, 255, 255, 0.85); border: 1px solid rgba(255, 31, 109, 0.15); backdrop-filter: blur(20px); }
-      `}</style>
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-zinc-100 font-sans pb-16">
 
       {/* Header */}
-      <div className="bg-white dark:bg-zinc-800 border-b border-slate-100 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
+      <div className="bg-[#fdf8fa] dark:bg-zinc-800 border-b border-[#e6d8e1] dark:border-zinc-700 px-4 py-3 sticky top-0 z-50 shadow-sm flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-            <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
+          <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors">
+            <ArrowLeft size={20} className="text-[#18181b] dark:text-zinc-100" strokeWidth={2.5} />
           </button>
           <div>
-            <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Creator Studio</h1>
-            <p className="text-[8px] font-black text-[#ff1493] uppercase tracking-widest italic mt-0.5">Content command center</p>
+            <h1 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 tracking-tight leading-none">Creator Studio</h1>
+            <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Create and manage your content</p>
           </div>
         </div>
-        <button onClick={fetchStats} className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
+        <button onClick={fetchStats} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors text-slate-600 dark:text-zinc-300">
           <RefreshCw size={18} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
@@ -75,68 +72,66 @@ export default function CreatorStudio() {
             <Spinner size="large" color="text-[#ff1493]" />
           </div>
         ) : (
-          <div className="relative z-0">
+          <div>
             {/* Quick Actions Panel */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { title: 'Moment upload', desc: 'Share dynamic short videos.', icon: <Video size={18} />, color: 'from-[#ff1493] to-[#ff6b35]', onClick: () => navigate('/moments/create') },
-                { title: 'Create Story', desc: 'Post stories on student wall.', icon: <Sparkles size={18} />, color: 'from-violet-500 to-purple-500', onClick: () => navigate('/afterglow/create') },
-                { title: 'Go Live Stream', desc: 'Go live with your followers.', icon: <Radio size={18} />, color: 'from-amber-500 to-orange-500', onClick: () => navigate('/streams') },
+                { title: 'Upload moment', desc: 'Share a short video with your followers.', icon: <Video size={18} />, onClick: () => navigate('/moments/create') },
+                { title: 'Create story', desc: 'Post a story to the student wall.', icon: <Sparkles size={18} />, onClick: () => navigate('/afterglow/create') },
+                { title: 'Go live', desc: 'Start a live stream with your followers.', icon: <Radio size={18} />, onClick: () => navigate('/streams') },
               ].map((act, i) => (
                 <motion.div
                   key={i}
                   whileHover={{ y: -3, scale: 1.02 }}
                   onClick={act.onClick}
-                  className="glass-card p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border-slate-100 hover:border-[#ff1493]/20 transition-all bg-white dark:bg-zinc-800"
+                  className="bg-[#fdf8fa] dark:bg-zinc-800 p-5 rounded-3xl cursor-pointer shadow-sm flex items-start justify-between border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/40 transition-colors"
                 >
                   <div className="space-y-2">
-                    <h3 className="text-xs font-black text-slate-800 uppercase italic tracking-wider">{act.title}</h3>
-                    <p className="text-[10px] text-slate-500 dark:text-zinc-300 font-medium leading-relaxed">{act.desc}</p>
+                    <h3 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{act.title}</h3>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 leading-relaxed">{act.desc}</p>
                   </div>
-                  <div className={`w-10 h-10 rounded-2xl bg-gradient-to-br ${act.color} flex items-center justify-center text-white shadow-md`}>
-                    {act.icon}
-                  </div>
+                  <span className="text-[#ff1493]">{act.icon}</span>
                 </motion.div>
               ))}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
               {/* Studio Stats Summary */}
-              <div className="glass-card rounded-3xl p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-black text-slate-900 italic uppercase">Dashboard Stats</h3>
+              <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Your stats</h3>
                 <div className="space-y-3">
                   {[
-                    { label: 'Followers Gained', value: stats?.followers || 0, icon: <Flame size={16} className="text-amber-500" /> },
-                    { label: 'Sparks Received', value: stats?.totalSparks || 0, icon: <Flame size={16} className="text-[#ff1493]" /> },
-                    { label: 'Video Performance', value: stats?.videoViews || 0, icon: <Play size={16} className="text-indigo-500" /> },
+                    { label: 'Followers', value: stats?.followers || 0, icon: <Flame size={16} className="text-[#ff1493]" /> },
+                    { label: 'Sparks received', value: stats?.totalSparks || 0, icon: <Flame size={16} className="text-[#ff1493]" /> },
+                    { label: 'Video views', value: stats?.videoViews || 0, icon: <Play size={16} className="text-[#ff1493]" /> },
                   ].map((st, i) => (
-                    <div key={i} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 rounded-2xl">
+                    <div key={i} className="flex justify-between items-center p-3 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl">
                       <div className="flex items-center gap-2">
                         {st.icon}
-                        <span className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">{st.label}</span>
+                        <span className="text-xs uppercase tracking-wide font-semibold text-slate-600 dark:text-zinc-300">{st.label}</span>
                       </div>
-                      <span className="text-sm font-black text-slate-900 italic">{st.value.toLocaleString()}</span>
+                      <span className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{st.value.toLocaleString()}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Uploaded Portfolio Content List */}
-              <div className="md:col-span-2 glass-card rounded-3xl p-6 shadow-sm space-y-4">
-                <h3 className="text-sm font-black text-slate-900 italic uppercase">Recent Publications</h3>
+              <div className="md:col-span-2 bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Recent uploads</h3>
                 {content.length > 0 ? (
                   <div className="space-y-3">
                     {content.map((item) => (
-                      <div key={item.id} className="p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 rounded-2xl flex items-center justify-between">
+                      <div key={item.id} className="p-4 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-white dark:bg-zinc-800 border border-slate-200 flex items-center justify-center">
-                            {item.type === 'Video' ? <Video size={16} className="text-[#ff1493]" /> :
-                             item.type === 'Image' ? <ImageIcon size={16} className="text-pink-500" /> :
-                            <FileText size={16} className="text-purple-500" />}
-                          </div>
+                          <span className="text-[#ff1493]">
+                            {item.type === 'Video' ? <Video size={16} /> :
+                             item.type === 'Image' ? <ImageIcon size={16} /> :
+                             <FileText size={16} />}
+                          </span>
                           <div>
-                            <h4 className="text-xs font-black text-slate-800 uppercase italic leading-none">{item.title}</h4>
-                            <p className="text-[8px] text-slate-400 font-bold uppercase italic tracking-wider mt-1.5 flex items-center gap-2">
+                            <h4 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 leading-none">{item.title}</h4>
+                            <p className="text-xs font-medium text-slate-600 dark:text-zinc-300 mt-1.5 flex items-center gap-2">
                               <span>{item.type}</span>
                               <span>•</span>
                               <span>{new Date(item.created_at).toLocaleDateString('en-KE', { dateStyle: 'medium' })}</span>
@@ -146,22 +141,22 @@ export default function CreatorStudio() {
 
                         <div className="flex gap-4 items-center">
                           <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-800 italic">{item.reach.toLocaleString()}</p>
-                            <p className="text-[8px] font-black text-slate-400 uppercase italic">reach</p>
+                            <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{item.reach.toLocaleString()}</p>
+                            <p className="text-xs font-medium text-slate-600 dark:text-zinc-300">reach</p>
                           </div>
                           <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-800 italic">{item.sparks.toLocaleString()}</p>
-                            <p className="text-[8px] font-black text-slate-400 uppercase italic">sparks</p>
+                            <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">{item.sparks.toLocaleString()}</p>
+                            <p className="text-xs font-medium text-slate-600 dark:text-zinc-300">sparks</p>
                           </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-12 text-center opacity-50">
-                    <FileText size={32} className="text-slate-400 mb-3" />
-                    <p className="text-xs font-bold text-slate-500 dark:text-zinc-300 uppercase tracking-widest">No publications yet</p>
-                    <p className="text-[10px] text-slate-400 mt-1">Your uploaded content will appear here.</p>
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <FileText size={32} className="text-slate-600 dark:text-zinc-300 mb-3" />
+                    <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No uploads yet</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Content you upload will show up here.</p>
                   </div>
                 )}
               </div>
@@ -172,6 +167,3 @@ export default function CreatorStudio() {
     </div>
   );
 }
-
-
-

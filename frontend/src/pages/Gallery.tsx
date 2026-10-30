@@ -27,17 +27,17 @@ function LazyMediaCard({ m, onClick }: { m: Post; idx: number; onClick: () => vo
   const isVideo = m.media_type === 'video' || (m.media_url && m.media_url.match(/\.(mp4|webm|ogg|mov)$/i));
 
   return (
-    <div 
+    <div
       ref={cardRef}
-      className={`aspect-square relative group cursor-pointer rounded-[32px] md:rounded-[48px] overflow-hidden border border-black/5 bg-white shadow-2xl shadow-black/5 transition-all duration-1000 hover:-translate-y-2 md:hover:-translate-y-4 ${isVisible ? 'animate-scale-in opacity-100' : 'opacity-0'}`} 
+      className={`aspect-square relative group cursor-pointer rounded-2xl overflow-hidden border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800 shadow-sm transition-all duration-300 ${isVisible ? 'animate-scale-in opacity-100' : 'opacity-0'}`}
       onClick={onClick}
     >
       {isVisible ? (
         isVideo ? (
           <div className="w-full h-full relative">
             <video src={m.media_url} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-[1500ms]" preload="metadata" />
-            <div className="absolute top-4 left-4 md:top-8 md:left-8 p-3 md:p-4 bg-white/20 backdrop-blur-xl border border-white/20 rounded-2xl text-white shadow-2xl z-10">
-              <PlayCircle size={20} fill="white" strokeWidth={0} className="md:w-6 md:h-6" />
+            <div className="absolute top-3 left-3 p-2 rounded-full bg-black/60 text-white z-10">
+              <PlayCircle size={16} fill="white" strokeWidth={0} />
             </div>
           </div>
         ) : (
@@ -49,19 +49,17 @@ function LazyMediaCard({ m, onClick }: { m: Post; idx: number; onClick: () => vo
           />
         )
       ) : (
-        <div className="w-full h-full bg-black/[0.02]" />
+        <div className="w-full h-full bg-[#f6eef3] dark:bg-zinc-900" />
       )}
-      
-      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700 p-6 md:p-10 flex flex-col justify-end gap-4 md:gap-6 backdrop-blur-[2px]">
-        <div className="flex items-center gap-4 md:gap-8">
-          <div className="flex items-center gap-2 md:gap-3 text-white font-black text-[10px] md:text-[12px] uppercase tracking-widest font-heading italic">
-            <Heart size={16} strokeWidth={4} className="fill-primary text-primary md:w-5 md:h-5" />
-            {m.sparks || 0}
-          </div>
-          <div className="flex items-center gap-2 md:gap-3 text-white font-black text-[10px] md:text-[12px] uppercase tracking-widest font-heading italic">
-            <Eye size={16} strokeWidth={3} className="text-white/40 md:w-5 md:h-5" />
-            {m.comments || 0}
-          </div>
+
+      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-4 flex items-end gap-4">
+        <div className="flex items-center gap-1.5 text-white text-xs font-semibold">
+          <Heart size={14} strokeWidth={2.5} className="fill-[#ff1493] text-[#ff1493]" />
+          {m.sparks || 0}
+        </div>
+        <div className="flex items-center gap-1.5 text-white text-xs font-semibold">
+          <Eye size={14} strokeWidth={2.5} />
+          {m.comments || 0}
         </div>
       </div>
     </div>
@@ -104,34 +102,38 @@ export default function Gallery() {
   });
 
   return (
-    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden">
-      <div className="flex-1 px-4 py-8 md:px-20 md:py-32 max-w-[1400px] mx-auto w-full relative">
-        {/* Subtle ambient glow */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/[0.04] blur-[120px] rounded-full pointer-events-none" />
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 overflow-x-hidden">
+      <div className="flex-1 px-4 py-8 md:px-8 md:py-12 max-w-[1400px] mx-auto w-full">
 
-        <header className="mb-12 md:mb-24 flex flex-col xl:flex-row xl:items-end justify-between gap-8 md:gap-12 animate-fade-in relative z-10">
-          <div className="max-w-3xl space-y-6 md:space-y-8">
-            <div className="inline-flex items-center gap-3 px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-black/5 border border-black/5 dark:border-white/5">
-              <Layers size={16} className="text-primary md:w-[18px]" />
-              <span className="text-[9px] md:text-[10px] font-black text-black/40 uppercase tracking-[0.4em]">Visual Archive</span>
+        <header className="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-5 animate-fade-in">
+          <div className="space-y-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 text-xs font-semibold">
+              <Layers size={14} className="text-primary" />
+              <span>Gallery</span>
             </div>
-            <h1 className="font-heading font-black text-5xl md:text-7xl lg:text-9xl text-[#18181b] dark:text-white tracking-tighter italic uppercase leading-[0.85]">
-              Media <br /><span className="text-primary italic">Gallery.</span>
-            </h1>
-            <p className="text-sm md:text-lg font-semibold text-black/30 leading-relaxed border-l-4 border-primary/30 pl-6 md:pl-8">
-               A curated collection of your shared moments, stories, and visual contributions to the campus spirit.
-            </p>
+            <div>
+              <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight">
+                Media Gallery
+              </h1>
+              <p className="text-[13px] text-slate-600 dark:text-zinc-400 leading-relaxed mt-2 max-w-xl">
+                Photos and videos shared across campus.
+              </p>
+            </div>
           </div>
 
-          <div className="flex flex-wrap lg:flex-nowrap bg-black/[0.02] border border-black/5 dark:border-white/5 p-2 rounded-[24px] md:rounded-[32px] shadow-sm overflow-x-auto no-scrollbar">
+          <div className="flex w-full lg:w-auto items-center gap-2 overflow-x-auto p-1.5 bg-[#f0e5ec] dark:bg-zinc-700 rounded-[1.5rem] border border-[#e6d8e1] dark:border-zinc-700 no-scrollbar">
             {( [
               { key: 'all', icon: Grid, label: 'Everything' },
               { key: 'photos', icon: ImageIcon, label: 'Photos' },
               { key: 'videos', icon: PlayCircle, label: 'Videos' }
             ] as const).map(tab => (
-              <button 
+              <button
                 key={tab.key}
-                className={`flex-shrink-0 px-6 py-4 md:px-10 md:py-5 rounded-[20px] md:rounded-[28px] font-black text-[10px] md:text-[11px] uppercase tracking-[0.2em] md:tracking-[0.3em] transition-all duration-700 flex items-center gap-3 md:gap-4 font-heading italic ${filter === tab.key ? 'bg-black text-white shadow-2xl scale-105' : 'text-black/30 hover:text-black hover:bg-black/5'}`}
+                className={`flex min-w-0 flex-1 items-center justify-center gap-2 h-11 px-4 rounded-2xl text-[12px] font-bold transition-colors whitespace-nowrap ${
+                  filter === tab.key
+                    ? 'bg-[#fdf8fa] dark:bg-zinc-800 text-[#18181b] dark:text-zinc-100 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm'
+                    : 'text-slate-600 dark:text-zinc-400 hover:text-[#18181b] dark:hover:text-zinc-100'
+                }`}
                 onClick={() => setFilter(tab.key)}
               >
                 <tab.icon size={16} />
@@ -143,24 +145,24 @@ export default function Gallery() {
 
         <div className="relative z-10 pb-40">
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {[...Array(12)].map((_, i) => (
-                <div key={i} className="aspect-square bg-black/[0.02] border border-black/5 dark:border-white/5 rounded-[32px] md:rounded-[48px] animate-pulse" />
+                <div key={i} className="aspect-square bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl animate-pulse" />
               ))}
             </div>
           ) : error ? (
             <ErrorRetry onRetry={fetchMedia} />
           ) : filteredMedia.length === 0 ? (
-            <div className="py-32 md:py-64 flex flex-col items-center justify-center gap-8 md:gap-12 text-center animate-fade-in bg-black/[0.01] border-[8px] md:border-[12px] border-dashed border-black/5 dark:border-white/5 rounded-[48px] md:rounded-[96px] shadow-inner px-4">
-               <Layers size={40} strokeWidth={1} className="text-black/10 md:w-[60px] md:h-[60px]" />
-               <div className="space-y-4 md:space-y-6">
-                 <h3 className="font-heading font-black text-3xl md:text-5xl text-black/10 italic uppercase tracking-tighter">Archive Empty.</h3>
-                 <p className="text-[10px] md:text-sm font-medium text-black/20 uppercase tracking-[0.2em] max-w-xs mx-auto">You haven't shared any {filter !== 'all' ? filter : 'media'} yet.</p>
-                 <button onClick={() => navigate('/dashboard')} className="mt-6 md:mt-8 px-8 py-4 md:px-12 md:py-5 bg-black text-white rounded-full font-black text-[10px] md:text-[11px] uppercase tracking-[0.3em] shadow-2xl hover:bg-primary transition-all active:scale-95">Start Sharing</button>
+            <div className="py-20 flex flex-col items-center justify-center gap-6 text-center animate-fade-in bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl px-4">
+               <Layers size={32} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-400" />
+               <div className="space-y-4">
+                 <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">Nothing here yet</h3>
+                 <p className="text-[13px] text-slate-600 dark:text-zinc-400 max-w-sm mx-auto">You haven't shared any {filter !== 'all' ? filter : 'media'} yet.</p>
+                 <button onClick={() => navigate('/dashboard')} className="mt-2 px-5 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">Start sharing</button>
                </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-8">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
               {filteredMedia.map((m, idx) => (
                 <LazyMediaCard key={m.post_id} m={m} idx={idx} onClick={() => navigate(`/post/${m.post_id}`)} />
               ))}

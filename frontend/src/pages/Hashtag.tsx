@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Hash, ArrowLeft, Orbit } from 'lucide-react';
+import { Hash, ArrowLeft } from 'lucide-react';
 import PostCard from '../components/PostCard';
 import api from '../api/api';
 import type { Post } from '../types/post';
@@ -39,54 +39,46 @@ export default function Hashtag() {
   }, [tag, fetchPosts]);
 
   return (
-    <div className="flex bg-[#f8e7ed] dark:bg-zinc-800 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans transition-colors duration-300">
-
-      {/* Background orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[700px] h-[700px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-0 left-[-5%] w-[500px] h-[500px] bg-primary/10 dark:bg-primary/5 rounded-full blur-[120px] pointer-events-none z-0" />
+    <div className="flex bg-[#f8e7ed] dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-zinc-100 overflow-x-hidden font-sans">
 
       <main className="flex-1 p-6 lg:p-12 relative z-10 max-w-4xl mx-auto w-full">
-        
-        <button 
+
+        <button
           onClick={() => navigate(-1)}
-          className="mb-8 w-12 h-12 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-xl shadow-sm flex items-center justify-center text-[#18181b] dark:text-white hover:border-primary/30 hover:text-primary transition-all active:scale-95 group"
+          className="mb-8 w-12 h-12 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-full shadow-sm flex items-center justify-center text-[#18181b] dark:text-zinc-100 hover:text-primary transition-colors active:scale-95 group"
         >
           <ArrowLeft size={20} strokeWidth={2.5} className="group-hover:-translate-x-1 transition-transform" />
         </button>
 
-        <header className="flex flex-col md:flex-row items-center justify-between gap-8 mb-12 animate-fade-in p-6 md:p-10 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-3xl shadow-xl">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-               <div className="w-16 h-16 bg-primary/10 text-primary rounded-2xl flex items-center justify-center shadow-sm shrink-0">
-                  <Hash size={28} strokeWidth={3} />
-               </div>
+        <header className="flex flex-col md:flex-row items-center justify-between gap-5 mb-8 animate-fade-in p-6 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl shadow-sm">
+            <div className="flex flex-col md:flex-row items-center gap-5">
+               <Hash size={28} strokeWidth={2.5} className="text-primary shrink-0" />
                <div className="text-center md:text-left min-w-0">
-                  <h1 className="text-4xl md:text-5xl font-black text-[#18181b] dark:text-white tracking-tight leading-none italic uppercase">#{tag}</h1>
-                  <p className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest mt-2">{posts.length} Posts In Feed</p>
+                  <h1 className="text-3xl font-black text-[#18181b] dark:text-zinc-100 tracking-tight leading-none">#{tag}</h1>
+                  <p className="text-xs text-slate-600 dark:text-zinc-400 mt-1">{posts.length} {posts.length === 1 ? 'post' : 'posts'}</p>
                </div>
             </div>
-            
-            <button 
+
+            <button
               onClick={handleFollow}
-              className={`w-full md:w-auto px-10 h-12 rounded-xl font-bold text-xs uppercase tracking-widest transition-all duration-300 shadow-lg ${isFollowing ? 'bg-black dark:bg-white text-white dark:text-black hover:bg-black/90 dark:hover:bg-white/90' : 'bg-primary text-white shadow-primary/20 hover:shadow-xl hover:translate-y-[-2px] active:translate-y-0'}`}
+              className={`w-full md:w-auto px-6 h-11 rounded-full text-sm font-bold transition-colors ${isFollowing ? 'bg-[#f0e5ec] dark:bg-zinc-700 text-[#18181b] dark:text-zinc-100' : 'bg-primary text-white hover:bg-[#ff2d87]'}`}
             >
-              {isFollowing ? 'Following' : 'Follow Tag'}
+              {isFollowing ? 'Following' : 'Follow tag'}
             </button>
         </header>
 
-        <div className="flex flex-col gap-12 animate-fade-in relative z-10 pb-64 px-2">
+        <div className="flex flex-col gap-5 animate-fade-in relative z-10 pb-20 px-2">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
-              <div key={i} className="h-64 bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/5 rounded-3xl animate-pulse" />
+              <div key={i} className="h-64 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />
             ))
           ) : posts.length === 0 ? (
-            <div className="py-24 flex flex-col items-center justify-center text-center gap-8 bg-white dark:bg-white/5 border border-black/5 dark:border-white/10 rounded-3xl shadow-xl px-6 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-10 text-primary/5 pointer-events-none">
-                  <Orbit size={200} strokeWidth={1} className="animate-spin-slow" />
-               </div>
+            <div className="py-16 flex flex-col items-center justify-center text-center gap-4 bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl px-6">
+               <Hash size={32} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-400" />
                <div className="space-y-4">
-                  <h3 className="text-4xl font-black text-[#18181b] dark:text-white italic uppercase tracking-tight">Quiet Zone</h3>
-                  <p className="text-[10px] font-bold text-black/40 dark:text-white/40 uppercase tracking-widest max-w-xs mx-auto">Be the first to ignite this hashtag with your content.</p>
-                  <button onClick={() => navigate('/dashboard')} className="mt-4 h-12 px-8 bg-primary text-white rounded-xl font-bold text-xs uppercase tracking-widest hover:translate-y-[-2px] transition-all shadow-lg shadow-primary/10">Start The Conversation</button>
+                  <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">You've seen it all</h3>
+                  <p className="text-[13px] text-slate-600 dark:text-zinc-400 max-w-sm mx-auto">Nobody has posted with this hashtag yet. Be the first to add something.</p>
+                  <button onClick={() => navigate('/dashboard')} className="mt-2 px-5 h-11 bg-primary text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">Create a post</button>
                </div>
             </div>
           ) : (
@@ -94,11 +86,6 @@ export default function Hashtag() {
           )}
         </div>
       </main>
-
-      <style>{`
-        
-        
-      `}</style>
     </div>
   );
 }

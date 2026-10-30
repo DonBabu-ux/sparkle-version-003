@@ -63,7 +63,7 @@ export default function Explore() {
 
       // Map selected category to backend params:
       // - "For You"/"Trending" → posts mode (separate cache keys per mode)
-      // - named categories → moments query (search-intent signal) + posts mode cache key
+      // - named categories → moments query (search-intent hint) + posts mode cache key
       const categorySlug = activeCategory.toLowerCase().replace(/\s+/g, '_');
       const postsMode = activeCategory === 'For You' ? 'for_you' : activeCategory === 'Trending' ? 'trending' : `explore_${categorySlug}`;
       const momentsQuery = activeCategory === 'For You' || activeCategory === 'Trending' ? '' : `&query=${encodeURIComponent(activeCategory.toLowerCase())}`;
@@ -216,7 +216,7 @@ export default function Explore() {
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-6 py-2 rounded-xl text-[11px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-300 border ${
+                  className={`px-6 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all duration-300 border ${
                     activeCategory === cat
                       ? 'bg-primary border-primary text-white shadow-lg shadow-primary/20'
                       : 'bg-[#fdf8fa] dark:bg-zinc-800 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 hover:border-primary/20 hover:text-primary'
@@ -301,7 +301,7 @@ export default function Explore() {
                     )}
                     
                     {/* Hover Overlay */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-4 backdrop-blur-[2px]">
+                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-center gap-4">
                       <div className="flex gap-6 items-center">
                         <div className="flex items-center gap-2 text-white font-bold text-lg md:text-xl">
                           <Heart size={24} fill="white" />

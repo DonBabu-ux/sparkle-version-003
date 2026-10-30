@@ -310,7 +310,7 @@ export default function Confessions() {
                 <ArrowLeft size={19} strokeWidth={2.5} />
               </button>
               <div>
-                <h1 className="text-lg font-black tracking-tight text-[#18181b] dark:text-zinc-100 uppercase italic leading-none">Confessions</h1>
+                <h1 className="text-lg font-bold tracking-tight text-[#18181b] dark:text-zinc-100 leading-none">Confessions</h1>
                 <div className="flex items-center gap-1.5 mt-0.5">
                   <div className="flex -space-x-0.5">
                     {[1,2,3].map(i => (
@@ -321,7 +321,7 @@ export default function Confessions() {
                       />
                     ))}
                   </div>
-                  <span className="text-[8px] font-black text-primary uppercase tracking-[0.18em]">Live Confessions</span>
+                  <span className="text-[11px] font-semibold text-primary">Live confessions</span>
                 </div>
               </div>
             </div>
@@ -343,7 +343,7 @@ export default function Confessions() {
               <button
                 key={cat.id}
                 onClick={() => setActiveCategory(cat.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest whitespace-nowrap transition-all border flex-shrink-0 ${
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all border flex-shrink-0 ${
                   activeCategory === cat.id
                     ? 'bg-primary text-white border-primary shadow-lg shadow-primary/20 scale-105'
                     : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 border-[#e6d8e1] dark:border-zinc-700 hover:text-primary hover:border-primary/20'
@@ -370,10 +370,10 @@ export default function Confessions() {
 
                 <div className="relative z-10 pr-12">
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 mb-3">
-                    <span className="text-[8px] font-black text-primary uppercase tracking-widest">Trending Now</span>
+                    <span className="text-[11px] font-semibold text-primary">Trending now</span>
                   </div>
 
-                  <p className="text-base font-black text-[#18181b] dark:text-zinc-100 italic tracking-tight leading-snug mb-5 line-clamp-3">
+                  <p className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight leading-snug mb-5 line-clamp-3">
                     "{trendingConfession.content}"
                   </p>
 
@@ -386,13 +386,13 @@ export default function Confessions() {
                           </div>
                         ))}
                       </div>
-                      <span className="text-[9px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">{trendingConfession.rating_count || 0} resonating</span>
+                      <span className="text-xs font-medium text-slate-600 dark:text-zinc-300">{trendingConfession.rating_count || 0} reactions</span>
                     </div>
                     <button
                       onClick={() => navigate(`/confessions/${trendingConfession.confession_id}`)}
-                      className="h-9 px-5 bg-primary text-white rounded-xl font-black text-[9px] uppercase tracking-widest hover:opacity-90 transition-all active:scale-95"
+                      className="h-9 px-5 bg-primary text-white rounded-full text-xs font-bold hover:bg-[#ff2d87] transition-colors active:scale-95"
                     >
-                      Join Echo
+                      View
                     </button>
                   </div>
                 </div>
@@ -404,24 +404,24 @@ export default function Confessions() {
           <div className="overflow-x-auto no-scrollbar px-4 mb-5">
             <div className="flex items-center gap-8 min-w-max pb-1">
               {[
-                { label: 'Live Now', value: 'ACTIVE',     icon: <Globe size={16} /> },
-                { label: 'Identity', value: 'ALIAS ONLY', icon: <Orbit size={16} /> },
-                { label: 'Moderation', value: 'REPORTS REVIEWED', icon: <ShieldCheck size={16} /> },
+                { label: 'Live now', value: 'Active',     icon: <Globe size={16} /> },
+                { label: 'Identity', value: 'Alias only', icon: <Orbit size={16} /> },
+                { label: 'Moderation', value: 'Reports reviewed', icon: <ShieldCheck size={16} /> },
               ].map((stat, i) => (
                 <div key={i} className="flex items-center gap-3 group/stat">
                   <div className="w-10 h-10 rounded-2xl bg-[#fdf8fa] dark:bg-zinc-800 shadow-sm border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center text-primary group-hover/stat:bg-primary group-hover/stat:text-white transition-all duration-300">
                     {stat.icon}
                   </div>
                   <div>
-                    <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.18em]">{stat.label}</p>
-                    <p className="text-[13px] font-black text-[#18181b] dark:text-zinc-100 uppercase italic">{stat.value}</p>
+                    <p className="text-xs font-medium text-slate-600 dark:text-zinc-300">{stat.label}</p>
+                    <p className="text-[13px] font-semibold text-[#18181b] dark:text-zinc-100">{stat.value}</p>
                   </div>
                 </div>
               ))}
             </div>
           </div>
 
-          <p className="px-4 mb-4 text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider">
+          <p className="px-4 mb-4 text-[13px] text-slate-600 dark:text-zinc-300 leading-relaxed">
             Other people see only an alias. Moderators can see the posting account when reviewing a report.
           </p>
 
@@ -432,7 +432,7 @@ export default function Confessions() {
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.4em] animate-pulse">Loading confessions...</p>
+                <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300 animate-pulse">Loading confessions...</p>
               </div>
             ) : fetchError ? (
               <div className="py-32 flex flex-col items-center gap-6 text-center">
@@ -440,12 +440,12 @@ export default function Confessions() {
                   <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-300" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-tight">Something went wrong</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest mt-1">Couldn't load confessions. Check your connection.</p>
+                  <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">Something went wrong</h3>
+                  <p className="text-[13px] text-slate-600 dark:text-zinc-300 mt-1">Couldn't load confessions. Check your connection.</p>
                 </div>
                 <button
                   onClick={() => fetchConfessions()}
-                  className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                  className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full text-xs font-semibold hover:bg-primary hover:text-white transition-all"
                 >
                   Retry
                 </button>
@@ -470,19 +470,19 @@ export default function Confessions() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-black text-[#18181b] dark:text-zinc-100 uppercase italic truncate">
+                        <span className="text-[13px] font-semibold text-[#18181b] dark:text-zinc-100 truncate">
                           {conf.author_alias || `Anonymous #${idx + 100}`}
                         </span>
-                        <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-300 uppercase tracking-wider ml-2 flex-shrink-0">
+                        <span className="text-[11px] font-medium text-slate-600 dark:text-zinc-300 ml-2 flex-shrink-0">
                           {conf.created_at ? new Date(conf.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : 'Live'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-[7px] font-black text-emerald-600 dark:text-emerald-400 rounded uppercase tracking-widest border border-emerald-100/60 dark:border-emerald-900/20">
+                        <span className="px-2.5 py-0.5 bg-emerald-500/10 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 rounded-full border border-emerald-500/20">
                           Alias protected
                         </span>
                         {conf.category && (
-                          <span className="text-[8px] font-black text-primary uppercase tracking-wider italic">
+                          <span className="text-[11px] font-semibold text-primary">
                             {CATEGORY_LABELS[conf.category] || conf.category}
                           </span>
                         )}
@@ -531,7 +531,7 @@ export default function Confessions() {
                       />
                       <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/60 backdrop-blur-md rounded-xl px-2.5 py-1.5 border border-white/10 shadow-lg">
                         <ShieldOff size={12} className="text-amber-400" />
-                        <span className="text-[9px] font-black text-amber-50 uppercase tracking-widest">May reduce anonymity</span>
+                        <span className="text-[11px] font-semibold text-amber-50">May reduce anonymity</span>
                       </div>
                     </div>
                   )}
@@ -586,7 +586,7 @@ export default function Confessions() {
                                     {(conf.fire_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🔥 {conf.fire_count}</div>}
                                     {(conf.support_count || 0) > 0 && <div className="flex items-center gap-1 text-[11px] font-bold text-slate-600 dark:text-zinc-300 bg-[#f6eef3] dark:bg-zinc-700 px-2 py-1 rounded-lg">🥺 {conf.support_count}</div>}
                                     {((conf.smile_count || 0) + (conf.relate_count || 0) + (conf.heart_count || 0) + (conf.fire_count || 0) + (conf.support_count || 0)) === 0 && (
-                                      <span className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-wider mx-auto italic">Resonate first</span>
+                                      <span className="text-[13px] font-medium text-slate-600 dark:text-zinc-300 mx-auto">No reactions yet</span>
                                     )}
                                   </div>
                                   <div className="flex items-center justify-between gap-1">
@@ -674,14 +674,14 @@ export default function Confessions() {
                   <Orbit size={36} strokeWidth={1.5} className="text-slate-600 dark:text-zinc-300 animate-spin-slow" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-tight">No Confessions Yet</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest mt-1">No confessions in this category yet.</p>
+                  <h3 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">No confessions yet</h3>
+                  <p className="text-[13px] text-slate-600 dark:text-zinc-300 mt-1">No confessions in this category yet.</p>
                 </div>
                 <button
                   onClick={() => setShowComposeModal(true)}
-                  className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                  className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full text-xs font-semibold hover:bg-primary hover:text-white transition-all"
                 >
-                  Be the First
+                  Be the first
                 </button>
               </div>
             )}
@@ -797,8 +797,8 @@ export default function Confessions() {
                   <MessageCircle size={18} strokeWidth={2.5} />
                 </div>
                 <div>
-                  <h3 className="text-sm font-black uppercase tracking-wider text-[#18181b] dark:text-zinc-100">Anonymous Replies</h3>
-                  <p className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 tracking-widest">{commentsData[activeCommentsModal]?.length || 0} Total</p>
+                  <h3 className="text-base font-bold text-[#18181b] dark:text-zinc-100">Anonymous replies</h3>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300">{commentsData[activeCommentsModal]?.length || 0} replies</p>
                 </div>
               </div>
               <button
@@ -814,14 +814,14 @@ export default function Confessions() {
               {commentsLoading[activeCommentsModal] ? (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">
                   <Spinner size="large" color="text-primary" />
-                  <p className="text-[10px] font-black text-slate-600 dark:text-zinc-300 uppercase tracking-[0.3em]">Loading replies...</p>
+                  <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300">Loading replies...</p>
                 </div>
               ) : commentsError[activeCommentsModal] ? (
                 <div className="py-20 flex flex-col items-center gap-4 text-center">
-                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">Couldn't load replies.</p>
+                  <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300">Couldn't load replies.</p>
                   <button
                     onClick={() => toggleComments(activeCommentsModal)}
-                    className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full font-black text-[10px] uppercase tracking-widest hover:bg-primary hover:text-white transition-all"
+                    className="px-6 h-10 bg-primary/10 border border-primary/20 text-primary rounded-full text-xs font-semibold hover:bg-primary hover:text-white transition-all"
                   >
                     Retry
                   </button>
@@ -831,7 +831,7 @@ export default function Confessions() {
                   <div className="w-16 h-16 rounded-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center">
                     <SpyIcon size={24} className="text-slate-600 dark:text-zinc-300" />
                   </div>
-                  <p className="text-[12px] font-bold text-slate-600 dark:text-zinc-300 uppercase tracking-widest">No replies yet. Whisper first.</p>
+                  <p className="text-[13px] font-medium text-slate-600 dark:text-zinc-300">No replies yet.</p>
                 </div>
               ) : (
                 (commentsData[activeCommentsModal] || [])
@@ -850,7 +850,7 @@ export default function Confessions() {
                           <div className="flex-1">
                             <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-4 py-3">
                               <div className="flex items-center justify-between mb-1">
-                                <span className={`text-[11px] font-black uppercase tracking-tight italic ${
+                                <span className={`text-[13px] font-semibold ${
                                   comment.author === 'Author' ? 'text-primary' : 'text-[#18181b] dark:text-zinc-100'
                                 }`}>
                                   {comment.author}
@@ -858,7 +858,7 @@ export default function Confessions() {
                                     <span className="ml-1.5 px-1.5 py-0.5 bg-primary/10 text-primary rounded text-[8px] normal-case not-italic tracking-normal">OP</span>
                                   )}
                                 </span>
-                                <span className="text-[9px] font-semibold text-slate-600 dark:text-zinc-300">
+                                <span className="text-[11px] font-medium text-slate-600 dark:text-zinc-300">
                                   {new Date(comment.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
@@ -869,7 +869,7 @@ export default function Confessions() {
                             <div className="mt-1 ml-2 flex items-center gap-4">
                               <button 
                                 onClick={() => setReplyTo({ id: comment.comment_id, author: comment.author })}
-                                className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 hover:text-primary uppercase tracking-wider transition-colors"
+                                 className="text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-primary transition-colors"
                               >
                                 Reply
                               </button>
@@ -877,7 +877,7 @@ export default function Confessions() {
                               {replies.length > 0 && (
                                 <button 
                                   onClick={() => setExpandedComments(prev => ({ ...prev, [comment.comment_id]: !prev[comment.comment_id] }))}
-                                  className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+                                   className="text-xs font-semibold text-primary flex items-center gap-1.5 hover:opacity-80 transition-opacity"
                                 >
                                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                   {expandedComments[comment.comment_id] ? 'See Less' : `View ${replies.length} ${replies.length === 1 ? 'Reply' : 'Replies'}`}
@@ -898,7 +898,7 @@ export default function Confessions() {
                                 <div className="flex-1">
                                   <div className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl rounded-tl-sm px-3 py-2 border-[#ede3e9] dark:border-zinc-700">
                                     <div className="flex items-center justify-between mb-1">
-                                      <span className={`text-[10px] font-black uppercase tracking-tight italic ${
+                                      <span className={`text-[13px] font-semibold ${
                                         reply.author === 'Author' ? 'text-primary' : 'text-[#18181b] dark:text-zinc-100'
                                       }`}>
                                         {reply.author}
@@ -906,7 +906,7 @@ export default function Confessions() {
                                           <span className="ml-1 px-1 py-0.5 bg-primary/10 text-primary rounded text-[7px] normal-case not-italic tracking-normal">OP</span>
                                         )}
                                       </span>
-                                      <span className="text-[8px] font-semibold text-slate-600 dark:text-zinc-300">
+                                      <span className="text-[11px] font-medium text-slate-600 dark:text-zinc-300">
                                         {new Date(reply.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                       </span>
                                     </div>
@@ -927,10 +927,10 @@ export default function Confessions() {
             <div className="p-4 border-t border-[#ede3e9] dark:border-zinc-900 bg-[#fdf8fa] dark:bg-zinc-800 sm:rounded-b-[32px] mb-safe">
               {replyTo && (
                 <div className="flex items-center justify-between mb-2 px-2">
-                  <span className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-1">
-                    <ArrowLeft size={10} /> Replying to {replyTo.author}
+                  <span className="text-xs font-semibold text-primary flex items-center gap-1">
+                    <ArrowLeft size={12} /> Replying to {replyTo.author}
                   </span>
-                  <button onClick={() => setReplyTo(null)} className="text-[10px] font-bold text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100">Cancel</button>
+                  <button onClick={() => setReplyTo(null)} className="text-xs font-medium text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100">Cancel</button>
                 </div>
               )}
               <div className="flex gap-3">
@@ -941,7 +941,7 @@ export default function Confessions() {
                   <input
                     value={commentInputs[activeCommentsModal] || ''}
                     onChange={e => setCommentInputs(prev => ({ ...prev, [activeCommentsModal]: e.target.value }))}
-                    placeholder="Whisper your reply..."
+                    placeholder="Write a reply..."
                     onKeyPress={(e) => e.key === 'Enter' && handleAddComment(activeCommentsModal)}
                     className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl px-4 text-[14px] font-medium text-[#18181b] dark:text-zinc-100 outline-none focus:ring-2 focus:ring-primary/20 focus:bg-[#fdf8fa] dark:focus:bg-zinc-800 transition-all border border-[#e6d8e1] dark:border-zinc-700 focus:border-primary/40 placeholder:text-slate-600 dark:placeholder:text-zinc-300"
                   />

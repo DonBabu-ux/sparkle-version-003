@@ -54,13 +54,13 @@ export default function Groups() {
                 </button>
                 <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#ff1493]/10 border border-[#ff1493]/25">
                   <Sparkles size={13} className="text-[#ff1493]" />
-                  <span className="text-[10px] font-extrabold tracking-[0.12em] text-[#ff1493] uppercase">Sparkle Communities</span>
+                  <span className="text-xs font-semibold tracking-tight text-[#ff1493]">Sparkle communities</span>
                 </div>
               </div>
               {/* Heading — inline style bypasses global heading overrides */}
-              <h1 className="text-3xl md:text-5xl lg:text-6xl font-black tracking-tight text-[#18181b] dark:text-zinc-100 mb-3">
+              <h1 className="text-3xl font-black tracking-tight text-[#18181b] dark:text-zinc-100 mb-3">
                 Discover{' '}
-                <span className="text-primary">Circles</span>
+                <span className="text-primary">circles</span>
               </h1>
               <p className="text-base text-slate-600 dark:text-zinc-300 font-medium">
                 Connect with like-minded people at{' '}
@@ -72,7 +72,7 @@ export default function Groups() {
 
             <button
               onClick={() => navigate('/groups/create')}
-              className="flex items-center gap-2.5 whitespace-nowrap active:scale-95 transition-transform px-7 py-3.5 bg-[#ff1493] hover:bg-[#e0127f] text-white rounded-[18px] shadow-lg shadow-[#ff1493]/30 text-[13px] font-extrabold tracking-[0.02em]"
+              className="flex items-center gap-2.5 whitespace-nowrap active:scale-95 transition-transform px-7 h-11 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full shadow-lg shadow-[#ff1493]/30 text-sm font-bold tracking-tight"
             >
               <Plus size={18} strokeWidth={3} />
               Create Circle
@@ -130,10 +130,10 @@ export default function Groups() {
           <div className="py-12">
             <ModernOfflineState 
               type="empty"
-              title={query ? "Search Blank" : "No Circles Yet"}
+              title={query ? "No matches" : "No circles yet"}
               message={query 
                 ? `We couldn't find any circles matching "${query}". Try a different interest!` 
-                : "The campus hasn't formed any circles in this category yet. Be the first to spark one!"
+                : "The campus hasn't formed any circles in this category yet. Be the first to create one!"
               }
               onRetry={() => { setQuery(''); setFilter('all'); }}
             />
@@ -144,7 +144,7 @@ export default function Groups() {
               <div
                 key={group.group_id}
                 onClick={() => navigate(`/groups/${group.group_id}`)}
-                className="cursor-pointer flex flex-col relative overflow-hidden bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:shadow-[#ff1493]/10 hover:border-[#ff1493]/30 transition-all duration-300"
+                 className="cursor-pointer flex flex-col relative overflow-hidden bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-6 shadow-sm hover:shadow-xl hover:shadow-[#ff1493]/10 hover:border-[#ff1493]/30 transition-all duration-300"
                 style={{
                   animation: `grpSlideUp 0.5s ${idx * 0.05}s ease both`,
                 }}
@@ -208,7 +208,7 @@ export default function Groups() {
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5 text-primary text-[12px] font-black uppercase tracking-wider">
+                  <div className="flex items-center gap-1.5 text-primary text-xs font-bold tracking-tight">
                     Join
                     <ArrowRight size={14} strokeWidth={3} />
                   </div>

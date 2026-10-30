@@ -65,7 +65,7 @@ export default function MyListings() {
   return (
     <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/marketplace')} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />
@@ -78,12 +78,12 @@ export default function MyListings() {
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20 gap-4">
             <Spinner size="large" color="text-primary" />
-            <p className="text-marketplace-muted font-bold animate-pulse">Loading your shop...</p>
+            <p className="text-marketplace-muted font-medium animate-pulse">Loading your shop...</p>
           </div>
         ) : error ? (
           <ErrorRetry onRetry={fetchMyListings} />
         ) : listings.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-[40px] border-2 border-dashed border-marketplace-border text-center">
+          <div className="flex flex-col items-center justify-center py-20 px-6 bg-marketplace-bg rounded-3xl border-2 border-dashed border-marketplace-border text-center">
             <Package size={64} className="text-marketplace-muted/30 mb-6" />
             <h3 className="text-2xl font-black mb-2">No listings yet</h3>
             <p className="text-marketplace-muted font-medium mb-8">You haven't posted any items for sale yet.</p>

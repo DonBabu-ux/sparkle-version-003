@@ -78,7 +78,7 @@ function AnimatedCounter({ value, formatter = String }: { value: number; formatt
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 const Skeleton = ({ className = '' }: { className?: string }) => (
-  <div className={`bg-slate-200/60 animate-pulse rounded-xl ${className}`} />
+  <div className={`bg-[#ede3e9] dark:bg-zinc-700 animate-pulse rounded-xl ${className}`} />
 );
 
 // ─── Mini Sparkline ───────────────────────────────────────────────────────────
@@ -87,7 +87,7 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
     if (!data.length) return '';
     const max = Math.max(...data, 1);
     const w = 120, h = 40;
-    return data.map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * h}`).join(' ');
+    return data.map((v, i) => `${(i / (data.length - 1)) * w},${h - (v / max) * h}`).join(' ')
   }, [data]);
 
   return (
@@ -100,14 +100,14 @@ const Sparkline = ({ data, color }: { data: number[]; color: string }) => {
 // ─── Status Badge ─────────────────────────────────────────────────────────────
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-    Completed: { bg: 'bg-emerald-50 border-emerald-200', text: 'text-emerald-600', icon: <CheckCircle2 size={10} /> },
-    Pending:   { bg: 'bg-amber-50 border-amber-200',     text: 'text-amber-600',   icon: <AlertCircle size={10} /> },
-    Failed:    { bg: 'bg-red-50 border-red-200',         text: 'text-red-600',     icon: <XCircle size={10} /> },
-    Refunded:  { bg: 'bg-sky-50 border-sky-200',         text: 'text-sky-600',     icon: <RefreshCw size={10} /> },
+    Completed: { bg: 'bg-emerald-500/10 border-emerald-500/20', text: 'text-emerald-600 dark:text-emerald-400', icon: <CheckCircle2 size={10} /> },
+    Pending:   { bg: 'bg-amber-500/10 border-amber-500/20',     text: 'text-amber-600 dark:text-amber-400',   icon: <AlertCircle size={10} /> },
+    Failed:    { bg: 'bg-red-500/10 border-red-500/20',         text: 'text-red-600 dark:text-red-400',       icon: <XCircle size={10} /> },
+    Refunded:  { bg: 'bg-sky-500/10 border-sky-500/20',         text: 'text-sky-600 dark:text-sky-400',       icon: <RefreshCw size={10} /> },
   };
   const s = map[status] || map.Pending;
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase border ${s.bg} ${s.text}`}>
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold border ${s.bg} ${s.text}`}>
       {s.icon}{status}
     </span>
   );
@@ -131,18 +131,18 @@ const TXN_ICONS: Record<string, React.ReactNode> = {
 const TxnRow = ({ txn }: { txn: Transaction }) => {
   const isCredit = ['Deposit', 'Revenue', 'AdRevenue', 'Tip', 'CreatorPayment', 'Refund'].includes(txn.type);
   return (
-    <div className="flex items-center justify-between py-3 border-b border-slate-100 last:border-0 hover:bg-slate-50 px-2 -mx-2 rounded-xl transition-colors">
+    <div className="flex items-center justify-between py-3 border-b border-[#ede3e9] dark:border-zinc-900 last:border-0 hover:bg-[#f6eef3] dark:hover:bg-zinc-900 px-2 -mx-2 rounded-2xl transition-colors">
       <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 flex items-center justify-center shrink-0">
-          {TXN_ICONS[txn.type] || <Activity size={16} className="text-slate-400" />}
+        <div className="w-9 h-9 rounded-xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 flex items-center justify-center shrink-0">
+          {TXN_ICONS[txn.type] || <Activity size={16} className="text-slate-600 dark:text-zinc-300" />}
         </div>
         <div>
-          <p className="text-[11px] font-black text-slate-800 uppercase italic tracking-wide">{txn.type}</p>
-          <p className="text-[9px] text-slate-400 font-bold uppercase">{relativeTime(txn.created_at)}</p>
+          <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">{txn.type}</p>
+          <p className="text-xs text-slate-600 dark:text-zinc-300 font-medium">{relativeTime(txn.created_at)}</p>
         </div>
       </div>
       <div className="flex flex-col items-end gap-1">
-        <span className={`text-sm font-black italic ${isCredit ? 'text-emerald-600' : 'text-red-500'}`}>
+        <span className={`text-sm font-bold ${isCredit ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
           {isCredit ? '+' : '−'}{formatKES(txn.amount)}
         </span>
         <StatusBadge status={txn.status} />
@@ -174,7 +174,7 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
   useEffect(() => {
     if (step !== 3 || !txnRef) return;
-    
+
     setVerificationStatus('pending');
     let intervalId = setInterval(async () => {
       try {
@@ -232,24 +232,24 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-(--z-modal) bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-(--z-modal) bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <motion.div
         initial={{ y: '100%', scale: 0.95 }} animate={{ y: 0, scale: 1 }}
         exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="bg-white dark:bg-zinc-800 border border-[#ff1493]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl"
+        className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 w-full max-w-md rounded-t-3xl md:rounded-3xl overflow-hidden shadow-xl"
       >
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+        <div className="p-6 border-b border-[#ede3e9] dark:border-zinc-900 flex justify-between items-center">
           <div>
-            <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase tracking-widest italic">
+            <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">
               {step === 1 ? 'Step 1 of 2' : step === 2 ? 'Step 2 of 2' : 'Processing'}
             </p>
-            <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Add Funds</h2>
+            <h2 className="text-xl font-bold text-[#18181b] dark:text-zinc-100 tracking-tight">Add funds</h2>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <X size={18} className="text-slate-800" />
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors text-[#18181b] dark:text-zinc-100">
+            <X size={18} />
           </button>
         </div>
 
@@ -261,13 +261,13 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                   <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto border border-amber-500/20">
                     <Spinner size="large" className="text-amber-500" />
                   </div>
-                  <p className="text-slate-800 font-black text-lg italic uppercase">Verifying Payment...</p>
-                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
+                  <p className="text-[#18181b] dark:text-zinc-100 font-bold text-lg">Verifying your payment...</p>
+                  <p className="text-slate-600 dark:text-zinc-300 text-sm">
                     {method === 'mpesa'
                       ? 'Check your phone for the M-Pesa prompt and enter your PIN to complete.'
                       : 'Please complete your payment in the Paystack window.'}
                   </p>
-                  <p className="text-[#ff1493] text-[10px] font-bold uppercase animate-pulse">Checking status in real-time...</p>
+                  <p className="text-[#ff1493] text-xs font-semibold">Checking the status now...</p>
                 </>
               ) : verificationStatus === 'success' ? (
                 <>
@@ -275,12 +275,12 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                     className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
                     <CheckCircle2 size={32} className="text-emerald-500" />
                   </motion.div>
-                  <p className="text-emerald-600 font-black text-lg italic uppercase">Payment Confirmed!</p>
-                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
+                  <p className="text-emerald-600 dark:text-emerald-400 font-bold text-lg">Payment confirmed</p>
+                  <p className="text-slate-600 dark:text-zinc-300 text-sm">
                     KES {(amountCents / 100).toFixed(2)} has been successfully credited to your wallet.
                   </p>
                   <button onClick={() => { onClose(); onSuccess(); }}
-                    className="w-full py-3.5 bg-[#ff1493] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-[#d8165b] transition-all">
+                    className="w-full py-3 bg-[#ff1493] text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">
                     Done
                   </button>
                 </>
@@ -290,17 +290,17 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
                     className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto border border-red-500/20">
                     <XCircle size={32} className="text-red-500" />
                   </motion.div>
-                  <p className="text-red-600 font-black text-lg italic uppercase">Payment Failed</p>
-                  <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">
+                  <p className="text-red-600 dark:text-red-400 font-bold text-lg">Payment failed</p>
+                  <p className="text-slate-600 dark:text-zinc-300 text-sm">
                     The payment request was cancelled, timed out, or failed.
                   </p>
                   <div className="flex gap-2">
                     <button onClick={() => { setStep(1); setVerificationStatus('pending'); }}
-                      className="flex-1 py-3.5 bg-slate-100 dark:bg-zinc-800 text-slate-800 rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-slate-200 transition-all">
-                      Try Again
+                      className="flex-1 py-3 bg-[#f0e5ec] dark:bg-zinc-700 text-[#18181b] dark:text-zinc-100 rounded-full text-sm font-bold hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors">
+                      Try again
                     </button>
                     <button onClick={onClose}
-                      className="flex-1 py-3.5 bg-[#ff1493] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-[#d8165b] transition-all">
+                      className="flex-1 py-3 bg-[#ff1493] text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">
                       Close
                     </button>
                   </div>
@@ -311,24 +311,24 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
             <>
               {/* Amount */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic flex justify-between">
+                <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 flex justify-between">
                   <span>Amount (KES)</span>
-                  <span className="text-[#ff1493] lowercase font-black italic">min 1 bob (KES 1.00)</span>
+                  <span className="text-[#ff1493] font-semibold">min 1 bob (KES 1.00)</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-black text-sm">KES</span>
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600 dark:text-zinc-300 font-semibold text-sm">KES</span>
                   <input
                     type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1.00"
-                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3.5 pl-14 pr-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#ff1493]/50 transition-colors"
+                    className="w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3.5 pl-14 pr-4 text-[#18181b] dark:text-zinc-100 font-bold text-xl focus:outline-none focus:border-[#ff1493] transition-colors"
                   />
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   {QUICK_AMOUNTS.map((q) => (
                     <button key={q} onClick={() => setAmount(String(q))}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase italic transition-all border ${
+                      className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-colors border ${
                         parseFloat(amount) === q
                           ? 'bg-[#ff1493] text-white border-[#ff1493]'
-                          : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'}`}>
+                          : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300 border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/40'}`}>
                       {q.toLocaleString()}
                     </button>
                   ))}
@@ -337,12 +337,12 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
 
               {/* Payment Method */}
               <div className="space-y-3">
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Payment Method</label>
+                <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Payment method</label>
                 <div className="grid grid-cols-3 gap-2">
                   {PAY_METHODS.map((m) => (
                     <button key={m.id} onClick={() => setMethod(m.id)}
-                      className={`py-3 rounded-xl border text-[10px] font-black uppercase italic flex flex-col items-center gap-1.5 transition-all ${
-                        method === m.id ? 'bg-[#ff1493]/10 border-[#ff1493]/50 text-[#ff1493]' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                      className={`py-3 rounded-2xl border text-xs font-semibold flex flex-col items-center gap-1.5 transition-colors ${
+                        method === m.id ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#ff1493]' : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300'}`}>
                       <span className={method === m.id ? 'text-[#ff1493]' : m.color}>{m.icon}</span>
                       {m.label}
                     </button>
@@ -353,22 +353,22 @@ function DepositModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: 
               {/* M-Pesa Phone */}
               {method === 'mpesa' && (
                 <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">M-Pesa Phone Number</label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">M-Pesa phone number</label>
                   <input
                     type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX or 07..."
-                    className="mt-2 w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm"
+                    className="mt-2 w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3 px-4 text-[#18181b] dark:text-zinc-100 font-semibold focus:outline-none focus:border-[#ff1493] transition-colors text-sm"
                   />
                 </motion.div>
               )}
 
               {error && (
-                <p className="text-red-400 text-[10px] font-bold uppercase bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">
-                  ⚠️ {error}
+                <p className="text-red-600 dark:text-red-400 text-xs font-semibold bg-red-500/10 border border-red-500/20 rounded-full px-4 py-2">
+                  {error}
                 </p>
               )}
 
               <button onClick={handleSubmit} disabled={loading || !amount || amountKES <= 0}
-                className="w-full py-4 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic shadow-lg shadow-[#ff1493]/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                className="w-full py-4 bg-[#ff1493] text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                 {loading ? <Spinner size="small" /> : <DollarSign size={16} />}
                 {loading ? 'Initializing…' : `Pay ${amountCents > 0 ? formatKES(amountCents) : ''}`.trim()}
               </button>
@@ -432,18 +432,18 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-(--z-modal) bg-black/80 backdrop-blur-md flex items-end md:items-center justify-center p-0 md:p-6"
+      className="fixed inset-0 z-(--z-modal) bg-black/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-6"
       onClick={(e) => e.target === e.currentTarget && onClose()}>
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
         transition={{ type: 'spring', damping: 28, stiffness: 300 }}
-        className="bg-white dark:bg-zinc-800 border border-[#ff1493]/20 w-full max-w-md rounded-t-[32px] md:rounded-3xl overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white dark:bg-zinc-800">
+        className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 w-full max-w-md rounded-t-3xl md:rounded-3xl overflow-hidden shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="p-6 border-b border-[#ede3e9] dark:border-zinc-900 flex justify-between items-center sticky top-0 bg-[#fdf8fa] dark:bg-zinc-800">
           <div>
-            <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase tracking-widest italic">Creator Payout</p>
-            <h2 className="text-xl font-black text-slate-900 italic uppercase tracking-tight">Withdraw</h2>
+            <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Creator payout</p>
+            <h2 className="text-xl font-bold text-[#18181b] dark:text-zinc-100 tracking-tight">Withdraw</h2>
           </div>
-          <button onClick={onClose} className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 flex items-center justify-center hover:bg-slate-100 transition-colors">
-            <X size={18} className="text-slate-800" />
+          <button onClick={onClose} className="w-9 h-9 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors text-[#18181b] dark:text-zinc-100">
+            <X size={18} />
           </button>
         </div>
 
@@ -453,16 +453,16 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
                 <CheckCircle2 size={32} className="text-emerald-500" />
               </div>
-              <p className="text-slate-900 font-black text-lg italic uppercase">Withdrawal Requested</p>
-              <p className="text-slate-600 dark:text-zinc-300 text-xs font-medium">Your payout is being processed. Funds arrive within 1–2 business days.</p>
-              <button onClick={onClose} className="w-full py-3.5 bg-slate-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic hover:bg-slate-800 transition-all">Done</button>
+              <p className="text-[#18181b] dark:text-zinc-100 font-bold text-lg">Withdrawal requested</p>
+              <p className="text-slate-600 dark:text-zinc-300 text-sm">Your payout is being processed. Funds arrive within 1–2 business days.</p>
+              <button onClick={onClose} className="w-full py-3 bg-[#ff1493] text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors">Done</button>
             </div>
           ) : (
             <>
               {wallet && (
-                <div className="bg-[#fdf8fa] dark:bg-[#ff1493]/10 border border-[#ff1493]/15 dark:border-[#ff1493]/25 rounded-xl p-4">
-                  <p className="text-[9px] text-[#ff1493] font-black uppercase tracking-widest italic">Available Balance</p>
-                  <p className="text-2xl font-black text-slate-900 italic mt-1">{formatKES(wallet.available_balance)}</p>
+                <div className="bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-2xl p-4">
+                  <p className="text-xs font-semibold text-[#ff1493]">Available balance</p>
+                  <p className="text-2xl font-bold text-[#18181b] dark:text-zinc-100 mt-1">{formatKES(wallet.available_balance)}</p>
                 </div>
               )}
 
@@ -470,8 +470,8 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
               <div className="grid grid-cols-2 gap-2">
                 {(['bank', 'mpesa'] as const).map((m) => (
                   <button key={m} onClick={() => setMethod(m)}
-                    className={`py-3 rounded-xl border text-[10px] font-black uppercase italic flex items-center justify-center gap-2 transition-all ${
-                      method === m ? 'bg-[#ff1493]/10 border-[#ff1493]/50 text-[#ff1493]' : 'bg-slate-50 border-slate-200 text-slate-600'}`}>
+                    className={`py-3 rounded-2xl border text-xs font-semibold flex items-center justify-center gap-2 transition-colors ${
+                      method === m ? 'bg-[#ff1493]/10 border-[#ff1493]/40 text-[#ff1493]' : 'bg-[#f6eef3] dark:bg-zinc-900 border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300'}`}>
                     {m === 'bank' ? <Building2 size={14} /> : <Smartphone size={14} />}
                     {m === 'bank' ? 'Bank' : 'M-Pesa'}
                   </button>
@@ -480,59 +480,59 @@ function WithdrawModal({ wallet, onClose, onSuccess }: { wallet: WalletSummary |
 
               {/* Amount */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic flex justify-between">
+                <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300 flex justify-between">
                   <span>Amount (KES)</span>
-                  <span className="text-[#ff1493] lowercase font-black italic">min 1 bob (KES 1.00)</span>
+                  <span className="text-[#ff1493] font-semibold">min 1 bob (KES 1.00)</span>
                 </label>
                 <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="1.00"
-                  className="mt-2 w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3.5 px-4 text-slate-800 font-black text-xl italic focus:outline-none focus:border-[#ff1493]/50 transition-colors" />
+                  className="mt-2 w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3.5 px-4 text-[#18181b] dark:text-zinc-100 font-bold text-xl focus:outline-none focus:border-[#ff1493] transition-colors" />
               </div>
 
               {method === 'bank' ? (
                 <>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Bank</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Bank</label>
                     <select value={bankCode} onChange={(e) => setBankCode(e.target.value)}
-                      className="mt-2 w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm appearance-none">
+                      className="mt-2 w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3 px-4 text-[#18181b] dark:text-zinc-100 font-semibold focus:outline-none focus:border-[#ff1493] transition-colors text-sm appearance-none">
                       <option value="">Select bank…</option>
                       {banks.map((b, i) => <option key={`${i}-${b.code}`} value={b.code}>{b.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Account Number</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Account number</label>
                     <div className="flex gap-2 mt-2">
                       <input type="text" value={accountNumber} onChange={(e) => { setAccountNumber(e.target.value); setResolved(null); }}
                         placeholder="Enter account number"
-                        className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm" />
+                        className="flex-1 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3 px-4 text-[#18181b] dark:text-zinc-100 font-semibold focus:outline-none focus:border-[#ff1493] transition-colors text-sm" />
                       <button onClick={resolveAccount} disabled={resolving || !accountNumber || !bankCode}
-                        className="px-3 py-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl text-slate-500 dark:text-zinc-300 hover:text-slate-800 hover:border-slate-300 transition-all disabled:opacity-40">
+                        className="px-4 py-3 bg-[#f0e5ec] dark:bg-zinc-700 border border-[#e6d8e1] dark:border-zinc-700 rounded-full text-slate-600 dark:text-zinc-300 hover:text-[#18181b] dark:hover:text-zinc-100 transition-colors disabled:opacity-50">
                         {resolving ? <Spinner size="small" /> : <CheckCircle2 size={14} />}
                       </button>
                     </div>
                     {resolved && (
-                      <p className="text-emerald-500 text-[10px] font-bold mt-1">✓ {resolved}</p>
+                      <p className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold mt-1">✓ {resolved}</p>
                     )}
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">Account Name</label>
+                    <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Account name</label>
                     <input type="text" value={accountName} onChange={(e) => setAccountName(e.target.value)} placeholder="Account holder name"
-                      className="mt-2 w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm" />
+                      className="mt-2 w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3 px-4 text-[#18181b] dark:text-zinc-100 font-semibold focus:outline-none focus:border-[#ff1493] transition-colors text-sm" />
                   </div>
                 </>
               ) : (
                 <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic">M-Pesa Number</label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-zinc-300">M-Pesa number</label>
                   <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+254 7XX XXX XXX or 07..."
-                    className="mt-2 w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 rounded-xl py-3 px-4 text-slate-800 font-bold focus:outline-none focus:border-[#ff1493]/50 transition-colors text-sm" />
+                    className="mt-2 w-full bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 rounded-full py-3 px-4 text-[#18181b] dark:text-zinc-100 font-semibold focus:outline-none focus:border-[#ff1493] transition-colors text-sm" />
                 </div>
               )}
 
               {error && (
-                <p className="text-red-400 text-[10px] font-bold uppercase bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">⚠️ {error}</p>
+                <p className="text-red-600 dark:text-red-400 text-xs font-semibold bg-red-500/10 border border-red-500/20 rounded-full px-4 py-2">{error}</p>
               )}
 
               <button onClick={submit} disabled={loading || amountCents <= 0}
-                className="w-full py-4 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white rounded-xl text-[11px] font-black uppercase tracking-widest italic shadow-lg shadow-[#ff1493]/30 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                className="w-full py-4 bg-[#ff1493] text-white rounded-full text-sm font-bold hover:bg-[#ff2d87] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                 {loading ? <Spinner size="small" /> : <ArrowUpCircle size={16} />}
                 {loading ? 'Submitting…' : `Withdraw ${amountCents > 0 ? formatKES(amountCents) : ''}`.trim()}
               </button>
@@ -651,8 +651,8 @@ export default function ProfessionalDashboard() {
   // Revenue KPI cards derived directly from account ledger
   const revenueCards = [
     { label: 'Today',    cents: todayCents, growth: '', color: '#ff1493' },
-    { label: 'This Week',cents: weekCents,  growth: '', color: '#ec4899' },
-    { label: 'This Month',cents: monthCents, growth: '', color: '#db2777' },
+    { label: 'This week',cents: weekCents,  growth: '', color: '#ec4899' },
+    { label: 'This month',cents: monthCents, growth: '', color: '#db2777' },
     { label: 'Lifetime', cents: wallet?.lifetime_earnings || wallet?.available_balance || 0, growth: '', color: '#a855f7' },
   ];
 
@@ -666,51 +666,49 @@ export default function ProfessionalDashboard() {
 
   // Quick actions
   const quickActions = [
-    { label: 'Boost Post',     icon: <Zap size={18} />,         color: 'from-amber-500 to-orange-500', onClick: () => setShowSubscription(true) },
-    { label: 'Go Live',        icon: <Radio size={18} />,        color: 'from-red-500 to-pink-500',     onClick: () => navigate('/streams') },
-    { label: 'Upload Video',   icon: <Video size={18} />,        color: 'from-violet-500 to-purple-500', onClick: () => navigate('/moments/create') },
-    { label: 'Create Ad',      icon: <Megaphone size={18} />,    color: 'from-blue-500 to-indigo-500',  onClick: () => navigate('/ads') },
-    { label: 'Withdraw',       icon: <Banknote size={18} />,     color: 'from-emerald-500 to-teal-500', onClick: () => setShowWithdraw(true) },
-    { label: 'Manage Shop',    icon: <Store size={18} />,        color: 'from-pink-500 to-rose-500',    onClick: () => navigate('/marketplace/my-shop') },
-    { label: 'Creator Studio', icon: <BarChart2 size={18} />,    color: 'from-cyan-500 to-sky-500',     onClick: () => navigate('/studio') },
-    { label: 'View Analytics', icon: <Activity size={18} />,     color: 'from-slate-500 to-slate-600',  onClick: () => navigate('/analytics') },
+    { label: 'Boost post',     icon: <Zap size={18} />,         color: 'text-[#ff1493]', onClick: () => setShowSubscription(true) },
+    { label: 'Go live',        icon: <Radio size={18} />,        color: 'text-[#ff1493]', onClick: () => navigate('/streams') },
+    { label: 'Upload video',   icon: <Video size={18} />,        color: 'text-[#ff1493]', onClick: () => navigate('/moments/create') },
+    { label: 'Create ad',      icon: <Megaphone size={18} />,    color: 'text-[#ff1493]', onClick: () => navigate('/ads') },
+    { label: 'Withdraw',       icon: <Banknote size={18} />,     color: 'text-[#ff1493]', onClick: () => setShowWithdraw(true) },
+    { label: 'Manage shop',    icon: <Store size={18} />,        color: 'text-[#ff1493]', onClick: () => navigate('/marketplace/my-shop') },
+    { label: 'Creator studio', icon: <BarChart2 size={18} />,    color: 'text-[#ff1493]', onClick: () => navigate('/studio') },
+    { label: 'View analytics', icon: <Activity size={18} />,     color: 'text-[#ff1493]', onClick: () => navigate('/analytics') },
   ];
 
   return (
-    <div className="min-h-dvh bg-[#fafafd] dark:bg-zinc-800 text-slate-800 dark:text-zinc-200 font-sans pb-16 overflow-x-hidden relative">
+    <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-zinc-100 font-sans pb-16 overflow-x-hidden relative">
       <style>{`
-        .glass { background: rgba(255, 31, 109, 0.02); border: 1px solid rgba(255, 31, 109, 0.12); backdrop-filter: blur(20px); }
-        .glass-strong { background: rgba(255, 255, 255, 0.8); border: 1px solid rgba(255, 31, 109, 0.18); backdrop-filter: blur(24px); }
-        .gradient-card { background: #fdf8fa; }
-        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: rgba(255, 31, 109, 0.2); border-radius: 2px; }
+        ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: #e6d8e1; border-radius: 2px; }
+        .dark ::-webkit-scrollbar-thumb { background: #3f3f46; }
       `}</style>
 
       {/* ── Sticky Header ── */}
-      <div className="glass-strong px-4 py-3 sticky top-0 z-50 shadow-md shadow-slate-100">
+      <div className="bg-[#fdf8fa] dark:bg-zinc-800 border-b border-[#e6d8e1] dark:border-zinc-700 px-4 py-3 sticky top-0 z-50 shadow-sm">
         <div className="max-w-[1100px] mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-slate-800" strokeWidth={2.5} />
+            <button onClick={() => navigate(-1)} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors">
+              <ArrowLeft size={20} className="text-[#18181b] dark:text-zinc-100" strokeWidth={2.5} />
             </button>
             <div>
-              <h1 className="text-lg font-black text-slate-900 tracking-tighter italic uppercase leading-none">Pro Hub.</h1>
+              <h1 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 tracking-tight leading-none">Pro Hub</h1>
               {isBoosted && (
-                <span className="text-[8px] font-black bg-[#ff1493] text-white px-2 py-0.5 rounded-full uppercase italic tracking-widest animate-pulse">
-                  10% Boost Active
+                <span className="text-xs font-semibold bg-[#ff1493] text-white px-2 py-0.5 rounded-full">
+                  10% boost active
                 </span>
               )}
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <button onClick={fetchWallet} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors">
               <RefreshCw size={16} className="text-slate-600 dark:text-zinc-300" />
             </button>
-            <button onClick={() => navigate('/settings')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+            <button onClick={() => navigate('/settings')} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-full transition-colors">
               <Settings size={18} className="text-slate-600 dark:text-zinc-300" strokeWidth={2.5} />
             </button>
             <button onClick={() => setShowSubscription(true)}
-              className="px-4 py-2 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white rounded-full text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#ff1493]/30 hover:scale-105 active:scale-95 transition-all">
-              Boost Hub
+              className="px-4 h-9 bg-[#ff1493] text-white rounded-full text-xs font-bold hover:bg-[#ff2d87] transition-colors">
+              Boost
             </button>
           </div>
         </div>
@@ -720,34 +718,33 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 1: Creator Wallet Card ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-          className="relative rounded-3xl overflow-hidden border border-[#ff1493]/15 shadow-xl shadow-slate-100"
-          style={{ background: '#fdf8fa' }}>
+          className="relative rounded-3xl overflow-hidden border border-[#e6d8e1] dark:border-zinc-700 shadow-sm bg-[#fdf8fa] dark:bg-zinc-800">
 
           <div className="relative p-6 md:p-8">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-[0.25em] italic">Creator Wallet</p>
-                <p className="text-[9px] font-bold text-[#ff1493] mt-0.5 uppercase italic">{user?.name || 'Creator'} · KES</p>
+                <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Creator Wallet</p>
+                <p className="text-xs font-semibold text-[#ff1493] mt-0.5">{user?.name || 'Creator'} · KES</p>
               </div>
-              <div className="w-10 h-10 rounded-xl glass flex items-center justify-center border border-[#ff1493]/10">
-                <Wallet size={18} className="text-[#ff1493]" />
+              <div className="text-[#ff1493]">
+                <Wallet size={18} />
               </div>
             </div>
 
             {/* Balance */}
             <div className="mb-8">
-              <p className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-2">Available Balance</p>
+              <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mb-2">Available Balance</p>
               {loadingWallet ? (
-                <Skeleton className="h-12 w-48 bg-slate-200/50 dark:bg-white/[0.06]" />
+                <Skeleton className="h-12 w-48" />
               ) : (
                 <div className="flex items-baseline gap-3">
-                  <p className="text-4xl md:text-5xl font-black text-slate-900 italic tracking-tighter">
+                  <p className="text-3xl md:text-4xl font-bold text-[#18181b] dark:text-zinc-100 tracking-tight">
                     KES <AnimatedCounter value={wallet?.available_balance || 0} formatter={(v) => (v / 100).toFixed(2)} />
                   </p>
                 </div>
               )}
               {!loadingWallet && wallet && wallet.pending_balance > 0 && (
-                <p className="text-[10px] text-amber-600 font-bold uppercase italic mt-1">
+                <p className="text-amber-600 dark:text-amber-400 text-xs font-semibold mt-1">
                   + {formatKES(wallet.pending_balance)} pending
                 </p>
               )}
@@ -756,16 +753,16 @@ export default function ProfessionalDashboard() {
             {/* Action Buttons */}
             <div className="flex gap-2 flex-wrap">
               {[
-                { label: 'Add Funds',    icon: <Plus size={14} />, primary: true, onClick: () => setShowDeposit(true) },
+                { label: 'Add funds',    icon: <Plus size={14} />, primary: true, onClick: () => setShowDeposit(true) },
                 { label: 'Withdraw',     icon: <ArrowUpCircle size={14} />, onClick: () => setShowWithdraw(true) },
-                { label: 'Auto-Payouts', icon: <Zap size={14} className="text-amber-500" fill="currentColor" />, onClick: () => setShowAutoWithdraw(true) },
+                { label: 'Auto-payouts', icon: <Zap size={14} className="text-[#ff1493]" />, onClick: () => setShowAutoWithdraw(true) },
                 { label: 'History',      icon: <History size={14} />,        onClick: () => navigate('/wallet/history') },
               ].map((btn, i) => (
                 <button key={i} onClick={btn.onClick}
-                  className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest italic transition-all hover:scale-105 active:scale-95 ${
+                  className={`flex items-center gap-1.5 px-4 h-10 rounded-full text-xs font-bold transition-colors ${
                     btn.primary
-                      ? 'bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white shadow-lg shadow-[#ff1493]/30'
-                      : 'glass text-slate-700 hover:bg-[#ff1493]/5 hover:text-[#ff1493] border-[#ff1493]/15'
+                      ? 'bg-[#ff1493] text-white hover:bg-[#ff2d87]'
+                      : 'bg-[#f0e5ec] dark:bg-zinc-700 text-[#18181b] dark:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600'
                   }`}>
                   {btn.icon}{btn.label}
                 </button>
@@ -774,15 +771,15 @@ export default function ProfessionalDashboard() {
 
             {/* Lifetime Stats Row */}
             {!loadingWallet && wallet && (
-              <div className="mt-6 pt-5 border-t border-slate-100 grid grid-cols-3 gap-4">
+              <div className="mt-6 pt-5 border-t border-[#ede3e9] dark:border-zinc-900 grid grid-cols-3 gap-4">
                 {[
-                  { label: 'Total Deposited', value: wallet.lifetime_deposits },
-                  { label: 'Total Withdrawn', value: wallet.lifetime_withdrawals },
-                  { label: 'Total Earned',    value: wallet.lifetime_earnings },
+                  { label: 'Total deposited', value: wallet.lifetime_deposits },
+                  { label: 'Total withdrawn', value: wallet.lifetime_withdrawals },
+                  { label: 'Total earned',    value: wallet.lifetime_earnings },
                 ].map((stat, i) => (
                   <div key={i}>
-                    <p className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{stat.label}</p>
-                    <p className="text-sm font-black text-slate-900 italic mt-0.5">{formatKES(stat.value)}</p>
+                    <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300">{stat.label}</p>
+                    <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mt-0.5">{formatKES(stat.value)}</p>
                   </div>
                 ))}
               </div>
@@ -792,21 +789,21 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 2: Revenue Analytics ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Revenue Analytics</h2>
+          <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-3">Revenue</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {revenueCards.map((card, i) => (
               <motion.div key={i} whileHover={{ y: -3, scale: 1.02 }}
-                className="glass rounded-2xl p-4 cursor-pointer transition-all shadow-sm border-slate-100 hover:border-[#ff1493]/20">
-                <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{card.label}</p>
+                className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl p-4 cursor-pointer transition-shadow border border-[#e6d8e1] dark:border-zinc-700 shadow-sm hover:border-[#ff1493]/40">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-zinc-300">{card.label}</p>
                 {loadingWallet ? (
-                  <Skeleton className="h-7 w-24 mt-2 bg-slate-200/50 dark:bg-white/[0.06]" />
+                  <Skeleton className="h-7 w-24 mt-2" />
                 ) : (
-                  <p className="text-lg font-black italic mt-1 truncate" style={{ color: card.color }}>
+                  <p className="text-3xl font-bold text-[#18181b] dark:text-zinc-100 mt-1 truncate">
                     {formatKES(card.cents)}
                   </p>
                 )}
                 {card.growth && (
-                  <p className="text-[9px] font-black text-emerald-600 uppercase italic mt-1 flex items-center gap-1">
+                  <p className="text-emerald-600 dark:text-emerald-400 text-xs font-semibold mt-1 flex items-center gap-1">
                     <TrendingUp size={10} />{card.growth}
                   </p>
                 )}
@@ -820,27 +817,25 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 3: Creator Insights ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Creator Insights</h2>
+          <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-3">Insights</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
             {[
-              { label: 'Profile Visits',   value: stats.profileViews,    icon: <Eye size={16} />,            color: '#ff1493' },
-              { label: 'Followers Gained', value: stats.followersGrowth || stats.followers, icon: <Users size={16} />,    color: '#a855f7' },
-              { label: 'Post Reach',       value: stats.accountReach,    icon: <Radio size={16} />,          color: '#3b82f6' },
-              { label: 'Video Views',      value: stats.videoViews,      icon: <Video size={16} />,          color: '#f59e0b' },
-              { label: 'Comments',         value: stats.totalComments,   icon: <MessageSquare size={16} />,  color: '#22c55e' },
-              { label: 'Shares',           value: stats.totalShares,     icon: <Share2 size={16} />,         color: '#06b6d4' },
+              { label: 'Profile visits',   value: stats.profileViews,    icon: <Eye size={16} /> },
+              { label: 'Followers gained', value: stats.followersGrowth || stats.followers, icon: <Users size={16} /> },
+              { label: 'Post reach',       value: stats.accountReach,    icon: <Radio size={16} /> },
+              { label: 'Video views',      value: stats.videoViews,      icon: <Video size={16} /> },
+              { label: 'Comments',         value: stats.totalComments,   icon: <MessageSquare size={16} /> },
+              { label: 'Shares',           value: stats.totalShares,     icon: <Share2 size={16} /> },
             ].map((item, i) => (
-              <motion.div key={i} whileHover={{ y: -2 }} className="glass rounded-2xl p-4 cursor-pointer shadow-sm border-slate-100 hover:border-[#ff1493]/20">
+              <motion.div key={i} whileHover={{ y: -2 }} className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl p-4 cursor-pointer shadow-sm border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/40">
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[9px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{item.label}</p>
-                  <div className="w-7 h-7 rounded-lg bg-slate-50 dark:bg-zinc-800 flex items-center justify-center border border-[#ff1493]/5" style={{ color: item.color }}>
-                    {item.icon}
-                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-zinc-300">{item.label}</p>
+                  <span className="text-[#ff1493]">{item.icon}</span>
                 </div>
                 {loadingStats ? (
-                  <Skeleton className="h-8 w-20 bg-slate-200/50 dark:bg-white/[0.06]" />
+                  <Skeleton className="h-8 w-20" />
                 ) : (
-                  <p className="text-2xl font-black italic" style={{ color: item.color }}>
+                  <p className="text-3xl font-bold text-[#18181b] dark:text-zinc-100">
                     <AnimatedCounter value={item.value} formatter={(v) => v.toLocaleString()} />
                   </p>
                 )}
@@ -851,31 +846,30 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 4: Monetization Overview ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-          className="glass rounded-3xl p-6 relative overflow-hidden shadow-sm border-slate-100">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-[#ff1493] rounded-full blur-[100px] opacity-10 pointer-events-none" />
+          className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
           <div className="flex justify-between items-start mb-5">
             <div>
-              <h2 className="text-lg font-black text-slate-900 italic uppercase tracking-tight leading-none">Monetization</h2>
-              <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black italic uppercase mt-1 tracking-widest">Creator Earnings Overview</p>
+              <h2 className="text-lg font-bold text-[#18181b] dark:text-zinc-100 tracking-tight leading-none">Monetization</h2>
+              <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Earnings overview</p>
             </div>
-            <div className="w-10 h-10 glass rounded-xl flex items-center justify-center text-[#ff1493] border-slate-100">
+            <div className="text-[#ff1493]">
               <DollarSign size={18} strokeWidth={2.5} />
             </div>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
             {[
-              { label: 'Wallet Balance',      value: wallet?.available_balance || 0, color: '#22c55e' },
-              { label: 'Pending Earnings',    value: wallet?.pending_balance || 0,   color: '#f59e0b' },
-              { label: 'Available Earnings',  value: wallet?.available_balance || 0, color: '#3b82f6' },
-              { label: 'Est. Next Payout',    value: Math.round((wallet?.available_balance || 0) * 0.9), color: '#a855f7' },
+              { label: 'Wallet balance',      value: wallet?.available_balance || 0 },
+              { label: 'Pending earnings',    value: wallet?.pending_balance || 0,   },
+              { label: 'Available earnings',  value: wallet?.available_balance || 0 },
+              { label: 'Est. next payout',    value: Math.round((wallet?.available_balance || 0) * 0.9) },
             ].map((item, i) => (
-              <div key={i} className="bg-slate-50 dark:bg-zinc-800 rounded-xl p-3 border border-slate-200/50">
-                <p className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic">{item.label}</p>
+              <div key={i} className="bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl p-3 border border-[#e6d8e1] dark:border-zinc-700">
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-600 dark:text-zinc-300">{item.label}</p>
                 {loadingWallet ? (
-                  <Skeleton className="h-6 w-20 mt-1.5 bg-slate-200/50 dark:bg-white/[0.06]" />
+                  <Skeleton className="h-6 w-20 mt-1.5" />
                 ) : (
-                  <p className="text-sm font-black italic mt-1.5" style={{ color: item.color }}>
+                  <p className="text-base font-bold text-[#18181b] dark:text-zinc-100 mt-1.5">
                     {formatKES(item.value)}
                   </p>
                 )}
@@ -885,13 +879,13 @@ export default function ProfessionalDashboard() {
 
           <div className="flex gap-2 flex-wrap">
             {[
-              { label: 'Withdraw',      onClick: () => setShowWithdraw(true),           color: 'from-emerald-500 to-teal-500' },
-              { label: 'Add Funds',     onClick: () => setShowDeposit(true),             color: 'from-[#ff1493] to-[#ff6b35]' },
-              { label: 'Boost Content', onClick: () => setShowSubscription(true),        color: 'from-amber-500 to-orange-500' },
-              { label: 'Creator Store', onClick: () => navigate('/marketplace/my-shop'), color: 'from-violet-500 to-purple-500' },
+              { label: 'Withdraw',      onClick: () => setShowWithdraw(true),           primary: false },
+              { label: 'Add funds',     onClick: () => setShowDeposit(true),             primary: true },
+              { label: 'Boost content', onClick: () => setShowSubscription(true),        primary: false },
+              { label: 'Creator store', onClick: () => navigate('/marketplace/my-shop'), primary: false },
             ].map((btn, i) => (
               <button key={i} onClick={btn.onClick}
-                className={`bg-gradient-to-r ${btn.color} text-white px-4 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest italic shadow-lg hover:scale-105 active:scale-95 transition-all`}>
+                className={`px-4 h-10 rounded-full text-xs font-bold transition-colors ${btn.primary ? 'bg-[#ff1493] text-white hover:bg-[#ff2d87]' : 'bg-[#f0e5ec] dark:bg-zinc-700 text-[#18181b] dark:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 border border-[#e6d8e1] dark:border-zinc-700'}`}>
                 {btn.label}
               </button>
             ))}
@@ -900,20 +894,20 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 5: Recent Transactions ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-          className="glass rounded-3xl p-6 shadow-sm border-slate-100">
+          className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
           <div className="flex justify-between items-center mb-5">
             <div>
-              <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Transactions</h2>
-              <p className="text-[9px] text-slate-500 dark:text-zinc-300 font-black uppercase italic tracking-widest mt-0.5">Recent Activity</p>
+              <h2 className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight">Transactions</h2>
+              <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Recent activity</p>
             </div>
-            <button onClick={fetchWallet} className="p-2 hover:bg-slate-100 rounded-xl transition-colors">
+            <button onClick={fetchWallet} className="p-2 hover:bg-[#f6eef3] dark:hover:bg-zinc-700 rounded-xl transition-colors">
               <RefreshCw size={14} className="text-slate-600 dark:text-zinc-300" />
             </button>
           </div>
 
           {loadingWallet ? (
             <div className="space-y-3">
-              {[0,1,2].map((i) => <Skeleton key={i} className="h-14 bg-slate-200/50 dark:bg-white/[0.06]" />)}
+              {[0,1,2].map((i) => <Skeleton key={i} className="h-14" />)}
             </div>
           ) : transactions.length > 0 ? (
             <div>
@@ -921,36 +915,36 @@ export default function ProfessionalDashboard() {
             </div>
           ) : (
             <div className="text-center py-12">
-              <Wallet size={32} className="text-slate-400 mx-auto mb-3" />
-              <p className="text-[11px] font-black text-slate-500 dark:text-zinc-300 uppercase italic">No transactions yet</p>
-              <p className="text-[10px] text-slate-600 dark:text-zinc-300 font-medium mt-1">Add funds to get started</p>
+              <Wallet size={32} className="text-slate-600 dark:text-zinc-300 mx-auto mb-3" />
+              <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">No transactions yet</p>
+              <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">Add funds to get started</p>
               <button onClick={() => setShowDeposit(true)}
-                className="mt-4 px-6 py-2.5 bg-gradient-to-r from-[#ff1493] to-[#ff6b35] text-white rounded-xl text-[10px] font-black uppercase tracking-widest italic shadow-lg shadow-[#ff1493]/30 hover:scale-105 transition-all">
-                Add Funds
+                className="mt-4 px-6 h-10 bg-[#ff1493] text-white rounded-full text-xs font-bold hover:bg-[#ff2d87] transition-colors">
+                Add funds
               </button>
             </div>
           )}
 
           {transactions.length > 0 && (
             <button onClick={() => navigate('/wallet/history')}
-              className="mt-4 w-full py-3 glass rounded-xl text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic hover:text-[#ff1493] hover:bg-[#ff1493]/5 transition-all border-slate-100 hover:border-[#ff1493]/20">
-              View All Transactions
+              className="mt-4 w-full py-3 bg-[#f6eef3] dark:bg-zinc-900 rounded-full text-xs font-semibold text-slate-600 dark:text-zinc-300 hover:text-[#ff1493] transition-colors border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/40">
+              View all transactions
             </button>
           )}
         </motion.div>
 
         {/* ── Section 6: Growth Bars ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-          className="glass rounded-3xl p-6 shadow-sm border-slate-100">
-          <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight mb-5">Growth</h2>
+          className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
+          <h2 className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight mb-5">Growth</h2>
           <div className="space-y-5">
             {growthMetrics.map((m, i) => (
               <div key={i}>
                 <div className="flex justify-between mb-2">
-                  <span className="text-[10px] font-black text-slate-400 uppercase italic tracking-widest">{m.label}</span>
-                  <span className="text-[10px] font-black italic" style={{ color: m.color }}>{m.value}%</span>
+                  <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">{m.label}</span>
+                  <span className="text-xs font-bold text-[#18181b] dark:text-zinc-100">{m.value}%</span>
                 </div>
-                <div className="h-2 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-2 bg-[#ede3e9] dark:bg-zinc-700 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }} animate={{ width: `${m.value}%` }}
                     transition={{ duration: 1.2, delay: 0.3 + i * 0.1, ease: [0.16, 1, 0.3, 1] }}
@@ -965,15 +959,15 @@ export default function ProfessionalDashboard() {
 
         {/* ── Section 7: Quick Actions ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
-          <h2 className="text-[10px] font-black text-slate-500 dark:text-zinc-300 uppercase tracking-widest italic mb-3">Quick Actions</h2>
+          <h2 className="text-sm font-bold text-[#18181b] dark:text-zinc-100 mb-3">Quick actions</h2>
           <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
             {quickActions.map((action, i) => (
               <motion.button key={i} onClick={action.onClick} whileHover={{ y: -3, scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                className="glass rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-all border-slate-100 hover:border-[#ff1493]/20 shadow-sm bg-white dark:bg-zinc-800">
-                <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-md text-white`}>
+                className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-2xl p-3 flex flex-col items-center gap-2 cursor-pointer transition-shadow border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/40 shadow-sm">
+                <span className={`${action.color} flex items-center justify-center`}>
                   {action.icon}
-                </div>
-                <span className="text-[8px] font-black text-slate-600 dark:text-zinc-300 uppercase italic tracking-wide text-center leading-tight">
+                </span>
+                <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300 text-center leading-tight">
                   {action.label}
                 </span>
               </motion.button>
@@ -983,15 +977,15 @@ export default function ProfessionalDashboard() {
 
         {/* ── Content Performance (distribution) ── */}
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
-          className="glass rounded-3xl p-6 shadow-sm border-slate-100">
+          className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl p-6 border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
           <div className="flex justify-between items-center mb-5">
-            <h2 className="text-base font-black text-slate-900 italic uppercase tracking-tight">Content Performance</h2>
-            <span className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase italic px-2 py-1 glass rounded-lg">Distribution Logic</span>
+            <h2 className="text-base font-bold text-[#18181b] dark:text-zinc-100 tracking-tight">Content performance</h2>
+            <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300 px-2.5 py-1 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full">Content mix</span>
           </div>
           <div className="flex items-center gap-6">
             <div className="relative w-20 h-20 shrink-0">
-              <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-                <circle cx="50" cy="50" r="40" fill="transparent" stroke="rgba(0,0,0,0.05)" strokeWidth="12" />
+              <svg className="w-full h-full -rotate-90 text-[#ede3e9] dark:text-zinc-700" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="40" fill="transparent" stroke="currentColor" strokeWidth="12" />
                 <motion.circle
                   cx="50" cy="50" r="40" fill="transparent" stroke="#ff1493" strokeWidth="12"
                   strokeDasharray={`${videoPercent * 2.51} 251`} strokeLinecap="round"
@@ -1000,7 +994,7 @@ export default function ProfessionalDashboard() {
                   transition={{ duration: 1.2, delay: 0.4, ease: [0.16, 1, 0.3, 1] }}
                 />
               </svg>
-              <div className="absolute inset-0 flex items-center justify-center text-sm font-black italic text-slate-800">{videoPercent}%</div>
+              <div className="absolute inset-0 flex items-center justify-center text-sm font-bold text-[#18181b] dark:text-zinc-100">{videoPercent}%</div>
             </div>
             <div className="flex-1 space-y-4">
               {[
@@ -1009,11 +1003,11 @@ export default function ProfessionalDashboard() {
                 { label: 'Text',   pct: 100 - videoPercent - imagePercent, color: '#a855f7' },
               ].map((item, i) => (
                 <div key={i} className="space-y-1">
-                  <div className="flex justify-between text-[9px]">
-                    <span className="font-black text-slate-500 dark:text-zinc-300 uppercase italic">{item.label}</span>
-                    <span className="font-black italic" style={{ color: item.color }}>{item.pct}%</span>
+                  <div className="flex justify-between text-xs">
+                    <span className="font-medium text-slate-600 dark:text-zinc-300">{item.label}</span>
+                    <span className="font-bold text-[#18181b] dark:text-zinc-100">{item.pct}%</span>
                   </div>
-                  <div className="h-1.5 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-[#ede3e9] dark:bg-zinc-700 rounded-full overflow-hidden">
                     <motion.div
                       className="h-full rounded-full"
                       style={{ background: item.color }}
@@ -1030,17 +1024,17 @@ export default function ProfessionalDashboard() {
         {/* ── Footer Utilities ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           {[
-            { label: 'Pro Support',    icon: <MessageSquare size={14} />, color: 'text-indigo-600', onClick: () => navigate('/support') },
-            { label: 'Security',       icon: <Shield size={14} />,        color: 'text-emerald-600', onClick: () => navigate('/settings') },
-            { label: 'Creator Manual', icon: <HelpCircle size={14} />,    color: 'text-amber-600',  onClick: () => navigate('/help') },
-            { label: 'Get Verified',   icon: <BadgeCheck size={14} />,    color: 'text-[#ff1493]',  onClick: () => navigate('/verified') },
+            { label: 'Pro support',    icon: <MessageSquare size={14} />, color: 'text-[#ff1493]', onClick: () => navigate('/support') },
+            { label: 'Security',       icon: <Shield size={14} />,        color: 'text-[#ff1493]', onClick: () => navigate('/settings') },
+            { label: 'Creator manual', icon: <HelpCircle size={14} />,    color: 'text-[#ff1493]', onClick: () => navigate('/help') },
+            { label: 'Get verified',   icon: <BadgeCheck size={14} />,    color: 'text-[#ff1493]', onClick: () => navigate('/verified') },
           ].map((item, i) => (
             <motion.button key={i} onClick={item.onClick} whileHover={{ y: -2 }} whileTap={{ scale: 0.95 }}
-              className="glass p-3 rounded-xl flex flex-col items-center gap-1.5 hover:border-[#ff1493]/20 transition-all shadow-sm bg-white dark:bg-zinc-800 border-slate-100">
-              <div className={`w-8 h-8 rounded-lg bg-slate-50 dark:bg-white/[0.04] ${item.color} flex items-center justify-center border border-slate-100`}>
+              className="bg-[#fdf8fa] dark:bg-zinc-800 p-3 rounded-2xl flex flex-col items-center gap-1.5 hover:border-[#ff1493]/40 transition-shadow border border-[#e6d8e1] dark:border-zinc-700 shadow-sm">
+              <div className={`${item.color} flex items-center justify-center`}>
                 {item.icon}
               </div>
-              <span className="text-[8px] font-black text-slate-500 dark:text-zinc-300 uppercase italic tracking-widest text-center">{item.label}</span>
+              <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300 text-center">{item.label}</span>
             </motion.button>
           ))}
         </div>
@@ -1086,6 +1080,5 @@ export default function ProfessionalDashboard() {
     </div>
   );
 }
-
 
 

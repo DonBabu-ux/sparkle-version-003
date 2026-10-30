@@ -207,7 +207,7 @@ export default function Marketplace() {
       <div className="flex-1 w-full max-w-screen-md mx-auto shadow-sm min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900">
         
         {/* 1. FB Style Header */}
-        <header className="sticky top-0 z-40 bg-white/40 backdrop-blur-3xl flex flex-col transition-all">
+        <header className="sticky top-0 z-40 bg-[#fdf8fa] dark:bg-zinc-800 flex flex-col transition-all">
           {/* Top Row */}
           <div className="flex items-center justify-between px-3 pt-[env(safe-area-inset-top)] pb-2.5 min-h-[60px]">
             <AnimatePresence mode="wait">
@@ -264,7 +264,7 @@ export default function Marketplace() {
                             setSparklyOpen(true);
                             setIsSearching(false);
                           }}
-                          className="flex items-center gap-1 text-[11px] font-bold text-purple-600 hover:text-purple-700 bg-purple-100 hover:bg-purple-200 transition-colors px-2 py-1 rounded-full"
+                          className="flex items-center gap-1 text-[11px] font-bold text-white bg-primary hover:bg-[#ff2d87] transition-colors px-2.5 py-1 rounded-full"
                         >
                           <Sparkles size={11} /> AI
                         </button>
@@ -381,9 +381,9 @@ export default function Marketplace() {
                     setSparklyInitialMsg(undefined);
                     setSparklyOpen(true);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded text-[13px] font-extrabold whitespace-nowrap flex-shrink-0 shadow-sm active:scale-95 transition-all"
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-primary text-white rounded-full text-[13px] font-bold whitespace-nowrap flex-shrink-0 shadow-sm active:scale-95 transition-all"
                 >
-                  <Sparkles size={14} className="animate-pulse" /> Sparkly AI
+                  <Sparkles size={14} /> Sparkly AI
                 </button>
                 <button 
                   onClick={() => setActiveModal('sort')}
@@ -404,9 +404,9 @@ export default function Marketplace() {
             <>
               {/* Fallback Notice */}
               {isFallback && filteredListings.length > 0 && (
-                <div className="px-4 py-3 bg-marketplace-bg/50 border-b border-marketplace-border flex items-center justify-center gap-2">
-                  <MapPin size={14} className="text-marketplace-muted" />
-                  <p className="text-[11px] font-black text-marketplace-muted uppercase tracking-[0.2em]">Showing items from all locations</p>
+                <div className="px-4 py-3 bg-[#fdf8fa] dark:bg-zinc-800 border-b border-marketplace-border flex items-center justify-center gap-2">
+                  <MapPin size={14} className="text-slate-600 dark:text-zinc-300" />
+                  <p className="text-[11px] font-medium text-slate-600 dark:text-zinc-300">Showing items from all locations</p>
                 </div>
               )}
               {/* Home Sub-header (Today's Picks) */}
@@ -473,7 +473,7 @@ export default function Marketplace() {
                   </div>
                 )}
                 {filteredListings.length > 0 && !hasMore && (
-                  <div className="px-4 py-6 text-center text-marketplace-muted text-sm font-bold uppercase tracking-wider">
+                  <div className="px-4 py-6 text-center text-slate-600 dark:text-zinc-300 text-sm font-medium">
                     No more results
                   </div>
                 )}
@@ -497,15 +497,15 @@ export default function Marketplace() {
         title="Ask Sparkly AI Shopping Assistant"
       >
         {/* Pulsing ring */}
-        <span className="absolute inset-0 rounded-full animate-ping opacity-30 bg-purple-500" style={{ animationDuration: '2.5s' }} />
-        <div className="relative flex items-center gap-2.5 bg-slate-900/95 backdrop-blur-md text-white px-4 py-2.5 rounded-full shadow-xl shadow-purple-950/40 border border-purple-500/40 hover:border-purple-400/70 transition-all group">
-          <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-indigo-600 shadow-md">
+        <span className="absolute inset-0 rounded-full hidden" />
+        <div className="relative flex items-center gap-2.5 bg-primary text-white px-4 py-2.5 rounded-full shadow-lg shadow-primary/20 hover:bg-[#ff2d87] transition-all group">
+          <div className="relative flex items-center justify-center w-7 h-7 rounded-full bg-transparent shrink-0">
             <Sparkles size={15} className="text-white" />
-            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-slate-900" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full hidden" />
           </div>
           <div className="flex flex-col text-left">
-            <span className="text-xs font-black tracking-wide text-white leading-tight">Sparkly AI</span>
-            <span className="text-[10px] text-purple-300/80 font-medium leading-none">Ask me anything</span>
+            <span className="text-xs font-bold tracking-tight text-white leading-tight">Sparkly AI</span>
+            <span className="text-[10px] font-medium text-white leading-none">Ask me anything</span>
           </div>
         </div>
       </motion.button>

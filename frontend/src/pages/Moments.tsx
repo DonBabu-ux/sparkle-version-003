@@ -2,11 +2,14 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3 } from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3, Music, MoreVertical, Pin, ChevronRight } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import MomentShareModal from '../components/modals/MomentShareModal';
+import OwnerReelMenuSheet from '../features/reels/components/OwnerReelMenuSheet';
+import ReelViewersModal from '../features/reels/components/ReelViewersModal';
+import MomentPrivacySheet from '../features/reels/components/MomentPrivacySheet';
 import type { Moment } from '../types/moment';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -14,6 +17,7 @@ import { useInteractionStore } from '../store/interactionStore';
 import { FeedPaginationAudit } from '../services/feedPaginationAudit';
 import '../services/TrackingService';
 import { getMediaUrl, getSafeVideoUrl } from '../utils/imageUtils';
+import { isWatermarkVisible } from '../utils/watermark';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
@@ -36,6 +40,17 @@ const formatCount = (num: number): string => {
   return num.toString();
 };
 
+// music_info arrives as a JSON string (or an already-parsed object)
+const parseMusicInfo = (raw: Moment['music_info']): { title?: string; artist?: string } | null => {
+  if (!raw) return null;
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return null;
+    try { return JSON.parse(trimmed); } catch { return null; }
+  }
+  return raw;
+};
+
 interface Comment {
   comment_id: string;
   username: string;
@@ -44,6 +59,19 @@ interface Comment {
   created_at: string;
   is_liked?: boolean;
   replies?: Comment[];
+}
+
+// A creator surfaced by GET /api/moments/suggestions — ranked by real
+// engagement (recency, mutual followees, hashtag overlap, popularity).
+interface SuggestedUser {
+  user_id: string;
+  username: string;
+  name?: string;
+  avatar_url?: string;
+  follower_count?: number;
+  mutual_followees?: number;
+  recent_moments?: number;
+  score?: number;
 }
 
 const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void; onReply?: (username: string) => void }) => {
@@ -109,6 +137,10 @@ const ReelItem = React.memo(({
   onOpenSearch,
   onShare,
   onFollow,
+  onOpenMenu,
+  onOpenViewers,
+  isOwner,
+  commentOverlays,
   active,
   isNearActive,
   downloadProgress,
@@ -123,6 +155,10 @@ const ReelItem = React.memo(({
   onOpenComments: (id: string) => void;
   onShare: (moment: Moment) => void;
   onOpenSearch: () => void;
+  onOpenMenu?: (moment: Moment) => void;
+  onOpenViewers?: (momentId: string) => void;
+  isOwner?: boolean;
+  commentOverlays?: string[];
   onFollow: (userId: string, momentId: string) => void;
   active: boolean;
   isNearActive: boolean;
@@ -159,6 +195,21 @@ const ReelItem = React.memo(({
       }
     }
   }, [active, moment.moment_id, currentUser]);
+
+  // Sequential comment overlays: cycle through recent comments every 3s
+  // while this reel is active. Timers are always cleaned up.
+  const [overlayIdx, setOverlayIdx] = useState(0);
+  useEffect(() => {
+    if (!active || !commentOverlays || commentOverlays.length === 0) {
+      setOverlayIdx(0);
+      return;
+    }
+    setOverlayIdx(0);
+    const timer = setInterval(() => {
+      setOverlayIdx((i) => (i + 1) % commentOverlays.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [active, commentOverlays]);
 
   const togglePlay = () => {
     const nextPaused = !userPaused;
@@ -300,6 +351,7 @@ const ReelItem = React.memo(({
   // mediaSrc stays as the guaranteed fallback if the safe URL 404s.
   const safeMediaSrc = rawSrc ? getSafeVideoUrl(rawSrc) : '';
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url || !!(moment.video_url || moment.media_url || moment.streaming_url)?.match(/\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i);
+  const music = parseMusicInfo(moment.music_info);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
   // multiple iframes playing simultaneously with no way to stop them.
@@ -362,6 +414,13 @@ const ReelItem = React.memo(({
         {/* Overlays */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+
+        {/* Creator watermark — honors the per-reel composer toggle (default on) */}
+        {isWatermarkVisible(moment.watermark) && (
+          <div className="absolute top-3 right-3 z-10 pointer-events-none select-none text-[10px] font-black uppercase tracking-[0.3em] text-white/70 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+            Sparkle
+          </div>
+        )}
 
         {/* Enhanced Pause/Play Indicator — Only show if active and manually paused */}
         <AnimatePresence>
@@ -447,10 +506,43 @@ const ReelItem = React.memo(({
           <Share2 size={26} strokeWidth={2.5} />
         </button>
  
+        {isOwner && (
+          <button
+            aria-label="Reel options"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenMenu?.(moment);
+            }}
+            className="w-12 h-12 flex items-center justify-center text-white transition-all hover:scale-110"
+          >
+            <MoreVertical size={24} strokeWidth={2.5} />
+          </button>
+        )}
+
         <button className="w-9 h-9 flex items-center justify-center text-white transition-all mt-2 pointer-events-auto hover:scale-110" onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
           {muted ? <VolumeX size={18} strokeWidth={2.5} /> : <Volume2 size={18} strokeWidth={2.5} />}
         </button>
       </div>
+
+      {/* Sequential comment overlays (bounded, recent comments) */}
+      {active && commentOverlays && commentOverlays.length > 0 && (
+        <div className="absolute left-4 bottom-[calc(11rem+env(safe-area-inset-bottom))] md:bottom-36 max-w-[70%] z-20 pointer-events-none">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`${moment.moment_id}-c${overlayIdx}`}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.25 }}
+              className="rounded-2xl bg-black/45 backdrop-blur-md border border-white/10 px-3 py-1.5"
+            >
+              <p className="text-white/95 text-[12px] font-semibold leading-snug drop-shadow line-clamp-2">
+                {commentOverlays[overlayIdx % commentOverlays.length]}
+              </p>
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      )}
 
       {/* Info Overlay (Rationalized) */}
       <div className="absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 p-5 pb-8 z-10 flex flex-col gap-2 pointer-events-none">
@@ -472,11 +564,34 @@ const ReelItem = React.memo(({
             {moment.caption}
           </p>
         )}
+        {music?.title && (
+          <div className="flex items-center gap-1.5 text-white/95 drop-shadow-md max-w-[75%]">
+            <Music size={12} className="shrink-0" />
+            <span className="text-[12px] font-semibold truncate">
+              {music.title}{music.artist ? ` · ${music.artist}` : ''}
+            </span>
+          </div>
+        )}
         <div className="flex items-center gap-3 mt-1">
-          <div className="flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isOwner) onOpenViewers?.(moment.moment_id);
+            }}
+            disabled={!isOwner}
+            className={`flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5 ${isOwner ? 'pointer-events-auto hover:bg-black/35' : 'cursor-default'}`}
+            aria-label={isOwner ? 'See who viewed this reel' : `${moment.view_count || 0} views`}
+          >
              <Eye size={12} className="text-white/80" />
              <span className="text-[10px] font-black text-white/90 tracking-wide">{moment.view_count || 0} views</span>
-          </div>
+          </button>
+          {(moment as Moment & { is_pinned?: number | boolean }).is_pinned ? (
+            <span className="flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+              <Pin size={11} className="text-white/80" />
+              <span className="text-[10px] font-black text-white/90 tracking-wide">Pinned</span>
+            </span>
+          ) : null}
           <button 
             onClick={(e) => { e.stopPropagation(); onOpenSearch(); }}
             className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-all active:scale-95 pointer-events-auto"
@@ -580,7 +695,14 @@ export default function Moments() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchInput, setSearchInput] = useState('');
-  const [searchHistory, setSearchHistory] = useState(['Nairobi Nightlife', 'Sheng Rap', 'Kenyan Food']);
+  // Real, device-local search history. Seeded empty — no mock queries.
+  const [searchHistory, setSearchHistory] = useState<string[]>(() => {
+    try {
+      const raw = localStorage.getItem('sparkle:moments:search-history');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((s) => typeof s === 'string').slice(0, 20) : [];
+    } catch { return []; }
+  });
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [searchResults, setSearchResults] = useState<Moment[]>([]);
   const [activeSearchTab, setActiveSearchTab] = useState('Top');
@@ -589,8 +711,20 @@ export default function Moments() {
   const [isFallback, setIsFallback] = useState(false);
   const searchCache = useRef<Record<string, any>>({});
   const searchTimeout = useRef<NodeJS.Timeout | null>(null);
+  // Monotonic sequence so a slow response for an old query can never
+  // overwrite the results of a newer one (stale-request guard).
+  const searchSeqRef = useRef(0);
+  // Backend-ranked "You May Like" creators (real engagement data, never mock).
+  const [suggestedUsers, setSuggestedUsers] = useState<SuggestedUser[]>([]);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState<{ id: string, progress: number } | null>(null);
   const [momentToShare, setMomentToShare] = useState<Moment | null>(null);
+  const [menuMoment, setMenuMoment] = useState<Moment | null>(null);
+  const [viewersMomentId, setViewersMomentId] = useState<string | null>(null);
+  const [privacyMomentId, setPrivacyMomentId] = useState<string | null>(null);
+  // Bounded (≤20) recent comment texts per moment, shown sequentially as
+  // on-screen overlays while the reel plays — like comment flyouts.
+  const [overlayComments, setOverlayComments] = useState<Record<string, string[]>>({});
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [ , setShowHDIntro ] = useState(false);
@@ -785,14 +919,16 @@ export default function Moments() {
     setSearchInput(query);
     setIsSearching(true);
     setHasSearched(true);
+    const seq = ++searchSeqRef.current;
     
     // Add to history if not exists
     if (!searchHistory.includes(query)) {
-      setSearchHistory(prev => [query, ...prev.slice(0, 9)]);
+      setSearchHistory(prev => [query, ...prev.filter((s) => s !== query)].slice(0, 20));
     }
 
     try {
       const res = await api.get(`/moments/stream?query=${encodeURIComponent(query)}&type=${type}`);
+      if (seq !== searchSeqRef.current) return; // a newer search superseded this one
       const data = res.data;
       const resultData = {
         moments: data.moments || data || [],
@@ -823,9 +959,10 @@ export default function Moments() {
       searchCache.current[cacheKey] = cacheData;
       localStorage.setItem(`search_${cacheKey}`, JSON.stringify(cacheData));
     } catch (err) {
+      if (seq !== searchSeqRef.current) return;
       logger.error('Search error', err);
     } finally {
-      setIsSearching(false);
+      if (seq === searchSeqRef.current) setIsSearching(false);
     }
   };
 
@@ -846,6 +983,52 @@ export default function Moments() {
       handleSearch(searchQuery, activeSearchTab);
     }
   }, [activeSearchTab]);
+
+  // Persist real search history to this device (best-effort, quota-safe).
+  useEffect(() => {
+    try {
+      localStorage.setItem('sparkle:moments:search-history', JSON.stringify(searchHistory.slice(0, 20)));
+    } catch { /* private mode / quota — history stays in-memory */ }
+  }, [searchHistory]);
+
+  // Load backend-ranked suggestions once, lazily on first open of the drawer.
+  useEffect(() => {
+    if (!isSearchOpen || suggestionsLoading) return;
+    if (suggestedUsers.length > 0) return;
+    let alive = true;
+    setSuggestionsLoading(true);
+    api.get('/moments/suggestions', { params: { limit: 6 } })
+      .then(({ data }) => {
+        if (!alive) return;
+        const list = Array.isArray(data?.suggestions) ? data.suggestions : [];
+        setSuggestedUsers(list.filter((s: SuggestedUser) => s?.username));
+      })
+      .catch(() => { /* drawer still works without suggestions */ })
+      .finally(() => { if (alive) setSuggestionsLoading(false); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSearchOpen]);
+
+  // Prefetch a bounded set of recent comments for the active reel so they
+  // can play as sequential on-screen overlays (PART 6).
+  useEffect(() => {
+    const m = moments[activeIndex];
+    if (!m?.moment_id || overlayComments[m.moment_id]) return;
+    let alive = true;
+    api.get(`/moments/${m.moment_id}/comments`, { params: { limit: 20 } })
+      .then(({ data }) => {
+        if (!alive) return;
+        const raw = Array.isArray(data?.comments) ? data.comments : Array.isArray(data) ? data : [];
+        const texts = raw
+          .slice(0, 20)
+          .map((c: { content?: string; comment?: string; text?: string }) => String(c.content || c.comment || c.text || '').trim())
+          .filter(Boolean)
+          .reverse(); // oldest-first so overlays play in conversation order
+        setOverlayComments(prev => ({ ...prev, [m.moment_id]: texts }));
+      })
+      .catch(() => { /* overlays are best-effort */ });
+    return () => { alive = false; };
+  }, [activeIndex, moments, overlayComments]);
 
   const handleFollow = async (userId: string, _momentId: string) => {
     if (!user) {
@@ -1209,39 +1392,49 @@ export default function Moments() {
                     </div>
                   </div>
 
-                  {/* You May Like - Red Highlighted Suggestions */}
+                  {/* You May Like — real, backend-ranked creators */}
                   <div>
                     <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">You May Like</h4>
-                    <div className="flex flex-col gap-1">
-                      {[
-                        { text: 'Kenya vs World Challenge', trending: true },
-                        { text: 'Mombasa Vibez 2026', trending: true },
-                        { text: 'Sheng Comedy Central', trending: true },
-                        { text: 'Sparkle Dance Off', trending: false },
-                        { text: 'Afterglow Moments', trending: false }
-                      ].map((item, idx) => (
-                        <div 
-                          key={idx} 
-                          onClick={() => handleSearch(item.text)}
-                          className="flex items-center justify-between py-3 group cursor-pointer"
-                        >
-                          <div className="flex items-center gap-3">
-                            <span className={clsx(
-                              "text-sm font-bold transition-colors",
-                              idx < 3 ? "text-primary" : "text-white/60 group-hover:text-white"
-                            )}>
-                              {item.text}
-                            </span>
+                    {suggestionsLoading && suggestedUsers.length === 0 ? (
+                      <div className="flex items-center gap-2 py-3 text-white/30">
+                        <Spinner size="small" />
+                        <span className="text-[11px] font-bold uppercase tracking-widest">Finding creators…</span>
+                      </div>
+                    ) : suggestedUsers.length === 0 ? (
+                      <p className="py-3 text-[12px] font-medium text-white/30">
+                        No suggestions yet — creators show up here once they post moments.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-1">
+                        {suggestedUsers.map((user) => (
+                          <div
+                            key={user.user_id}
+                            onClick={() => navigate(`/profile/${user.username}`)}
+                            className="flex items-center justify-between py-2.5 group cursor-pointer"
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={getMediaUrl(user.avatar_url) || '/uploads/avatars/no-profile.png'}
+                                alt={user.username}
+                                className="w-9 h-9 rounded-full object-cover border border-white/10 shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="text-sm font-bold text-white/80 group-hover:text-white truncate">
+                                  {user.name || user.username}
+                                </p>
+                                <p className="text-[11px] font-medium text-white/35 truncate">
+                                  @{user.username}
+                                  {typeof user.mutual_followees === 'number' && user.mutual_followees > 0
+                                    ? ` · ${user.mutual_followees} mutual`
+                                    : ''}
+                                </p>
+                              </div>
+                            </div>
+                            <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 shrink-0" />
                           </div>
-                          <div className="flex items-center gap-2">
-                             {item.trending && <div className="w-1 h-1 bg-red-500 rounded-full animate-pulse" />}
-                             <button className="p-1.5 rounded-lg bg-white/5 text-white/40 group-hover:text-white group-hover:bg-white/10 transition-all">
-                                <Search size={14} />
-                             </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : (
@@ -1369,6 +1562,10 @@ export default function Moments() {
                    onOpenComments={openComments}
                    onShare={setMomentToShare}
                    onOpenSearch={() => setIsSearchOpen(true)}
+                   onOpenMenu={setMenuMoment}
+                   onOpenViewers={setViewersMomentId}
+                   isOwner={String(m.user_id || '') === String(user?.user_id || user?.id || '')}
+                   commentOverlays={overlayComments[m.moment_id]}
                    onFollow={handleFollow}
                    onQualityChange={handleQualityChange}
                    muted={isMuted}
@@ -1395,6 +1592,63 @@ export default function Moments() {
           onClose={() => setMomentToShare(null)} 
           onDownload={startDownload}
         />
+      )}
+
+      {menuMoment && (
+        <OwnerReelMenuSheet
+          momentId={menuMoment.moment_id}
+          isPinned={Number((menuMoment as Moment & { is_pinned?: number | boolean }).is_pinned || 0) === 1}
+          castAvailable={(() => {
+            const v = document.querySelector('video');
+            return !!(v && 'remote' in v && typeof (v as HTMLVideoElement & { remote?: { prompt?: unknown } }).remote?.prompt === 'function');
+          })()}
+          onClose={() => setMenuMoment(null)}
+          onSend={() => {
+            const m = menuMoment;
+            setMenuMoment(null);
+            if (m) setMomentToShare(m);
+          }}
+          onPrivacy={() => {
+            const m = menuMoment;
+            setMenuMoment(null);
+            if (m) setPrivacyMomentId(m.moment_id);
+          }}
+          onViewers={() => {
+            const m = menuMoment;
+            setMenuMoment(null);
+            if (m) setViewersMomentId(m.moment_id);
+          }}
+          onDownload={() => {
+            const m = menuMoment;
+            setMenuMoment(null);
+            if (m) void startDownload(m);
+          }}
+          onCreateSticker={() => {
+            const m = menuMoment;
+            setMenuMoment(null);
+            if (m) navigate(`/moments/${m.moment_id}/sticker`);
+          }}
+          onCast={() => {
+            const v = document.querySelector('video') as (HTMLVideoElement & { remote?: { prompt?: () => Promise<void> } }) | null;
+            setMenuMoment(null);
+            if (v?.remote?.prompt) {
+              v.remote.prompt().catch(() => { /* user cancelled or no device */ });
+            }
+          }}
+          onPinToggled={(pinned) => {
+            const m = menuMoment;
+            if (!m) return;
+            setMoments((prev) => prev.map((x) => x.moment_id === m.moment_id ? { ...x, is_pinned: pinned ? 1 : 0 } as Moment : x));
+          }}
+        />
+      )}
+
+      {viewersMomentId && (
+        <ReelViewersModal momentId={viewersMomentId} onClose={() => setViewersMomentId(null)} />
+      )}
+
+      {privacyMomentId && (
+        <MomentPrivacySheet momentId={privacyMomentId} onClose={() => setPrivacyMomentId(null)} />
       )}
 
       {/* Comments Drawer (Pink Soft) */}

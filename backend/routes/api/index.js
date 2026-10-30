@@ -54,6 +54,7 @@ router.use('/groupChat', groupChatRoutes);
 router.use('/posts', postsRoutes);
 router.use('/stories', storiesRoutes);
 router.use('/moments', momentsRoutes);
+router.use('/reels', require('./reels.routes'));
 router.use('/upload', uploadRoutes);
 router.use('/share', shareRoutes);
 router.use('/notifications', notificationsRoutes);

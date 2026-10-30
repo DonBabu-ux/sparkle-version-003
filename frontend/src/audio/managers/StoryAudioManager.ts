@@ -97,9 +97,18 @@ export class StoryAudioManager {
 
     this.initWebAudio();
 
-    if (this.ctx && this.ctx.state === 'suspended') {
-      await this.ctx.resume();
+    // Autoplay policy can leave a fresh/long-idle context 'suspended'. A
+    // MediaElementSource routed through a suspended context outputs pure
+    // silence even though audio.play() resolves, so the story music would
+    // "play" but be inaudible. Always resume before starting the track.
+    if (this.ctx && this.ctx.state !== 'running') {
+      try {
+        await this.ctx.resume();
+      } catch (_) {
+        // Some browsers need a gesture; fall back to element output below.
+      }
     }
+    const graphLive = !!this.ctx && this.ctx.state === 'running' && !!this.source && !!this.gainNode;
 
     if (this.currentTrackUrl !== url) {
       this.audio.src = url;
@@ -109,11 +118,15 @@ export class StoryAudioManager {
 
     this.audio.currentTime = startOffset;
 
-    if (this.gainNode && this.ctx) {
-      this.gainNode.gain.setValueAtTime(0, this.ctx.currentTime);
+    if (graphLive) {
+      this.gainNode!.gain.setValueAtTime(0, this.ctx!.currentTime);
       this.audio.play().catch(e => logger.warn('[StoryAudioManager] Play request failed/blocked:', e));
-      this.gainNode.gain.linearRampToValueAtTime(this.originalVolume, this.ctx.currentTime + 0.4);
+      this.gainNode!.gain.linearRampToValueAtTime(this.originalVolume, this.ctx!.currentTime + 0.4);
     } else {
+      // Context never reached 'running' (autoplay policy / no gesture yet).
+      // The element is NOT connected to the speakers in that case, so keep it
+      // muted inside the graph and play it directly instead of going silent.
+      this.audio.muted = false;
       this.audio.volume = this.originalVolume;
       this.audio.play().catch(e => logger.warn('[StoryAudioManager] Play request failed/blocked:', e));
     }

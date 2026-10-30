@@ -1,13 +1,17 @@
 import { showError, showInfo } from '../utils/toast';
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
+import { useUploadStore } from '../store/uploadStore';
+import { UploadEventBus } from '../utils/UploadEventBus';
 import api from '../api/api';
 import FollowListModal from '../components/modals/FollowListModal';
 import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
-import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid, List } from 'lucide-react';
+import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
+List, FileText
+} from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
 import SparkleHub from '../components/SparkleHub';
@@ -17,11 +21,18 @@ import { IdentityManager } from '../utils/identityManager';
 import { VerifiedBadge } from '../components/common/VerifiedBadge';
 import EditProfileModal from '../components/profile/EditProfileModal';
 import { logger } from '../utils/logger';
+import DraftPreview from '../features/reels/components/DraftPreview';
+import PendingReelTile from '../features/reels/components/PendingReelTile';
+import { listDrafts, formatBytes, type DraftListItem } from '../features/reels/services/draftService';
 
 export default function Profile() {
   const { username } = useParams();
   const { user: currentUser, accounts, switchAccount } = useUserStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reelsTabParamRef = useRef(searchParams.get('tab') === 'reels');
+  // Monotonic token: a slow fetchProfile response can never clobber a newer one.
+  const fetchSeqRef = useRef(0);
   
   const [profile, setProfile] = useState<User | null>(null);
   // null = loaded fine. 'not_found' = 404, the account genuinely doesn't exist.
@@ -31,7 +42,9 @@ export default function Profile() {
   const [reels, setReels] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>('posts');
+  const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>(
+    reelsTabParamRef.current ? 'reels' : 'posts',
+  );
   const [isFollowing, setIsFollowing] = useState(false);
   const [isRequested, setIsRequested] = useState(false);
   const [modalType, setModalType] = useState<'Followers' | 'Following' | null>(null);
@@ -42,6 +55,42 @@ export default function Profile() {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showSparkleHub, setShowSparkleHub] = useState(false);
+
+  // Local reel drafts (owner-only grid tile: count + total size + preview).
+  const [drafts, setDrafts] = useState<DraftListItem[]>([]);
+  const [draftBytes, setDraftBytes] = useState(0);
+
+  useEffect(() => {
+    const currentId = currentUser?.id || currentUser?.user_id;
+    const profileId = profile?.id || profile?.user_id;
+    const owner = (!!currentId && !!profileId && String(currentId) === String(profileId)) || username === 'me';
+    if (!owner) {
+      setDrafts([]);
+      setDraftBytes(0);
+      return;
+    }
+    let alive = true;
+    void listDrafts()
+      .then((res) => {
+        if (!alive) return;
+        setDrafts(res.drafts);
+        setDraftBytes(res.totalBytes);
+      })
+      .catch((err) => {
+        logger.warn('[Profile] local drafts unavailable:', err);
+        if (alive) { setDrafts([]); setDraftBytes(0); }
+      });
+    return () => { alive = false; };
+  }, [currentUser, profile, username]);
+
+  // ── Background reel upload jobs → pending tiles in the Reels tab ──
+  const uploadJobs = useUploadStore((s) => s.jobs);
+  const pendingMomentJobs = uploadJobs.filter(
+    (j) => j.type === 'MOMENT' && j.status !== 'PUBLISHED' && j.status !== 'CANCELLED',
+  );
+
+  const activeTabRef = useRef(activeTab);
+  useEffect(() => { activeTabRef.current = activeTab; }, [activeTab]);
 
   const identity = IdentityManager.resolveIdentity(profile);
 
@@ -73,11 +122,16 @@ export default function Profile() {
   const [highlights, setHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
 
   const fetchProfile = useCallback(async () => {
+    // Concurrent invocations (mount + ?tab=reels + UPLOAD_COMPLETED) race;
+    // only the latest call may apply state, and moments must never be
+    // appended twice (duplicate React keys in the grid).
+    const seq = ++fetchSeqRef.current;
     setLoading(true);
-    setActiveTab('posts'); 
+    setActiveTab(reelsTabParamRef.current ? 'reels' : 'posts'); 
     try {
       const endpoint = username === 'me' ? '/users/me' : `/users/${encodeURIComponent(username || '')}`;
       const profileRes = await api.get(endpoint);
+      if (seq !== fetchSeqRef.current) return;
       if (profileRes.data) {
         const profileData = profileRes.data;
         setProfile(profileData);
@@ -87,18 +141,76 @@ export default function Profile() {
         // Posts are secondary: a failure here must not wipe the loaded profile
         try {
           const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
+          if (seq !== fetchSeqRef.current) return;
           if (postsRes.data && Array.isArray(postsRes.data)) {
             const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
             setPosts(allPosts);
             setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
           }
         } catch (err) {
+          if (seq !== fetchSeqRef.current) return;
           logger.error('Failed to fetch posts:', err);
           setPosts([]);
           setReels([]);
         }
+
+        // Reels live in the moments table, not posts — fetch them separately
+        // for the REELS tab. The endpoint enforces audience server-side.
+        try {
+          const reelsRes = await api.get(`/moments/users/${profileData.id || profileData.user_id}/moments`);
+          if (seq !== fetchSeqRef.current) return;
+          const moments: Post[] = (Array.isArray(reelsRes.data?.moments) ? reelsRes.data.moments : []).map(
+            (m: {
+              moment_id: string | number;
+              user_id?: string | number;
+              username?: string;
+              user_name?: string;
+              avatar_url?: string | null;
+              title?: string | null;
+              caption?: string | null;
+              media_url?: string | null;
+              media_type?: string | null;
+              like_count?: string | number | null;
+              comment_count?: string | number | null;
+              is_liked?: number | boolean | null;
+              is_saved?: number | boolean | null;
+              created_at?: string;
+            }) => ({
+              post_id: String(m.moment_id),
+              user_id: m.user_id ? String(m.user_id) : undefined,
+              username: m.username || '',
+              name: m.user_name || '',
+              avatar_url: m.avatar_url || undefined,
+              content: m.title || m.caption || '',
+              media_url: m.media_url || undefined,
+              media_type: m.media_type || 'video',
+              spark_count: Number(m.like_count) || 0,
+              comment_count: Number(m.comment_count) || 0,
+              is_sparked: !!m.is_liked,
+              is_saved: !!m.is_saved,
+              created_at: String(m.created_at || ''),
+              is_moment: true,
+            })
+          );
+          if (moments.length > 0) {
+            setReels((prev) => {
+              // Dedupe by post_id so a double-invocation (or a moment that is
+              // also a video post) never produces duplicate React keys.
+              const seen = new Set(prev.map((p) => p.post_id));
+              const fresh = moments.filter((m) => !seen.has(m.post_id));
+              if (fresh.length === 0) return prev;
+              return [...prev, ...fresh].sort(
+                (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+              );
+            });
+          }
+        } catch (err) {
+          if (seq !== fetchSeqRef.current) return;
+          logger.warn('Failed to fetch profile reels:', err);
+        }
       }
     } catch (err) {
+      if (seq !== fetchSeqRef.current) return;
       logger.error('Failed to fetch profile:', err);
       const status = (err as { response?: { status?: number } })?.response?.status;
       // Only a 404 means the account truly doesn't exist. A 500, network error,
@@ -106,7 +218,8 @@ export default function Profile() {
       setProfileError(status === 404 ? 'not_found' : 'unavailable');
       setProfile(null);
     } finally {
-      setLoading(false);
+      // Only the latest invocation may clear the loading flag.
+      if (seq === fetchSeqRef.current) setLoading(false);
     }
   }, [username]);
 
@@ -131,6 +244,24 @@ export default function Profile() {
   useEffect(() => {
     if (currentUser) fetchProfile();
   }, [fetchProfile, currentUser]);
+
+  // When a background reel finishes publishing, refresh the grid so the
+  // pending tile is replaced by the real reel (idempotent server fetch).
+  // NOTE: must sit below the fetchProfile declaration — a dep array that
+  // references a later const throws "Cannot access before initialization".
+  useEffect(() => {
+    const currentId = currentUser?.id || currentUser?.user_id;
+    const profileId = profile?.id || profile?.user_id;
+    const owner = (!!currentId && !!profileId && String(currentId) === String(profileId)) || username === 'me';
+    if (!owner) return;
+    const off = UploadEventBus.on('UPLOAD_COMPLETED', (data) => {
+      const job = useUploadStore.getState().jobs.find((j) => j.uploadId === data?.uploadId);
+      if (job?.type !== 'MOMENT') return;
+      const tab = activeTabRef.current;
+      void fetchProfile().then(() => setActiveTab(tab));
+    });
+    return off;
+  }, [currentUser, profile, username, fetchProfile]);
 
   // Fetch highlights when profile is loaded
   useEffect(() => {
@@ -240,6 +371,9 @@ export default function Profile() {
   const isOwnProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
   const isMeAlias = username === 'me';
   const showOwnerActions = isOwnProfile || isMeAlias;
+  const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : [];
+  const showDraftsTile = showOwnerActions && (activeTab === 'posts' || activeTab === 'reels');
+  const showPendingReels = showOwnerActions && activeTab === 'reels' && pendingMomentJobs.length > 0;
 
   return (
     <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
@@ -611,6 +745,7 @@ export default function Profile() {
                   <ChevronDown className="text-black/10 dark:text-white/10 -rotate-90 group-hover:text-primary transition-colors" size={20} />
                 </div>
               )}
+
             </div>
           </header>
 
@@ -696,16 +831,61 @@ export default function Profile() {
                 : 'flex flex-col gap-2 pb-32 animate-fade-in w-full'
             }
           >
-            {(activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).length > 0 ? (
-              (activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : []).map((post) => (
+            {/* Drafts tile — first cell of the owner's grid: preview rectangle,
+                draft count and total size at the top; opens the drafts page. */}
+            {showDraftsTile && (
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={`Drafts: ${drafts.length} saved, ${formatBytes(draftBytes)}. Open drafts`}
+                onClick={() => navigate('/moments/drafts')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    navigate('/moments/drafts');
+                  }
+                }}
+                className={`relative overflow-hidden group cursor-pointer bg-gray-100 dark:bg-white/5 ${viewMode === 'grid' ? 'aspect-square' : 'aspect-[4/3] md:aspect-[3/2] h-48'}`}
+              >
+                <div className="w-full h-full relative">
+                  <DraftPreview
+                    draft={drafts[0] || null}
+                    className="w-full h-full object-cover"
+                    fallback={
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[#FF6B8B]/25 to-purple-500/15">
+                        <FileText size={30} className="text-[#FF1F6D]" />
+                      </div>
+                    }
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/15 to-black/40" />
+                  <div className="absolute top-2 left-2 z-10 text-left">
+                    <span className="block text-white text-[13px] font-extrabold drop-shadow-md">
+                      Drafts {drafts.length}
+                    </span>
+                    <span className="block text-white/80 text-[11px] font-semibold drop-shadow-md">
+                      {formatBytes(draftBytes)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Pending background reel uploads — first in the owner's reels
+                grid with real thumbnail + live progress ring. */}
+            {showPendingReels && pendingMomentJobs.map((job) => (
+              <PendingReelTile key={job.uploadId} job={job} viewMode={viewMode} />
+            ))}
+
+            {gridItems.length > 0 || showPendingReels ? (
+              gridItems.map((post) => (
                 <div
                     key={post.post_id}
                     className={`relative overflow-hidden group cursor-pointer bg-gray-100 dark:bg-white/5 ${viewMode === 'grid' ? 'aspect-square' : 'aspect-[4/3] md:aspect-[3/2] h-48'}`}
-                    onClick={() => navigate(`/post/${post.post_id}`)}
+                    onClick={() => navigate(post.is_moment ? `/moments/${post.post_id}` : `/post/${post.post_id}`)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        navigate(`/post/${post.post_id}`);
+                        navigate(post.is_moment ? `/moments/${post.post_id}` : `/post/${post.post_id}`);
                       }
                     }}
                     role="button"

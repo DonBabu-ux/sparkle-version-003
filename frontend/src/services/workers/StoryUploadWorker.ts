@@ -1,4 +1,4 @@
-import { useUploadStore, type UploadJob } from '../../store/uploadStore';
+import { useUploadStore, type UploadJob, type StoryMetadata } from '../../store/uploadStore';
 import { UploadEventBus } from '../../utils/UploadEventBus';
 import { generateVideoThumbnail } from '../../utils/thumbnailGenerator';
 import api from '../../api/api';
@@ -12,9 +12,10 @@ export const activeXhrRequests = new Map<string, XMLHttpRequest>();
 
 export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
   const { updateJob } = useUploadStore.getState();
+  const meta = job.metadata as StoryMetadata;
   const file = await UploadFileDB.getFile(job.uploadId);
   
-  if (!file && job.metadata.textContent === undefined) {
+  if (!file && meta.textContent === undefined) {
     throw new UploadError('FILE_ERROR', 'No media file or text content found in cache for upload ID: ' + job.uploadId, false);
   }
 
@@ -74,31 +75,31 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
       }
 
       // Append metadata
-      if (job.metadata.textContent) {
-        formData.append('text_content', job.metadata.textContent);
+      if (meta.textContent) {
+        formData.append('text_content', meta.textContent);
         formData.append('type', 'text');
       }
-      if (job.metadata.textConfig) {
-        formData.append('text_config', job.metadata.textConfig);
+      if (meta.textConfig) {
+        formData.append('text_config', meta.textConfig);
       }
-      if (job.metadata.stickers) {
-        formData.append('stickers', job.metadata.stickers);
+      if (meta.stickers) {
+        formData.append('stickers', meta.stickers);
       }
-      if (job.metadata.parentStoryId) {
-        formData.append('parent_story_id', job.metadata.parentStoryId);
+      if (meta.parentStoryId) {
+        formData.append('parent_story_id', meta.parentStoryId);
       }
-      if (job.metadata.musicInfo) {
-        formData.append('music_info', job.metadata.musicInfo);
+      if (meta.musicInfo) {
+        formData.append('music_info', meta.musicInfo);
       }
       // v2 Layer Engine fields
-      if (job.metadata.storyLayers) {
-        formData.append('story_layers', job.metadata.storyLayers);
+      if (meta.storyLayers) {
+        formData.append('story_layers', meta.storyLayers);
       }
-      if (job.metadata.storyDuration !== undefined) {
-        formData.append('story_duration', String(job.metadata.storyDuration));
+      if (meta.storyDuration !== undefined) {
+        formData.append('story_duration', String(meta.storyDuration));
       }
-      if (job.metadata.storyTheme) {
-        formData.append('story_theme', job.metadata.storyTheme);
+      if (meta.storyTheme) {
+        formData.append('story_theme', meta.storyTheme);
       }
 
       xhr.upload.onprogress = (event) => {

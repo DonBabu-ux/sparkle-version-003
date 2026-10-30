@@ -356,8 +356,7 @@ export default function Notifications() {
     return (
       <div
         key={notif.notification_id || notif.id}
-          data-notif-id={notif.notification_id || notif.id}
-        data-notif-id={isUnread ? (notif.notification_id || notif.id) : undefined}
+        data-notif-id={notif.notification_id || notif.id}
         onClick={() => handleNotificationClick(notif)}
         className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-black/[0.04] dark:border-white/[0.04] last:border-0 relative active:scale-[0.995] ${
           isUnread

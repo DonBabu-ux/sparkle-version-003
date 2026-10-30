@@ -39,6 +39,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
         if (type === 'moment') {
             const [rows] = await pool.query('SELECT m.*, u.username FROM moments m JOIN users u ON m.user_id = u.user_id WHERE m.moment_id = ?', [id]);
             content = rows[0];
+            // Audience gate — share metadata must not unmask private reels
+            if (content) {
+                const visibility = require('../../services/reels-visibility.service');
+                const viewerId = req.user?.user_id || req.user?.userId;
+                if (!(await visibility.canViewMoment(content, viewerId))) {
+                    return res.status(404).json({ error: 'Content not found' });
+                }
+            }
         } else if (type === 'story') {
             const [rows] = await pool.query('SELECT s.*, u.username FROM stories s JOIN users u ON s.user_id = u.user_id WHERE s.story_id = ?', [id]);
             content = rows[0];

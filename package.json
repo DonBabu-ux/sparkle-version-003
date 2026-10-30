@@ -1,6 +1,6 @@
 {
     "name": "backend",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "engines": {
         "node": ">=18.0.0"
     },
@@ -20,7 +20,7 @@
         "release:ota": "cd frontend && npx vite build && cd .. && npx cap sync android && otakit upload --release",
         "build:apk": "cd frontend && npx vite build && cd .. && npx cap sync android && cd android && gradlew.bat app:assembleDebug --console=plain",
         "release:full": "npm run release:ota && npm run build:apk",
-        "test": "node --test --test-force-exit tests/p0-contracts.test.cjs tests/messagingFeatures.test.js tests/mediaPipeline.test.js tests/notificationPayloadHelper.test.js tests/notificationDelivery.test.cjs"
+        "test": "node --test --test-force-exit tests/p0-contracts.test.cjs tests/messagingFeatures.test.js tests/mediaPipeline.test.js tests/notificationPayloadHelper.test.js tests/notificationDelivery.test.cjs tests/reels-visibility.test.js tests/moments-views-privacy.test.js"
     },
     "keywords": [],
     "author": "",
@@ -28,8 +28,9 @@
     "type": "commonjs",
     "dependencies": {
         "@capacitor/android": "^6.2.1",
-        "@capacitor/app": "^6.0.3",
-        "@capacitor/cli": "^6.2.1",
+      "@capacitor/app": "^6.0.3",
+      "@capacitor/camera": "^6.1.3",
+      "@capacitor/cli": "^6.2.1",
         "@capacitor/core": "^6.2.1",
         "@capacitor/filesystem": "^6.0.4",
         "@capacitor/local-notifications": "^6.1.3",

@@ -12,7 +12,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://www.tiktok.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://api.giphy.com https://www.tiktok.com https://sparkle-version-003-1-f4v3.onrender.com wss://sparkle-version-003-1-f4v3.onrender.com wss://sparkleweb.app.vercel.app wss://sparkle.app; frame-src 'self' https://www.tiktok.com; worker-src 'self' blob:; manifest-src 'self'; form-action 'self'; upgrade-insecure-requests"
+          "value": "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' https://www.tiktok.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://api.giphy.com https://www.tiktok.com https://sparkle-version-003-1-f4v3.onrender.com wss://sparkle-version-003-1-f4v3.onrender.com https://sparkle-app-backup.onrender.com wss://sparkle-app-backup.onrender.com wss://sparkleweb.app.vercel.app wss://sparkle.app; frame-src 'self' https://www.tiktok.com; worker-src 'self' blob:; manifest-src 'self'; form-action 'self'; upgrade-insecure-requests"
         },
         {
           "key": "Referrer-Policy",
@@ -24,15 +24,15 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://sparkle-version-003-1-f4v3.onrender.com/api/$1"
+      "destination": "https://sparkle-app-backup.onrender.com/api/$1"
     },
     {
       "source": "/socket.io/(.*)",
-      "destination": "https://sparkle-version-003-1-f4v3.onrender.com/socket.io/$1"
+      "destination": "https://sparkle-app-backup.onrender.com/socket.io/$1"
     },
     {
       "source": "/uploads/(.*)",
-      "destination": "https://sparkle-version-003-1-f4v3.onrender.com/uploads/$1"
+      "destination": "https://sparkle-app-backup.onrender.com/uploads/$1"
     },
     {
       "source": "/(.*)",

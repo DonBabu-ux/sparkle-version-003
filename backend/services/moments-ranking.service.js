@@ -96,12 +96,14 @@ class MomentsRankingService {
             const SCORE_ENRICHED = `(${SCORE} * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0))`;
             const COLS = `m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                            m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                           m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                            m.created_at, m.completion_rate, m.quality_score,
                            u.username, u.name as user_name, u.avatar_url`;
             // Outer projections must use bare column names (no m./u. aliases —
             // those only exist inside the derived table).
             const COLS_OUTER = `moment_id, user_id, caption, media_url, streaming_url, thumbnail_url, media_type,
                                 category, resolution, bitrate, like_count, comment_count, share_count, view_count,
+                                audience, hide_from_user_ids, show_only_user_ids, watermark,
                                 created_at, completion_rate, quality_score, username, user_name, avatar_url`;
 
             // ── 2 queries instead of 19 (single scan each, fits pool of 3) ─────
@@ -113,6 +115,8 @@ class MomentsRankingService {
                                ROW_NUMBER() OVER (PARTITION BY LOWER(m.category) ORDER BY m.created_at DESC) as rn
                         FROM moments m
                         JOIN users u ON m.user_id = u.user_id
+                        WHERE m.deleted_at IS NULL
+                          AND (m.audience IS NULL OR m.audience = 'public')
                     ) t WHERE t.rn <= 100
                 `),
                 // Query 2: trending (48h by score) + strangers (liked, random) via UNION
@@ -121,6 +125,8 @@ class MomentsRankingService {
                         SELECT ${COLS}, ${SCORE_ENRICHED} as base_score
                         FROM moments m JOIN users u ON m.user_id = u.user_id
                         WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 48 HOUR)
+                          AND m.deleted_at IS NULL
+                          AND (m.audience IS NULL OR m.audience = 'public')
                         ORDER BY base_score DESC LIMIT 200
                     ) t
                     UNION ALL
@@ -128,6 +134,8 @@ class MomentsRankingService {
                         SELECT ${COLS}, ${SCORE} as base_score
                         FROM moments m JOIN users u ON m.user_id = u.user_id
                         WHERE m.like_count > 10
+                          AND m.deleted_at IS NULL
+                          AND (m.audience IS NULL OR m.audience = 'public')
                         ORDER BY RAND() LIMIT 100
                     ) t
                 `)
@@ -194,12 +202,15 @@ class MomentsRankingService {
             const queryPromise = safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
                        m.created_at, m.completion_rate, m.quality_score,
                        u.username, u.name as user_name, u.avatar_url, 0.7 as base_score
                 FROM moments m
                 JOIN users u ON m.user_id = u.user_id
                 JOIN follows f ON f.following_id = m.user_id AND f.follower_id = ?
                 WHERE m.created_at > DATE_SUB(NOW(), INTERVAL 14 DAY)
+                  AND m.deleted_at IS NULL
+                  AND (m.audience IS NULL OR m.audience IN ('public','friends','close_friends'))
                 ORDER BY m.created_at DESC
                 LIMIT 50
             `, [userId]).then(rows => {
@@ -368,9 +379,12 @@ class MomentsRankingService {
         return safeQuery(`
             SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                    m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
+                   m.audience, m.hide_from_user_ids, m.show_only_user_ids,
                    m.created_at, m.completion_rate, m.quality_score,
                    u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
             FROM moments m JOIN users u ON m.user_id = u.user_id
+            WHERE m.deleted_at IS NULL
+              AND (m.audience IS NULL OR m.audience = 'public')
             ORDER BY m.created_at DESC LIMIT ? OFFSET ?
         `, [limit, offset]).then(rows => Array.isArray(rows) ? rows : []);
     }
@@ -464,7 +478,7 @@ class MomentsRankingService {
      * Now synchronous — no more async calls (reuses pre-fetched data).
      */
     _scoreCandidates(userId, candidates, query, sivProfile, followingPool) {
-        const followingIds = new Set(Array.isArray(followingPool) ? followingPool.map(f => f.moment_id) : []);
+        const followingIds = new Set(Array.isArray(followingPool) ? followingPool.map(f => f.user_id) : []);
         const uSeed = userSeed(userId); // unique per user, consistent within session
         const hasSIV = Object.keys(sivProfile).length > 0;
 
@@ -479,7 +493,7 @@ class MomentsRankingService {
             }
 
             // Affinity Boost (F)
-            let affinityBoost = followingIds.has(m.moment_id) ? 1.2 : 1.0;
+            let affinityBoost = followingIds.has(m.user_id) ? 1.2 : 1.0;
             if (m.user_id === userId) affinityBoost = 0.05;
 
             // Time Decay (T) — Gravity 0.8

@@ -1,4 +1,4 @@
-import { showError } from '../utils/toast';
+import { showError, showSuccess } from '../utils/toast';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Music3, AlertCircle, Globe, Users, Heart, Lock } from 'lucide-react';
@@ -55,11 +55,13 @@ const TEXT_COLORS = [
   { name: 'Orange', value: '#FF8C00' },
 ];
 
-const MOCK_PROMPTS = [
-  { id: 1, prompt: 'Anything from your Gallery 😊', count: '+413K' },
-  { id: 2, prompt: 'Mention your favorite people...', count: '+171K' },
-  { id: 3, prompt: 'Music that saves you', count: '+90K' },
-  { id: 4, prompt: 'Current mood in 1 pic', count: '+220K' },
+// Prompt suggestions for the "Add Yours" sticker. Engagement counts were
+// removed: fabricated numbers must never ship.
+const TEMPLATE_PROMPTS = [
+  { id: 1, prompt: 'Anything from your Gallery' },
+  { id: 2, prompt: 'Mention your favorite people...' },
+  { id: 3, prompt: 'Music that saves you' },
+  { id: 4, prompt: 'Current mood in 1 pic' },
 ];
 
 
@@ -671,7 +673,10 @@ export default function CreateStory() {
   };
 
   const handleSubmit = async () => {
-      if (!file && !selectedMusic && phase !== 'text_story') return;
+      if (!file && !selectedMusic && phase !== 'text_story') {
+        showError('Capture or select something first');
+        return;
+      }
       logger.log('Submission started. Mode:', mode, 'File:', file?.name, 'Type:', file?.type, 'Size:', file?.size);
       setUploading(true);
       try {
@@ -797,6 +802,10 @@ export default function CreateStory() {
 
               logger.log(`✅ Story queued for background upload: ${uploadId}`, { layerCount: compiledLayers.length });
               sessionStorage.setItem('sparkle_story_posted', '1');
+              // Publish feedback on this page: the upload continues in the
+              // background, but the user must see a confirmation here rather
+              // than being shipped to a dashboard with no signal.
+              showSuccess('Story pushed - uploading in the background');
               navigate('/dashboard');
               return; // Exit early — upload happens in background
           }
@@ -816,15 +825,17 @@ export default function CreateStory() {
               formData.append('content', editorText || textStoryContent || '');
               formData.append('post_type', 'public');
               await api.post('/posts', formData);
+              showSuccess('Post published');
               navigate('/dashboard');
           } else if (mode === 'reel') {
               formData.append('caption', editorText || textStoryContent || '');
               await api.post('/moments', formData);
+              showSuccess('Reel shared');
               navigate('/moments');
           }
       } catch (e) {
           logger.error('Upload failed', e);
-          showError('Upload failed. Please check your connection.');
+          showError('Upload failed - it was saved and will retry automatically.');
       } finally {
           setUploading(false);
       }
@@ -1397,7 +1408,7 @@ export default function CreateStory() {
           )}
 
           {phase === 'template_picker' && (
-              <motion.div key="templates" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-white dark:bg-[#101217] text-[#18181b] dark:text-white z-[300] flex flex-col"><div className="p-8 flex items-center justify-between bg-white dark:bg-[#101217] sticky top-0 z-10 border-b border-black/5 dark:border-white/5"><button onClick={() => setPhase('entry')} className="text-black/30 dark:text-white/30"><ChevronLeft size={28} strokeWidth={3} /></button><h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] text-[#18181b] dark:text-white">Templates</h2><button onClick={() => setPhase('camera')} className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all"><Plus size={24} strokeWidth={3} /></button></div><div className="flex-1 overflow-y-auto no-scrollbar pb-20"><div className="p-8"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2">Essential Stickers</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => handleTemplateSelect({ prompt: 'Ask me anything', count: '5k' })} className="template-mini-card bg-indigo-50 dark:bg-indigo-500/5 text-indigo-600 dark:text-indigo-400"><Smile size={24} /><span>Add Yours</span></button><button onClick={() => setShowStickerPicker(true)} className="template-mini-card bg-purple-50 dark:bg-purple-500/5 text-purple-600 dark:text-purple-400"><Sparkles size={24} /><span>Stickers</span></button></div></div><div className="p-8 bg-black/5 dark:bg-white/5"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2 flex items-center gap-2"><TrendingUp size={14} /> Trending Prompts</h3><div className="flex flex-col gap-6">{MOCK_PROMPTS.map(p => (<button key={p.id} onClick={() => handleTemplateSelect(p)} className="w-full bg-white dark:bg-[#101217] p-8 rounded-[40px] border-[3px] border-primary/20 hover:border-primary active:scale-95 transition-all shadow-xl shadow-primary/5 flex flex-col items-center text-center relative overflow-hidden group"><div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" /><p className="text-[20px] font-black italic uppercase tracking-tighter mb-4 text-[#18181b] dark:text-white leading-tight drop-shadow-sm">{p.prompt}</p><div className="px-6 py-2 bg-primary/10 rounded-full"><span className="text-[11px] font-black text-primary uppercase italic tracking-widest">{p.count} joined</span></div></button>))}</div></div></div></motion.div>
+              <motion.div key="templates" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-white dark:bg-[#101217] text-[#18181b] dark:text-white z-[300] flex flex-col"><div className="p-8 flex items-center justify-between bg-white dark:bg-[#101217] sticky top-0 z-10 border-b border-black/5 dark:border-white/5"><button onClick={() => setPhase('entry')} className="text-black/30 dark:text-white/30"><ChevronLeft size={28} strokeWidth={3} /></button><h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] text-[#18181b] dark:text-white">Templates</h2><button onClick={() => setPhase('camera')} className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all"><Plus size={24} strokeWidth={3} /></button></div><div className="flex-1 overflow-y-auto no-scrollbar pb-20"><div className="p-8"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2">Essential Stickers</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => handleTemplateSelect({ prompt: 'Ask me anything', count: '5k' })} className="template-mini-card bg-indigo-50 dark:bg-indigo-500/5 text-indigo-600 dark:text-indigo-400"><Smile size={24} /><span>Add Yours</span></button><button onClick={() => setShowStickerPicker(true)} className="template-mini-card bg-purple-50 dark:bg-purple-500/5 text-purple-600 dark:text-purple-400"><Sparkles size={24} /><span>Stickers</span></button></div></div><div className="p-8 bg-black/5 dark:bg-white/5"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2 flex items-center gap-2"><TrendingUp size={14} /> Trending Prompts</h3><div className="flex flex-col gap-6">{TEMPLATE_PROMPTS.map(p => (<button key={p.id} onClick={() => handleTemplateSelect(p)} className="w-full bg-white dark:bg-[#101217] p-8 rounded-[40px] border-[3px] border-primary/20 hover:border-primary active:scale-95 transition-all shadow-xl shadow-primary/5 flex flex-col items-center text-center relative overflow-hidden group"><div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" /><p className="text-[20px] font-black italic uppercase tracking-tighter mb-4 text-[#18181b] dark:text-white leading-tight drop-shadow-sm">{p.prompt}</p><div className="px-6 py-2 bg-primary/10 rounded-full"><span className="text-[11px] font-black text-primary uppercase italic tracking-widest">Add Yours</span></div></button>))}</div></div></div></motion.div>
           )}
       </AnimatePresence>
 

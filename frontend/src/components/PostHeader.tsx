@@ -26,6 +26,8 @@ interface PostHeaderProps {
   nameClassName?: string;
   /** Render the name as a plain <h3> instead of a profile link. */
   heading?: boolean;
+  /** Author account is deleted: render plain text, never a profile link. */
+  deleted?: boolean;
   /** Wrap name + extras + follow in the feed's flex title row. */
   titleRow?: boolean;
   /** Inline nodes after the name (feeling/activity). */
@@ -50,8 +52,11 @@ export default function PostHeader({
   canFollow,
   onFollow,
   meta,
+  deleted = false,
 }: PostHeaderProps) {
-  const nameElement = heading ? (
+  // A deleted author has no reachable profile: render plain text so the card
+  // never links to a dead /profile/deleted_* route.
+  const nameElement = heading || deleted ? (
     <h3 className={nameClassName}>{name}</h3>
   ) : (
     <Link to={`/profile/${username}`} className={nameClassName}>
@@ -67,9 +72,15 @@ export default function PostHeader({
 
   return (
     <>
-      <Link to={`/profile/${username}`} className={avatarClassName || undefined}>
-        {avatar}
-      </Link>
+      {deleted ? (
+        <span className={avatarClassName || undefined} aria-hidden="true">
+          {avatar}
+        </span>
+      ) : (
+        <Link to={`/profile/${username}`} className={avatarClassName || undefined}>
+          {avatar}
+        </Link>
+      )}
 
       <div className={bodyClassName || undefined}>
         {titleRow ? (

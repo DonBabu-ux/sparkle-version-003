@@ -3,6 +3,43 @@ const crypto = require('crypto');
 const redisService = require('../services/redis.service');
 const logger = require('../utils/logger');
 
+/**
+ * Deleted authors: the account row is anonymized, never purged, so posts,
+ * comments and messages keep their history and foreign keys.
+ *
+ * The lifecycle worker (services/accountLifecycle.service.js hard delete)
+ * rewrites the identity and sets account_status='deleted' — it never sets
+ * deleted_at or 'deactivated'. The old mask only tested those two, so it never
+ * matched and the anonymized placeholder username leaked into the feed.
+ *
+ * Deliberately limited to columns present in every schema state: deleted_at
+ * exists in core_tables.sql, and comparing account_status against unknown enum
+ * members is a no-match rather than an error, so this is safe both before and
+ * after the account-lifecycle migration converts the column to VARCHAR(32).
+ */
+const DELETED_AUTHOR_COND =
+  "u.deleted_at IS NOT NULL OR u.account_status IN ('deleted', 'terminated', 'deactivated')";
+
+/** 1/0 companion flag so the client can render a non-linkable author. */
+const AUTHOR_DELETED_FLAG = `CASE WHEN ${DELETED_AUTHOR_COND} THEN 1 ELSE 0 END as author_deleted`;
+
+/** username / display name / avatar masked for deleted authors. */
+const MASKED_AUTHOR_SELECT = `CASE
+     WHEN ${DELETED_AUTHOR_COND} THEN 'DeletedUser'
+     WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous'
+     ELSE u.username
+   END as username,
+   CASE
+     WHEN ${DELETED_AUTHOR_COND} THEN 'Deleted User'
+     WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student'
+     ELSE u.name
+   END as user_name,
+   CASE
+     WHEN ${DELETED_AUTHOR_COND} THEN '/uploads/avatars/deleted.png'
+     WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png'
+     ELSE u.avatar_url
+   END as avatar_url`;
+
 class Post {
     /**
      * Detects post category based on keywords and hashtags
@@ -213,23 +250,10 @@ class Post {
      * Get post by ID with user info
      */
     static async findById(postId) {
-        const [posts] = await pool.query(
-            `SELECT p.*, 
-                    CASE 
-                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
-                        WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
-                        ELSE u.username 
-                    END as username,
-                    CASE 
-                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
-                        WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
-                        ELSE u.name 
-                    END as user_name,
-                    CASE 
-                        WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
-                        WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png'
-                        ELSE u.avatar_url 
-                    END as avatar_url,
+  const [posts] = await pool.query(
+    `SELECT p.*,
+    ${MASKED_AUTHOR_SELECT},
+    ${AUTHOR_DELETED_FLAG},
 
                     (SELECT COUNT(*) FROM sparks s WHERE s.post_id = p.post_id) as sparks,
                     (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
@@ -492,8 +516,10 @@ class Post {
                 const params = [currentUserId, currentUserId, currentUserId, affiliation, affiliation, ...cursorParams];
 
                 const feedQuery = `
-                    SELECT p.*, u.username, u.name as user_name, u.avatar_url,
-                           u.campus as user_affiliation,
+SELECT p.*,
+    ${MASKED_AUTHOR_SELECT},
+    ${AUTHOR_DELETED_FLAG},
+    u.campus as user_affiliation,
                            COALESCE(p.spark_count, 0) as sparks,
                            COALESCE(p.comment_count, 0) as comments,
                            EXISTS(SELECT 1 FROM follows WHERE follower_id = ? AND following_id = p.user_id) as is_followed,
@@ -1052,23 +1078,10 @@ class Post {
                 break;
         }
 
-        const query = `
-            SELECT c.*, 
-                   CASE 
-                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'DeletedUser'
-                       WHEN u.anonymous_mode_enabled = 1 THEN 'Anonymous' 
-                       ELSE u.username 
-                   END as username,
-                   CASE 
-                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN 'Deleted User'
-                       WHEN u.anonymous_mode_enabled = 1 THEN 'Sparkle Student' 
-                       ELSE u.name 
-                   END as name,
-                   CASE 
-                       WHEN u.deleted_at IS NOT NULL OR u.account_status = 'deactivated' THEN '/uploads/avatars/deleted.png'
-                       WHEN u.anonymous_mode_enabled = 1 THEN '/uploads/avatars/no-profile.png'
-                       ELSE u.avatar_url 
-                   END as avatar_url,
+const query = `
+    SELECT c.*,
+    ${MASKED_AUTHOR_SELECT.replace('as user_name', 'as name')},
+    ${AUTHOR_DELETED_FLAG},
 
                    (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) as like_count
                    ${currentUserId ? `, (SELECT 1 FROM comment_likes cl2 WHERE cl2.comment_id = c.comment_id AND cl2.user_id = ?) as is_liked ` : ''}

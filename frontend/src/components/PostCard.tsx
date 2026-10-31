@@ -39,6 +39,8 @@ export interface Post {
   reshare_count: number;
   is_sparked: boolean;
   is_saved: boolean;
+  /** 1 when the author's account is deleted/anonymized (no reachable profile). */
+  author_deleted?: boolean | number;
   location?: string;
   feeling?: string;
   activity?: string;
@@ -266,12 +268,21 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
   const isVideo = 
     post.media_type === 'video' || 
     post.media_url?.match(/\.(mp4|webm|ogg|mov|quicktime)$/i);
-  const isTextOnly = 
-    (!post.media_url || 
-     post.media_url === 'undefined' || 
-     post.media_url === 'null' || 
-     post.media_url.trim() === '') && 
-    (!post.media_files || post.media_files.length === 0);
+const isTextOnly =
+  (!post.media_url ||
+  post.media_url === 'undefined' ||
+  post.media_url === 'null' ||
+  post.media_url.trim() === '') &&
+  (!post.media_files || post.media_files.length === 0);
+
+// A deleted account is anonymized, not purged, so its posts stay in the feed.
+// The author has no reachable profile — the backend sends author_deleted, and
+// the name/username fallbacks catch rows served before that flag existed.
+const isDeletedAuthor = Boolean(
+  post.author_deleted ||
+  post.name === 'Deleted User' ||
+  /^deleted(_user)?_/.test(post.username || '')
+);
 
   if (post.post_type === 'private' && !isOwner) {
     return (
@@ -304,11 +315,12 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
     >
       {/* Header */}
       <div className="flex items-start gap-2 p-2.5 pb-1.5">
-        <PostHeader
-          username={post.username}
-          name={post.name || post.username}
-          avatar={<Avatar src={post.avatar_url} name={post.name || post.username} size="sm" />}
-          avatarClassName="shrink-0 mt-0.5"
+<PostHeader
+username={post.username}
+name={post.name || post.username}
+deleted={isDeletedAuthor}
+avatar={<Avatar src={post.avatar_url} name={post.name || post.username} size="sm" />}
+avatarClassName="shrink-0 mt-0.5"
           bodyClassName="flex-1 min-w-0 flex flex-col justify-center"
           titleRow
           nameClassName="font-bold text-[15px] text-[#18181b] dark:text-white hover:underline tracking-tighter"
@@ -569,7 +581,7 @@ post.media_files!.length === 1
 ? "aspect-[4/5] max-h-[70vh] sm:max-h-[600px]"
 : post.media_files!.length === 2
 ? "aspect-square"
-: "aspect-square sm:aspect-none sm:h-full",
+                            : "aspect-square sm:aspect-[auto] sm:h-full",
 post.media_files!.length === 3 && idx === 0 ? "row-span-2" : ""
 )}
 >

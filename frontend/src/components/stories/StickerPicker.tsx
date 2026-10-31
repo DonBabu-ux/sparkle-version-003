@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera, BarChart3, Smile, Users, HelpCircle, TrendingUp, History, Star } from 'lucide-react';
+import InteractiveStickerSheet from './InteractiveStickerSheet';
+import { isInteractiveStickerType, type InteractiveStickerType } from './interactiveStickers';
 
 interface StickerPickerProps {
   onSelect: (type: string, config: any) => void;
@@ -9,6 +11,7 @@ interface StickerPickerProps {
 
 const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
   const [activeCategory, setActiveCategory] = useState<'trending' | 'my' | 'recent'>('trending');
+  const [editingType, setEditingType] = useState<InteractiveStickerType | null>(null);
 
   const categories = [
     { id: 'trending', label: 'Trending', icon: TrendingUp },
@@ -80,13 +83,15 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
                 <button
                   key={s.type}
                   onClick={() => {
+                    if (isInteractiveStickerType(s.type)) {
+                      setEditingType(s.type);
+                      return;
+                    }
+
                     let config = {};
-                    if (s.type === 'add_yours') config = { prompt: 'Add Yours', avatars: [], responses_count: 0 };
-                    if (s.type === 'poll') config = { question: 'Ask a question...', options: ['Yes', 'No'], votes: [0, 0] };
                     if (s.type === 'reaction') config = { emoji: '🔥', count: 0 };
                     if (s.type === 'avatar_loop') config = { avatars: [], label: 'Active Now' };
-                    if (s.type === 'quiz') config = { question: 'Quiz Title', options: ['A', 'B'], correct: 0 };
-                    
+
                     onSelect(s.type, config);
                   }}
                   className="flex flex-col items-center gap-3 p-6 rounded-[24px] bg-gray-50/50 hover:bg-gray-50 transition-all border-2 border-transparent hover:border-primary/10 active:scale-95 group"
@@ -131,6 +136,21 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
           </div>
         </div>
       </motion.div>
+
+      {/* Interactive sticker composer (poll / quiz / add yours) */}
+      <AnimatePresence>
+        {editingType && (
+          <InteractiveStickerSheet
+            key={`compose-${editingType}`}
+            type={editingType}
+            onCancel={() => setEditingType(null)}
+            onConfirm={(config) => {
+              onSelect(editingType, config);
+              setEditingType(null);
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

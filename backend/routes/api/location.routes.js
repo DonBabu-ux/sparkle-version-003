@@ -6,6 +6,7 @@ const { authMiddleware, optionalAuthMiddleware } = require('../../middleware/aut
 // Public / Optional Auth routes
 router.post('/resolve', optionalAuthMiddleware, locationController.resolveLocation);
 router.all('/nearby', optionalAuthMiddleware, locationController.getNearbyLocations);
+router.get('/search', optionalAuthMiddleware, locationController.searchPlaces);
 
 // Authenticated Live Location routes
 router.post('/live/start', authMiddleware, locationController.startLiveLocation);

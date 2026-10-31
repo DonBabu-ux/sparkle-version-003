@@ -4,12 +4,13 @@ import { useGesture } from '@use-gesture/react';
 import { Music3 } from 'lucide-react';
 import AddYoursSticker from './AddYoursSticker';
 import PollSticker from './PollSticker';
+import QuizSticker from './QuizSticker';
 import ReactionSticker from './ReactionSticker';
 import AvatarLoopSticker from './AvatarLoopSticker';
 
 export interface StoryLayer {
   id: string;
-  type: 'text' | 'music' | 'gif' | 'emoji' | 'mention' | 'poll' | 'drawing' | 'reaction' | 'add_yours' | 'avatar_loop' | 'location';
+  type: 'text' | 'music' | 'gif' | 'emoji' | 'mention' | 'poll' | 'quiz' | 'drawing' | 'reaction' | 'add_yours' | 'avatar_loop' | 'location';
   x: number;
   y: number;
   scale: number;
@@ -19,6 +20,7 @@ export interface StoryLayer {
   locked?: boolean;
   hidden?: boolean;
   data: any;
+  config?: Record<string, unknown>;
 }
 
 interface StickerRendererProps {
@@ -27,17 +29,20 @@ interface StickerRendererProps {
   onInteract?: (stickerId: string, data: any) => void;
   onUpdate?: (stickerId: string, updates: any) => void;
   onDelete?: (stickerId: string) => void;
+  onEdit?: (sticker: StoryLayer) => void;
 }
 
-const StickerItem: FC<{ 
-  sticker: StoryLayer; 
-  isEditing: boolean; 
+const StickerItem: FC<{
+  sticker: StoryLayer;
+  isEditing: boolean;
   containerRef: React.RefObject<HTMLDivElement>;
   onUpdate?: (id: string, updates: any) => void;
   onInteract?: (id: string, data: any) => void;
   onDelete?: (id: string) => void;
-}> = ({ sticker, isEditing, containerRef, onUpdate, onInteract, onDelete }) => {
+  onEdit?: (sticker: StoryLayer) => void;
+}> = ({ sticker, isEditing, containerRef, onUpdate, onInteract, onDelete, onEdit }) => {
   const [active, setActive] = useState(false);
+  const tapStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   
   // Motion values for high-performance updates
   const x = useMotionValue(0);
@@ -99,8 +104,23 @@ const StickerItem: FC<{
         zIndex: sticker.zIndex || (active ? 50 : 20),
         opacity: sticker.opacity !== undefined ? sticker.opacity : 1,
       }}
-      onPointerDown={() => setActive(true)}
-      onPointerUp={() => setActive(false)}
+      onPointerDown={(e) => {
+        setActive(true);
+        tapStartRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+      }}
+      onPointerUp={(e) => {
+        setActive(false);
+        const tapStart = tapStartRef.current;
+        tapStartRef.current = null;
+        if (!tapStart || !isEditing || sticker.locked || !onEdit) return;
+        // A drag/pinch repositions the sticker — only a genuine tap reopens the
+        // composer. Taps that land on the sticker's own controls (voting, the
+        // camera button, the delete affordance) stay with those controls.
+        const distance = Math.hypot(e.clientX - tapStart.x, e.clientY - tapStart.y);
+        if (distance > 8 || Date.now() - tapStart.time > 500) return;
+        if (e.target instanceof Element && e.target.closest('button')) return;
+        onEdit(sticker);
+      }}
       className={`pointer-events-auto ${isEditing ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       <div className="relative group">
@@ -124,19 +144,20 @@ const StickerItem: FC<{
   );
 };
 
-const StickerRenderer: FC<StickerRendererProps> = ({ 
-  stickers, 
+const StickerRenderer: FC<StickerRendererProps> = ({
+  stickers,
   isEditing = false,
   onInteract,
   onUpdate,
-  onDelete
+  onDelete,
+  onEdit
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-20 pointer-events-none overflow-hidden">
       {stickers.map((sticker) => (
-        <StickerItem 
+        <StickerItem
           key={sticker.id}
           sticker={sticker}
           isEditing={isEditing}
@@ -144,6 +165,7 @@ const StickerRenderer: FC<StickerRendererProps> = ({
           onUpdate={onUpdate}
           onInteract={onInteract}
           onDelete={onDelete}
+          onEdit={onEdit}
         />
       ))}
     </div>
@@ -151,9 +173,13 @@ const StickerRenderer: FC<StickerRendererProps> = ({
 };
 
 const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, data: any) => void) => {
-  const config = sticker.data || {};
-  
+  // Persisted story layers carry their payload in `data`; the story editor keeps
+  // the same payload under `config`, so accept either.
+  const config = sticker.data ?? sticker.config ?? {};
+
   switch (sticker.type) {
+    case 'quiz':
+      return <QuizSticker config={config} />;
     case 'add_yours':
       return <AddYoursSticker config={config} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'poll':

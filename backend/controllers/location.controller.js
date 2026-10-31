@@ -280,6 +280,63 @@ const getNearbyLocations = async (req, res) => {
 };
 
 /**
+ * Search places by text query — server-side proxy of the free OSM Nominatim
+ * search API (keeps the polite User-Agent + rate limits off the client).
+ * Any upstream failure degrades to { success: true, results: [] }, never a crash.
+ */
+const searchPlaces = async (req, res) => {
+    try {
+        const q = String(req.query.q || '').trim();
+        if (!q) {
+            return res.json({ success: true, results: [] });
+        }
+
+        const requestedLimit = parseInt(req.query.limit, 10);
+        const limit = Math.min(Math.max(Number.isNaN(requestedLimit) ? 8 : requestedLimit, 1), 10);
+
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=${limit}`;
+        const timeout = new AbortController();
+        const timer = setTimeout(() => timeout.abort(), 5000);
+        try {
+            const resp = await fetch(url, {
+                signal: timeout.signal,
+                headers: {
+                    'User-Agent': 'SparkleMessenger/1.0',
+                    'Accept-Language': 'en'
+                }
+            });
+            if (!resp.ok) {
+                logger.warn('Nominatim search returned', resp.status, 'for', q);
+                return res.json({ success: true, results: [] });
+            }
+            const payload = await resp.json();
+            const results = (Array.isArray(payload) ? payload : []).map((place, idx) => {
+                const displayName = String(place?.display_name || '').trim();
+                const segments = displayName.split(',').map(s => s.trim()).filter(Boolean);
+                const lat = parseFloat(place?.lat);
+                const lon = parseFloat(place?.lon);
+                return {
+                    id: String(place?.place_id ?? `${idx}`),
+                    name: segments[0] || 'Unknown place',
+                    address: displayName || 'Unknown place',
+                    lat: Number.isFinite(lat) ? lat : null,
+                    lon: Number.isFinite(lon) ? lon : null
+                };
+            });
+            res.json({ success: true, results });
+        } catch (osmErr) {
+            logger.warn('Nominatim search failed for', q, osmErr);
+            res.json({ success: true, results: [] });
+        } finally {
+            clearTimeout(timer);
+        }
+    } catch (error) {
+        logger.error('Error searching places:', error);
+        res.json({ success: true, results: [] });
+    }
+};
+
+/**
  * Start Live Location Session
  */
 const startLiveLocation = async (req, res) => {
@@ -556,6 +613,7 @@ const getLiveLocationSession = async (req, res) => {
 module.exports = {
     resolveLocation,
     getNearbyLocations,
+    searchPlaces,
     startLiveLocation,
     updateLiveLocation,
     stopLiveLocation,

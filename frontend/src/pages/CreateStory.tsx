@@ -8,6 +8,9 @@ import { EnvironmentService } from '../services/EnvironmentService';
 import { useUserStore } from '../store/userStore';
 import StickerPicker from '../components/stories/StickerPicker';
 import StickerRenderer from '../components/stories/StickerRenderer';
+import InteractiveStickerSheet from '../components/stories/InteractiveStickerSheet';
+import { isInteractiveStickerType, type InteractiveStickerConfig, type InteractiveStickerType } from '../components/stories/interactiveStickers';
+import LocationPicker from '../components/stories/LocationPicker';
 import { CameraService } from '../services/CameraService';
 import Spinner from '../components/ui/Spinner';
 import { Capacitor } from '@capacitor/core';
@@ -147,6 +150,9 @@ export default function CreateStory() {
   // Editor States
   const [showStickerPicker, setShowStickerPicker] = useState(false);
   const [stickers, setStickers] = useState<any[]>([]);
+  // Interactive sticker (poll/quiz/add yours) currently open in the composer,
+  // bound to the placed sticker id when editing an existing one.
+  const [stickerEditTarget, setStickerEditTarget] = useState<{ id: string; type: InteractiveStickerType } | null>(null);
   const [selectedMusic, setSelectedMusic] = useState<any>(null);
   const [isPlayingMusic, setIsPlayingMusic] = useState(true);
   const [isPreviewingMusic, setIsPreviewingMusic] = useState(false);
@@ -161,6 +167,7 @@ export default function CreateStory() {
   const musicAudioRef = useRef<HTMLAudioElement | null>(null);
   const musicSearchTimerRef = useRef<any>(null);
   const [showEditMenu, setShowEditMenu] = useState(false);
+  const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [editorText, setEditorText] = useState('');
 
   // Story audience/privacy (mirrors the moments audience model)
@@ -670,6 +677,12 @@ export default function CreateStory() {
     }]);
     setEditorText('');
     setActiveTool(null);
+  };
+
+  // Saves an edited config back onto a placed sticker (poll/quiz/add yours).
+  const handleStickerConfigSave = (id: string, config: InteractiveStickerConfig) => {
+    setStickers(prev => prev.map(s => s.id === id ? { ...s, config } : s));
+    setStickerEditTarget(null);
   };
 
   const handleSubmit = async () => {
@@ -1263,12 +1276,30 @@ export default function CreateStory() {
                   </div>
 
                   {/* Sticker Layer */}
-                  <StickerRenderer 
-                    stickers={stickers} 
-                    isEditing={true} 
-                    onDelete={(id) => setStickers(stickers.filter(s => s.id !== id))} 
-                    onUpdate={(id, updates) => setStickers(stickers.map(s => s.id === id ? { ...s, ...updates } : s))} 
+                  <StickerRenderer
+                    stickers={stickers}
+                    isEditing={true}
+                    onDelete={(id) => setStickers(stickers.filter(s => s.id !== id))}
+                    onUpdate={(id, updates) => setStickers(stickers.map(s => s.id === id ? { ...s, ...updates } : s))}
+                    onEdit={(sticker) => {
+                      if (!isInteractiveStickerType(sticker.type)) return;
+                      setStickerEditTarget({ id: sticker.id, type: sticker.type });
+                    }}
                   />
+
+                  {/* Interactive sticker composer, re-opened by tapping a placed sticker */}
+                  <AnimatePresence>
+                    {stickerEditTarget && (
+                      <InteractiveStickerSheet
+                        key={`edit-${stickerEditTarget.id}`}
+                        type={stickerEditTarget.type}
+                        initialConfig={stickers.find(s => s.id === stickerEditTarget.id)?.config}
+                        confirmLabel="Save"
+                        onCancel={() => setStickerEditTarget(null)}
+                        onConfirm={(config) => handleStickerConfigSave(stickerEditTarget.id, config)}
+                      />
+                    )}
+                  </AnimatePresence>
 
                   {/* Text/Mention Tool Overlay (Genius Input) */}
                   <AnimatePresence>
@@ -1294,8 +1325,22 @@ export default function CreateStory() {
                   <AnimatePresence>
                     {showEditMenu && (
                       <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] p-4 flex flex-col gap-2 z-[350]">
-                         <button onClick={() => setStickers([...stickers, { id: 'loc-'+Date.now(), type: 'location', config: { name: 'Current Location' }, x: 50, y: 30, scale: 1, rotation: 0 }])} className="edit-sub-btn"><MapPin size={18} /><span>Location</span></button>
+                         <button onClick={() => { setShowEditMenu(false); setShowLocationPicker(true); }} className="edit-sub-btn"><MapPin size={18} /><span>Location</span></button>
                       </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Location Picker Sheet */}
+                  <AnimatePresence>
+                    {showLocationPicker && (
+                      <LocationPicker
+                        onClose={() => setShowLocationPicker(false)}
+                        onSelect={(place) => {
+                          setStickers([...stickers, { id: 'loc-'+Date.now(), type: 'location', config: { name: place.name, address: place.address }, x: 50, y: 30, scale: 1, rotation: 0 }]);
+                          setShowLocationPicker(false);
+                          showSuccess('Location added');
+                        }}
+                      />
                     )}
                   </AnimatePresence>
 

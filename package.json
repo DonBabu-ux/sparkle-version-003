@@ -20,7 +20,7 @@
         "release:ota": "cd frontend && npx vite build && cd .. && npx cap sync android && otakit upload --release",
         "build:apk": "cd frontend && npx vite build && cd .. && npx cap sync android && cd android && gradlew.bat app:assembleDebug --console=plain",
         "release:full": "npm run release:ota && npm run build:apk",
-        "test": "node --test --test-force-exit tests/p0-contracts.test.cjs tests/messagingFeatures.test.js tests/mediaPipeline.test.js tests/notificationPayloadHelper.test.js tests/notificationDelivery.test.cjs tests/reels-visibility.test.js tests/moments-views-privacy.test.js tests/clubs-groups-routes.test.js"
+        "test": "node --test --test-force-exit tests/p0-contracts.test.cjs tests/messagingFeatures.test.js tests/mediaPipeline.test.js tests/notificationPayloadHelper.test.js tests/notificationDelivery.test.cjs tests/reels-visibility.test.js tests/moments-views-privacy.test.js tests/clubs-groups-routes.test.js tests/mediaDeletionCleanup.test.js tests/story-audience-privacy.test.js"
     },
     "keywords": [],
     "author": "",

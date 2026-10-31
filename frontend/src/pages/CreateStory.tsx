@@ -1,7 +1,7 @@
 import { showError } from '../utils/toast';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Music3, AlertCircle } from 'lucide-react';
+import { X, Settings, ChevronLeft, Send, Sparkles, Smile, Camera, Music, Search, Plus, TrendingUp, Type, AtSign, Wand2, Music4, ChevronDown, MapPin, AlignLeft, ArrowRightLeft, AlignCenter, AlignRight, CaseUpper, Pipette, CheckCircle2, Play, Pause, Music3, AlertCircle, Globe, Users, Heart, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
 import { EnvironmentService } from '../services/EnvironmentService';
@@ -72,6 +72,31 @@ const FILTERS = [
   { id: 'dream', name: 'Dream', css: 'blur(0.5px) brightness(1.1)' },
 ];
 
+// Audience options for the story privacy selector. Mirrors the backend
+// vocabulary in services/story-audience.service.js.
+const AUDIENCE_OPTIONS: { id: string; label: string; description: string }[] = [
+  { id: 'public', label: 'Everyone', description: 'Anyone on Sparkle can see this story' },
+  { id: 'followers', label: 'Followers', description: 'Only people who follow you' },
+  { id: 'close_friends', label: 'Close Friends', description: 'Only people on your close friends list' },
+  { id: 'only_me', label: 'Only Me', description: 'Only you can see this story' },
+];
+
+const AUDIENCE_LABEL_MAP: Record<string, string> = {
+  public: 'Everyone',
+  followers: 'Followers',
+  close_friends: 'Close Friends',
+  only_me: 'Only Me',
+};
+
+// Minimal follower row shape used by the close-friends picker.
+interface SocialRow {
+  user_id?: string;
+  id?: string;
+  username?: string;
+  name?: string;
+  avatar_url?: string;
+}
+
 // Cache loaded device media across active sessions so it shows automatically next time
 let sessionDeviceMediaCache: { file?: File, url: string, isVideo: boolean }[] = [];
 
@@ -135,6 +160,51 @@ export default function CreateStory() {
   const musicSearchTimerRef = useRef<any>(null);
   const [showEditMenu, setShowEditMenu] = useState(false);
   const [editorText, setEditorText] = useState('');
+
+  // Story audience/privacy (mirrors the moments audience model)
+  const [audience, setAudience] = useState<string>('public');
+  const [showAudienceSheet, setShowAudienceSheet] = useState(false);
+  const [closeFriends, setCloseFriends] = useState<SocialRow[]>([]);
+  const [closeFriendLoading, setCloseFriendLoading] = useState(false);
+  const [followerPool, setFollowerPool] = useState<SocialRow[]>([]);
+
+  // Load the close-friends list and the pool of followers to add from when
+  // the privacy sheet opens.
+  useEffect(() => {
+    if (!showAudienceSheet) return;
+    let cancelled = false;
+    setCloseFriendLoading(true);
+    Promise.all([
+      api.get('/users/close-friends').catch(() => ({ data: [] })),
+      api.get('/users/followers').catch(() => ({ data: [] })),
+    ]).then(([cf, fw]) => {
+      if (cancelled) return;
+      setCloseFriends(Array.isArray(cf.data) ? cf.data : []);
+      setFollowerPool(Array.isArray(fw.data) ? fw.data : []);
+    }).finally(() => { if (!cancelled) setCloseFriendLoading(false); });
+    return () => { cancelled = true; };
+  }, [showAudienceSheet]);
+
+  const closeFriendIds = useMemo(
+    () => new Set(closeFriends.map((f) => f.user_id).filter(Boolean) as string[]),
+    [closeFriends]
+  );
+
+  const toggleCloseFriend = useCallback(async (friendId: string) => {
+    const exists = closeFriendIds.has(friendId);
+    const prev = closeFriends;
+    // Optimistic update; revert on failure.
+    setCloseFriends(exists
+      ? closeFriends.filter((f) => f.user_id !== friendId)
+      : [...closeFriends, { user_id: friendId }]);
+    try {
+      if (exists) await api.delete(`/users/close-friends/${friendId}`);
+      else await api.post('/users/close-friends', { userId: friendId });
+    } catch {
+      setCloseFriends(prev);
+      showError('Could not update your close friends list');
+    }
+  }, [closeFriends, closeFriendIds]);
   
   // Text Story States
   const [textStoryContent, setTextStoryContent] = useState('');
@@ -685,6 +755,7 @@ export default function CreateStory() {
                 musicInfo: selectedMusic ? JSON.stringify(selectedMusic) : undefined,
                 storyLayers: JSON.stringify(compiledLayers),
                 storyDuration: file?.type.startsWith('video/') ? undefined : 10,
+                audience,
               };
               if (phase === 'text_story') {
                 metadata.textContent = textStoryContent;
@@ -812,7 +883,7 @@ export default function CreateStory() {
                               <button 
                                   key={`media-${i}`} 
                                   onClick={() => handleSelectDeviceMedia(item)}
-                                  className={`rounded-[24px] bg-gray-55 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border border-black/5 dark:border-white/5 group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
+                                  className={`rounded-[24px] bg-gray-100 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border border-black/5 dark:border-white/5 group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'}`}
                               >
                                   {item.isVideo || (item.file && item.file.type.startsWith('video/')) ? (
                                       <video 
@@ -1152,8 +1223,20 @@ export default function CreateStory() {
                   {isMagicOn && <div className="absolute inset-0 bg-purple-500/10 pointer-events-none mix-blend-overlay" />}
 
                   {/* Top Bar */}
-                  <div className="absolute top-14 left-6 z-[350]">
+                  <div className="absolute top-14 left-6 z-[350] flex flex-col gap-3 items-start">
                     <button onClick={() => setPhase('camera')} className="w-12 h-12 bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
+                    <button
+                      onClick={() => setShowAudienceSheet(true)}
+                      aria-haspopup="dialog"
+                      className="h-9 px-4 bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full flex items-center gap-2 text-white active:scale-95 transition-all"
+                    >
+                      {audience === 'public' && <Globe size={14} />}
+                      {audience === 'followers' && <Users size={14} />}
+                      {audience === 'close_friends' && <Heart size={14} />}
+                      {audience === 'only_me' && <Lock size={14} />}
+                      <span className="text-[11px] font-black italic uppercase tracking-tight">{AUDIENCE_LABEL_MAP[audience] || 'Everyone'}</span>
+                      <ChevronDown size={12} />
+                    </button>
                   </div>
 
                   {/* Functional Side Icons */}
@@ -1201,6 +1284,97 @@ export default function CreateStory() {
                     {showEditMenu && (
                       <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] p-4 flex flex-col gap-2 z-[350]">
                          <button onClick={() => setStickers([...stickers, { id: 'loc-'+Date.now(), type: 'location', config: { name: 'Current Location' }, x: 50, y: 30, scale: 1, rotation: 0 }])} className="edit-sub-btn"><MapPin size={18} /><span>Location</span></button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Audience / Privacy Sheet */}
+                  <AnimatePresence>
+                    {showAudienceSheet && (
+                      <motion.div
+                        key="audience-sheet"
+                        initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+                        transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+                        className="absolute inset-x-0 bottom-0 z-[600] bg-white dark:bg-[#1b1b24] rounded-t-[40px] px-8 pt-6 pb-10 max-h-[80%] overflow-y-auto no-scrollbar"
+                        role="dialog" aria-label="Story privacy"
+                      >
+                        <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-black/10 dark:bg-white/10" />
+                        <div className="flex items-center justify-between mb-6">
+                          <h2 className="text-[16px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">Story privacy</h2>
+                          <button onClick={() => setShowAudienceSheet(false)} className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#18181b] dark:text-white active:scale-90 transition-all"><X size={20} /></button>
+                        </div>
+
+                        <div className="flex flex-col gap-2 mb-2">
+                          {AUDIENCE_OPTIONS.map((opt) => {
+                            const optIcon = opt.id === 'public' ? <Globe size={18} />
+                              : opt.id === 'followers' ? <Users size={18} />
+                                : opt.id === 'close_friends' ? <Heart size={18} />
+                                  : <Lock size={18} />;
+                            return (
+                              <button
+                                key={opt.id}
+                                onClick={() => setAudience(opt.id)}
+                                className={`flex items-center gap-4 p-4 rounded-[24px] border-2 transition-all active:scale-[0.98] ${audience === opt.id
+                                  ? 'border-primary bg-primary/5'
+                                  : 'border-transparent bg-black/5 dark:bg-white/5'}`}
+                              >
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${audience === opt.id ? 'bg-primary text-white' : 'bg-black/5 dark:bg-white/10 text-[#18181b] dark:text-white'}`}>
+                                  {optIcon}
+                                </div>
+                                <div className="flex-1 text-left">
+                                  <p className="text-[13px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">{opt.label}</p>
+                                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-tight">{opt.description}</p>
+                                </div>
+                                {audience === opt.id && <CheckCircle2 size={20} className="text-primary" />}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Close Friends management - only relevant for that audience */}
+                        {audience === 'close_friends' && (
+                          <div className="mt-6 rounded-[24px] bg-black/5 dark:bg-white/5 p-4">
+                            <div className="flex items-center justify-between mb-3">
+                              <p className="text-[12px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">Close Friends <span className="text-primary">({closeFriends.length})</span></p>
+                              {closeFriendLoading && <Spinner size="small" />}
+                            </div>
+                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mb-3">Pick from your followers. Your close friends list also controls who can see your close-friends stories.</p>
+                            {followerPool.length === 0 ? (
+                              <p className="text-[11px] text-slate-600 dark:text-zinc-400">{closeFriendLoading ? 'Loading followers...' : 'No followers yet - invite people to see close-friends stories.'}</p>
+                            ) : (
+                              <div className="flex flex-col gap-1.5">
+                                {followerPool.map((f) => {
+                                  const id = f.user_id || f.id || '';
+                                  const isClose = closeFriendIds.has(id);
+                                  const name = f.username || f.name || 'Unknown';
+                                  return (
+                                    <div key={id} className="flex items-center gap-3 py-1.5">
+                                      <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-black text-[12px]">
+                                        {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
+                                      </div>
+                                      <p className="flex-1 text-[12px] font-bold text-[#18181b] dark:text-white truncate">{name}</p>
+                                      <button
+                                        onClick={() => toggleCloseFriend(id)}
+                                        className={`h-8 px-4 rounded-full text-[11px] font-black uppercase tracking-tight active:scale-95 transition-all ${isClose
+                                          ? 'bg-primary text-white'
+                                          : 'bg-black/5 dark:bg-white/10 text-[#18181b] dark:text-white'}`}
+                                      >
+                                        {isClose ? 'Added' : 'Add'}
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )}
+
+                        <button
+                          onClick={() => setShowAudienceSheet(false)}
+                          className="mt-6 h-14 w-full bg-primary text-white rounded-full font-black italic uppercase tracking-tight active:scale-95 transition-all"
+                        >
+                          Apply
+                        </button>
                       </motion.div>
                     )}
                   </AnimatePresence>

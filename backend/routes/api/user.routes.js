@@ -21,6 +21,10 @@ router.get('/username-suggestions', authMiddleware, userController.getUsernameSu
 router.get('/following', authMiddleware, userController.searchFollowingUsers);
 router.get('/followers', authMiddleware, userController.getMyFollowers);
 router.get('/mutual-followers', authMiddleware, userController.getMutualFollowers);
+// Close Friends list (AfterGlow 'close_friends' audience)
+router.get('/close-friends', authMiddleware, userController.getCloseFriends);
+router.post('/close-friends', authMiddleware, userController.addCloseFriend);
+router.delete('/close-friends/:friendId', authMiddleware, userController.removeCloseFriend);
 router.post('/contacts/match', authMiddleware, userController.matchContacts);
 
 // Social & Blocking Routes

@@ -26,6 +26,8 @@ export interface StoryMetadata {
   storyLayers?: string; // Serialized JSON of StoryLayer[]
   storyDuration?: number; // Duration in seconds
   storyTheme?: string;
+  /** Audience/privacy: 'public' | 'followers' | 'close_friends' | 'only_me'. */
+  audience?: string;
 }
 
 export interface MomentMetadata {

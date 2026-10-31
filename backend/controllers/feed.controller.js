@@ -5,6 +5,7 @@ const logger = require('../utils/logger');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const MediaService = require('../services/media.service');
+const { resolveStoryAudience, canViewStory } = require('../services/story-audience.service');
 
 // Helper to trim video server-side via Cloudinary video transformations
 const trimCloudinaryVideo = (url, start, duration) => {
@@ -364,13 +365,19 @@ const getStories = async (req, res) => {
         OR s.user_id IN (SELECT follower_id FROM follows WHERE following_id = ?)
         OR u.joined_at > DATE_SUB(NOW(), INTERVAL 1 DAY)
       )
-      AND s.is_archived = 0
-      AND s.user_id NOT IN (
-        SELECT user_id FROM story_privacy_blocks WHERE blocked_user_id = ?
-      )
-      ORDER BY s.created_at DESC
-      LIMIT 200
-    `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
+       AND s.is_archived = 0
+       AND s.user_id NOT IN (
+         SELECT user_id FROM story_privacy_blocks WHERE blocked_user_id = ?
+       )
+       AND (
+         s.audience = 'public'
+         OR s.user_id = ?
+         OR (s.audience = 'followers' AND EXISTS (SELECT 1 FROM follows f WHERE f.following_id = s.user_id AND f.follower_id = ?))
+         OR (s.audience = 'close_friends' AND EXISTS (SELECT 1 FROM close_friends cf WHERE cf.user_id = s.user_id AND cf.friend_id = ?))
+       )
+       ORDER BY s.created_at DESC
+       LIMIT 200
+    `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);
                 rows = result;
                 break;
             } catch (err) {
@@ -773,6 +780,9 @@ const createStory = async (req, res) => {
         }
 
         const storyThemeVal = req.body.story_theme || null;
+        // Audience/privacy: unknown or missing values fall back to 'public'
+        // so pre-privacy clients keep publishing unchanged.
+        const storyAudienceVal = resolveStoryAudience(req.body.audience);
         const storyEffectsVal = req.body.story_effects 
             ? (typeof req.body.story_effects === 'string' ? req.body.story_effects : JSON.stringify(req.body.story_effects))
             : null;
@@ -803,15 +813,15 @@ const createStory = async (req, res) => {
                 like_count, share_count, expires_at, parent_story_id, stickers,
                 music_info, type, collage_data,
                 thumbnail_url, width, height, duration, file_size, processing_status,
-                story_layers, story_duration, story_version, story_theme, story_effects
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                story_layers, story_duration, story_version, story_theme, story_effects, audience
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 storyId, userId, finalMediaUrl, media_type, finalCaption,
                 background, resolvedAudioUrl, resolvedAudioSource, audio_start, resolvedAudioDuration,
                 expiresAt, parent_story_id, stickers,
                 musicInfoVal, type, collage_data_val,
                 thumbnail_url, width, height, duration, file_size, processing_status,
-                storyLayersVal, storyDurationVal, 1, storyThemeVal, storyEffectsVal
+                storyLayersVal, storyDurationVal, 1, storyThemeVal, storyEffectsVal, storyAudienceVal
             ]
         );
 
@@ -1050,6 +1060,16 @@ const deleteStory = async (req, res) => {
 
         if (!storyId) return res.status(400).json({ error: 'Missing story ID' });
 
+        // Read the story's media URLs before the row disappears.
+        const [stories] = await pool.query(
+            'SELECT media_url, thumbnail_url, audio_url FROM stories WHERE story_id = ? AND user_id = ?',
+            [storyId, userId]
+        );
+
+        if (!stories || stories.length === 0) {
+            return res.status(404).json({ error: 'Story not found or unauthorized' });
+        }
+
         const [result] = await pool.query(
             'DELETE FROM stories WHERE story_id = ? AND user_id = ?',
             [storyId, userId]
@@ -1057,6 +1077,17 @@ const deleteStory = async (req, res) => {
 
         if (result.affectedRows === 0) {
             return res.status(404).json({ error: 'Story not found or unauthorized' });
+        }
+
+        // Cloudinary + media_registry cleanup — never blocks the delete.
+        try {
+            await MediaService.deleteMediaForUrls([
+                stories[0].media_url,
+                stories[0].thumbnail_url,
+                stories[0].audio_url
+            ]);
+        } catch (mediaErr) {
+            logger.error('Delete story: media cleanup failed (ignored):', mediaErr.message);
         }
 
         res.json({ success: true, message: 'Story deleted successfully' });
@@ -1416,7 +1447,7 @@ const getSingleStory = async (req, res) => {
         const storyId = req.params.id;
         const [rows] = await pool.query(`
             SELECT s.story_id, s.user_id, s.media_url, s.media_type, s.caption,
-                   s.like_count, s.created_at,
+                   s.like_count, s.created_at, s.audience,
                    u.username, u.name AS user_name, u.avatar_url
             FROM stories s
             JOIN users u ON s.user_id = u.user_id
@@ -1425,6 +1456,13 @@ const getSingleStory = async (req, res) => {
         if (!rows.length) return res.status(404).json({ error: 'Story not found' });
 
         const s = rows[0];
+        // Link-shared stories must not leak private audiences: a shared link
+        // resolves here, so apply the same visibility rule as the feed.
+        const viewerId = req.user.userId || req.user.user_id;
+        const allowed = await canViewStory(pool, s, viewerId);
+        if (!allowed) {
+            return res.status(403).json({ error: 'This story is private' });
+        }
         const isExpired = new Date(s.created_at).getTime() < Date.now() - 24 * 60 * 60 * 1000;
 
         res.json({

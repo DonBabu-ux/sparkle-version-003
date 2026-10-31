@@ -101,6 +101,9 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
       if (meta.storyTheme) {
         formData.append('story_theme', meta.storyTheme);
       }
+      if (meta.audience) {
+        formData.append('audience', meta.audience);
+      }
 
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {

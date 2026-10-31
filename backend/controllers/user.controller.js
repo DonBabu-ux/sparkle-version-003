@@ -1678,5 +1678,65 @@ module.exports = {
     getMyFollowers,
     getMutualFollowers,
     matchContacts,
-    getHubRelevanceBadges
+    getHubRelevanceBadges,
+    getCloseFriends,
+    addCloseFriend,
+    removeCloseFriend
 };
+
+// --- Close Friends list (AfterGlow story audience: 'close_friends') ---
+
+// Function declarations (not arrow consts) so the module.exports block above
+// can reference them regardless of statement order.
+
+async function getCloseFriends(req, res) {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const [rows] = await pool.query(
+            `SELECT u.user_id, u.username, u.name, u.avatar_url, cf.created_at
+             FROM close_friends cf
+             JOIN users u ON cf.friend_id = u.user_id
+             WHERE cf.user_id = ?
+             ORDER BY cf.created_at DESC`,
+            [userId]
+        );
+        res.json(rows);
+    } catch (error) {
+        logger.error('Get close friends error:', error);
+        res.status(500).json({ error: 'Failed to get close friends' });
+    }
+}
+
+async function addCloseFriend(req, res) {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const friendId = req.body.userId || req.body.friendId || req.body.id;
+        if (!friendId) return res.status(400).json({ error: 'userId is required' });
+        if (friendId === userId) return res.status(400).json({ error: 'You cannot add yourself' });
+
+        await pool.query(
+            'INSERT IGNORE INTO close_friends (id, user_id, friend_id) VALUES (?, ?, ?)',
+            [crypto.randomUUID(), userId, friendId]
+        );
+        res.json({ success: true, userId: friendId });
+    } catch (error) {
+        logger.error('Add close friend error:', error);
+        res.status(500).json({ error: 'Failed to add close friend' });
+    }
+}
+
+async function removeCloseFriend(req, res) {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const friendId = req.params.friendId || req.params.id;
+        await pool.query(
+            'DELETE FROM close_friends WHERE user_id = ? AND friend_id = ?',
+            [userId, friendId]
+        );
+        res.json({ success: true });
+    } catch (error) {
+        logger.error('Remove close friend error:', error);
+        res.status(500).json({ error: 'Failed to remove close friend' });
+    }
+}
+

@@ -80,13 +80,13 @@ function SuggestionItem({ s, navigate }: { s: User, navigate: (path: string) => 
   };
 
   return (
-    <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
-      <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-black/5 dark:border-white/10" alt="" />
+    <div className="flex items-center gap-3 p-2 rounded-2xl hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-colors cursor-pointer" onClick={() => navigate(`/profile/${s.username}`)}>
+      <img src={getAvatarUrl(s.avatar_url, s.username)} className="w-10 h-10 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700" alt="" />
       <div className="flex-1 min-w-0">
-        <p className="font-bold text-[14px] text-[#18181b] dark:text-white truncate">{s.username}</p>
-        <p className="text-[12px] text-black/40 dark:text-white/40 truncate">{s.campus || 'Main Campus'}</p>
+        <p className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 truncate">{s.username}</p>
+        <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">{s.campus || 'Main Campus'}</p>
       </div>
-      <button className={`px-4 py-1.5 rounded-lg font-bold text-[13px] transition-all ${following ? 'bg-black/5 dark:bg-white/5 text-black/20 dark:text-white/20' : 'bg-primary/5 text-primary hover:bg-primary/10'}`} onClick={handleFollow} disabled={loading || following}>
+      <button className={`px-4 py-1.5 rounded-full font-semibold text-sm transition-all ${following ? 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300' : 'bg-[#ff1493] hover:bg-[#ff2d87] text-white'}`} onClick={handleFollow} disabled={loading || following}>
         {loading ? '...' : following ? 'Following' : 'Follow'}
       </button>
     </div>
@@ -262,18 +262,18 @@ const posts = orderedPostIds.map(id => postsById[id]);
     <AppScreen immersive={true} className="flex min-h-dvh font-sans overflow-x-hidden transition-colors duration-300">
       <Navbar />
 
-      <main className="flex-1 p-0 sm:p-2 lg:p-8 relative z-10 max-w-[1035px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] lg:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))]">
-        <div className="bg-white dark:bg-zinc-800 rounded-lg shadow-sm p-4 mt-2 animate-fade-in border border-black/5 dark:border-white/5">
+      <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 mt-2 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
           <div className="flex gap-4 items-center mb-5">
-            <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shadow-sm" alt="" />
-            <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-[#18181b] dark:text-white rounded-lg px-5 text-left transition-colors font-medium text-sm">
+            <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shadow-sm" alt="" />
+            <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 text-[#18181b] dark:text-zinc-100 rounded-2xl px-5 text-left transition-colors font-medium text-sm">
               What's on your mind, {user?.name || user?.username}?
             </button>
           </div>
-          <div className="border-t border-black/5 dark:border-white/5 pt-3 flex items-center justify-around">
-            <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-red-500/5 rounded-xl transition-all cursor-pointer group text-red-500/60 dark:text-red-400">
+          <div className="border-t border-[#ede3e9] dark:border-zinc-900 pt-3 flex items-center justify-around">
+            <label className="flex items-center gap-2.5 px-4 py-2 rounded-2xl hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all cursor-pointer group text-red-500 dark:text-red-400">
               <Video size={20} className="text-red-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Video</span>
+              <span className="text-sm font-semibold">Video</span>
               <input type="file" className="hidden" accept="video/*" onChange={(e) => {
                 const f = Array.from(e.target.files || []);
                 if (f.length === 0) return;
@@ -282,9 +282,9 @@ const posts = orderedPostIds.map(id => postsById[id]);
                 setActiveModal('post', null, { initialFiles: f });
               }} />
             </label>
-            <label className="flex items-center gap-2.5 px-4 py-2 hover:bg-emerald-500/5 rounded-xl transition-all cursor-pointer group text-emerald-500/60 dark:text-emerald-400">
+            <label className="flex items-center gap-2.5 px-4 py-2 rounded-2xl hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all cursor-pointer group text-emerald-500 dark:text-emerald-400">
               <Image size={20} className="text-emerald-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Photo</span>
+              <span className="text-sm font-semibold">Photo</span>
               <input type="file" multiple className="hidden" accept="image/*,video/*" onChange={(e) => {
                 const f = Array.from(e.target.files || []);
                 if (f.length === 0) return;
@@ -293,19 +293,19 @@ const posts = orderedPostIds.map(id => postsById[id]);
                 setActiveModal('post', null, { initialFiles: f });
               }} />
             </label>
-            <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 hover:bg-amber-500/5 rounded-xl transition-all group text-amber-500/60 dark:text-amber-400">
+            <button onClick={() => setActiveModal('post')} className="flex items-center gap-2.5 px-4 py-2 rounded-2xl hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-all group text-amber-500 dark:text-amber-400">
               <Smile size={20} className="text-amber-500 group-hover:scale-110 transition-transform" />
-              <span className="text-[10px] font-black uppercase tracking-widest">Feeling</span>
+              <span className="text-sm font-semibold">Feeling</span>
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-8 mt-0.5 lg:mt-0">
-          <section className="flex flex-col gap-0 bg-white dark:bg-zinc-900">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 md:gap-8">
+          <section className="flex flex-col gap-0">
             {/* Aesthetic Glassmorphism Profile Completion Banner */}
             <AestheticProfileCompletionBanner />
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
-            <div className="animate-fade-in py-0.5 px-2 sm:px-0 bg-white dark:bg-zinc-900 sm:bg-transparent rounded-[8px] sm:rounded-none border-none shadow-none">
-              <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar px-2 sm:px-0">
+            <div className="animate-fade-in py-0.5">
+              <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar">
                 {/* Add Story Card — 118×210 */}
                 {(() => {
                   // Derive own story group from already-fetched stories
@@ -646,40 +646,40 @@ const posts = orderedPostIds.map(id => postsById[id]);
             </AnimatePresence>
 
             {/* FEED */}
-            <div className="space-y-[3px] sm:space-y-3 pb-48 animate-fade-in mt-[-8px]">
+            <div className="space-y-3 pb-40 md:pb-8 animate-fade-in">
               <VirtualizedFeed initialPosts={posts} suggestions={suggestions} />
             </div>
           </section>
 
           {/* Sidebar */}
-          <aside className="hidden xl:flex flex-col gap-4 sticky top-24 h-fit animate-fade-in">
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm">
+          <aside className="hidden xl:flex flex-col gap-4 sticky top-8 h-fit animate-fade-in">
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 p-5 sm:p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Connect</h3>
-                <Link to="/connect" className="text-[10px] font-black text-primary hover:underline uppercase tracking-widest">View All</Link>
+                <h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Connect</h3>
+                <Link to="/connect" className="text-sm font-semibold text-[#ff1493] hover:underline">View all</Link>
               </div>
-              <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4 opacity-30"><Spinner size="medium" color="text-black/30 dark:text-white/30" /><p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center">No Suggestions</p></div>}</div>
+              <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4"><Spinner size="medium" color="#475569" /><p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center">No suggestions</p></div>}</div>
             </div>
             {/* Trending */}
-            <div className="bg-white dark:bg-zinc-800 rounded-2xl border border-black/5 dark:border-white/10 p-6 shadow-sm overflow-hidden group">
+            <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 p-5 sm:p-6 shadow-sm overflow-hidden group">
                <div className="flex flex-col gap-6">
-                  <h3 className="text-[11px] font-black text-black/30 dark:text-white/30 uppercase tracking-widest">Hot Right Now</h3>
+                  <h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Hot right now</h3>
                    {trendingTags.length === 0 ? (
-                     <p className="text-[12px] font-semibold text-black/30 dark:text-white/30 uppercase tracking-widest text-center py-4">No trending tags yet</p>
+                     <p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center py-4">No trending tags yet</p>
                    ) : (
                      <>
                        <div className="space-y-3">{trendingTags.map(tag => (
-                         <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary/20 rounded-2xl transition-all group/tag">
+                         <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/20 rounded-2xl transition-all group/tag">
                            <div className="flex items-center justify-between">
-                             <p className="text-[15px] font-black text-[#18181b] dark:text-white group-hover/tag:text-primary italic uppercase tracking-tight">#{tag.tag}</p>
-                             <TrendingUp size={14} className="text-primary opacity-0 group-hover/tag:opacity-100 transition-opacity" />
-                          </div>
-                          <p className="text-[10px] font-bold text-black/30 dark:text-white/30 mt-1 uppercase tracking-widest">{tag.count} Sparks</p>
+                             <p className="text-base font-semibold text-[#18181b] dark:text-zinc-100 group-hover/tag:text-[#ff1493]">#{tag.tag}</p>
+                             <TrendingUp size={14} className="text-[#ff1493] opacity-0 group-hover/tag:opacity-100 transition-opacity" />
+                           </div>
+                           <p className="text-xs text-slate-600 dark:text-zinc-300 mt-1">{tag.count} sparks</p>
                        </Link>
                      ))}</div>
-                       <Link to="/explore" className="w-full h-11 bg-black/5 dark:bg-white/5 rounded-xl flex items-center justify-center gap-2 text-[11px] font-black text-black/40 dark:text-white/40 hover:bg-black/10 dark:hover:bg-white/10 hover:text-black dark:hover:text-white transition-all group/more uppercase tracking-widest">Explore More <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
+                       <Link to="/explore" className="w-full h-11 bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl flex items-center justify-center gap-2 text-sm font-semibold text-slate-600 dark:text-zinc-300 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 hover:text-[#18181b] dark:hover:text-zinc-100 transition-all group/more">Explore more <ChevronRight size={14} className="group-hover/more:translate-x-1 transition-transform" /></Link>
                      </>
-                   )}
+                 )}
                </div>
             </div>
           </aside>

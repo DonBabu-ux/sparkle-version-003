@@ -411,112 +411,114 @@ const posts = orderedPostIds.map(id => postsById[id]);
                 )}
 
                 {/* Story Cards — 118×210 premium */}
-                {stories.map((group: StoryGroup) => {
-                  const unviewed = group.unviewed_count || (group.is_fully_viewed ? 0 : group.stories.length);
-                  const firstStory = group.stories[0];
-                  const previewUrl = getStoryPreviewUrl(firstStory, group.avatar_url);
-                  const isVideo = firstStory?.media_type === 'video';
-                  const duration = formatDuration(firstStory?.duration);
-                  const storyAge = firstStory?.created_at
-                    ? (() => {
-                        const diff = Date.now() - new Date(firstStory.created_at).getTime();
-                        const mins = Math.floor(diff / 60000);
-                        if (mins < 60) return `${mins}m ago`;
-                        const hrs = Math.floor(mins / 60);
-                        if (hrs < 24) return `${hrs}h ago`;
-                        return `${Math.floor(hrs / 24)}d ago`;
-                      })()
-                    : null;
+                {stories
+                  .filter((group: StoryGroup) => String(group.user_id) !== String(user?.user_id || user?.id))
+                  .map((group: StoryGroup) => {
+                      const unviewed = group.unviewed_count || (group.is_fully_viewed ? 0 : group.stories.length);
+                      const firstStory = group.stories[0];
+                      const previewUrl = getStoryPreviewUrl(firstStory, group.avatar_url);
+                      const isVideo = firstStory?.media_type === 'video';
+                      const duration = formatDuration(firstStory?.duration);
+                      const storyAge = firstStory?.created_at
+                        ? (() => {
+                            const diff = Date.now() - new Date(firstStory.created_at).getTime();
+                            const mins = Math.floor(diff / 60000);
+                            if (mins < 60) return `${mins}m ago`;
+                            const hrs = Math.floor(mins / 60);
+                            if (hrs < 24) return `${hrs}h ago`;
+                            return `${Math.floor(hrs / 24)}d ago`;
+                          })()
+                        : null;
 
-                  return (
-                    <div
-                      key={group.user_id}
-                      onClick={() => navigate(`/stories/${group.user_id}`, { state: { userStoryGroup: group } })}
-                      className="flex-shrink-0 w-[118px] h-[210px] rounded-xl shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
-                    >
-                      {/* Background preview — thumbnail → media_url → placeholder */}
-                      <img
-                        src={previewUrl}
-                        onError={(e) => {
-                          const el = e.currentTarget;
-                          if (el.src !== (firstStory?.media_url || '')) {
-                            el.src = firstStory?.media_url || '/assets/story_placeholder.png';
-                          } else {
-                            el.src = '/assets/story_placeholder.png';
-                          }
-                        }}
-                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        alt={`${group.username}'s story`}
-                      />
-                      <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
+                      return (
+                        <div
+                          key={group.user_id}
+                          onClick={() => navigate(`/stories/${group.user_id}`, { state: { userStoryGroup: group } })}
+                          className="flex-shrink-0 w-[118px] h-[210px] rounded-xl shadow-lg cursor-pointer relative overflow-hidden group transition-all hover:brightness-90 active:scale-[0.98]"
+                        >
+                          {/* Background preview — thumbnail → media_url → placeholder */}
+                          <img
+                            src={previewUrl}
+                            onError={(e) => {
+                              const el = e.currentTarget;
+                              if (el.src !== (firstStory?.media_url || '')) {
+                                el.src = firstStory?.media_url || '/assets/story_placeholder.png';
+                              } else {
+                                el.src = '/assets/story_placeholder.png';
+                              }
+                            }}
+                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                            alt={`${group.username}'s story`}
+                          />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors" />
 
-                      {/* Video indicator — centered play + bottom-right duration */}
-                      {isVideo && (
-                        <>
-                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                              <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4 ml-0.5"><polygon points="5,3 19,12 5,21" /></svg>
+                          {/* Video indicator — centered play + bottom-right duration */}
+                          {isVideo && (
+                            <>
+                              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                                  <svg viewBox="0 0 24 24" fill="white" className="w-4 h-4 ml-0.5"><polygon points="5,3 19,12 5,21" /></svg>
+                                </div>
+                              </div>
+                              {duration && (
+                                <span className="absolute bottom-10 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm z-10">
+                                  {duration}
+                                </span>
+                              )}
+                            </>
+                          )}
+
+                          {/* Avatar — top-left, clickable to profile */}
+                          <div
+                            className="absolute top-3 left-3 z-20"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              navigate(`/profile/${group.username}`);
+                            }}
+                          >
+                            <div className="w-10 h-10 rounded-full relative cursor-pointer">
+                              {/* Gradient ring */}
+                              <div
+                                className={`absolute inset-[-3px] rounded-full p-[2.5px] shadow-md ${
+                                  unviewed > 0 ? 'story-ring-unviewed' : 'story-ring-viewed'
+                                }`}
+                              >
+                                <div className="w-full h-full rounded-full bg-transparent" />
+                              </div>
+                              {/* White border separator */}
+                              <div className="absolute inset-[-1px] rounded-full border-2 border-white shadow-sm" />
+                              {/* Avatar image */}
+                              <img
+                                src={getAvatarUrl(group.avatar_url, group.username)}
+                                className="w-full h-full rounded-full object-cover relative z-10"
+                                alt={group.username}
+                              />
+                              {/* Unread count badge */}
+                              {unviewed > 0 && (
+                                <motion.div
+                                  initial={{ scale: 0 }}
+                                  animate={{ scale: 1 }}
+                                  className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg z-20"
+                                >
+                                  {unviewed}
+                                </motion.div>
+                              )}
                             </div>
                           </div>
-                          {duration && (
-                            <span className="absolute bottom-10 right-2 bg-black/60 text-white text-[10px] font-bold px-1.5 py-0.5 rounded backdrop-blur-sm z-10">
-                              {duration}
-                            </span>
-                          )}
-                        </>
-                      )}
 
-                      {/* Avatar — top-left, clickable to profile */}
-                      <div
-                        className="absolute top-3 left-3 z-20"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/profile/${group.username}`);
-                        }}
-                      >
-                        <div className="w-10 h-10 rounded-full relative cursor-pointer">
-                          {/* Gradient ring */}
-                          <div
-                            className={`absolute inset-[-3px] rounded-full p-[2.5px] shadow-md ${
-                              unviewed > 0 ? 'story-ring-unviewed' : 'story-ring-viewed'
-                            }`}
-                          >
-                            <div className="w-full h-full rounded-full bg-transparent" />
+                          {/* Bottom overlay — username + timestamp */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-8 pb-2.5 px-2.5 z-10">
+                            <p className="text-[11px] font-bold text-white truncate leading-tight">
+                              {group.username || group.user_name}
+                            </p>
+                            {storyAge && (
+                              <p className="text-[9px] text-white/60 font-normal truncate leading-tight mt-0.5">
+                                {storyAge}
+                              </p>
+                            )}
                           </div>
-                          {/* White border separator */}
-                          <div className="absolute inset-[-1px] rounded-full border-2 border-white shadow-sm" />
-                          {/* Avatar image */}
-                          <img
-                            src={getAvatarUrl(group.avatar_url, group.username)}
-                            className="w-full h-full rounded-full object-cover relative z-10"
-                            alt={group.username}
-                          />
-                          {/* Unread count badge */}
-                          {unviewed > 0 && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 bg-primary text-white text-[10px] font-black rounded-full border-2 border-white dark:border-black flex items-center justify-center shadow-lg z-20"
-                            >
-                              {unviewed}
-                            </motion.div>
-                          )}
                         </div>
-                      </div>
-
-                      {/* Bottom overlay — username + timestamp */}
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 via-black/30 to-transparent pt-8 pb-2.5 px-2.5 z-10">
-                        <p className="text-[11px] font-bold text-white truncate leading-tight">
-                          {group.username || group.user_name}
-                        </p>
-                        {storyAge && (
-                          <p className="text-[9px] text-white/60 font-normal truncate leading-tight mt-0.5">
-                            {storyAge}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  );
+                      );
                 })}
               </div>
             </div>

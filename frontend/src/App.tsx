@@ -464,49 +464,39 @@ function App() {
     })();
   }, [isAuthenticated]);
 
-  // Show a premium, responsive, centered splash screen while the store rehydrates or during initial launch
+  // Show a calm, on-brand splash while the store rehydrates. Reads the stored
+  // theme directly rather than a dark: class (the effect below only runs after
+  // this renders), so a dark-mode user never sees a light flash. Gated on
+  // hydration alone: `hydrated` is already true on authenticated reloads and
+  // SPA navigation, so the splash never appears there.
   if (!hydrated) {
+    const dark = theme === 'dark';
     return (
-      <div className="flex flex-col items-center justify-center min-h-dvh bg-[#ffe6f2] transition-colors duration-500">
+      <div className={`flex min-h-dvh flex-col items-center justify-center font-sans transition-colors duration-500 ${dark ? 'bg-zinc-900' : 'bg-[#f8e7ed]'}`}>
         <div className="flex flex-col items-center justify-center p-8 text-center animate-fade-in">
-          {/* Logo container with soft shadow and pulsing animations */}
-          <div className="w-64 h-64 md:w-96 md:h-96 mb-6 rounded-3xl bg-[#ffe6f2] shadow-[0_12px_40px_rgba(255,20,147,0.15)] border border-pink-500/10 flex items-center justify-center p-6 transition-all duration-500 scale-100 animate-pulse-slow">
-            <img
-              src="/sparklelogo.png"
-              alt="Sparkle"
-              className="w-full h-full object-contain filter drop-shadow-[0_4px_12px_rgba(255,20,147,0.25)]"
-            />
-          </div>
+          {/* Brand mark — explicit dimensions reserve the box, so the logo never
+              shifts the layout while it decodes */}
+          <img
+            src="/sparklelogo.png"
+            alt="Sparkle"
+            width={128}
+            height={128}
+            decoding="async"
+            className="h-24 w-24 object-contain md:h-32 md:w-32"
+          />
 
-          {/* Premium Brand Text */}
-          <div className="relative mt-2">
-            <h1 className="font-heading text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-[#ff1493] via-[#fb7185] to-[#ff1493] -webkit-background-clip: text-webkit-text-fill-color bg-clip-text text-transparent italic animate-shimmer">
-              Sparkle
-            </h1>
-            <p className="text-[10px] md:text-[11px] font-black uppercase tracking-[0.4em] text-slate-400 dark:text-zinc-300 mt-2">
-              Connect. Share. Shine.
-            </p>
-          </div>
+          <h1 className={`mt-6 font-heading text-3xl font-bold tracking-tight md:text-4xl ${dark ? 'text-zinc-100' : 'text-[#18181b]'}`}>
+            Sparkle
+          </h1>
+          <p className={`mt-2 text-sm ${dark ? 'text-zinc-300' : 'text-slate-600'}`}>
+            Connect. Share. Shine.
+          </p>
 
-          {/* Centered micro-animation indicator — the one shared brand loader */}
-          <div className="mt-12 flex items-center justify-center">
-            <Spinner size="xl" />
+          {/* The one shared brand loader */}
+          <div className="mt-10 flex items-center justify-center">
+            <Spinner size="large" />
           </div>
         </div>
-        <style>{`
-          @          .animate-pulse-slow {
-            animation: pulse-slow 3s infinite ease-in-out;
-          }
-          @          .animate-shimmer {
-            background-size: 200% auto;
-            animation: shimmer 4s infinite linear;
-          }
-          /* Loading dot pulse: fade in/out */
-          
-          .animate-dot-pulse {
-            animation: dotPulse 1.2s infinite;
-          }
-        `}</style>
       </div>
     );
   }

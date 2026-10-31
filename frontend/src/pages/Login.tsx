@@ -1,4 +1,4 @@
-﻿import { showSuccess } from '../utils/toast';
+import { showSuccess } from '../utils/toast';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Lock, ArrowRight, ShieldCheck, Sparkles, Heart, Users, Mail, Eye, EyeOff } from 'lucide-react';
@@ -40,9 +40,9 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const navigate = useNavigate();
-  // Post-login navigation timer â€” must be cleared on unmount/re-submit, else a
+  // Post-login navigation timer — must be cleared on unmount/re-submit, else a
   // stale timer fires after the user already navigated away and bounces them
-  // to /dashboard (seen as: open chat â†’ suddenly back on home).
+  // to /dashboard (seen as: open chat → suddenly back on home).
   const postLoginNavTimer = useRef<number | null>(null);
   const clearPostLoginNav = useCallback(() => {
     if (postLoginNavTimer.current !== null) {
@@ -480,9 +480,9 @@ export default function Login() {
 
                 <div className="mt-5 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-600 dark:text-zinc-300">
                   <Link to="/legal/terms" className="transition-colors hover:text-[#18181b] dark:hover:text-zinc-100">Terms &amp; Conditions</Link>
-                  <span aria-hidden="true">â€¢</span>
+                  <span aria-hidden="true">•</span>
                   <Link to="/legal/privacy" className="transition-colors hover:text-[#18181b] dark:hover:text-zinc-100">Privacy Policy</Link>
-                  <span aria-hidden="true">â€¢</span>
+                  <span aria-hidden="true">•</span>
                   <Link to="/recovery" className="font-semibold text-[#ff1493] transition-colors hover:text-[#ff2d87]">Account Recovery &amp; Appeals</Link>
                 </div>
               </>
@@ -599,7 +599,7 @@ export default function Login() {
                   }}
                   className="text-sm font-semibold text-[#ff1493] transition-colors hover:text-[#ff2d87]"
                 >
-                  {useRecoveryCode ? 'â† Use 6-digit verification code' : 'Lost your device? Use a recovery backup code'}
+                  {useRecoveryCode ? '← Use 6-digit verification code' : 'Lost your device? Use a recovery backup code'}
                 </button>
 
                 <button

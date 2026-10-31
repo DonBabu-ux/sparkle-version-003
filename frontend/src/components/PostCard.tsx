@@ -525,8 +525,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       </div>
 
       {/* Content */}
-      <div className="px-3 pb-2 pt-1">
-        {post.content && (
+      {post.content && (
+      <div className={`px-3 pt-1 ${isTextOnly ? 'pb-2' : 'pb-1.5'}`}>
           <div className="text-[14px] text-[#18181b] dark:text-white leading-snug">
             <MentionText 
               content={post.content.length > 150 && !isExpanded ? post.content.substring(0, 150) + '...' : post.content} 
@@ -540,8 +540,8 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               </button>
             )}
           </div>
-        )}
       </div>
+      )}
 
       {/* Media Grid */}
       {!isTextOnly && (
@@ -582,16 +582,21 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
               ))}
             </div>
           ) : post.media_url ? (
-            <div className="w-full flex items-center justify-center">
+            <div className="w-full bg-black/5 dark:bg-zinc-900 overflow-hidden">
               {isVideo ? (
-                <VideoPlayer src={getMediaUrl(post.media_url)} />
+                <div className="relative w-full aspect-video max-h-[85vh] sm:max-h-[700px]">
+                  <VideoPlayer src={getMediaUrl(post.media_url)} />
+                </div>
               ) : (
-                <ProgressiveImage
-                  src={post.media_url}
-                  alt=""
-                  imageClassName="w-full h-auto block max-h-[85vh] sm:max-h-[700px] object-contain transition-transform duration-700 hover:scale-105"
-                  width={1080}
-                />
+                <div className="relative w-full aspect-[4/5] max-h-[85vh] sm:max-h-[700px]">
+                  <ProgressiveImage
+                    src={post.media_url}
+                    alt=""
+                    containerClassName="!absolute inset-0"
+                    imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"
+                    width={1080}
+                  />
+                </div>
               )}
             </div>
           ) : null}
@@ -599,6 +604,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       )}
 
       {/* Stats — owns every visible count label; not a like target */}
+      {(sparkCount > 0 || commentCount || shareCount) && (
       <div className="px-3 py-2 flex items-center justify-between">
         <div className="flex items-center hover:underline">
           <div className="w-[16px] h-[16px] rounded-full bg-primary flex items-center justify-center ring-2 ring-white dark:ring-black z-30 shadow-sm mr-2">
@@ -627,6 +633,7 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           {shareCount ? <span className="hover:underline cursor-pointer">{formatCount(shareCount)} shares</span> : null}
         </div>
       </div>
+      )}
 
       {/* Actions Row — buttons own their own clicks; no row-level like */}
       <div className="flex items-center justify-between px-4 pb-2.5 pt-0.5">

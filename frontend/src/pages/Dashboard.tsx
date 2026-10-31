@@ -263,7 +263,9 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <Navbar />
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
-        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 mt-2 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 md:gap-8 items-start">
+          <section className="flex flex-col gap-4">
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shadow-sm" alt="" />
             <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 text-[#18181b] dark:text-zinc-100 rounded-2xl px-5 text-left transition-colors font-medium text-sm">
@@ -299,12 +301,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
             </button>
           </div>
         </div>
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 md:gap-8">
-          <section className="flex flex-col gap-0">
             {/* Aesthetic Glassmorphism Profile Completion Banner */}
             <AestheticProfileCompletionBanner />
             {/* STORIES - GENIUS RING & BADGE IMPLEMENTATION (Requirement) */}
-            <div className="animate-fade-in py-0.5">
+            <div className="animate-fade-in">
               <div className="flex gap-2 overflow-x-auto py-2 no-scrollbar">
                 {/* Add Story Card — 118×210 */}
                 {(() => {

@@ -1209,8 +1209,10 @@ const viewStory = async (req, res) => {
         );
 
         await pool.query(
-            'UPDATE stories SET view_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ?) WHERE story_id = ?',
-            [storyId, storyId]
+            // The owner's own view never counts — otherwise the story shows
+            // "N views" that includes the author (WhatsApp/Facebook semantics).
+            'UPDATE stories SET view_count = (SELECT COUNT(*) FROM story_views WHERE story_id = ? AND user_id != ?) WHERE story_id = ?',
+            [storyId, userId, storyId]
         );
 
         res.json({ success: true });

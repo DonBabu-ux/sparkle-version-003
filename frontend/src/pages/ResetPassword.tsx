@@ -169,51 +169,43 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="security-page-bg">
-      {/* Background visual orbs */}
-      <div className="fixed top-[-10%] right-[-5%] w-[600px] h-[600px] bg-rose-200/20 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-10%] left-[-5%] w-[500px] h-[500px] bg-pink-200/20 rounded-full blur-[100px] pointer-events-none z-0" />
-
+    <div className="relative flex min-h-dvh items-center justify-center bg-app p-4 font-sans text-[#18181b] dark:text-zinc-100 sm:p-6">
       {/* Back Button */}
-      <button onClick={() => navigate(-1)} className="security-back-btn relative z-10">
+      <button onClick={() => navigate(-1)} className="absolute left-4 top-4 flex items-center gap-1.5 text-sm font-semibold text-slate-600 transition-colors hover:text-[#18181b] dark:text-zinc-300 dark:hover:text-zinc-100 sm:left-6 sm:top-6">
         <ChevronLeft size={16} /> Back
       </button>
 
-      <div className="security-card relative z-10">
+      <div className="relative w-full max-w-md overflow-hidden rounded-3xl border border-[#e6d8e1] bg-[#fdf8fa] p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 sm:p-8">
         {success && (
-          <div className="success-overlay">
-            <div className="w-16 h-16 bg-emerald-500/10 text-emerald-600 rounded-full flex items-center justify-center mb-6 shadow-lg shadow-emerald-500/10 animate-bounce">
-              <CheckCircle2 size={36} strokeWidth={2.5} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Password Updated</h2>
-            <p className="text-gray-500 dark:text-zinc-300 text-sm text-center max-w-xs leading-relaxed">
+          <div className="absolute inset-0 z-10 flex animate-fade-in flex-col items-center justify-center bg-[#fdf8fa] text-center dark:bg-zinc-800">
+            <CheckCircle2 size={40} strokeWidth={2.5} className="mb-6 text-emerald-500" />
+            <h2 className="mb-2 text-2xl font-bold text-[#18181b] dark:text-zinc-100">Password updated</h2>
+            <p className="max-w-xs text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
               Your account has been secured.<br />Redirecting...
             </p>
           </div>
         )}
 
         {/* Header Block */}
-        <div className="flex flex-col items-center text-center mb-8">
-          <div className="animate-float-shield w-16 h-16 bg-pink-500/10 text-pink-500 rounded-2xl flex items-center justify-center mb-4 border border-pink-500/20 shadow-sm">
-            <Shield size={32} strokeWidth={2} />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sparkle Security</h1>
-          <p className="text-gray-500 dark:text-zinc-300 text-sm mt-2 max-w-sm leading-relaxed">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Shield size={32} strokeWidth={2} className="mb-4 text-[#ff1493]" />
+          <h1 className="text-3xl font-bold tracking-tight text-[#18181b] dark:text-zinc-100">Sparkle Security</h1>
+          <p className="mt-2 max-w-sm text-sm leading-relaxed text-slate-600 dark:text-zinc-300">
             Protect your account with a strong password. This keeps your conversations, profile, and data secure.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 bg-red-500/10 border border-red-500/20 px-4 py-3 rounded-xl flex items-center gap-3 animate-fade-in text-red-600 text-xs font-semibold">
-            <X size={16} className="flex-shrink-0" />
+          <div className="mb-6 flex animate-fade-in items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
+            <X size={16} className="shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {resendSuccess && (
-          <div className="mb-6 bg-emerald-50 border border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700/50 px-4 py-3.5 rounded-xl flex items-center justify-between gap-3 animate-fade-in text-emerald-800 dark:text-emerald-300 text-xs font-bold shadow-sm">
+          <div className="mb-6 flex animate-fade-in items-center justify-between gap-3 rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3.5 text-xs font-bold text-emerald-800 shadow-sm dark:border-emerald-700/50 dark:bg-emerald-950/40 dark:text-emerald-300">
             <div className="flex items-center gap-2.5">
-              <div className="w-6 h-6 rounded-full bg-emerald-600 text-white flex items-center justify-center flex-shrink-0 shadow-sm">
+              <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm">
                 <Check size={14} strokeWidth={3} />
               </div>
               <span>Verification code sent successfully.</span>
@@ -221,7 +213,7 @@ export default function ResetPassword() {
             <button
               type="button"
               onClick={() => setResendSuccess(false)}
-              className="text-emerald-700 dark:text-emerald-400 hover:text-emerald-900 p-1 rounded-lg hover:bg-emerald-200/50 transition-colors"
+              className="rounded-lg p-1 text-emerald-700 transition-colors hover:bg-emerald-200/50 hover:text-emerald-900 dark:text-emerald-400 dark:hover:bg-emerald-900/40 dark:hover:text-emerald-200"
             >
               <X size={14} />
             </button>
@@ -230,13 +222,13 @@ export default function ResetPassword() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Identity Verification OTP Blocks */}
-          <div className="space-y-3 bg-white/40 border border-pink-500/10 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-pink-600">Verify Your Sparkle Identity</h3>
-            <p className="text-xs text-gray-500 dark:text-zinc-300 leading-relaxed">
-              We've sent a verification code to <span className="text-gray-900 font-semibold">{maskEmail(emailParam)}</span>. Enter the code below to continue.
+          <div className="space-y-3 rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] p-5 dark:border-zinc-700 dark:bg-zinc-900">
+            <h3 className="text-xs font-bold text-[#ff1493]">Verify your identity</h3>
+            <p className="text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+              We've sent a verification code to <span className="font-semibold text-[#18181b] dark:text-zinc-100">{maskEmail(emailParam)}</span>. Enter the code below to continue.
             </p>
 
-            <div className="flex justify-between gap-2 mt-4">
+            <div className="mt-4 flex justify-between gap-2">
               {otpValues.map((val, i) => (
                 <input
                   key={i}
@@ -248,28 +240,28 @@ export default function ResetPassword() {
                   onChange={(e) => handleOtpChange(i, e.target.value)}
                   onKeyDown={(e) => handleOtpKeyDown(i, e)}
                   onPaste={handleOtpPaste}
-                  className="input-otp-box"
+                  className="h-14 w-12 rounded-2xl border border-[#e6d8e1] bg-[#fdf8fa] text-center text-xl font-bold text-[#18181b] outline-none transition-colors focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
               ))}
             </div>
 
-            <div className="flex items-center justify-between mt-4 pt-2 border-t border-black/5 dark:border-white/5 text-[11px] text-gray-500 dark:text-zinc-300">
+            <div className="mt-4 flex items-center justify-between gap-3 border-t border-[#ede3e9] pt-3 text-xs text-slate-600 dark:border-zinc-900 dark:text-zinc-300">
               <span>Didn't receive it?</span>
               <button
                 type="button"
                 onClick={handleResend}
                 disabled={timer > 0 || resending}
-                className="text-pink-600 font-bold hover:text-pink-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1 transition-colors"
+                className="flex items-center gap-1.5 font-bold text-[#ff1493] transition-colors hover:text-[#ff2d87] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {resending && <Spinner size="small" />}
-                {timer > 0 ? `Resend Code (${timer}s)` : 'Resend Code'}
+                {timer > 0 ? `Resend code (${timer}s)` : 'Resend code'}
               </button>
             </div>
           </div>
 
           {/* New Password */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-700 dark:text-zinc-200">New Password</label>
+            <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">New password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -277,14 +269,15 @@ export default function ResetPassword() {
                 autoComplete="new-password"
                 value={newProtocolCode}
                 onChange={(e) => setNewProtocolCode(e.target.value)}
-                className="security-input pr-12"
+                className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] py-3 pl-4 pr-11 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300"
                 placeholder="Enter new password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 transition-colors hover:text-[#ff1493] dark:text-zinc-300 dark:hover:text-[#ff2d87]"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -292,31 +285,31 @@ export default function ResetPassword() {
 
             {/* Password Requirements Checklist & Strength bar */}
             {newProtocolCode && (
-              <div className="mt-3 bg-white/40 border border-pink-500/10 rounded-2xl p-4 space-y-3 shadow-sm">
-                <div className="text-xs font-bold text-gray-700 dark:text-zinc-200">Password Requirements</div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <div className="mt-3 space-y-3 rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] p-4 dark:border-zinc-700 dark:bg-zinc-900">
+                <div className="text-xs font-bold text-slate-700 dark:text-zinc-300">Password requirements</div>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   {checklist.map((item) => (
-                    <div key={item.id} className={`requirement-item ${item.met ? 'met' : ''}`}>
+                    <div key={item.id} className={`flex items-center gap-2 text-xs ${item.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-zinc-300'}`}>
                       {item.met ? (
                         <Check size={14} className="text-emerald-500" />
                       ) : (
-                        <X size={14} className="text-gray-400" />
+                        <X size={14} className="text-slate-600 dark:text-zinc-300" />
                       )}
                       <span>{item.label}</span>
                     </div>
                   ))}
                 </div>
 
-                <div className="pt-2 border-t border-black/5 dark:border-white/5 space-y-1.5">
-                  <div className="flex justify-between items-center text-[10px] text-gray-500 dark:text-zinc-300">
-                    <span>Password Strength</span>
+                <div className="space-y-1.5 border-t border-[#ede3e9] pt-3 dark:border-zinc-900">
+                  <div className="flex items-center justify-between text-xs text-slate-600 dark:text-zinc-300">
+                    <span>Password strength</span>
                     <span className="font-bold" style={{ color: strengthInfo.color }}>
                       {strengthInfo.label}
                     </span>
                   </div>
-                  <div className="strength-bar-container">
+                  <div className="h-1.5 overflow-hidden rounded-full bg-[#ede3e9] dark:bg-zinc-700">
                     <div
-                      className="strength-bar-fill"
+                      className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: strengthInfo.width,
                         backgroundColor: strengthInfo.color,
@@ -330,7 +323,7 @@ export default function ResetPassword() {
 
           {/* Confirm Password */}
           <div className="space-y-2">
-            <label className="text-xs font-bold text-gray-700 dark:text-zinc-200">Confirm Password</label>
+            <label className="text-xs font-bold text-slate-700 dark:text-zinc-300">Confirm password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -338,30 +331,31 @@ export default function ResetPassword() {
                 autoComplete="new-password"
                 value={repeatCode}
                 onChange={(e) => setRepeatCode(e.target.value)}
-                className="security-input pr-12"
+                className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] py-3 pl-4 pr-11 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300"
                 placeholder="Confirm new password"
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500 transition-colors"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 transition-colors hover:text-[#ff1493] dark:text-zinc-300 dark:hover:text-[#ff2d87]"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
 
             {repeatCode && (
-              <div className="flex items-center gap-1.5 px-1 mt-1 text-[11px]">
+              <div className="mt-1 flex items-center gap-1.5 px-1 text-xs">
                 {newProtocolCode === repeatCode ? (
                   <>
                     <Check size={14} className="text-emerald-500" />
-                    <span className="text-emerald-500 font-semibold">Passwords match</span>
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">Passwords match</span>
                   </>
                 ) : (
                   <>
                     <X size={14} className="text-red-500" />
-                    <span className="text-red-500 font-semibold">Passwords do not match</span>
+                    <span className="font-semibold text-red-600 dark:text-red-400">Passwords do not match</span>
                   </>
                 )}
               </div>
@@ -369,278 +363,27 @@ export default function ResetPassword() {
           </div>
 
           {/* Footer Security Card */}
-          <div className="bg-pink-500/5 border border-pink-500/10 rounded-2xl p-4 flex gap-3 text-xs leading-relaxed text-pink-800 shadow-sm">
-            <Shield size={16} className="text-pink-500 flex-shrink-0 mt-0.5" />
+          <div className="flex gap-3 rounded-2xl border border-[#e6d8e1] bg-[#f0e5ec] p-4 text-xs leading-relaxed text-slate-600 dark:border-zinc-700 dark:bg-zinc-700 dark:text-zinc-300">
+            <Shield size={16} className="mt-0.5 shrink-0 text-[#ff1493]" />
             <div>
-              <span className="font-bold text-pink-700 block mb-0.5">🛡 Security Tip</span>
+              <span className="mb-0.5 block font-bold text-[#18181b] dark:text-zinc-100">Security tip</span>
               Never reuse passwords from other websites. A unique password keeps your Sparkle account safer.
             </div>
           </div>
 
           {/* Action Button */}
-          <button type="submit" disabled={loading} className="security-btn">
+          <button type="submit" disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87] disabled:opacity-60">
             {loading ? (
               <>
-                <div className="spinner" />
-                Updating Please wait...
+                <Spinner size="small" color="#fff" />
+                Updating, please wait…
               </>
             ) : (
-              'Update Password →'
+              'Update password'
             )}
           </button>
         </form>
       </div>
-
-      <style>{`
-        .security-page-bg {
-          min-height: 100dvh;
-          background-color: #fdf2f4;
-          background-image: radial-gradient(circle at 10% 20%, rgba(244, 63, 94, 0.08) 0%, transparent 45%),
-                            radial-gradient(circle at 90% 80%, rgba(219, 39, 119, 0.08) 0%, transparent 45%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 2.5rem 1.5rem;
-          color: #1f2937;
-          font-family: 'Outfit', 'Inter', sans-serif;
-          position: relative;
-        }
-
-        .security-back-btn {
-          position: absolute;
-          top: 2rem;
-          left: 2rem;
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: #4b5563;
-          font-size: 0.875rem;
-          font-weight: 600;
-          transition: all 0.2s ease;
-          background: none;
-          border: none;
-          outline: none;
-          cursor: pointer;
-        }
-
-        .security-back-btn:hover {
-          color: #db2777;
-          transform: translateX(-3px);
-        }
-
-        .security-card {
-          width: 100%;
-          max-width: 480px;
-          background: rgba(255, 255, 255, 0.75);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border: 1px solid rgba(255, 255, 255, 0.6);
-          border-radius: 28px;
-          padding: 2.75rem 2.25rem;
-          box-shadow: 0 25px 50px -12px rgba(219, 39, 119, 0.08), 0 0 50px rgba(219, 39, 119, 0.03);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .animate-float-shield {
-          animation: resetFloat 4s ease-in-out infinite;
-        }
-
-        .input-otp-box {
-          width: 2.85rem;
-          height: 3.5rem;
-          background: rgba(255, 255, 255, 0.8);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          border-radius: 12px;
-          text-align: center;
-          font-size: 1.35rem;
-          font-weight: 700;
-          color: #111827;
-          outline: none;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .input-otp-box:focus {
-          border-color: #db2777;
-          background: rgba(219, 39, 119, 0.02);
-          box-shadow: 0 0 14px rgba(219, 39, 119, 0.2);
-        }
-
-        .security-input {
-          width: 100%;
-          background: rgba(255, 255, 255, 0.8);
-          border: 1px solid rgba(0, 0, 0, 0.08);
-          border-radius: 16px;
-          padding: 1rem 1.25rem;
-          font-size: 0.95rem;
-          color: #111827;
-          outline: none;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .security-input:focus {
-          border-color: #db2777;
-          background: rgba(219, 39, 119, 0.02);
-          box-shadow: 0 0 14px rgba(219, 39, 119, 0.2);
-        }
-
-        .requirement-item {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          font-size: 0.8rem;
-          color: #6b7280;
-          transition: color 0.2s ease;
-        }
-
-        .requirement-item.met {
-          color: #059669;
-        }
-
-        .strength-bar-container {
-          height: 6px;
-          background: rgba(0, 0, 0, 0.05);
-          border-radius: 9999px;
-          overflow: hidden;
-        }
-
-        .strength-bar-fill {
-          height: 100%;
-          width: 0%;
-          border-radius: 9999px;
-          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-
-        .security-btn {
-          width: 100%;
-          background: linear-gradient(135deg, #ec4899, #db2777);
-          border: none;
-          border-radius: 16px;
-          padding: 1.1rem;
-          color: #fff;
-          font-weight: 700;
-          font-size: 0.95rem;
-          letter-spacing: 0.02em;
-          cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          box-shadow: 0 8px 16px -3px rgba(219, 39, 119, 0.2);
-        }
-
-        .security-btn:hover:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 12px 20px -3px rgba(219, 39, 119, 0.35);
-        }
-
-        .security-btn:active:not(:disabled) {
-          transform: translateY(1px);
-        }
-
-        .security-btn:disabled {
-          opacity: 0.65;
-          cursor: not-allowed;
-        }
-
-        .success-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background: #fdf2f4;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          z-index: 50;
-          animation: fadeInOverlay 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .spinner {
-          border: 2px solid rgba(255, 255, 255, 0.15);
-          border-top-color: #fff;
-          border-radius: 50%;
-          width: 1.2rem;
-          height: 1.2rem;
-          animation: spin 0.8s linear infinite;
-        }
-
-
-        @media (max-width: 640px) {
-          .security-page-bg {
-            padding: 1.5rem 1rem;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-          }
-          .security-card {
-            padding: 2rem 1.5rem;
-            border-radius: 24px;
-          }
-          .security-back-btn {
-            position: relative;
-            top: auto;
-            left: auto;
-            margin-bottom: 1.5rem;
-            align-self: flex-start;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .security-page-bg {
-            padding: 1rem 0.5rem;
-          }
-          .security-card {
-            padding: 1.75rem 1.25rem;
-            border-radius: 20px;
-          }
-          .input-otp-box {
-            width: 2.3rem;
-            height: 3rem;
-            font-size: 1.15rem;
-            border-radius: 8px;
-          }
-          .security-card h1 {
-            font-size: 1.25rem;
-          }
-          .security-card p {
-            font-size: 0.8rem;
-          }
-        }
-
-        @media (max-width: 360px) {
-          .security-card {
-            padding: 1.5rem 0.75rem;
-          }
-          .input-otp-box {
-            width: 2rem;
-            height: 2.6rem;
-            font-size: 1rem;
-          }
-        }
-
-        /* Dark mode: this auth screen was authored light-only */
-        .dark .security-page-bg {
-          background-color: #0d0f13;
-          background-image: radial-gradient(circle at 10% 20%, rgba(255, 20, 147, 0.07) 0%, transparent 45%),
-                            radial-gradient(circle at 90% 80%, rgba(147, 51, 234, 0.06) 0%, transparent 45%);
-          color: #f0f0f5;
-        }
-        .dark .security-back-btn { color: #a8a8a8; }
-        .dark .security-back-btn:hover { color: #ff6b9d; }
-        .dark .input-otp-box, .dark .security-input {
-          background: rgba(255,255,255,0.06);
-          border-color: rgba(255,255,255,0.12);
-          color: #f0f0f5;
-        }
-        .dark .success-overlay { background: #0d0f13; }
-      `}</style>
     </div>
   );
 }
-
-
-

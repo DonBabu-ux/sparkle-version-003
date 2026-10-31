@@ -3,8 +3,6 @@ import { useUserStore } from '../store/userStore';
 import { decodeTokenPayload } from '../utils/tokenUtils';
 import { EnvironmentService } from './EnvironmentService';
 
-const API_BASE = import.meta.env.VITE_API_URL || EnvironmentService.getApiBaseUrl();
-
 let inflight: Promise<string> | null = null;
 
 // Dead-session latch: after a definitive 4xx refresh failure, stop hitting
@@ -44,8 +42,11 @@ export function refreshTokenOnce(): Promise<string> {
     const run = (async () => {
         const { refreshToken, accounts } = useUserStore.getState();
         const multiAccount = accounts.length > 1;
+        // Base resolved per call, never pinned at import: it must follow the
+        // currently active failover server or a rotation would refresh tokens
+        // against the dead primary and log everyone out.
         const postRefresh = (body?: { refreshToken: string }) =>
-            axios.post(`${API_BASE}/auth/refresh`, body ?? {}, { withCredentials: true });
+            axios.post(`${EnvironmentService.getApiBaseUrl()}/auth/refresh`, body ?? {}, { withCredentials: true });
 
         try {
             let data: { token?: string; accessToken?: string; refreshToken?: string };

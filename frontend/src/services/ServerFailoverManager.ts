@@ -144,7 +144,7 @@ class ServerFailoverManagerClass {
     });
 
     // Dispatch a window event for components that need to respond
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
       window.dispatchEvent(new CustomEvent('sparkle:server-failover', {
         detail: { activeServer: curr, previousServer: prev, reason }
       }));
@@ -244,8 +244,13 @@ class ServerFailoverManagerClass {
   }
 
   private setupLifecycleListeners(): void {
-    if (typeof window === 'undefined') return;
+    // Guard on the API itself, not just the object: test/SSR environments can
+    // expose a partial window without addEventListener (vitest node env).
+    const hasWindowEvents = typeof window !== 'undefined' && typeof window.addEventListener === 'function';
+    const hasDocEvents = typeof document !== 'undefined' && typeof document.addEventListener === 'function';
+    if (!hasWindowEvents && !hasDocEvents) return;
 
+    if (hasWindowEvents) {
     window.addEventListener('online', () => {
       logger.log('[Failover] Device came online, probing servers immediately');
       void this.checkHealth();
@@ -255,7 +260,9 @@ class ServerFailoverManagerClass {
     window.addEventListener('offline', () => {
       this.stopHealthPolling();
     });
+    }
 
+    if (hasDocEvents) {
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         void this.checkHealth();
@@ -264,6 +271,7 @@ class ServerFailoverManagerClass {
         this.stopHealthPolling();
       }
     });
+    }
   }
 }
 

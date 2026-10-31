@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
-  Mail, ArrowRight, ArrowLeft, Check, Users, Heart, Eye, EyeOff,
-  Sparkles, Compass, Orbit, GraduationCap, Building2, Briefcase, Gift,
+  Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
+  GraduationCap, Building2, Briefcase, Gift,
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
@@ -10,8 +10,6 @@ import { useUserStore } from '../store/userStore';
 import { getPendingReferral, capturePendingReferral, clearPendingReferral } from '../services/referralAttribution';
 
 type Step = 1 | 2 | 3 | 4 | 5;
-
-const HERO_IMAGE = 'https://images.unsplash.com/photo-1523240795612-9a054b0db644?w=640&q=80&auto=format';
 
 const UNIVERSITIES = [
   'Karatina University', 'Chuka University', 'Dedan Kimathi University',
@@ -264,782 +262,322 @@ export default function Signup() {
   };
 
   return (
-    <div className="su-page">
-      <div className="su-orb su-orb--1" />
-      <div className="su-orb su-orb--2" />
+    <div className="flex min-h-dvh items-center justify-center bg-app p-4 font-sans text-[#18181b] dark:text-zinc-100">
+      <div className={`w-full max-w-md transition-all duration-700 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
 
-      <div className={`su-container ${mounted ? 'is-visible' : ''}`}>
-
-        {/* LEFT: Image + Branding */}
-        <div className="su-left">
-          <div className="su-img-wrap">
-            <img src={HERO_IMAGE} alt="Students on campus" className="su-img" />
-            <div className="su-img-overlay" />
-            <div className="su-img-text">
-              <div className="su-badge">
-                <Sparkles size={14} strokeWidth={2.5} />
-                Join the community
-              </div>
-              <h2 className="su-img-headline">Start something<br />beautiful.</h2>
-            </div>
-          </div>
-
-          <div className="su-info">
-            <h1 className="su-logo">Sparkle</h1>
-            <p className="su-tagline">
-              It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
-            </p>
-            <div className="su-features">
-              {[
-                { icon: Compass, label: 'Explore Sparkle spots' },
-                { icon: Users, label: 'Find your people' },
-                { icon: Heart, label: 'Share real moments' },
-                { icon: Orbit, label: 'Stay connected' },
-              ].map((f, i) => (
-                <div key={i} className="su-feat" style={{ transitionDelay: `${0.5 + i * 0.1}s` }}>
-                  <div className="su-feat__icon"><f.icon size={16} strokeWidth={2} /></div>
-                  <span className="su-feat__text">{f.label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* Brand */}
+        <div className="mb-6 text-center">
+          <h1 className="text-3xl font-bold tracking-tight text-[#18181b] dark:text-zinc-100">Sparkle</h1>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+            It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
+          </p>
         </div>
 
-        {/* RIGHT: Signup card */}
-        <div className="su-card-wrap">
-          <div className="su-card">
-            <div className="su-card__head">
-              <h3 className="su-card__title">Create account</h3>
-              <div className="su-card__step-row">
-                <p className="su-card__sub">Step {step} of 5</p>
-                <div className="su-progress">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <div key={s} className={`su-progress__dot ${s <= step ? 'su-progress__dot--active' : ''}`} />
-                  ))}
-                </div>
+        {/* Signup card */}
+        <div className="rounded-3xl border border-[#e6d8e1] bg-[#fdf8fa] p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 sm:p-8">
+          <div className="mb-5">
+            <h3 className="text-xl font-bold text-[#18181b] dark:text-zinc-100">Create account</h3>
+            <div className="mt-2 flex items-center justify-between gap-3">
+              <p className="text-xs text-slate-600 dark:text-zinc-300">Step {step} of 5</p>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((s) => (
+                  <div key={s} className={`h-2 w-2 rounded-full transition-colors ${s <= step ? 'bg-[#ff1493]' : 'bg-[#f0e5ec] dark:bg-zinc-700'}`} />
+                ))}
               </div>
             </div>
+          </div>
 
-            {(error || success) && (
-              <div className={`su-toast ${error ? 'su-toast--err' : 'su-toast--ok'}`}>
-                <span className="su-toast__dot" />
-                {error || success}
+          {(error || success) && (
+            <div className={`mb-5 flex items-center gap-2 rounded-2xl border px-4 py-3 text-xs font-semibold ${error ? 'border-red-200 bg-red-50 text-red-700 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300' : 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-300'}`}>
+              <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${error ? 'bg-red-500' : 'bg-emerald-500'}`} />
+              {error || success}
+            </div>
+          )}
+
+          <div className="flex flex-col gap-4">
+            {/* Step 1: Welcome */}
+            {step === 1 && (
+              <div className="flex flex-col gap-4">
+                <button onClick={nextStep} className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87]" type="button">
+                  Get started
+                  <ArrowRight size={18} strokeWidth={2.5} />
+                </button>
+
+                <p className="text-center text-sm text-slate-600 dark:text-zinc-300">
+                  Already have an account?{' '}
+                  <Link to="/login" className="font-bold text-[#ff1493] hover:underline">Sign in</Link>
+                </p>
               </div>
             )}
 
-            <div className="su-body">
-              {/* Step 1: Welcome */}
-              {step === 1 && (
-                <div className="su-step">
-                  <button onClick={nextStep} className="su-btn su-btn--main" type="button">
-                    Get started
-                    <ArrowRight size={18} strokeWidth={2.5} />
-                  </button>
-
-                  <p className="su-link-row">
-                    Already have an account?{' '}
-                    <Link to="/login" className="su-link">Sign in</Link>
-                  </p>
-                </div>
-              )}
-
-              {/* Step 2: Details */}
-              {step === 2 && (
-                <div className="su-step">
-                  <div className="su-grid-2">
-                    <div className="su-field">
-                      <label className="su-label">Full name</label>
-                      <input type="text" name="name" autoComplete="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="su-input" placeholder="Jane Doe" />
-                    </div>
-                    <div className="su-field">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <label className="su-label">Username</label>
-                        {checkingUsername && <span style={{ fontSize: '0.65rem', color: '#a8a29e' }}>Checking...</span>}
-                        {!checkingUsername && usernameAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
-                        {!checkingUsername && usernameAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Taken</span>}
-                      </div>
-                      <input type="text" name="username" autoComplete="username" value={form.username} onChange={(e) => update('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))} className="su-input" placeholder="janedoe" />
-                    </div>
+            {/* Step 2: Details */}
+            {step === 2 && (
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Full name</label>
+                    <input type="text" name="name" autoComplete="name" value={form.name} onChange={(e) => update('name', e.target.value)} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300" placeholder="Jane Doe" />
                   </div>
-                  
-                  {!checkingUsername && usernameAvailable === false && usernameSuggestions.length > 0 && (
-                    <div style={{ marginTop: '-0.4rem', marginBottom: '0.2rem', display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
-                      <span className="su-muted" style={{ fontSize: '0.72rem', color: '#78716c' }}>Suggestions:</span>
-                      {usernameSuggestions.map((sug) => (
-                        <button
-                          key={sug}
-                          type="button"
-                          onClick={() => { update('username', sug); setUsernameAvailable(true); }}
-                          className="su-suggest"
-                          style={{
-                            padding: '0.15rem 0.45rem',
-                            borderRadius: '6px',
-                            border: '1px solid #fecdd3',
-                            backgroundColor: '#fff',
-                            fontSize: '0.72rem',
-                            fontWeight: 600,
-                            color: '#e11d48',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {sug}
-                        </button>
-                      ))}
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Username</label>
+                      {checkingUsername && <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Checking...</span>}
+                      {!checkingUsername && usernameAvailable === true && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">✓ Available</span>}
+                      {!checkingUsername && usernameAvailable === false && <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">✖ Taken</span>}
                     </div>
-                  )}
-
-                  <div className="su-field">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <label className="su-label">Email address</label>
-                      {checkingEmail && <span style={{ fontSize: '0.65rem', color: '#a8a29e' }}>Checking...</span>}
-                      {!checkingEmail && emailAvailable === true && <span style={{ fontSize: '0.65rem', color: '#10b981', fontWeight: 'bold' }}>✓ Available</span>}
-                      {!checkingEmail && emailAvailable === false && <span style={{ fontSize: '0.65rem', color: '#e11d48', fontWeight: 'bold' }}>✖ Registered</span>}
-                    </div>
-                    <input type="email" name="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={form.email} onChange={(e) => update('email', e.target.value)} className="su-input" placeholder="you@university.edu" />
-                  </div>
-
-                  <div className="su-field">
-                    <label className="su-label">Password</label>
-                    <div style={{ position: 'relative' }}>
-                        <input
-                          type={showPassword ? "text" : "password"}
-                          name="password"
-                          autoComplete="new-password"
-                          value={form.password}
-                          onChange={(e) => update('password', e.target.value)}
-                          className="su-input"
-                          placeholder="At least 8 characters"
-                          spellCheck={false}
-                        />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword((v) => !v)}
-                        style={{
-                          position: 'absolute',
-                          right: '12px',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          background: 'none',
-                          border: 'none',
-                          cursor: 'pointer',
-                          padding: 0,
-                          color: '#a8a29e'
-                        }}
-                        aria-label={showPassword ? 'Hide password' : 'Show password'}
-                      >
-                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                      </button>
-                    </div>
-
-                    {form.password && (
-                      <div style={{ marginTop: '0.4rem' }}>
-                        <div className="su-muted" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', fontWeight: 600, color: '#78716c', marginBottom: '0.2rem' }}>
-                          <span>Strength:</span>
-                          <span style={{
-                            color: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
-                            textTransform: 'capitalize'
-                          }}>{passwordStrength}</span>
-                        </div>
-                        <div style={{ height: '4px', backgroundColor: '#e2e8f0', borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{
-                            height: '100%',
-                            width: passwordStrength === 'strong' ? '100%' : passwordStrength === 'medium' ? '66%' : '33%',
-                            backgroundColor: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
-                            transition: 'width 0.3s ease, background-color 0.3s ease'
-                          }} />
-                        </div>
-                      </div>
-                    )}
-
-                    <div style={{ marginTop: '0.4rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.3rem' }}>
-                      {[
-                        { label: '8+ characters', met: pwdCriteria.length },
-                        { label: 'One uppercase', met: pwdCriteria.upper },
-                        { label: 'One number', met: pwdCriteria.number },
-                        { label: 'One special char', met: pwdCriteria.special }
-                      ].map((item, i) => (
-                        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: item.met ? '#10b981' : '#a8a29e', fontWeight: 600 }}>
-                          <span style={{ fontSize: '0.8rem' }}>{item.met ? '✓' : '○'}</span>
-                          <span>{item.label}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="su-nav-row">
-                    <button onClick={prevStep} className="su-nav-back" type="button"><ArrowLeft size={20} /></button>
-                    <button onClick={handleNextFromStep2} className="su-btn su-btn--main" type="button">
-                      Next <ArrowRight size={18} strokeWidth={2.5} />
-                    </button>
+                    <input type="text" name="username" autoComplete="username" value={form.username} onChange={(e) => update('username', e.target.value.toLowerCase().replace(/[^a-z0-9._]/g, ''))} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300" placeholder="janedoe" />
                   </div>
                 </div>
-              )}
 
-              {/* Step 3: Affiliation */}
-              {step === 3 && (
-                <div className="su-step">
-                  <div className="su-affil-grid">
-                    {AFFILIATION_TYPES.map((type) => (
+                {!checkingUsername && usernameAvailable === false && usernameSuggestions.length > 0 && (
+                  <div className="-mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-xs text-slate-600 dark:text-zinc-300">Suggestions:</span>
+                    {usernameSuggestions.map((sug) => (
                       <button
-                        key={type.id}
-                        onClick={() => update('affiliation_type', type.id)}
-                        className={`su-affil ${form.affiliation_type === type.id ? 'su-affil--active' : ''}`}
+                        key={sug}
                         type="button"
+                        onClick={() => { update('username', sug); setUsernameAvailable(true); }}
+                        className="rounded-full border border-[#e6d8e1] bg-[#f0e5ec] px-2.5 py-1 text-xs font-semibold text-[#ff1493] transition-colors hover:bg-[#ede3e9] dark:border-zinc-700 dark:bg-zinc-700 dark:hover:bg-zinc-600"
                       >
-                        <type.icon size={22} strokeWidth={2} />
-                        <span>{type.label}</span>
+                        {sug}
                       </button>
                     ))}
                   </div>
+                )}
 
-                  <div className="su-field">
-                    <label className="su-label">Sparkle Region</label>
-                    <select value={form.campus} onChange={(e) => update('campus', e.target.value)} className="su-input su-select">
-                      <option value="">Select your Sparkle region...</option>
-                      {UNIVERSITIES.map((u) => <option key={u} value={u}>{u}</option>)}
-                    </select>
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Email address</label>
+                    {checkingEmail && <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Checking...</span>}
+                    {!checkingEmail && emailAvailable === true && <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">✓ Available</span>}
+                    {!checkingEmail && emailAvailable === false && <span className="text-xs font-semibold text-rose-600 dark:text-rose-400">✖ Registered</span>}
                   </div>
+                  <input type="email" name="email" autoComplete="username" autoCapitalize="none" spellCheck={false} value={form.email} onChange={(e) => update('email', e.target.value)} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300" placeholder="you@university.edu" />
+                </div>
 
-                  <div className="su-field">
-                    <label className="su-label">Major</label>
-                    <input type="text" value={form.major} onChange={(e) => update('major', e.target.value)} className="su-input" placeholder="Computer Science" />
-                  </div>
-
-                  <div className="su-nav-row">
-                    <button onClick={prevStep} className="su-nav-back" type="button"><ArrowLeft size={20} /></button>
-                    <button onClick={nextStep} className="su-btn su-btn--main" type="button">
-                      Almost there <ArrowRight size={18} strokeWidth={2.5} />
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      autoComplete="new-password"
+                      value={form.password}
+                      onChange={(e) => update('password', e.target.value)}
+                      className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] py-3 pl-4 pr-11 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300"
+                      placeholder="At least 8 characters"
+                      spellCheck={false}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-600 transition-colors hover:text-[#ff1493] dark:text-zinc-300 dark:hover:text-[#ff2d87]"
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                     </button>
                   </div>
+
+                  {form.password && (
+                    <div className="mt-1">
+                      <div className="mb-1 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-zinc-300">
+                        <span>Strength:</span>
+                        <span className="capitalize" style={{
+                          color: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48'
+                        }}>{passwordStrength}</span>
+                      </div>
+                      <div className="h-1 overflow-hidden rounded-full bg-[#ede3e9] dark:bg-zinc-700">
+                        <div style={{
+                          height: '100%',
+                          width: passwordStrength === 'strong' ? '100%' : passwordStrength === 'medium' ? '66%' : '33%',
+                          backgroundColor: passwordStrength === 'strong' ? '#10b981' : passwordStrength === 'medium' ? '#f59e0b' : '#e11d48',
+                          transition: 'width 0.3s ease, background-color 0.3s ease'
+                        }} />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-1 grid grid-cols-2 gap-1.5">
+                    {[
+                      { label: '8+ characters', met: pwdCriteria.length },
+                      { label: 'One uppercase', met: pwdCriteria.upper },
+                      { label: 'One number', met: pwdCriteria.number },
+                      { label: 'One special char', met: pwdCriteria.special }
+                    ].map((item, i) => (
+                      <div key={i} className={`flex items-center gap-1.5 text-xs font-semibold ${item.met ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-600 dark:text-zinc-300'}`}>
+                        <span>{item.met ? '✓' : '○'}</span>
+                        <span>{item.label}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              )}
 
-              {/* Step 4: Review */}
-              {step === 4 && (
-                <div className="su-step">
-                  <div className="su-review">
-                    <div className="su-review__row">
-                      <div className="su-review__avatar">
-                        <Check size={28} strokeWidth={3} />
-                      </div>
-                      <div>
-                        <h4 className="su-review__name">{form.name || 'Your Name'}</h4>
-                        <p className="su-review__handle">@{form.username || 'username'}</p>
-                      </div>
-                    </div>
-                    <div className="su-review__detail">
-                      <span className="su-review__label">Sparkle Region</span>
-                      <span className="su-review__value">{form.campus || 'Sparkle Global'}</span>
-                    </div>
+                <div className="flex items-center gap-3 pt-1">
+                  <button onClick={prevStep} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#e6d8e1] bg-[#fdf8fa] text-slate-600 transition-colors hover:bg-[#f0e5ec] hover:text-[#18181b] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100" type="button" aria-label="Back">
+                    <ArrowLeft size={18} />
+                  </button>
+                  <button onClick={handleNextFromStep2} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87]" type="button">
+                    Next <ArrowRight size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            )}
 
-                    {/* Referral Attribution Indicator & Fallback */}
-                    {referralCode ? (
-                      <div className="su-review__detail" style={{ marginTop: '0.5rem', backgroundColor: '#fdf2f8', padding: '0.6rem 0.8rem', borderRadius: '0.8rem', border: '1px solid #fbcfe8' }}>
-                        <span className="su-review__label" style={{ color: '#db2777', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                          <Gift size={13} /> Invited By
-                        </span>
-                        <span className="su-review__value" style={{ color: '#9d174d', fontWeight: 800 }}>
-                          {referredByUsername ? `@${referredByUsername}` : referralCode}
-                        </span>
-                      </div>
-                    ) : (
-                      <div style={{ marginTop: '0.5rem', textAlign: 'left' }}>
-                        {!showReferralInput ? (
+            {/* Step 3: Affiliation */}
+            {step === 3 && (
+              <div className="flex flex-col gap-4">
+                <div className="grid grid-cols-3 gap-2">
+                  {AFFILIATION_TYPES.map((type) => (
+                    <button
+                      key={type.id}
+                      onClick={() => update('affiliation_type', type.id)}
+                      className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 px-2 py-4 text-xs font-semibold transition-colors ${form.affiliation_type === type.id ? 'border-[#ff1493] bg-[#ff1493] text-white' : 'border-[#e6d8e1] bg-[#f6eef3] text-slate-600 hover:border-[#ff1493] hover:text-[#18181b] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:text-zinc-100'}`}
+                      type="button"
+                    >
+                      <type.icon size={22} strokeWidth={2} />
+                      <span>{type.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Sparkle Region</label>
+                  <select value={form.campus} onChange={(e) => update('campus', e.target.value)} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+                    <option value="">Select your Sparkle region...</option>
+                    {UNIVERSITIES.map((u) => <option key={u} value={u}>{u}</option>)}
+                  </select>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold text-slate-700 dark:text-zinc-300">Major</label>
+                  <input type="text" value={form.major} onChange={(e) => update('major', e.target.value)} className="w-full rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] px-4 py-3 text-sm text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-300" placeholder="Computer Science" />
+                </div>
+
+                <div className="flex items-center gap-3 pt-1">
+                  <button onClick={prevStep} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#e6d8e1] bg-[#fdf8fa] text-slate-600 transition-colors hover:bg-[#f0e5ec] hover:text-[#18181b] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100" type="button" aria-label="Back">
+                    <ArrowLeft size={18} />
+                  </button>
+                  <button onClick={nextStep} className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87]" type="button">
+                    Almost there <ArrowRight size={18} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 4: Review */}
+            {step === 4 && (
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] p-5 dark:border-zinc-700 dark:bg-zinc-900">
+                  <div className="flex items-center gap-4">
+                    <Check size={28} strokeWidth={2.5} className="shrink-0 text-[#ff1493]" />
+                    <div>
+                      <h4 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">{form.name || 'Your Name'}</h4>
+                      <p className="text-xs text-slate-600 dark:text-zinc-300">@{form.username || 'username'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between gap-3 border-t border-[#ede3e9] pt-4 dark:border-zinc-900">
+                    <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">Sparkle Region</span>
+                    <span className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">{form.campus || 'Sparkle Global'}</span>
+                  </div>
+
+                  {/* Referral Attribution Indicator & Fallback */}
+                  {referralCode ? (
+                    <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#e6d8e1] bg-[#f0e5ec] p-4 dark:border-zinc-700 dark:bg-zinc-700">
+                      <span className="flex items-center gap-1.5 text-xs font-bold text-[#ff1493]">
+                        <Gift size={13} /> Invited by
+                      </span>
+                      <span className="text-sm font-bold text-[#18181b] dark:text-zinc-100">
+                        {referredByUsername ? `@${referredByUsername}` : referralCode}
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="text-left">
+                      {!showReferralInput ? (
+                        <button
+                          type="button"
+                          onClick={() => setShowReferralInput(true)}
+                          className="flex items-center gap-1.5 text-xs font-semibold text-[#ff1493] hover:underline"
+                        >
+                          <Gift size={13} /> Have a referral code?
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={referralCode}
+                            onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                            placeholder="Enter referral code"
+                            className="w-full flex-1 rounded-2xl border border-[#e6d8e1] bg-[#fdf8fa] px-3 py-2 text-xs uppercase text-[#18181b] outline-none transition-colors placeholder:text-slate-600 focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 dark:placeholder:text-zinc-300"
+                          />
                           <button
                             type="button"
-                            onClick={() => setShowReferralInput(true)}
-                            style={{ background: 'none', border: 'none', color: '#db2777', fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', padding: '0.3rem 0' }}
+                            onClick={() => setShowReferralInput(false)}
+                            className="rounded-full border border-[#e6d8e1] bg-[#fdf8fa] px-3 py-1.5 text-xs font-semibold text-slate-600 transition-colors hover:bg-[#f0e5ec] hover:text-[#18181b] dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700 dark:hover:text-zinc-100"
                           >
-                            <Gift size={13} /> Have a referral code?
+                            Done
                           </button>
-                        ) : (
-                          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginTop: '0.3rem' }}>
-                            <input
-                              type="text"
-                              value={referralCode}
-                              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-                              placeholder="Enter referral code"
-                              className="su-input"
-                              style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem', textTransform: 'uppercase' }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => setShowReferralInput(false)}
-                              style={{ background: '#f1f5f9', border: 'none', borderRadius: '0.5rem', padding: '0.4rem 0.6rem', fontSize: '0.75rem', fontWeight: 600, color: '#475569', cursor: 'pointer' }}
-                            >
-                              Done
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <p className="su-muted" style={{ fontSize: '0.75rem', color: '#64748b', textAlign: 'center', margin: '0.75rem 0 1rem 0', lineHeight: 1.5 }}>
-                    By creating an account, you agree to Sparkle's{' '}
-                    <Link to="/legal/terms" target="_blank" style={{ color: '#ec4899', textDecoration: 'underline', fontWeight: 600 }}>
-                      Terms &amp; Conditions
-                    </Link>{' '}
-                    and acknowledge the{' '}
-                    <Link to="/legal/privacy" target="_blank" style={{ color: '#ec4899', textDecoration: 'underline', fontWeight: 600 }}>
-                      Privacy Policy
-                    </Link>.
-                  </p>
-
-                  <button onClick={handleSubmit} disabled={loading} className="su-btn su-btn--main su-btn--lg" type="button">
-                    {loading ? <Spinner size="small" color="#fff" /> : 'Create my account'}
-                  </button>
-                  <button onClick={prevStep} className="su-back-text" type="button">Make changes</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
 
-              {/* Step 5: OTP */}
-              {otpSuccess ? (
-                <div className="su-step su-step--center py-10 animate-scale-up" style={{ textAlign: 'center' }}>
-                  <div style={{
-                    width: '80px',
-                    height: '80px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ecfdf5',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#10b981',
-                    margin: '0 auto 1.5rem auto',
-                    boxShadow: '0 10px 25px -5px rgba(16, 185, 129, 0.3)'
-                  }}>
-                    <Check size={48} strokeWidth={3} className="mx-auto" />
-                  </div>
-                  <h3 className="su-card__title text-2xl mb-2" style={{ fontFamily: "'Varela Round', sans-serif", fontWeight: 700 }}>Verified!</h3>
-                  <p className="su-card__sub text-base">Setting up your profile...</p>
-                </div>
-              ) : step === 5 ? (
-                <div className="su-step su-step--center">
-                  <div className="su-otp-icon">
-                    <Mail size={40} strokeWidth={1.5} />
-                  </div>
-                  <h3 className="su-card__title">Verify email</h3>
-                  <p className="su-card__sub">
-                    Code sent to <strong style={{ color: '#e11d48' }}>{form.email}</strong>
-                  </p>
+                <p className="text-center text-xs leading-relaxed text-slate-600 dark:text-zinc-300">
+                  By creating an account, you agree to Sparkle's{' '}
+                  <Link to="/legal/terms" target="_blank" className="font-semibold text-[#ff1493] underline">
+                    Terms &amp; Conditions
+                  </Link>{' '}
+                  and acknowledge the{' '}
+                  <Link to="/legal/privacy" target="_blank" className="font-semibold text-[#ff1493] underline">
+                    Privacy Policy
+                  </Link>.
+                </p>
 
-                  <input
-                    type="text" name="otp" inputMode="numeric" autoComplete="one-time-code" value={otpCode} maxLength={6}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
-                    className="su-otp-input"
-                    placeholder="000000"
-                  />
+                <button onClick={handleSubmit} disabled={loading} className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#ff1493] text-base font-bold text-white transition-colors hover:bg-[#ff2d87] disabled:opacity-60" type="button">
+                  {loading ? <Spinner size="small" color="#fff" /> : 'Create my account'}
+                </button>
+                <button onClick={prevStep} className="mx-auto text-xs font-semibold text-slate-600 transition-colors hover:text-[#18181b] dark:text-zinc-300 dark:hover:text-zinc-100" type="button">Make changes</button>
+              </div>
+            )}
 
-                  <button onClick={handleVerifyOTP} disabled={verifying} className="su-btn su-btn--main" type="button">
-                    {verifying ? <Spinner size="small" color="#fff" /> : 'Complete signup'}
-                  </button>
-                  <button
-                    className="su-back-text"
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={resendingOtp || otpCooldown > 0}
-                    style={{ opacity: resendingOtp || otpCooldown > 0 ? 0.5 : 1 }}
-                  >
-                    {resendingOtp ? 'Sending…' : otpCooldown > 0 ? `Resend code (${otpCooldown}s)` : 'Resend code'}
-                  </button>
-                </div>
-              ) : null}
-            </div>
+            {/* Step 5: OTP */}
+            {otpSuccess ? (
+              <div className="flex flex-col items-center gap-2 py-10 text-center animate-scale-in">
+                <Check size={48} strokeWidth={2.5} className="text-emerald-500" />
+                <h3 className="text-2xl font-bold text-[#18181b] dark:text-zinc-100">Verified!</h3>
+                <p className="text-sm text-slate-600 dark:text-zinc-300">Setting up your profile...</p>
+              </div>
+            ) : step === 5 ? (
+              <div className="flex flex-col items-center gap-4 text-center">
+                <Mail size={40} strokeWidth={1.5} className="text-[#ff1493]" />
+                <h3 className="text-xl font-bold text-[#18181b] dark:text-zinc-100">Verify email</h3>
+                <p className="text-sm text-slate-600 dark:text-zinc-300">
+                  Code sent to <strong className="font-semibold text-[#ff1493]">{form.email}</strong>
+                </p>
+
+                <input
+                  type="text" name="otp" inputMode="numeric" autoComplete="one-time-code" value={otpCode} maxLength={6}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/[^0-9]/g, ''))}
+                  className="h-14 w-44 rounded-2xl border border-[#e6d8e1] bg-[#f6eef3] text-center text-2xl font-bold tracking-[0.2em] text-[#ff1493] outline-none transition-colors focus:border-[#ff1493] dark:border-zinc-700 dark:bg-zinc-900"
+                  placeholder="000000"
+                />
+
+                <button onClick={handleVerifyOTP} disabled={verifying} className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[#ff1493] text-sm font-bold text-white transition-colors hover:bg-[#ff2d87] disabled:opacity-60" type="button">
+                  {verifying ? <Spinner size="small" color="#fff" /> : 'Complete signup'}
+                </button>
+                <button
+                  className="text-xs font-semibold text-slate-600 transition-colors hover:text-[#18181b] disabled:opacity-50 dark:text-zinc-300 dark:hover:text-zinc-100"
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={resendingOtp || otpCooldown > 0}
+                >
+                  {resendingOtp ? 'Sending…' : otpCooldown > 0 ? `Resend code (${otpCooldown}s)` : 'Resend code'}
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
       </div>
-
-      <style>{`
-        .su-page {
-          min-height: 100dvh;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          padding: 1.5rem;
-          background: #fdf2f4;
-          position: relative;
-          overflow: hidden;
-          font-family: 'Nunito Sans', system-ui, sans-serif;
-        }
-
-        .su-orb {
-          position: absolute;
-          border-radius: 50%;
-          filter: blur(90px);
-          opacity: 0.4;
-          pointer-events: none;
-          will-change: transform;
-        }
-        .su-orb--1 {
-          width: 480px; height: 480px;
-          background: radial-gradient(circle, #fda4af, transparent 70%);
-          top: -10%; right: -5%;
-          animation: su-drift 20s ease-in-out infinite;
-        }
-        .su-orb--2 {
-          width: 380px; height: 380px;
-          background: radial-gradient(circle, #fbcfe8, transparent 70%);
-          bottom: -8%; left: -4%;
-          animation: su-drift 24s ease-in-out infinite reverse;
-        }
-
-        .su-container {
-          position: relative;
-          z-index: 1;
-          width: 100%;
-          max-width: 1100px;
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 2rem;
-          align-items: center;
-          opacity: 0;
-          transform: translateY(20px);
-          transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
-                      transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .su-container.is-visible { opacity: 1; transform: translateY(0); }
-        @media (min-width: 1024px) {
-          .su-container { grid-template-columns: 1.1fr 440px; gap: 4rem; }
-        }
-
-        /* LEFT */
-        .su-left { display: none; }
-        @media (min-width: 1024px) { .su-left { display: flex; flex-direction: column; gap: 1.75rem; } }
-
-        .su-img-wrap {
-          position: relative;
-          border-radius: 20px;
-          overflow: hidden;
-          box-shadow: 0 16px 48px rgba(190, 18, 60, 0.1);
-        }
-        .su-img { width: 100%; height: 260px; object-fit: cover; display: block; }
-        .su-img-overlay {
-          position: absolute; inset: 0;
-          background: linear-gradient(to top, rgba(136, 19, 55, 0.75) 0%, rgba(136, 19, 55, 0.15) 55%, transparent 100%);
-        }
-        .su-img-text {
-          position: absolute; bottom: 0; left: 0; padding: 1.5rem;
-          display: flex; flex-direction: column; gap: 0.5rem;
-        }
-        .su-badge {
-          display: inline-flex; align-items: center; gap: 0.35rem;
-          background: rgba(255,255,255,0.2); backdrop-filter: blur(8px);
-          padding: 0.3rem 0.7rem; border-radius: 8px;
-          font-size: 0.7rem; font-weight: 700; color: #fff;
-          width: fit-content; text-transform: none; font-style: normal;
-        }
-        .su-img-headline {
-          font-family: 'Varela Round', sans-serif;
-          font-weight: 700; font-size: 2rem; line-height: 1.15;
-          color: #fff; text-transform: none; font-style: normal;
-        }
-
-        .su-info { display: flex; flex-direction: column; gap: 0.75rem; }
-        .su-logo {
-          font-family: 'Varela Round', sans-serif;
-          font-weight: 700; font-size: 2.4rem; color: #be123c;
-          text-transform: none; font-style: normal;
-        }
-        .su-tagline {
-          font-size: 1rem; line-height: 1.55; color: #78716c;
-          max-width: 420px; text-transform: none; font-style: normal;
-        }
-
-        .su-features { display: flex; flex-direction: column; gap: 0.55rem; }
-        .su-feat {
-          display: flex; align-items: center; gap: 0.6rem;
-          opacity: 0; transform: translateX(-10px);
-          transition: opacity 0.5s ease, transform 0.5s ease;
-        }
-        .is-visible .su-feat { opacity: 1; transform: translateX(0); }
-        .su-feat__icon {
-          width: 32px; height: 32px; border-radius: 9px; background: #fff;
-          display: flex; align-items: center; justify-content: center;
-          color: #e11d48; box-shadow: 0 2px 6px rgba(0,0,0,0.04); flex-shrink: 0;
-        }
-        .su-feat__text {
-          font-size: 0.88rem; font-weight: 600; color: #44403c;
-          text-transform: none; font-style: normal;
-        }
-
-        /* RIGHT */
-        .su-card-wrap { display: flex; justify-content: center; }
-        @media (min-width: 1024px) { .su-card-wrap { justify-content: flex-end; } }
-
-        .su-card {
-          width: 100%; max-width: 440px;
-          background: rgba(255,255,255,0.88);
-          backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
-          border: 1px solid rgba(255,255,255,0.65);
-          border-radius: 22px; padding: 2rem;
-          box-shadow: 0 20px 60px rgba(190,18,60,0.08), 0 4px 14px rgba(0,0,0,0.03);
-          transition: box-shadow 0.35s ease;
-        }
-        .su-card:hover {
-          box-shadow: 0 24px 68px rgba(190,18,60,0.12), 0 6px 20px rgba(0,0,0,0.04);
-        }
-
-        .su-card__head { margin-bottom: 1.25rem; }
-        .su-card__title {
-          font-family: 'Varela Round', sans-serif;
-          font-weight: 700; font-size: 1.5rem; color: #1c1917;
-          text-transform: none; font-style: normal; margin-bottom: 0.15rem;
-        }
-        .su-card__sub { font-size: 0.82rem; color: #a8a29e; text-transform: none; font-style: normal; }
-        .su-card__step-row {
-          display: flex; align-items: center; justify-content: space-between; margin-top: 0.25rem;
-        }
-        .su-progress { display: flex; gap: 0.3rem; }
-        .su-progress__dot {
-          width: 8px; height: 8px; border-radius: 50%;
-          background: #fecdd3; transition: background 0.3s ease;
-        }
-        .su-progress__dot--active { background: #e11d48; }
-
-        .su-toast {
-          display: flex; align-items: center; gap: 0.5rem;
-          padding: 0.6rem 0.85rem; border-radius: 11px;
-          font-size: 0.8rem; font-weight: 600; margin-bottom: 0.75rem;
-          text-transform: none; font-style: normal;
-        }
-        .su-toast--err { background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; }
-        .su-toast--ok { background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; }
-        .su-toast__dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-        .su-toast--err .su-toast__dot { background: #e11d48; }
-        .su-toast--ok .su-toast__dot { background: #10b981; }
-
-        .su-body { min-height: 300px; display: flex; flex-direction: column; justify-content: center; }
-        .su-step { display: flex; flex-direction: column; gap: 0.9rem; }
-        .su-step--center { align-items: center; text-align: center; }
-
-        .su-field { display: flex; flex-direction: column; gap: 0.3rem; }
-        .su-label {
-          font-size: 0.72rem; font-weight: 700; color: #78716c;
-          text-transform: none; font-style: normal;
-        }
-        .su-input {
-          width: 100%; padding: 0.75rem 0.9rem;
-          background: rgba(255,241,242,0.35); border: 1.5px solid #fecdd3;
-          border-radius: 12px; font-size: 0.9rem; font-weight: 500;
-          color: #1c1917; outline: none;
-          transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
-          text-transform: none; font-style: normal;
-        }
-        .su-input::placeholder { color: #d4d4d4; text-transform: none; font-style: normal; }
-        .su-input:focus {
-          border-color: #fb7185; background: #fff;
-          box-shadow: 0 0 0 3px rgba(251,113,133,0.12);
-        }
-        .su-select { cursor: pointer; }
-        .su-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-
-        /* Affiliation */
-        .su-affil-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
-        .su-affil {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          gap: 0.35rem; padding: 0.9rem 0.5rem;
-          border: 2px solid #fecdd3; border-radius: 12px;
-          background: rgba(255,241,242,0.3); color: #a8a29e;
-          font-size: 0.72rem; font-weight: 700; cursor: pointer;
-          transition: all 0.2s ease; text-transform: none; font-style: normal;
-        }
-        .su-affil:hover { border-color: #fda4af; }
-        .su-affil--active {
-          background: linear-gradient(135deg, #fb7185, #e11d48);
-          border-color: #e11d48; color: #fff;
-          box-shadow: 0 4px 14px rgba(225,29,72,0.2);
-        }
-
-        /* Review */
-        .su-review {
-          background: rgba(255,241,242,0.4); border: 1px solid #fecdd3;
-          border-radius: 14px; padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;
-        }
-        .su-review__row { display: flex; align-items: center; gap: 0.75rem; }
-        .su-review__avatar {
-          width: 48px; height: 48px; border-radius: 14px;
-          background: linear-gradient(135deg, #fb7185, #e11d48);
-          display: flex; align-items: center; justify-content: center;
-          color: #fff; flex-shrink: 0;
-        }
-        .su-review__name {
-          font-family: 'Varela Round', sans-serif;
-          font-weight: 700; font-size: 1.15rem; color: #1c1917;
-          text-transform: none; font-style: normal;
-        }
-        .su-review__handle { font-size: 0.78rem; color: #a8a29e; text-transform: none; font-style: normal; }
-        .su-review__detail {
-          display: flex; justify-content: space-between; align-items: center;
-          padding-top: 0.6rem; border-top: 1px solid #fecdd3;
-        }
-        .su-review__label { font-size: 0.7rem; font-weight: 700; color: #a8a29e; text-transform: none; font-style: normal; }
-        .su-review__value { font-size: 0.85rem; font-weight: 600; color: #44403c; text-transform: none; font-style: normal; }
-
-        /* Buttons */
-        .su-btn {
-          display: flex; align-items: center; justify-content: center; gap: 0.45rem;
-          width: 100%; padding: 0.8rem; border-radius: 12px;
-          font-size: 0.92rem; font-weight: 800; cursor: pointer; border: none;
-          transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.12s ease;
-          text-decoration: none; text-transform: none; font-style: normal;
-        }
-        .su-btn:active { transform: scale(0.975); }
-        .su-btn--main {
-          background: linear-gradient(135deg, #fb7185, #e11d48);
-          color: #fff; box-shadow: 0 6px 18px rgba(225,29,72,0.22);
-        }
-        .su-btn--main:hover { box-shadow: 0 8px 26px rgba(225,29,72,0.32); }
-        .su-btn--main:disabled { opacity: 0.65; cursor: not-allowed; }
-        .su-btn--lg { padding: 1rem; font-size: 1rem; }
-
-        .su-nav-row { display: flex; gap: 0.6rem; align-items: center; padding-top: 0.25rem; }
-        .su-nav-back {
-          width: 48px; height: 48px; border-radius: 12px;
-          border: 1.5px solid #fecdd3; background: #fff;
-          display: flex; align-items: center; justify-content: center;
-          color: #a8a29e; cursor: pointer; flex-shrink: 0;
-          transition: border-color 0.2s ease, color 0.2s ease;
-        }
-        .su-nav-back:hover { border-color: #fda4af; color: #e11d48; }
-
-        .su-link-row {
-          text-align: center; font-size: 0.85rem; color: #78716c;
-          text-transform: none; font-style: normal;
-        }
-        .su-link { color: #e11d48; font-weight: 700; cursor: pointer; text-transform: none; font-style: normal; }
-        .su-link:hover { text-decoration: underline; }
-
-        .su-back-text {
-          font-size: 0.78rem; font-weight: 700; color: #a8a29e;
-          background: none; border: none; cursor: pointer;
-          transition: color 0.2s ease; text-transform: none; font-style: normal;
-          align-self: center;
-        }
-        .su-back-text:hover { color: #e11d48; }
-
-        .su-otp-icon {
-          width: 64px; height: 64px; border-radius: 18px;
-          background: linear-gradient(135deg, #fff1f2, #ffe4e6);
-          display: flex; align-items: center; justify-content: center;
-          color: #e11d48;
-        }
-        .su-otp-input {
-          width: 100%; max-width: 220px; padding: 0.9rem;
-          background: rgba(255,241,242,0.35); border: 2px solid #fecdd3;
-          border-radius: 14px; font-size: 2rem; font-weight: 800;
-          color: #e11d48; letter-spacing: 0.2em; text-align: center;
-          outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease;
-          text-transform: none; font-style: normal;
-        }
-        .su-otp-input:focus {
-          border-color: #fb7185;
-          box-shadow: 0 0 0 3px rgba(251,113,133,0.12);
-        }
-        .su-otp-input::placeholder { color: #d4d4d4; }
-        @media (prefers-reduced-motion: reduce) {
-          .su-orb { animation: none; }
-          .su-container { transition: none; }
-          .su-feat { transition: none; opacity: 1; transform: none; }
-          .su-card { transition: none; }
-        }
-
-        /* ============================================================
-           DARK THEME (UI_AUDIT S3 P2-4)
-           Base rules above are the light look and stay untouched; this
-           block is the dark: twin for every hardcoded light surface.
-           ============================================================ */
-        .dark .su-page { background: #000000; }
-
-        .dark .su-logo { color: #f43f5e; }
-        .dark .su-tagline { color: #a8a29e; }
-        .dark .su-feat__icon { background: rgba(255,255,255,0.08); color: #fb7185; }
-        .dark .su-feat__text { color: #d6d3d1; }
-
-        .dark .su-card {
-          background: rgba(16,18,23,0.92);
-          border-color: rgba(255,255,255,0.08);
-        }
-        .dark .su-card__title { color: #fafafa; }
-
-        .dark .su-progress__dot { background: rgba(255,255,255,0.2); }
-        .dark .su-progress__dot--active { background: #fb7185; }
-
-        .dark .su-toast--err {
-          background: rgba(225,29,72,0.14);
-          border-color: rgba(251,113,133,0.35);
-          color: #fda4af;
-        }
-        .dark .su-toast--ok {
-          background: rgba(16,185,129,0.14);
-          border-color: rgba(52,211,153,0.35);
-          color: #6ee7b7;
-        }
-
-        .dark .su-label { color: #a8a29e; }
-
-        .dark .su-input {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.12);
-          color: #fafafa;
-        }
-        .dark .su-input::placeholder { color: #d4d4d8; }
-        .dark .su-input:focus {
-          border-color: #fb7185;
-          background: rgba(255,255,255,0.06);
-          box-shadow: 0 0 0 3px rgba(251,113,133,0.18);
-        }
-
-        .dark .su-affil {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.15);
-          color: #d4d4d8;
-        }
-
-        .dark .su-review {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.1);
-        }
-        .dark .su-review__name { color: #fafafa; }
-        .dark .su-review__detail { border-color: rgba(255,255,255,0.1); }
-        .dark .su-review__value { color: #e7e5e4; }
-
-        .dark .su-nav-back {
-          background: rgba(255,255,255,0.05);
-          border-color: rgba(255,255,255,0.15);
-          color: #d4d4d8;
-        }
-        .dark .su-nav-back:hover { color: #fb7185; }
-
-        .dark .su-link-row { color: #a8a29e; }
-        .dark .su-link { color: #fb7185; }
-
-        .dark .su-back-text:hover { color: #fb7185; }
-
-        .dark .su-otp-icon {
-          background: rgba(255,255,255,0.06);
-          color: #fb7185;
-        }
-        .dark .su-otp-input {
-          background: rgba(255,255,255,0.04);
-          border-color: rgba(255,255,255,0.15);
-          color: #fb7185;
-        }
-        .dark .su-otp-input:focus {
-          border-color: #fb7185;
-          background: rgba(255,255,255,0.06);
-        }
-        .dark .su-otp-input::placeholder { color: #d4d4d8; }
-
-        /* Inline-styled hint text + suggestion chips (see JSX): !important
-           beats the inline light values they carry. */
-        .dark .su-muted { color: #d4d4d8 !important; }
-        .dark .su-suggest {
-          background: rgba(255,255,255,0.06) !important;
-          border-color: rgba(255,255,255,0.15) !important;
-          color: #fb7185 !important;
-        }
-      `}</style>
     </div>
   );
 }
-

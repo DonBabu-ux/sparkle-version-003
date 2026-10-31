@@ -39,6 +39,11 @@ ServerFailoverManager.onServerChange((newServer, previousServer) => {
 
 let consecutiveConnectErrors = 0;
 
+/** For testing only — resets the module-level consecutive-error counter. */
+export function _resetConnectErrorCountForTesting(): void {
+    consecutiveConnectErrors = 0;
+}
+
 /**
  * Create a new socket instance for the given user and namespace.
  */

@@ -37,13 +37,14 @@ vi.mock('../tokenRefresh', () => ({
     ensureFreshAccessToken: (...a: unknown[]) => h.ensureFreshAccessToken(...a)
 }));
 
-const { createSocket } = await import('../socketService');
+const { createSocket, _resetConnectErrorCountForTesting } = await import('../socketService');
 const { useUserStore } = await import('../../store/userStore');
 
 const flush = () => new Promise(r => setTimeout(r, 0));
 
 describe('socketService connect_error handling (H23)', () => {
     beforeEach(() => {
+        _resetConnectErrorCountForTesting();
         if (h.handlers) Object.keys(h.handlers).forEach(k => delete h.handlers[k]);
         h.socket.connect.mockClear();
         h.socket.disconnect.mockClear();

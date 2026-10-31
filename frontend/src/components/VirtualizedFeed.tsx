@@ -23,8 +23,12 @@ interface VirtualizedFeedProps {
 /**
  * 1. Shimmer Skeleton Card Placeholder
  * Prevents flashing content or layout jumping.
+ *
+ * Takes a `hasMedia` flag so a text-only post's placeholder is short and a
+ * media post's placeholder reserves the media band — otherwise the skeleton
+ * height gets mistaken for the card's real height.
  */
-const SkeletonCard = () => {
+const SkeletonCard = ({ hasMedia = true }: { hasMedia?: boolean }) => {
   useNetworkStore((state) => state.isOffline); // Simple dark/light adaptation
   const shimmerClass = "animate-shimmer bg-black/5 dark:bg-white/5";
 
@@ -44,7 +48,7 @@ const SkeletonCard = () => {
         <div className={`h-3 rounded w-5/6 ${shimmerClass}`} />
       </div>
       {/* Media Box */}
-      <div className={`h-52 rounded-xl w-full ${shimmerClass}`} />
+      {hasMedia && <div className={`h-[260px] sm:h-[420px] rounded-xl w-full ${shimmerClass}`} />}
       {/* Footer Actions */}
       <div className="flex items-center justify-between pt-2">
         <div className={`h-5 rounded w-1/4 ${shimmerClass}`} />
@@ -54,24 +58,29 @@ const SkeletonCard = () => {
   );
 };
 
+/** True when the post will render a media band of any size. */
+const postHasMedia = (post: Post) =>
+  !!(post.media_url || (post.media_files && post.media_files.length > 0));
+
 /**
  * 2. ViewportAwareCard
  * Direct virtualization engine. Unmounts cards that are far away from viewport 
  * to free up memory and prevent scrolls lag. Triggers background media cache preloading.
  */
-const ViewportAwareCard = React.memo(({ 
-  post, 
-  onDeleted, 
-  posts, 
-  index 
-}: { 
-  post: Post; 
+const ViewportAwareCard = React.memo(({
+  post,
+  onDeleted,
+  posts,
+  index
+}: {
+  post: Post;
   onDeleted: (id: string) => void;
   posts: Post[];
   index: number;
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const [measuredHeight, setMeasuredHeight] = useState<number | null>(null);
   const { quality } = useNetworkStore();
 
@@ -79,16 +88,13 @@ const ViewportAwareCard = React.memo(({
     const el = containerRef.current;
     if (!el) return;
 
-    // A. Observer for Virtualization: mounts/unmounts off-screen content
+    // A. Observer for Virtualization: mounts/unmounts off-screen content.
+    // Visibility only — height is measured from the real card below, never
+    // from the skeleton (which would lock the wrong height for text-only posts).
     const visibilityObserver = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
         setIsVisible(entry.isIntersecting);
-
-        if (entry.isIntersecting && entry.boundingClientRect.height > 0) {
-          // Lock height dynamically to avoid page shifting when scrolling
-          setMeasuredHeight(entry.boundingClientRect.height);
-        }
       },
       { rootMargin: "1000px 0px 1000px 0px" } // Large buffer to prevent pop-in flickers
     );
@@ -113,16 +119,37 @@ const ViewportAwareCard = React.memo(({
     };
   }, [posts, index, quality]);
 
+  // B. Measure the RENDERED card (never the skeleton) so the reserved slot
+  // matches the real content. ResizeObserver keeps it in sync when the card
+  // changes size from its own state: caption "more", media finishing load,
+  // comments expanding, or a pro/giphy post being taller than estimated.
+  useEffect(() => {
+    const el = contentRef.current;
+    if (!el || !isVisible) return;
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const height = entries[0]?.contentRect.height ?? 0;
+      if (height > 0) {
+        setMeasuredHeight((prev) => (prev !== null && Math.abs(prev - height) < 2 ? prev : height));
+      }
+    });
+    resizeObserver.observe(el);
+
+    return () => resizeObserver.disconnect();
+  }, [isVisible]);
+
   return (
-    <div 
-      ref={containerRef} 
-      style={{ minHeight: measuredHeight ? `${measuredHeight}px` : "280px" }}
+    <div
+      ref={containerRef}
+      style={{ minHeight: measuredHeight ? `${measuredHeight}px` : undefined }}
       className="transition-all duration-300"
     >
       {isVisible ? (
-        <PostCard post={post} onDeleted={onDeleted} />
+        <div ref={contentRef}>
+          <PostCard post={post} onDeleted={onDeleted} />
+        </div>
       ) : (
-        <SkeletonCard />
+        <SkeletonCard hasMedia={postHasMedia(post)} />
       )}
     </div>
   );

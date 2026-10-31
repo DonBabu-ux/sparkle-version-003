@@ -160,9 +160,9 @@ const getCloseFriends = async (req, res) => {
     try {
         const userId = req.user.user_id || req.user.userId;
         const [rows] = await pool.query(
-            `SELECT cf.friend_user_id AS user_id, u.username, u.name AS display_name, u.avatar_url
+            `SELECT cf.friend_id AS user_id, u.username, u.name AS display_name, u.avatar_url
                FROM close_friends cf
-               JOIN users u ON u.user_id = cf.friend_user_id
+               JOIN users u ON u.user_id = cf.friend_id
               WHERE cf.user_id = ?
               ORDER BY cf.created_at DESC`,
             [userId]
@@ -183,7 +183,7 @@ const setCloseFriends = async (req, res) => {
         // Only allow followers (or people the user already follows) — validate against follows table
         // Snapshot previous members first: their cfMemberships caches must refresh too.
         const [prevRows] = await pool.query(
-            'SELECT friend_user_id FROM close_friends WHERE user_id = ?',
+            'SELECT friend_id FROM close_friends WHERE user_id = ?',
             [userId]
         );
         const connection = await pool.getConnection();
@@ -192,8 +192,8 @@ const setCloseFriends = async (req, res) => {
             await connection.query('DELETE FROM close_friends WHERE user_id = ?', [userId]);
             for (const fid of ids) {
                 await connection.query(
-                    'INSERT IGNORE INTO close_friends (user_id, friend_user_id) VALUES (?, ?)',
-                    [userId, fid]
+                    'INSERT IGNORE INTO close_friends (id, user_id, friend_id) VALUES (?, ?, ?)',
+                    [crypto.randomUUID(), userId, fid]
                 );
             }
             await connection.commit();
@@ -206,14 +206,14 @@ const setCloseFriends = async (req, res) => {
         // Affected viewers = previous members ∪ new members (they gain/lose
         // access to this author's audience=close_friends moments).
         const affected = new Set([
-            ...(prevRows || []).map(r => String(r.friend_user_id)),
+            ...(prevRows || []).map(r => String(r.friend_id)),
             ...ids,
         ]);
         for (const fid of affected) visibility.invalidateViewerContext(fid);
         visibility.invalidateViewerContext(userId);
         const [rows] = await pool.query(
-            `SELECT cf.friend_user_id AS user_id, u.username, u.name AS display_name, u.avatar_url
-               FROM close_friends cf JOIN users u ON u.user_id = cf.friend_user_id
+            `SELECT cf.friend_id AS user_id, u.username, u.name AS display_name, u.avatar_url
+               FROM close_friends cf JOIN users u ON u.user_id = cf.friend_id
               WHERE cf.user_id = ? ORDER BY cf.created_at DESC`,
             [userId]
         );
@@ -255,7 +255,7 @@ const getCloseFriendSuggestions = async (req, res) => {
                 AND u.account_status = 'active'
                 AND NOT EXISTS (
                     SELECT 1 FROM close_friends cf
-                     WHERE cf.user_id = ? AND cf.friend_user_id = s.other_id
+                     WHERE cf.user_id = ? AND cf.friend_id = s.other_id
                 )
               GROUP BY s.other_id, u.username, u.name, u.avatar_url
               ORDER BY SUM(s.score) DESC

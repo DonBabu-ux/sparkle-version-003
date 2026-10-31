@@ -33,14 +33,20 @@ let tablesEnsured = false;
 const ensureTables = async () => {
     if (tablesEnsured) return;
     try {
+        // Standardised on the stories schema (id CHAR(36) PK, user_id, friend_id)
+        // so close_friends is a single table shared by reels and stories.
+        // See migrations/20261031_story_audience_privacy.js for the backfill of
+        // friend_id from the legacy friend_user_id column.
         await pool.query(`
             CREATE TABLE IF NOT EXISTS close_friends (
+                id CHAR(36) NOT NULL,
                 user_id CHAR(36) NOT NULL,
-                friend_user_id CHAR(36) NOT NULL,
+                friend_id CHAR(36) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                PRIMARY KEY (user_id, friend_user_id),
-                INDEX idx_cf_friend (friend_user_id)
-            )
+                PRIMARY KEY (id),
+                UNIQUE KEY unique_close_friend (user_id, friend_id),
+                KEY idx_close_friends_owner (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         `);
         await pool.query(`
             CREATE TABLE IF NOT EXISTS moment_audience_lists (
@@ -130,10 +136,10 @@ async function getViewerContext(viewerId) {
     const [followingRows, followersRows, cfRows, cfMemberRows, blockedRows] = await Promise.all([
         pool.query('SELECT following_id FROM follows WHERE follower_id = ?', [viewerId]).catch(() => [[]]),
         pool.query('SELECT follower_id FROM follows WHERE following_id = ?', [viewerId]).catch(() => [[]]),
-        pool.query('SELECT friend_user_id FROM close_friends WHERE user_id = ?', [viewerId]).catch(() => [[]]),
+        pool.query('SELECT friend_id FROM close_friends WHERE user_id = ?', [viewerId]).catch(() => [[]]),
         // Authors who placed THIS viewer on their close-friends list — the
         // direction that gates visibility of audience=close_friends moments.
-        pool.query('SELECT user_id FROM close_friends WHERE friend_user_id = ?', [viewerId]).catch(() => [[]]),
+        pool.query('SELECT user_id FROM close_friends WHERE friend_id = ?', [viewerId]).catch(() => [[]]),
         pool.query(
             'SELECT blocked_user_id AS id FROM user_blocks WHERE user_id = ? UNION SELECT user_id AS id FROM user_blocks WHERE blocked_user_id = ?',
             [viewerId, viewerId]
@@ -143,7 +149,7 @@ async function getViewerContext(viewerId) {
     const ctx = {
         following: new Set((followingRows[0] || []).map(r => r.following_id)),
         followers: new Set((followersRows[0] || []).map(r => r.follower_id)),
-        closeFriends: new Set((cfRows[0] || []).map(r => r.friend_user_id)),
+        closeFriends: new Set((cfRows[0] || []).map(r => r.friend_id)),
         cfMemberships: new Set((cfMemberRows[0] || []).map(r => r.user_id)),
         blocked: new Set((blockedRows[0] || []).map(r => r.id)),
     };

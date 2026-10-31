@@ -89,6 +89,23 @@ const storyInteractionError = async (storyRow, viewerId, db = pool) => {
     return null;
 };
 
+// Story boolean switches (comments_enabled / allow_sharing / allow_message_sharing)
+// are TINYINT(1) DEFAULT 1, so NULL means "never set" — read it as ON. A switch is
+// only OFF when it is explicitly zero-ish, never because the value is missing.
+const storyFlagEnabled = (value) => value !== 0 && value !== '0' && value !== false;
+
+// comments_enabled DEFAULT 1: an owner who never toggled comments still has them on.
+const areStoryCommentsEnabled = (value) =>
+    value === null || value === undefined || storyFlagEnabled(value);
+
+// reply_privacy vocabulary — stories.reply_privacy VARCHAR(20) DEFAULT 'everyone'.
+// Unknown/legacy values fall back to 'everyone' so older clients keep working.
+const resolveReplyPrivacy = (value) => {
+    const privacy = String(value === null || value === undefined ? '' : value).toLowerCase();
+    if (privacy === 'off' || privacy === 'followers') return privacy;
+    return 'everyone';
+};
+
 // Generates a seed based on User-Agent to provide device-level consistent randomness
 const getSeedFromDevice = (req) => {
     const ua = req.headers['user-agent'] || 'sparkle-default';
@@ -335,7 +352,12 @@ const getStories = async (req, res) => {
         const redisService = require('../services/redis.service');
         const cacheKey = `stories:active:${currentUserId}`;
 
-        const cached = await redisService.get(cacheKey);
+        let cached = null;
+        try {
+            cached = await redisService.get(cacheKey);
+        } catch (err) {
+            logger.error('getStories cache read error:', err);
+        }
         if (cached) return res.json(cached);
 
         let rows = [];
@@ -393,30 +415,6 @@ const getStories = async (req, res) => {
         // group by user
         const groups = [];
         const map = {};
-
-        // 1. Get all story IDs to fetch stickers for them
-        const storyIds = rows.map(s => s.story_id);
-        let stickersMap = {};
-
-        if (storyIds.length > 0) {
-            const [stickers] = await pool.query(
-                'SELECT * FROM story_stickers WHERE story_id IN (?)',
-                [storyIds]
-            );
-
-            stickers.forEach(st => {
-                if (!stickersMap[st.story_id]) stickersMap[st.story_id] = [];
-                stickersMap[st.story_id].push({
-                    id: st.sticker_id,
-                    type: st.type,
-                    config: typeof st.config === 'string' ? JSON.parse(st.config) : st.config,
-                    x: st.position_x,
-                    y: st.position_y,
-                    scale: st.scale,
-                    rotation: st.rotation
-                });
-            });
-        }
 
         for (const s of rows) {
             if (!map[s.user_id]) {
@@ -530,6 +528,14 @@ const getStories = async (req, res) => {
         for (const g of groups) {
             g.unviewed_count = g.stories.filter(st => !st.is_viewed).length;
             g.is_fully_viewed = g.unviewed_count === 0;
+        }
+
+        // BATCH 3: this key was only ever read — write it now (60s TTL) so the
+        // read above and createStory's del() actually do something.
+        try {
+            await redisService.set(cacheKey, groups, 60);
+        } catch (err) {
+            logger.error('getStories cache write error:', err);
         }
 
         res.json(groups);
@@ -1138,7 +1144,7 @@ const shareStory = async (req, res) => {
         }
 
         // First check if story exists
-        const [story] = await pool.query('SELECT story_id, user_id, created_at FROM stories WHERE story_id = ?', [storyId]);
+        const [story] = await pool.query('SELECT story_id, user_id, created_at, allow_sharing FROM stories WHERE story_id = ?', [storyId]);
         if (!story || story.length === 0) {
             console.log('❌ Story not found:', storyId);
             return res.status(404).json({ error: 'Story not found' });
@@ -1148,6 +1154,12 @@ const shareStory = async (req, res) => {
         const gate = await storyInteractionError(story[0], userId);
         if (gate) {
             return res.status(gate.status).json({ error: gate.error });
+        }
+
+        // The owner's sharing switch (stories.allow_sharing, DEFAULT 1) is only
+        // persisted in updateStorySettings — enforce it on the read path too.
+        if (!storyFlagEnabled(story[0].allow_sharing)) {
+            return res.status(403).json({ error: 'Sharing is turned off for this story' });
         }
 
         // Get connection for transaction
@@ -1263,14 +1275,34 @@ const addStoryComment = async (req, res) => {
 
         // Story must exist, be active, not hidden from commenter, comments on
         const [storyRows] = await pool.query(
-            'SELECT user_id, created_at, comments_enabled FROM stories WHERE story_id = ?',
+            'SELECT user_id, created_at, comments_enabled, allow_message_sharing, reply_privacy FROM stories WHERE story_id = ?',
             [storyId]
         );
         if (!storyRows.length) return res.status(404).json({ error: 'Story not found' });
         const gate = await storyInteractionError(storyRows[0], userId);
         if (gate) return res.status(gate.status).json({ error: gate.error });
-        if (storyRows[0].comments_enabled === 0 || storyRows[0].comments_enabled === false) {
+        // comments_enabled is read off the row: 0/false turns comments off,
+        // while NULL (never toggled) keeps the DEFAULT 1 behaviour.
+        if (!areStoryCommentsEnabled(storyRows[0].comments_enabled)) {
             return res.status(403).json({ error: 'Comments are turned off for this story' });
+        }
+        // The owner's sharing switches decide who may reply: allow_message_sharing
+        // off closes replies entirely, reply_privacy narrows the audience.
+        if (!storyFlagEnabled(storyRows[0].allow_message_sharing)) {
+            return res.status(403).json({ error: 'Replies are turned off for this story' });
+        }
+        const replyPrivacy = resolveReplyPrivacy(storyRows[0].reply_privacy);
+        if (replyPrivacy === 'off') {
+            return res.status(403).json({ error: 'Replies are turned off for this story' });
+        }
+        if (replyPrivacy === 'followers') {
+            const [followRows] = await pool.query(
+                'SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ? LIMIT 1',
+                [userId, storyRows[0].user_id]
+            );
+            if (!followRows.length) {
+                return res.status(403).json({ error: 'Only followers can reply to this story' });
+            }
         }
 
         const commentId = crypto.randomUUID();
@@ -1289,8 +1321,28 @@ const addStoryComment = async (req, res) => {
 const getStoryComments = async (req, res) => {
     try {
         const storyId = req.params.id;
-        const [exists] = await pool.query('SELECT 1 FROM stories WHERE story_id = ?', [storyId]);
-        if (!exists.length) return res.status(404).json({ error: 'Story not found' });
+        const viewerId = req.user.userId || req.user.user_id;
+        const [storyRows] = await pool.query(
+            'SELECT user_id, audience, created_at, comments_enabled FROM stories WHERE story_id = ?',
+            [storyId]
+        );
+        if (!storyRows.length) return res.status(404).json({ error: 'Story not found' });
+        const story = storyRows[0];
+
+        // Same visibility gate as the feed: private audiences (only_me /
+        // close_friends / followers-only) must not leak their comment threads.
+        const allowed = await canViewStory(pool, story, viewerId);
+        if (!allowed) {
+            return res.status(403).json({ error: 'This story is private' });
+        }
+
+        // Comments off closes the public read path; the owner keeps access to
+        // their own thread (the toggle only ever hid it from everyone else).
+        const isOwner = String(story.user_id) === String(viewerId);
+        if (!areStoryCommentsEnabled(story.comments_enabled) && !isOwner) {
+            return res.status(403).json({ error: 'Comments are turned off for this story' });
+        }
+
         const [comments] = await pool.query(`
             SELECT sc.*, u.username, u.avatar_url 
             FROM story_comments sc
@@ -1298,7 +1350,8 @@ const getStoryComments = async (req, res) => {
             WHERE sc.story_id = ?
             ORDER BY sc.created_at DESC
         `, [storyId]);
-        res.json(comments);
+        // Avatars go through the same sanitiser the rest of the feed uses.
+        res.json(comments.map(c => ({ ...c, avatar_url: getSafeMediaUrl(c.avatar_url) })));
     } catch (error) {
         logger.error('Get Story Comments Error:', error);
         res.status(500).json({ error: 'Failed to fetch comments' });
@@ -1408,7 +1461,9 @@ const toggleStoryComments = async (req, res) => {
         const [stories] = await pool.query('SELECT comments_enabled FROM stories WHERE story_id = ? AND user_id = ?', [storyId, userId]);
         if (stories.length === 0) return res.status(404).json({ error: 'Story not found' });
 
-        const newStatus = stories[0].comments_enabled ? 0 : 1;
+        // comments_enabled is DEFAULT 1, so NULL means "never toggled" = ON:
+        // the first toggle must turn comments OFF, not ON.
+        const newStatus = areStoryCommentsEnabled(stories[0].comments_enabled) ? 0 : 1;
         await pool.query('UPDATE stories SET comments_enabled = ? WHERE story_id = ?', [newStatus, storyId]);
 
         res.json({ success: true, comments_enabled: newStatus });

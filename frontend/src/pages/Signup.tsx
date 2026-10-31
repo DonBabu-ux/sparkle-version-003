@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
   GraduationCap, Building2, Briefcase, Gift,
+  Sparkles, Users, Heart,
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
@@ -22,6 +23,8 @@ const AFFILIATION_TYPES = [
   { id: 'Company', icon: Building2, label: 'Company' },
   { id: 'Business', icon: Briefcase, label: 'Business' },
 ];
+
+const HERO_IMAGE = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=640&q=80&auto=format';
 
 export default function Signup() {
   const [step, setStep] = useState<Step>(1);
@@ -262,16 +265,62 @@ export default function Signup() {
   };
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-app p-4 font-sans text-[#18181b] dark:text-zinc-100">
-      <div className={`w-full max-w-md transition-all duration-700 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
+    <div className="flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#f8e7ed] p-6 font-sans text-[#18181b] dark:bg-zinc-900 dark:text-zinc-100">
+      <div className={`relative z-10 grid w-full max-w-[1080px] grid-cols-1 items-center gap-8 transition-all duration-700 ease-out lg:grid-cols-2 ${mounted ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0'}`}>
 
-        {/* Brand */}
-        <div className="mb-6 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-[#18181b] dark:text-zinc-100">Sparkle</h1>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
-            It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
-          </p>
+        {/* LEFT: Image + Branding */}
+        <div className="hidden flex-col gap-7 lg:flex">
+          <div className="relative overflow-hidden rounded-3xl border border-[#e6d8e1] shadow-sm dark:border-zinc-700">
+            <img
+              src={HERO_IMAGE}
+              alt="Students connecting on campus"
+              className="h-72 w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-[#18181b]/60 dark:bg-zinc-900/70" />
+            <div className="absolute bottom-0 left-0 flex flex-col gap-2 p-6">
+              <div className="flex w-fit items-center gap-2 rounded-full bg-[#18181b] px-3 py-1 text-xs font-semibold text-white">
+                <Sparkles size={14} strokeWidth={2.5} className="text-[#ff1493]" />
+                Campus Network
+              </div>
+              <h2 className="text-2xl font-bold leading-tight text-white">
+                Your people<br />are here.
+              </h2>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <h1 className="text-4xl font-bold tracking-tight text-[#18181b] dark:text-zinc-100">Sparkle</h1>
+            <p className="max-w-[440px] text-base leading-relaxed text-slate-600 dark:text-zinc-300">
+              It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
+            </p>
+            <div className="flex flex-col gap-2.5 pt-1">
+              {[
+                { icon: Users, label: 'Find your people instantly' },
+                { icon: Sparkles, label: 'Campus-first experience' },
+                { icon: Heart, label: 'Share moments that matter' },
+              ].map((f, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-3"
+                >
+                  <f.icon size={16} strokeWidth={2} className="shrink-0 text-[#ff1493]" />
+                  <span className="text-sm font-medium text-[#18181b] dark:text-zinc-100">{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+
+        {/* RIGHT: Signup card */}
+        <div className="flex justify-center lg:justify-end">
+          <div className="w-full max-w-md">
+            {/* Brand (mobile) */}
+            <div className="mb-6 text-center lg:hidden">
+              <h1 className="text-3xl font-bold tracking-tight text-[#18181b] dark:text-zinc-100">Sparkle</h1>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 dark:text-zinc-300">
+                It's quick and easy. Join the sweetest Sparkle network and bloom with your people.
+              </p>
+            </div>
 
         {/* Signup card */}
         <div className="rounded-3xl border border-[#e6d8e1] bg-[#fdf8fa] p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-800 sm:p-8">
@@ -575,6 +624,8 @@ export default function Signup() {
                 </button>
               </div>
             ) : null}
+          </div>
+        </div>
           </div>
         </div>
       </div>

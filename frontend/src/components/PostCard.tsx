@@ -207,8 +207,9 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
       } else {
         await api.delete(`/posts/${post.post_id}`);
       }
-      removePost(post.post_id);
-      triggerRefresh();
+    removePost(post.post_id);
+    showSuccess('Post deleted');
+    triggerRefresh();
     } catch {
       setDeleting(false);
       showError('Failed to delete post');
@@ -553,26 +554,31 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           }}
           onDoubleClick={(e) => handleSpark(e, true)}
         >
-          {post.media_files && post.media_files.length > 0 ? (
-            <div className={`grid gap-0.5 ${
-              post.media_files.length === 1 ? 'grid-cols-1' : 
-              post.media_files.length === 2 ? 'grid-cols-2' : 
-              post.media_files.length === 3 ? 'grid-cols-2' : 'grid-cols-2'
-            }`}>
-              {post.media_files.slice(0, 4).map((file, idx) => (
-                <div 
-                  key={idx} 
-                  className={clsx(
-                    "relative overflow-hidden",
-                    post.media_files!.length === 3 && idx === 0 ? "row-span-2" : "aspect-square"
-                  )}
-                >
-                  <ProgressiveImage
-                    src={file.url}
-                    alt=""
-                    imageClassName="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
-                    width={800}
-                  />
+{post.media_files && post.media_files.length > 0 ? (
+<div className={`grid gap-0.5 ${
+post.media_files.length === 1 ? 'grid-cols-1' :
+post.media_files.length === 2 ? 'grid-cols-2' :
+'grid-cols-2 grid-rows-2 sm:h-[600px] sm:max-h-[70vh]'
+}`}>
+{post.media_files.slice(0, 4).map((file, idx) => (
+<div
+key={idx}
+className={clsx(
+"relative overflow-hidden",
+post.media_files!.length === 1
+? "aspect-[4/5] max-h-[70vh] sm:max-h-[600px]"
+: post.media_files!.length === 2
+? "aspect-square"
+: "aspect-square sm:aspect-none sm:h-full",
+post.media_files!.length === 3 && idx === 0 ? "row-span-2" : ""
+)}
+>
+<ProgressiveImage
+src={file.url}
+alt=""
+imageClassName="w-full !h-full object-cover transition-transform duration-700 hover:scale-105"
+width={800}
+/>
                   {idx === 3 && post.media_files!.length > 4 && (
                     <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px] flex items-center justify-center">
                       <span className="text-white text-2xl font-black">+{post.media_files!.length - 3}</span>
@@ -584,11 +590,11 @@ const PostCard: React.FC<PostCardProps> = ({ post }) => {
           ) : post.media_url ? (
             <div className="w-full bg-black/5 dark:bg-zinc-900 overflow-hidden">
               {isVideo ? (
-                <div className="relative w-full aspect-video max-h-[85vh] sm:max-h-[700px]">
+                <div className="relative w-full aspect-video max-h-[70vh] sm:max-h-[600px]">
                   <VideoPlayer src={getMediaUrl(post.media_url)} />
                 </div>
               ) : (
-                <div className="relative w-full aspect-[4/5] max-h-[85vh] sm:max-h-[700px]">
+                <div className="relative w-full aspect-[4/5] max-h-[70vh] sm:max-h-[600px]">
                   <ProgressiveImage
                     src={post.media_url}
                     alt=""

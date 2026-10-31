@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { showSuccess } from '../utils/toast';
+import { confirmDialog } from '../store/dialogStore';
 import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
@@ -1210,7 +1212,7 @@ export default function StoryViewer() {
                   { label: 'Story Settings', icon: <Settings size={18} />, color: 'text-white', action: () => { setShowOptionsSheet(false); setShowStorySettings(true); } },
                   { label: currentStory.comments_enabled ? 'Turn off comments' : 'Turn on comments', icon: <MessageCircleOff size={18} />, color: 'text-white', action: async () => { await api.post(`/stories/${currentStory.story_id}/comments/toggle`); setShowOptionsSheet(false); } },
                   { label: 'Archive story', icon: <Archive size={18} />, color: 'text-white', action: async () => { await api.post(`/stories/${currentStory.story_id}/archive`); setShowOptionsSheet(false); } },
-                  { label: 'Delete story', icon: <Trash2 size={18} />, color: 'text-rose-500', action: async () => { await api.delete(`/stories/${currentStory.story_id}`); navigate('/dashboard'); } },
+                  { label: 'Delete story', icon: <Trash2 size={18} />, color: 'text-rose-500', action: async () => { setShowOptionsSheet(false); if (!await confirmDialog('Delete this story? It will be removed for everyone.')) return; await api.delete(`/stories/${currentStory.story_id}`); showSuccess('Story deleted'); navigate('/dashboard'); } },
                 ].map((item, i) => (
                   <button key={i} onClick={item.action} className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-[#2a2a2a] active:bg-white/10 transition-all`}>
                     <span className={`flex-shrink-0 ${item.color}`}>{item.icon}</span>

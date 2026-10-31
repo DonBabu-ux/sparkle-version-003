@@ -905,14 +905,58 @@ class Post {
     }
 
     /**
-     * Delete post
+     * Delete post.
+     *
+     * The FK cascade wipes every child row EXCEPT saved_posts (no FK on
+     * post_id) and notifications (soft related_id/related_type link), so
+     * those are removed explicitly. Cloudinary bytes and media_registry
+     * rows are destroyed too — but the cleanup is fail-safe: if anything
+     * throws in the media path, the row delete has already succeeded and
+     * the user's request must not fail because of it.
      */
     static async delete(postId, userId) {
+        // Read media URLs BEFORE the cascade deletes post_media rows.
+        let mediaUrls = [];
+        try {
+            const [[post]] = await pool.query(
+                'SELECT media_url FROM posts WHERE post_id = ?',
+                [postId]
+            );
+            const [mediaRows] = await pool.query(
+                'SELECT media_url FROM post_media WHERE post_id = ?',
+                [postId]
+            );
+            mediaUrls = [post?.media_url, ...mediaRows.map((r) => r.media_url)];
+        } catch (err) {
+            logger.error('Post.delete: reading media urls failed:', err.message);
+        }
+
         const [result] = await pool.query(
             'DELETE FROM posts WHERE post_id = ? AND user_id = ?',
             [postId, userId]
         );
-        return result.affectedRows > 0;
+        if (result.affectedRows === 0) return false;
+
+        // Residue without FK cascade: saved_posts and notifications.
+        try {
+            await pool.query('DELETE FROM saved_posts WHERE post_id = ?', [postId]);
+            await pool.query(
+                "DELETE FROM notifications WHERE related_type = 'post' AND related_id = ?",
+                [postId]
+            );
+        } catch (err) {
+            logger.error('Post.delete: residue cleanup failed (ignored):', err.message);
+        }
+
+        // Cloudinary + media_registry cleanup — never blocks the delete.
+        try {
+            const MediaService = require('../services/media.service');
+            await MediaService.deleteMediaForUrls(mediaUrls);
+        } catch (err) {
+            logger.error('Post.delete: media cleanup failed (ignored):', err.message);
+        }
+
+        return true;
     }
 
     /**

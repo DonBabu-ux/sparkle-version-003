@@ -23,6 +23,7 @@ router.get('/:id/posts', authMiddleware, groupsController.getGroupPostsAPI);
 
 // Matching spec: GET /api/groups/:id/requests (Private admin API)
 router.get('/:id/requests', authMiddleware, groupsController.getPendingRequestsAPI);
+router.get('/:id/my-request', authMiddleware, groupsController.myJoinRequest);
 
 // Matching spec: POST /api/groups/requests/:requestId/approve
 router.post('/requests/:requestId/approve', authMiddleware, groupsController.approveRequestAPI);

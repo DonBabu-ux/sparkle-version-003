@@ -243,6 +243,41 @@ class Club {
         );
         return announcements;
     }
+
+    /**
+     * Club "posts" feed: the club's announcements shaped like feed posts so the
+     * club detail screen can render them with the shared PostCard component.
+     */
+    static async getPosts(clubId) {
+        const [rows] = await pool.query(
+            `SELECT ca.announcement_id AS post_id,
+                    ca.user_id,
+                    u.username,
+                    u.name,
+                    u.avatar_url,
+                    ca.content,
+                    ca.created_at,
+                    c.name AS club_name
+             FROM club_announcements ca
+             JOIN users u ON ca.user_id = u.user_id
+             JOIN clubs c ON ca.club_id = c.club_id
+             WHERE ca.club_id = ?
+             ORDER BY ca.created_at DESC
+             LIMIT 20`,
+            [clubId]
+        );
+        return rows.map(r => ({
+            ...r,
+            media_url: null,
+            media_type: null,
+            spark_count: 0,
+            comment_count: 0,
+            is_sparked: false,
+            is_saved: false,
+            is_pinned: true,
+            post_type: 'club_announcement'
+        }));
+    }
 }
 
 module.exports = Club;

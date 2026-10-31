@@ -11,6 +11,7 @@ router.get('/category/:category', clubsController.getClubsByCategory);          
 router.get('/:id', authMiddleware, clubsController.getClubById);
 router.put('/:id', authMiddleware, upload.fields([{ name: 'logo', maxCount: 1 }, { name: 'banner', maxCount: 1 }]), clubsController.updateClub);
 router.get('/:id/members', authMiddleware, clubsController.getMembers);
+router.get('/:id/posts', authMiddleware, clubsController.getClubPosts);
 router.get('/:id/leadership', clubsController.getLeadership);                                    // NEW — leadership team
 router.post('/:id/join', authMiddleware, clubsController.joinClub);
 router.post('/:id/leave', authMiddleware, clubsController.leaveClub);

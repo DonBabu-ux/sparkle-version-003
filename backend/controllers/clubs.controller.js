@@ -186,6 +186,16 @@ const getAnnouncements = async (req, res) => {
     }
 };
 
+const getClubPosts = async (req, res) => {
+    try {
+        const posts = await Club.getPosts(req.params.id);
+        res.json({ status: 'success', data: { posts } });
+    } catch (error) {
+        logger.error('Get Club Posts Error:', error);
+        res.status(500).json({ error: 'Failed to fetch club posts' });
+    }
+};
+
 module.exports = {
     getClubs,
     getClubById,
@@ -198,5 +208,6 @@ module.exports = {
     getLeadership,
     getClubsByCategory,
     createAnnouncement,
-    getAnnouncements
+    getAnnouncements,
+    getClubPosts
 };

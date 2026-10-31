@@ -734,6 +734,24 @@ const inviteFriends = async (req, res) => {
     }
 };
 
+const myJoinRequest = async (req, res) => {
+    try {
+        const groupId = req.params.id;
+        const userId = req.user.userId || req.user.user_id;
+
+        const group = await Group.findById(groupId);
+        if (!group) return res.status(404).json({ error: 'Group not found' });
+
+        const request = await Group.findRequest(groupId, userId);
+        // The client reads `data.status === 'pending'`, so the body's status
+        // field carries the join-request state rather than the usual 'success'.
+        res.json({ status: request ? request.status : 'none', data: request || null });
+    } catch (error) {
+        logger.error('My Join Request Error:', error);
+        res.status(500).json({ error: 'Failed to fetch join request' });
+    }
+};
+
 module.exports = {
     createGroup,
     createGroupPost,
@@ -757,5 +775,6 @@ module.exports = {
     approvePostAPI,
     rejectPostAPI,
     muteMemberAPI,
-    banMemberAPI
+    banMemberAPI,
+    myJoinRequest
 };

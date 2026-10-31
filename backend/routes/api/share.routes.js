@@ -50,6 +50,14 @@ router.get('/:id', authMiddleware, async (req, res) => {
         } else if (type === 'story') {
             const [rows] = await pool.query('SELECT s.*, u.username FROM stories s JOIN users u ON s.user_id = u.user_id WHERE s.story_id = ?', [id]);
             content = rows[0];
+            // Audience gate — share metadata must not unmask private stories
+            if (content) {
+                const { canViewStory } = require('../../services/story-audience.service');
+                const viewerId = req.user?.user_id || req.user?.userId;
+                if (!(await canViewStory(pool, content, viewerId))) {
+                    return res.status(403).json({ error: 'This story is private' });
+                }
+            }
         } else if (type === 'confession') {
             const [rows] = await pool.query('SELECT * FROM confessions WHERE confession_id = ?', [id]);
             content = rows[0];

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { showError } from '../../utils/toast';
+import { storyStickerApi } from '../../services/storyStickerApi';
 
 interface PollStickerProps {
   config: {
@@ -8,17 +10,45 @@ interface PollStickerProps {
     votes?: number[];
     voted_index?: number;
   };
-  onInteract?: (data: any) => void;
+  /** Layer id of this sticker inside the story_layers payload. */
+  stickerId?: string;
+  /** Story the sticker lives on. Without it the vote stays local (composer). */
+  storyId?: string;
+  onInteract?: (data: { action: 'vote'; index: number }) => void;
 }
 
-const PollSticker: React.FC<PollStickerProps> = ({ config, onInteract }) => {
+const PollSticker: React.FC<PollStickerProps> = ({ config, stickerId, storyId, onInteract }) => {
+  // An already-voted config (voted_index) locks the poll — bars render read-only.
   const [votedIndex, setVotedIndex] = useState(config.voted_index);
-  const totalVotes = (config.votes || []).reduce((a, b) => a + b, 0);
+  // Local copy of the tallies so an optimistic vote moves the bars immediately.
+  const [voteCounts, setVoteCounts] = useState<number[]>(() =>
+    config.options.map((_, i) => config.votes?.[i] ?? 0)
+  );
+  const [pending, setPending] = useState(false);
+  const totalVotes = voteCounts.reduce((a, b) => a + b, 0);
 
-  const handleVote = (index: number) => {
-    if (votedIndex !== undefined) return;
+  const handleVote = async (index: number) => {
+    if (votedIndex !== undefined || pending) return;
+    const previousCounts = voteCounts;
+
+    // Optimistic: show the vote and its bar before the server answers.
     setVotedIndex(index);
+    setVoteCounts(prev => prev.map((count, i) => (i === index ? count + 1 : count)));
     onInteract?.({ action: 'vote', index });
+
+    // No story context (the composer) → the tap never leaves the device.
+    if (!storyId || !stickerId) return;
+
+    setPending(true);
+    try {
+      await storyStickerApi.vote(storyId, stickerId, index);
+    } catch {
+      setVotedIndex(undefined);
+      setVoteCounts(previousCounts);
+      showError('Could not record your vote');
+    } finally {
+      setPending(false);
+    }
   };
 
   return (
@@ -29,14 +59,15 @@ const PollSticker: React.FC<PollStickerProps> = ({ config, onInteract }) => {
 
       <div className="flex flex-col gap-2">
         {config.options.map((opt, i) => {
-          const percentage = totalVotes > 0 ? Math.round(((config.votes?.[i] || 0) / totalVotes) * 100) : 0;
-          
+          const percentage = totalVotes > 0 ? Math.round((voteCounts[i] / totalVotes) * 100) : 0;
+
           return (
             <motion.button
               key={i}
               whileTap={{ scale: 0.98 }}
               onClick={(e) => { e.stopPropagation(); handleVote(i); }}
-              className={`relative h-12 w-full rounded-xl overflow-hidden border-2 transition-all ${votedIndex === i ? 'border-primary' : 'border-black/5 hover:border-black/10'}`}
+              disabled={votedIndex !== undefined || pending}
+              className={`relative h-12 w-full rounded-xl overflow-hidden border-2 transition-all ${votedIndex === i ? 'border-primary' : 'border-black/5 hover:border-black/10'} ${pending ? 'opacity-70' : ''} ${votedIndex !== undefined ? 'cursor-default' : ''}`}
             >
               {/* Progress Bar */}
               {votedIndex !== undefined && (

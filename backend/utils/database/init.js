@@ -379,6 +379,7 @@ const repairStoriesTable = async () => {
             { name: 'comments_enabled', type: 'TINYINT(1) DEFAULT 1' },
             { name: 'reply_privacy', type: "VARCHAR(20) DEFAULT 'everyone'" },
             { name: 'comment_privacy', type: "VARCHAR(20) DEFAULT 'everyone'" },
+            { name: 'audience', type: "VARCHAR(32) DEFAULT 'public'" },
             { name: 'allow_sharing', type: 'TINYINT(1) DEFAULT 1' },
             { name: 'allow_message_sharing', type: 'TINYINT(1) DEFAULT 1' },
             { name: 'auto_share_fb', type: 'TINYINT(1) DEFAULT 0' },

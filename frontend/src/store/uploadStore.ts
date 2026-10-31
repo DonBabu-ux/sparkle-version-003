@@ -173,7 +173,20 @@ export const useUploadStore = create<UploadState>()(
             ? 0 
             : job.progress
         }))
-      })
+      }),
+      // Finished jobs (PUBLISHED / CANCELLED) used to pile up here forever —
+      // clearFinishedJobs() existed but nothing ever called it. localStorage
+      // rehydrates synchronously, so this listener runs while the store const
+      // below is still initialising: call the action from the state handed to
+      // us here instead of reaching for the module binding (TDZ ReferenceError).
+      onRehydrateStorage: (initialState: UploadState) => (rehydratedState) => {
+        if (!rehydratedState || !initialState) return;
+        try {
+          initialState.clearFinishedJobs();
+        } catch (err) {
+          logger.error('Failed to clear finished upload jobs on init', err);
+        }
+      }
     }
   )
 );

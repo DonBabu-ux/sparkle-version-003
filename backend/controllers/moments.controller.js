@@ -4,6 +4,7 @@ const sessionInterestService = require('../services/session-interest.service');
 const momentsRankingService = require('../services/moments-ranking.service');
 const visibility = require('../services/reels-visibility.service');
 const NotificationService = require('../services/notification.service');
+const { STORY_AUDIENCES } = require('../services/story-audience.service');
 
 const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
 
@@ -619,10 +620,17 @@ const createMoment = async (req, res) => {
                     const storyId = require('crypto').randomUUID();
                     const storyCaption = String(title || description || caption || '').slice(0, 255) || null;
                     const storyType = ['image', 'video', 'text'].includes(media_type) ? media_type : 'video';
+                    // Carry the moment's audience into the story so a followers/
+                    // close_friends/only_me reel does not become a PUBLIC story.
+                    // Moment vocabulary ('friends') maps onto story vocabulary
+                    // ('followers'); anything unrecognised falls back to public.
+                    const storyAudience = safeAudience === 'friends'
+                        ? 'followers'
+                        : (STORY_AUDIENCES.has(safeAudience) ? safeAudience : 'public');
                     await pool.query(
-                        `INSERT INTO stories (story_id, user_id, media_url, media_type, caption, thumbnail_url)
-                         VALUES (?, ?, ?, ?, ?, ?)`,
-                        [storyId, userId, media_url, storyType, storyCaption, thumbnail_url]
+                        `INSERT INTO stories (story_id, user_id, media_url, media_type, caption, thumbnail_url, audience)
+                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [storyId, userId, media_url, storyType, storyCaption, thumbnail_url, storyAudience]
                     );
                     await pool.query('UPDATE moments SET shared_to_story = 1 WHERE moment_id = ?', [momentId]);
                     storyCreated = true;

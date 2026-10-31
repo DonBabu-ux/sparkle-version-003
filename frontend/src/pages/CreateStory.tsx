@@ -903,6 +903,16 @@ export default function CreateStory() {
                               </div>
                               <span className="text-[10px] font-black uppercase italic tracking-widest text-black/40 dark:text-white/40">Camera</span>
                           </button>
+                          {/* Type mode — text-only stories, no media required */}
+                          <button
+                              onClick={() => { setMode('story'); setPhase('text_story'); }}
+                              className="rounded-[28px] bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 aspect-square active:scale-95 transition-all shadow-sm hover:border-primary/40"
+                          >
+                              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-lg">
+                                  <Type size={28} strokeWidth={3} className="text-primary" />
+                              </div>
+                              <span className="text-[10px] font-black italic uppercase tracking-widest text-[#18181b] dark:text-white">Type</span>
+                          </button>
                           {deviceMedia.map((item, i) => (
                               <button 
                                   key={`media-${i}`} 

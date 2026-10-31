@@ -26,6 +26,12 @@ export interface StoryLayer {
 interface StickerRendererProps {
   stickers: StoryLayer[];
   isEditing?: boolean;
+  /**
+   * Story the stickers belong to. Optional so call sites that only render
+   * stickers (the composer) compile unchanged; interactive stickers disable
+   * themselves while it is absent because they have nothing to record against.
+   */
+  storyId?: string;
   onInteract?: (stickerId: string, data: any) => void;
   onUpdate?: (stickerId: string, updates: any) => void;
   onDelete?: (stickerId: string) => void;
@@ -36,11 +42,12 @@ const StickerItem: FC<{
   sticker: StoryLayer;
   isEditing: boolean;
   containerRef: React.RefObject<HTMLDivElement>;
+  storyId?: string;
   onUpdate?: (id: string, updates: any) => void;
   onInteract?: (id: string, data: any) => void;
   onDelete?: (id: string) => void;
   onEdit?: (sticker: StoryLayer) => void;
-}> = ({ sticker, isEditing, containerRef, onUpdate, onInteract, onDelete, onEdit }) => {
+}> = ({ sticker, isEditing, containerRef, storyId, onUpdate, onInteract, onDelete, onEdit }) => {
   const [active, setActive] = useState(false);
   const tapStartRef = useRef<{ x: number; y: number; time: number } | null>(null);
   
@@ -124,7 +131,7 @@ const StickerItem: FC<{
       className={`pointer-events-auto ${isEditing ? 'cursor-grab active:cursor-grabbing' : ''}`}
     >
       <div className="relative group">
-        {renderStickerContent(sticker, onInteract)}
+        {renderStickerContent(sticker, onInteract, storyId)}
         
         {isEditing && !sticker.locked && (
           <motion.button 
@@ -147,6 +154,7 @@ const StickerItem: FC<{
 const StickerRenderer: FC<StickerRendererProps> = ({
   stickers,
   isEditing = false,
+  storyId,
   onInteract,
   onUpdate,
   onDelete,
@@ -162,6 +170,7 @@ const StickerRenderer: FC<StickerRendererProps> = ({
           sticker={sticker}
           isEditing={isEditing}
           containerRef={containerRef}
+          storyId={storyId}
           onUpdate={onUpdate}
           onInteract={onInteract}
           onDelete={onDelete}
@@ -172,20 +181,24 @@ const StickerRenderer: FC<StickerRendererProps> = ({
   );
 };
 
-const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, data: any) => void) => {
+// `storyId` gates the live interactions: without it the stickers render exactly
+// as they did before (tap = local state only), which keeps the composer inert.
+const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, data: any) => void, storyId?: string) => {
   // Persisted story layers carry their payload in `data`; the story editor keeps
   // the same payload under `config`, so accept either.
   const config = sticker.data ?? sticker.config ?? {};
 
   switch (sticker.type) {
     case 'quiz':
+      // Read-only by design: the author pins the correct answer while placing the
+      // sticker and there is no quiz-answer endpoint to submit to.
       return <QuizSticker config={config} />;
     case 'add_yours':
-      return <AddYoursSticker config={config} onInteract={(data) => onInteract?.(sticker.id, data)} />;
+      return <AddYoursSticker config={config} stickerId={sticker.id} storyId={storyId} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'poll':
-      return <PollSticker config={config} onInteract={(data) => onInteract?.(sticker.id, data)} />;
+      return <PollSticker config={config} stickerId={sticker.id} storyId={storyId} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'reaction':
-      return <ReactionSticker config={config} onInteract={(data) => onInteract?.(sticker.id, data)} />;
+      return <ReactionSticker config={config} stickerId={sticker.id} storyId={storyId} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'avatar_loop':
       return <AvatarLoopSticker config={config} />;
     case 'mention': {

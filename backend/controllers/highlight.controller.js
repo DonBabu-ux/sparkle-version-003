@@ -9,6 +9,7 @@ const logger = require('../utils/logger');
 const getHighlight = async (req, res) => {
     try {
         const { id } = req.params;
+        const viewerId = req.user?.userId || req.user?.user_id;
 
         const [highlights] = await pool.query(
             `SELECT h.highlight_id, h.title, h.cover_url, h.user_id
@@ -18,7 +19,7 @@ const getHighlight = async (req, res) => {
         if (!highlights[0]) return res.status(404).json({ error: 'Highlight not found' });
 
         const [stories] = await pool.query(
-            `SELECT s.story_id as id, s.media_url, s.media_type, s.caption, s.created_at
+            `SELECT s.story_id as id, s.user_id, s.audience, s.media_url, s.media_type, s.caption, s.created_at
              FROM highlight_stories hs
              JOIN stories s ON hs.story_id = s.story_id
              WHERE hs.highlight_id = ?
@@ -26,7 +27,24 @@ const getHighlight = async (req, res) => {
             [id]
         );
 
-        res.json({ ...highlights[0], stories });
+        // The owner always sees their own highlight; everyone else must be able
+        // to view every contained story — a highlight built from private
+        // (only_me/close_friends/followers) stories must not leak them.
+        const isOwner = String(highlights[0].user_id) === String(viewerId);
+        if (!isOwner) {
+            const { canViewStory } = require('../services/story-audience.service');
+            for (const story of stories) {
+                const allowed = await canViewStory(pool, story, viewerId);
+                if (!allowed) {
+                    return res.status(403).json({ error: 'This highlight contains private stories' });
+                }
+            }
+        }
+
+        // user_id/audience are privacy bookkeeping and stay out of the payload.
+        const publicStories = stories.map(({ user_id, audience, ...story }) => story);
+
+        res.json({ ...highlights[0], stories: publicStories });
     } catch (error) {
         logger.error('Get highlight error:', error);
         res.status(500).json({ error: 'Failed to get highlight' });
@@ -70,6 +88,21 @@ const createHighlight = async (req, res) => {
 
         if (!title) return res.status(400).json({ error: 'Title is required' });
 
+        // Every attached story must belong to the caller — pinning someone
+        // else's story into a highlight would expose it through getHighlight.
+        // Checked before any write so a rejected request creates nothing.
+        let requestedIds = [];
+        if (story_ids && story_ids.length > 0) {
+            requestedIds = [...new Set(story_ids.map(String))];
+            const [owned] = await pool.query(
+                'SELECT story_id FROM stories WHERE story_id IN (?) AND user_id = ?',
+                [requestedIds, userId]
+            );
+            if (owned.length !== requestedIds.length) {
+                return res.status(400).json({ error: 'One or more stories do not belong to you' });
+            }
+        }
+
         const highlightId = crypto.randomUUID();
 
         await pool.query(
@@ -77,7 +110,7 @@ const createHighlight = async (req, res) => {
             [highlightId, userId, title, cover_url || null]
         );
 
-        if (story_ids && story_ids.length > 0) {
+        if (requestedIds.length > 0) {
             const values = story_ids.map((sid, idx) => [crypto.randomUUID(), highlightId, sid, idx]);
             await pool.query(
                 `INSERT INTO highlight_stories (id, highlight_id, story_id, position) VALUES ?`,

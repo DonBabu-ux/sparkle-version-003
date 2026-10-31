@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { showSuccess } from '../utils/toast';
+import { showSuccess, showError } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -127,11 +127,10 @@ export default function StoryViewer() {
   const [viewerIndex, setViewerIndex] = useState(0); 
   const [showShareModal, setShowShareModal] = useState(false);
   const [showOptionsSheet, setShowOptionsSheet] = useState(false);
-  const [showMentionModal, setShowMentionModal] = useState(false);
   const [showViewerOptions, setShowViewerOptions] = useState<any>(null);
   const [showStorySettings, setShowStorySettings] = useState(false);
-  const [showCommentModal, setShowCommentModal] = useState(false);
   const [showHideFromModal, setShowHideFromModal] = useState(false);
+  const [showCommentModal, setShowCommentModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Real Data States
@@ -151,45 +150,93 @@ export default function StoryViewer() {
   const [activeCommentIndex, setActiveCommentIndex] = useState(0);
 
   const longPressTimer = useRef<any>(null);
-  useRef<any>(null);
-  useRef(false);
   const lastTap = useRef<number>(0);
 
+  // First paint is served from the router state / story cache. Those values can
+  // be stale (24h expiry, or an author hiding their story from this viewer), so
+  // the snapshot is captured once and only used as an instant paint: the fetch
+  // below reconciles it. Capturing it (instead of reading the cache inline)
+  // keeps this module's effect deps stable — storyCache.populate swaps the
+  // cached object for a fresh one, which would otherwise re-fire the fetch
+  // forever.
+  const [preloadedGroup] = useState<UserStoryGroup | null>(preloaded);
+
+  // Guards against a slow response landing after the viewer navigated away
+  // (or re-mounted for another userId) and clobbering the new screen's state.
+  const storyFetchSeq = useRef(0);
+
+  // Fetches /stories/active and reconciles it into the displayed group.
+  // Returns the live group for :userId, or null when the server has none
+  // (expired, deleted, or the author hid the story from this viewer) — the
+  // caller decides what an absent group means.
+  const loadActiveStories = useCallback(async (): Promise<UserStoryGroup | null> => {
+    const seq = ++storyFetchSeq.current;
+    let group: UserStoryGroup | null = null;
+    try {
+      const response = await api.get('/stories/active');
+      // A newer fetch (or a fresh mount for another userId) superseded this one.
+      if (seq !== storyFetchSeq.current) return null;
+      const groups: UserStoryGroup[] = response.data;
+      // Populate cache with fresh data for all users
+      storyCache.populate(groups);
+      const userGroup = groups.find((g: UserStoryGroup) => String(g.user_id) === String(userId));
+      group = userGroup && userGroup.stories.length > 0 ? userGroup : null;
+
+      // The preloaded group is only kept while the server still reports live
+      // stories for this exact user. Anything else is stale data, so it is
+      // dropped to the existing empty state instead of playing dead stories.
+      setUserStories(group);
+
+      // A fresh group may have lost stories since the preloaded snapshot was
+      // cached, so never leave currentIndex past the end of the new list.
+      setCurrentIndex(prev => (group && prev < group.stories.length ? prev : 0));
+    } catch (err) {
+      // Offline/5xx: keep whatever we already had painted.
+      group = preloadedGroup;
+    }
+
+    // view-marking is handled by the currentIndex effect below (no double-post)
+    return group;
+  }, [userId, preloadedGroup]);
+
   useEffect(() => {
+    let cancelled = false;
     const fetchStories = async () => {
+      const userGroup = await loadActiveStories();
+      if (cancelled) return;
+
+      setLoading(false);
+
+      if (userGroup) return;
+
+      // Nothing live for this user. When the group came from the router/cache
+      // snapshot it was stale by definition — expired, deleted, or hidden from
+      // this viewer — and the story_id resolution below would only bounce the
+      // viewer back into this same dead screen, so go straight to the feed.
+      if (preloadedGroup) {
+        navigate('/dashboard');
+        return;
+      }
+
+      // The :userId param may actually be a story_id (legacy share links,
+      // notification taps). Resolve it: active story -> open its owner's
+      // group; expired -> the /story/:storyId memorial snapshot.
       try {
-        const response = await api.get('/stories/active');
-        const groups: UserStoryGroup[] = response.data;
-        // Populate cache with fresh data for all users
-        storyCache.populate(groups);
-        const userGroup = groups.find((g: UserStoryGroup) => String(g.user_id) === String(userId));
-        if (userGroup) {
-          setUserStories(userGroup);
-          // view-marking is handled by the currentIndex effect below (no double-post)
-        } else if (!preloaded) {
-          // The :userId param may actually be a story_id (legacy share links,
-          // notification taps). Resolve it: active story -> open its owner's
-          // group; expired -> the /story/:storyId memorial snapshot.
-          try {
-            const single = await api.get(`/stories/single/${userId}`);
-            const s = single.data.story;
-            if (!s.is_expired) {
-              navigate(`/stories/${s.user_id}`, { replace: true });
-            } else {
-              navigate(`/story/${userId}`, { replace: true });
-            }
-          } catch {
-            navigate('/dashboard');
-          }
+        const single = await api.get(`/stories/single/${userId}`);
+        if (cancelled) return;
+        const s = single.data.story;
+        if (!s.is_expired) {
+          navigate(`/stories/${s.user_id}`, { replace: true });
+        } else {
+          navigate(`/story/${userId}`, { replace: true });
         }
-      } catch (err) {
-        if (!preloaded) navigate('/dashboard');
-      } finally {
-        setLoading(false);
+      } catch {
+        navigate('/dashboard');
       }
     };
     fetchStories();
-  }, [userId, navigate]);
+    return () => { cancelled = true; };
+  }, [userId, navigate, preloadedGroup, loadActiveStories]);
 
   useEffect(() => {
     // Owners always track the visible story (inline view stack follows it);
@@ -233,12 +280,12 @@ export default function StoryViewer() {
   }, [showViewersSheet, viewerIndex, userStories, isOwner]);
 
   useEffect(() => {
-    if (showShareModal || showMentionModal) {
+    if (showShareModal) {
         api.get('/users/suggestions')
            .then(res => setShareContacts(res.data.suggestions || []))
            .catch(() => {});
     }
-  }, [showShareModal, showMentionModal]);
+  }, [showShareModal]);
 
   // --- Imperative Video Play/Pause Control ---
   useEffect(() => {
@@ -301,10 +348,10 @@ export default function StoryViewer() {
 
   // Sync state machine on play/pause modal changes
   useEffect(() => {
-    const isPausedGlobal = 
+    const isPausedGlobal =
       isPaused || isInputFocused || isLongPressing ||
       showOptionsSheet || showViewersSheet || showShareModal ||
-      showMentionModal || !!showViewerOptions || showStorySettings || showCommentModal;
+      !!showViewerOptions || showStorySettings || showCommentModal;
 
     if (isPausedGlobal) {
       if (playbackState === 'Playing') {
@@ -322,7 +369,7 @@ export default function StoryViewer() {
         }
       }
     }
-  }, [isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showMentionModal, showViewerOptions, showStorySettings, showCommentModal, playbackState, mediaLoaded, currentIndex, userStories]);
+  }, [isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showViewerOptions, showStorySettings, showCommentModal, playbackState, mediaLoaded, currentIndex, userStories]);
 
   // Precise Story Timer via requestAnimationFrame
   const currentStorySafe = userStories?.stories[currentIndex];
@@ -337,10 +384,10 @@ export default function StoryViewer() {
 
   const animateTimer = (time: number) => {
     if (previousTimeRef.current !== null) {
-      const isPausedGlobal = 
+      const isPausedGlobal =
         isPaused || isInputFocused || isLongPressing ||
         showOptionsSheet || showViewersSheet || showShareModal ||
-        showMentionModal || !!showViewerOptions || showStorySettings || showCommentModal ||
+        !!showViewerOptions || showStorySettings || showCommentModal ||
         playbackState === 'LoadingMedia' || playbackState === 'LoadingAudio';
 
       if (!isPausedGlobal) {
@@ -433,6 +480,18 @@ export default function StoryViewer() {
 
   const currentStory = userStories.stories[currentIndex];
   const unviewedCount = userStories.stories.length - currentIndex;
+
+  // --- Story settings gating (mirrors the backend 403s) ---
+  // Only EXPLICITLY disabled values hide anything: null/undefined are the
+  // schema DEFAULT 1, so an unset flag must keep the UI visible. Owners always
+  // bypass the gates — they see every control on their own story.
+  const flagOff = (v: unknown) => v === 0 || v === false || v === '0';
+
+  const commentsDisabled = !isOwner && flagOff(currentStory?.comments_enabled);
+  // reply_privacy 'off' closes replies; comments_enabled 0 closes them too.
+  const repliesDisabled = !isOwner && (commentsDisabled || currentStory?.reply_privacy === 'off');
+  const sharingDisabled = !isOwner && flagOff(currentStory?.allow_sharing);
+  const messageSharingDisabled = !isOwner && flagOff(currentStory?.allow_message_sharing);
 
   const handleLike = async (e?: any) => {
     if (e && e.clientX) emitHeart(e.clientX, e.clientY, 'v');
@@ -751,8 +810,7 @@ export default function StoryViewer() {
                       </button>
                     )}
                     <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Send size={20} /></button>
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowMentionModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><AtSign size={20} /></button>
-                    <button 
+                    <button
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY, 'v');
                         window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`, '_blank', 'noopener,noreferrer');
@@ -767,20 +825,26 @@ export default function StoryViewer() {
                     </button>
                   </div>
                </div>
-             ) : (
-               <div className="flex flex-col w-full gap-2 pointer-events-auto">
-                  <button 
-                    onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowCommentModal(true); }} 
-                    className="self-start mb-1 active:opacity-70 transition-opacity"
-                  >
-                     <span className="text-[12px] font-medium text-white italic tracking-wide bg-neutral-900 border border-white/15 rounded-full px-4 py-2 inline-block">say something...</span>
-                  </button>
+              ) : (
+                <div className="flex flex-col w-full gap-2 pointer-events-auto">
+                   {!commentsDisabled && (
+                     <button
+                       onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowCommentModal(true); }}
+                       className="self-start mb-1 active:opacity-70 transition-opacity"
+                     >
+                        <span className="text-[12px] font-medium text-white italic tracking-wide bg-neutral-900 border border-white/15 rounded-full px-4 py-2 inline-block">say something...</span>
+                     </button>
+                   )}
 
-                  <div className="flex items-center w-full gap-4">
-                    <div className="flex-1 relative">
-                      <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-neutral-900 border border-white/15 rounded-full px-6 text-[13px] text-white placeholder:text-white/50" />
-                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); handleSendStoryMessage(replyText); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
-                    </div>
+                   <div className="flex items-center w-full gap-4">
+                     {!repliesDisabled && (
+                       <div className="flex-1 relative">
+                         <input type="text" value={replyText} onChange={(e) => setReplyText(e.target.value)} onFocus={() => setIsInputFocused(true)} onBlur={() => setIsInputFocused(false)} placeholder="Reply to story..." className="w-full h-12 bg-neutral-900 border border-white/15 rounded-full px-6 text-[13px] text-white placeholder:text-white/50" />
+                         {!messageSharingDisabled && (
+                           <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); handleSendStoryMessage(replyText); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-primary"><Send size={18} /></button>
+                         )}
+                       </div>
+                     )}
                     {replySent && (
                        <motion.div
                          initial={{ opacity: 0, scale: 0.8 }}
@@ -793,7 +857,9 @@ export default function StoryViewer() {
                      )}
                     <div className="flex items-center gap-3">
                       <button onClick={(e) => handleLike(e)} className={`${currentStory.is_liked ? 'text-rose-500 fill-rose-500' : 'text-white'} bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all`}><Heart size={22} /></button>
-                      <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Share2 size={20} /></button>
+                      {!sharingDisabled && (
+                        <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Share2 size={20} /></button>
+                      )}
                     </div>
                   </div>
                </div>
@@ -1091,14 +1157,31 @@ export default function StoryViewer() {
                 ))}
               </div>
               {selectedMentions.length > 0 && (
-                <button 
+                <button
                   onClick={async () => {
+                    const blocked = [...selectedMentions];
                     setIsProcessing(true);
-                    // Add actual logic to ping backend here
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    setIsProcessing(false);
-                    setShowHideFromModal(false);
-                    setSelectedMentions([]);
+                    try {
+                      // One POST per blocked user — the endpoint takes a single
+                      // blockedUserId, same shape as the viewer 3-dot sheet.
+                      await Promise.all(
+                        blocked.map(blockedUserId => api.post('/stories/privacy/hide', { blockedUserId }))
+                      );
+                      // Drop the hidden users from the viewers list straight away;
+                      // the feed-level refresh below catches any story that just
+                      // became fully hidden and should stop playing.
+                      setViewers(prev => prev.filter(v => !blocked.some(id => String(id) === String(v?.user_id))));
+                      setShareContacts(prev => prev.filter(c => !blocked.some(id => String(id) === String(c?.user_id ?? c?.id))));
+                      setSelectedMentions([]);
+                      setShowHideFromModal(false);
+                      showSuccess(`Story hidden from ${blocked.length} ${blocked.length === 1 ? 'person' : 'people'}`);
+                      loadActiveStories();
+                    } catch (err) {
+                      logger.error(err);
+                      showError('Could not hide your story from them');
+                    } finally {
+                      setIsProcessing(false);
+                    }
                   }}
                   disabled={isProcessing}
                   className="mt-4 w-full h-12 bg-white dark:bg-zinc-800 text-[#18181b] dark:text-white rounded-xl font-bold text-[14px] disabled:opacity-50"
@@ -1138,61 +1221,6 @@ export default function StoryViewer() {
                   </button>
                 ))}
               </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* @ Mention Modal */}
-      <AnimatePresence>
-        {showMentionModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/80 backdrop-blur-md flex items-end justify-center" onClick={() => setShowMentionModal(false)}>
-            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#1a1a1a] rounded-t-[40px] p-8 h-[55vh] flex flex-col border-t border-white/10">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-bold text-[15px]">Mention someone</h3>
-                <button onClick={() => setShowMentionModal(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
-              </div>
-              <div className="relative mb-4">
-                <AtSign className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" size={16} />
-                <input placeholder="Search people..." value={contactSearch} onChange={(e) => setContactSearch(e.target.value)} className="w-full bg-white/[0.08] py-3 pl-10 pr-4 rounded-xl text-white text-[14px] outline-none border border-white/10" />
-              </div>
-              <div className="flex-1 overflow-y-auto space-y-3 no-scrollbar">
-                {filteredContacts.map((contact, i) => (
-                  <div key={i} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <img src={getAvatarUrl(contact.avatar_url, contact.username)} className="w-10 h-10 flex-shrink-0 rounded-full border border-white/10 object-cover" alt="" />
-                      <div>
-                        <h4 className="text-white font-medium text-[13px]">{contact.username}</h4>
-                        <p className="text-white/40 text-[11px]">{contact.name || 'Sparkle Member'}</p>
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setSelectedMentions(prev => prev.includes(contact.user_id) ? prev.filter(id => id !== contact.user_id) : [...prev, contact.user_id])}
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
-                        selectedMentions.includes(contact.user_id) ? 'bg-primary border-primary' : 'border-white/20'
-                      }`}
-                    >
-                      {selectedMentions.includes(contact.user_id) && <Check size={12} className="text-white" />}
-                    </button>
-                  </div>
-                ))}
-              </div>
-              {selectedMentions.length > 0 && (
-                <button 
-                  onClick={async () => {
-                    setIsProcessing(true);
-                    // Add actual logic to ping backend here
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    setIsProcessing(false);
-                    setShowMentionModal(false);
-                    setSelectedMentions([]);
-                  }}
-                  disabled={isProcessing}
-                  className="mt-4 w-full h-12 bg-primary text-white rounded-xl font-bold text-[14px] shadow-lg shadow-primary/20 disabled:opacity-50"
-                >
-                  {isProcessing ? 'Mentioning...' : `Mention ${selectedMentions.length} ${selectedMentions.length === 1 ? 'person' : 'people'}`}
-                </button>
-              )}
             </motion.div>
           </motion.div>
         )}

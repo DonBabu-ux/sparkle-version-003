@@ -753,7 +753,7 @@ export default function Profile() {
           </header>
 
           {/* Story Highlights Section */}
-          <div className="flex gap-4 md:gap-8 overflow-x-auto no-scrollbar w-full mb-10 pb-2 px-2 md:px-0">
+          <div className="flex gap-3 md:gap-4 overflow-x-auto no-scrollbar w-full mb-6 pb-2 px-2 md:px-0">
             {/* New Highlight button (own profile only) - MOVE TO FRONT */}
             {showOwnerActions && (
               <div

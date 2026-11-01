@@ -67,7 +67,7 @@ export default function Hashtag() {
             </button>
         </header>
 
-        <div className="flex flex-col gap-5 animate-fade-in relative z-10 pb-20 px-2">
+        <div className="flex flex-col gap-2 animate-fade-in relative z-10 pb-20 px-2">
           {loading ? (
             Array(3).fill(0).map((_, i) => (
               <div key={i} className="h-64 bg-[#f6eef3] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl animate-pulse" />

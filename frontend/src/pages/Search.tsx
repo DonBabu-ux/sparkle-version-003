@@ -519,7 +519,7 @@ export default function Search() {
                                    )}
                                 </div>
 
-                                <div className="grid gap-6">
+                                <div className="grid gap-3">
                                     {type === 'users' && Array.isArray(visible) && visible.map((u, j) => (
                                         <div key={`res-u-${u.user_id || u.id || j}`} className="hover:scale-[1.02] transition-transform duration-500">
                                             <UserCard u={u} />

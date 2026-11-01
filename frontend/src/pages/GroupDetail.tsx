@@ -360,7 +360,7 @@ export default function GroupDetail() {
                       </div>
                     )}
 
-                    <div className="space-y-4">
+                    <div className="space-y-2">
                       {posts && posts.length > 0 ? posts.map(post => (
                         <PostCard key={post.post_id} post={post} />
                       )) : (

@@ -202,7 +202,7 @@ export default function ClubDetail() {
                  ))}
                </div>
 
-               <div className="pb-64 flex flex-col gap-12">
+                  <div className="pb-64 flex flex-col gap-2">
                {activeTab === 'posts' ? (
                  posts.length === 0 ? (
                     <div className="py-16 text-center bg-[#f6eef3] dark:bg-zinc-900 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl flex flex-col items-center gap-6">

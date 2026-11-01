@@ -274,7 +274,7 @@ const posts = orderedPostIds.map(id => postsById[id]);
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 md:gap-8 items-start">
-          <section className="flex flex-col gap-4">
+          <section className="flex flex-col gap-3">
         <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
           <div className="flex gap-4 items-center mb-5">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shadow-sm" alt="" />

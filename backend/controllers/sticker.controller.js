@@ -86,6 +86,28 @@ const votePoll = async (req, res) => {
     }
 };
 
+// 5. Answer a Quiz sticker
+// Mirrors votePoll: one row per (sticker, user), re-answerable via the unique key.
+const answerQuiz = async (req, res) => {
+    try {
+        const { sticker_id, option_index } = req.body;
+        const user_id = req.user.userId || req.user.user_id;
+        const answer_id = crypto.randomUUID();
+
+        await pool.query(
+            `INSERT INTO sticker_quiz_answers (answer_id, sticker_id, user_id, option_index)
+             VALUES (?, ?, ?, ?)
+             ON DUPLICATE KEY UPDATE option_index = VALUES(option_index)`,
+            [answer_id, sticker_id, user_id, option_index]
+        );
+
+        res.json({ status: 'success' });
+    } catch (error) {
+        logger.error('Answer Quiz Error:', error);
+        res.status(500).json({ status: 'error', message: 'Failed to answer quiz' });
+    }
+};
+
 // 6. Get Add Yours Data (Prompt + Responses)
 const getAddYoursData = async (req, res) => {
     try {
@@ -152,6 +174,7 @@ module.exports = {
     createAddYoursPrompt,
     respondToAddYours,
     votePoll,
+    answerQuiz,
     reactToStory,
     getAddYoursData
 };

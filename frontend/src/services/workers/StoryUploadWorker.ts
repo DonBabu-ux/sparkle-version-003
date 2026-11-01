@@ -6,6 +6,7 @@ import { UploadFileDB } from '../uploadFileDB';
 import { AuthService } from '../AuthService';
 import { UploadError } from '../../utils/UploadError';
 import { logger } from '../../utils/logger';
+import { buildStoryUploadFields } from '../../utils/storyCache';
 
 // Keep track of active requests so we can cancel them
 export const activeXhrRequests = new Map<string, XMLHttpRequest>();
@@ -74,35 +75,23 @@ export async function runStoryUploadWorker(job: UploadJob): Promise<string> {
         formData.append('thumbnail', thumbnailFile);
       }
 
-      // Append metadata
+      // Append metadata (caption, audience, save_to_gallery and friends are
+      // mapped onto their multipart names by buildStoryUploadFields).
+      const metadataFields = buildStoryUploadFields(meta);
+      Object.entries(metadataFields).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+      // Video trim window — createStory reads these for the Cloudinary
+      // so_/du_ transform. Kept here (not in buildStoryUploadFields) because
+      // they are the composer's media-tool output, not generic metadata.
+      if (meta.videoStart !== undefined && meta.videoStart !== null) {
+        formData.append('video_start', String(meta.videoStart));
+      }
+      if (meta.videoDuration !== undefined && meta.videoDuration !== null) {
+        formData.append('video_duration', String(meta.videoDuration));
+      }
       if (meta.textContent) {
-        formData.append('text_content', meta.textContent);
         formData.append('type', 'text');
-      }
-      if (meta.textConfig) {
-        formData.append('text_config', meta.textConfig);
-      }
-      if (meta.stickers) {
-        formData.append('stickers', meta.stickers);
-      }
-      if (meta.parentStoryId) {
-        formData.append('parent_story_id', meta.parentStoryId);
-      }
-      if (meta.musicInfo) {
-        formData.append('music_info', meta.musicInfo);
-      }
-      // v2 Layer Engine fields
-      if (meta.storyLayers) {
-        formData.append('story_layers', meta.storyLayers);
-      }
-      if (meta.storyDuration !== undefined) {
-        formData.append('story_duration', String(meta.storyDuration));
-      }
-      if (meta.storyTheme) {
-        formData.append('story_theme', meta.storyTheme);
-      }
-      if (meta.audience) {
-        formData.append('audience', meta.audience);
       }
 
       xhr.upload.onprogress = (event) => {

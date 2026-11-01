@@ -5,7 +5,7 @@ import { confirmDialog } from '../store/dialogStore';
 import { storyCache } from '../utils/storyCache';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/api';
-import { X, Send, Heart, MessageCircle, MoreHorizontal, ChevronRight, Share2, User, Eye, Repeat, Search, Trash2, Link as LinkIcon, Download, AtSign, MessageSquare, Archive, Settings, MessageCircleOff, UserMinus, Ban, EyeOff, Check, ChevronLeft, Music3, Volume2, VolumeX } from 'lucide-react';
+import { X, Send, Heart, MessageCircle, MoreHorizontal, ChevronRight, Share2, User, Eye, Repeat, Search, Trash2, Link as LinkIcon, Download, Bookmark, MessageSquare, Archive, Settings, MessageCircleOff, UserMinus, Ban, EyeOff, Check, ChevronLeft, Music3, Volume2, VolumeX } from 'lucide-react';
 import StickerRenderer from '../components/stories/StickerRenderer';
 import '../store/storyStore';
 import { useUserStore } from '../store/userStore';
@@ -131,6 +131,12 @@ export default function StoryViewer() {
   const [showStorySettings, setShowStorySettings] = useState(false);
   const [showHideFromModal, setShowHideFromModal] = useState(false);
   const [showCommentModal, setShowCommentModal] = useState(false);
+  // "Save to Highlight" — owner-only action over their own live story.
+  const [showSaveToHighlight, setShowSaveToHighlight] = useState(false);
+  const [ownerHighlights, setOwnerHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
+  const [highlightsLoading, setHighlightsLoading] = useState(false);
+  const [newHighlightTitle, setNewHighlightTitle] = useState('');
+  const [highlightSaving, setHighlightSaving] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
   // Real Data States
@@ -260,13 +266,25 @@ export default function StoryViewer() {
   }, [currentIndex, userStories, isOwner]);
 
   useEffect(() => {
-    if (storyComments.length > 0) {
-      const interval = setInterval(() => {
-        setActiveCommentIndex(prev => (prev + 1) % storyComments.length);
-      }, 3000);
-      return () => clearInterval(interval);
+    if (storyComments.length === 0) return;
+    // A story with comments explicitly turned off must not advertise its
+    // comments to the world by rotating them. Only an EXPLICIT 0/false/'0'
+    // stops the carousel — an unset flag keeps the schema DEFAULT (on).
+    // Owners always see their own carousel.
+    const visibleStory = userStories?.stories[currentIndex];
+    // The API may hand back 0 / '0' / false for an explicitly disabled flag,
+    // so compare against untyped input rather than the boolean interface field.
+    const commentsFlag: unknown = visibleStory?.comments_enabled;
+    const commentsExplicitlyOff = !isOwner && (commentsFlag === 0 || commentsFlag === false || commentsFlag === '0');
+    if (commentsExplicitlyOff) {
+      setActiveCommentIndex(0);
+      return;
     }
-  }, [storyComments]);
+    const interval = setInterval(() => {
+      setActiveCommentIndex(prev => (prev + 1) % storyComments.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [storyComments, currentIndex, userStories, isOwner]);
 
   useEffect(() => {
     // Owners: keep viewers loaded for the current story so the inline
@@ -351,7 +369,8 @@ export default function StoryViewer() {
     const isPausedGlobal =
       isPaused || isInputFocused || isLongPressing ||
       showOptionsSheet || showViewersSheet || showShareModal ||
-      !!showViewerOptions || showStorySettings || showCommentModal;
+      !!showViewerOptions || showStorySettings || showCommentModal ||
+      showSaveToHighlight;
 
     if (isPausedGlobal) {
       if (playbackState === 'Playing') {
@@ -369,7 +388,7 @@ export default function StoryViewer() {
         }
       }
     }
-  }, [isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showViewerOptions, showStorySettings, showCommentModal, playbackState, mediaLoaded, currentIndex, userStories]);
+  }, [isPaused, isInputFocused, isLongPressing, showOptionsSheet, showViewersSheet, showShareModal, showViewerOptions, showStorySettings, showCommentModal, showSaveToHighlight, playbackState, mediaLoaded, currentIndex, userStories]);
 
   // Precise Story Timer via requestAnimationFrame
   const currentStorySafe = userStories?.stories[currentIndex];
@@ -387,7 +406,7 @@ export default function StoryViewer() {
       const isPausedGlobal =
         isPaused || isInputFocused || isLongPressing ||
         showOptionsSheet || showViewersSheet || showShareModal ||
-        !!showViewerOptions || showStorySettings || showCommentModal ||
+        !!showViewerOptions || showStorySettings || showCommentModal || showSaveToHighlight ||
         playbackState === 'LoadingMedia' || playbackState === 'LoadingAudio';
 
       if (!isPausedGlobal) {
@@ -472,7 +491,7 @@ export default function StoryViewer() {
   if (loading && !userStories) return (
     <div className="h-dvh bg-black flex flex-col items-center justify-center gap-6">
        <Spinner size="large" color="text-primary" />
-       <p className="text-white font-black text-[10px] uppercase tracking-[0.4em] italic">Loading story...</p>
+       <p className="text-white font-black text-[11px] uppercase tracking-[0.4em] italic">Loading story...</p>
     </div>
   );
 
@@ -520,6 +539,105 @@ export default function StoryViewer() {
       updatedStories[currentIndex] = { ...currentStory, [key]: value };
       setUserStories({ ...userStories, stories: updatedStories });
     } catch (err) { logger.error(err); }
+  };
+
+  /** Canonical public link for the story being viewed. */
+  const storyLink = () => `${window.location.origin}/story/${currentStory.story_id}`;
+
+  const handleCopyStoryLink = async () => {
+    const link = storyLink();
+    try {
+      await navigator.clipboard.writeText(link);
+      showSuccess('Story link copied');
+    } catch (err) {
+      logger.error(err);
+      showError('Could not copy the link');
+    }
+  };
+
+  /** Deep-links the story into a WhatsApp status update. */
+  const handleShareWhatsAppStatus = () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent(`Check out this story on Sparkle! ${storyLink()}`)}`, '_blank', 'noopener,noreferrer');
+  };
+
+  /**
+   * Downloads the story media to the device. The composer's "Save to device"
+   * toggle (story metadata `save_to_gallery`) only records intent — this action
+   * is what actually writes the file, for the owner.
+   */
+  const handleSaveStoryToDevice = async () => {
+    // Text-only stories carry no downloadable media (their url is the literal
+    // 'text' marker), so there is nothing to write to the device.
+    if (currentStory.media_type === 'text' || !currentStory.media_url || currentStory.media_url === 'text') {
+      showError('This story has no media to save');
+      return;
+    }
+    const url = getMediaUrl(currentStory.media_url);
+    if (!url) {
+      showError('This story has no media to save');
+      return;
+    }
+    try {
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `sparkle-story-${currentStory.story_id}`;
+      anchor.rel = 'noopener';
+      anchor.target = '_blank';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      showSuccess('Saved to your device');
+    } catch (err) {
+      logger.error(err);
+      showError('Could not save this story');
+    }
+  };
+
+  /** Loads the owner's own highlights for the save-to-highlight sheet. */
+  const openSaveToHighlight = async () => {
+    setShowSaveToHighlight(true);
+    setNewHighlightTitle('');
+    setHighlightsLoading(true);
+    try {
+      const res = await api.get(`/users/${userStories.user_id}/highlights`);
+      setOwnerHighlights(Array.isArray(res.data) ? res.data : []);
+    } catch (err) {
+      logger.error(err);
+      showError('Could not load your highlights');
+    } finally {
+      setHighlightsLoading(false);
+    }
+  };
+
+  const attachStoryToHighlight = async (highlightId: string) => {
+    setHighlightSaving(true);
+    try {
+      await api.post(`/highlights/${highlightId}/stories`, { story_ids: [currentStory.story_id] });
+      showSuccess('Added to highlight');
+      setShowSaveToHighlight(false);
+    } catch (err) {
+      logger.error(err);
+      showError('Could not add this story to the highlight');
+    } finally {
+      setHighlightSaving(false);
+    }
+  };
+
+  const createHighlightWithStory = async () => {
+    const title = newHighlightTitle.trim();
+    if (!title) return;
+    setHighlightSaving(true);
+    try {
+      const created = await api.post('/highlights', { title });
+      await api.post(`/highlights/${created.data.id}/stories`, { story_ids: [currentStory.story_id] });
+      showSuccess('Saved to a new highlight');
+      setShowSaveToHighlight(false);
+    } catch (err) {
+      logger.error(err);
+      showError('Could not create the highlight');
+    } finally {
+      setHighlightSaving(false);
+    }
   };
 
   const handleSendStoryToContact = async (contactId: string) => {
@@ -715,7 +833,13 @@ export default function StoryViewer() {
                   />
                 ) : null
               )}
-              <StickerRenderer storyId={currentStory?.story_id} stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
+           </div>
+
+           {/* Sticker layer — sits ABOVE the nav tap zones (z-20) so stickers
+               placed at the edges stay interactive. The wrapper itself is
+               pointer-events-none; only the stickers capture the tap. */}
+           <div className="absolute inset-0 z-30 pointer-events-none overflow-hidden">
+             <StickerRenderer storyId={currentStory?.story_id} stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
            </div>
 
            {/* Rotating Comments on Left */}
@@ -759,8 +883,8 @@ export default function StoryViewer() {
                      )}
                    </div>
                    <div className="overflow-hidden">
-                     <p className="text-white text-[10px] font-black italic uppercase tracking-tight truncate">{trackTitle}</p>
-                     {trackArtist && <p className="text-white/50 text-[8px] font-bold truncate">{trackArtist}</p>}
+                     <p className="text-white text-[11px] font-black italic uppercase tracking-tight truncate">{trackTitle}</p>
+                     {trackArtist && <p className="text-white/50 text-[11px] font-bold truncate">{trackArtist}</p>}
                    </div>
                  </div>
                  {/* Premium Audio-reactive visualizer bars */}
@@ -809,19 +933,26 @@ export default function StoryViewer() {
                         {videoMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
                       </button>
                     )}
-                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"><Send size={20} /></button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setContactSearch(''); setShowShareModal(true); }} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all" aria-label="Send this story to a contact"><Send size={20} /></button>
                     <button
                       onClick={(e) => {
                         emitHeart(e.clientX, e.clientY, 'v');
-                        window.open(`whatsapp://send?text=Check out my story on Sparkle! ${window.location.href}`, '_blank', 'noopener,noreferrer');
-                      }} 
+                        handleShareWhatsAppStatus();
+                      }}
+                      aria-label="Share to WhatsApp status"
                       className="bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all"
                     >
                       {WA_LOGO}
                     </button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); void handleSaveStoryToDevice(); }} aria-label="Save this story to your device" disabled={currentStory.media_type === 'text'} className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all disabled:opacity-40">
+                      <Download size={20} />
+                    </button>
+                    <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); void openSaveToHighlight(); }} aria-label="Save this story to a highlight" className="text-white bg-neutral-900 border border-white/15 rounded-full w-10 h-10 flex items-center justify-center active:scale-75 transition-all">
+                      <Bookmark size={20} />
+                    </button>
                     <button onClick={(e) => { emitHeart(e.clientX, e.clientY, 'v'); setShowOptionsSheet(true); }} className="flex flex-col items-center gap-0.5 text-white bg-neutral-900 border border-white/15 rounded-2xl px-3 py-2 active:scale-75 transition-all">
                       <MoreHorizontal size={22} />
-                      <span className="text-[8px] font-black uppercase tracking-widest">More</span>
+                      <span className="text-[11px] font-black uppercase tracking-widest">More</span>
                     </button>
                   </div>
                </div>
@@ -892,7 +1023,7 @@ export default function StoryViewer() {
                      <button onClick={() => setActiveViewerTab('shares')} className={`tab-btn ${activeViewerTab === 'shares' ? 'active' : ''}`}><Share2 size={18} /> {viewers.filter(v => v.type === 'share').length}</button>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">{viewerIndex + 1} / {userStories.stories.length}</span>
+                    <span className="text-[11px] font-black text-white/20 uppercase tracking-widest">{viewerIndex + 1} / {userStories.stories.length}</span>
                     <button onClick={() => setShowViewersSheet(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
                   </div>
                </div>
@@ -911,7 +1042,7 @@ export default function StoryViewer() {
                           </div>
                        </div>
                        <div className="flex items-center gap-3">
-                          <button className="p-2 bg-white/5 rounded-full text-primary active:scale-90 transition-all"><Send size={16} /></button>
+                          <button onClick={() => { setShowViewersSheet(false); setContactSearch(''); setShowShareModal(true); }} className="p-2 bg-white/5 rounded-full text-primary active:scale-90 transition-all"><Send size={16} /></button>
                           <button onClick={() => setShowViewerOptions(v)} className="text-white/40 p-2"><MoreHorizontal size={20} /></button>
                        </div>
                     </div>
@@ -925,7 +1056,7 @@ export default function StoryViewer() {
                </div>
 
                <div className="mt-6 pt-6 border-t border-white/5">
-                  <button className="w-full h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-95 transition-all">
+                  <button onClick={handleShareWhatsAppStatus} className="w-full h-14 bg-[#25D366] text-white rounded-2xl flex items-center justify-center gap-3 font-bold active:scale-95 transition-all">
                     {WA_LOGO} Share to WhatsApp Status
                   </button>
                </div>
@@ -1091,27 +1222,22 @@ export default function StoryViewer() {
                    ))}
                 </div>
                 
-                {/* FOOTER BRAND ICONS */}
+                {/* Footer actions — only real, wired actions live here; the
+                    decorative brand tiles are gone. */}
                 <div className="mt-5 pt-5 border-t border-white/10 -mx-8 px-8 pb-6">
                    <div className="flex gap-4 overflow-x-auto no-scrollbar pb-1">
-                      {[
-                        { name: 'WhatsApp', icon: WA_LOGO },
-                        { name: 'Messenger', icon: <div className="w-5 h-5 bg-gradient-to-tr from-[#006AFF] to-[#00E2FF] rounded-md" /> },
-                        { name: 'Facebook', icon: FB_LOGO },
-                        { name: 'Instagram', icon: <div className="w-5 h-5 bg-gradient-to-tr from-[#FFD600] via-[#FF0069] to-[#7638FF] rounded-md" /> },
-                        { name: 'X', icon: <X size={14} className="text-white" /> },
-                        { name: 'Snapchat', icon: <div className="w-5 h-5 bg-[#FFFC00] rounded-md" /> },
-                        { name: 'Threads', icon: <AtSign size={16} className="text-white" /> },
-                        { name: 'SMS', icon: <MessageSquare size={16} className="text-white" /> },
-                        { name: 'Copy Link', icon: <LinkIcon size={16} className="text-white" /> }
-                      ].map((app, i) => (
-                        <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
-                           <div className="w-11 h-11 rounded-[16px] bg-white/[0.07] border border-white/10 flex items-center justify-center active:scale-90 transition-all cursor-pointer">
-                              {app.icon}
-                           </div>
-                           <span className="text-[9px] font-medium text-white/40">{app.name}</span>
+                      <button onClick={() => void handleCopyStoryLink()} className="flex flex-col items-center gap-2 flex-shrink-0 active:scale-90 transition-all">
+                        <div className="w-11 h-11 rounded-[16px] bg-white/[0.07] border border-white/10 flex items-center justify-center">
+                           <LinkIcon size={16} className="text-white" />
                         </div>
-                      ))}
+                        <span className="text-[11px] font-medium text-white/40">Copy Link</span>
+                      </button>
+                      <button onClick={handleShareWhatsAppStatus} className="flex flex-col items-center gap-2 flex-shrink-0 active:scale-90 transition-all">
+                        <div className="w-11 h-11 rounded-[16px] bg-white/[0.07] border border-white/10 flex items-center justify-center">
+                           {WA_LOGO}
+                        </div>
+                        <span className="text-[11px] font-medium text-white/40">WhatsApp</span>
+                      </button>
                    </div>
                 </div>
              </motion.div>
@@ -1247,6 +1373,69 @@ export default function StoryViewer() {
                     <span className={`font-medium text-[14px] ${item.color}`}>{item.label}</span>
                   </button>
                 ))}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Save to Highlight (owner only) */}
+      <AnimatePresence>
+        {showSaveToHighlight && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-(--z-modal-hi) bg-black/70 flex items-end justify-center" onClick={() => setShowSaveToHighlight(false)}>
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} transition={{ type: 'spring', damping: 28, stiffness: 220 }} onClick={e => e.stopPropagation()} className="w-full max-w-[500px] bg-[#111] rounded-t-[40px] p-8 border-t border-white/10">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-white font-bold text-[15px]">Save to Highlight</h3>
+                <button onClick={() => setShowSaveToHighlight(false)} className="text-white bg-white/10 p-2 rounded-full"><X size={20} /></button>
+              </div>
+
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-white/5 shrink-0">
+                  {currentStory.thumbnail_url || currentStory.media_url ? (
+                    <img src={getMediaUrl(currentStory.thumbnail_url || currentStory.media_url)} className="w-full h-full object-cover" alt="" />
+                  ) : null}
+                </div>
+                <p className="text-white/50 text-[12px]">Pick a highlight to keep this story in — it stays after the 24h story window.</p>
+              </div>
+
+              {highlightsLoading ? (
+                <div className="flex justify-center py-8"><Spinner size="medium" color="text-primary" /></div>
+              ) : ownerHighlights.length === 0 ? (
+                <p className="text-white/40 text-[12px] py-4">You have no highlights yet — create one below.</p>
+              ) : (
+                <div className="space-y-2 mb-6 max-h-[40vh] overflow-y-auto no-scrollbar">
+                  {ownerHighlights.map(h => (
+                    <button
+                      key={h.id}
+                      onClick={() => void attachStoryToHighlight(h.id)}
+                      disabled={highlightSaving}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-[#2a2a2a] active:bg-white/10 transition-all disabled:opacity-50"
+                    >
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-white/10 shrink-0">
+                        {h.cover_url ? <img src={getMediaUrl(h.cover_url)} className="w-full h-full object-cover" alt="" /> : null}
+                      </div>
+                      <span className="text-white font-semibold text-[14px] truncate">{h.title}</span>
+                      <span className="text-white/30 text-[11px] ml-auto shrink-0">{h.story_count}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex items-center gap-2">
+                <input
+                  value={newHighlightTitle}
+                  onChange={(e) => setNewHighlightTitle(e.target.value)}
+                  placeholder="New highlight name"
+                  maxLength={30}
+                  className="flex-1 h-12 bg-white/5 border border-white/10 rounded-2xl px-4 text-[13px] text-white placeholder:text-white/40 outline-none focus:border-primary/60"
+                />
+                <button
+                  onClick={() => void createHighlightWithStory()}
+                  disabled={highlightSaving || !newHighlightTitle.trim()}
+                  className="h-12 px-5 bg-primary text-white rounded-2xl font-black uppercase italic text-[12px] active:scale-95 transition-all disabled:opacity-40"
+                >
+                  Create
+                </button>
               </div>
             </motion.div>
           </motion.div>

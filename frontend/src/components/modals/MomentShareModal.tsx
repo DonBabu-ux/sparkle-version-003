@@ -96,7 +96,11 @@ export default function MomentShareModal({ moment, onClose, onDownload }: Moment
         media_url: moment.video_url || moment.media_url,
         thumbnail_url: moment.thumbnail_url,
         caption: storyCaption.trim() || undefined,
-        media_type: moment.media_type || 'video'
+        media_type: moment.media_type || 'video',
+        // Explicit audience: the backend falls back to 'public' when the field
+        // is missing, so sending it keeps the shared story's visibility aligned
+        // with whatever the moment's composer picked.
+        audience: 'public'
       });
       setSharingStory(false);
       onClose();

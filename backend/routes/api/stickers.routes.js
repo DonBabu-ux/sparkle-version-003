@@ -13,6 +13,7 @@ router.post('/add-yours/respond', authMiddleware, stickerController.respondToAdd
 
 // Interactions
 router.post('/poll/vote', authMiddleware, stickerController.votePoll);
+router.post('/quiz/answer', authMiddleware, stickerController.answerQuiz);
 router.post('/reaction', authMiddleware, stickerController.reactToStory);
 
 module.exports = router;

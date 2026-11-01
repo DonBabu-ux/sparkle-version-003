@@ -191,7 +191,9 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
   switch (sticker.type) {
     case 'quiz':
       // Read-only by design: the author pins the correct answer while placing the
-      // sticker and there is no quiz-answer endpoint to submit to.
+      // sticker. POST /api/stickers/quiz/answer exists (see answerQuiz) so the
+      // sticker can become answerable, but QuizSticker.tsx is owned elsewhere —
+      // until it wires storyStickerApi.quizAnswer the render stays inert.
       return <QuizSticker config={config} />;
     case 'add_yours':
       return <AddYoursSticker config={config} stickerId={sticker.id} storyId={storyId} onInteract={(data) => onInteract?.(sticker.id, data)} />;
@@ -201,13 +203,49 @@ const renderStickerContent = (sticker: StoryLayer, onInteract?: (id: string, dat
       return <ReactionSticker config={config} stickerId={sticker.id} storyId={storyId} onInteract={(data) => onInteract?.(sticker.id, data)} />;
     case 'avatar_loop':
       return <AvatarLoopSticker config={config} />;
+    case 'gif': {
+      // Giphy payload: `url` is the animation, `still` the poster frame kept in
+      // the layer config for cheap fallbacks and prefetch hints.
+      const gifUrl = config.url || config.gif || '';
+      if (!gifUrl) return null;
+      return (
+        <img
+          src={gifUrl}
+          alt={config.title || 'GIF sticker'}
+          className="max-w-[220px] max-h-[220px] w-auto h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.45)] select-none"
+        />
+      );
+    }
+    case 'drawing': {
+      // Freehand canvas output: a PNG data-URL with a transparent background.
+      const drawingUrl = config.dataUrl || config.url || '';
+      if (!drawingUrl) return null;
+      return (
+        <img
+          src={drawingUrl}
+          alt="Drawing"
+          className="max-w-[280px] max-h-[280px] w-auto h-auto object-contain drop-shadow-[0_20px_50px_rgba(0,0,0,0.35)] select-none"
+        />
+      );
+    }
     case 'mention': {
       const mentionUser = config.username || config.text || '';
+      // Viewers: tap the pill to open the mentioned profile. The composer
+      // leaves it inert (no onInteract is bound from there).
+      const openProfile = () => {
+        if (!onInteract || !config.user_id) return;
+        onInteract(sticker.id, { action: 'open_profile', user_id: config.user_id, username: mentionUser });
+      };
       return (
-        <div className="bg-white/95 backdrop-blur-3xl px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 min-w-[120px] justify-center select-none">
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); openProfile(); }}
+          disabled={!onInteract}
+          className="bg-white/95 backdrop-blur-3xl px-6 py-3 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.3)] border border-white/20 flex items-center gap-2 min-w-[120px] justify-center select-none active:scale-95 transition-transform"
+        >
           <span className="text-primary font-black italic uppercase tracking-tighter text-[20px]">@</span>
           <span className="text-[#18181b] dark:text-white font-black italic uppercase tracking-tighter text-[20px]">{mentionUser}</span>
-        </div>
+        </button>
       );
     }
     case 'emoji': {

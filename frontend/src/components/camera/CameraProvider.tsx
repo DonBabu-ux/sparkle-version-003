@@ -12,6 +12,9 @@ interface CameraContextType {
   zoomLevel: number;
   isRecording: boolean;
   recordingSeconds: number;
+  /** Max seconds a clip may record before it auto-stops (story vs reel caps). */
+  maxRecordingSeconds: number;
+  setMaxRecordingSeconds: (seconds: number) => void;
 
   requestPermission: () => Promise<boolean>;
   toggleFacingMode: () => void;
@@ -49,6 +52,13 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
   const [zoomLevel, setZoomLevel]         = useState(1);
   const [isRecording, setIsRecording]     = useState(false);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
+  // Capture cap in seconds. 15 is the story-card default; the story mode
+  // offers 15/60 and reels keep their longer ceiling.
+  const [maxRecordingSeconds, setMaxRecordingSeconds] = useState(15);
+  // Mirrors of state read inside the stable interval callbacks below, so the
+  // loop never closes over a stale cap.
+  const maxRecordingSecondsRef = useRef(maxRecordingSeconds);
+  useEffect(() => { maxRecordingSecondsRef.current = maxRecordingSeconds; }, [maxRecordingSeconds]);
 
   // ── Refs (avoid stale-closure issues in callbacks) ─────────────────────────
   const streamRef      = useRef<MediaStream | null>(null);      // live stream handle
@@ -57,6 +67,10 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
   const mediaRecorderRef    = useRef<MediaRecorder | null>(null);
   const recordedChunksRef   = useRef<Blob[]>([]);
   const recordingIntervalRef= useRef<ReturnType<typeof setInterval> | null>(null);
+  // Set once stopVideoRecording is defined, so the interval's auto-stop can
+  // reach it without taking a dependency on it (which would re-create the
+  // recording loop on every render).
+  const stopVideoRecordingRef = useRef<(() => void) | null>(null);
 
   // Keep facingModeRef in sync with state (set by toggleFacingMode)
   useEffect(() => { facingModeRef.current = facingMode; }, [facingMode]);
@@ -233,10 +247,22 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
 
       setIsRecording(true);
       setRecordingSeconds(0);
-      recordingIntervalRef.current = setInterval(
-        () => setRecordingSeconds(s => s + 1), 1000
-      );
-      logger.log(`Recording started (${mimeType || 'default codec'}).`);
+      recordingIntervalRef.current = setInterval(() => {
+        setRecordingSeconds(s => {
+          const next = s + 1;
+          const cap = maxRecordingSecondsRef.current;
+          if (cap > 0 && next >= cap) {
+            // Hard auto-stop at the cap: the interval must clear itself and
+            // finalise the recorder, or the clip silently runs past the limit.
+            // stopVideoRecording is defined below; defer to the next tick so
+            // this callback isn't inside the setState updater.
+            stopVideoRecordingRef.current?.();
+            return cap;
+          }
+          return next;
+        });
+      }, 1000);
+      logger.log(`Recording started (${mimeType || 'default codec'}, cap ${maxRecordingSecondsRef.current}s).`);
     } catch (err) {
       logger.error('[CameraProvider] MediaRecorder init failed:', err);
     }
@@ -267,10 +293,14 @@ export function CameraProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  // Expose the finaliser to the interval loop (see the cap check above).
+  stopVideoRecordingRef.current = () => { void stopVideoRecording(); };
+
   return (
     <CameraContext.Provider value={{
       stream, hasPermission, facingMode, flash, torchSupported, zoomLevel,
       isRecording, recordingSeconds,
+      maxRecordingSeconds, setMaxRecordingSeconds,
       requestPermission, toggleFacingMode, toggleFlash, setZoomLevel,
       startCamera, stopCamera,
       capturePhoto, startVideoRecording, stopVideoRecording,

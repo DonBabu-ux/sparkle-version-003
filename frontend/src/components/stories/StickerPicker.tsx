@@ -1,22 +1,35 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Camera, BarChart3, Smile, Users, HelpCircle, TrendingUp, History, Star } from 'lucide-react';
+import { X, Camera, BarChart3, Smile, Users, HelpCircle, TrendingUp, History, Zap } from 'lucide-react';
 import InteractiveStickerSheet from './InteractiveStickerSheet';
 import { isInteractiveStickerType, type InteractiveStickerType } from './interactiveStickers';
+import GifPicker, { type GifItem } from './GifPicker';
+
+/** A sticker the author already placed in this composing session. */
+export interface RecentSticker {
+  type: string;
+  config: Record<string, unknown>;
+}
 
 interface StickerPickerProps {
   onSelect: (type: string, config: any) => void;
   onClose: () => void;
+  /**
+   * Stickers placed earlier in this session. Optional so every existing caller
+   * compiles unchanged; absent/empty renders an honest empty state rather than
+   * a fabricated list.
+   */
+  recentStickers?: RecentSticker[];
 }
 
-const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
-  const [activeCategory, setActiveCategory] = useState<'trending' | 'my' | 'recent'>('trending');
+const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose, recentStickers = [] }) => {
+  const [activeCategory, setActiveCategory] = useState<'trending' | 'recent' | 'gifs'>('trending');
   const [editingType, setEditingType] = useState<InteractiveStickerType | null>(null);
 
   const categories = [
     { id: 'trending', label: 'Trending', icon: TrendingUp },
-    { id: 'my', label: 'My Stickers', icon: Star },
     { id: 'recent', label: 'Recent', icon: History },
+    { id: 'gifs', label: 'GIFs', icon: Zap },
   ];
 
   const stickerTypes = [
@@ -26,6 +39,27 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
     { type: 'avatar_loop', icon: Users, label: 'Activity', color: 'bg-black', desc: 'Show who is here' },
     { type: 'quiz', icon: HelpCircle, label: 'Quiz', color: 'bg-rose-500', desc: 'Test your friends' },
   ];
+
+  // Glyph shown for a recently placed sticker: its emoji when it has one,
+  // otherwise a short badge for the sticker type.
+  const RECENT_GLYPHS: Record<string, string> = {
+    emoji: '😀',
+    text: 'T',
+    mention: '@',
+    poll: '📊',
+    quiz: '❓',
+    add_yours: '📸',
+    reaction: '🔥',
+    avatar_loop: '👥',
+    location: '📍',
+    gif: 'GIF',
+  };
+
+  const recentGlyph = (sticker: RecentSticker): string => {
+    const emoji = sticker.config?.emoji;
+    if (typeof emoji === 'string' && emoji) return emoji;
+    return RECENT_GLYPHS[sticker.type] ?? '•';
+  };
 
   return (
     <div className="fixed inset-0 z-(--z-toast) flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -99,24 +133,64 @@ const StickerPicker: React.FC<StickerPickerProps> = ({ onSelect, onClose }) => {
                   <div className={`w-14 h-14 ${s.color} rounded-2xl flex items-center justify-center text-white shadow-lg shadow-black/10 group-hover:scale-110 transition-transform`}>
                     <s.icon size={28} strokeWidth={2.5} />
                   </div>
-                  <div className="text-center">
-                    <span className="text-[14px] font-black italic uppercase tracking-tight block">{s.label}</span>
-                    <span className="text-[9px] font-bold text-black/30 uppercase tracking-widest">{s.desc}</span>
-                  </div>
+                    <div className="text-center">
+                      <span className="text-[14px] font-black italic uppercase tracking-tight block">{s.label}</span>
+                      <span className="text-[11px] font-bold text-black/30 uppercase tracking-widest">{s.desc}</span>
+                    </div>
                 </button>
               ))}
             </div>
           )}
 
-          {activeCategory !== 'trending' && (
-            <div className="py-20 text-center opacity-20">
-               <Smile size={64} className="mx-auto mb-4" />
-               <p className="font-black italic uppercase text-[12px]">No stickers found</p>
+          {activeCategory === 'gifs' && (
+            <GifPicker
+              onClose={() => setActiveCategory('trending')}
+              onSelect={(gif: GifItem) => {
+                // Sticker payload mirrors GifPicker's shape: the animation url
+                // plus the still frame, so the renderer never has to re-fetch.
+                onSelect('gif', {
+                  url: gif.url,
+                  still: gif.still,
+                  width: gif.width,
+                  height: gif.height,
+                  title: gif.title,
+                });
+                onClose();
+              }}
+            />
+          )}
+
+          {activeCategory === 'recent' && (
+            <div className="p-6">
+              {recentStickers.length === 0 ? (
+                <div className="py-16 text-center opacity-40 flex flex-col items-center gap-4">
+                  <History size={56} strokeWidth={2} className="opacity-40" />
+                  <p className="font-black italic uppercase text-[12px]">Nothing placed yet</p>
+                  <p className="text-[11px] font-bold normal-case tracking-normal max-w-[240px]">
+                    Stickers you place in this session collect here so you can reuse them.
+                  </p>
+                </div>
+              ) : (
+                <div className="grid grid-cols-4 gap-4">
+                  {recentStickers.map((sticker, i) => (
+                    <button
+                      key={`recent-${i}`}
+                      onClick={() => {
+                        onSelect(sticker.type, sticker.config);
+                        onClose();
+                      }}
+                      className="aspect-square flex items-center justify-center rounded-2xl bg-gray-50/50 hover:bg-gray-100 active:scale-90 transition-all border border-black/5 dark:border-white/5"
+                    >
+                      <span className="text-3xl">{recentGlyph(sticker)}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           <div className="p-6 pb-20">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-black/20 mb-6 px-2 italic">Standard Emojis</p>
+            <p className="text-[11px] font-black uppercase tracking-[0.2em] text-black/20 mb-6 px-2 italic">Standard Emojis</p>
             <div className="grid grid-cols-4 gap-4 px-2">
               {[
                 '🔥', '❤️', '😂', '😍', '✨', '🙌', '💯', '🚀', '🌈', '🍕',

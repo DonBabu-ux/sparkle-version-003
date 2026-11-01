@@ -1,6 +1,7 @@
 import 'react';
-import { Zap, RotateCw, Image as ImageIcon, Sparkles, X, Grid3X3, Square, RectangleHorizontal, Timer as TimerIcon, Gauge, LayoutGrid } from 'lucide-react';
+import { Zap, RotateCw, Image as ImageIcon, Sparkles, X, Grid3X3, Square, RectangleHorizontal, Timer as TimerIcon, Gauge, LayoutGrid, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { audioEventBus } from '../../audio/EventBus';
 
 interface CameraControlsProps {
   mode: 'post' | 'story' | 'reel';
@@ -13,10 +14,13 @@ interface CameraControlsProps {
   onCameraTypeToggle: () => void;
   onGalleryClick: () => void;
   onCapture: () => void;
-  
+
   // Custom states
   isRecording: boolean;
   recordingSeconds: number;
+  /** Current duration cap for video capture (story offers 15/60). */
+  maxRecordingSeconds: number;
+  onDurationChange: (seconds: number) => void;
   cameraTimer: 0 | 3 | 10;
   onTimerToggle: () => void;
   cameraSpeed: '1x' | '2x' | '0.5x';
@@ -27,17 +31,19 @@ interface CameraControlsProps {
   onMagicToggle: () => void;
   isWideAspect: boolean;
   onRatioToggle: () => void;
-  
+
   // Filters list
   filters: { id: string; name: string; css: string }[];
   activeFilter: { id: string; name: string; css: string };
   onFilterChange: (filter: { id: string; name: string; css: string }) => void;
-  
+
   // Close / Exit
   onClose: () => void;
 }
 
-export default function CameraControls({ mode, onModeChange, flash, torchSupported, onFlashToggle, onCameraTypeToggle, onGalleryClick, onCapture, isRecording, recordingSeconds, cameraTimer, onTimerToggle, cameraSpeed, onSpeedToggle, cameraLayout, onLayoutToggle, isMagicOn, onMagicToggle, isWideAspect, onRatioToggle, filters, activeFilter, onFilterChange, onClose }: CameraControlsProps) {
+const STORY_DURATIONS = [15, 60];
+
+export default function CameraControls({ mode, onModeChange, flash, torchSupported, onFlashToggle, onCameraTypeToggle, onGalleryClick, onCapture, isRecording, recordingSeconds, maxRecordingSeconds, onDurationChange, cameraTimer, onTimerToggle, cameraSpeed, onSpeedToggle, cameraLayout, onLayoutToggle, isMagicOn, onMagicToggle, isWideAspect, onRatioToggle, filters, activeFilter, onFilterChange, onClose }: CameraControlsProps) {
 
   // Format recording timer: 00:00
   const formatTimer = (seconds: number) => {
@@ -134,6 +140,50 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
             </motion.div>
           )}
 
+          {mode === 'story' && (
+            <motion.div
+              key="story-tools"
+              initial={{ x: -20, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -20, opacity: 0 }}
+              className="flex flex-col gap-5"
+            >
+              <button
+                onClick={() => {
+                  const next = STORY_DURATIONS.find(d => d !== maxRecordingSeconds) ?? STORY_DURATIONS[0];
+                  onDurationChange(next);
+                }}
+                className={`camera-tool-btn ${maxRecordingSeconds !== 15 ? 'text-yellow-400' : ''}`}
+              >
+                <Clock size={20} strokeWidth={2.5} />
+                <span>{maxRecordingSeconds}s</span>
+              </button>
+
+              <button
+                onClick={onTimerToggle}
+                className={`camera-tool-btn ${cameraTimer > 0 ? 'text-yellow-400' : ''}`}
+              >
+                <div className="relative">
+                  <TimerIcon size={20} strokeWidth={2.5} />
+                  {cameraTimer > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-[#18181b] dark:text-white text-[8px] px-1 rounded-full font-black">
+                      {cameraTimer}s
+                    </span>
+                  )}
+                </div>
+                <span>Timer</span>
+              </button>
+
+              <button
+                onClick={onMagicToggle}
+                className={`camera-tool-btn ${isMagicOn ? 'text-pink-400' : ''}`}
+              >
+                <Sparkles size={20} fill={isMagicOn ? "currentColor" : "none"} strokeWidth={2.5} />
+                <span>Magic</span>
+              </button>
+            </motion.div>
+          )}
+
           {mode === 'post' && (
             <motion.div 
               key="post-tools"
@@ -195,8 +245,13 @@ export default function CameraControls({ mode, onModeChange, flash, torchSupport
           </button>
 
           {/* Shutter Capture Button */}
-          <button 
-            onClick={onCapture}
+          <button
+            onClick={() => {
+              // Shutter confirmation, routed through the shared audio event bus
+              // so the user's haptics setting is respected.
+              audioEventBus.emit('trigger_haptic', 'click');
+              onCapture();
+            }}
             className="relative w-24 h-24 flex items-center justify-center group active:scale-95 transition-transform"
           >
             {/* Pulsing ring outline */}

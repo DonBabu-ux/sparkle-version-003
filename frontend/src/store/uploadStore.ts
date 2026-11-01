@@ -28,6 +28,14 @@ export interface StoryMetadata {
   storyTheme?: string;
   /** Audience/privacy: 'public' | 'followers' | 'close_friends' | 'only_me'. */
   audience?: string;
+  /** Caption typed in the editor, sent as the story's `caption`. */
+  caption?: string;
+  /** Composer "Save to device" toggle, sent as `save_to_gallery`. */
+  save_to_gallery?: boolean;
+  /** Video trim window start (seconds) → `video_start` multipart field. */
+  videoStart?: number;
+  /** Video trim window length (seconds) → `video_duration` multipart field. */
+  videoDuration?: number;
 }
 
 export interface MomentMetadata {

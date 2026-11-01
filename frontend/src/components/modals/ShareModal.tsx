@@ -80,7 +80,11 @@ export default function ShareModal({ onClose, contentUrl }: ShareModalProps) {
   };
 
   const handleAddToStory = () => {
-    navigate('/afterglow/create');
+    // Seed the story editor with the post's own media so "Add to story" is a
+    // one-tap flow instead of an empty gallery. CreateStory already understands
+    // ?imageUrl= and fetches it into a File.
+    const mediaParam = post?.media_url ? `?imageUrl=${encodeURIComponent(post.media_url)}` : '';
+    navigate(`/afterglow/create${mediaParam}`);
     onClose();
   };
 

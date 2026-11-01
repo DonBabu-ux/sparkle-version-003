@@ -10,7 +10,7 @@ import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
-List, FileText
+List, FileText, MoreHorizontal
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,7 @@ import { logger } from '../utils/logger';
 import DraftPreview from '../features/reels/components/DraftPreview';
 import PendingReelTile from '../features/reels/components/PendingReelTile';
 import { listDrafts, formatBytes, type DraftListItem } from '../features/reels/services/draftService';
+import HighlightEditModal from '../components/modals/HighlightEditModal';
 
 export default function Profile() {
   const { username } = useParams();
@@ -120,6 +121,8 @@ export default function Profile() {
 
   // Highlights
   const [highlights, setHighlights] = useState<{ id: string; title: string; cover_url: string; story_count: number }[]>([]);
+  // Highlight the owner is renaming / re-covering / re-stocking.
+  const [editingHighlight, setEditingHighlight] = useState<{ id: string; title: string } | null>(null);
 
   const fetchProfile = useCallback(async () => {
     // Concurrent invocations (mount + ?tab=reels + UPLOAD_COMPLETED) race;
@@ -768,13 +771,19 @@ export default function Profile() {
             {highlights.map(h => (
               <div
                 key={h.id}
-                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0"
+                className="flex flex-col items-center gap-2 cursor-pointer group shrink-0 relative"
                 onClick={() => openHighlight(h.id, h.title)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     openHighlight(h.id, h.title);
                   }
+                }}
+                onContextMenu={(e) => {
+                  // Long-press / right-click opens the editor on your own highlights.
+                  if (!showOwnerActions) return;
+                  e.preventDefault();
+                  setEditingHighlight({ id: h.id, title: h.title });
                 }}
                 role="button"
                 tabIndex={0}
@@ -791,9 +800,33 @@ export default function Profile() {
                   </div>
                 </div>
                 <span className="text-xs font-medium text-[#18181b] dark:text-white truncate max-w-[64px] text-center">{h.title}</span>
+                {showOwnerActions && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingHighlight({ id: h.id, title: h.title });
+                    }}
+                    aria-label={`Edit highlight ${h.title}`}
+                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-white dark:bg-zinc-800 border border-black/10 dark:border-white/10 shadow flex items-center justify-center text-[#18181b] dark:text-white active:scale-90 transition-all"
+                  >
+                    <MoreHorizontal size={12} strokeWidth={3} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
+
+          {/* Highlight editor (owner only) */}
+          <HighlightEditModal
+            isOpen={!!editingHighlight}
+            highlightId={editingHighlight?.id || null}
+            initialTitle={editingHighlight?.title || ''}
+            onClose={() => setEditingHighlight(null)}
+            onSaved={() => {
+              const id = profile?.id || profile?.user_id;
+              if (id) void fetchHighlights(id);
+            }}
+          />
 
           {/* Tabs */}
           <div className="relative flex items-center justify-center border-t border-black/10 dark:border-white/10 w-full mb-4">

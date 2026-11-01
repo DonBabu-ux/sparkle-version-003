@@ -7,7 +7,7 @@ import Navbar from '../components/Navbar';
 import AppScreen, { scrollTopTo } from '../components/AppScreen';
 import { useModalStore } from '../store/modalStore';
 import { useFeedStore } from '../store/feedStore';
-import { storyCache } from '../utils/storyCache';
+import { storyCache, consumeStoryPostedFlag } from '../utils/storyCache';
 import { Image, Video, Smile, Plus, TrendingUp, ChevronRight } from 'lucide-react';
 import VirtualizedFeed from '../components/VirtualizedFeed';
 import Spinner from '../components/ui/Spinner';
@@ -244,16 +244,26 @@ const posts = orderedPostIds.map(id => postsById[id]);
   useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const storyJustPosted = sessionStorage.getItem('sparkle_story_posted');
+    // The composer flags "a story was just posted" in sessionStorage so the
+    // feed does not show a stale story row. Consuming it here (read + clear in
+    // one step) means it triggers exactly one refetch, on the first mount that
+    // sees it.
+    const storyJustPosted = consumeStoryPostedFlag();
     if (isInitialMount.current || refreshCounter > 0 || storyJustPosted) {
       fetchDashboardData(true, true);
       fetchStoriesData();
       isInitialMount.current = false;
-      if (storyJustPosted) {
-        sessionStorage.removeItem('sparkle_story_posted');
-      }
     }
   }, [refreshCounter, fetchDashboardData, fetchStoriesData]);
+
+  // Belt and braces: leaving the dashboard clears the flag so a session where
+  // the composer posted but the dashboard never mounted cannot hand a stale
+  // "refetch now" to the next, unrelated mount.
+  useEffect(() => {
+    return () => {
+      consumeStoryPostedFlag();
+    };
+  }, []);
 
   // Feed managed by VirtualizedFeed component
   

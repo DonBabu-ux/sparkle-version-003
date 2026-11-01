@@ -8,6 +8,8 @@ interface Story {
   media_type: 'image' | 'video';
   caption?: string;
   created_at: string;
+  /** Per-story display duration in seconds, when the author set one. */
+  story_duration?: number;
 }
 
 interface HighlightPlayerModalProps {
@@ -20,7 +22,7 @@ interface HighlightPlayerModalProps {
   ownerAvatar?: string;
 }
 
-const STORY_DURATION = 5000; // 5s per image
+const FALLBACK_IMAGE_DURATION_MS = 5000; // 5s per image when the story has none
 
 export default function HighlightPlayerModal({
   isOpen,
@@ -41,6 +43,11 @@ export default function HighlightPlayerModal({
   const currentStory = stories[currentIndex];
   const isVideo = currentStory?.media_type === 'video' ||
     currentStory?.media_url?.match(/\.(mp4|webm|ogg|mov)$/i);
+  // Respect the author's story_duration (seconds) when one was set, otherwise
+  // fall back to the 5s default.
+  const imageDurationMs = currentStory?.story_duration && currentStory.story_duration > 0
+    ? currentStory.story_duration * 1000
+    : FALLBACK_IMAGE_DURATION_MS;
 
   const goNext = useCallback(() => {
     if (currentIndex < stories.length - 1) {
@@ -66,7 +73,7 @@ export default function HighlightPlayerModal({
     const interval = 50; // tick every 50ms
     timerRef.current = setInterval(() => {
       setProgress(p => {
-        const next = p + (interval / STORY_DURATION) * 100;
+        const next = p + (interval / imageDurationMs) * 100;
         if (next >= 100) {
           goNext();
           return 0;
@@ -76,7 +83,7 @@ export default function HighlightPlayerModal({
     }, interval);
 
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [isOpen, paused, isVideo, currentIndex, goNext]);
+  }, [isOpen, paused, isVideo, currentIndex, goNext, imageDurationMs]);
 
   // Video auto-advance
   useEffect(() => {

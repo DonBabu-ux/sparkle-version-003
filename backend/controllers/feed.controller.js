@@ -1108,15 +1108,18 @@ const likeStory = async (req, res) => {
     }
 };
 
-// get all expired stories for the current user (archive)
+// get all expired stories for the current user (archive).
+// This is the CANONICAL archive route (/stories/archive); /highlights/archive
+// stays mounted for compat but returns a different shape. Both envelopes are
+// documented here so a client can tell which one it is talking to.
 const getStoryArchive = async (req, res) => {
     try {
         const userId = req.user.userId || req.user.user_id;
 
         // Find stories older than 24 hours
         const [rows] = await pool.query(`
-            SELECT * FROM stories 
-            WHERE user_id = ? 
+            SELECT * FROM stories
+            WHERE user_id = ?
             AND created_at < NOW() - INTERVAL 24 HOUR
             ORDER BY created_at DESC
         `, [userId]);
@@ -1125,10 +1128,14 @@ const getStoryArchive = async (req, res) => {
             id: s.story_id,
             media_url: s.media_url,
             media_type: s.media_type,
+            caption: s.caption || null,
+            thumbnail_url: s.thumbnail_url || null,
+            audience: s.audience || null,
+            is_archived: !!s.is_archived,
             created_at: s.created_at
         }));
 
-        res.json({ success: true, stories: sanitizedStories });
+        res.json({ success: true, stories: sanitizedStories, total: sanitizedStories.length });
     } catch (error) {
         logger.error('Get Story Archive Error:', error);
         res.status(500).json({ error: 'Failed to fetch archive' });
@@ -1503,6 +1510,12 @@ const getStoryViewers = async (req, res) => {
             return res.status(403).json({ error: 'Only the story owner can see viewers' });
         }
 
+        // UNION collapses rows that tie on created_at in an arbitrary order, so
+        // the viewer row order used to shuffle between two identical requests.
+        // Order by the (user, interaction) pair and break ties on a stable key:
+        // type is deterministic per source table, user_id is unique per user.
+        // A user who both viewed AND liked still yields two rows — the tiebreak
+        // keeps view-before-like-before-share stable instead of random.
         const [viewers] = await pool.query(`
             SELECT u.user_id, u.username, u.name, u.avatar_url, 'view' as type, sv.created_at
             FROM story_views sv
@@ -1518,10 +1531,23 @@ const getStoryViewers = async (req, res) => {
             FROM story_shares ss
             JOIN users u ON ss.user_id = u.user_id
             WHERE ss.story_id = ? AND (? IS NULL OR ss.user_id != ?)
-            ORDER BY created_at DESC
+            ORDER BY created_at DESC, type ASC, user_id ASC
         `, [storyId, ownerId, ownerId, storyId, ownerId, ownerId, storyId, ownerId, ownerId]);
 
-        res.json(viewers);
+        // Page the ordered set so a viral story's viewer list cannot be fetched
+        // (and rendered) in one unbounded response. The body stays the plain row
+        // array StoryViewer already parses; pagination travels in headers so no
+        // existing caller has to change.
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+        const limit = Math.min(100, Math.max(1, parseInt(req.query.limit, 10) || 50));
+        const start = (page - 1) * limit;
+        const total = viewers.length;
+        const rows = viewers.slice(start, start + limit);
+
+        res.set('X-Total-Count', String(total));
+        res.set('X-Page', String(page));
+        res.set('X-Per-Page', String(limit));
+        res.json(rows);
     } catch (error) {
         logger.error('Get Viewers Error:', error);
         res.status(500).json({ error: 'Failed to fetch viewers' });
@@ -1589,6 +1615,54 @@ const hideStoryFromUser = async (req, res) => {
     }
 };
 
+// GET /stories/privacy/hidden — list the users whose stories the caller has
+// hidden, with the profile info the privacy sheet renders. Ordered by the
+// block's created_at (then id) so pagination is deterministic.
+const getHiddenStoryUsers = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+
+        const [rows] = await pool.query(`
+            SELECT b.block_id, b.blocked_user_id, b.created_at,
+                   u.user_id, u.username, u.name, u.avatar_url
+            FROM story_privacy_blocks b
+            JOIN users u ON b.blocked_user_id = u.user_id
+            WHERE b.user_id = ?
+            ORDER BY b.created_at DESC, b.block_id ASC
+        `, [userId]);
+
+        res.json({ success: true, hidden: rows, total: rows.length });
+    } catch (error) {
+        logger.error('Get Hidden Story Users Error:', error);
+        res.status(500).json({ error: 'Failed to fetch hidden users' });
+    }
+};
+
+// DELETE /stories/privacy/hidden/:userId — undo a hide. Errors when the block
+// never existed so the caller cannot treat a typo'd id as a successful unhide.
+const unhideStoryFromUser = async (req, res) => {
+    try {
+        const userId = req.user.userId || req.user.user_id;
+        const blockedUserId = req.params.userId;
+
+        if (!blockedUserId) return res.status(400).json({ error: 'User ID is required' });
+
+        const [result] = await pool.query(
+            'DELETE FROM story_privacy_blocks WHERE user_id = ? AND blocked_user_id = ?',
+            [userId, blockedUserId]
+        );
+
+        if (!result || result.affectedRows === 0) {
+            return res.status(404).json({ error: 'No hidden story found for that user' });
+        }
+
+        res.json({ success: true, message: 'Story unhidden' });
+    } catch (error) {
+        logger.error('Unhide Story Error:', error);
+        res.status(500).json({ error: 'Failed to unhide story' });
+    }
+};
+
 // GET /stories/single/:id — resolve a single story by its own ID.
 // Used by the /story/:storyId snapshot page (expired-story memorial card)
 // and by StoryViewer when a link was shared with a story_id instead of the
@@ -1653,6 +1727,8 @@ module.exports = {
     archiveStory,
     toggleStoryComments,
     hideStoryFromUser,
+    getHiddenStoryUsers,
+    unhideStoryFromUser,
     addStoryComment,
     getStoryComments,
     updateStorySettings

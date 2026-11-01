@@ -19,6 +19,12 @@ interface PollVoteBody {
   option_index: number;
 }
 
+interface QuizAnswerBody {
+  story_id: string;
+  sticker_id: string;
+  option_index: number;
+}
+
 interface AddYoursRespondBody {
   story_id: string;
   prompt_id: string;
@@ -44,6 +50,21 @@ export const storyStickerApi = {
       option_index: optionIndex,
     };
     const { data } = await api.post<StoryStickerAck>('/stickers/poll/vote', body);
+    return data;
+  },
+
+  /**
+   * POST /api/stickers/quiz/answer — records the caller's chosen option on a
+   * quiz sticker (one row per user, re-answerable). QuizSticker.tsx is owned by
+   * another agent; this method is the wire it needs once it opts in.
+   */
+  answerQuiz: async (storyId: string, stickerId: string, optionIndex: number): Promise<StoryStickerAck> => {
+    const body: QuizAnswerBody = {
+      story_id: storyId,
+      sticker_id: stickerId,
+      option_index: optionIndex,
+    };
+    const { data } = await api.post<StoryStickerAck>('/stickers/quiz/answer', body);
     return data;
   },
 

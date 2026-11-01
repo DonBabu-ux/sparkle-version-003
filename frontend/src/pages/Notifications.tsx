@@ -1,5 +1,5 @@
 import { showError, showInfo, showSuccess } from '../utils/toast';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/api';
 import { getAvatarUrl } from '../utils/imageUtils';
@@ -175,15 +175,15 @@ export default function Notifications() {
 
   const getFacebookIcon = (type: string) => {
     switch (type) {
-      case 'follow': return <User size={12} className="text-white" strokeWidth={3} />;
-      case 'spark': return <Zap size={12} className="text-white fill-white" />;
-      case 'comment': return <MessageSquare size={12} className="text-white fill-white" />;
-      case 'mention': return <AtSign size={12} className="text-white" strokeWidth={3} />;
-      case 'group': return <Users size={12} className="text-white" strokeWidth={3} />;
-      case 'marketplace': return <ShoppingBag size={12} className="text-white" strokeWidth={3} />;
-      case 'poke': return <Hand size={12} className="text-white fill-white" />;
-      case 'capture_attempt': return <AlertOctagon size={12} className="text-white fill-white" />;
-      default: return <Bell size={12} className="text-white fill-white" />;
+      case 'follow': return <User size={12} strokeWidth={3} />;
+      case 'spark': return <Zap size={12} className="fill-current" />;
+      case 'comment': return <MessageSquare size={12} className="fill-current" />;
+      case 'mention': return <AtSign size={12} strokeWidth={3} />;
+      case 'group': return <Users size={12} strokeWidth={3} />;
+      case 'marketplace': return <ShoppingBag size={12} strokeWidth={3} />;
+      case 'poke': return <Hand size={12} className="fill-current" />;
+      case 'capture_attempt': return <AlertOctagon size={12} className="fill-current" />;
+      default: return <Bell size={12} className="fill-current" />;
     }
   };
 
@@ -332,8 +332,8 @@ export default function Notifications() {
     return (
       <div className="mb-1">
         <div className="px-4 py-2.5 flex items-center gap-2">
-          <span className="text-[12px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-300">{title}</span>
-          <div className="flex-1 h-px bg-black/5 dark:bg-white/5" />
+          <span className="text-xs font-semibold text-slate-600 dark:text-zinc-300">{title}</span>
+          <div className="flex-1 h-px bg-[#ede3e9] dark:bg-zinc-900" />
         </div>
         <div className="flex flex-col">
           {items.map(notif => renderNotification(notif))}
@@ -359,15 +359,15 @@ export default function Notifications() {
         key={notif.notification_id || notif.id}
         data-notif-id={notif.notification_id || notif.id}
         onClick={() => handleNotificationClick(notif)}
-        className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-black/[0.04] dark:border-white/[0.04] last:border-0 relative active:scale-[0.995] ${
+        className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer border-b border-[#ede3e9] dark:border-zinc-900 last:border-0 relative active:scale-[0.995] ${
           isUnread
-            ? 'bg-[#fff0f7] dark:bg-[#ff149310]'
-            : 'bg-white dark:bg-zinc-800 hover:bg-black/[0.015] dark:hover:bg-white/[0.025]'
+            ? 'bg-[#f0e5ec] dark:bg-zinc-700'
+            : 'bg-[#fdf8fa] dark:bg-zinc-800 hover:bg-[#ede3e9] dark:hover:bg-zinc-900'
         }`}
       >
         {/* Left accent bar for unread */}
         {isUnread && (
-          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-gradient-to-b from-[#ff1493] to-purple-500 rounded-r-full" />
+          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-[#ff1493] rounded-r-full" />
         )}
 
         {/* Avatar + type badge */}
@@ -378,12 +378,12 @@ export default function Notifications() {
               e.stopPropagation();
               if (actorUsername) navigate(`/profile/${actorUsername}`);
             }}
-            className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 cursor-pointer"
+            className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 cursor-pointer"
             alt={displayName}
           />
           <div
-            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-white dark:border-zinc-700 shadow-sm"
-            style={{ backgroundColor: getBadgeColor(notif.type) }}
+            className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center border-2 border-[#fdf8fa] dark:border-zinc-800 bg-[#f6eef3] dark:bg-zinc-900 shadow-sm"
+            style={{ color: getBadgeColor(notif.type) }}
           >
             {getFacebookIcon(notif.type)}
           </div>
@@ -400,13 +400,13 @@ export default function Notifications() {
                   e.stopPropagation();
                   if (actorUsername) navigate(`/profile/${actorUsername}`);
                 }}
-                className="font-bold text-[15px] text-slate-900 dark:text-white hover:underline focus:outline-none text-left flex items-center gap-1 leading-snug"
+                className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 hover:underline focus:outline-none text-left flex items-center gap-1 leading-snug"
               >
                 {displayName}
                 <VerifiedBadge accountType={actorIdentity.accountType} isVerified={actorIdentity.badge.show} color={actorIdentity.badge.color} size="xs" />
               </button>
             ) : (
-              <span className="font-bold text-[15px] text-slate-900 dark:text-white flex items-center gap-1 leading-snug">
+              <span className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 flex items-center gap-1 leading-snug">
                 {displayName}
                 <VerifiedBadge accountType={actorIdentity.accountType} isVerified={actorIdentity.badge.show} color={actorIdentity.badge.color} size="xs" />
               </span>
@@ -414,14 +414,14 @@ export default function Notifications() {
           </div>
 
           {/* Action body */}
-          <p className="text-[13px] font-medium text-slate-700 dark:text-zinc-200 leading-snug mt-0.5 break-words">
+          <p className="text-sm text-slate-700 dark:text-zinc-300 leading-snug mt-0.5 break-words">
             {notif.content || notif.message}
           </p>
 
           {/* Timestamp + unread dot row */}
           <div className="flex items-center gap-1.5 mt-1">
-            <span className={`text-[11px] font-semibold ${
-              isUnread ? 'text-[#ff1493]' : 'text-slate-400 dark:text-zinc-300'
+            <span className={`text-xs font-semibold ${
+              isUnread ? 'text-[#ff1493]' : 'text-slate-600 dark:text-zinc-300'
             }`}>
               {relativeTime(notif.created_at)}
             </span>
@@ -434,7 +434,7 @@ export default function Notifications() {
           {notif.type === 'poke' && (
             <button
               onClick={(e) => { e.stopPropagation(); handlePokeBack(notif.actor_id, notif.actor_name); }}
-              className="mt-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3.5 py-1.5 rounded-xl text-[12px] font-semibold shadow-sm transition-all active:scale-95 inline-flex items-center gap-1 self-start"
+              className="mt-2 bg-[#ff1493] hover:bg-[#ff2d87] text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors active:scale-95 inline-flex items-center gap-1 self-start"
             >
               Poke Back →
             </button>
@@ -444,13 +444,13 @@ export default function Notifications() {
             <div className="flex items-center gap-2 mt-2">
               <button
                 onClick={(e) => { e.stopPropagation(); navigate('/explore'); }}
-                className="bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white px-3.5 py-1.5 rounded-xl text-[12px] font-semibold shadow-sm transition-all active:scale-95 inline-flex items-center gap-1"
+                className="bg-[#ff1493] hover:bg-[#ff2d87] text-white px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors active:scale-95 inline-flex items-center gap-1"
               >
                 Explore →
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); navigate('/settings'); }}
-                className="bg-black/5 dark:bg-white/8 hover:bg-black/10 dark:hover:bg-white/12 text-slate-700 dark:text-zinc-300 px-3.5 py-1.5 rounded-xl text-[12px] font-semibold transition-all active:scale-95"
+                className="bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-slate-600 dark:text-zinc-300 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-colors active:scale-95"
               >
                 Settings
               </button>
@@ -467,7 +467,7 @@ export default function Notifications() {
                 if (notif.target?.entity_type === 'post') navigate(`/post/${notif.target.entity_id}`);
                 if (notif.target?.entity_type === 'story') navigate(`/story/${notif.target.entity_id}`);
               }}
-              className="w-11 h-11 bg-slate-100 dark:bg-zinc-800 rounded-xl overflow-hidden border border-black/5 dark:border-white/8 cursor-pointer hover:brightness-90 transition-all flex items-center justify-center text-lg"
+              className="w-11 h-11 bg-[#f6eef3] dark:bg-zinc-900 rounded-2xl overflow-hidden border border-[#e6d8e1] dark:border-zinc-700 cursor-pointer hover:brightness-90 transition-all flex items-center justify-center text-lg"
             >
               {notif.target.entity_type === 'story' ? '📖' : '🖼'}
             </div>
@@ -477,7 +477,7 @@ export default function Notifications() {
         {/* More options */}
         <button
           onClick={(e) => { e.stopPropagation(); setSelectedNotif(notif); }}
-          className="shrink-0 w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
+          className="shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors"
         >
           <MoreHorizontal size={16} />
         </button>
@@ -486,50 +486,50 @@ export default function Notifications() {
   };
 
   return (
-    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-white font-sans pb-[env(safe-area-inset-bottom)]">
+    <div className="flex bg-app min-h-dvh text-[#18181b] dark:text-zinc-100 font-sans pb-[env(safe-area-inset-bottom)]">
 
       <main className="flex-1 pb-20 max-w-2xl mx-auto w-full pb-[env(safe-area-inset-bottom)]">
         {/* Sticky Header */}
-        <header className="sticky top-[70px] z-[1100] bg-white/90 dark:bg-zinc-800/90 backdrop-blur-md border-b border-black/[0.06] dark:border-white/[0.06] px-4 py-3">
+        <header className="sticky top-[70px] z-[1100] bg-[#fdf8fa]/90 dark:bg-zinc-800/90 backdrop-blur-md border-b border-[#e6d8e1] dark:border-zinc-700 px-4 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 min-w-0">
               <button
                 onClick={() => navigate(-1)}
-                className="w-11 h-11 -ml-1 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors"
+                className="shrink-0 w-11 h-11 -ml-1 rounded-full flex items-center justify-center hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors"
               >
-                <ArrowLeft size={20} className="text-slate-800 dark:text-white" />
+                <ArrowLeft size={20} className="text-[#18181b] dark:text-zinc-100" />
               </button>
-              <h1 className="text-[20px] font-bold text-slate-900 dark:text-white leading-none">Notifications</h1>
+              <h1 className="text-3xl font-bold text-[#18181b] dark:text-zinc-100 leading-none tracking-tight truncate">Notifications</h1>
             </div>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={markAllRead}
                 disabled={markingAll || unreadCount === 0}
-                className={`flex items-center gap-1.5 px-4 py-3 rounded-xl text-xs font-semibold transition-all select-none ${
+                className={`flex items-center gap-1.5 h-9 px-3.5 rounded-full text-xs font-semibold transition-colors select-none ${
                   markedFeedback
-                    ? 'text-emerald-500 bg-emerald-500/10'
+                    ? 'text-emerald-600 dark:text-emerald-400 bg-[#f0e5ec] dark:bg-zinc-700'
                     : unreadCount > 0
-                    ? 'text-[#ff1493] bg-[#ff1493]/10 hover:bg-[#ff1493]/20 active:scale-95 cursor-pointer'
-                    : 'text-slate-400 dark:text-zinc-300 hover:bg-black/5 dark:hover:bg-white/5 opacity-50 cursor-default'
+                    ? 'text-[#ff1493] bg-[#f0e5ec] dark:bg-zinc-700 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 active:scale-95 cursor-pointer'
+                    : 'text-slate-600 dark:text-zinc-300 bg-[#f0e5ec] dark:bg-zinc-700 opacity-50 cursor-default'
                 }`}
                 title={unreadCount > 0 ? "Mark all as read" : "All caught up"}
               >
                 <CheckCircle2
                   size={16}
-                  className={`transition-transform ${markedFeedback ? 'text-emerald-500 scale-110' : unreadCount > 0 ? 'text-[#ff1493]' : ''}`}
+                  className={`transition-transform shrink-0 ${markedFeedback ? 'text-emerald-500 scale-110' : unreadCount > 0 ? 'text-[#ff1493]' : ''}`}
                 />
-                <span className="text-[13px] font-bold">
+                <span className="text-xs font-semibold">
                   {markedFeedback ? 'All Read' : 'Mark all read'}
                 </span>
                 {unreadCount > 0 && !markedFeedback && (
-                  <span className="ml-0.5 px-1.5 py-0.5 bg-[#ff1493] text-white text-[10px] font-extrabold rounded-full leading-none">
+                  <span className="ml-0.5 px-1.5 py-0.5 bg-[#ff1493] text-white text-xs font-semibold rounded-full leading-none">
                     {unreadCount}
                   </span>
                 )}
               </button>
               <button
                 onClick={() => navigate('/search')}
-                className="w-11 h-11 rounded-xl flex items-center justify-center hover:bg-black/5 dark:hover:bg-white/8 transition-colors text-slate-500 dark:text-zinc-300"
+                className="w-11 h-11 rounded-full flex items-center justify-center hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors text-slate-600 dark:text-zinc-300"
                 title="Search"
               >
                 <Search size={18} />
@@ -539,15 +539,15 @@ export default function Notifications() {
         </header>
 
         {readError && (
-          <div className="px-4 py-3 bg-rose-50 border border-rose-200">
-            <div className="flex items-start gap-3">
-              <AlertOctagon size={16} className="text-rose-600 mt-0.5" />
-              <div>
-                <p className="text-[12px] font-bold text-rose-800">{readError}</p>
-                <button
-                  onClick={() => { setReadError(null); fetchNotifications(); }}
-                  className="text-[11px] font-bold text-[#ff1493] underline mt-1"
-                >
+        <div className="px-4 py-3 bg-rose-50 dark:bg-zinc-900 border border-rose-200 dark:border-zinc-700">
+          <div className="flex items-start gap-3">
+            <AlertOctagon size={16} className="text-rose-600 dark:text-rose-400 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-xs font-semibold text-rose-800 dark:text-rose-300">{readError}</p>
+              <button
+                onClick={() => { setReadError(null); fetchNotifications(); }}
+                className="text-xs font-semibold text-[#ff1493] underline mt-1"
+              >
                   Try again
                 </button>
               </div>
@@ -556,7 +556,7 @@ export default function Notifications() {
         )}
 
         {/* Notifications list */}
-        <div className="bg-white dark:bg-zinc-800">
+        <div className="bg-[#fdf8fa] dark:bg-zinc-800">
           {loading ? (
             <div className="flex justify-center py-16">
               <Spinner size="medium" color="text-primary" />
@@ -570,7 +570,7 @@ export default function Notifications() {
               {!seeAll && notifications.length > 20 && (
                 <button
                   onClick={() => setSeeAll(true)}
-                  className="w-full py-4 text-[13px] font-semibold text-[#ff1493] hover:bg-black/[0.02] dark:hover:bg-white/[0.03] transition-colors border-t border-black/5 dark:border-white/5"
+                  className="w-full py-4 text-sm font-semibold text-[#ff1493] hover:bg-[#f6eef3] dark:hover:bg-zinc-900 transition-colors border-t border-[#ede3e9] dark:border-zinc-900"
                 >
                   See all notifications
                 </button>
@@ -580,7 +580,7 @@ export default function Notifications() {
             <div className="py-20">
               <ModernOfflineState
                 type="empty"
-                title="All Caught Up"
+                title="All caught up"
                 message="You've addressed all your alerts! We'll ping you as soon as something new sparks."
                 onRetry={() => window.location.reload()}
               />
@@ -597,27 +597,27 @@ export default function Notifications() {
           onClick={() => setSelectedNotif(null)}
         >
           <div
-            className="bg-white dark:bg-[#1c1c1e] w-full max-w-lg rounded-t-3xl pb-safe shadow-2xl"
+            className="bg-[#fdf8fa] dark:bg-zinc-800 w-full max-w-lg rounded-t-3xl pb-safe shadow-2xl max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
             style={{ animation: 'slideUp 0.28s cubic-bezier(0.16, 1, 0.3, 1)' }}
           >
             {/* Handle */}
             <div className="flex justify-center pt-3 pb-1">
-              <div className="w-9 h-1 bg-black/10 dark:bg-white/20 rounded-full" />
+              <div className="w-9 h-1 bg-[#ede3e9] dark:bg-zinc-700 rounded-full" />
             </div>
 
             {/* Actor preview */}
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-black/[0.05] dark:border-white/[0.06]">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-[#ede3e9] dark:border-zinc-900">
               <img
                 src={getAvatarUrl(selectedNotif.actor_avatar, selectedNotif.actor_username)}
-                className="w-11 h-11 rounded-full object-cover border border-black/5 dark:border-white/10 shrink-0"
+                className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shrink-0"
                 alt=""
               />
-              <p className="text-[13px] text-slate-600 dark:text-zinc-300 leading-snug flex-1 min-w-0">
+              <p className="text-sm text-slate-600 dark:text-zinc-300 leading-snug flex-1 min-w-0">
                 {selectedNotif.actor_name ? (
-                  <><span className="font-semibold text-slate-900 dark:text-white">{selectedNotif.actor_name}</span>{' '}{selectedNotif.content || selectedNotif.message}</>
+                  <><span className="font-semibold text-[#18181b] dark:text-zinc-100">{selectedNotif.actor_name}</span>{' '}{selectedNotif.content || selectedNotif.message}</>
                 ) : (
-                  <><span className="font-semibold text-slate-900 dark:text-white">{selectedNotif.title}</span>{' '}{selectedNotif.content || selectedNotif.message}</>
+                  <><span className="font-semibold text-[#18181b] dark:text-zinc-100">{selectedNotif.title}</span>{' '}{selectedNotif.content || selectedNotif.message}</>
                 )}
               </p>
             </div>
@@ -630,54 +630,46 @@ export default function Notifications() {
                     markAsRead(selectedNotif.notification_id || selectedNotif.id || '');
                     setSelectedNotif(null);
                   }}
-                  className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                  className="flex items-center gap-3 px-3 py-3 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-2xl text-left transition-colors"
                 >
-                  <div className="w-9 h-9 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0">
-                    <CheckCircle2 size={17} className="text-emerald-500" />
-                  </div>
+                  <CheckCircle2 size={20} className="text-emerald-500 shrink-0" />
                   <div>
-                    <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Mark as read</p>
-                    <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Keeps it in your list, clears the unread badge</p>
+                    <p className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 leading-tight">Mark as read</p>
+                    <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Keeps it in your list, clears the unread badge</p>
                   </div>
                 </button>
               )}
 
               <button
                 onClick={() => deleteNotification(selectedNotif.notification_id || selectedNotif.id || '')}
-                className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                className="flex items-center gap-3 px-3 py-3 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-2xl text-left transition-colors"
               >
-                <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/8 flex items-center justify-center shrink-0">
-                  <X size={17} className="text-slate-600 dark:text-zinc-300" />
-                </div>
+                <X size={20} className="text-slate-600 dark:text-zinc-300 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Remove this notification</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Won't show up in your updates</p>
+                  <p className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 leading-tight">Remove this notification</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Won't show up in your updates</p>
                 </div>
               </button>
 
               <button
                 onClick={() => { showInfo('Notifications turned off.'); setSelectedNotif(null); }}
-                className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                className="flex items-center gap-3 px-3 py-3 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-2xl text-left transition-colors"
               >
-                <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/8 flex items-center justify-center shrink-0">
-                  <BellOff size={17} className="text-slate-600 dark:text-zinc-300" />
-                </div>
+                <BellOff size={20} className="text-slate-600 dark:text-zinc-300 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Turn off for this post</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Stop receiving updates for this activity</p>
+                  <p className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 leading-tight">Turn off for this post</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Stop receiving updates for this activity</p>
                 </div>
               </button>
 
               <button
                 onClick={() => { showSuccess('Report sent to the team.'); setSelectedNotif(null); }}
-                className="flex items-center gap-3 px-3 py-3 hover:bg-black/[0.03] dark:hover:bg-white/[0.04] rounded-2xl text-left transition-colors"
+                className="flex items-center gap-3 px-3 py-3 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-2xl text-left transition-colors"
               >
-                <div className="w-9 h-9 rounded-2xl bg-black/5 dark:bg-white/8 flex items-center justify-center shrink-0">
-                  <AlertOctagon size={17} className="text-slate-600 dark:text-zinc-300" />
-                </div>
+                <AlertOctagon size={20} className="text-slate-600 dark:text-zinc-300 shrink-0" />
                 <div>
-                  <p className="font-semibold text-[14px] text-slate-900 dark:text-white leading-tight">Report issue</p>
-                  <p className="text-[12px] text-slate-400 dark:text-zinc-300 mt-0.5">Let us know if something is wrong</p>
+                  <p className="font-semibold text-sm text-[#18181b] dark:text-zinc-100 leading-tight">Report issue</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 mt-0.5">Let us know if something is wrong</p>
                 </div>
               </button>
             </div>
@@ -685,7 +677,7 @@ export default function Notifications() {
             <div className="px-4 pb-5 pt-1">
               <button
                 onClick={() => setSelectedNotif(null)}
-                className="w-full py-3 bg-black/[0.05] dark:bg-white/[0.07] hover:bg-black/[0.08] dark:hover:bg-white/[0.1] rounded-2xl font-semibold text-[14px] text-slate-800 dark:text-zinc-200 transition-colors"
+                className="w-full py-3 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-full font-semibold text-sm text-[#18181b] dark:text-zinc-100 transition-colors"
               >
                 Cancel
               </button>
@@ -694,9 +686,6 @@ export default function Notifications() {
         </div>
       )}
 
-      <style>{`
-
-      `}</style>
     </div>
   );
 }

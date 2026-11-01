@@ -34,6 +34,18 @@ export default defineConfig({
               }
             }
           },
+          // Notifications must be live. Workbox evaluates routes in order, so
+          // this more specific rule wins over the api-cache below: a cached
+          // empty array used to be served for up to 24h (and after a slow or
+          // failed request), which reads as "no notifications" forever even
+          // while new ones arrive. These never hit the cache.
+          {
+            urlPattern: /\/(api\/)?notifications(\/.*)?(\?.*)?$/i,
+            handler: 'NetworkOnly',
+            options: {
+              cacheName: 'notifications-live'
+            }
+          },
           {
             urlPattern: /\/api\/.*/i,
             handler: 'NetworkFirst',
@@ -42,7 +54,9 @@ export default defineConfig({
               networkTimeoutSeconds: 10,
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24
+                // 5 minutes, not 24h: a NetworkFirst fallback should cover a
+                // dropped request, not serve day-old data.
+                maxAgeSeconds: 5 * 60
               },
               cacheableResponse: {
                 statuses: [0, 200]

@@ -63,14 +63,21 @@ const isRead = (n: BellNotification) =>
 export default function NotificationsPanel({ open, onClose, anchorRect }: NotificationsPanelProps) {
   const [items, setItems] = useState<BellNotification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [failed, setFailed] = useState(false);
   const navigate = useNavigate();
   const panelRef = useRef<HTMLDivElement>(null);
 
   const fetchItems = useCallback(async () => {
     setLoading(true);
+    setFailed(false);
     try {
       const res = await api.get('/notifications');
-      const raw = res.data.notifications || res.data || [];
+      // The endpoint answers with a bare array today, but tolerate the
+      // wrapped shapes too so a wrapper change can't silently empty the menu.
+      const d = res.data;
+      const raw = Array.isArray(d)
+        ? d
+        : (d?.notifications || d?.data?.notifications || d?.data || d?.items || d?.results || []);
       const list: BellNotification[] = (Array.isArray(raw) ? raw : []).slice(0, 20).map((n: any) => ({
         ...n,
         notification_id: n.notification_id || n.id,
@@ -79,6 +86,7 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
       setItems(list);
     } catch (err) {
       logger.error('Failed to fetch notifications panel:', err);
+      setFailed(true);
     } finally {
       setLoading(false);
     }
@@ -95,7 +103,10 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
     return () => window.removeEventListener('keydown', onKey);
   }, [open, onClose]);
 
-  if (!open || !anchorRect) return null;
+  // A missing anchor must never silently hide the menu: fall back to a point
+  // just right of the desktop rail so the panel always opens.
+  if (!open) return null;
+  const anchor = anchorRect ?? ({ right: 84, left: 72, top: 88 } as DOMRect);
 
   const unread = items.filter(n => !isRead(n)).length;
 
@@ -122,16 +133,16 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
 
   // Anchor the panel beside the bell; flip to the left edge if it would overflow.
   const PANEL_W = 360;
-  const PANEL_H = Math.min(520, window.innerHeight - 96);
+  const PANEL_H = Math.min(620, window.innerHeight - 96);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
-  let left = anchorRect.right + 12;
+  let left = anchor.right + 12;
   if (vw < 640) {
     left = 12;
   } else if (left + PANEL_W > vw - 12) {
-    left = Math.max(12, anchorRect.left - PANEL_W - 12);
+    left = Math.max(12, anchor.left - PANEL_W - 12);
   }
-  const top = vw < 640 ? 64 : Math.max(12, Math.min(anchorRect.top - 8, vh - 12 - PANEL_H));
+  const top = vw < 640 ? 64 : Math.max(12, Math.min(anchor.top - 8, vh - 12 - PANEL_H));
   const width = vw < 640 ? vw - 24 : PANEL_W;
 
   return createPortal(
@@ -168,6 +179,18 @@ export default function NotificationsPanel({ open, onClose, anchorRect }: Notifi
                 </div>
               </div>
             ))
+          ) : failed ? (
+            <div className="flex flex-col items-center justify-center py-12 px-6 text-center gap-3">
+              <BellOff size={28} className="text-rose-500 mb-1" />
+              <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">Couldn't load notifications</p>
+              <p className="text-xs text-slate-600 dark:text-zinc-300">Check your connection and try again.</p>
+              <button
+                onClick={(e) => { e.stopPropagation(); fetchItems(); }}
+                className="mt-1 h-9 px-4 rounded-full bg-[#ff1493] hover:bg-[#ff2d87] text-white text-sm font-semibold transition-colors"
+              >
+                Retry
+              </button>
+            </div>
           ) : items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 px-6 text-center">
               <BellOff size={28} className="text-slate-600 dark:text-zinc-300 mb-2" />

@@ -150,7 +150,7 @@ function urlFromData(data: unknown): string | null {
   }
 
   const storyId = d.storyId || d.story_id;
-  if ((type === 'story' || type === 'story_like' || type === 'story_view' || type === 'story_share') && (storyId || d.related_id)) {
+  if ((type === 'story' || type === 'story_like' || type === 'story_reply' || type === 'story_share') && (storyId || d.related_id)) {
     return `/story/${String(storyId || d.related_id)}`;
   }
 

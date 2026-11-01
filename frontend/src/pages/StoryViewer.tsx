@@ -715,7 +715,7 @@ export default function StoryViewer() {
                   />
                 ) : null
               )}
-              <StickerRenderer stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
+              <StickerRenderer storyId={currentStory?.story_id} stickers={(currentStory.story_layers || currentStory.stickers || []).filter((l: any) => l.type !== 'music')} />
            </div>
 
            {/* Rotating Comments on Left */}

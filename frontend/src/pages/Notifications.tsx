@@ -235,6 +235,7 @@ export default function Notifications() {
           break;
         case 'story':
         case 'story_like':
+        case 'story_reply':
         case 'story_share':
           targetUrl = `/story/${entity_id}`;
           break;
@@ -280,7 +281,7 @@ export default function Notifications() {
           if (relId) targetUrl = `/moments/${relId}`;
           break;
         case 'story_like':
-        case 'story_view':
+        case 'story_reply':
           if (relId) targetUrl = `/story/${relId}`;
           break;
         case 'marketplace':

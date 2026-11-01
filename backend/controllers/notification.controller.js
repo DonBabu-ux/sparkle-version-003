@@ -390,7 +390,8 @@ const notificationController = {
             // 0. Fetch user preferences (DND and type toggles)
             const [[userPrefs]] = await connection.query(
                 `SELECT dnd_enabled, dnd_start_time, dnd_end_time, push_notifications_enabled,
-                 notifications_likes, notifications_comments, notifications_follows, notifications_messages
+                 notifications_likes, notifications_comments, notifications_follows, notifications_messages,
+                 notifications_story_likes, notifications_story_shares, notifications_story_replies
                  FROM users WHERE user_id = ?`,
                 [data.user_id]
             );
@@ -401,6 +402,9 @@ const notificationController = {
                 if ((data.type === 'comment' || data.type === 'reply') && userPrefs.notifications_comments === 0) return null;
                 if (data.type === 'follow' && userPrefs.notifications_follows === 0) return null;
                 if (data.type === 'message' && userPrefs.notifications_messages === 0) return null;
+                if (data.type === 'story_like' && userPrefs.notifications_story_likes === 0) return null;
+                if (data.type === 'story_share' && userPrefs.notifications_story_shares === 0) return null;
+                if (data.type === 'story_reply' && userPrefs.notifications_story_replies === 0) return null;
 
                 // Check DND (Total suppression)
                 if (userPrefs.dnd_enabled === 1) {

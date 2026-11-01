@@ -43,13 +43,19 @@ const createAddYoursPrompt = async (req, res) => {
 // 3. Add Yours Response
 const respondToAddYours = async (req, res) => {
     try {
-        const { prompt_id, story_id } = req.body;
+        const { prompt_id, story_id, content } = req.body;
         const user_id = req.user.userId || req.user.user_id;
         const response_id = crypto.randomUUID();
 
         await pool.query(
-            'INSERT INTO add_yours_responses (response_id, prompt_id, user_id, story_id) VALUES (?, ?, ?, ?)',
-            [response_id, prompt_id, user_id, story_id]
+            'INSERT INTO add_yours_responses (response_id, prompt_id, user_id, story_id, content) VALUES (?, ?, ?, ?, ?)',
+            [
+                response_id,
+                prompt_id,
+                user_id,
+                story_id,
+                typeof content === 'string' ? content.slice(0, 65535) : null
+            ]
         );
 
         res.status(201).json({ status: 'success', response_id });
@@ -103,10 +109,18 @@ const getAddYoursData = async (req, res) => {
             [prompt_id]
         );
 
+        // The response text the viewer typed arrives on the r.* projection;
+        // normalise it so the field is always present (and null-safe for
+        // responses written before the content column existed).
+        const responsesWithContent = (responses || []).map(r => ({
+            ...r,
+            content: r.content ?? null
+        }));
+
         res.json({
             status: 'success',
             prompt: prompts[0],
-            responses: responses
+            responses: responsesWithContent
         });
     } catch (error) {
         logger.error('Get Add Yours Data Error:', error);

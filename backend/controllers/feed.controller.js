@@ -771,6 +771,58 @@ const createStory = async (req, res) => {
             }
         }
 
+        // --- Interactive sticker persistence (FK targets) -------------------
+        // The layer engine is the display source of truth, but the interaction
+        // endpoints key off FK rows: sticker_poll_votes.sticker_id ->
+        // story_stickers.sticker_id and add_yours_responses.prompt_id ->
+        // add_yours_prompts.prompt_id. The composer layers only ever lived in
+        // story_layers JSON, so those rows were never created and every vote /
+        // response 500'd. Register the layer ids the client actually votes
+        // with (the LAYER'S OWN id) here, and serialise the (possibly
+        // normalised) id back into story_layers so the viewer keeps voting
+        // with the id that was persisted.
+        const stickerRows = [];
+        const addYoursPromptRows = [];
+        if (Array.isArray(story_layers)) {
+            const seenStickerIds = new Set();
+            const layerNumber = (value, fallback) => {
+                if (value === null || value === undefined || value === '') return fallback;
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : fallback;
+            };
+            for (const layer of story_layers) {
+                if (!layer || (layer.type !== 'poll' && layer.type !== 'add_yours' && layer.type !== 'reaction' && layer.type !== 'quiz')) continue;
+
+                // story_stickers.sticker_id is CHAR(36): keep the client id, but
+                // normalise anything unusable (missing, non-string, too long,
+                // duplicated inside one story) onto an id that fits.
+                let stickerId = typeof layer.id === 'string' ? layer.id : '';
+                if (!stickerId || stickerId.length > 36 || seenStickerIds.has(stickerId)) {
+                    stickerId = crypto.randomUUID();
+                }
+                layer.id = stickerId;
+                seenStickerIds.add(stickerId);
+
+                stickerRows.push([
+                    stickerId,
+                    storyId,
+                    layer.type,
+                    JSON.stringify(layer.data ?? layer.config ?? {}),
+                    layerNumber(layer.x, 50),
+                    layerNumber(layer.y, 50),
+                    layerNumber(layer.scale, 1),
+                    layerNumber(layer.rotation, 0)
+                ]);
+
+                if (layer.type === 'add_yours') {
+                    const layerData = layer.data ?? layer.config ?? {};
+                    if (typeof layerData.prompt === 'string' && layerData.prompt.trim()) {
+                        addYoursPromptRows.push([stickerId, userId, layerData.prompt.slice(0, 255)]);
+                    }
+                }
+            }
+        }
+
         const storyLayersVal = story_layers ? JSON.stringify(story_layers) : null;
 
         // Story duration (from enum or fallback)
@@ -830,6 +882,30 @@ const createStory = async (req, res) => {
                 storyLayersVal, storyDurationVal, 1, storyThemeVal, storyEffectsVal, storyAudienceVal
             ]
         );
+
+        // Persist the interactive sticker rows so the vote / response endpoints
+        // have FK targets. Purely additive: story_layers stays the display
+        // source of truth, so a failure here must never fail the publish.
+        if (stickerRows.length > 0) {
+            try {
+                await pool.query(
+                    `INSERT INTO story_stickers (sticker_id, story_id, type, config, position_x, position_y, scale, rotation)
+                     VALUES ?`,
+                    [stickerRows]
+                );
+
+                if (addYoursPromptRows.length > 0) {
+                    await pool.query(
+                        'INSERT INTO add_yours_prompts (prompt_id, creator_id, text) VALUES ?',
+                        [addYoursPromptRows]
+                    );
+                }
+                console.log(`✅ Persisted ${stickerRows.length} interactive sticker row(s) for story ${storyId}`);
+            } catch (stickerErr) {
+                console.error('⚠️ Interactive sticker persistence failed (non-critical):', stickerErr.message);
+                logger.warn(`createStory: sticker persistence skipped for ${storyId}: ${stickerErr.message}`);
+            }
+        }
 
         // Register media in the centralized Cloudinary architecture
         if (finalMediaUrl && finalMediaUrl !== 'text') {
@@ -1310,6 +1386,26 @@ const addStoryComment = async (req, res) => {
             'INSERT INTO story_comments (comment_id, story_id, user_id, text) VALUES (?, ?, ?, ?)',
             [commentId, storyId, userId, text]
         );
+
+        // Notify the story author (if not self) — the viewer list already
+        // covers story views, so only replies reach the bell.
+        if (storyRows[0].user_id !== userId) {
+            try {
+                const [actor] = await pool.query('SELECT name FROM users WHERE user_id = ?', [userId]);
+                const notificationId = await notificationController.createNotification({
+                    user_id: storyRows[0].user_id,
+                    type: 'story_reply',
+                    title: 'New Story Reply',
+                    content: 'Someone replied to your story!',
+                    actor_id: userId,
+                    actor_name: actor[0]?.name,
+                    action_url: `/stories/${storyRows[0].user_id}`
+                }, pool);
+                if (notificationId) console.log('📨 Notification created for story reply');
+            } catch (notifErr) {
+                logger.error('Notification error (ignoring):', notifErr);
+            }
+        }
 
         res.json({ success: true, comment_id: commentId });
     } catch (error) {

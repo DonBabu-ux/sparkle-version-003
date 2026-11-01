@@ -45,9 +45,9 @@ type Mode = 'post' | 'story' | 'reel';
 const PALETTES = [
   { name: 'Sunset Sparkle', bg: 'linear-gradient(135deg, #FF512F 0%, #DD2476 100%)', text: '#FFFFFF' },
   { name: 'Midnight Neon', bg: 'linear-gradient(135deg, #000428 0%, #004e92 100%)', text: '#00F2FF' },
-  { name: 'Spring Bloom', bg: 'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)', text: '#FFFFFF' },
-  { name: 'Luxury Gold', bg: 'linear-gradient(135deg, #1f1c2c 0%, #928dab 100%)', text: '#FFD700' },
-  { name: 'Candy Cloud', bg: 'linear-gradient(135deg, #e94057 0%, #f27121 100%)', text: '#FFFFFF' },
+  { name: 'Spring Bloom', bg: 'linear-gradient(135deg, #00b09b 0%, #96c93d 100%)', text: '#0B3B2E' },
+  { name: 'Luxury Gold', bg: 'linear-gradient(135deg, #1f1c2c 0%, #5f5a72 100%)', text: '#FFD700' },
+  { name: 'Candy Cloud', bg: 'linear-gradient(135deg, #e94057 0%, #f27121 100%)', text: '#18181B' },
   { name: 'Deep Sea', bg: 'linear-gradient(135deg, #141e30 0%, #243b55 100%)', text: '#E0E0E0' },
 ];
 
@@ -1350,7 +1350,7 @@ export default function CreateStory() {
   // --- GENIUS COMPONENTS ---
   const MusicIndicator = () => (
     <motion.div initial={{ y: -20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} className="absolute top-16 left-1/2 -translate-x-1/2 z-[400] flex items-center justify-center pointer-events-none">
-        <div className="bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full py-2.5 px-4 flex items-center gap-3 pointer-events-auto active:scale-95 transition-all shadow-2xl" onClick={() => openMusicPicker(phase)}>
+        <div className="bg-black/20 backdrop-blur-3xl border border-white/20 rounded-full py-2.5 px-4 flex items-center gap-3 pointer-events-auto active:scale-95 transition-all shadow-2xl" onClick={() => openMusicPicker(phase)}>
             <div className="w-8 h-8 bg-rose-500 rounded-full flex items-center justify-center shadow-lg overflow-hidden shrink-0">
                 {selectedMusic?.thumbnailUrl ? (
                   <img src={selectedMusic.thumbnailUrl} alt="" className="w-full h-full object-cover" />
@@ -1361,8 +1361,8 @@ export default function CreateStory() {
                 )}
             </div>
             <div className="flex flex-col max-w-[110px]">
-                <span className="text-[11px] font-black italic uppercase tracking-tight text-white truncate">{selectedMusic?.title}</span>
-                <span className="text-[8px] font-bold text-white/40 uppercase tracking-widest truncate">{selectedMusic?.artist}</span>
+                <span className="text-sm font-semibold text-white truncate">{selectedMusic?.title}</span>
+                <span className="text-xs font-medium text-white/70 truncate">{selectedMusic?.artist}</span>
             </div>
             <button onClick={(e) => { e.stopPropagation(); handleMusicRemove(); }} className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center text-white active:bg-white/20">
                 <X size={12} strokeWidth={3} />
@@ -1382,30 +1382,26 @@ export default function CreateStory() {
       <AnimatePresence mode="wait">
           {/* 1. ENTRY PHASE — Instagram/WhatsApp style: one clean gallery picker */}
           {phase === 'entry' && (
-              <motion.div key="entry" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-white dark:bg-[#101217] text-[#18181b] dark:text-white z-[200] flex flex-col">
-                  <div className="p-6 flex items-center justify-between border-b border-black/5 dark:border-white/5">
-                      <button onClick={() => navigate(-1)} className="p-2 -ml-2 text-black/30 dark:text-white/30"><X size={28} strokeWidth={3} /></button>
-                      <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] flex-1 text-center text-[#18181b] dark:text-white">Add to Story</h2>
-                      <button onClick={() => { void refreshDraftList(); setShowDraftsSheet(true); }} className="text-[12px] font-black italic uppercase text-[#18181b] dark:text-white px-4 py-2 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full flex items-center gap-1.5 hover:bg-black/10 dark:hover:bg-white/10 transition-all">Drafts <FolderOpen size={14} className="opacity-60" /></button>
+              <motion.div key="entry" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-zinc-100 z-[200] flex flex-col">
+                  <div className="p-6 flex items-center justify-between border-b border-[#ede3e9] dark:border-zinc-900">
+                      <button onClick={() => navigate(-1)} className="p-2 -ml-2 rounded-full text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors"><X size={28} strokeWidth={3} /></button>
+                      <h2 className="text-lg font-bold flex-1 text-center text-[#18181b] dark:text-zinc-100">Add to story</h2>
+                      <button onClick={() => { void refreshDraftList(); setShowDraftsSheet(true); }} className="flex items-center gap-1.5 h-9 px-3.5 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-sm font-semibold text-[#ff1493] hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors">Drafts <FolderOpen size={14} /></button>
                   </div>
                   <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
                       <div className="grid grid-cols-3 gap-3">
-                          <button onClick={() => { setPhase('camera'); setMode('story'); }} className="row-span-2 col-span-1 rounded-[24px] bg-gray-100 dark:bg-zinc-900 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 transition-colors">
-                              <div className="w-14 h-14 rounded-full bg-white dark:bg-zinc-800 flex items-center justify-center shadow-lg">
-                                  <Camera size={32} className="text-[#18181b] dark:text-white" />
-                              </div>
-                               <span className="text-[11px] font-black uppercase italic tracking-widest text-black/40 dark:text-white/40">Camera</span>
+                          <button onClick={() => { setPhase('camera'); setMode('story'); }} className="row-span-2 col-span-1 rounded-3xl bg-[#fdf8fa] dark:bg-zinc-800 flex flex-col items-center justify-center gap-3 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493] transition-colors">
+                              <Camera size={32} strokeWidth={2} className="text-[#ff1493]" />
+                               <span className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Camera</span>
                           </button>
                           {/* Type mode — text-only stories, no media required */}
                           <button
                               onClick={() => { setMode('story'); setPhase('text_story'); }}
-                              className="rounded-[28px] bg-white dark:bg-[#101217] border border-black/5 dark:border-white/10 flex flex-col items-center justify-center gap-3 aspect-square active:scale-95 transition-all shadow-sm hover:border-primary/40"
-                          >
-                              <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shadow-lg">
-                                  <Type size={28} strokeWidth={3} className="text-primary" />
-                              </div>
-                               <span className="text-[11px] font-black italic uppercase tracking-widest text-[#18181b] dark:text-white">Type</span>
-                          </button>
+                               className="rounded-3xl bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 flex flex-col items-center justify-center gap-3 aspect-square active:scale-95 transition-all shadow-sm hover:border-[#ff1493]"
+                           >
+                               <Type size={28} strokeWidth={2} className="text-[#ff1493]" />
+                                <span className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Type</span>
+                           </button>
                           {deviceMedia.map((item, i) => {
                               const key = mediaKeyOf(item, i);
                               const isPicked = pageIds.includes(key);
@@ -1416,7 +1412,7 @@ export default function CreateStory() {
                                       onClick={() => togglePageSelection(key)}
                                       aria-pressed={isPicked}
                                       aria-label={`Select media ${i + 1}${isPicked ? ', selected' : ''}`}
-                                      className={`rounded-[24px] bg-gray-100 dark:bg-zinc-900 relative overflow-hidden active:scale-95 transition-transform border group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'} ${isPicked ? 'border-primary' : 'border-black/5 dark:border-white/5'}`}
+                                      className={`rounded-3xl bg-[#fdf8fa] dark:bg-zinc-800 relative overflow-hidden active:scale-95 transition-transform border group ${i === 0 ? 'aspect-[3/4]' : 'aspect-square'} ${isPicked ? 'border-[#ff1493]' : 'border-[#e6d8e1] dark:border-zinc-700'}`}
                                   >
                                       {item.isVideo || (item.file && item.file.type.startsWith('video/')) ? (
                                           <video
@@ -1432,11 +1428,11 @@ export default function CreateStory() {
                                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                                           />
                                       )}
-                                      <div className={`absolute inset-0 transition-colors ${isPicked ? 'bg-primary/20' : 'bg-black/10 group-hover:bg-black/0'}`} />
+                                      <div className={`absolute inset-0 transition-colors ${isPicked ? 'bg-[#ff1493]/20' : 'bg-black/0 group-hover:bg-black/0'}`} />
                                       {/* Selection badge: order in the page strip */}
                                       <span
                                           aria-hidden="true"
-                                          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-black transition-all ${isPicked ? 'bg-primary text-white scale-110' : 'bg-black/40 border-2 border-white/70 text-transparent'}`}
+                                          className={`absolute top-2 right-2 w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${isPicked ? 'bg-[#ff1493] text-white scale-110' : 'bg-[#fdf8fa] dark:bg-zinc-800 border-2 border-[#e6d8e1] dark:border-zinc-700 text-transparent'}`}
                                       >
                                           {pickOrder || ''}
                                       </span>
@@ -1446,15 +1442,15 @@ export default function CreateStory() {
                           {/* Load-more tile — lets users pick additional local files */}
                           <button
                               onClick={() => deviceFilesInputRef.current?.click()}
-                              className="rounded-[24px] bg-gray-50 dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-gray-200 dark:border-zinc-800 hover:border-primary/40 active:scale-95 transition-all group aspect-square"
+                              className="rounded-3xl bg-[#f6eef3] dark:bg-zinc-900 flex flex-col items-center justify-center gap-2 border border-dashed border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493] active:scale-95 transition-all group aspect-square"
                           >
-                              <Plus size={24} className="text-gray-300 dark:text-zinc-600 group-hover:text-primary transition-colors" />
-                              <span className="text-[11px] font-black uppercase tracking-wider text-gray-400 dark:text-zinc-300 group-hover:text-primary transition-colors">Load Media</span>
+                              <Plus size={24} strokeWidth={2} className="text-slate-600 dark:text-zinc-300 group-hover:text-[#ff1493] transition-colors" />
+                              <span className="text-sm font-semibold text-slate-600 dark:text-zinc-300 group-hover:text-[#ff1493] transition-colors">Load media</span>
                           </button>
                       </div>
                       {deviceMedia.length === 0 && (
-                          <p className="text-center text-[12px] font-bold text-black/30 dark:text-white/30 mt-10">
-                              No photos loaded yet — tap “Load Media” to pick images or videos.
+                          <p className="text-center text-sm text-slate-600 dark:text-zinc-300 mt-10">
+                              No photos loaded yet — tap “Load media” to pick images or videos.
                           </p>
                       )}
                   </div>
@@ -1470,15 +1466,15 @@ export default function CreateStory() {
                               <div className="flex items-center gap-3">
                                   <button
                                       onClick={() => setPageIds([])}
-                                      className="h-14 px-6 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 rounded-full text-[11px] font-black uppercase tracking-tight text-[#18181b] dark:text-white active:scale-95 transition-all"
+                                      className="h-14 px-6 rounded-full bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-sm font-semibold text-[#18181b] dark:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 active:scale-95 transition-colors"
                                   >
                                       Clear
                                   </button>
                                   <button
                                       onClick={confirmMultiSelection}
-                                      className="h-14 flex-1 bg-primary text-white rounded-full font-black italic uppercase tracking-tight active:scale-95 transition-all shadow-2xl flex items-center justify-center gap-2"
+                                      className="h-14 flex-1 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold active:scale-95 transition-all shadow-lg flex items-center justify-center gap-2"
                                   >
-                                      <span className="text-[15px]">Next ({pageIds.length})</span>
+                                      <span>Next ({pageIds.length})</span>
                                       <Layers size={18} strokeWidth={3} />
                                   </button>
                               </div>
@@ -1497,43 +1493,43 @@ export default function CreateStory() {
                       animate={{ y: 0 }}
                       exit={{ y: '100%' }}
                       transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                      className="absolute inset-x-0 bottom-0 top-16 z-[650] bg-white dark:bg-[#1b1b24] rounded-t-[40px] px-6 pt-6 pb-10 flex flex-col"
+                      className="absolute inset-x-0 bottom-0 top-16 z-[650] bg-[#fdf8fa] dark:bg-zinc-800 rounded-t-[40px] px-6 pt-6 pb-10 flex flex-col"
                       role="dialog"
                       aria-label="Story drafts"
                   >
-                      <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-black/10 dark:bg-white/10" />
+                      <div className="mx-auto mb-4 h-1.5 w-12 rounded-full bg-[#e6d8e1] dark:bg-zinc-700" />
                       <div className="flex items-center justify-between mb-6">
-                          <h2 className="text-[16px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">Drafts</h2>
-                          <button onClick={() => setShowDraftsSheet(false)} aria-label="Close drafts" className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#18181b] dark:text-white active:scale-90 transition-all"><X size={20} /></button>
+                          <h2 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">Drafts</h2>
+                          <button onClick={() => setShowDraftsSheet(false)} aria-label="Close drafts" className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors"><X size={20} /></button>
                       </div>
                       <div className="flex-1 overflow-y-auto no-scrollbar">
                           {draftRecords.length === 0 ? (
-                              <p className="text-center text-[12px] font-bold text-black/30 dark:text-white/30 mt-16">
-                                  No drafts yet — compose a story, then tap “Save Draft”.
+                              <p className="text-center text-sm text-slate-600 dark:text-zinc-300 mt-16">
+                                  No drafts yet — compose a story, then tap “Save draft”.
                               </p>
                           ) : (
                               <div className="flex flex-col gap-3">
                                   {draftRecords.map((draft) => (
-                                      <div key={draft.draft_id} className="flex items-center gap-3 p-3 rounded-[24px] bg-black/5 dark:bg-white/5">
-                                          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
-                                              <Film size={20} />
+                                      <div key={draft.draft_id} className="flex items-center gap-3 p-3 rounded-2xl bg-[#f6eef3] dark:bg-zinc-900">
+                                          <div className="w-12 h-12 rounded-2xl bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center shrink-0">
+                                              <Film size={20} className="text-[#ff1493]" />
                                           </div>
                                           <div className="flex-1 min-w-0">
-                                              <p className="text-[13px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white truncate">{draft.title || 'Story draft'}</p>
-                                              <p className="text-[11px] text-slate-600 dark:text-zinc-400">
+                                              <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100 truncate">{draft.title || 'Story draft'}</p>
+                                              <p className="text-xs text-slate-600 dark:text-zinc-300">
                                                   {(draft.metadata?.pages?.length ?? 0)} page(s) · {new Date(draft.updated_at).toLocaleDateString()}
                                               </p>
                                           </div>
                                           <button
                                               onClick={() => handleResumeDraft(draft.draft_id)}
-                                              className="h-10 px-5 rounded-full bg-primary text-white text-[11px] font-black uppercase tracking-tight active:scale-95 transition-all"
+                                              className="h-10 px-5 rounded-full bg-[#ff1493] hover:bg-[#ff2d87] text-white text-sm font-semibold active:scale-95 transition-all"
                                           >
                                               Resume
                                           </button>
                                           <button
                                               onClick={() => handleDeleteDraft(draft.draft_id)}
                                               aria-label={`Delete draft ${draft.title || ''}`}
-                                              className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#18181b] dark:text-white active:scale-90 transition-all"
+                                              className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors"
                                           >
                                               <X size={16} />
                                           </button>
@@ -1550,20 +1546,20 @@ export default function CreateStory() {
           {phase === 'text_story' && (
               <motion.div key="text_story" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 z-[500] flex flex-col" style={{ background: PALETTES[activePalette].bg }}>
                   <div className="p-10 pt-16 flex items-center justify-between z-10">
-                      <button onClick={() => setPhase('entry')} className="w-12 h-12 bg-black/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
+                      <button onClick={() => setPhase('entry')} className="w-12 h-12 bg-black/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
                       <div className="flex items-center gap-3">
                           {!selectedMusic && (
-                            <button onClick={() => openMusicPicker('text_story')} className="w-12 h-12 rounded-full flex items-center justify-center bg-black/10 text-white border border-white/10"><Music size={20} /></button>
+                            <button onClick={() => openMusicPicker('text_story')} className="w-12 h-12 rounded-full flex items-center justify-center bg-black/20 text-white border border-white/20"><Music size={20} /></button>
                           )}
-                          <button onClick={() => setShowColorPicker(true)} className="h-12 px-6 bg-black/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center gap-3 text-white"><div className="w-4 h-4 rounded-full border border-white" style={{ background: selectedTextColor || PALETTES[activePalette].text }} /><span className="text-[10px] font-black uppercase italic">Color</span></button>
-                          <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="w-12 h-12 bg-black/10 backdrop-blur-xl border border-white/10 rounded-full flex items-center justify-center text-white">{textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}</button>
-                          <button onClick={() => setTextHighlight(!textHighlight)} className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${textHighlight ? 'bg-white text-[#18181b]' : 'bg-black/10 text-white border border-white/10'}`}><CaseUpper size={20} strokeWidth={textHighlight ? 4 : 2} /></button>
+                          <button onClick={() => setShowColorPicker(true)} className="h-12 px-6 bg-black/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center gap-3 text-white"><div className="w-4 h-4 rounded-full border border-white" style={{ background: selectedTextColor || PALETTES[activePalette].text }} /><span className="text-sm font-semibold">Color</span></button>
+                          <button onClick={() => setTextAlign(textAlign === 'left' ? 'center' : textAlign === 'center' ? 'right' : 'left')} className="w-12 h-12 bg-black/20 backdrop-blur-xl border border-white/20 rounded-full flex items-center justify-center text-white">{textAlign === 'left' ? <AlignLeft size={20} /> : textAlign === 'center' ? <AlignCenter size={20} /> : <AlignRight size={20} />}</button>
+                          <button onClick={() => setTextHighlight(!textHighlight)} className={`w-12 h-12 rounded-full flex items-center justify-center transition-all ${textHighlight ? 'bg-white text-[#18181b]' : 'bg-black/20 text-white border border-white/20'}`}><CaseUpper size={20} strokeWidth={textHighlight ? 4 : 2} /></button>
                       </div>
                   </div>
-                  <div className="flex-1 flex flex-col items-center justify-center p-10 overflow-hidden"><textarea autoFocus placeholder="Start typing..." value={textStoryContent} onChange={(e) => setTextStoryContent(e.target.value)} className={`w-full bg-transparent border-none outline-none text-center resize-none placeholder-white/30 transition-all duration-300 ${FONTS[activeFont].class} ${textStoryContent.length > 50 ? 'text-[28px]' : 'text-[42px]'} ${textHighlight ? 'px-6 py-2 bg-black/20 rounded-[20px]' : ''}`} style={{ color: selectedTextColor || PALETTES[activePalette].text, textAlign: textAlign }} /></div>
-                  <div className="px-6 z-20"><div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-4 px-2">{FONTS.map((font, i) => (<button key={font.id} onClick={() => setActiveFont(i)} className={`min-w-fit px-6 py-3 rounded-full transition-all border-2 flex items-center justify-center whitespace-nowrap shadow-xl ${activeFont === i ? 'bg-white text-[#18181b] border-white scale-110' : 'bg-black/20 text-white border-white/10 opacity-60'}`}><span className={`text-[12px] ${font.class}`}>{font.name}</span></button>))}</div></div>
-                  <div className="p-8 pb-16 flex flex-col gap-6 z-10"><div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2">{PALETTES.map((p, i) => (<button key={i} onClick={() => setActivePalette(i)} className={`min-w-[44px] h-11 rounded-2xl border-2 transition-all ${activePalette === i ? 'border-white scale-110 shadow-lg' : 'border-white/20'}`} style={{ background: p.bg }} />))}</div><div className="flex items-center justify-between"><div className="flex flex-col"><span className="text-[10px] font-black uppercase italic text-white/40 tracking-widest">Story Vibe</span><span className="text-[12px] font-black italic uppercase text-white">{PALETTES[activePalette].name}</span></div><button onClick={handleSubmit} disabled={uploading || !textStoryContent} className="h-16 px-10 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-full flex items-center gap-3 active:scale-95 transition-all shadow-2xl font-black italic uppercase tracking-tighter">{uploading ? <Spinner size="medium" color="text-primary" /> : <><span className="text-[15px]">Push to Story</span><Send size={18} strokeWidth={3} /></>}</button></div></div>
-                  <AnimatePresence>{showColorPicker && (<motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="absolute inset-x-6 bottom-40 bg-black/80 backdrop-blur-3xl border border-white/10 rounded-[32px] p-8 z-[600] shadow-2xl"><div className="flex items-center justify-between mb-8"><h4 className="text-[10px] font-black uppercase italic tracking-widest text-white/40">Choose Text Color</h4><button onClick={() => setShowColorPicker(false)} className="w-8 h-8 bg-white/10 rounded-full flex items-center justify-center text-white active:scale-75 transition-all"><X size={16} /></button></div><div className="grid grid-cols-5 gap-4"><button onClick={() => { setSelectedTextColor(null); setShowColorPicker(false); }} className={`w-12 h-12 rounded-2xl flex items-center justify-center border-2 ${selectedTextColor === null ? 'border-white' : 'border-white/10'}`}><Pipette size={20} /></button>{TEXT_COLORS.map(c => (<button key={c.value} onClick={() => { setSelectedTextColor(c.value); setShowColorPicker(false); }} className={`w-12 h-12 rounded-2xl border-2 transition-all ${selectedTextColor === c.value ? 'border-white scale-110 shadow-lg' : 'border-white/10'}`} style={{ background: c.value }} />))}</div><button onClick={() => setShowColorPicker(false)} className="w-full mt-8 h-14 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-2xl font-black italic uppercase text-[12px] flex items-center justify-center gap-2">Done <CheckCircle2 size={16} /></button></motion.div>)}</AnimatePresence>
+                  <div className="flex-1 flex flex-col items-center justify-center p-10 overflow-hidden"><textarea autoFocus placeholder="Start typing..." value={textStoryContent} onChange={(e) => setTextStoryContent(e.target.value)} className={`story-type-field w-full bg-transparent border-none outline-none text-center resize-none transition-all duration-300 ${FONTS[activeFont].class} ${textStoryContent.length > 50 ? 'text-[28px]' : 'text-[42px]'} ${textHighlight ? 'px-6 py-2 bg-black/20 rounded-[20px]' : ''}`} style={{ color: selectedTextColor || PALETTES[activePalette].text, textAlign: textAlign }} /></div>
+                  <div className="px-6 z-20"><div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-4 px-2">{FONTS.map((font, i) => (<button key={font.id} onClick={() => setActiveFont(i)} className={`min-w-fit px-6 py-3 rounded-full transition-all border-2 flex items-center justify-center whitespace-nowrap shadow-xl ${activeFont === i ? 'bg-white text-[#18181b] border-white scale-110' : 'bg-black/20 text-white border-white/20 opacity-70'}`}><span className={`text-xs ${font.class}`}>{font.name}</span></button>))}</div></div>
+                  <div className="p-8 pb-16 flex flex-col gap-6 z-10"><div className="flex items-center gap-4 overflow-x-auto no-scrollbar py-2">{PALETTES.map((p, i) => (<button key={i} onClick={() => setActivePalette(i)} className={`min-w-[44px] h-11 rounded-2xl border-2 transition-all ${activePalette === i ? 'border-white scale-110 shadow-lg' : 'border-white/30'}`} style={{ background: p.bg }} />))}</div><div className="flex items-center justify-between"><div className="flex flex-col"><span className="text-xs font-medium text-white/70">Story vibe</span><span className="text-sm font-semibold text-white">{PALETTES[activePalette].name}</span></div><button onClick={handleSubmit} disabled={uploading || !textStoryContent} className="h-16 px-10 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold flex items-center gap-3 active:scale-95 transition-all shadow-2xl">{uploading ? <Spinner size="medium" color="text-primary" /> : <><span>Push to story</span><Send size={18} strokeWidth={3} /></>}</button></div></div>
+                  <AnimatePresence>{showColorPicker && (<motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9, y: 20 }} className="absolute inset-x-6 bottom-40 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-8 z-[600] shadow-2xl"><div className="flex items-center justify-between mb-8"><h4 className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">Choose text color</h4><button onClick={() => setShowColorPicker(false)} className="w-8 h-8 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 active:scale-75 transition-all"><X size={16} /></button></div><div className="grid grid-cols-5 gap-4"><button onClick={() => { setSelectedTextColor(null); setShowColorPicker(false); }} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${selectedTextColor === null ? 'ring-2 ring-[#ff1493] scale-110' : 'border-2 border-[#e6d8e1] dark:border-zinc-700'}`}><Pipette size={20} className="text-slate-600 dark:text-zinc-300" /></button>{TEXT_COLORS.map(c => (<button key={c.value} onClick={() => { setSelectedTextColor(c.value); setShowColorPicker(false); }} className={`w-12 h-12 rounded-2xl transition-all ${selectedTextColor === c.value ? 'ring-2 ring-[#ff1493] scale-110 shadow-lg' : 'border-2 border-[#e6d8e1] dark:border-zinc-700'}`} style={{ background: c.value }} />))}</div><button onClick={() => setShowColorPicker(false)} className="w-full mt-8 h-14 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold flex items-center justify-center gap-2">Done <CheckCircle2 size={16} /></button></motion.div>)}</AnimatePresence>
               </motion.div>
           )}
 
@@ -1639,16 +1635,16 @@ export default function CreateStory() {
                           if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; }
                           setPhase(returnPhase);
                         }}
-                        className="text-white/30 p-2"
+                        className="p-2 rounded-full text-zinc-300 hover:bg-white/10 transition-colors"
                       >
                         <ChevronLeft size={32} strokeWidth={3} />
                       </button>
                       <div className="flex flex-col items-center">
-                        <h2 className="text-[14px] font-black italic uppercase tracking-[0.2em]">Add Music</h2>
-                        <span className="text-[9px] text-white/20 font-bold uppercase tracking-widest">Powered by Pixabay</span>
+                        <h2 className="text-lg font-bold">Add music</h2>
+                        <span className="text-xs text-white/70">Powered by Pixabay</span>
                       </div>
                       {selectedMusic && isPreviewingMusic ? (
-                          <button onClick={handleMusicConfirm} className="px-6 py-2 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-full font-black italic uppercase text-[12px] shadow-2xl active:scale-90 transition-all">Use Track</button>
+                          <button onClick={handleMusicConfirm} className="px-6 py-2 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold shadow-2xl active:scale-90 transition-all">Use track</button>
                       ) : <div className="w-20" />}
                   </div>
 
@@ -1657,12 +1653,12 @@ export default function CreateStory() {
                       {/* Search Bar */}
                       <div className="px-6 pb-4 shrink-0">
                         <div className="relative">
-                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/20" size={18} />
+                          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={18} />
                           <input
                             placeholder="Search tracks, artists, moods..."
                             value={musicSearchQuery}
                             onChange={(e) => setMusicSearchQuery(e.target.value)}
-                            className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-6 text-[14px] font-bold outline-none focus:border-rose-500 transition-all placeholder-white/20"
+                            className="w-full bg-white/5 border border-white/10 rounded-full py-4 pl-12 pr-6 text-sm text-white placeholder:text-zinc-400 outline-none focus:border-[#ff1493] transition-all"
                           />
                           {musicLoading && (
                             <Spinner size="small" className="absolute right-5 top-1/2 -translate-y-1/2 text-rose-400" />
@@ -1677,10 +1673,10 @@ export default function CreateStory() {
                             <button
                               key={mood}
                               onClick={() => setMusicSearchQuery(mood === 'Trending' ? '' : mood)}
-                              className={`shrink-0 px-4 py-2 rounded-full text-[11px] font-black uppercase tracking-wide transition-all border ${
+                              className={`shrink-0 px-4 py-2 rounded-full text-xs font-semibold transition-all border ${
                                 (mood === 'Trending' && musicSearchQuery === '') || musicSearchQuery.toLowerCase() === mood.toLowerCase()
-                                  ? 'bg-rose-500 border-rose-500 text-white'
-                                  : 'bg-white/5 border-white/10 text-white/50 hover:bg-white/10'
+                                  ? 'bg-[#ff1493] border-[#ff1493] text-white'
+                                  : 'bg-white/5 border-white/10 text-zinc-300 hover:bg-white/10'
                               }`}
                             >
                               {mood}
@@ -1693,9 +1689,9 @@ export default function CreateStory() {
                       <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-24">
                         {musicError ? (
                           <div className="flex flex-col items-center justify-center h-48 gap-4 text-center">
-                            <AlertCircle size={32} className="text-white/20" />
-                            <p className="text-[13px] text-white/40 font-bold">{musicError}</p>
-                            <button onClick={() => fetchMusicTracks(musicSearchQuery)} className="px-6 py-2 bg-white/10 rounded-full text-[11px] font-black uppercase">Retry</button>
+                            <AlertCircle size={32} className="text-zinc-400" />
+                            <p className="text-sm text-zinc-300">{musicError}</p>
+                            <button onClick={() => fetchMusicTracks(musicSearchQuery)} className="px-6 py-2 bg-white/10 rounded-full text-xs font-semibold text-white hover:bg-white/20 transition-colors">Retry</button>
                           </div>
                         ) : musicLoading && musicResults.length === 0 ? (
                           <div className="flex flex-col gap-4 mt-2">
@@ -1712,9 +1708,9 @@ export default function CreateStory() {
                           </div>
                         ) : musicResults.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-48 gap-3 text-center">
-                            <Music3 size={36} className="text-white/10" />
-                            <p className="text-[13px] text-white/30 font-bold">No tracks found</p>
-                            <p className="text-[11px] text-white/20">Try a different search term</p>
+                            <Music3 size={36} className="text-zinc-400" />
+                            <p className="text-sm text-zinc-300">No tracks found</p>
+                            <p className="text-xs text-zinc-300">Try a different search term</p>
                           </div>
                         ) : (
                           <div className="flex flex-col gap-3 mt-2">
@@ -1728,27 +1724,27 @@ export default function CreateStory() {
                                 className="w-full flex items-center gap-4 p-4 bg-white/5 rounded-[24px] border border-white/5 hover:bg-white/10 active:scale-[0.98] transition-all group text-left"
                               >
                                 {/* Album Art */}
-                                <div className="w-14 h-14 rounded-[18px] shrink-0 overflow-hidden bg-gradient-to-br from-rose-600 to-pink-900 flex items-center justify-center shadow-lg">
-                                  {track.thumbnailUrl ? (
-                                    <img src={track.thumbnailUrl} alt={track.title} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <Music3 size={22} className="text-white/60" />
-                                  )}
-                                </div>
-                                {/* Info */}
-                                <div className="flex-1 min-w-0">
-                                  <h4 className="text-[14px] font-black italic uppercase tracking-tight truncate text-white">{track.title}</h4>
-                                  <p className="text-[11px] font-bold text-white/40 truncate">{track.artist}</p>
-                                </div>
-                                {/* Duration + Play */}
-                                <div className="flex flex-col items-center gap-1 shrink-0">
-                                  <div className="w-9 h-9 rounded-full bg-white/5 group-hover:bg-rose-500 flex items-center justify-center transition-all">
-                                    <Play size={14} className="text-white/50 group-hover:text-white transition-colors ml-0.5" fill="currentColor" />
-                                  </div>
-                                  {track.duration > 0 && (
-                                    <span className="text-[9px] text-white/20 font-bold tabular-nums">{formatDuration(track.duration)}</span>
-                                  )}
-                                </div>
+                                 <div className="w-14 h-14 rounded-2xl shrink-0 overflow-hidden bg-gradient-to-br from-rose-600 to-pink-900 flex items-center justify-center shadow-lg">
+                                   {track.thumbnailUrl ? (
+                                     <img src={track.thumbnailUrl} alt={track.title} className="w-full h-full object-cover" />
+                                   ) : (
+                                     <Music3 size={22} className="text-white/60" />
+                                   )}
+                                 </div>
+                                 {/* Info */}
+                                 <div className="flex-1 min-w-0">
+                                   <h4 className="text-sm font-semibold truncate text-white">{track.title}</h4>
+                                   <p className="text-xs font-medium text-zinc-300 truncate">{track.artist}</p>
+                                 </div>
+                                 {/* Duration + Play */}
+                                 <div className="flex flex-col items-center gap-1 shrink-0">
+                                   <div className="w-9 h-9 rounded-full bg-white/5 group-hover:bg-rose-500 flex items-center justify-center transition-all">
+                                     <Play size={14} className="text-zinc-300 group-hover:text-white transition-colors ml-0.5" fill="currentColor" />
+                                   </div>
+                                   {track.duration > 0 && (
+                                     <span className="text-xs font-medium text-zinc-300 tabular-nums">{formatDuration(track.duration)}</span>
+                                   )}
+                                 </div>
                               </motion.button>
                             ))}
                           </div>
@@ -1772,14 +1768,14 @@ export default function CreateStory() {
                           )}
                         </div>
 
-                        <h3 className="text-[24px] font-black italic uppercase tracking-tighter mb-1 text-center max-w-xs truncate">{selectedMusic?.title}</h3>
-                        <p className="text-[13px] font-black text-rose-400 uppercase italic tracking-widest mb-10">{selectedMusic?.artist}</p>
+                        <h3 className="text-lg font-bold mb-1 text-center max-w-xs truncate text-white">{selectedMusic?.title}</h3>
+                        <p className="text-sm font-semibold text-rose-400 mb-10">{selectedMusic?.artist}</p>
 
                          {/* Window scrubber — the 15s the story will actually use */}
                          <div className="w-full max-w-[300px] mb-3">
                            <div className="flex items-center justify-between mb-2">
-                             <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Story window</span>
-                             <span className="text-[10px] font-black italic uppercase tabular-nums text-white/70">
+                             <span className="text-xs font-medium text-white/70">Story window</span>
+                             <span className="text-xs font-medium text-white tabular-nums">
                                {formatDuration((Number(selectedMusic?.start) || 0))} &ndash; {formatDuration(musicWindowEnd)}
                              </span>
                            </div>
@@ -1813,9 +1809,9 @@ export default function CreateStory() {
                                style={{ width: `${musicAudioProgress}%` }}
                              />
                            </div>
-                           <p className="text-[9px] font-bold text-white/30 mt-2 text-center uppercase tracking-widest">
-                               Drag to pick where the {MUSIC_WINDOW_SEC}s clip starts · track {formatDuration(musicTrackDuration)}
-                           </p>
+                            <p className="text-xs text-white/70 mt-2 text-center">
+                                Drag to pick where the {MUSIC_WINDOW_SEC}s clip starts · track {formatDuration(musicTrackDuration)}
+                            </p>
                          </div>
 
                         {/* Waveform visualiser (decorative) */}
@@ -1834,13 +1830,13 @@ export default function CreateStory() {
                         <div className="flex gap-4">
                           <button
                             onClick={toggleMusicPlayback}
-                            className="w-16 h-16 rounded-full bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white flex items-center justify-center shadow-xl active:scale-90 transition-all"
+                            className="w-16 h-16 rounded-full bg-white dark:bg-zinc-800 text-[#18181b] dark:text-white flex items-center justify-center shadow-xl active:scale-90 transition-all"
                           >
                             {isPlayingMusic ? <Pause size={26} fill="currentColor" /> : <Play size={26} fill="currentColor" />}
                           </button>
                           <button
                             onClick={() => { setIsPreviewingMusic(false); if (musicAudioRef.current) { musicAudioRef.current.pause(); musicAudioRef.current = null; } }}
-                            className="h-16 px-7 bg-white/5 border border-white/10 rounded-full flex items-center gap-3 text-[11px] font-black uppercase italic tracking-widest active:bg-white/10 transition-all"
+                            className="h-16 px-7 bg-white/5 border border-white/10 rounded-full flex items-center gap-3 text-xs font-semibold text-white hover:bg-white/10 active:bg-white/10 transition-all"
                           >
                             <ArrowRightLeft size={15} /> Change
                           </button>
@@ -1855,7 +1851,7 @@ export default function CreateStory() {
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="absolute inset-0 z-(--z-top) bg-black">
                   {/* The Media Content */}
                   {!previewUrl ? (
-                    <div className="w-full h-full flex items-center justify-center bg-gray-900 text-white/20">Loading Preview...</div>
+                    <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-sm text-zinc-400">Loading Preview...</div>
                   ) : (file?.type?.startsWith('video') || (file?.name?.toLowerCase().match(/\.(mp4|webm|mov|avi|m4v)$/i))) ? (
                     <video
                         ref={videoPreviewRef}
@@ -1885,17 +1881,17 @@ export default function CreateStory() {
 
                   {/* Top Bar */}
                   <div className="absolute top-14 left-6 z-[350] flex flex-col gap-3 items-start">
-                    <button onClick={() => setPhase('camera')} className="w-12 h-12 bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
+                    <button onClick={() => setPhase('camera')} className="w-12 h-12 bg-black/20 backdrop-blur-3xl border border-white/20 rounded-full flex items-center justify-center text-white"><X size={24} strokeWidth={3} /></button>
                     <button
                       onClick={() => setShowAudienceSheet(true)}
                       aria-haspopup="dialog"
-                      className="h-9 px-4 bg-black/20 backdrop-blur-3xl border border-white/10 rounded-full flex items-center gap-2 text-white active:scale-95 transition-all"
+                      className="h-9 px-4 bg-black/20 backdrop-blur-3xl border border-white/20 rounded-full flex items-center gap-2 text-white active:scale-95 transition-all"
                     >
                       {audience === 'public' && <Globe size={14} />}
                       {audience === 'followers' && <Users size={14} />}
                       {audience === 'close_friends' && <Heart size={14} />}
                       {audience === 'only_me' && <Lock size={14} />}
-                      <span className="text-[11px] font-black italic uppercase tracking-tight">{AUDIENCE_LABEL_MAP[audience] || 'Everyone'}</span>
+                      <span className="text-sm font-semibold">{AUDIENCE_LABEL_MAP[audience] || 'Everyone'}</span>
                       <ChevronDown size={12} />
                     </button>
                   </div>
@@ -1922,12 +1918,12 @@ export default function CreateStory() {
                           initial={{ x: 100, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           exit={{ x: 100, opacity: 0 }}
-                          className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-3xl border border-white/10 rounded-[32px] p-5 flex flex-col gap-5 z-[350] w-[248px]"
+                          className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/60 backdrop-blur-3xl border border-white/20 rounded-[32px] p-5 flex flex-col gap-5 z-[350] w-[248px]"
                           role="dialog"
                           aria-label="Media tools"
                         >
                           {!pages[activePageIndex]?.isVideo ? (
-                            <p className="text-[11px] font-black italic uppercase tracking-tight text-white/60 text-center py-6">
+                            <p className="text-sm font-semibold text-white text-center py-6">
                               Trim + cover are video-only
                             </p>
                           ) : (
@@ -1935,8 +1931,8 @@ export default function CreateStory() {
                               {/* Trim window */}
                               <div className="flex flex-col gap-2">
                                 <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Trim</span>
-                                  <span className="text-[10px] font-black italic uppercase tabular-nums text-white/70">
+                                  <span className="text-xs font-medium text-white/70">Trim</span>
+                                  <span className="text-xs font-medium text-white tabular-nums">
                                     {formatDuration(trimStart ?? 0)} &ndash; {formatDuration((trimStart ?? 0) + (trimDuration ?? 15))}
                                   </span>
                                 </div>
@@ -1960,7 +1956,7 @@ export default function CreateStory() {
                                       key={d}
                                       onClick={() => handleTrimChange(trimStart ?? 0, d)}
                                       aria-pressed={(trimDuration ?? 15) === d}
-                                      className={`flex-1 h-9 rounded-full text-[10px] font-black uppercase tracking-tight transition-all ${((trimDuration ?? 15) === d) ? 'bg-primary text-white' : 'bg-white/10 text-white/70'}`}
+                                      className={`flex-1 h-9 rounded-full text-xs font-semibold transition-all ${((trimDuration ?? 15) === d) ? 'bg-[#ff1493] text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
                                     >
                                       {d}s
                                     </button>
@@ -1969,7 +1965,7 @@ export default function CreateStory() {
                                 {(trimStart !== null || trimDuration !== null) && (
                                   <button
                                     onClick={() => handleTrimChange(null, null)}
-                                    className="h-9 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 active:scale-95 transition-all"
+                                    className="h-9 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-white/80 hover:bg-white/10 active:scale-95 transition-all"
                                   >
                                     Reset trim
                                   </button>
@@ -1977,13 +1973,13 @@ export default function CreateStory() {
                               </div>
 
                               {/* Cover frame */}
-                              <div className="flex flex-col gap-2 pt-4 border-t border-white/10">
-                                <span className="text-[10px] font-black uppercase tracking-widest text-white/40">Cover frame</span>
-                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-white/5 border border-white/10">
+                              <div className="flex flex-col gap-2 pt-4 border-t border-white/20">
+                                <span className="text-xs font-medium text-white/70">Cover frame</span>
+                                <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-white/5 border border-white/20">
                                   {coverUrl ? (
                                     <img src={coverUrl} alt="Chosen cover frame" className="w-full h-full object-cover" />
                                   ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-white/30">
+                                    <div className="w-full h-full flex items-center justify-center text-white/70">
                                       <Film size={22} />
                                     </div>
                                   )}
@@ -2003,7 +1999,7 @@ export default function CreateStory() {
                                 />
                                 <button
                                   onClick={() => void captureCoverFrame(coverTime)}
-                                  className="h-11 rounded-full bg-primary text-white text-[11px] font-black uppercase tracking-tight active:scale-95 transition-all"
+                                  className="h-11 rounded-full bg-[#ff1493] hover:bg-[#ff2d87] text-white text-xs font-semibold active:scale-95 transition-all"
                                 >
                                   Set cover from {coverTime.toFixed(1)}s
                                 </button>
@@ -2030,14 +2026,14 @@ export default function CreateStory() {
                                 onClick={() => handleSwitchPage(i)}
                                 aria-pressed={i === activePageIndex}
                                 aria-label={`Go to page ${i + 1}`}
-                                className={`relative shrink-0 w-14 h-20 rounded-2xl overflow-hidden border-2 transition-all active:scale-95 ${i === activePageIndex ? 'border-primary' : 'border-white/20'}`}
+                                className={`relative shrink-0 w-14 h-20 rounded-2xl overflow-hidden border-2 transition-all active:scale-95 ${i === activePageIndex ? 'border-[#ff1493]' : 'border-white/30'}`}
                               >
                                 {page.isVideo ? (
                                   <video src={page.previewUrl} className="w-full h-full object-cover" muted playsInline />
                                 ) : (
                                   <img src={page.previewUrl} alt="" className="w-full h-full object-cover" />
                                 )}
-                                <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-[9px] font-black flex items-center justify-center">{i + 1}</span>
+                                <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white text-xs font-semibold flex items-center justify-center">{i + 1}</span>
                               </button>
                             ))}
                           </div>
@@ -2082,7 +2078,7 @@ export default function CreateStory() {
                                 onChange={(e) => setEditorText(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleAddTextSticker(editorText)}
                                 placeholder="Type something..."
-                                className={`w-full bg-transparent border-none outline-none text-white text-[42px] placeholder-white/20 ${FONTS.find(f => f.id === overlayFontId)?.class || FONTS[0].class} ${overlayHighlight ? 'px-6 py-2 bg-black/30 rounded-[20px]' : ''}`}
+                                className={`w-full bg-transparent border-none outline-none text-white text-[42px] placeholder-white/50 ${FONTS.find(f => f.id === overlayFontId)?.class || FONTS[0].class} ${overlayHighlight ? 'px-6 py-2 bg-black/30 rounded-[20px]' : ''}`}
                                 style={{ color: overlayColor, textAlign: overlayAlign }}
                             />
 
@@ -2095,9 +2091,9 @@ export default function CreateStory() {
                                     key={font.id}
                                     onClick={() => setOverlayFontId(font.id)}
                                     aria-pressed={overlayFontId === font.id}
-                                    className={`shrink-0 px-4 py-2 rounded-full border-2 transition-all ${overlayFontId === font.id ? 'bg-white text-[#18181b] border-white' : 'bg-white/10 text-white border-white/10'}`}
+                                    className={`shrink-0 px-4 py-2 rounded-full border-2 transition-all ${overlayFontId === font.id ? 'bg-white text-[#18181b] border-white' : 'bg-white/10 text-white border-white/20'}`}
                                   >
-                                    <span className={`text-[11px] font-black italic uppercase tracking-tight ${font.class}`}>{font.name}</span>
+                                    <span className={`text-xs ${font.class}`}>{font.name}</span>
                                   </button>
                                 ))}
                               </div>
@@ -2132,7 +2128,7 @@ export default function CreateStory() {
                                       onClick={() => setOverlayColor(color.value)}
                                       aria-label={color.name}
                                       aria-pressed={overlayColor === color.value}
-                                      className={`w-8 h-8 rounded-full border-2 transition-all active:scale-90 ${overlayColor === color.value ? 'border-white scale-110' : 'border-white/20'}`}
+                                      className={`w-8 h-8 rounded-full border-2 transition-all active:scale-90 ${overlayColor === color.value ? 'border-white scale-110' : 'border-white/30'}`}
                                       style={{ background: color.value }}
                                     />
                                   ))}
@@ -2141,8 +2137,8 @@ export default function CreateStory() {
                             </div>
 
                             <div className="mt-10 flex gap-4">
-                                <button onClick={() => setActiveTool(null)} className="h-14 px-8 bg-white/10 rounded-full font-black uppercase text-[12px]">Cancel</button>
-                                <button onClick={() => handleAddTextSticker(editorText, activeTool === 'mention' ? 'mention' : 'text')} className="h-14 px-10 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-full font-black uppercase text-[12px]">Add</button>
+                                <button onClick={() => setActiveTool(null)} className="h-14 px-8 bg-white/10 rounded-full text-sm font-semibold text-white hover:bg-white/20 transition-colors">Cancel</button>
+                                <button onClick={() => handleAddTextSticker(editorText, activeTool === 'mention' ? 'mention' : 'text')} className="h-14 px-10 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold transition-all">Add</button>
                             </div>
                         </motion.div>
                       )}
@@ -2151,8 +2147,8 @@ export default function CreateStory() {
                   {/* Edit Sub-Menu Overlay */}
                   <AnimatePresence>
                     {showEditMenu && (
-                      <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="absolute right-24 top-1/2 -translate-y-1/2 bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[32px] p-4 flex flex-col gap-2 z-[350]">
-                         <button onClick={() => { setShowEditMenu(false); setShowLocationPicker(true); }} className="edit-sub-btn"><MapPin size={18} /><span>Location</span></button>
+                      <motion.div initial={{ x: 100, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: 100, opacity: 0 }} className="absolute right-24 top-1/2 -translate-y-1/2 bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 rounded-3xl p-2 flex flex-col gap-1 z-[350] shadow-2xl">
+                         <button onClick={() => { setShowEditMenu(false); setShowLocationPicker(true); }} className="edit-sub-btn text-[#18181b] dark:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 rounded-2xl"><MapPin size={18} /><span>Location</span></button>
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -2178,13 +2174,13 @@ export default function CreateStory() {
                         key="audience-sheet"
                         initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
                         transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-                        className="absolute inset-x-0 bottom-0 z-[600] bg-white dark:bg-[#1b1b24] rounded-t-[40px] px-8 pt-6 pb-10 max-h-[80%] overflow-y-auto no-scrollbar"
+                        className="absolute inset-x-0 bottom-0 z-[600] bg-[#fdf8fa] dark:bg-zinc-800 rounded-t-[40px] px-8 pt-6 pb-10 max-h-[80%] overflow-y-auto no-scrollbar"
                         role="dialog" aria-label="Story privacy"
                       >
-                        <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-black/10 dark:bg-white/10" />
+                        <div className="mx-auto mb-6 h-1.5 w-12 rounded-full bg-[#e6d8e1] dark:bg-zinc-700" />
                         <div className="flex items-center justify-between mb-6">
-                          <h2 className="text-[16px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">Story privacy</h2>
-                          <button onClick={() => setShowAudienceSheet(false)} className="w-10 h-10 rounded-full bg-black/5 dark:bg-white/10 flex items-center justify-center text-[#18181b] dark:text-white active:scale-90 transition-all"><X size={20} /></button>
+                          <h2 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">Story privacy</h2>
+                          <button onClick={() => setShowAudienceSheet(false)} className="w-10 h-10 rounded-full bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-600 transition-colors"><X size={20} /></button>
                         </div>
 
                         <div className="flex flex-col gap-2 mb-2">
@@ -2197,18 +2193,18 @@ export default function CreateStory() {
                               <button
                                 key={opt.id}
                                 onClick={() => setAudience(opt.id)}
-                                className={`flex items-center gap-4 p-4 rounded-[24px] border-2 transition-all active:scale-[0.98] ${audience === opt.id
-                                  ? 'border-primary bg-primary/5'
-                                  : 'border-transparent bg-black/5 dark:bg-white/5'}`}
+                                className={`flex items-center gap-4 p-4 rounded-2xl border-2 transition-all active:scale-[0.98] ${audience === opt.id
+                                  ? 'border-[#ff1493] bg-[#ff1493]/5'
+                                  : 'border-transparent bg-[#f6eef3] dark:bg-zinc-900'}`}
                               >
-                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${audience === opt.id ? 'bg-primary text-white' : 'bg-black/5 dark:bg-white/10 text-[#18181b] dark:text-white'}`}>
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center ${audience === opt.id ? 'bg-[#ff1493] text-white' : 'bg-[#f0e5ec] dark:bg-zinc-700 text-slate-600 dark:text-zinc-300'}`}>
                                   {optIcon}
                                 </div>
                                 <div className="flex-1 text-left">
-                                  <p className="text-[13px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">{opt.label}</p>
-                                  <p className="text-[11px] text-slate-600 dark:text-zinc-400 leading-tight">{opt.description}</p>
+                                  <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">{opt.label}</p>
+                                  <p className="text-xs text-slate-600 dark:text-zinc-300 leading-tight">{opt.description}</p>
                                 </div>
-                                {audience === opt.id && <CheckCircle2 size={20} className="text-primary" />}
+                                {audience === opt.id && <CheckCircle2 size={20} className="text-[#ff1493]" />}
                               </button>
                             );
                           })}
@@ -2216,14 +2212,14 @@ export default function CreateStory() {
 
                         {/* Close Friends management - only relevant for that audience */}
                         {audience === 'close_friends' && (
-                          <div className="mt-6 rounded-[24px] bg-black/5 dark:bg-white/5 p-4">
+                          <div className="mt-6 rounded-3xl bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 p-4">
                             <div className="flex items-center justify-between mb-3">
-                              <p className="text-[12px] font-black italic uppercase tracking-tight text-[#18181b] dark:text-white">Close Friends <span className="text-primary">({closeFriends.length})</span></p>
+                              <p className="text-sm font-semibold text-[#18181b] dark:text-zinc-100">Close Friends <span className="text-[#ff1493]">({closeFriends.length})</span></p>
                               {closeFriendLoading && <Spinner size="small" />}
                             </div>
-                            <p className="text-[11px] text-slate-600 dark:text-zinc-400 mb-3">Pick from your followers. Your close friends list also controls who can see your close-friends stories.</p>
+                            <p className="text-xs text-slate-600 dark:text-zinc-300 mb-3">Pick from your followers. Your close friends list also controls who can see your close-friends stories.</p>
                             {followerPool.length === 0 ? (
-                              <p className="text-[11px] text-slate-600 dark:text-zinc-400">{closeFriendLoading ? 'Loading followers...' : 'No followers yet - invite people to see close-friends stories.'}</p>
+                              <p className="text-xs text-slate-600 dark:text-zinc-300">{closeFriendLoading ? 'Loading followers...' : 'No followers yet - invite people to see close-friends stories.'}</p>
                             ) : (
                               <div className="flex flex-col gap-1.5">
                                 {followerPool.map((f) => {
@@ -2232,15 +2228,15 @@ export default function CreateStory() {
                                   const name = f.username || f.name || 'Unknown';
                                   return (
                                     <div key={id} className="flex items-center gap-3 py-1.5">
-                                      <div className="w-9 h-9 rounded-full overflow-hidden bg-primary/10 flex items-center justify-center text-primary font-black text-[12px]">
+                                      <div className="w-9 h-9 rounded-full overflow-hidden bg-[#f0e5ec] dark:bg-zinc-700 flex items-center justify-center text-[#ff1493] font-semibold text-sm">
                                         {f.avatar_url ? <img src={f.avatar_url} alt="" className="w-full h-full object-cover" /> : name.charAt(0).toUpperCase()}
                                       </div>
-                                      <p className="flex-1 text-[12px] font-bold text-[#18181b] dark:text-white truncate">{name}</p>
+                                      <p className="flex-1 text-sm font-medium text-[#18181b] dark:text-zinc-100 truncate">{name}</p>
                                       <button
                                         onClick={() => toggleCloseFriend(id)}
-                                        className={`h-8 px-4 rounded-full text-[11px] font-black uppercase tracking-tight active:scale-95 transition-all ${isClose
-                                          ? 'bg-primary text-white'
-                                          : 'bg-black/5 dark:bg-white/10 text-[#18181b] dark:text-white'}`}
+                                        className={`h-8 px-4 rounded-full text-xs font-semibold active:scale-95 transition-all ${isClose
+                                          ? 'bg-[#ff1493] text-white'
+                                          : 'bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-[#18181b] dark:text-zinc-100 hover:bg-[#ede3e9] dark:hover:bg-zinc-700'}`}
                                       >
                                         {isClose ? 'Added' : 'Add'}
                                       </button>
@@ -2254,7 +2250,7 @@ export default function CreateStory() {
 
                         <button
                           onClick={() => setShowAudienceSheet(false)}
-                          className="mt-6 h-14 w-full bg-primary text-white rounded-full font-black italic uppercase tracking-tight active:scale-95 transition-all"
+                          className="mt-6 h-14 w-full bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold active:scale-95 transition-all"
                         >
                           Apply
                         </button>
@@ -2277,7 +2273,7 @@ export default function CreateStory() {
                             onClick={handleUndoStickers}
                             disabled={!canUndo}
                             aria-label="Undo last placement"
-                            className="h-11 px-4 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full text-[11px] font-black uppercase tracking-tight text-white active:scale-90 transition-all disabled:opacity-30"
+                            className="h-11 px-4 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-full text-sm font-semibold text-white active:scale-90 transition-all disabled:opacity-30"
                           >
                             Undo
                           </button>
@@ -2285,26 +2281,26 @@ export default function CreateStory() {
                             onClick={handleRedoStickers}
                             disabled={!canRedo}
                             aria-label="Redo last placement"
-                            className="h-11 px-4 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full text-[11px] font-black uppercase tracking-tight text-white active:scale-90 transition-all disabled:opacity-30"
+                            className="h-11 px-4 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-full text-sm font-semibold text-white active:scale-90 transition-all disabled:opacity-30"
                           >
                             Redo
                           </button>
                           <button
                             onClick={() => setSaveToGallery(v => !v)}
                             aria-pressed={saveToGallery}
-                            className={`h-11 px-4 rounded-full text-[11px] font-black uppercase tracking-tight active:scale-90 transition-all border ${saveToGallery ? 'bg-primary border-primary text-white' : 'bg-white/10 border-white/10 text-white'}`}
+                            className={`h-11 px-4 rounded-full text-sm font-semibold active:scale-90 transition-all border ${saveToGallery ? 'bg-[#ff1493] border-[#ff1493] text-white' : 'bg-white/10 border-white/20 text-white'}`}
                           >
                             {saveToGallery ? 'Saved to device' : 'Save to device'}
                           </button>
                         </div>
                       </div>
                       <div className="flex items-center justify-between gap-3">
-                      <button onClick={() => setPhase('camera')} className="h-16 w-16 shrink-0 bg-white/10 backdrop-blur-3xl border border-white/10 rounded-full flex items-center justify-center text-white active:scale-90 transition-all"><ChevronLeft size={24} /></button>
-                      <button onClick={handleSubmit} disabled={uploading} className="h-16 flex-1 min-w-0 bg-white dark:bg-[#1b1b24] text-[#18181b] dark:text-white rounded-full flex items-center justify-center gap-3 active:scale-95 transition-all shadow-2xl font-black italic uppercase tracking-tight">
-                          {uploading ? <Spinner size="medium" color="text-primary" /> : (
-                            <>
-                              <span className="text-[15px]">
-                                {mode === 'story' ? 'Push to Story' : mode === 'post' ? 'Post to Feed' : 'Share Reel'}
+                      <button onClick={() => setPhase('camera')} className="h-16 w-16 shrink-0 bg-white/10 backdrop-blur-3xl border border-white/20 rounded-full flex items-center justify-center text-white active:scale-90 transition-all"><ChevronLeft size={24} /></button>
+                      <button onClick={handleSubmit} disabled={uploading} className="h-16 flex-1 min-w-0 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full text-sm font-semibold flex items-center justify-center gap-3 active:scale-95 transition-all shadow-lg">
+                        {uploading ? <Spinner size="medium" color="text-primary" /> : (
+                        <>
+                              <span>
+                                {mode === 'story' ? 'Push to story' : mode === 'post' ? 'Post to feed' : 'Share reel'}
                               </span>
                               <Send size={18} strokeWidth={3} />
                             </>
@@ -2316,7 +2312,7 @@ export default function CreateStory() {
           )}
 
           {phase === 'template_picker' && (
-              <motion.div key="templates" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-white dark:bg-[#101217] text-[#18181b] dark:text-white z-[300] flex flex-col"><div className="p-8 flex items-center justify-between bg-white dark:bg-[#101217] sticky top-0 z-10 border-b border-black/5 dark:border-white/5"><button onClick={() => setPhase('entry')} className="text-black/30 dark:text-white/30"><ChevronLeft size={28} strokeWidth={3} /></button><h2 className="text-[14px] font-black italic uppercase tracking-[0.2em] text-[#18181b] dark:text-white">Templates</h2><button onClick={() => setPhase('camera')} className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-all"><Plus size={24} strokeWidth={3} /></button></div><div className="flex-1 overflow-y-auto no-scrollbar pb-20"><div className="p-8"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2">Essential Stickers</h3><div className="grid grid-cols-2 gap-4"><button onClick={() => handleTemplateSelect({ prompt: 'Ask me anything', count: '5k' })} className="template-mini-card bg-indigo-50 dark:bg-indigo-500/5 text-indigo-600 dark:text-indigo-400"><Smile size={24} /><span>Add Yours</span></button><button onClick={() => setShowStickerPicker(true)} className="template-mini-card bg-purple-50 dark:bg-purple-500/5 text-purple-600 dark:text-purple-400"><Sparkles size={24} /><span>Stickers</span></button></div></div><div className="p-8 bg-black/5 dark:bg-white/5"><h3 className="text-[10px] font-black uppercase italic tracking-[0.2em] text-black/20 dark:text-white/20 mb-6 px-2 flex items-center gap-2"><TrendingUp size={14} /> Trending Prompts</h3><div className="flex flex-col gap-6">{TEMPLATE_PROMPTS.map(p => (<button key={p.id} onClick={() => handleTemplateSelect(p)} className="w-full bg-white dark:bg-[#101217] p-8 rounded-[40px] border-[3px] border-primary/20 hover:border-primary active:scale-95 transition-all shadow-xl shadow-primary/5 flex flex-col items-center text-center relative overflow-hidden group"><div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -mr-12 -mt-12 group-hover:bg-primary/10 transition-colors" /><p className="text-[20px] font-black italic uppercase tracking-tighter mb-4 text-[#18181b] dark:text-white leading-tight drop-shadow-sm">{p.prompt}</p><div className="px-6 py-2 bg-primary/10 rounded-full"><span className="text-[11px] font-black text-primary uppercase italic tracking-widest">Add Yours</span></div></button>))}</div></div></div></motion.div>
+              <motion.div key="templates" initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} className="absolute inset-0 bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-zinc-100 z-[300] flex flex-col"><div className="p-4 md:p-6 flex items-center justify-between bg-[#f8e7ed] dark:bg-zinc-900 sticky top-0 z-10 border-b border-[#ede3e9] dark:border-zinc-900"><button onClick={() => setPhase('entry')} className="p-2 -ml-2 rounded-full text-slate-600 dark:text-zinc-300 hover:bg-[#ede3e9] dark:hover:bg-zinc-700 transition-colors"><ChevronLeft size={28} strokeWidth={2} /></button><h2 className="text-lg font-bold text-[#18181b] dark:text-zinc-100">Templates</h2><button onClick={() => setPhase('camera')} className="w-11 h-11 bg-[#ff1493] hover:bg-[#ff2d87] text-white rounded-full flex items-center justify-center shadow-sm active:scale-90 transition-colors"><Plus size={22} strokeWidth={2.5} /></button></div><div className="flex-1 overflow-y-auto no-scrollbar pb-20"><div className="p-4 md:p-6"><h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300 mb-4 px-1">Essential stickers</h3><div className="grid grid-cols-2 gap-3"><button onClick={() => handleTemplateSelect({ prompt: 'Ask me anything', count: '5k' })} className="template-mini-card bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-[#ff1493]"><Smile size={24} /><span>Add yours</span></button><button onClick={() => setShowStickerPicker(true)} className="template-mini-card bg-[#fdf8fa] dark:bg-zinc-800 border border-[#e6d8e1] dark:border-zinc-700 text-[#ff1493]"><Sparkles size={24} /><span>Stickers</span></button></div></div><div className="p-4 md:p-6 bg-[#f6eef3] dark:bg-zinc-900"><h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300 mb-4 px-1 flex items-center gap-2"><TrendingUp size={16} /> Trending prompts</h3><div className="flex flex-col gap-4">{TEMPLATE_PROMPTS.map(p => (<button key={p.id} onClick={() => handleTemplateSelect(p)} className="w-full bg-[#fdf8fa] dark:bg-zinc-800 p-6 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493] active:scale-[0.98] transition-colors flex flex-col items-center text-center"><p className="text-lg font-semibold mb-4 text-[#18181b] dark:text-zinc-100 leading-tight">{p.prompt}</p><div className="px-4 py-1.5 bg-[#f0e5ec] dark:bg-zinc-700 rounded-full"><span className="text-xs font-semibold text-[#ff1493]">Add yours</span></div></button>))}</div></div></div></motion.div>
           )}
       </AnimatePresence>
 
@@ -2380,20 +2376,23 @@ export default function CreateStory() {
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .mask-fade-edges { mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent); }
+        /* Text-story placeholder inherits the palette's text colour so it stays
+           legible on the light palettes (white-on-light-green vanished). */
+        .story-type-field::placeholder { color: currentColor; opacity: 0.55; }
         .camera-tool-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; color: white; transition: all 0.2s; min-height: 48px; }
         .camera-tool-btn:active { transform: scale(0.9); opacity: 0.7; }
-        .camera-tool-btn span { font-size: 9px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.7; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
+        .camera-tool-btn span { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.9; text-shadow: 0 2px 4px rgba(0,0,0,0.5); }
         .entry-action-card { min-width: 80px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; border-radius: 20px; transition: all 0.3s; }
         .template-mini-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 20px; border-radius: 24px; transition: all 0.3s; }
-        .template-mini-card span { font-size: 11px; font-weight: 900; text-transform: uppercase; font-style: italic; }
+        .template-mini-card span { font-size: 13px; font-weight: 600; }
         .editor-tool-btn { display: flex; flex-direction: column; align-items: center; gap: 4px; color: white; transition: all 0.3s; }
-        .editor-tool-btn span { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; opacity: 0.6; font-style: italic; }
+        .editor-tool-btn span { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.85; }
         .edit-sub-btn { display: flex; align-items: center; gap: 12px; color: white; padding: 12px 20px; border-radius: 24px; transition: all 0.2s; min-width: 140px; }
         .edit-sub-btn:active { background: rgba(255,255,255,0.1); }
-        .edit-sub-btn span { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .edit-sub-btn span { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; }
         .toolbar-btn { display: flex; flex-direction: column; align-items: center; gap: 6px; color: white; transition: all 0.3s; opacity: 0.8; }
         .toolbar-btn:active { transform: scale(0.8); opacity: 0.5; }
-        .toolbar-btn span { font-size: 8px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; opacity: 0.5; font-style: italic; }
+        .toolbar-btn span { font-size: 10px; font-weight: 600; letter-spacing: 0.02em; opacity: 0.85; }
       `}</style>
     </div>
   );

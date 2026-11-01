@@ -156,7 +156,7 @@ export const AestheticProfileCompletionBanner: React.FC = () => {
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, height: 0, marginBottom: 0, overflow: 'hidden' }}
         transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="relative mb-3 z-10"
+        className="relative z-10"
       >
         {/* Glassmorphism Outer Card */}
         <div className="relative overflow-hidden rounded-2xl bg-white/80 dark:bg-[#121214]/85 backdrop-blur-xl border border-black/[0.06] dark:border-white/[0.08] shadow-[0_8px_24px_-4px_rgba(0,0,0,0.04)] dark:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.35)] transition-all">

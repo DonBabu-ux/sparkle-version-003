@@ -273,10 +273,10 @@ const posts = orderedPostIds.map(id => postsById[id]);
       <Navbar />
 
       <main className="flex-1 p-4 md:p-8 relative z-10 max-w-[1400px] mx-auto w-full pt-[calc(4rem+env(safe-area-inset-top))] md:pt-8 pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-8">
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-6 md:gap-8 items-start">
-          <section className="flex flex-col gap-3">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_360px] gap-5 md:gap-6 items-start">
+          <section className="flex flex-col gap-2">
         <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl shadow-sm p-4 sm:p-6 animate-fade-in border border-[#e6d8e1] dark:border-zinc-700">
-          <div className="flex gap-4 items-center mb-5">
+          <div className="flex gap-4 items-center mb-4">
             <img src={getAvatarUrl(user?.avatar_url, user?.username)} className="w-11 h-11 rounded-full object-cover border border-[#e6d8e1] dark:border-zinc-700 shadow-sm" alt="" />
             <button onClick={() => setActiveModal('feeling')} className="flex-1 h-11 bg-[#f6eef3] dark:bg-zinc-900 hover:bg-[#f0e5ec] dark:hover:bg-zinc-700 text-[#18181b] dark:text-zinc-100 rounded-2xl px-5 text-left transition-colors font-medium text-sm">
               What's on your mind, {user?.name || user?.username}?
@@ -664,24 +664,24 @@ const posts = orderedPostIds.map(id => postsById[id]);
           </section>
 
           {/* Sidebar */}
-          <aside className="hidden xl:flex flex-col gap-4 sticky top-8 h-fit animate-fade-in">
+          <aside className="hidden xl:flex flex-col gap-3 sticky top-8 h-fit animate-fade-in">
             <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 p-5 sm:p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Connect</h3>
                 <Link to="/connect" className="text-sm font-semibold text-[#ff1493] hover:underline">View all</Link>
               </div>
-              <div className="space-y-4">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4"><Spinner size="medium" color="#475569" /><p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center">No suggestions</p></div>}</div>
+              <div className="space-y-3">{suggestions.length > 0 ? suggestions.map(s => <SuggestionItem key={s.user_id} s={s} navigate={navigate} />) : <div className="flex flex-col items-center py-8 gap-4"><Spinner size="medium" color="#475569" /><p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center">No suggestions</p></div>}</div>
             </div>
             {/* Trending */}
             <div className="bg-[#fdf8fa] dark:bg-zinc-800 rounded-3xl border border-[#e6d8e1] dark:border-zinc-700 p-5 sm:p-6 shadow-sm overflow-hidden group">
-               <div className="flex flex-col gap-6">
+               <div className="flex flex-col gap-4">
                   <h3 className="text-sm font-semibold text-slate-600 dark:text-zinc-300">Hot right now</h3>
                    {trendingTags.length === 0 ? (
                      <p className="text-xs font-medium text-slate-600 dark:text-zinc-300 text-center py-4">No trending tags yet</p>
                    ) : (
                      <>
                        <div className="space-y-3">{trendingTags.map(tag => (
-                         <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-4 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/20 rounded-2xl transition-all group/tag">
+                         <Link key={tag.tag} to={`/search?q=${tag.tag}`} className="block p-3 bg-[#f6eef3] dark:bg-zinc-900 border border-[#e6d8e1] dark:border-zinc-700 hover:border-[#ff1493]/20 rounded-2xl transition-all group/tag">
                            <div className="flex items-center justify-between">
                              <p className="text-base font-semibold text-[#18181b] dark:text-zinc-100 group-hover/tag:text-[#ff1493]">#{tag.tag}</p>
                              <TrendingUp size={14} className="text-[#ff1493] opacity-0 group-hover/tag:opacity-100 transition-opacity" />

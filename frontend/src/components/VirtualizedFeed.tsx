@@ -411,7 +411,7 @@ export default function VirtualizedFeed({ initialPosts = [], suggestions = [] }:
   }
 
   return (
-    <div ref={feedContainerRef} className="space-y-0.5 sm:space-y-2">
+    <div ref={feedContainerRef} className="space-y-0.5 sm:space-y-1.5">
 
       {/* 1. Shimmer/Shimmering inline styling */}
       <style>{`

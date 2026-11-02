@@ -113,10 +113,13 @@ router.put('/account/visibility', authMiddleware, userController.setHideFromUser
 router.get('/:id/posts', authMiddleware, userController.getUserPosts);
 router.get('/:id/followers', authMiddleware, userController.getFollowers);
 router.get('/:id/following', authMiddleware, userController.getFollowing);
+router.get('/:id/mutual-followers', authMiddleware, userController.getMutualFollowersForProfile);
 router.get('/:id/highlights', authMiddleware, getUserHighlights);
 router.get('/:id', authMiddleware, userController.getUserProfile);
 router.post('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);
 router.delete('/follow/:id', authMiddleware, validate(userIdSchema, 'params'), userController.unfollowUser);
+router.delete('/followers/:id', authMiddleware, validate(userIdSchema, 'params'), userController.removeFollower);
+router.delete('/follow-request/:targetId', authMiddleware, userController.cancelFollowRequest);
 
 // DashboardAPI Compatibility Aliases
 router.post('/:id/follow', authMiddleware, validate(userIdSchema, 'params'), userController.followUser);

@@ -1,0 +1,246 @@
+/* ── Sparkle Verification Evolution Styling ── */
+
+:root {
+  --verification-bg: #FFF7FE;
+  --verification-pink: #FF168F;
+  --verification-hot-pink: #FF008C;
+  --verification-soft-pink: #FFE0F3;
+  --verification-pink-glow: #FF8BD2;
+
+  --verification-lavender: #EEE3FF;
+  --verification-purple: #8C32ED;
+  --verification-deep-purple: #6620C8;
+
+  --verification-text: #10112D;
+  --verification-secondary: #565177;
+
+  --verification-glass: rgba(255, 255, 255, 0.52);
+  --verification-glass-border: rgba(255, 255, 255, 0.92);
+
+  --verification-track: #E6D9F1;
+
+  --verification-success: #159D77;
+  --verification-warning: #E88B00;
+  --verification-gold: #FFC83D;
+
+  --verification-radius-lg: 34px;
+  --verification-radius-md: 24px;
+}
+
+/* Base page background with luminous pastel glow matching reference */
+.verification-page-bg {
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255, 167, 223, 0.45), transparent 45%),
+    radial-gradient(ellipse at 88% 25%, rgba(255, 142, 204, 0.40), transparent 45%),
+    linear-gradient(155deg, #FFF3FC 0%, #F8F1FF 50%, #FFF4FB 100%);
+  min-height: 100dvh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+.dark .verification-page-bg {
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255, 22, 143, 0.22), transparent 45%),
+    radial-gradient(ellipse at 88% 25%, rgba(140, 50, 237, 0.25), transparent 45%),
+    linear-gradient(155deg, #130B1A 0%, #170E22 50%, #110918 100%);
+}
+
+/* Glassmorphism Card Core */
+.verification-glass-card {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  border-radius: var(--verification-radius-lg);
+  box-shadow:
+    0 12px 34px rgba(175, 89, 165, 0.08),
+    inset 0 1px 2px rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+}
+
+.dark .verification-glass-card {
+  background: rgba(28, 18, 38, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 12px 34px rgba(0, 0, 0, 0.35),
+    inset 0 1px 2px rgba(255, 255, 255, 0.1);
+}
+
+.verification-glass-card:active {
+  transform: scale(0.992);
+}
+
+/* Mini Action Card */
+.verification-action-card {
+  background: rgba(255, 255, 255, 0.52);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 24px;
+  box-shadow:
+    0 8px 24px rgba(175, 89, 165, 0.06),
+    inset 0 1px 1px rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dark .verification-action-card {
+  background: rgba(28, 18, 38, 0.65);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.verification-action-card:active {
+  transform: scale(0.98);
+}
+
+/* Floating Pink Bottom Navigation Bar */
+.verification-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border-top: 1px solid rgba(255, 255, 255, 0.9);
+  border-top-left-radius: 30px;
+  border-top-right-radius: 30px;
+  box-shadow: 0 -8px 30px rgba(255, 142, 204, 0.14);
+}
+
+.dark .verification-bottom-nav {
+  background: rgba(20, 12, 28, 0.88);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Glowing elevated central create button */
+.verification-create-btn {
+  background: linear-gradient(135deg, #FF008C 0%, #FF168F 60%, #FF64B0 100%);
+  box-shadow:
+    0 4px 18px rgba(255, 0, 140, 0.45),
+    0 0 0 4px rgba(255, 255, 255, 0.9);
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.dark .verification-create-btn {
+  box-shadow:
+    0 4px 18px rgba(255, 0, 140, 0.6),
+    0 0 0 4px rgba(32, 22, 42, 0.9);
+}
+
+.verification-create-btn:active {
+  transform: scale(0.92);
+}
+
+/* Top Navigation Glass Search Pill */
+.verification-search-pill {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.dark .verification-search-pill {
+  background: rgba(36, 24, 48, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Translucent 3D Glass Shield Graphic */
+.verification-shield-3d {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.4) 0%, rgba(255, 180, 220, 0.25) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.88);
+  box-shadow:
+    0 16px 36px rgba(255, 142, 204, 0.25),
+    inset 0 2px 4px rgba(255, 255, 255, 0.9),
+    inset 0 -2px 6px rgba(255, 22, 143, 0.15);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  clip-path: polygon(50% 0%, 100% 12%, 100% 68%, 50% 100%, 0% 68%, 0% 12%);
+}
+
+.dark .verification-shield-3d {
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 22, 143, 0.2) 100%);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+
+/* Sparkle Four-pointed Star Glint */
+@keyframes sparkle-pulse {
+  0%, 100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.25) rotate(45deg);
+    opacity: 1;
+  }
+}
+
+.sparkle-star-glint {
+  animation: sparkle-pulse 3.5s ease-in-out infinite;
+}
+
+/* Cursive brand signature font */
+.font-cursive-signature {
+  font-family: 'Brush Script MT', 'Dancing Script', 'Caveat', cursive;
+}
+
+/* Application Locked Notice Card */
+.verification-locked-card {
+  background: linear-gradient(135deg, #FFFDF2 0%, #FFF8E1 100%);
+  border: 1.5px solid rgba(255, 214, 102, 0.7);
+  border-radius: var(--verification-radius-lg);
+  box-shadow: 0 10px 28px rgba(245, 166, 35, 0.08);
+}
+
+.dark .verification-locked-card {
+  background: linear-gradient(135deg, rgba(50, 36, 16, 0.7) 0%, rgba(40, 26, 12, 0.7) 100%);
+  border: 1.5px solid rgba(255, 214, 102, 0.25);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+/* Badge Tiles */
+.verification-badge-tile-active {
+  background: #FFFDF5;
+  border: 1.5px solid #FFDF80;
+  border-radius: 20px;
+  box-shadow: 0 6px 18px rgba(255, 200, 61, 0.12);
+}
+
+.dark .verification-badge-tile-active {
+  background: rgba(50, 40, 20, 0.55);
+  border: 1.5px solid rgba(255, 214, 102, 0.35);
+}
+
+.verification-badge-tile-locked {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 4px 14px rgba(175, 89, 165, 0.04);
+}
+
+.dark .verification-badge-tile-locked {
+  background: rgba(30, 20, 42, 0.5);
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Inset Progress Bar Track */
+.verification-progress-track {
+  background: #EAE0F5;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.dark .verification-progress-track {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+/* Wave ribbons container */
+.verification-wave-ribbon {
+  position: absolute;
+  pointer-events: none;
+  z-index: 0;
+}
+

@@ -758,37 +758,79 @@ class User {
     }
 
     /**
-     * Get detailed follower list
+     * Get detailed follower list with full relationship data for smart follow buttons
      */
     static async getFollowersDetailed(userId, currentUserId) {
         const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         const [followers] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio, u.note, u.is_online,
+                    u.is_verified, u.account_type,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me,
+                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as outgoing_request_pending,
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.follower_id = u.user_id
              WHERE f.following_id = ? AND u.user_id != ? AND u.user_id != ?`,
-            [currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
+            [currentUserId, currentUserId, currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
         );
         return followers;
     }
 
     /**
-     * Get detailed following list
+     * Get detailed following list with full relationship data for smart follow buttons
      */
     static async getFollowingDetailed(userId, currentUserId) {
         const mutualQuery = `(SELECT COUNT(*) FROM follows f1 JOIN follows f2 ON f1.following_id = f2.following_id WHERE f1.follower_id = ? AND f2.follower_id = u.user_id)`;
         const [following] = await pool.query(
             `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
+                    u.is_verified, u.account_type,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me,
+                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as outgoing_request_pending,
                     ${mutualQuery} as mutual_connections
              FROM follows f
              JOIN users u ON f.following_id = u.user_id
              WHERE f.follower_id = ? AND u.user_id != ? AND u.user_id != ?`,
-            [currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
+            [currentUserId, currentUserId, currentUserId, currentUserId, userId, currentUserId, SPARKLE_SYSTEM_USER_ID]
         );
         return following;
+    }
+
+    /**
+     * Get accounts that follow BOTH the authenticated viewer AND the given profileId.
+     * These are the "mutual followers" shown when viewing another user's profile.
+     */
+    static async getMutualFollowersForProfile(viewerUserId, profileUserId) {
+        const [rows] = await pool.query(
+            `SELECT u.user_id, u.name, u.username, u.avatar_url, u.campus, u.bio,
+                    u.is_verified, u.account_type, u.is_online,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = u.user_id) as is_followed_by_me,
+                    (SELECT COUNT(*) FROM follows WHERE follower_id = u.user_id AND following_id = ?) as follows_me,
+                    (SELECT COUNT(*) FROM follow_requests WHERE requester_id = ? AND target_user_id = u.user_id AND status = 'pending') as outgoing_request_pending
+             FROM follows f1
+             JOIN follows f2 ON f2.follower_id = f1.follower_id AND f2.following_id = ?
+             JOIN users u ON u.user_id = f1.follower_id
+             WHERE f1.following_id = ?
+               AND u.user_id != ?
+               AND u.user_id != ?
+               AND u.account_status = 'active'
+             ORDER BY u.name ASC
+             LIMIT 200`,
+            [viewerUserId, viewerUserId, viewerUserId, profileUserId, viewerUserId, viewerUserId, SPARKLE_SYSTEM_USER_ID]
+        );
+        return rows;
+    }
+
+    /**
+     * Cancel an outgoing pending follow request by the requester to a target.
+     */
+    static async cancelFollowRequest(requesterId, targetUserId) {
+        await pool.query(
+            `DELETE FROM follow_requests WHERE requester_id = ? AND target_user_id = ? AND status = 'pending'`,
+            [requesterId, targetUserId]
+        );
+        return true;
     }
 
     /**

@@ -479,9 +479,9 @@ export default function Profile() {
         </div>
       </header>
 
-      <main className="flex-1 p-4 md:p-8 relative z-10 w-full pb-[calc(5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom)))]">
+      <main className="flex-1 p-4 md:p-8 pt-6 md:pt-10 relative z-10 w-full pb-[calc(5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom)))]">
         <div className="max-w-4xl mx-auto">
-          <header className="flex flex-col gap-8 mb-12 animate-fade-in w-full">
+          <header className="flex flex-col gap-8 pt-2 mb-12 animate-fade-in w-full">
             {/* Main Header Row: Avatar + Basic Info */}
             <div className="flex items-start gap-6 md:gap-10">
               {/* Avatar Column */}
@@ -582,6 +582,7 @@ export default function Profile() {
                       <span className="text-[11px] font-bold text-[#18181b] dark:text-white/40 uppercase tracking-widest">Following</span>
                     </div>
                   </div>
+
                 </div>
 
                 {identity.subtitle && (
@@ -1001,6 +1002,12 @@ export default function Profile() {
           onClose={() => setModalType(null)}
           title={modalType}
           profileId={profile?.id || profile?.user_id || ''}
+          onFollowersCountChange={(delta) => {
+            setProfile((prev) => prev ? { ...prev, followers_count: Math.max(0, (prev.followers_count || 0) + delta) } : prev);
+          }}
+          onFollowingCountChange={(delta) => {
+            setProfile((prev) => prev ? { ...prev, following_count: Math.max(0, (prev.following_count || 0) + delta) } : prev);
+          }}
         />
       )}
 

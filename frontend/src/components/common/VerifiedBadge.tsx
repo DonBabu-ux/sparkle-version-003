@@ -13,7 +13,7 @@ export interface VerifiedBadgeProps {
 
 export const VerifiedBadge: React.FC<VerifiedBadgeProps> = ({
   accountType = 'user',
-  isVerified = true,
+  isVerified = false,
   color,
   size = 'md',
   className = '',

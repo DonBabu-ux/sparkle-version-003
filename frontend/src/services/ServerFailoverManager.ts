@@ -123,6 +123,17 @@ class ServerFailoverManagerClass {
       return;
     }
 
+    // Anti-flapping: prevent rapid switching back and forth (minimum 10s cooldown unless quarantining)
+    const now = Date.now();
+    let lastSwitch = 0;
+    try {
+      lastSwitch = Number(localStorage.getItem(STORAGE_KEY_LAST_FAILOVER) || 0);
+    } catch {}
+    if (now - lastSwitch < 10000 && !reason.includes('Quarantine')) {
+      logger.warn(`[Failover] Ignoring switch request to ${nextId} (cooling down, switched ${Math.round((now - lastSwitch) / 1000)}s ago)`);
+      return;
+    }
+
     const prev = this.getActiveServer();
     this.activeServerId = nextId;
 

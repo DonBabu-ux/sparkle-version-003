@@ -981,6 +981,23 @@ const unfollowUser = async (req, res) => {
     }
 };
 
+const removeFollower = async (req, res) => {
+    try {
+        const currentUserId = req.user.userId || req.user.user_id;
+        const targetUserId = req.params.id;
+
+        await User.unfollow(targetUserId, currentUserId);
+        res.json({
+            success: true,
+            status: 'removed',
+            message: 'Follower removed'
+        });
+    } catch (error) {
+        logger.error('Remove follower error:', error);
+        res.status(500).json({ error: 'Failed to remove follower' });
+    }
+};
+
 const getFollowers = async (req, res) => {
     try {
         const userId = req.params.id;
@@ -991,7 +1008,9 @@ const getFollowers = async (req, res) => {
             ...f,
             id: f.user_id,
             profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
-            is_followed_by_me: !!f.is_followed_by_me
+            is_followed_by_me: !!f.is_followed_by_me,
+            follows_me: !!f.follows_me,
+            outgoing_request_pending: !!f.outgoing_request_pending,
         }));
 
         res.json(mappedFollowers);
@@ -1010,7 +1029,9 @@ const getMyFollowers = async (req, res) => {
             ...f,
             id: f.user_id,
             profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
-            is_followed_by_me: !!f.is_followed_by_me
+            is_followed_by_me: !!f.is_followed_by_me,
+            follows_me: !!f.follows_me,
+            outgoing_request_pending: !!f.outgoing_request_pending,
         }));
 
         res.json(mappedFollowers);
@@ -1030,7 +1051,9 @@ const getFollowing = async (req, res) => {
             ...f,
             id: f.user_id,
             profile_picture: f.avatar_url || '/uploads/avatars/no-profile.png',
-            is_followed_by_me: !!f.is_followed_by_me
+            is_followed_by_me: !!f.is_followed_by_me,
+            follows_me: !!f.follows_me,
+            outgoing_request_pending: !!f.outgoing_request_pending,
         }));
 
         res.json(mappedFollowing);
@@ -1315,6 +1338,46 @@ const getMutualFollowers = async (req, res) => {
     } catch (error) {
         logger.error('Get mutual followers error:', error);
         res.status(500).json({ success: false, error: 'Failed to get mutual connections' });
+    }
+};
+
+/**
+ * GET /users/:id/mutual-followers
+ * Returns accounts that follow BOTH the authenticated viewer and the given profile.
+ */
+const getMutualFollowersForProfile = async (req, res) => {
+    try {
+        const viewerUserId = req.user.userId || req.user.user_id;
+        const profileUserId = req.params.id;
+        const rows = await User.getMutualFollowersForProfile(viewerUserId, profileUserId);
+        const mapped = rows.map(u => ({
+            ...u,
+            id: u.user_id,
+            profile_picture: u.avatar_url || '/uploads/avatars/no-profile.png',
+            is_followed_by_me: !!u.is_followed_by_me,
+            follows_me: !!u.follows_me,
+            outgoing_request_pending: !!u.outgoing_request_pending,
+        }));
+        res.json(mapped);
+    } catch (error) {
+        logger.error('Get mutual followers for profile error:', error);
+        res.status(500).json({ error: 'Failed to get mutual followers' });
+    }
+};
+
+/**
+ * DELETE /users/follow-request/:targetId
+ * Cancel an outgoing pending follow request from the authenticated user to targetId.
+ */
+const cancelFollowRequest = async (req, res) => {
+    try {
+        const requesterId = req.user.userId || req.user.user_id;
+        const targetUserId = req.params.targetId;
+        await User.cancelFollowRequest(requesterId, targetUserId);
+        res.json({ success: true, message: 'Follow request cancelled' });
+    } catch (error) {
+        logger.error('Cancel follow request error:', error);
+        res.status(500).json({ error: 'Failed to cancel follow request' });
     }
 };
 
@@ -1654,6 +1717,7 @@ module.exports = {
     setHideFromUsers,
     followUser,
     unfollowUser,
+    removeFollower,
     getFollowers,
     getFollowing,
     getUserProfile,
@@ -1677,6 +1741,8 @@ module.exports = {
     updateNote,
     getMyFollowers,
     getMutualFollowers,
+    getMutualFollowersForProfile,
+    cancelFollowRequest,
     matchContacts,
     getHubRelevanceBadges,
     getCloseFriends,

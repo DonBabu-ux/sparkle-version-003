@@ -18,6 +18,7 @@ const _sockets = new Map<string, Socket>();
  */
 ServerFailoverManager.onServerChange((newServer, previousServer) => {
   logger.warn(`🔌 [SocketService] Active server changed (${previousServer.id} -> ${newServer.id}). Reconnecting all sockets...`);
+  consecutiveConnectErrors = 0;
   
   _sockets.forEach((sock, key) => {
     try {
@@ -138,6 +139,7 @@ export const createSocket = (userId: string, _token: string, namespace = ''): So
         const secondary = ServerFailoverManager.getSecondaryServer();
         if (!ServerFailoverManager.isQuarantined(secondary.id)) {
           logger.warn(`🚨 Socket connection failed ${consecutiveConnectErrors} times to ${active.id}. Switching to ${secondary.id}...`);
+          consecutiveConnectErrors = 0;
           ServerFailoverManager.switchActiveServer(secondary.id, 'Socket connect_error threshold reached');
           return;
         }

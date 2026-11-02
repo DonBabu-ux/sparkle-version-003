@@ -123,9 +123,14 @@ async function migrateCollations() {
       if (/^NULL$/i.test(raw)) {
         def += ' DEFAULT NULL';
       } else {
-        const isNumeric = /^(bit|tinyint|smallint|mediumint|int|integer|bigint|float|double|decimal|numeric)/i.test(c.COLUMN_TYPE);
-        const isTimestampExtra = /CURRENT_TIMESTAMP/i.test(raw);
+        // INFORMATION_SCHEMA already returns the default as it must appear in
+        // DDL: numeric types bare, everything else wrapped in single quotes —
+        // including ENUM, which arrives as "'MEMBER'". Re-escaping those would
+        // produce ''MEMBER'' and fail, so only strip the existing quoting.
+        const isNumeric = /^(bit|tinyint|smallint|mediumint|int|integer|bigint|float|double|decimal|numeric)/i.test(c.COLUMN_TYPE);        const isTimestampExtra = /CURRENT_TIMESTAMP/i.test(raw);
         if (isTimestampExtra || isNumeric) {
+          def += ' DEFAULT ' + raw;
+        } else if (/^'.*'$/.test(raw)) {
           def += ' DEFAULT ' + raw;
         } else {
           const lit = raw.replace(/'/g, "''");

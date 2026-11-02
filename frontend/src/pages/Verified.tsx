@@ -92,7 +92,7 @@ export default function Verified() {
     };
 
     fetchStats();
-  }, [fetchNotifications]);
+  }, []);
 
   const isEligible = stats.followers >= 1000 && stats.engagement >= 70 && stats.trustLevel >= 3;
 

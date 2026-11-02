@@ -91,7 +91,7 @@ const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
             <span className="text-[14px] font-bold text-gray-900">@{comment.username}</span>
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-tight">
+            <span className="text-[10px] font-bold text-gray-400 tracking-tight">
               {new Date(comment.created_at).toLocaleDateString()}
             </span>
           </div>
@@ -118,7 +118,7 @@ const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (
         </div>
 
         <div className="flex items-center gap-6 mt-2">
-          <button onClick={() => onReply?.(comment.username)} className="text-[11px] font-black text-primary uppercase tracking-widest hover:underline active:opacity-50">Reply</button>
+          <button onClick={() => onReply?.(comment.username)} className="text-[11px] font-semibold text-primary tracking-wide hover:underline active:opacity-50">Reply</button>
         </div>
       </div>
     </div>
@@ -430,7 +430,7 @@ const ReelItem = React.memo(({
 
         {/* Creator watermark — honors the per-reel composer toggle (default on) */}
         {isWatermarkVisible(moment.watermark) && (
-          <div className="absolute top-3 right-3 z-10 pointer-events-none select-none text-[10px] font-black uppercase tracking-[0.3em] text-white/70 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
+          <div className="absolute top-3 right-3 z-10 pointer-events-none select-none text-[10px] font-semibold tracking-wide text-white/70 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
             Sparkle
           </div>
         )}
@@ -463,7 +463,7 @@ const ReelItem = React.memo(({
           />
           {!moment.is_following && (
             <button 
-              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-black shadow-lg shadow-primary/20 hover:scale-110 transition-transform pointer-events-auto"
+              className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-5 h-5 bg-primary text-white rounded-full flex items-center justify-center text-[10px] border-2 border-black font-semibold shadow-lg shadow-primary/20 hover:scale-110 transition-transform pointer-events-auto"
               onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
             >
               +
@@ -479,7 +479,7 @@ const ReelItem = React.memo(({
           <div className={clsx("w-12 h-12 flex items-center justify-center transition-all group-hover/btn:scale-110", moment.is_liked ? "text-primary" : "text-white")}>
             <Heart size={26} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
+          <span className="text-[10px] font-bold text-white tracking-wide drop-shadow-md">
             {formatCount(moment.like_count || moment.spark_count || moment.sparks_count || 0)}
           </span>
         </button>
@@ -492,7 +492,7 @@ const ReelItem = React.memo(({
           <div className="w-12 h-12 flex items-center justify-center text-white transition-all group-hover/btn:scale-110">
             <CommentIcon size={26} className="-scale-x-100" />
           </div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">
+          <span className="text-[10px] font-bold text-white tracking-wide drop-shadow-md">
             {formatCount(moment.comment_count || moment.comments_count || 0)}
           </span>
         </button>
@@ -505,7 +505,7 @@ const ReelItem = React.memo(({
           <div className={clsx("w-12 h-12 flex items-center justify-center transition-all group-hover/btn:scale-110", moment.is_saved ? "text-amber-400" : "text-white")}>
             <BookmarkCheck size={26} fill={moment.is_saved ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
-          <span className="text-[10px] font-bold text-white uppercase tracking-wider drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
+          <span className="text-[10px] font-bold text-white tracking-wide drop-shadow-md">{moment.is_saved ? 'Saved' : 'Save'}</span>
         </button>
  
         <button 
@@ -560,13 +560,13 @@ const ReelItem = React.memo(({
       {/* Info Overlay (Rationalized) */}
       <div className="absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 p-5 pb-8 z-10 flex flex-col gap-2 pointer-events-none">
         <div className="flex items-center gap-3">
-          <div className="text-[17px] font-black text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] not-italic normal-case" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
+          <div className="text-[17px] font-semibold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] not-italic normal-case" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
             @{moment.username}
           </div>
           {!moment.is_following && (
             <button 
               onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
-              className="bg-primary text-white text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full shadow-lg shadow-primary/40 pointer-events-auto active:scale-90 transition-all"
+              className="bg-primary text-white text-[10px] font-semibold tracking-wide px-3 py-1.5 rounded-full shadow-lg shadow-primary/40 pointer-events-auto active:scale-90 transition-all"
             >
               Follow
             </button>
@@ -597,12 +597,12 @@ const ReelItem = React.memo(({
             aria-label={isOwner ? 'See who viewed this reel' : `${moment.view_count || 0} views`}
           >
              <Eye size={12} className="text-white/80" />
-             <span className="text-[10px] font-black text-white/90 tracking-wide">{moment.view_count || 0} views</span>
+             <span className="text-[10px] font-semibold text-white/90 tracking-wide">{moment.view_count || 0} views</span>
           </button>
           {(moment as Moment & { is_pinned?: number | boolean }).is_pinned ? (
             <span className="flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
               <Pin size={11} className="text-white/80" />
-              <span className="text-[10px] font-black text-white/90 tracking-wide">Pinned</span>
+              <span className="text-[10px] font-semibold text-white/90 tracking-wide">Pinned</span>
             </span>
           ) : null}
           <button 
@@ -610,7 +610,7 @@ const ReelItem = React.memo(({
             className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-all active:scale-95 pointer-events-auto"
           >
             <Search size={10} />
-            <span className="text-[8px] font-bold uppercase tracking-wider">Search</span>
+            <span className="text-[8px] font-bold tracking-wide">Search</span>
           </button>
         </div>
       </div>
@@ -619,7 +619,7 @@ const ReelItem = React.memo(({
       {seekFlash === 'left' && (
         <div className="absolute left-0 top-0 bottom-0 w-[35%] flex items-center justify-center bg-white/10 z-[25] pointer-events-none animate-fade-out">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-white text-3xl font-black">«</span>
+            <span className="text-white text-3xl font-semibold">«</span>
             <span className="text-white text-xs font-bold">10s</span>
           </div>
         </div>
@@ -627,14 +627,14 @@ const ReelItem = React.memo(({
       {seekFlash === 'right' && (
         <div className="absolute right-0 top-0 bottom-0 w-[35%] flex items-center justify-center bg-white/10 z-[25] pointer-events-none animate-fade-out">
           <div className="flex flex-col items-center gap-1">
-            <span className="text-white text-3xl font-black">»</span>
+            <span className="text-white text-3xl font-semibold">»</span>
             <span className="text-white text-xs font-bold">10s</span>
           </div>
         </div>
       )}
       {speedFlash && (
         <div className="absolute top-8 left-1/2 -translate-x-1/2 z-[25] pointer-events-none bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full">
-          <span className="text-white text-sm font-black tracking-widest">{playbackRate}×</span>
+          <span className="text-white text-sm font-semibold tracking-widest">{playbackRate}×</span>
         </div>
       )}
 
@@ -1356,9 +1356,9 @@ export default function Moments() {
                   placeholder="Search moments..."
                   className="w-full bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium text-white placeholder-white/50 caret-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all"
                 />
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70" />
                 {searchInput && (
-                  <button onClick={() => { setSearchInput(''); setSearchQuery(''); setHasSearched(false); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40">
+                  <button onClick={() => { setSearchInput(''); setSearchQuery(''); setHasSearched(false); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70">
                     <X size={14} />
                   </button>
                 )}
@@ -1379,8 +1379,8 @@ export default function Moments() {
                     key={tab}
                     onClick={() => setActiveSearchTab(tab)}
                     className={clsx(
-                      "px-5 py-3 text-xs font-bold uppercase tracking-widest whitespace-nowrap border-b-2 transition-all",
-                      activeSearchTab === tab ? "border-primary text-white" : "border-transparent text-white/40"
+                      "px-5 py-3 text-xs font-bold tracking-wide whitespace-nowrap border-b-2 transition-all",
+                      activeSearchTab === tab ? "border-primary text-white" : "border-transparent text-white/70"
                     )}
                   >
                     {tab}
@@ -1395,8 +1395,8 @@ export default function Moments() {
                   {/* Search History */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest">Recent Searches</h4>
-                      <button onClick={() => setSearchHistory([])} className="text-[10px] font-bold text-white/20 uppercase tracking-wider">Clear all</button>
+                      <h4 className="text-xs font-bold text-white/70 tracking-wide">Recent Searches</h4>
+                      <button onClick={() => setSearchHistory([])} className="text-[10px] font-bold text-white/70 tracking-wide">Clear all</button>
                     </div>
                     <div className="flex flex-col">
                       {(showAllHistory ? searchHistory : searchHistory.slice(0, 3)).map((item, idx) => (
@@ -1406,13 +1406,13 @@ export default function Moments() {
                           className="flex items-center justify-between py-3.5 border-b border-white/5 active:bg-white/5 transition-colors"
                         >
                           <span className="text-sm font-medium text-white/80">{item}</span>
-                          <History size={14} className="text-white/20" />
+                          <History size={14} className="text-white/70" />
                         </div>
                       ))}
                       {searchHistory.length > 3 && !showAllHistory && (
                         <button 
                           onClick={() => setShowAllHistory(true)}
-                          className="py-3 text-xs font-bold text-white/30 hover:text-white transition-colors"
+                          className="py-3 text-xs font-bold text-white/70 hover:text-white transition-colors"
                         >
                           Show more history...
                         </button>
@@ -1422,14 +1422,14 @@ export default function Moments() {
 
                   {/* You May Like — real, backend-ranked creators */}
                   <div>
-                    <h4 className="text-xs font-bold text-white/40 uppercase tracking-widest mb-4">You May Like</h4>
+                    <h4 className="text-xs font-bold text-white/70 tracking-wide mb-4">You May Like</h4>
                     {suggestionsLoading && suggestedUsers.length === 0 ? (
-                      <div className="flex items-center gap-2 py-3 text-white/30">
+                      <div className="flex items-center gap-2 py-3 text-white/70">
                         <Spinner size="small" />
-                        <span className="text-[11px] font-bold uppercase tracking-widest">Finding creators…</span>
+                        <span className="text-[11px] font-bold tracking-wide">Finding creators…</span>
                       </div>
                     ) : suggestedUsers.length === 0 ? (
-                      <p className="py-3 text-[12px] font-medium text-white/30">
+                      <p className="py-3 text-[12px] font-medium text-white/70">
                         No suggestions yet — creators show up here once they post moments.
                       </p>
                     ) : (
@@ -1458,7 +1458,7 @@ export default function Moments() {
                                 </p>
                               </div>
                             </div>
-                            <ChevronRight size={16} className="text-white/20 group-hover:text-white/50 shrink-0" />
+                            <ChevronRight size={16} className="text-white/70 group-hover:text-white/50 shrink-0" />
                           </div>
                         ))}
                       </div>
@@ -1470,8 +1470,8 @@ export default function Moments() {
                   {/* Results Header / Fallback Info */}
                   {isFallback && !isSearching && (
                     <div className="px-5 py-4 bg-primary/10 border-b border-primary/20">
-                        <p className="text-[11px] font-black uppercase tracking-widest text-primary leading-tight">No direct matches found</p>
-                        <p className="text-[10px] font-bold text-white/40 mt-1 uppercase tracking-wider">Surfacing related trending content for you:</p>
+                        <p className="text-[11px] font-semibold tracking-wide text-primary leading-tight">No direct matches found</p>
+                        <p className="text-[10px] font-bold text-white/70 mt-1 tracking-wide">Surfacing related trending content for you:</p>
                     </div>
                   )}
 
@@ -1506,10 +1506,10 @@ export default function Moments() {
                             <>
                                 <img src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/no-profile.png'} className="w-20 h-20 rounded-full border-2 border-primary/20 object-cover shadow-xl" />
                                 <div className="text-center">
-                                    <p className="text-sm font-black text-white leading-none">@{moment.username}</p>
-                                    <p className="text-[10px] text-white/40 mt-1 font-bold uppercase tracking-widest">{moment.follower_count || 0} Followers</p>
+                                    <p className="text-sm font-semibold text-white leading-none">@{moment.username}</p>
+                                    <p className="text-[10px] text-white/70 mt-1 font-bold tracking-wide">{moment.follower_count || 0} Followers</p>
                                 </div>
-                                <button className="mt-2 px-4 py-1.5 rounded-full bg-primary text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-primary/20">Follow</button>
+                                <button className="mt-2 px-4 py-1.5 rounded-full bg-primary text-[10px] font-semibold tracking-wide text-white shadow-lg shadow-primary/20">Follow</button>
                             </>
                           ) : (
                             <>
@@ -1564,7 +1564,7 @@ export default function Moments() {
                 <div className="mb-20">
                   <Spinner size="large" color="text-primary" />
                 </div>
-                <p className="text-[11px] font-black text-black/20 uppercase tracking-[0.4em] italic animate-pulse">Loading moments...</p>
+                <p className="text-xs font-semibold text-white/70 tracking-wide animate-pulse">Loading moments...</p>
              </div>
         ) : moments.length === 0 && !loading ? (
             <div className="h-full flex items-center justify-center p-6 md:ml-(--rail-w)">
@@ -1608,7 +1608,7 @@ export default function Moments() {
           <div className="h-full w-full snap-start flex items-center justify-center px-0 md:px-10 pt-0 md:pt-20 pb-12 md:pb-20 md:ml-(--rail-w) transition-all overflow-hidden relative">
             <div className="flex flex-col items-center gap-6">
               <TikTokLoader />
-              <p className="text-[10px] font-black text-black/20 uppercase tracking-[0.3em] animate-pulse">Loading more...</p>
+              <p className="text-xs font-semibold text-white/70 tracking-wide animate-pulse">Loading more...</p>
             </div>
           </div>
         )}
@@ -1711,7 +1711,7 @@ export default function Moments() {
                 {comments.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
                     <MessageCircle size={48} strokeWidth={1} className="mb-4" />
-                    <p className="text-[12px] font-bold uppercase tracking-widest">No comments yet</p>
+                    <p className="text-[12px] font-bold tracking-wide">No comments yet</p>
                   </div>
                 ) : (
                   <div className="space-y-1">
@@ -1741,7 +1741,7 @@ export default function Moments() {
                       className="absolute bottom-full left-4 right-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] border border-gray-100 dark:border-white/10 p-4 mb-4 z-[1002] h-[320px] flex flex-col"
                     >
                       <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-black uppercase tracking-widest text-gray-400">Giphy Stickers</span>
+                        <span className="text-[11px] font-semibold tracking-wide text-gray-400">Giphy Stickers</span>
                         <button onClick={() => setShowStickers(false)} className="text-gray-400 hover:text-gray-900"><X size={16} /></button>
                       </div>
                       <div className="relative mb-3">

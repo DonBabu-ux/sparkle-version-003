@@ -395,8 +395,11 @@ const getStories = async (req, res) => {
          s.audience = 'public'
          OR s.user_id = ?
          OR (s.audience = 'followers' AND EXISTS (SELECT 1 FROM follows f WHERE f.following_id = s.user_id AND f.follower_id = ?))
-         OR (s.audience = 'close_friends' AND EXISTS (SELECT 1 FROM close_friends cf WHERE cf.user_id = s.user_id AND cf.friend_id = ?))
-       )
+  -- close_friends is still on utf8mb4_unicode_ci while stories/users are on
+  -- utf8mb4_general_ci; COLLATE the side that matches the smaller table so the
+  -- join stays legal until migration 20261102_align_collations has run.
+  OR (s.audience = 'close_friends' AND EXISTS (SELECT 1 FROM close_friends cf WHERE cf.user_id COLLATE utf8mb4_general_ci = s.user_id AND cf.friend_id = ?))
+  )
        ORDER BY s.created_at DESC
        LIMIT 200
     `, [currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId, currentUserId]);

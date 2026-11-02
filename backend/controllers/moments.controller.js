@@ -1427,7 +1427,7 @@ const getMomentSuggestions = async (req, res) => {
                 WHERE mh2.hashtag IN (
                     SELECT DISTINCT mh3.hashtag
                     FROM moment_hashtags mh3
-                    JOIN moment_views v ON v.moment_id = mh3.moment_id AND v.viewer_id = ?
+                    JOIN moment_views v ON v.moment_id COLLATE utf8mb4_general_ci = mh3.moment_id AND v.viewer_id = ?
                     UNION
                     SELECT DISTINCT mh4.hashtag
                     FROM moment_hashtags mh4

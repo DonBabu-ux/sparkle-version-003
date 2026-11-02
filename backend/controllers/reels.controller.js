@@ -213,7 +213,8 @@ const setCloseFriends = async (req, res) => {
         visibility.invalidateViewerContext(userId);
         const [rows] = await pool.query(
             `SELECT cf.friend_id AS user_id, u.username, u.name AS display_name, u.avatar_url
-               FROM close_friends cf JOIN users u ON u.user_id = cf.friend_id
+               -- close_friends is on utf8mb4_unicode_ci, users on utf8mb4_general_ci
+  FROM close_friends cf JOIN users u ON u.user_id = cf.friend_id COLLATE utf8mb4_general_ci
               WHERE cf.user_id = ? ORDER BY cf.created_at DESC`,
             [userId]
         );
@@ -323,7 +324,8 @@ const setAudienceList = async (req, res) => {
         visibility.invalidateOwnerAudienceList(userId);
         const [rows] = await pool.query(
             `SELECT al.target_user_id AS user_id, u.username, u.name AS display_name, u.avatar_url
-               FROM moment_audience_lists al JOIN users u ON u.user_id = al.target_user_id
+               -- moment_audience_lists is on utf8mb4_unicode_ci, users on utf8mb4_general_ci
+  FROM moment_audience_lists al JOIN users u ON u.user_id = al.target_user_id COLLATE utf8mb4_general_ci
               WHERE al.owner_id = ? AND al.mode = ? ORDER BY al.created_at DESC`,
             [userId, mode]
         );

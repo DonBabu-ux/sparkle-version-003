@@ -957,10 +957,10 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
           <div className="inline-flex items-center justify-center w-11 h-11 rounded-full bg-red-500/10 text-red-500 mb-2 shadow-sm border border-red-500/20">
             <Ban size={22} strokeWidth={2.5} />
           </div>
-          <h3 className="text-sm font-black text-white mb-1 tracking-tight">
-            {isBlockedByMe ? 'You blocked this user' : 'Messaging is blocked'}
-          </h3>
-          <p className="text-xs font-medium text-slate-400 max-w-sm mx-auto mb-3 leading-relaxed">
+        <h3 className="text-sm font-semibold text-[#18181b] dark:text-white mb-1 tracking-tight">
+          {isBlockedByMe ? 'You blocked this user' : 'Messaging is blocked'}
+        </h3>
+        <p className="text-xs font-medium text-slate-600 dark:text-zinc-300 max-w-sm mx-auto mb-3 leading-relaxed">
             {isBlockedByMe
               ? 'Messaging is unavailable while this user is blocked.'
               : 'Messages cannot be sent in this conversation.'}
@@ -1235,22 +1235,22 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
               style={{ backgroundColor: themeBg }}
             >
               {/* Reference Header */}
-              <div className="flex items-center px-4 py-2 gap-3 shrink-0 border-b border-white/5">
-                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-white/60 hover:text-white p-1"><ArrowLeft size={20} /></button>
-                <div className="flex-1 h-9 bg-white/10 rounded-full flex items-center px-4 border border-white/5 focus-within:border-white/20 transition-all">
-                  <Search size={14} className="text-white/40 mr-2" />
+              <div className="flex items-center px-4 py-2 gap-3 shrink-0 border-b border-[#e6d8e1] dark:border-white/5">
+                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-slate-600 dark:text-white/60 hover:text-[#18181b] dark:hover:text-white p-1"><ArrowLeft size={20} /></button>
+                <div className="flex-1 h-9 bg-[#e6d8e1] dark:bg-white/10 rounded-full flex items-center px-4 border border-[#e6d8e1] dark:border-white/5 focus-within:border-[#e6d8e1] dark:border-white/20 transition-all">
+                  <Search size={14} className="text-slate-600 dark:text-white/40 mr-2" />
                   <input
                     placeholder="Search"
                     value={giphySearch}
                     onChange={e => setGiphySearch(e.target.value)}
-                    className="bg-transparent border-none outline-none text-sm w-full text-white/90 placeholder:text-white/20"
+                    className="bg-transparent border-none outline-none text-sm w-full text-[#18181b] dark:text-white/90 placeholder:text-slate-500 dark:placeholder:text-slate-600 dark:text-white/20"
                   />
                 </div>
-                <div className="flex items-center gap-4 text-white/40 ml-1">
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Clock size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Smile size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("hover:text-white transition-colors", pickerTab === 'gifs' ? 'text-white' : '')}><Zap size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("hover:text-white transition-colors", pickerTab === 'stickers' ? 'text-white' : '')}><Sparkles size={20} /></button>
+                <div className="flex items-center gap-4 text-slate-600 dark:text-white/40 ml-1">
+                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Clock size={20} /></button>
+                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'emojis' ? 'text-white' : '')}><Smile size={20} /></button>
+                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'gifs' ? 'text-white' : '')}><Zap size={20} /></button>
+                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("hover:text-[#18181b] dark:hover:text-white transition-colors", pickerTab === 'stickers' ? 'text-white' : '')}><Sparkles size={20} /></button>
                 </div>
               </div>
 
@@ -1259,7 +1259,7 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
                   <div className="h-full overflow-y-auto no-scrollbar px-3 py-4 space-y-6">
                     {Object.entries(EMOJIS).map(([category, list]) => (
                       <div key={category} className="space-y-3">
-                        <h5 className="text-[11px] min-h-[30px] flex items-center font-black text-white/30 uppercase tracking-[2px] px-1">{category}</h5>
+                        <h5 className="text-[11px] min-h-[30px] flex items-center font-semibold text-slate-600 dark:text-white/30 uppercase tracking-[2px] px-1">{category}</h5>
                         <div className="grid grid-cols-8 sm:grid-cols-9 gap-y-4 max-w-[640px] mx-auto w-full">
                           {Array.from(new Set(list)).map((emoji, idx) => (
                             <button
@@ -1280,14 +1280,14 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
                     {loadingGiphy ? (
                       <div className="col-span-2 h-full flex flex-col items-center justify-center py-20 gap-3">
                         <Spinner size="large" color="#ff1493" />
-                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading GIFs...</span>
+                        <span className="text-[10px] font-semibold text-slate-600 dark:text-white/20 uppercase tracking-widest">Loading GIFs...</span>
                       </div>
                     ) : giphyResults.map((item: any) => (
                       <motion.div
                         key={item.id}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className="relative h-[110px] bg-white/5 border border-white/5 overflow-hidden cursor-pointer shadow-md"
+                        className="relative h-[110px] bg-[#f6eef3] dark:bg-white/5 border border-[#e6d8e1] dark:border-white/5 overflow-hidden cursor-pointer shadow-md"
                         onClick={() => {
                           onSend(null, 'GIF', 'gif', item.images.fixed_height.url);
                           setShowEmojiPicker(false);
@@ -1302,14 +1302,14 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
                     {loadingGiphy ? (
                       <div className="col-span-3 h-full flex flex-col items-center justify-center py-20 gap-3">
                         <Spinner size="large" color="#ff1493" />
-                        <span className="text-[10px] font-black text-white/20 uppercase tracking-widest">Loading Stickers...</span>
+                        <span className="text-[10px] font-semibold text-slate-600 dark:text-white/20 uppercase tracking-widest">Loading Stickers...</span>
                       </div>
                     ) : giphyResults.map((item: any) => (
                       <motion.div
                         key={item.id}
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
-                        className="relative h-[100px] flex items-center justify-center bg-white/5 border border-white/5 overflow-hidden cursor-pointer p-1"
+                        className="relative h-[100px] flex items-center justify-center bg-[#f6eef3] dark:bg-white/5 border border-[#e6d8e1] dark:border-white/5 overflow-hidden cursor-pointer p-1"
                         onClick={() => {
                           onSend(null, 'Sticker', 'sticker', item.images.fixed_height.url);
                           setShowEmojiPicker(false);
@@ -1324,15 +1324,15 @@ const ChatInput = memo(({ onTyping, onSend, selectedChat, sending, setShowAttach
               </div>
 
               {/* Reference Bottom Bar */}
-              <div className="h-14 border-t border-white/5 flex items-center justify-between px-6 shrink-0" style={{ backgroundColor: 'rgba(255,255,255,0.03)' }}>
-                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-xs font-black text-white/40 hover:text-white transition-colors">ABC</button>
+              <div className="h-14 border-t border-[#e6d8e1] dark:border-white/5 flex items-center justify-between px-6 shrink-0" style={{ backgroundColor: 'rgba(24,24,27,0.04)' }}>
+                <button type="button" onClick={() => setShowEmojiPicker(false)} className="text-xs font-semibold text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white transition-colors">ABC</button>
                 <div className="flex items-center gap-8">
-                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'emojis' ? "bg-white/20 text-white scale-110 shadow-lg" : "text-white/40 hover:text-white")}><Smile size={20} /></button>
-                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("text-[11px] font-black px-2.5 py-1 border-2 rounded-lg transition-all", pickerTab === 'gifs' ? "border-white text-white scale-110 shadow-lg" : "border-white/20 text-white/20 hover:border-white/40 hover:text-white/40")}>GIF</button>
-                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'stickers' ? "bg-white/20 text-white scale-110 shadow-lg" : "text-white/40 hover:text-white")}><Sparkles size={20} /></button>
-                  <button type="button" onClick={() => setLocalMessage(prev => prev + ':-)')} className="text-xs font-black text-white/40 hover:text-white transition-colors">:-)</button>
+                  <button type="button" onClick={() => setPickerTab('emojis')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'emojis' ? "bg-[#e6d8e1] dark:bg-white/20 text-[#18181b] dark:text-white scale-110 shadow-lg" : "text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white")}><Smile size={20} /></button>
+                  <button type="button" onClick={() => setPickerTab('gifs')} className={clsx("text-[11px] font-semibold px-2.5 py-1 border-2 rounded-lg transition-all", pickerTab === 'gifs' ? "border-[#ff1493] text-[#18181b] dark:text-white scale-110 shadow-lg" : "border-[#e6d8e1] dark:border-white/20 text-slate-600 dark:text-white/40 hover:border-[#ff1493]/60 dark:hover:border-white/40")}>GIF</button>
+                  <button type="button" onClick={() => setPickerTab('stickers')} className={clsx("p-2 rounded-xl transition-all", pickerTab === 'stickers' ? "bg-[#e6d8e1] dark:bg-white/20 text-[#18181b] dark:text-white scale-110 shadow-lg" : "text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white")}><Sparkles size={20} /></button>
+                  <button type="button" onClick={() => setLocalMessage(prev => prev + ':-)')} className="text-xs font-semibold text-slate-600 dark:text-white/40 hover:text-[#18181b] dark:hover:text-white transition-colors">:-)</button>
                 </div>
-                <button type="button" onClick={() => setLocalMessage(prev => Array.from(prev).slice(0, -1).join(''))} className="text-white/30 hover:text-white transition-colors p-3 active:scale-90"><X size={20} /></button>
+                <button type="button" onClick={() => setLocalMessage(prev => Array.from(prev).slice(0, -1).join(''))} className="text-slate-600 dark:text-white/30 hover:text-[#18181b] dark:hover:text-white transition-colors p-3 active:scale-90"><X size={20} /></button>
               </div>
             </motion.div>
           )}
@@ -5878,7 +5878,7 @@ export default function Messages() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 20, opacity: 0 }}
                   transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className="shrink-0 border-t border-white/5 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] flex items-center justify-between gap-3 z-30"
+                  className="shrink-0 border-t border-white/5 px-4 pt-3 pb-[calc(0.75rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] flex items-center justify-between gap-3 z-30"
                   style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#0a0a12' }}
                 >
                   <button
@@ -6388,7 +6388,7 @@ export default function Messages() {
             </div>
 
             {/* Bottom — Send message + quick reactions */}
-            <div className="px-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-3">
+            <div className="px-4 pb-[calc(1.5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] space-y-3">
               {/* Quick reactions */}
               <div className="flex items-center justify-center gap-6 px-1 relative">
                 {['❤️', '😆', '😮', '😨', '😢'].map(emoji => (
@@ -7738,7 +7738,7 @@ export default function Messages() {
             setPeopleHubMode('new_chat');
             setShowNewChatModal(true);
           }}
-          className="fixed right-5 md:right-8 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] md:bottom-8 z-30 w-14 h-14 rounded-full bg-[#ff1493] text-white flex items-center justify-center shadow-lg shadow-[#ff1493]/40 hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff1493] focus:ring-offset-2 focus:ring-offset-[#13131a] cursor-pointer"
+          className="fixed right-5 md:right-8 bottom-[calc(4.5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-8 z-30 w-14 h-14 rounded-full bg-[#ff1493] text-white flex items-center justify-center shadow-lg shadow-[#ff1493]/40 hover:brightness-110 active:scale-95 transition-all focus:outline-none focus:ring-2 focus:ring-[#ff1493] focus:ring-offset-2 focus:ring-offset-[#13131a] cursor-pointer"
           aria-label="Start new chat"
           title="New message"
         >

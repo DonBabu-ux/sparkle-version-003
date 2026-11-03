@@ -148,10 +148,23 @@ export const ChatInputDock: React.FC<{
   useEffect(() => {
     const vv = window.visualViewport;
     if (!vv) return;
+    const lastWidthRef = { current: null as number | null };
 
     const handleResize = () => {
       const height = vv.height ?? window.innerHeight;
+      const width = vv.width ?? window.innerWidth;
+
+      // A keyboard does not change the viewport width, so a width jump means the
+      // device rotated (or the window resized). Re-baseline in that case, or the
+      // stale portrait height keeps reporting "keyboard open" forever after a
+      // rotation with the keyboard up.
+      if (lastWidthRef.current !== null && Math.abs(lastWidthRef.current - width) > 2) {
+        baseHeightRef.current = height;
+      }
+      lastWidthRef.current = width;
+
       if (baseHeightRef.current === null) baseHeightRef.current = height;
+
       // Keyboard is open when the viewport shrank meaningfully below the
       // keyboard-closed baseline (150px covers URL-bar jitter, not keyboards).
       const shrink = baseHeightRef.current - height;

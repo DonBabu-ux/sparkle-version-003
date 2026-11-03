@@ -7,11 +7,7 @@
     "cleartext": true
   },
   "plugins": {
-    "Keyboard": {
-      "resize": "body",
-      "style": "DARK",
-      "resizeOnFullScreen": true
-    },
+    "_comment": "No Keyboard plugin config: @capacitor/keyboard is not installed and keyboard handling is done by the SparkleInsets native plugin (padding the WebView by the IME inset) plus --safe-area-inset-* CSS variables. Adding a Keyboard block here would do nothing while implying Capacitor is managing the keyboard.",
     "StatusBar": {
       "overlaysWebView": true,
       "style": "DARK",

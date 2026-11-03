@@ -289,7 +289,7 @@ export default function CreateStage({
         </div>
 
         {musicState === 'loading' && (
-          <div className={`flex items-center gap-3 py-6 ${isDark ? 'text-white/60' : 'text-gray-500'} text-sm`}>
+          <div className={`flex items-center gap-3 py-6 ${isDark ? 'text-white/60' : 'text-slate-600'} text-sm`}>
             <InlineSpinner size={16} /> Loading trending music…
           </div>
         )}
@@ -348,7 +348,7 @@ export default function CreateStage({
                     </div>
                     <button
                       type="button"
-                      className={`p-1 ${isDark ? 'text-white/40 hover:text-white/80' : 'text-gray-400 hover:text-gray-700'} transition-colors`}
+                      className={`p-1 ${isDark ? 'text-white/70 hover:text-white/80' : 'text-slate-600 hover:text-gray-700'} transition-colors`}
                       aria-label="Options"
                       onClick={() => showSuccess(`${track.title} by ${track.artist}`)}
                     >
@@ -359,7 +359,7 @@ export default function CreateStage({
                   {/* Title & Artist */}
                   <div className="min-w-0 mb-3">
                     <p className={`${isDark ? 'text-white' : 'text-gray-900'} text-[13px] font-bold truncate leading-tight`}>{track.title}</p>
-                    <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} text-[11px] truncate mt-0.5`}>{track.artist}</p>
+                    <p className={`${isDark ? 'text-white/70' : 'text-slate-600'} text-[11px] truncate mt-0.5`}>{track.artist}</p>
                   </div>
 
                   {/* Use button */}
@@ -399,7 +399,7 @@ export default function CreateStage({
             <span>Gallery</span>
             <ChevronDown
               size={16}
-              className={`${isDark ? 'text-white/70' : 'text-gray-500'} transition-transform duration-200 ${sourceMenuOpen ? 'rotate-180' : ''}`}
+              className={`${isDark ? 'text-white/70' : 'text-slate-600'} transition-transform duration-200 ${sourceMenuOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -410,7 +410,7 @@ export default function CreateStage({
                 isDark ? 'bg-[#1C1420] border-white/10 text-white' : 'bg-white border-gray-200 text-gray-900 shadow-xl'
               } border backdrop-blur-md`}
             >
-              <div className={`${isDark ? 'text-white/40' : 'text-gray-400'} text-[11px] font-bold uppercase tracking-wider px-3 py-1.5`}>
+              <div className={`${isDark ? 'text-white/70' : 'text-slate-600'} text-[11px] font-bold tracking-wide px-3 py-1.5`}>
                 Media Albums
               </div>
               {sources.map(src => (
@@ -514,7 +514,7 @@ export default function CreateStage({
             <p className={`${isDark ? 'text-white' : 'text-gray-900'} font-bold text-sm mb-1`}>
               {filterTab === 'videos' ? 'No videos found' : filterTab === 'photos' ? 'No photos found' : 'No media found'}
             </p>
-            <p className={`${isDark ? 'text-white/50' : 'text-gray-500'} text-xs max-w-xs mb-4`}>
+            <p className={`${isDark ? 'text-white/70' : 'text-slate-600'} text-xs max-w-xs mb-4`}>
               Select photos and videos from your device to begin creating your reel.
             </p>
             <button
@@ -566,7 +566,7 @@ export default function CreateStage({
                     className="absolute top-2 right-2 z-10"
                   >
                     {isSelected ? (
-                      <div className="w-6 h-6 rounded-full bg-[#EC1164] border-2 border-white flex items-center justify-center text-white text-[11px] font-black shadow-md">
+                      <div className="w-6 h-6 rounded-full bg-[#EC1164] border-2 border-white flex items-center justify-center text-white text-[11px] font-semibold shadow-md">
                         {orderIdx + 1}
                       </div>
                     ) : (
@@ -599,7 +599,7 @@ export default function CreateStage({
             type="button"
             disabled={addingClips}
             onClick={addSelected}
-            className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
             style={{
               background: '#EC1164',
               boxShadow: '0 8px 24px rgba(236,17,100,0.45)',
@@ -624,7 +624,7 @@ export default function CreateStage({
           <button
             type="button"
             onClick={onNext}
-            className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
+            className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2 transition-transform active:scale-[0.98]"
             style={{
               background: '#EC1164',
               boxShadow: '0 8px 24px rgba(236,17,100,0.45)',

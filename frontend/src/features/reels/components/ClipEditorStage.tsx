@@ -148,7 +148,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
         <button
           type="button"
           onClick={onNext}
-          className="px-4 h-9 rounded-full text-[13px] font-extrabold text-white"
+          className="px-4 h-9 rounded-full text-[13px] font-semibold text-white"
           style={{ background: PINK }}
         >
           Next
@@ -185,7 +185,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
       {selected && (
         <section className="px-4 pt-4" aria-label="Trim clip">
           <div className="flex items-center justify-between mb-2">
-            <h2 className={`font-extrabold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
+            <h2 className={`font-semibold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
               Trim — {selected.name || `Clip ${clips.findIndex(c => c.id === selected.id) + 1}`}
             </h2>
             <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-gray-700"}`}>min 0.5s</span>
@@ -226,7 +226,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
           {selected.kind === 'image' ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className={`text-sm font-black ${isDark ? "text-white" : "text-gray-900"}`}>Image display duration</span>
+                <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>Image display duration</span>
                 <span className="text-[#FF1F6D] text-sm font-bold">{selected.durationSec.toFixed(1)}s</span>
               </div>
               <input
@@ -352,7 +352,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
       {/* Clip order list */}
       <section className="px-4 pt-5 pb-6" aria-label="Clip order">
         <div className="flex items-center justify-between mb-2">
-          <h2 className={`font-extrabold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
+          <h2 className={`font-semibold text-[14px] ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
             Order ({clips.length}/10)
           </h2>
           <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-gray-700"}`}>{total.toFixed(1)}s of 60s</span>
@@ -379,10 +379,10 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
                 className="flex items-center gap-3 flex-1 min-w-0 text-left"
                 aria-label={`Select clip ${i + 1}`}
               >
-                <span className={`w-6 text-xs font-extrabold text-center shrink-0 ${isDark ? "text-white/45" : "text-gray-700"}`}>{i + 1}</span>
+                <span className={`w-6 text-xs font-semibold text-center shrink-0 ${isDark ? "text-white/70" : "text-gray-700"}`}>{i + 1}</span>
                 <img src={c.previewUrl} alt="" className="w-11 h-11 rounded-lg object-cover shrink-0" />
                 <span className="min-w-0 flex-1">
-                  <span className={`block text-[14px] font-black truncate ${isDark ? "text-white" : "text-gray-900"}`}>{c.name || `Clip ${i + 1}`}</span>
+                  <span className={`block text-[14px] font-semibold truncate ${isDark ? "text-white" : "text-gray-900"}`}>{c.name || `Clip ${i + 1}`}</span>
                   <span className={`block text-[12px] font-medium ${isDark ? "text-white/60" : "text-gray-600"}`}>
                     {Math.max(0, (c.trimEnd ?? c.durationSec) - c.trimStart).toFixed(1)}s · {c.kind}
                   </span>
@@ -433,7 +433,7 @@ export default function ClipEditorStage({ onBack, onNext }: { onBack: () => void
         <button
           type="button"
           onClick={onNext}
-          className="w-full mt-4 py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+          className="w-full mt-4 py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
           style={{ background: '#ff1493' }}
         >
           <Check size={17} /> Done editing

@@ -148,7 +148,7 @@ export default function TextOverlayEditor({ onDone }: { onDone: () => void }) {
         <button
           type="button"
           onClick={save}
-          className="px-4 h-9 rounded-full text-[13px] font-extrabold text-white flex items-center gap-1.5"
+          className="px-4 h-9 rounded-full text-[13px] font-semibold text-white flex items-center gap-1.5"
           style={{ background: PINK }}
         >
           <Check size={15} /> Done
@@ -228,7 +228,7 @@ export default function TextOverlayEditor({ onDone }: { onDone: () => void }) {
           rows={2}
           maxLength={120}
           placeholder="Type your text…"
-          className="w-full rounded-2xl px-3.5 py-2.5 bg-white/10 text-white text-[15px] outline-none resize-none placeholder:text-white/40"
+          className="w-full rounded-2xl px-3.5 py-2.5 bg-white/10 text-white text-[15px] outline-none resize-none placeholder:text-white/60"
           aria-label="Overlay text"
           autoFocus
         />
@@ -309,7 +309,7 @@ export default function TextOverlayEditor({ onDone }: { onDone: () => void }) {
           )}
         </div>
 
-        <p className="text-white/40 text-[11px]">Drag anywhere on the preview to position the text.</p>
+        <p className="text-white/70 text-[11px]">Drag anywhere on the preview to position the text.</p>
       </div>
     </div>
   );

@@ -129,26 +129,26 @@ export default function MomentPrivacySheet({
         <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
         <div className="relative w-full sm:max-w-md bg-white dark:bg-[#0B070C] rounded-t-3xl sm:rounded-3xl max-h-[80dvh] flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
-            <h2 className="text-[15px] font-extrabold text-[#18181b] dark:text-white">
+            <h2 className="text-[15px] font-semibold text-[#18181b] dark:text-white">
               {listMode === 'hide_from' ? 'Do not show to' : 'Only show to'}
             </h2>
             <button type="button" onClick={() => setListMode(null)} aria-label="Back" className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
-              <X size={17} className="text-black/50 dark:text-white/50" />
+              <X size={17} className="text-slate-600 dark:text-white/70" />
             </button>
           </div>
           <div className="px-5 py-3">
             <div className="flex items-center gap-2 rounded-2xl px-3.5 h-11 bg-black/5 dark:bg-white/8">
-              <Search size={15} className="text-black/40 dark:text-white/40" />
+              <Search size={15} className="text-slate-600 dark:text-white/70" />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search people…"
-                className="flex-1 bg-transparent outline-none text-[14px] text-[#18181b] dark:text-white placeholder:text-black/35 dark:placeholder:text-white/35"
+                className="flex-1 bg-transparent outline-none text-[14px] text-[#18181b] dark:text-white placeholder:text-slate-600 dark:placeholder:text-white/70"
                 aria-label="Search people"
               />
             </div>
-            <p className="text-black/45 dark:text-white/45 text-[12px] mt-2">
+            <p className="text-slate-600 dark:text-white/70 text-[12px] mt-2">
               {listMode === 'hide_from'
                 ? 'These people will never receive this reel.'
                 : 'Only these people will receive this reel (plus you).'}
@@ -179,7 +179,7 @@ export default function MomentPrivacySheet({
               </div>
             )}
             {list.length === 0 && (
-              <p className="py-6 text-black/45 dark:text-white/45 text-[13px] text-center">
+              <p className="py-6 text-slate-600 dark:text-white/70 text-[13px] text-center">
                 {query ? 'No people found.' : 'Search above to add people.'}
               </p>
             )}
@@ -201,7 +201,7 @@ export default function MomentPrivacySheet({
                     )}
                     <span className="min-w-0 flex-1">
                       <span className="block text-[13px] font-bold text-[#18181b] dark:text-white truncate">@{p.username}</span>
-                      {p.display_name ? <span className="block text-[11px] text-black/45 dark:text-white/45 truncate">{p.display_name}</span> : null}
+                      {p.display_name ? <span className="block text-[11px] text-slate-600 dark:text-white/70 truncate">{p.display_name}</span> : null}
                     </span>
                     <span
                       className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
@@ -222,7 +222,7 @@ export default function MomentPrivacySheet({
               type="button"
               onClick={() => setListMode(null)}
               disabled={saving}
-              className="w-full py-3 rounded-2xl font-extrabold text-white"
+              className="w-full py-3 rounded-2xl font-semibold text-white"
               style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', opacity: saving ? 0.7 : 1 }}
             >
               Done
@@ -238,14 +238,14 @@ export default function MomentPrivacySheet({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <div className="relative w-full sm:max-w-md bg-white dark:bg-[#0B070C] rounded-t-3xl sm:rounded-3xl max-h-[85dvh] flex flex-col overflow-hidden">
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
-          <h2 className="text-[15px] font-extrabold text-[#18181b] dark:text-white">Who can see this?</h2>
+          <h2 className="text-[15px] font-semibold text-[#18181b] dark:text-white">Who can see this?</h2>
           <button type="button" onClick={onClose} aria-label="Close privacy settings" className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
-            <X size={17} className="text-black/50 dark:text-white/50" />
+            <X size={17} className="text-slate-600 dark:text-white/70" />
           </button>
         </div>
 
         {loading ? (
-          <div className="flex items-center justify-center gap-2 py-12 text-black/50 dark:text-white/50 text-sm">
+          <div className="flex items-center justify-center gap-2 py-12 text-slate-600 dark:text-white/70 text-sm">
             <InlineSpinner size={15} /> Loading…
           </div>
         ) : (
@@ -271,7 +271,7 @@ export default function MomentPrivacySheet({
                   </span>
                   <span className="flex-1 min-w-0">
                     <span className="block text-[14px] font-bold text-[#18181b] dark:text-white">{o.label}</span>
-                    <span className="block text-[11px] text-black/50 dark:text-white/50">{o.hint}</span>
+                    <span className="block text-[11px] text-slate-600 dark:text-white/70">{o.hint}</span>
                   </span>
                   <span
                     className="w-4.5 h-4.5 rounded-full shrink-0"
@@ -284,7 +284,7 @@ export default function MomentPrivacySheet({
                 </button>
               ))}
 
-              <p className="text-black/45 dark:text-white/45 text-[11px] font-bold uppercase tracking-wide pt-3">Fine-tune</p>
+              <p className="text-slate-600 dark:text-white/70 text-[11px] font-bold tracking-wide pt-3">Fine-tune</p>
               <button
                 type="button"
                 onClick={() => { setListMode('hide_from'); }}
@@ -292,9 +292,9 @@ export default function MomentPrivacySheet({
               >
                 <span className="flex-1">
                   <span className="block text-[13px] font-bold text-[#18181b] dark:text-white">Do not show to</span>
-                  <span className="block text-[11px] text-black/50 dark:text-white/50">Hide this reel from specific people</span>
+                  <span className="block text-[11px] text-slate-600 dark:text-white/70">Hide this reel from specific people</span>
                 </span>
-                <span className="text-black/50 dark:text-white/50 text-[12px]">{hideFrom.size || ''}</span>
+                <span className="text-slate-600 dark:text-white/70 text-[12px]">{hideFrom.size || ''}</span>
               </button>
               <button
                 type="button"
@@ -303,11 +303,11 @@ export default function MomentPrivacySheet({
               >
                 <span className="flex-1">
                   <span className="block text-[13px] font-bold text-[#18181b] dark:text-white">Only show to</span>
-                  <span className="block text-[11px] text-black/50 dark:text-white/50">Share with a few specific people</span>
+                  <span className="block text-[11px] text-slate-600 dark:text-white/70">Share with a few specific people</span>
                 </span>
-                <span className="text-black/50 dark:text-white/50 text-[12px]">{showOnly.size || ''}</span>
+                <span className="text-slate-600 dark:text-white/70 text-[12px]">{showOnly.size || ''}</span>
               </button>
-              <p className="text-black/40 dark:text-white/40 text-[11px] leading-relaxed pt-1">
+              <p className="text-slate-600 dark:text-white/70 text-[11px] leading-relaxed pt-1">
                 These rules are enforced on the server — hidden reels are never sent to other people's feeds, even if someone has the link.
               </p>
             </div>
@@ -317,7 +317,7 @@ export default function MomentPrivacySheet({
                 type="button"
                 onClick={() => void save()}
                 disabled={saving}
-                className="w-full py-3 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? <><InlineSpinner size={14} /> Saving…</> : 'Save privacy'}

@@ -128,14 +128,14 @@ export default function MomentStudio() {
           <ArrowLeft size={24} strokeWidth={2.5} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-[17px] font-black tracking-tight leading-none">Moment Studio</h1>
-          <p className="text-[11px] text-marketplace-muted font-medium mt-0.5">
+          <h1 className="text-[17px] font-semibold tracking-tight leading-none">Moment Studio</h1>
+          <p className="text-[11px] text-slate-500 dark:text-white/70 font-medium mt-0.5">
             {total} {total === 1 ? 'moment' : 'moments'} published
           </p>
         </div>
         <button
           onClick={() => navigate('/streams')}
-          className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#ff1493] text-white text-[11px] font-black uppercase tracking-widest active:scale-95 transition-transform shrink-0"
+          className="flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-[#ff1493] text-white text-[11px] font-semibold tracking-wide active:scale-95 transition-transform shrink-0"
         >
           <Radio size={14} strokeWidth={2.5} />
           Go Live
@@ -155,8 +155,8 @@ export default function MomentStudio() {
               <div className={`w-8 h-8 rounded-xl bg-white dark:bg-white/[0.06] border border-marketplace-border flex items-center justify-center mb-3 ${tile}`}>
                 <Icon size={15} strokeWidth={2.5} />
               </div>
-              <span className="text-[10px] font-black uppercase tracking-widest text-marketplace-muted block mb-1">{label}</span>
-              <span className="text-2xl font-black tracking-tight leading-none">{compact(value)}</span>
+              <span className="text-[10px] font-semibold tracking-wide text-slate-500 dark:text-white/70 block mb-1">{label}</span>
+              <span className="text-2xl font-semibold tracking-tight leading-none">{compact(value)}</span>
             </div>
           ))}
         </div>
@@ -169,7 +169,7 @@ export default function MomentStudio() {
 
         {loading ? (
           <div className="py-24 flex items-center justify-center">
-            <Spinner size="large" className="text-marketplace-muted" />
+            <Spinner size="large" className="text-slate-500 dark:text-white/70" />
           </div>
         ) : moments.length === 0 ? (
           <ModernOfflineState
@@ -196,7 +196,7 @@ export default function MomentStudio() {
                         <img src={getMediaUrl(thumb)} alt="" className="w-full h-full object-cover" />
                       )
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-marketplace-muted">
+                      <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-white/70">
                         <Film size={20} />
                       </div>
                     )}
@@ -212,8 +212,8 @@ export default function MomentStudio() {
                     <p className="text-[13px] font-bold text-[#18181b] dark:text-white truncate">
                       {m.caption?.trim() || 'Untitled moment'}
                     </p>
-                    <p className="text-[11px] text-marketplace-muted font-medium mt-0.5">{timeAgo(m.created_at)}</p>
-                    <div className="flex items-center gap-3.5 mt-2 text-[11px] font-bold text-marketplace-muted">
+                    <p className="text-[11px] text-slate-500 dark:text-white/70 font-medium mt-0.5">{timeAgo(m.created_at)}</p>
+                    <div className="flex items-center gap-3.5 mt-2 text-[11px] font-bold text-slate-500 dark:text-white/70">
                       <span className="flex items-center gap-1"><Eye size={13} strokeWidth={2.5} />{compact(m.view_count)}</span>
                       <span className="flex items-center gap-1"><Heart size={13} strokeWidth={2.5} />{compact(m.like_count)}</span>
                       <span className="flex items-center gap-1"><MessageSquare size={13} strokeWidth={2.5} />{compact(m.comment_count)}</span>
@@ -239,7 +239,7 @@ export default function MomentStudio() {
         {/* Recently taken down — restore path for a soft delete */}
         {!loading && deleted.length > 0 && (
           <section className="mt-12">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-marketplace-muted mb-3 px-1">
+            <p className="text-[10px] font-semibold tracking-wide text-slate-500 dark:text-white/70 mb-3 px-1">
               Recently taken down
             </p>
             <ul className="flex flex-col gap-2">
@@ -254,7 +254,7 @@ export default function MomentStudio() {
                       {m.thumbnail_url ? (
                         <img src={getMediaUrl(m.thumbnail_url)} alt="" className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-marketplace-muted">
+                        <div className="w-full h-full flex items-center justify-center text-slate-500 dark:text-white/70">
                           <Film size={16} />
                         </div>
                       )}
@@ -263,7 +263,7 @@ export default function MomentStudio() {
                       <p className="text-[13px] font-bold text-marketplace-text truncate line-through opacity-60">
                         {m.caption?.trim() || 'Untitled moment'}
                       </p>
-                      <p className="text-[11px] text-marketplace-muted font-medium mt-0.5">
+                      <p className="text-[11px] text-slate-500 dark:text-white/70 font-medium mt-0.5">
                         Taken down {timeAgo(m.deleted_at)}
                       </p>
                     </div>
@@ -274,7 +274,7 @@ export default function MomentStudio() {
                       className="flex items-center gap-1.5 px-3.5 h-9 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20 transition-colors disabled:opacity-40 shrink-0"
                     >
                       {busy ? <Spinner size="small" /> : <RotateCcw size={15} strokeWidth={2.5} />}
-                      <span className="text-[11px] font-black uppercase tracking-widest">Restore</span>
+                      <span className="text-[11px] font-semibold tracking-wide">Restore</span>
                     </button>
                   </li>
                 );
@@ -283,7 +283,7 @@ export default function MomentStudio() {
           </section>
         )}
 
-        <p className="mt-8 text-[11px] text-marketplace-muted leading-relaxed">
+        <p className="mt-8 text-[11px] text-slate-500 dark:text-white/70 leading-relaxed">
           Taking a moment down removes it from your studio and other people's feeds right away.
           It stays recoverable — nothing is permanently deleted.
         </p>

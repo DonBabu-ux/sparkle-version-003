@@ -60,22 +60,22 @@ export default function ReelViewersModal({
         <div className="flex items-center justify-between px-5 py-4 border-b border-black/5 dark:border-white/10">
           <div className="flex items-center gap-2">
             <Eye size={17} className="text-[#FF1F6D]" />
-            <h2 className="text-[15px] font-extrabold text-[#18181b] dark:text-white">Viewers</h2>
+            <h2 className="text-[15px] font-semibold text-[#18181b] dark:text-white">Viewers</h2>
           </div>
           <button type="button" onClick={onClose} aria-label="Close viewers" className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10">
-            <X size={17} className="text-black/50 dark:text-white/50" />
+            <X size={17} className="text-slate-600 dark:text-white/70" />
           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 py-3">
           {viewers === null && !error && (
-            <div className="flex items-center justify-center gap-2 py-10 text-black/50 dark:text-white/50 text-sm">
+            <div className="flex items-center justify-center gap-2 py-10 text-slate-600 dark:text-white/70 text-sm">
               <InlineSpinner size={15} /> Loading…
             </div>
           )}
           {error && <p className="py-8 text-center text-[13px] text-red-500 font-semibold">{error}</p>}
           {viewers !== null && viewers.length === 0 && !error && (
-            <p className="py-8 text-center text-[13px] text-black/45 dark:text-white/45">
+            <p className="py-8 text-center text-[13px] text-slate-600 dark:text-white/70">
               No views yet in the last 30 days.
             </p>
           )}
@@ -90,15 +90,15 @@ export default function ReelViewersModal({
                   />
                   <div className="min-w-0 flex-1">
                     <span className="block text-[13px] font-bold text-[#18181b] dark:text-white truncate">@{v.username}</span>
-                    {v.name ? <span className="block text-[11px] text-black/45 dark:text-white/45 truncate">{v.name}</span> : null}
+                    {v.name ? <span className="block text-[11px] text-slate-600 dark:text-white/70 truncate">{v.name}</span> : null}
                   </div>
-                  <span className="text-[11px] text-black/40 dark:text-white/40 shrink-0">{timeAgo(v.viewed_at)}</span>
+                  <span className="text-[11px] text-slate-600 dark:text-white/70 shrink-0">{timeAgo(v.viewed_at)}</span>
                 </li>
               ))}
             </ul>
           )}
           {viewers !== null && viewers.length > 0 && (
-            <p className="py-3 text-center text-[10px] text-black/35 dark:text-white/35 uppercase tracking-widest font-bold">
+            <p className="py-3 text-center text-[10px] text-slate-600 dark:text-white/70 tracking-wide font-bold">
               Last 30 days
             </p>
           )}

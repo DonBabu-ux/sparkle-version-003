@@ -113,7 +113,7 @@ export default function MusicDiscoveryStage({ onBack }: { onBack: () => void }) 
             onKeyDown={onKeyDown}
             placeholder="Search songs, artists…"
             className={`flex-1 bg-transparent outline-none text-[14px] font-medium ${
-              isDark ? 'text-white placeholder:text-white/40' : 'text-gray-900 placeholder:text-gray-500'
+              isDark ? 'text-white placeholder:text-white/60' : 'text-gray-900 placeholder:text-slate-600'
             }`}
             aria-label="Search music"
             enterKeyHint="search"
@@ -182,7 +182,7 @@ export default function MusicDiscoveryStage({ onBack }: { onBack: () => void }) 
 
       {/* For you list */}
       <section className="px-4 pt-2 pb-8" aria-label="For you">
-        <h2 className={`font-black text-[16px] mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
+        <h2 className={`font-semibold text-[16px] mb-2 ${isDark ? 'text-white' : 'text-gray-900'}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>
           For you
         </h2>
 
@@ -205,7 +205,7 @@ export default function MusicDiscoveryStage({ onBack }: { onBack: () => void }) 
         )}
 
         {status === 'empty' && (
-          <p className={`py-6 text-sm text-center ${isDark ? 'text-white/50' : 'text-gray-600 font-medium'}`}>
+          <p className={`py-6 text-sm text-center ${isDark ? 'text-white/70' : 'text-gray-600 font-medium'}`}>
             No results{query ? ` for “${query}”` : ''}. Try a different search.
           </p>
         )}
@@ -234,11 +234,11 @@ export default function MusicDiscoveryStage({ onBack }: { onBack: () => void }) 
                       {track.thumbnailUrl ? (
                         <img src={track.thumbnailUrl} alt="" className="w-full h-full object-cover" loading="lazy" />
                       ) : (
-                        <span className={isDark ? 'text-white/40 text-lg' : 'text-gray-500 text-lg'}>♪</span>
+                        <span className={isDark ? 'text-white/70 text-lg' : 'text-slate-600 text-lg'}>♪</span>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className={`text-[14px] font-extrabold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
+                      <p className={`text-[14px] font-semibold truncate ${isDark ? 'text-white' : 'text-gray-900'}`}>
                         {track.title}
                       </p>
                       <p className={`text-[12px] truncate font-medium ${isDark ? 'text-white/60' : 'text-gray-600'}`}>
@@ -261,7 +261,7 @@ export default function MusicDiscoveryStage({ onBack }: { onBack: () => void }) 
                     <button
                       type="button"
                       onClick={() => handleSelect(track)}
-                      className="px-4 h-9 rounded-full text-[13px] font-extrabold shrink-0 transition-transform active:scale-95"
+                      className="px-4 h-9 rounded-full text-[13px] font-semibold shrink-0 transition-transform active:scale-95"
                       style={{
                         background: isSelected ? PINK : (isDark ? 'rgba(255,255,255,0.12)' : '#FFFFFF'),
                         color: isSelected ? '#FFFFFF' : (isDark ? '#FFFFFF' : '#111827'),

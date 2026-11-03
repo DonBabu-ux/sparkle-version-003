@@ -228,7 +228,7 @@ export default function CreateStickerPage() {
             <InlineSpinner size={18} /> Extracting a frame from your reel…
           </div>
         ) : !frameUrl ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/50 text-sm">
+          <div className="flex flex-col items-center justify-center gap-3 py-16 text-white/70 text-sm">
             <ImageOff size={28} />
             <p>No frame available for this reel.</p>
           </div>
@@ -239,7 +239,7 @@ export default function CreateStickerPage() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <label className={`flex items-center gap-2 text-[12px] font-bold uppercase tracking-wide ${isDark ? "text-white/70" : "text-gray-700"}`}>
+              <label className={`flex items-center gap-2 text-[12px] font-bold tracking-wide ${isDark ? "text-white/70" : "text-gray-700"}`}>
                 <Type size={13} /> Text (optional)
               </label>
               <input
@@ -248,7 +248,7 @@ export default function CreateStickerPage() {
                 onChange={(e) => setText(e.target.value)}
                 maxLength={40}
                 placeholder="Add a short caption…"
-                className={`w-full rounded-2xl px-3.5 h-11 outline-none text-[14px] ${isDark ? "bg-white/8 text-white placeholder:text-white/35" : "bg-gray-100 text-gray-900 placeholder:text-gray-400 border border-gray-200"}`}
+                className={`w-full rounded-2xl px-3.5 h-11 outline-none text-[14px] ${isDark ? "bg-white/8 text-white placeholder:text-white/70" : "bg-gray-100 text-gray-900 placeholder:text-slate-500 border border-gray-200"}`}
                 aria-label="Sticker text"
               />
               <div className="flex items-center gap-2 pt-1">
@@ -270,7 +270,7 @@ export default function CreateStickerPage() {
                 type="button"
                 onClick={() => void save()}
                 disabled={saving}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
                 style={{ background: 'linear-gradient(135deg, #FF6B8B, #FF3D6D)', opacity: saving ? 0.7 : 1 }}
               >
                 {saving ? <><InlineSpinner size={15} /> Saving…</> : <><Check size={16} /> Save sticker</>}
@@ -279,7 +279,7 @@ export default function CreateStickerPage() {
                 type="button"
                 onClick={() => void openSend()}
                 disabled={!savedStickerId || sending}
-                className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
                 style={{
                   background: savedStickerId && !sending ? (isDark ? 'rgba(255,255,255,0.12)' : '#F3F4F6') : (isDark ? 'rgba(255,255,255,0.06)' : '#E5E7EB'),
                   color: isDark ? '#fff' : '#111827',
@@ -291,7 +291,7 @@ export default function CreateStickerPage() {
                 <Send size={15} /> Send to a friend
               </button>
               {!savedStickerId && (
-                <p className={`text-[11px] text-center ${isDark ? "text-white/40" : "text-gray-500"}`}>Save the sticker to enable sending.</p>
+                <p className={`text-[11px] text-center ${isDark ? "text-white/70" : "text-slate-600"}`}>Save the sticker to enable sending.</p>
               )}
             </div>
           </>
@@ -303,11 +303,11 @@ export default function CreateStickerPage() {
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSendOpen(false)} />
           <div className="relative w-full sm:max-w-md bg-white dark:bg-[#0B070C] rounded-t-3xl sm:rounded-3xl max-h-[70dvh] flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-black/5 dark:border-white/10">
-              <h2 className="text-[15px] font-extrabold text-[#18181b] dark:text-white">Send sticker to</h2>
+              <h2 className="text-[15px] font-semibold text-[#18181b] dark:text-white">Send sticker to</h2>
             </div>
             <div className="flex-1 overflow-y-auto px-4 py-3">
               {friends.length === 0 && (
-                <p className="py-6 text-center text-black/45 dark:text-white/45 text-[13px]">No friends to send to yet.</p>
+                <p className="py-6 text-center text-slate-600 dark:text-white/70 text-[13px]">No friends to send to yet.</p>
               )}
               <ul className="flex flex-col gap-1">
                 {friends.map((f) => (
@@ -344,7 +344,7 @@ export default function CreateStickerPage() {
                 type="button"
                 onClick={() => { setSendOpen(false); void send(); }}
                 disabled={!selectedFriend || sending}
-                className="flex-1 py-3 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+                className="flex-1 py-3 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
                 style={{ background: selectedFriend && !sending ? 'linear-gradient(135deg, #FF6B8B, #FF3D6D)' : 'rgba(120,120,120,0.3)' }}
               >
                 {sending ? <InlineSpinner size={14} /> : <Send size={14} />} Send

@@ -54,7 +54,7 @@ function PersonRow({
       <Avatar url={person.avatar_url} name={person.display_name || person.username} />
       <span className="min-w-0 flex-1">
         <span className={`block text-[14px] font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>@{person.username}</span>
-        <span className={`block text-[12px] truncate ${isDark ? "text-white/50" : "text-gray-500"}`}>{hint || person.display_name || ''}</span>
+        <span className={`block text-[12px] truncate ${isDark ? "text-white/70" : "text-slate-600"}`}>{hint || person.display_name || ''}</span>
       </span>
       <span
         className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
@@ -117,7 +117,7 @@ export function AudienceStage({
             </span>
             <span className="flex-1 min-w-0">
               <span className={`block text-[15px] font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{o.label}</span>
-              <span className={`block text-[12px] ${isDark ? "text-white/50" : "text-gray-500"}`}>{o.hint}</span>
+              <span className={`block text-[12px] ${isDark ? "text-white/70" : "text-slate-600"}`}>{o.hint}</span>
             </span>
             <span
               className="w-5 h-5 rounded-full shrink-0"
@@ -131,7 +131,7 @@ export function AudienceStage({
       </div>
 
       <div className="px-4 pt-6 flex flex-col gap-2">
-        <p className={`text-[11px] font-bold uppercase tracking-wide ${isDark ? "text-white/45" : "text-gray-500"}`}>Fine-tune</p>
+        <p className={`text-[11px] font-bold tracking-wide ${isDark ? "text-white/70" : "text-slate-600"}`}>Fine-tune</p>
         <button
           type="button"
           onClick={onOpenCloseFriends}
@@ -155,9 +155,9 @@ export function AudienceStage({
         >
           <span className="flex-1">
             <span className={`block text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Do not show to</span>
-            <span className={`block text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Hide this reel from specific people</span>
+            <span className={`block text-[12px] ${isDark ? 'text-white/70' : 'text-slate-600'}`}>Hide this reel from specific people</span>
           </span>
-          <span className={`text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{exclusions.hideFrom.length || ''}</span>
+          <span className={`text-[12px] ${isDark ? 'text-white/70' : 'text-slate-600'}`}>{exclusions.hideFrom.length || ''}</span>
           <ChevronRight size={17} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
         </button>
         <button
@@ -171,12 +171,12 @@ export function AudienceStage({
         >
           <span className="flex-1">
             <span className={`block text-[14px] font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Only show to</span>
-            <span className={`block text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>Share with a few specific people</span>
+            <span className={`block text-[12px] ${isDark ? 'text-white/70' : 'text-slate-600'}`}>Share with a few specific people</span>
           </span>
-          <span className={`text-[12px] ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{exclusions.showOnly.length || ''}</span>
+          <span className={`text-[12px] ${isDark ? 'text-white/70' : 'text-slate-600'}`}>{exclusions.showOnly.length || ''}</span>
           <ChevronRight size={17} color={isDark ? "rgba(255,255,255,0.5)" : "#9CA3AF"} />
         </button>
-        <p className={`text-[11px] leading-relaxed pt-2 ${isDark ? "text-white/40" : "text-gray-500"}`}>
+        <p className={`text-[11px] leading-relaxed pt-2 ${isDark ? "text-white/70" : "text-slate-600"}`}>
           These rules are enforced on the server — hidden reels are never sent to other people's feeds,
           These rules are enforced on the server — hidden reels are never sent to other people's feeds,
           even if someone has the link.
@@ -271,7 +271,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/40' : 'text-gray-900 placeholder:text-gray-400'}`}
+            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/60' : 'text-gray-900 placeholder:text-slate-500'}`}
             aria-label="Search people"
           />
           {query && (
@@ -280,7 +280,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
             </button>
           )}
         </div>
-        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/45' : 'text-gray-500'}`}>
+        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
           {query
             ? `Results for “${query}”`
             : 'Suggested from people you message and who comment on your posts'}
@@ -294,7 +294,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
           </div>
         )}
         {!loading && list.length === 0 && (
-          <p className={`py-6 text-sm text-center ${isDark ? "text-white/50" : "text-gray-500"}`}>
+          <p className={`py-6 text-sm text-center ${isDark ? "text-white/70" : "text-slate-600"}`}>
             {query ? 'No people found.' : 'No suggestions right now — search above to add people.'}
           </p>
         )}
@@ -316,7 +316,7 @@ export function CloseFriendsStage({ onBack }: { onBack: () => void }) {
           type="button"
           onClick={() => void save()}
           disabled={saving || !dirty}
-          className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
           style={{
             background: dirty ? '#ff1493' : (isDark ? 'rgba(255,255,255,0.1)' : '#E5E7EB'),
             color: dirty ? '#fff' : (isDark ? '#fff' : '#6B7280'),
@@ -436,7 +436,7 @@ export function AudienceListStage({
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Search people…"
-            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/40' : 'text-gray-900 placeholder:text-gray-400'}`}
+            className={`flex-1 bg-transparent outline-none text-[14px] ${isDark ? 'text-white placeholder:text-white/60' : 'text-gray-900 placeholder:text-slate-500'}`}
             aria-label="Search people"
           />
           {query && (
@@ -445,7 +445,7 @@ export function AudienceListStage({
             </button>
           )}
         </div>
-        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/45' : 'text-gray-500'}`}>
+        <p className={`text-[12px] mt-2 ${isDark ? 'text-white/70' : 'text-slate-600'}`}>
           {mode === 'hide_from'
             ? 'These people will never receive this reel.'
             : 'Only these people will receive this reel (plus you).'}
@@ -459,7 +459,7 @@ export function AudienceListStage({
           </div>
         )}
         {!loading && list.length === 0 && (
-          <p className={`py-6 text-sm text-center ${isDark ? "text-white/50" : "text-gray-500"}`}>
+          <p className={`py-6 text-sm text-center ${isDark ? "text-white/70" : "text-slate-600"}`}>
             {query ? 'No people found.' : mode === 'hide_from'
               ? 'No followers yet.'
               : 'No mutual friends yet — search above.'}
@@ -483,7 +483,7 @@ export function AudienceListStage({
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="w-full py-3.5 rounded-2xl font-extrabold text-white flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-2xl font-semibold text-white flex items-center justify-center gap-2"
           style={{ background: '#ff1493', opacity: saving ? 0.7 : 1 }}
         >
           {saving ? <><InlineSpinner size={15} /> Saving…</> : 'Save'}
@@ -534,7 +534,7 @@ export function ShareStoryStage({ onBack }: { onBack: () => void }) {
           >
             <span className="flex-1">
               <span className={`block text-[15px] font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{o.label}</span>
-              <span className={`block text-[12px] ${isDark ? "text-white/50" : "text-gray-500"}`}>{o.hint}</span>
+              <span className={`block text-[12px] ${isDark ? "text-white/70" : "text-slate-600"}`}>{o.hint}</span>
             </span>
             <span
               className="w-5 h-5 rounded-full shrink-0"
@@ -545,7 +545,7 @@ export function ShareStoryStage({ onBack }: { onBack: () => void }) {
             />
           </button>
         ))}
-        <p className={`text-[11px] leading-relaxed pt-3 ${isDark ? "text-white/40" : "text-gray-500"}`}>
+        <p className={`text-[11px] leading-relaxed pt-3 ${isDark ? "text-white/70" : "text-slate-600"}`}>
           Story shares are posted separately — if a story share fails, your reel stays published.
         </p>
         <button

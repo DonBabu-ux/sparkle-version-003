@@ -235,7 +235,7 @@ export default function PreviewStage({
         <button
           type="button"
           onClick={onNext}
-          className="px-4 h-9 rounded-full text-[13px] font-extrabold text-white"
+          className="px-4 h-9 rounded-full text-[13px] font-semibold text-white"
           style={{ background: PINK }}
         >
           Next
@@ -322,7 +322,7 @@ export default function PreviewStage({
             aria-live="polite"
           >
             <span
-              className="inline-block px-3 py-1.5 rounded-lg text-[15px] font-extrabold"
+              className="inline-block px-3 py-1.5 rounded-lg text-[15px] font-semibold"
               style={{ background: 'rgba(0,0,0,0.65)', color: '#fff' }}
             >
               {captions.text || captions.cues[0]?.text}
@@ -438,7 +438,7 @@ export default function PreviewStage({
         <button
           type="button"
           onClick={onNext}
-          className="w-full py-3.5 rounded-2xl font-extrabold text-white text-[15px] flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-2xl font-semibold text-white text-[15px] flex items-center justify-center gap-2"
           style={{ background: '#ff1493' }}
         >
           <Scissors size={16} /> Trim & arrange clips
@@ -459,7 +459,7 @@ export default function PreviewStage({
               )}
               <div className="min-w-0 flex-1">
                 <p className={`text-sm font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>{selectedMusic.title}</p>
-                <p className={`text-xs truncate ${isDark ? "text-white/55" : "text-gray-500"}`}>{selectedMusic.artist}</p>
+                <p className={`text-xs truncate ${isDark ? "text-white/55" : "text-slate-600"}`}>{selectedMusic.artist}</p>
               </div>
               <button
                 type="button"
@@ -537,7 +537,7 @@ export default function PreviewStage({
         </div>
         {stickerOverlays.length > 0 && (
           <div className="pt-3 mt-2 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-            <p className={`text-xs mb-2 ${isDark ? "text-white/55" : "text-gray-500"}`}>Added stickers</p>
+            <p className={`text-xs mb-2 ${isDark ? "text-white/55" : "text-slate-600"}`}>Added stickers</p>
             <div className="flex gap-2 flex-wrap">
               {stickerOverlays.map(s => (
                 <button
@@ -549,7 +549,7 @@ export default function PreviewStage({
                   aria-label={`Remove ${s.content} sticker`}
                   title="Tap to remove"
                 >
-                  {s.content} <span className="text-[11px] text-white/50">remove</span>
+                  {s.content} <span className="text-[11px] text-white/70">remove</span>
                 </button>
               ))}
             </div>
@@ -662,7 +662,7 @@ function ToolButton({
       aria-label={label}
     >
       <span style={{ color: accent ? PINK : (isDark ? '#fff' : '#111827') }}>{icon}</span>
-      <span className="text-[12px] font-black">{label}</span>
+      <span className="text-[12px] font-semibold">{label}</span>
     </button>
   );
 }

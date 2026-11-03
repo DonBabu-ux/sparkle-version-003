@@ -541,7 +541,7 @@ export default function ComposeStage({
             type="button"
             disabled={!canPublish}
             onClick={() => void doPublish()}
-            className="px-4 py-1.5 rounded-full text-xs font-extrabold transition-all active:scale-95 flex items-center gap-1.5"
+            className="px-4 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5"
             style={{
               background: canPublish ? '#EC1164' : (isDark ? 'rgba(255,255,255,0.15)' : '#E5E7EB'),
               color: canPublish ? '#FFFFFF' : (isDark ? 'rgba(255,255,255,0.45)' : '#9CA3AF'),
@@ -568,7 +568,7 @@ export default function ComposeStage({
               {coverUrl ? (
                 <img src={coverUrl} alt="Cover preview" className="w-full h-full object-cover" />
               ) : (
-                <div className={`w-full h-full flex items-center justify-center ${isDark ? 'text-white/40 bg-[#181419]' : 'text-gray-400 bg-gray-100'}`}>
+                <div className={`w-full h-full flex items-center justify-center ${isDark ? 'text-white/70 bg-[#181419]' : 'text-slate-600 bg-gray-100'}`}>
                   <Play size={20} />
                 </div>
               )}
@@ -594,7 +594,7 @@ export default function ComposeStage({
               >
                 <Plus size={isCompactMode ? 18 : 24} className={isDark ? "text-white/70" : "text-gray-600"} />
                 {!isCompactMode && (
-                  <span className={`text-[11px] font-medium ${isDark ? "text-white/50" : "text-gray-500"}`}>Add clip</span>
+                  <span className={`text-[11px] font-medium ${isDark ? "text-white/70" : "text-slate-600"}`}>Add clip</span>
                 )}
               </div>
             )}
@@ -605,7 +605,7 @@ export default function ComposeStage({
                 <p className={`text-xs font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>
                   {s.clips.length} clips · {duration.toFixed(1)}s
                 </p>
-                <p className={`text-[11px] truncate mt-0.5 ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>
+                <p className={`text-[11px] truncate mt-0.5 ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
                   {s.selectedMusic ? `♪ ${s.selectedMusic.title}` : 'Original audio'}
                 </p>
               </div>
@@ -624,11 +624,11 @@ export default function ComposeStage({
               onChange={(e) => s.setTitle(e.target.value.slice(0, TITLE_MAX))}
               placeholder="Add a catchy title"
               maxLength={TITLE_MAX}
-              className={`w-full bg-transparent outline-none text-[16px] font-semibold ${isDark ? "text-white placeholder:text-[#77717A]" : "text-gray-900 placeholder:text-gray-400"} placeholder:font-normal`}
+              className={`w-full bg-transparent outline-none text-[16px] font-semibold ${isDark ? "text-white placeholder:text-white/70" : "text-gray-900 placeholder:text-slate-500"} placeholder:font-normal`}
             />
           </div>
           {s.title.length > 0 && (
-            <p className={`text-right text-[11px] mt-1 pr-1 ${isDark ? "text-[#77717A]" : "text-gray-400"}`}>{s.title.length}/{TITLE_MAX}</p>
+            <p className={`text-right text-[11px] mt-1 pr-1 ${isDark ? "text-white/70" : "text-slate-600"}`}>{s.title.length}/{TITLE_MAX}</p>
           )}
         </section>
 
@@ -648,7 +648,7 @@ export default function ComposeStage({
             onClick={handleDescriptionClick}
             placeholder="Write a description..."
             maxLength={DESC_MAX}
-            className={`w-full bg-transparent text-[15px] outline-none resize-none leading-relaxed ${isDark ? "text-white placeholder:text-[#77717A]" : "text-gray-900 placeholder:text-gray-400"}`}
+            className={`w-full bg-transparent text-[15px] outline-none resize-none leading-relaxed ${isDark ? "text-white placeholder:text-white/70" : "text-gray-900 placeholder:text-slate-500"}`}
           />
 
           {/* Composer Toolbar (Image 2) */}
@@ -661,7 +661,7 @@ export default function ComposeStage({
                   insertHashtagToken('');
                   if (descRef.current) descRef.current.focus();
                 }}
-                className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-extrabold transition-colors active:scale-95 ${isDark ? "bg-[#181419] border-[#29232C] hover:border-[#EC1164] text-white/90" : "bg-white border-gray-300 hover:border-[#EC1164] text-gray-900 shadow-sm font-black"}`}
+                className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-semibold transition-colors active:scale-95 ${isDark ? "bg-[#181419] border-[#29232C] hover:border-[#EC1164] text-white/90" : "bg-white border-gray-300 hover:border-[#EC1164] text-gray-900 shadow-sm font-semibold"}`}
                 aria-label="Add hashtag"
               >
                 #
@@ -671,7 +671,7 @@ export default function ComposeStage({
               <button
                 type="button"
                 onClick={() => setMentionModalOpen(true)}
-                className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-extrabold transition-colors active:scale-95 ${isDark ? "bg-[#181419] border-[#29232C] hover:border-[#EC1164] text-white/90" : "bg-white border-gray-300 hover:border-[#EC1164] text-gray-900 shadow-sm font-black"}`}
+                className={`w-8 h-8 rounded-full border flex items-center justify-center text-sm font-semibold transition-colors active:scale-95 ${isDark ? "bg-[#181419] border-[#29232C] hover:border-[#EC1164] text-white/90" : "bg-white border-gray-300 hover:border-[#EC1164] text-gray-900 shadow-sm font-semibold"}`}
                 aria-label="Mention people"
               >
                 @
@@ -702,7 +702,7 @@ export default function ComposeStage({
             <button
               type="button"
               onClick={() => setExpandedDesc(v => !v)}
-              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? "bg-[#181419] border-[#29232C] text-[#77717A] hover:text-white" : "bg-white border-gray-300 text-gray-700 hover:text-gray-900 shadow-sm"}`}
+              className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${isDark ? "bg-[#181419] border-[#29232C] text-white/70 hover:text-white" : "bg-white border-gray-300 text-gray-700 hover:text-gray-900 shadow-sm"}`}
               aria-label="Expand editor"
             >
               {expandedDesc ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
@@ -713,7 +713,7 @@ export default function ComposeStage({
         {/* ── 3. INLINE HASHTAG SUGGESTIONS (IMAGE 5) ── */}
         {activeHashQuery !== null && (tagSuggestions.length > 0 || recentTags.length > 0) && (
           <div className={`px-4 py-2 border-t border-b transition-all ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-50 border-gray-200"}`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${isDark ? "text-[#77717A]" : "text-gray-500"}`}>
+            <p className={`text-[11px] font-semibold tracking-wide mb-1.5 ${isDark ? "text-white/70" : "text-slate-600"}`}>
               {tagSuggestions.length > 0 ? 'Suggested hashtags' : 'Recent hashtags'}
             </p>
             <div className={`flex flex-col divide-y ${isDark ? "divide-[#29232C]/60" : "divide-gray-200"}`}>
@@ -733,7 +733,7 @@ export default function ComposeStage({
                   className="flex items-center justify-between py-2.5 px-1 text-left hover:bg-white/[0.04] transition-colors"
                 >
                   <span className={`text-sm font-semibold ${isDark ? "text-white" : "text-gray-900"}`}>#{item.tag}</span>
-                  <span className="text-[#77717A] text-xs">
+                  <span className="text-white/70 text-xs">
                     {item.post_count > 1000000
                       ? `${(item.post_count / 1000000).toFixed(1)}M posts`
                       : item.post_count > 1000
@@ -751,7 +751,7 @@ export default function ComposeStage({
         {/* ── 4. INLINE @ MENTION AUTOCOMPLETE ── */}
         {activeAtQuery !== null && inlineMentionResults.length > 0 && (
           <div className={`px-4 py-2 border-t border-b transition-all ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-50 border-gray-200"}`}>
-            <p className={`text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${isDark ? "text-[#77717A]" : "text-gray-500"}`}>
+            <p className={`text-[11px] font-semibold tracking-wide mb-1.5 ${isDark ? "text-white/70" : "text-slate-600"}`}>
               Mention people
             </p>
             <div className={`flex flex-col divide-y ${isDark ? "divide-[#29232C]/60" : "divide-gray-200"}`}>
@@ -774,7 +774,7 @@ export default function ComposeStage({
                   )}
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>@{p.username}</p>
-                    <p className={`text-xs truncate ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>{p.display_name || ''}</p>
+                    <p className={`text-xs truncate ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>{p.display_name || ''}</p>
                   </div>
                 </button>
               ))}
@@ -797,7 +797,7 @@ export default function ComposeStage({
                   {attachedLink ? 'Link attached' : 'Add link'}
                 </span>
               </div>
-              <div className={`flex items-center gap-1 ${isDark ? "text-[#77717A]" : "text-gray-400"}`}>
+              <div className={`flex items-center gap-1 ${isDark ? "text-white/70" : "text-slate-600"}`}>
                 {attachedLink && (
                   <span className="text-xs text-[#EC1164] max-w-[140px] truncate">{attachedLink}</span>
                 )}
@@ -815,7 +815,7 @@ export default function ComposeStage({
                 <Globe size={18} className={isDark ? "text-[#A6A0A8]" : "text-gray-700"} />
                 <span className={`font-bold text-[15px] ${isDark ? "text-white" : "text-gray-900"}`}>{audienceDisplayLabel}</span>
               </div>
-              <ChevronRight size={18} className={isDark ? "text-[#77717A]" : "text-gray-400"} />
+              <ChevronRight size={18} className={isDark ? "text-white/70" : "text-slate-600"} />
             </button>
 
             {/* Row 3: More Options */}
@@ -828,7 +828,7 @@ export default function ComposeStage({
                 <SlidersHorizontal size={18} className={isDark ? "text-[#A6A0A8]" : "text-gray-700"} />
                 <span className={`font-bold text-[15px] ${isDark ? "text-white" : "text-gray-900"}`}>More options</span>
               </div>
-              <ChevronRight size={18} className={isDark ? "text-[#77717A]" : "text-gray-400"} />
+              <ChevronRight size={18} className={isDark ? "text-white/70" : "text-slate-600"} />
             </button>
 
             {/* Row 4: Share to */}
@@ -847,7 +847,7 @@ export default function ComposeStage({
                 <Share2 size={18} className={isDark ? "text-[#A6A0A8]" : "text-gray-700"} />
                 <span className={`font-bold text-[15px] ${isDark ? "text-white" : "text-gray-900"}`}>Share to</span>
               </div>
-              <div className={`flex items-center gap-1 ${isDark ? "text-[#77717A]" : "text-gray-400"}`}>
+              <div className={`flex items-center gap-1 ${isDark ? "text-white/70" : "text-slate-600"}`}>
                 <span className="text-xs">{shareDestination}</span>
                 <ChevronRight size={18} />
               </div>
@@ -884,7 +884,7 @@ export default function ComposeStage({
             type="button"
             disabled={!canPublish}
             onClick={() => void doPublish()}
-            className="flex-1 py-3.5 rounded-full font-extrabold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
+            className="flex-1 py-3.5 rounded-full font-semibold text-sm flex items-center justify-center gap-2 active:scale-[0.98] transition-all"
             style={{
               background: canPublish ? '#EC1164' : (isDark ? 'rgba(255,255,255,0.15)' : '#E5E7EB'),
               color: canPublish ? '#FFFFFF' : (isDark ? 'rgba(255,255,255,0.45)' : '#9CA3AF'),
@@ -939,7 +939,7 @@ export default function ComposeStage({
               type="button"
               onClick={() => setMentionTab('people')}
               className={`flex-1 py-3 text-center text-sm font-bold relative transition-colors ${
-                mentionTab === 'people' ? (isDark ? 'text-white' : 'text-gray-900') : (isDark ? 'text-[#77717A]' : 'text-gray-500')
+                mentionTab === 'people' ? (isDark ? 'text-white' : 'text-gray-900') : (isDark ? 'text-white/70' : 'text-slate-600')
               }`}
             >
               People
@@ -951,7 +951,7 @@ export default function ComposeStage({
               type="button"
               onClick={() => setMentionTab('videos')}
               className={`flex-1 py-3 text-center text-sm font-bold relative transition-colors ${
-                mentionTab === 'videos' ? (isDark ? 'text-white' : 'text-gray-900') : (isDark ? 'text-[#77717A]' : 'text-gray-500')
+                mentionTab === 'videos' ? (isDark ? 'text-white' : 'text-gray-900') : (isDark ? 'text-white/70' : 'text-slate-600')
               }`}
             >
               Videos
@@ -964,16 +964,16 @@ export default function ComposeStage({
           {/* Search bar */}
           <div className="p-4">
             <div className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-full border ${isDark ? "bg-[#181419] border-[#29232C]" : "bg-gray-100 border-gray-200"}`}>
-              <Search size={16} className={isDark ? "text-[#77717A]" : "text-gray-400"} />
+              <Search size={16} className={isDark ? "text-white/70" : "text-slate-600"} />
               <input
                 type="text"
                 value={mentionModalSearch}
                 onChange={(e) => setMentionModalSearch(e.target.value)}
                 placeholder="Search alias or nickname"
-                className={`w-full bg-transparent text-sm outline-none ${isDark ? "text-white placeholder:text-[#77717A]" : "text-gray-900 placeholder:text-gray-400"}`}
+                className={`w-full bg-transparent text-sm outline-none ${isDark ? "text-white placeholder:text-white/70" : "text-gray-900 placeholder:text-slate-500"}`}
               />
               {mentionModalSearch && (
-                <button type="button" onClick={() => setMentionModalSearch('')} className="text-[#77717A]">
+                <button type="button" onClick={() => setMentionModalSearch('')} className="text-white/70">
                   <X size={15} />
                 </button>
               )}
@@ -983,7 +983,7 @@ export default function ComposeStage({
           {/* User List Sections */}
           <div className="flex-1 overflow-y-auto px-4 pb-12">
             {mentionTab === 'videos' ? (
-              <div className="py-12 text-center text-[#77717A] text-sm">
+              <div className="py-12 text-center text-white/70 text-sm">
                 No videos available to tag in this reel.
               </div>
             ) : mentionSearching ? (
@@ -993,9 +993,9 @@ export default function ComposeStage({
             ) : mentionModalSearch.trim() ? (
               // Search Results
               <div className="flex flex-col gap-1">
-                <p className="text-xs font-semibold text-[#77717A] uppercase tracking-wider mb-2">Results</p>
+                <p className="text-xs font-semibold text-white/70 tracking-wide mb-2">Results</p>
                 {mentionModalResults.length === 0 ? (
-                  <p className="text-center py-8 text-sm text-[#77717A]">No people found matching "{mentionModalSearch}".</p>
+                  <p className="text-center py-8 text-sm text-white/70">No people found matching "{mentionModalSearch}".</p>
                 ) : (
                   mentionModalResults.map(p => (
                     <div
@@ -1013,7 +1013,7 @@ export default function ComposeStage({
                         )}
                         <div className="min-w-0">
                           <p className={`text-sm font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>{p.display_name || p.username}</p>
-                          <p className={`text-xs truncate ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>@{p.username}</p>
+                          <p className={`text-xs truncate ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>@{p.username}</p>
                         </div>
                       </div>
                       <button
@@ -1035,7 +1035,7 @@ export default function ComposeStage({
               <div className="flex flex-col gap-6">
                 {recentPeople.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-[#77717A] uppercase tracking-wider mb-2">Recent</p>
+                    <p className="text-xs font-semibold text-white/70 tracking-wide mb-2">Recent</p>
                     <div className="flex flex-col gap-1">
                       {recentPeople.map(p => (
                         <div
@@ -1074,7 +1074,7 @@ export default function ComposeStage({
 
                 {friendsList.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-[#77717A] uppercase tracking-wider mb-2">Friends</p>
+                    <p className="text-xs font-semibold text-white/70 tracking-wide mb-2">Friends</p>
                     <div className="flex flex-col gap-1">
                       {friendsList.map(p => (
                         <div
@@ -1258,7 +1258,7 @@ export default function ComposeStage({
                 <span className="text-[#EC1164]">{opt.icon}</span>
                 <div>
                   <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>{opt.label}</p>
-                  <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>{opt.desc}</p>
+                  <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>{opt.desc}</p>
                 </div>
               </div>
               {s.audience === opt.id && <CheckCircle2 size={18} className="text-[#EC1164]" />}
@@ -1274,7 +1274,7 @@ export default function ComposeStage({
             <div>
               <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
               Allow comments</p>
-              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>
+              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
               People can comment on your reel</p>
             </div>
             <input
@@ -1289,7 +1289,7 @@ export default function ComposeStage({
             <div>
               <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
               Sparkle watermark</p>
-              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>
+              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
               Adds your @username to the video corner</p>
             </div>
             <input
@@ -1304,7 +1304,7 @@ export default function ComposeStage({
             <div>
               <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
               Save to device</p>
-              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>
+              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
               Download a copy to device after publish</p>
             </div>
             <input
@@ -1326,12 +1326,12 @@ export default function ComposeStage({
             <div>
               <p className={`text-sm font-bold ${isDark ? "text-white" : "text-gray-900"}`}>
               Share to my story</p>
-              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-gray-500"}`}>
+              <p className={`text-xs ${isDark ? "text-[#A6A0A8]" : "text-slate-600"}`}>
               
                 {s.shareToStory === 'off' ? 'Off' : s.shareToStory === 'always' ? 'Always' : 'Ask once'}
               </p>
             </div>
-            <ChevronRight size={18} className="text-[#77717A]" />
+            <ChevronRight size={18} className="text-white/70" />
           </button>
         </div>
       </BottomSheet>
@@ -1344,7 +1344,7 @@ export default function ComposeStage({
             value={linkInput}
             onChange={(e) => setLinkInput(e.target.value)}
             placeholder="https://example.com"
-            className={`w-full p-3.5 rounded-2xl border text-sm outline-none ${isDark ? "bg-[#181419] border-[#29232C] text-white placeholder:text-[#77717A]" : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-gray-400"}`}
+            className={`w-full p-3.5 rounded-2xl border text-sm outline-none ${isDark ? "bg-[#181419] border-[#29232C] text-white placeholder:text-white/70" : "bg-gray-50 border-gray-200 text-gray-900 placeholder:text-slate-500"}`}
           />
           <div className="flex gap-2">
             <button
@@ -1442,7 +1442,7 @@ export default function ComposeStage({
                 )}
               </div>
             ) : (
-              <p className="text-white/50 text-sm">No preview available</p>
+              <p className="text-white/70 text-sm">No preview available</p>
             )}
           </div>
         </div>
@@ -1464,7 +1464,7 @@ export default function ComposeStage({
                       : progress?.phase === 'story' ? 'Sharing to story…'
                       : 'Publishing…'}
                   </span>
-                  <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-gray-500"}`}>{progress?.overall ?? 0}%</span>
+                  <span className={`text-xs font-bold ${isDark ? "text-white/60" : "text-slate-600"}`}>{progress?.overall ?? 0}%</span>
                 </div>
                 <div className={`h-2 rounded-full overflow-hidden ${isDark ? "bg-white/10" : "bg-gray-200"}`} role="progressbar">
                   <div

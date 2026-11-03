@@ -275,7 +275,7 @@ export default function CameraStage({
         <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(255,0,110,0.18)" }}>
           <Circle size={26} color={PINK} />
         </div>
-        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access</h2>
+        <h2 className={`font-semibold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access</h2>
         <p className={`text-sm leading-relaxed ${isDark ? "text-white/70" : "text-gray-600"}`}>
           Sparkle needs camera and microphone access so you can record videos with sound.
           Sparkle needs camera and microphone access so you can record videos with sound.
@@ -288,7 +288,7 @@ export default function CameraStage({
             border: `1px solid ${isDark ? "transparent" : "#E5E7EB"}`,
           }}>Not now</button>
         </div>
-        <p className={`text-[11px] max-w-xs ${isDark ? "text-white/35" : "text-gray-500"}`}>Your device will show its own permission dialog next. You can change this anytime in Settings.</p>
+        <p className={`text-[11px] max-w-xs ${isDark ? "text-white/70" : "text-slate-600"}`}>Your device will show its own permission dialog next. You can change this anytime in Settings.</p>
       </div>
     );
   }
@@ -299,7 +299,7 @@ export default function CameraStage({
         <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: "rgba(255,80,80,0.15)" }}>
           <Lock size={26} color="#FF8A8A" />
         </div>
-        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access is off</h2>
+        <h2 className={`font-semibold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>Camera access is off</h2>
         <p className={`text-sm leading-relaxed ${isDark ? "text-white/70" : "text-gray-600"}`}>Allow camera and microphone access in your device settings to record, or pick a video from your gallery instead.</p>
         <div className="flex flex-col gap-3 w-full max-w-xs">
           <button type="button" onClick={() => { void startCamera(); }} className="py-3 rounded-2xl font-bold text-white" style={{ background: "#ff1493" }}>Try again</button>
@@ -316,7 +316,7 @@ export default function CameraStage({
   if (phase === "nocam") {
     return (
       <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
-        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>No camera found</h2>
+        <h2 className={`font-semibold text-lg ${isDark ? "text-white" : "text-gray-900"}`} style={{ fontFamily: "'Varela Round', sans-serif" }}>No camera found</h2>
         <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>This device does not expose a usable camera to Sparkle. You can still create a reel from your gallery.</p>
         <button type="button" onClick={onOpenPicker} className="py-3 rounded-2xl font-bold text-white w-full max-w-xs" style={{ background: "#ff1493" }}>Choose from gallery</button>
       </div>
@@ -326,7 +326,7 @@ export default function CameraStage({
   if (phase === "error") {
     return (
       <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col items-center justify-center px-8 gap-5 text-center" style={{ background: isDark ? "#0B070C" : "#FFFFFF" }}>
-        <h2 className={`font-extrabold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>Camera error</h2>
+        <h2 className={`font-semibold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>Camera error</h2>
         <p className={`text-sm ${isDark ? "text-white/70" : "text-gray-600"}`}>{error || "Unknown camera error."}</p>
         <button type="button" onClick={onClose} className="py-3 px-8 rounded-2xl font-bold text-white" style={{ background: PINK }}>Go back</button>
       </div>
@@ -342,7 +342,7 @@ export default function CameraStage({
             <RotateCcw size={18} />
           </button>
           <span className="text-white text-sm font-bold opacity-70">Preview</span>
-          <button type="button" onClick={handleNext} aria-label="Use clip" className="px-5 h-9 rounded-full text-[13px] font-extrabold text-white flex items-center gap-1" style={{ background: PINK }}>
+          <button type="button" onClick={handleNext} aria-label="Use clip" className="px-5 h-9 rounded-full text-[13px] font-semibold text-white flex items-center gap-1" style={{ background: PINK }}>
             Next <ChevronRight size={15} />
           </button>
         </div>
@@ -368,7 +368,7 @@ export default function CameraStage({
         </div>
         <div className="flex items-center justify-center gap-4 px-6 py-5" style={{ paddingBottom: "max(env(safe-area-inset-bottom), 20px)" }}>
           <button type="button" onClick={handleRetake} className="flex-1 py-3 rounded-2xl font-bold" style={{ background: "rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.9)" }}>Retake</button>
-          <button type="button" onClick={handleNext} className="flex-1 py-3 rounded-2xl font-extrabold text-white" style={{ background: PINK }}>Use clip</button>
+          <button type="button" onClick={handleNext} className="flex-1 py-3 rounded-2xl font-semibold text-white" style={{ background: PINK }}>Use clip</button>
         </div>
       </div>
     );
@@ -386,7 +386,7 @@ export default function CameraStage({
         </button>
         <div className="flex items-center gap-2">
           {clips.length > 0 && !isRecording && (
-            <button type="button" onClick={onNext} className="px-4 h-9 rounded-full text-[13px] font-extrabold text-white" style={{ background: PINK }}>Next</button>
+            <button type="button" onClick={onNext} className="px-4 h-9 rounded-full text-[13px] font-semibold text-white" style={{ background: PINK }}>Next</button>
           )}
           {isRecording && (
             <span className="text-white text-xs font-bold px-2 py-1 rounded-full" style={{ background: "rgba(0,0,0,0.5)" }}>
@@ -421,7 +421,7 @@ export default function CameraStage({
           <Music size={18} />
         </button>
         <button type="button" onClick={cycleDurations} disabled={isRecording} aria-label={`Recording duration ${durationLimit} seconds. Tap to change.`} className="w-11 rounded-full flex flex-col items-center justify-center py-1.5" style={{ background: "rgba(0,0,0,0.55)", color: "#fff", minHeight: 44, opacity: isRecording ? 0.5 : 1 }}>
-          <span className="text-[13px] font-black leading-none">{durationLimit}</span>
+          <span className="text-[13px] font-semibold leading-none">{durationLimit}</span>
           <span className="text-[9px] font-bold opacity-70">sec</span>
         </button>
       </div>
@@ -449,7 +449,7 @@ export default function CameraStage({
               )}
               <div className="min-w-0 flex-1">
                 <p className={`text-sm font-bold truncate ${isDark ? "text-white" : "text-gray-900"}`}>{selectedMusic.title}</p>
-                <p className={`text-xs truncate ${isDark ? "text-white/55" : "text-gray-500"}`}>{selectedMusic.artist}</p>
+                <p className={`text-xs truncate ${isDark ? "text-white/55" : "text-slate-600"}`}>{selectedMusic.artist}</p>
               </div>
             </div>
             <button type="button" onClick={() => { setAudioSheet(false); onOpenMusic(); }} className="w-full py-3 rounded-2xl font-bold text-white flex items-center justify-center gap-2" style={{ background: "#ff1493" }}>
@@ -459,7 +459,7 @@ export default function CameraStage({
               <span className={`text-sm font-bold ${isDark ? 'text-white' : 'text-gray-900'}`}>Keep original sound</span>
               <input type="checkbox" checked={keepOriginalSound} onChange={(e) => setKeepOriginalSound(e.target.checked)} className="w-5 h-5 accent-pink-500" />
             </label>
-            <p className={`text-[11px] leading-snug ${isDark ? "text-white/45" : "text-gray-500"}`}>
+            <p className={`text-[11px] leading-snug ${isDark ? "text-white/70" : "text-slate-600"}`}>
               {keepOriginalSound ? "Your recording sound and the music will be mixed together." : "The music replaces your recording sound in the final reel."}
             </p>
             <button type="button" onClick={() => { setMusic(null); setAudioSheet(false); }} className="w-full py-3 rounded-2xl font-bold" style={{

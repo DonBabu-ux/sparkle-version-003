@@ -1514,7 +1514,7 @@ export default function Moments() {
                             </>
                           ) : (
                             <>
-                                {moment.media_type === 'video' ? (
+                                {isVideoUrl(moment.video_url || moment.media_url) || moment.media_type === 'video' ? (
                                     <video
                                     src={getSafeVideoUrl(moment.video_url || moment.media_url) || undefined}
                                     data-original-src={getMediaUrl(moment.video_url || moment.media_url) || undefined}

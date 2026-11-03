@@ -2,7 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, Smile, ArrowUp, BarChart3, Music, MoreVertical, Pin, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, BarChart3, Music, MoreVertical, Pin, ChevronRight } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -10,6 +10,7 @@ import MomentShareModal from '../components/modals/MomentShareModal';
 import OwnerReelMenuSheet from '../features/reels/components/OwnerReelMenuSheet';
 import ReelViewersModal from '../features/reels/components/ReelViewersModal';
 import MomentPrivacySheet from '../features/reels/components/MomentPrivacySheet';
+import MomentsCommentSheet from '../features/reels/components/MomentsCommentSheet';
 import type { Moment } from '../types/moment';
 import api from '../api/api';
 import { useUserStore } from '../store/userStore';
@@ -63,6 +64,7 @@ interface Comment {
   content: string;
   created_at: string;
   is_liked?: boolean;
+  like_count?: number;
   replies?: Comment[];
 }
 
@@ -693,17 +695,8 @@ export default function Moments() {
   useRef<NodeJS.Timeout | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [activeMomentId, setActiveMomentId] = useState<string | null>(null);
-  const [comments, setComments] = useState<Comment[]>([]);
-  const [newComment, setNewComment] = useState('');
-  const [submittingComment, setSubmittingComment] = useState(false);
   const [ ,  ] = useState(false);
   const [ ,  ] = useState<Moment | null>(null);
-  
-  // Giphy & Sticker States
-  const [showStickers, setShowStickers] = useState(false);
-  const [giphyResults, setGiphyResults] = useState<GiphyResult[]>([]);
-  const [giphyLoading, setGiphyLoading] = useState(false);
-  const [giphySearch, setGiphySearch] = useState('');
   
   // Moments Search States
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -748,29 +741,7 @@ export default function Moments() {
 
   // Local Toast alert state
 
-  // Fetch Giphy Stickers
-  useEffect(() => {
-    const fetchGiphy = async () => {
-      setGiphyLoading(true);
-      try {
-        const endpoint = giphySearch.trim() 
-          ? `/giphy/search?q=${encodeURIComponent(giphySearch)}` 
-          : '/giphy/trending';
-        const res = await api.get(endpoint);
-        setGiphyResults(res.data.data || []);
-      } catch (err) {
-        logger.error('Giphy fetch error', err);
-      } finally {
-        setGiphyLoading(false);
-      }
-    };
-
-    const timer = setTimeout(() => {
-      if (showStickers) fetchGiphy();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [giphySearch, showStickers]);
+  // Giphy stickers are now handled inside MomentsCommentSheet
   const [fetchingMore, setFetchingMore] = useState(false);
   
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -1176,44 +1147,15 @@ export default function Moments() {
     }
   };
 
-  const openComments = async (momentId: string) => {
+  const openComments = (momentId: string) => {
     setActiveMomentId(momentId);
     setShowComments(true);
-    setComments([]);
-    try {
-      const res = await api.get(`/moments/${momentId}/comments`);
-      setComments(res.data.comments || res.data || []);
-    } catch (err) {
-      logger.error('Fetch comments error', err);
-    }
   };
 
-  const handleAddComment = async (e?: React.FormEvent, stickerUrl?: string) => {
-    if (e) e.preventDefault();
-    const content = stickerUrl || newComment;
-    if (!content.trim() || !activeMomentId) return;
-
-    if (!user) {
-      navigate('/login');
-      return;
-    }
-    
-    setSubmittingComment(true);
-    try {
-      const res = await api.post(`/moments/${activeMomentId}/comments`, { comment: content });
-      const added = res.data.comment || res.data;
-      setComments(prev => [added, ...prev]);
-      setNewComment('');
-      setShowStickers(false);
-      
-      setMoments(prev => prev.map(m => m.moment_id === activeMomentId ? {
-        ...m, comment_count: (m.comment_count || 0) + 1
-      } : m));
-    } catch (err) {
-      logger.error('Post comment error', err);
-    } finally {
-      setSubmittingComment(false);
-    }
+  const handleCommentAdded = () => {
+    setMoments(prev => prev.map(m => m.moment_id === activeMomentId ? {
+      ...m, comment_count: (m.comment_count || 0) + 1
+    } : m));
   };
 
   const startDownload = async (moment: Moment) => {
@@ -1680,162 +1622,13 @@ export default function Moments() {
         <MomentPrivacySheet momentId={privacyMomentId} onClose={() => setPrivacyMomentId(null)} />
       )}
 
-      {/* Comments Drawer (Pink Soft) */}
-      <AnimatePresence>
-        {showComments && (
-          <>
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-(--z-chrome) bg-black/40 backdrop-blur-md"
-              onClick={() => setShowComments(false)}
-            />
-            <motion.div 
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 25, stiffness: 250 }}
-              className="fixed bottom-0 left-0 lg:left-72 right-0 h-[60vh] bg-white dark:bg-zinc-800 rounded-t-3xl z-[1001] flex flex-col shadow-2xl overflow-hidden"
-            >
-              <div className="p-4 flex justify-between items-center border-b border-gray-100 dark:border-white/10">
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-bold text-gray-900">Comments</span>
-                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-zinc-800 text-gray-500 dark:text-zinc-300 rounded-full text-[10px] font-bold">{comments.length}</span>
-                </div>
-                <button onClick={() => setShowComments(false)} className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-all">
-                  <X size={20} />
-                </button>
-              </div>
-              
-              <div className="flex-1 overflow-y-auto p-4 no-scrollbar">
-                {comments.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center opacity-30">
-                    <MessageCircle size={48} strokeWidth={1} className="mb-4" />
-                    <p className="text-[12px] font-bold tracking-wide">No comments yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    {comments.map(c => (
-                      <CommentItem 
-                        key={c.comment_id} 
-                        comment={c} 
-                        onLike={(_id, e) => {
-                          if (e) emitHeart(e.clientX, e.clientY);
-                        }} 
-                        onReply={(username) => setNewComment(prev => (prev ? prev.replace(/\s+$/, '') + ' ' : '') + '@' + username + ' ')}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Interaction Bar Area */}
-              <div className="relative p-4 pb-8 bg-white dark:bg-zinc-800 border-t border-gray-100 dark:border-white/10 flex flex-col gap-3">
-                {/* Sticker Picker Overlay (Now relative to bar) */}
-                <AnimatePresence>
-                  {showStickers && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute bottom-full left-4 right-4 bg-white/95 backdrop-blur-xl rounded-2xl shadow-[0_-8px_40px_rgba(0,0,0,0.12)] border border-gray-100 dark:border-white/10 p-4 mb-4 z-[1002] h-[320px] flex flex-col"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[11px] font-semibold tracking-wide text-gray-400">Giphy Stickers</span>
-                        <button onClick={() => setShowStickers(false)} className="text-gray-400 hover:text-gray-900"><X size={16} /></button>
-                      </div>
-                      <div className="relative mb-3">
-                        <input 
-                          type="text" 
-                          placeholder="Search Giphy..."
-                          value={giphySearch}
-                          onChange={(e) => setGiphySearch(e.target.value)}
-                          className="w-full bg-gray-100 dark:bg-zinc-800 rounded-xl py-2 px-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                        />
-                        <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                      </div>
-                      <div className="flex-1 overflow-y-auto no-scrollbar">
-                        {giphyLoading ? (
-                          <div className="h-full flex items-center justify-center"><Spinner size="medium" color="text-primary" /></div>
-                        ) : (
-                          <div className="grid grid-cols-3 gap-2">
-                            {giphyResults.map((gif) => (
-                              <button 
-                                key={gif.id}
-                                onClick={() => handleAddComment(undefined, gif.images.fixed_height.url)}
-                                className="aspect-square rounded-lg overflow-hidden bg-gray-50 dark:bg-zinc-800 hover:scale-105 active:scale-95 transition-all"
-                              >
-                                <img src={gif.images.fixed_height.url} className="w-full h-full object-cover" alt="" />
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
-                {/* Quick Reactions */}
-                <div className="flex items-center justify-between px-2 mb-1">
-                  {['❤️', '🔥', '😍', '😮', '😊', '😂', '💯', '🙌'].map(emoji => (
-                    <button 
-                      key={emoji}
-                      onClick={() => handleAddComment(undefined, emoji)}
-                      className="text-[20px] hover:scale-125 active:scale-90 transition-transform"
-                    >
-                      {emoji}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Input Area (Sleek, No Nesting) */}
-                <div className="flex items-center gap-3 px-1">
-                  <div className="flex-1 bg-gray-100/80 rounded-full flex items-center min-h-[52px] px-3 transition-all focus-within:bg-white focus-within:ring-[6px] focus-within:ring-primary/5 border border-transparent focus-within:border-primary/20 shadow-sm">
-                    <div className="flex-1">
-                      <MentionInput 
-                        value={newComment}
-                        onChange={setNewComment}
-                        placeholder="Add a comment..."
-                        onSubmit={() => handleAddComment()}
-                        className="w-full bg-transparent border-none outline-none text-[15px] font-semibold py-3 px-2 text-gray-800 placeholder:text-gray-400"
-                      />
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button 
-                        onClick={() => setNewComment(prev => prev + (prev.endsWith(' ') || prev === '' ? '@' : ' @'))}
-                        className="w-9 h-9 flex items-center justify-center text-gray-400 hover:text-primary font-bold text-[17px] transition-all active:scale-90"
-                      >
-                        @
-                      </button>
-                      <button 
-                        onClick={() => setShowStickers(!showStickers)}
-                        className={clsx(
-                          "w-9 h-9 flex items-center justify-center rounded-full transition-all active:scale-90", 
-                          showStickers ? "bg-primary text-white shadow-lg shadow-primary/20" : "text-gray-400 hover:text-primary"
-                        )}
-                      >
-                        <Smile size={22} strokeWidth={2.5} />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <button 
-                    onClick={() => handleAddComment()}
-                    disabled={!newComment.trim() || submittingComment}
-                    className={clsx(
-                      "w-[52px] h-[52px] rounded-full flex items-center justify-center shrink-0 transition-all active:scale-90 shadow-xl",
-                      newComment.trim() ? "bg-primary text-white shadow-primary/30" : "bg-gray-100 text-gray-300"
-                    )}
-                  >
-                    {submittingComment ? <Spinner size="small" color="text-white" /> : <ArrowUp size={24} strokeWidth={3} />}
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      {/* TikTok-style Comments Sheet */}
+      <MomentsCommentSheet
+        open={showComments}
+        momentId={activeMomentId}
+        onClose={() => setShowComments(false)}
+        onCommentAdded={handleCommentAdded}
+      />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

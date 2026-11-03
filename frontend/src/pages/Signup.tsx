@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
   GraduationCap, Building2, Briefcase, Gift,
-  Sparkles, Users, Heart,
+  Sparkles, Users, Heart, Play, ShoppingBag, ShieldCheck, MessageCircle,
 } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
@@ -263,6 +263,276 @@ export default function Signup() {
       setResendingOtp(false);
     }
   };
+
+  if (step === 1) {
+    return (
+      <div className="relative min-h-dvh flex flex-col justify-between overflow-x-hidden bg-[#FFF3F8] dark:bg-zinc-950 font-sans text-[#10112D] dark:text-white selection:bg-[#FF008C] selection:text-white pb-6">
+        {/* ── 1. BACKGROUND DECORATIVE SHAPES & ILLUMINATION ── */}
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+          {/* Soft Central Pink Illumination */}
+          <div
+            className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full opacity-60 dark:opacity-20 blur-3xl"
+            style={{
+              background: 'radial-gradient(circle, rgba(255, 0, 140, 0.22) 0%, rgba(255, 140, 195, 0.12) 45%, transparent 70%)',
+            }}
+          />
+
+          {/* Upper Left Organic Blush Wave */}
+          <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-gradient-to-br from-[#FFA7D3]/40 via-[#FFD2EB]/20 to-transparent blur-2xl" />
+
+          {/* Upper Right Curved Wave */}
+          <div className="absolute -top-16 -right-16 w-88 h-88 rounded-full bg-gradient-to-bl from-[#FF75BA]/35 via-[#FFA9DD]/15 to-transparent blur-2xl" />
+
+          {/* Top Decorative Floating Petal Shapes */}
+          <svg className="absolute top-12 left-6 w-8 h-8 text-[#FF008C]/30 -rotate-12" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C12 2 14 8 19 9C14 10 12 16 12 16C12 16 10 10 5 9C10 8 12 2 12 2Z" />
+          </svg>
+          <svg className="absolute top-24 right-8 w-6 h-6 text-[#FF52AE]/40 rotate-45" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2C12 2 14 8 19 9C14 10 12 16 12 16C12 16 10 10 5 9C10 8 12 2 12 2Z" />
+          </svg>
+        </div>
+
+        {/* ── 2. BRAND HEADER ── */}
+        <header className="relative z-10 pt-7 sm:pt-9 pb-2 px-5 text-center max-w-md mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-black text-[#10112D] dark:text-white tracking-tight leading-none mb-2">
+            Sparkle
+          </h1>
+          <p className="text-xs sm:text-sm font-medium text-[#565177] dark:text-zinc-300 leading-relaxed max-w-xs mx-auto">
+            It's quick and easy. Join the sweetest <span className="font-black text-[#FF008C]">Sparkle</span> network and bloom with your people.
+          </p>
+        </header>
+
+        {/* ── 3. HERO COMPOSITION (WOMAN + 3D SOCIAL ICONS + SOCIAL CARDS) ── */}
+        <div className="relative z-10 w-full max-w-md mx-auto px-4 my-auto flex flex-col items-center">
+          {/* Hero Visual Area Container */}
+          <div className="relative w-full flex items-center justify-center pt-3 pb-2">
+            {/* Concentric Decorative Rings behind Woman */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] rounded-full border border-[#FFBFDE]/60 bg-gradient-to-b from-[#FFE6F3]/70 to-[#FFF0F7]/20" />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-[230px] h-[230px] sm:w-[260px] sm:h-[260px] rounded-full bg-gradient-to-tr from-[#FFD2EB]/80 to-[#FFF4F9]" />
+            </div>
+
+            {/* Central Woman Photograph */}
+            <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-full p-1 bg-gradient-to-tr from-[#FF008C] via-white to-[#FFA0D2] shadow-[0_16px_38px_rgba(255,0,140,0.25)] overflow-hidden">
+              <img
+                src="/signup-hero-woman.jpg"
+                alt="Happy young woman using smartphone on Sparkle"
+                className="w-full h-full rounded-full object-cover"
+              />
+            </div>
+
+            {/* ── Floating Social Media Card: Left (Friends Sunset) ── */}
+            <div className="absolute left-1 sm:left-3 top-10 z-20 -rotate-6 hover:rotate-0 transition-transform duration-300 pointer-events-auto">
+              <div className="w-24 sm:w-28 p-1.5 bg-white dark:bg-zinc-800 rounded-2xl shadow-[0_12px_28px_rgba(0,0,0,0.15)] border border-white/95 dark:border-white/10">
+                <div className="relative w-full h-20 sm:h-24 rounded-xl overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=240&q=80&auto=format"
+                    alt="Friends celebrating sunset"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-1.5 left-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm text-[9px] font-black text-[#10112D] dark:text-white">
+                    <Heart size={9} className="text-[#FF008C]" fill="#FF008C" />
+                    <span>12.4K</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── Floating Social Media Card: Right (City Lifestyle) ── */}
+            <div className="absolute right-1 sm:right-3 top-12 z-20 rotate-6 hover:rotate-0 transition-transform duration-300 pointer-events-auto">
+              <div className="w-24 sm:w-28 p-1.5 bg-white dark:bg-zinc-800 rounded-2xl shadow-[0_12px_28px_rgba(0,0,0,0.15)] border border-white/95 dark:border-white/10">
+                <div className="relative w-full h-20 sm:h-24 rounded-xl overflow-hidden">
+                  <img
+                    src="https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=240&q=80&auto=format"
+                    alt="City lifestyle moment"
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute bottom-1.5 left-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm text-[9px] font-black text-[#10112D] dark:text-white">
+                    <Heart size={9} className="text-[#FF008C]" fill="#FF008C" />
+                    <span>8.7K</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* ── 4 Floating 3D Glossy Magenta Icons ── */}
+            {/* 1. Upper-Left: Message Bubble with 3 Dots */}
+            <div
+              className="absolute left-6 sm:left-12 -top-1 z-30 w-11 h-11 rounded-2xl flex items-center justify-center text-white -rotate-12 transition-transform hover:scale-110 shadow-[0_10px_22px_rgba(255,0,140,0.42),inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-2px_4px_rgba(0,0,0,0.15)]"
+              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
+            >
+              <div className="flex items-center gap-0.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
+                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
+              </div>
+            </div>
+
+            {/* 2. Upper-Right: Reels / Video Play Icon */}
+            <div
+              className="absolute right-6 sm:right-12 top-0 z-30 w-11 h-11 rounded-2xl flex items-center justify-center text-white rotate-12 transition-transform hover:scale-110 shadow-[0_10px_22px_rgba(255,0,140,0.42),inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-2px_4px_rgba(0,0,0,0.15)]"
+              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
+            >
+              <Play size={18} fill="white" className="ml-0.5 text-white" />
+            </div>
+
+            {/* 3. Lower-Left: Friends / Group Icon */}
+            <div
+              className="absolute left-10 sm:left-14 bottom-4 z-30 w-10 h-10 rounded-2xl flex items-center justify-center text-white rotate-6 transition-transform hover:scale-110 shadow-[0_8px_18px_rgba(255,0,140,0.38),inset_0_2px_3px_rgba(255,255,255,0.7),inset_0_-2px_3px_rgba(0,0,0,0.15)]"
+              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
+            >
+              <Users size={18} strokeWidth={2.4} />
+            </div>
+
+            {/* 4. Lower-Right: Heart / Like Icon */}
+            <div
+              className="absolute right-10 sm:right-14 bottom-3 z-30 w-10 h-10 rounded-2xl flex items-center justify-center text-white -rotate-6 transition-transform hover:scale-110 shadow-[0_8px_18px_rgba(255,0,140,0.38),inset_0_2px_3px_rgba(255,255,255,0.7),inset_0_-2px_3px_rgba(0,0,0,0.15)]"
+              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
+            >
+              <Heart size={18} fill="white" className="text-white" />
+            </div>
+          </div>
+
+          {/* ── 4. LARGE CREATE ACCOUNT CARD ── */}
+          <div className="relative z-20 -mt-6 sm:-mt-8 w-full rounded-[36px] sm:rounded-[42px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-[#FADCEB] dark:border-white/10 shadow-[0_20px_55px_rgba(255,0,140,0.14)] p-6 sm:p-7">
+            {/* Card Header & 5 Circular Progress Dots */}
+            <div className="flex items-center justify-between mb-4 pb-1">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-black text-[#10112D] dark:text-white tracking-tight">
+                  Create account
+                </h2>
+              </div>
+              <div className="flex flex-col items-end gap-1.5">
+                <span className="text-xs font-bold text-[#656083] dark:text-zinc-400">Step 1 of 5</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF008C] shadow-sm shadow-[#FF008C]/40" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
+                </div>
+              </div>
+            </div>
+
+            {/* 4 Feature Rows */}
+            <div className="space-y-3">
+              {/* Row 1: Connect with friends */}
+              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
+                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
+                  <Users size={20} strokeWidth={2.4} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
+                    Connect with friends
+                  </h4>
+                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
+                    Chat, follow and grow your circle.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 2: Explore amazing content */}
+              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
+                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
+                  <Play size={19} strokeWidth={2.4} className="ml-0.5" fill="#FF008C" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
+                    Explore amazing content
+                  </h4>
+                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
+                    Short videos, stories and more.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 3: Buy & sell easily */}
+              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
+                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
+                  <ShoppingBag size={20} strokeWidth={2.4} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
+                    Buy &amp; sell easily
+                  </h4>
+                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
+                    On our marketplace.
+                  </p>
+                </div>
+              </div>
+
+              {/* Row 4: Safe & secure */}
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
+                  <ShieldCheck size={20} strokeWidth={2.4} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
+                    Safe &amp; secure
+                  </h4>
+                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
+                    Your privacy, our priority.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Small Dimensional Pink Sparkle Decoration in Lower-Right */}
+            <div className="absolute -bottom-2.5 right-6 text-[#FF008C] pointer-events-none drop-shadow-[0_2px_8px_rgba(255,0,140,0.45)]">
+              <Sparkles size={22} fill="#FF008C" />
+            </div>
+
+            {/* Primary Action Button */}
+            <button
+              onClick={nextStep}
+              className="w-full mt-5 py-3.5 px-6 rounded-full bg-[#FF008C] hover:bg-[#E6007E] active:scale-[0.98] text-white font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(255,0,140,0.36)] transition-all cursor-pointer"
+              type="button"
+            >
+              <span>Get started</span>
+              <ArrowRight size={18} strokeWidth={2.8} />
+            </button>
+
+            {/* Sign-in Action */}
+            <p className="mt-3.5 text-center text-xs sm:text-sm font-medium text-[#565177] dark:text-zinc-400">
+              Already have an account?{' '}
+              <Link to="/login" className="font-bold text-[#FF008C] hover:underline">
+                Sign in
+              </Link>
+            </p>
+          </div>
+        </div>
+
+        {/* ── 5. BOTTOM DECORATIVE WAVES (OVERLAPPING PINK & MAGENTA LAYERS) ── */}
+        <div className="w-full overflow-hidden leading-none pointer-events-none mt-2 relative z-0">
+          <svg
+            viewBox="0 0 1440 120"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-full h-12 sm:h-16 object-cover"
+            preserveAspectRatio="none"
+          >
+            <path
+              d="M0,32L60,42.7C120,53,240,75,360,74.7C480,75,600,53,720,42.7C840,32,960,32,1080,42.7C1200,53,1320,75,1380,85.3L1440,96L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
+              fill="#FFA8D5"
+              fillOpacity="0.4"
+            />
+            <path
+              d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"
+              fill="#FF52AE"
+              fillOpacity="0.35"
+            />
+            <path
+              d="M0,96L60,90.7C120,85,240,75,360,69.3C480,64,600,64,720,69.3C840,75,960,85,1080,85.3C1200,85,1320,75,1380,69.3L1440,64L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
+              fill="#FF008C"
+              fillOpacity="0.25"
+            />
+          </svg>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh items-center justify-center overflow-x-hidden bg-[#f8e7ed] p-6 font-sans text-[#18181b] dark:bg-zinc-900 dark:text-zinc-100">

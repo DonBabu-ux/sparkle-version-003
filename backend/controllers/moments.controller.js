@@ -423,6 +423,60 @@ const sparkMoment = async (req, res) => {
     }
 };
 
+/**
+ * Whether a request asked for the reel to be shared to the author's story.
+ * The composer sends several truthy shapes depending on the platform.
+ */
+const wantsStoryShare = (v) =>
+  v === '1' || v === 1 || v === true || v === 'true';
+
+/**
+ * Share an already-published moment to the author's story by reusing the
+ * moment's uploaded media — no second upload.
+ *
+ * This is deliberately idempotent and lives outside every publish path's
+ * transaction: a story failure must never roll the reel back, and a retried
+ * publish must never leave a story unshared or shared twice.
+ *
+ * Returns true when a story exists for this moment, false when it does not.
+ */
+const shareMomentToStory = async (moment) => {
+  // Already shared — nothing to do. This check is what makes a replayed
+  // publish idempotent end to end rather than relying on the client to
+  // re-upload, which it has no way to make idempotent.
+  if (moment.shared_to_story === 1 || moment.shared_to_story === '1') {
+    return true;
+  }
+
+  const mediaUrl = moment.media_url;
+  if (!mediaUrl) return false;
+
+  try {
+    const storyId = require('crypto').randomUUID();
+    const storyCaption = String(moment.title || moment.description || moment.caption || '').slice(0, 255) || null;
+    const storyType = ['image', 'video', 'text'].includes(moment.media_type) ? moment.media_type : 'video';
+
+    // Carry the moment's audience into the story so a followers/
+    // close_friends/only_me reel does not become a PUBLIC story.
+    // Moment vocabulary ('friends') maps onto story vocabulary
+    // ('followers'); anything unrecognised falls back to public.
+    const storyAudience = moment.audience === 'friends'
+      ? 'followers'
+      : (STORY_AUDIENCES.has(moment.audience) ? moment.audience : 'public');
+
+    await pool.query(
+      `INSERT INTO stories (story_id, user_id, media_url, media_type, caption, thumbnail_url, audience)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [storyId, moment.user_id, mediaUrl, storyType, storyCaption, moment.thumbnail_url, storyAudience]
+    );
+    await pool.query('UPDATE moments SET shared_to_story = 1 WHERE moment_id = ?', [moment.moment_id]);
+    return true;
+  } catch (storyErr) {
+    logger.warn('[Moments] share-to-story insert failed: ' + storyErr.message);
+    return false;
+  }
+};
+
 const createMoment = async (req, res) => {
     try {
         const {
@@ -466,14 +520,23 @@ const createMoment = async (req, res) => {
                 'SELECT * FROM moments WHERE user_id = ? AND idempotency_key = ?',
                 [userId, idemKey]
             );
-            if (existing.length > 0) {
-                return res.status(200).json({
-                    status: 'success',
-                    message: 'Moment already published (idempotent replay)',
-                    moment: existing[0],
-                    deduplicated: true,
-                });
-            }
+    if (existing.length > 0) {
+      // Complete the story share here rather than letting the client fall
+      // back to a re-upload it cannot make idempotent. If the original
+      // publish shared already this is a no-op; if its story insert failed,
+      // this is where the retry finishes the job.
+      const storyCreated = wantsStoryShare(shared_to_story)
+        ? await shareMomentToStory(existing[0])
+        : existing[0].shared_to_story === 1;
+
+      return res.status(200).json({
+        status: 'success',
+        message: 'Moment already published (idempotent replay)',
+        moment: storyCreated ? { ...existing[0], shared_to_story: 1 } : existing[0],
+        story_created: storyCreated,
+        deduplicated: true,
+      });
+    }
         }
 
         const safeAudience = VALID_AUDIENCES.has(audience) ? audience : 'public';
@@ -612,32 +675,20 @@ const createMoment = async (req, res) => {
             // ── Share to story: reuse the moment's already-uploaded media ──
             // No second upload; a failure never fails the publish — the client
             // sees story_created=false and falls back to POST /stories.
-            let storyCreated = false;
-            const wantsStory = shared_to_story === '1' || shared_to_story === 1
-                || shared_to_story === true || shared_to_story === 'true';
-            if (wantsStory && media_url) {
-                try {
-                    const storyId = require('crypto').randomUUID();
-                    const storyCaption = String(title || description || caption || '').slice(0, 255) || null;
-                    const storyType = ['image', 'video', 'text'].includes(media_type) ? media_type : 'video';
-                    // Carry the moment's audience into the story so a followers/
-                    // close_friends/only_me reel does not become a PUBLIC story.
-                    // Moment vocabulary ('friends') maps onto story vocabulary
-                    // ('followers'); anything unrecognised falls back to public.
-                    const storyAudience = safeAudience === 'friends'
-                        ? 'followers'
-                        : (STORY_AUDIENCES.has(safeAudience) ? safeAudience : 'public');
-                    await pool.query(
-                        `INSERT INTO stories (story_id, user_id, media_url, media_type, caption, thumbnail_url, audience)
-                         VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [storyId, userId, media_url, storyType, storyCaption, thumbnail_url, storyAudience]
-                    );
-                    await pool.query('UPDATE moments SET shared_to_story = 1 WHERE moment_id = ?', [momentId]);
-                    storyCreated = true;
-                } catch (storyErr) {
-                    logger.warn('[Moments] share-to-story insert failed: ' + storyErr.message);
-                }
-            }
+            const storyCreated = wantsStoryShare(shared_to_story)
+                ? await shareMomentToStory({
+                    moment_id: momentId,
+                    user_id: userId,
+                    media_url,
+                    media_type,
+                    title,
+                    description,
+                    caption,
+                    thumbnail_url,
+                    audience: safeAudience,
+                    shared_to_story: 0,
+                  })
+              : false;
 
             // ── moment_published notification ──
             // eventId is derived from the moment id so a retried publish
@@ -679,14 +730,19 @@ const createMoment = async (req, res) => {
                     'SELECT * FROM moments WHERE user_id = ? AND idempotency_key = ?',
                     [userId, String(req.body.idempotency_key).slice(0, 64)]
                 );
-                if (existing.length > 0) {
-                    return res.status(200).json({
-                        status: 'success',
-                        message: 'Moment already published (idempotent replay)',
-                        moment: existing[0],
-                        deduplicated: true,
-                    });
-                }
+          if (existing.length > 0) {
+            const storyCreated = wantsStoryShare(req.body.shared_to_story)
+              ? await shareMomentToStory(existing[0])
+              : existing[0].shared_to_story === 1;
+
+            return res.status(200).json({
+              status: 'success',
+              message: 'Moment already published (idempotent replay)',
+              moment: storyCreated ? { ...existing[0], shared_to_story: 1 } : existing[0],
+              story_created: storyCreated,
+              deduplicated: true,
+            });
+          }
             } catch (_) { /* fall through to generic error */ }
         }
         logger.error('Create Moment Error:', error);

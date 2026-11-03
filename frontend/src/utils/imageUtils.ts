@@ -105,6 +105,29 @@ export const getSafeVideoUrl = (url?: string | null): string => {
   return String(url).trim();
 };
 
+/** Extensions that are video containers rather than images. */
+const VIDEO_EXT_RE = /\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i;
+
+/**
+ * Does this URL point at a video?
+ *
+ * Used by surfaces that pick a <video> over an <img>. Checking only a stored
+ * media_type is not enough: rows written before the column was derived carry
+ * an empty value, and an <img> pointed at an .mp4 can never load — it renders
+ * as a permanently broken media tile. Sniffing the URL is the reliable signal.
+ */
+export const isVideoUrl = (url?: string | null): boolean => {
+  if (!url) return false;
+  const u = String(url).trim();
+  if (!u) return false;
+  if (VIDEO_EXT_RE.test(u)) return true;
+  // Cloudinary serves videos from a /video/upload/ path segment even when the
+  // stored URL has no recognisable extension (fetch_format:auto can strip it).
+  if (u.includes('/video/upload/')) return true;
+  if (u.includes('/video/')) return true;
+  return false;
+};
+
 /**
  * PRODUCTION CLOUDINARY + PEXELS OPTIMIZATION (Phase 2)
  * Injects smart transformations into Cloudinary and Pexels URLs to save bandwidth and load instantly.

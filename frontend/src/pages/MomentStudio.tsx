@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Film, Trash2, RotateCcw, Eye, Heart, MessageSquare, Share2, Clapperboard, Radio } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
-import { getMediaUrl } from '../utils/imageUtils';
+import { getMediaUrl, isVideoUrl } from '../utils/imageUtils';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
 import { logger } from '../utils/logger';
 
@@ -187,10 +187,13 @@ export default function MomentStudio() {
                   key={m.moment_id}
                   className="flex items-center gap-4 p-3 rounded-2xl bg-marketplace-bg border border-marketplace-border"
                 >
-                  {/* Thumbnail */}
+                  {/* Thumbnail. media_type alone is not enough — rows written
+                      before it was derived are empty, and an <img> pointed at
+                      an .mp4 never loads, which is exactly the "media
+                      unavailable" tile this list used to show. */}
                   <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden bg-black/5 dark:bg-white/5 shrink-0">
                     {thumb ? (
-                      m.media_type === 'video' ? (
+                      isVideoUrl(thumb) || m.media_type === 'video' ? (
                         <video src={getMediaUrl(thumb)} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                       ) : (
                         <img src={getMediaUrl(thumb)} alt="" className="w-full h-full object-cover" />
@@ -200,7 +203,7 @@ export default function MomentStudio() {
                         <Film size={20} />
                       </div>
                     )}
-                    {m.media_type === 'video' && (
+                    {(isVideoUrl(thumb) || m.media_type === 'video') && (
                       <div className="absolute bottom-1 right-1 text-white drop-shadow-md">
                         <Clapperboard size={13} fill="currentColor" />
                       </div>

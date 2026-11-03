@@ -16,7 +16,7 @@ import { useUserStore } from '../store/userStore';
 import { useInteractionStore } from '../store/interactionStore';
 import { FeedPaginationAudit } from '../services/feedPaginationAudit';
 import '../services/TrackingService';
-import { getMediaUrl, getSafeVideoUrl } from '../utils/imageUtils';
+import { getMediaUrl, getSafeVideoUrl, isVideoUrl } from '../utils/imageUtils';
 import { isWatermarkVisible } from '../utils/watermark';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
@@ -363,7 +363,8 @@ const ReelItem = React.memo(({
   // Device-safe rendition (1080p-capped) for Android WebView decode limits;
   // mediaSrc stays as the guaranteed fallback if the safe URL 404s.
   const safeMediaSrc = rawSrc ? getSafeVideoUrl(rawSrc) : '';
-  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url || !!(moment.video_url || moment.media_url || moment.streaming_url)?.match(/\.(mp4|webm|ogg|quicktime|mov|m3u8)$/i);
+  const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url
+    || isVideoUrl(moment.video_url || moment.media_url || moment.streaming_url);
   const music = parseMusicInfo(moment.music_info);
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents

@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core';
 import { PushNotifications } from '@capacitor/push-notifications';
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { Preferences } from '@capacitor/preferences';
 import { logger } from '../utils/logger';
 
 export interface SparkleChannel {
@@ -12,16 +13,35 @@ export interface SparkleChannel {
 
 // 8 distinct Android notification channels with per-category sounds
 // (sound files live in android/app/src/main/res/raw/*.mp3).
+//
+// v2 sound assignment:
+//  - messages plays the dedicated receive.mp3. It previously played the
+//    generic notification.mp3 even though receive.mp3 ships in the APK and
+//    was never referenced by anything, so an incoming message sounded like
+//    every other system notice.
+//  - sparkle_ai plays comment.mp3. It shared notification.mp3 with system
+//    updates, so an assistant reply was indistinguishable from a generic
+//    system notice.
 export const SPARKLE_CHANNELS: SparkleChannel[] = [
-  { id: 'messages', name: 'Messages', importance: 5, sound: 'notification' },
+  { id: 'messages', name: 'Messages', importance: 5, sound: 'receive' },
   { id: 'marketplace', name: 'Marketplace Activity', importance: 4, sound: 'comment' },
   { id: 'stories', name: 'Stories updates', importance: 4, sound: 'story' },
   { id: 'moments', name: 'Moments updates', importance: 4, sound: 'like' },
   { id: 'social', name: 'Social Activity', importance: 4, sound: 'follow' },
   { id: 'calls', name: 'Incoming Calls', importance: 5, sound: 'ringtone' },
-  { id: 'sparkle_ai', name: 'Sparkle AI Assistant', importance: 4, sound: 'notification' },
+  { id: 'sparkle_ai', name: 'Sparkle AI Assistant', importance: 4, sound: 'comment' },
   { id: 'system', name: 'System updates', importance: 3, sound: 'notification' },
 ];
+
+/**
+ * Bump whenever the channel list above changes (sound, importance, the set of
+ * channels). Android keeps a channel's original settings for life: calling
+ * createChannel on an id that already exists is a no-op, so without this the
+ * changes above would reach only fresh installs and every existing device
+ * would keep the old sounds forever.
+ */
+const CHANNEL_SCHEMA_VERSION = 2;
+const CHANNEL_VERSION_KEY = 'sparkle_channel_schema_version';
 
 // Maps backend notification `type` (createNotification / worker / FCM data
 // payload) onto one of the channels above. Unknown types land on `system`.
@@ -94,6 +114,20 @@ export async function setupNativeNotificationChannels(): Promise<void> {
     return;
   }
   try {
+    const { value } = await Preferences.get({ key: CHANNEL_VERSION_KEY });
+
+    if (value !== String(CHANNEL_SCHEMA_VERSION)) {
+      // The channel list changed since this device last ran it. Android will
+      // not update an existing channel, so drop them and let the create loop
+      // below rebuild them with the current settings. Runs once per upgrade.
+      for (const c of SPARKLE_CHANNELS) {
+        await LocalNotifications.deleteChannel({ id: c.id }).catch(() => { });
+        await PushNotifications.deleteChannel({ id: c.id }).catch(() => { });
+      }
+      await Preferences.set({ key: CHANNEL_VERSION_KEY, value: String(CHANNEL_SCHEMA_VERSION) });
+      logger.log(`[Channels] Channel schema upgraded to v${CHANNEL_SCHEMA_VERSION}; channels recreated.`);
+    }
+
     for (const c of SPARKLE_CHANNELS) {
       const ch = channelPayload(c);
       await LocalNotifications.createChannel(ch).catch((err) => {

@@ -27,6 +27,12 @@ describe('ServerFailoverManager State Machine', () => {
   beforeEach(() => {
     mockStorage.clear();
     ServerFailoverManager.switchActiveServer('primary', 'test reset');
+    // The reset above is itself a switch, so it stamps a fresh
+    // sparkle_last_failover timestamp. The anti-flapping cooldown (10s) then
+    // rejects every subsequent switch in the test body as "cooling down".
+    // Drop that timestamp so each case exercises the state machine, not the
+    // flap guard, which has its own dedicated test elsewhere.
+    mockStorage.removeItem('sparkle_last_failover_ts');
   });
 
   it('initializes with primary server by default', () => {

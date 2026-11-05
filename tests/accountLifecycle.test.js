@@ -3,7 +3,7 @@
 // Suspend, Terminate, Delete, Authentication Enforcement, and Email Reuse
 'use strict';
 
-require('dotenv').config();
+require('dotenv').config({ path: './backend/.env' });
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');

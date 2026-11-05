@@ -89,12 +89,25 @@ async function runTests() {
 
         // Test 5: Recovery Portal - Verification Challenge & Scoped Action Token
         console.log('\n--- Test 5: Verify Challenge & Single-Use Scoped Token ---');
-        const [reqRow] = await pool.query('SELECT challenge_code FROM account_recovery_requests WHERE request_id = ?', [challengeRes.requestId]);
-        const otpCode = reqRow[0].challenge_code;
+        // initiateChallenge deliberately never returns the code: it is emailed, and
+        // only a bcrypt hash of it is persisted. Reading challenge_code back out of the
+        // table therefore hands verifyChallenge its own hash, which can never compare
+        // equal, and this step used to fail with "Incorrect verification code". Seed a
+        // request whose code this test controls so the bcrypt comparison is genuinely
+        // exercised.
+        const bcrypt = require('bcrypt');
+        const knownCode = '123456';
+        const knownRequestId = `recovery-verify-${Date.now()}`;
+        await pool.query(`
+            INSERT INTO account_recovery_requests (
+                request_id, user_id, contact_identifier, contact_type,
+                challenge_code, action_type, status, expires_at, created_at
+            ) VALUES (?, ?, ?, 'email', ?, 'DATA_EXPORT', 'PENDING', DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW())
+        `, [knownRequestId, testUserId, testEmail, await bcrypt.hash(knownCode, 10)]);
 
         const verifyRes = await accountRecoveryService.verifyChallenge({
-            requestId: challengeRes.requestId,
-            code: otpCode
+            requestId: knownRequestId,
+            code: knownCode
         });
         if (verifyRes.success && verifyRes.verifiedToken) {
             console.log('✅ Challenge code verified! Scoped Token issued:', verifyRes.verifiedToken.slice(0, 12) + '...');
@@ -115,11 +128,20 @@ async function runTests() {
             contactIdentifier: testEmail,
             actionType: 'CANCEL_DELETION'
         });
-        const [cancelReqRow] = await pool.query('SELECT challenge_code FROM account_recovery_requests WHERE request_id = ?', [cancelChallenge.requestId]);
+        // Same reason as Test 5: the emailed code cannot be read back, so stand in for
+        // the user typing it by swapping the stored hash for one of a known code.
+        const cancelCode = '654321';
+        await pool.query(
+            'UPDATE account_recovery_requests SET challenge_code = ? WHERE request_id = ?',
+            [await bcrypt.hash(cancelCode, 10), cancelChallenge.requestId]
+        );
         const cancelVerify = await accountRecoveryService.verifyChallenge({
             requestId: cancelChallenge.requestId,
-            code: cancelReqRow[0].challenge_code
+            code: cancelCode
         });
+        if (!cancelVerify.success || !cancelVerify.verifiedToken) {
+            throw new Error('Cancellation challenge verification failed');
+        }
 
         const cancelExec = await accountRecoveryService.executeCancelDeletion({
             verifiedToken: cancelVerify.verifiedToken
@@ -141,10 +163,15 @@ async function runTests() {
             contactIdentifier: testEmail,
             actionType: 'APPEAL_TERMINATION'
         });
-        const [appealReqRow] = await pool.query('SELECT challenge_code FROM account_recovery_requests WHERE request_id = ?', [appealChallenge.requestId]);
+        // Same reason as Tests 5 and 6: stand in for the user typing the emailed code.
+        const appealCode = '135791';
+        await pool.query(
+            'UPDATE account_recovery_requests SET challenge_code = ? WHERE request_id = ?',
+            [await bcrypt.hash(appealCode, 10), appealChallenge.requestId]
+        );
         const appealVerify = await accountRecoveryService.verifyChallenge({
             requestId: appealChallenge.requestId,
-            code: appealReqRow[0].challenge_code
+            code: appealCode
         });
 
         const appealExec = await accountRecoveryService.submitAppeal({

@@ -54,9 +54,29 @@ jobs:
         working-directory: frontend
         run: npm ci --no-audit --no-fund
 
-      # Blocking gate: a failing test must stop OTA/APK publication.
-      - name: Run release gate tests
-        run: npm test
+      # Blocking gate: a failing check must stop OTA/APK publication.
+      # These mirror .github/workflows/ci.yml. Publishing an OTA bundle and an
+      # APK from a build that was never linted, type-checked or tested is how a
+      # broken client reaches every user at once.
+      - name: Lint backend
+        run: npm run lint:backend
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Type check (no new errors)
+        working-directory: frontend
+        run: npm run typecheck:gate
+
+      # The suites that talk to MySQL/Redis need DB_* secrets; when they are
+      # absent they are skipped rather than failing this release.
+      - name: Backend unit tests (no database required)
+        run: BACKEND_TEST_SCOPE=pure npm test
+
+      - name: Frontend tests
+        working-directory: frontend
+        run: npm run test
 
       - name: Build web bundle
         working-directory: frontend

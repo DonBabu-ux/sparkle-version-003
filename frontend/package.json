@@ -9,6 +9,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.app.json",
+    "typecheck:gate": "node scripts/typecheckBaseline.cjs",
     "preview": "vite preview",
     "test": "vitest run"
   },

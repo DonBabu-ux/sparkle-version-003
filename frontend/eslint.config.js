@@ -22,10 +22,19 @@ export default tseslint.config(
     },
   },
   {
-    // Node globals for tooling/config scripts (vite.config, verifyRelease.cjs…)
+    // Node globals for tooling/config scripts (vite.config, verifyRelease.cjs)
     files: ['**/*.{js,cjs,mjs}'],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    // Browser-context .js files. tools/css-cascade.js is a snippet pasted into
+    // DevTools (see its header), so window/document/CSSRule are real globals
+    // there; the Node override above would otherwise make no-undef fail on it.
+    files: ['tools/**/*.js'],
+    languageOptions: {
+      globals: globals.browser,
     },
   },
   {

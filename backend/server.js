@@ -454,10 +454,12 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 //  - heartbeat file: last memory snapshot every 60s (post-mortem OOM evidence)
 //  - exit hook: synchronous last-words with exit code + memory
 //  - uncaughtException: log full stack THEN exit (continuing leaves undefined state)
-const path2 = require('path');
-const fs2 = require('fs');
-const CRASH_DIR = path2.join(__dirname, '.logs');
-const HEARTBEAT_FILE = path2.join(__dirname, '.heartbeat.json');
+    const path2 = require('path');
+    const fs2 = require('fs');
+    const { resolveLogDir } = require('./utils/logDir');
+    // Not backend/.logs in development: the dev script runs this file under
+    // `node --watch --watch-path=.`, so a write in there restarts the server.
+    const CRASH_DIR = resolveLogDir();
 const mb = (n) => Math.round(n / 1024 / 1024);
 
 const writeCrashLine = (line) => {

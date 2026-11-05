@@ -47,13 +47,16 @@ jobs:
         run: BACKEND_TEST_SCOPE=pure npm test
 
   # The 15 suites that talk to MySQL/Redis. They need a database and a
-  # JWT_SECRET, supplied as repository secrets; without them this job is
-  # skipped rather than failing, so the gate is honest about what it covered.
+  # JWT_SECRET, supplied as repository secrets. Note there is deliberately no
+  # `if:` on this job referencing secrets: the secrets context is not available
+  # in a job-level condition, and referencing it makes GitHub refuse to create
+  # any job at all (every run fails in zero seconds with no jobs). The check
+  # happens inside the job instead, against a step output, so unused secrets
+  # show up as a skipped step rather than a workflow that never runs.
   backend-integration:
     name: Backend (integration)
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    if: ${{ secrets.DB_HOST != '' }}
     env:
       DB_HOST: ${{ secrets.DB_HOST }}
       DB_USER: ${{ secrets.DB_USER }}
@@ -74,7 +77,14 @@ jobs:
         run: npm ci --no-audit --no-fund
 
       - name: Configure backend environment
+        id: db
         run: |
+          if [ -z "$DB_HOST" ] || [ -z "$JWT_SECRET" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::DB_HOST/JWT_SECRET repository secrets not set — integration suites skipped. Add them in Settings → Secrets and variables → Actions to enable this gate."
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
           cat > backend/.env <<EOF
           DB_HOST=$DB_HOST
           DB_USER=$DB_USER
@@ -83,8 +93,10 @@ jobs:
           DB_PORT=$DB_PORT
           JWT_SECRET=$JWT_SECRET
           EOF
+          echo "backend/.env written from repository secrets (values not printed)"
 
       - name: Backend integration tests (all suites)
+        if: steps.db.outputs.configured == 'true'
         run: npm test
 
   frontend:
@@ -130,9 +142,12 @@ jobs:
         run: npm run build
 
   # Single blocking result for branch protection: require this check on main.
+  # Depending on backend-integration is safe because that job always completes
+  # (only its test step is skipped when no database is configured), so it can
+  # never leave this job hanging.
   ci-gate:
     name: CI gate
     runs-on: ubuntu-latest
-    needs: [backend, frontend]
+    needs: [backend, backend-integration, frontend]
     steps:
       - run: echo "Backend and frontend gates passed."

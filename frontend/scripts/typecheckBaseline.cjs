@@ -29,8 +29,17 @@ const ERROR_RE = /^(.*?)\((\d+),(\d+)\): error (TS\d+): (.*)$/gm;
 const counts = new Map();
 let match;
 while ((match = ERROR_RE.exec(out)) !== null) {
-  const key = match[1] + ' :: ' + match[5];
-  counts.set(key, (counts.get(key) || 0) + 1);
+/**
+ * Key on the file and the TS code only.
+ *
+ * The message text is deliberately not part of the key: several TS messages
+ * embed absolute paths (e.g. type 'import(".../frontend/src/types/post").Post'),
+ * which differ between a Windows checkout and the Linux CI runner. Including
+ * them made every such error look brand new on CI and failed the gate while
+ * the identical 161 errors were present locally.
+ */
+const key = match[1] + ' :: ' + match[4];
+counts.set(key, (counts.get(key) || 0) + 1);
 }
 
 const total = [...counts.values()].reduce((a, b) => a + b, 0);

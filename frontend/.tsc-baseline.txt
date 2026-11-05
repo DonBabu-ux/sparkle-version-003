@@ -1,125 +1,85 @@
-src/api/api.ts :: 'newServer' is declared but its value is never read.
-src/audio/managers/SoundManager.ts :: Argument of type '"marketplace"' is not assignable to parameter of type 'VolumeCategory'. x2
-src/components/HlsVideoPlayer.tsx :: Cannot assign to 'autoLevelEnabled' because it is a read-only property.
-src/components/MicrophoneShowcase.tsx :: Expected 1 arguments, but got 0.
-src/components/MicrophoneShowcase.tsx :: Property 'rotation' does not exist on type 'unknown'.
-src/components/MicrophoneShowcase.tsx :: Type 'number[]' is not assignable to type 'number | Vector3 | [x: number, y: number, z?: number] | readonly [x: number, y: number, z?: number] | Readonly<Vector3>'.
-src/components/Navbar.tsx :: Property 'ownerAvatar' does not exist on type 'unknown'.
-src/components/Navbar.tsx :: Property 'ownerUsername' does not exist on type 'unknown'.
-src/components/Navbar.tsx :: Property 'post' does not exist on type 'unknown'.
-src/components/Navbar.tsx :: Property 'stories' does not exist on type 'unknown'.
-src/components/Navbar.tsx :: Property 'title' does not exist on type 'unknown'.
-src/components/Navbar.tsx :: Type '{ src: string; name: string; size: "nav"; className: string; style: { filter: string; } | {}; }' is not assignable to type 'IntrinsicAttributes & AvatarProps'.
-src/components/PostCard.tsx :: Property 'category' does not exist on type 'Post'. x3
-src/components/PostCard.tsx :: Property 'comments' does not exist on type 'Post | Post'. x4
-src/components/PostCard.tsx :: Property 'comments_count' does not exist on type 'Post | Post'. Did you mean 'comment_count'?
-src/components/PostCard.tsx :: Property 'share_count' does not exist on type 'Post | Post'. Did you mean 'reshare_count'?
-src/components/ProgressiveImage.tsx :: Property 'style' does not exist on type '{ crossOrigin?: CrossOrigin; decoding?: "auto" | "sync" | "async"; fetchPriority?: "auto" | "high" | "low"; height?: string | number; loading?: "lazy" | "eager"; referrerPolicy?: HTMLAttributeReferrerPolicy; ... 279 more ...; onTransitionStartCapture?: TransitionEventHandler<...>; }'.
-src/components/SparkleHub.tsx :: Cannot find name 'Home'.
-src/components/VirtualizedFeed.tsx :: Property 'post_type' is missing in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/types/post").Post' but required in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/components/PostCard").Post'.
-src/components/chat/ChatSearchModal.tsx :: Type '{ size: "medium"; style: { borderColor: string; }; }' is not assignable to type 'IntrinsicAttributes & SpinnerProps'.
-src/components/chat/ChatSettingsModal.tsx :: Property 'soundTheme' does not exist on type '{}'.
-src/components/chat/ForwardModal.tsx :: 'AlertCircle' is declared but its value is never read.
-src/components/chat/NewChatModal.tsx :: Type '{ initial: { x: string; opacity: number; }; animate: { x: number; opacity: number; transition: { duration: number; ease: number[]; }; }; exit: { x: string; opacity: number; transition: { duration: number; ease: number[]; }; }; }' is not assignable to type 'Variants'.
-src/components/chat/PinnedMessagesView.tsx :: Type '{ size: "medium"; style: { borderColor: string; }; }' is not assignable to type 'IntrinsicAttributes & SpinnerProps'.
-src/components/chat/ReplyPreview.tsx :: 'ImageIcon' is declared but its value is never read.
-src/components/chat/ReplyPreview.tsx :: Property 'expires_at' does not exist on type 'ChatMessage'. Did you mean 'expiresAt'?
-src/components/chat/SharedContentExplorer.tsx :: Type '{ size: "large"; style: { borderColor: string; }; }' is not assignable to type 'IntrinsicAttributes & SpinnerProps'.
-src/components/chat/SparkleHorizontalActionBar.tsx :: Property 'currentTheme' does not exist on type 'ThemeState'.
-src/components/modals/MarketplaceModals.tsx :: Argument of type 'string | number' is not assignable to parameter of type 'string'. x2
-src/components/modals/NoteEditorModal.tsx :: Property 'map' does not exist on type 'unknown'.
-src/components/modals/PostCommentsModal.tsx :: Expected 1 arguments, but got 2.
-src/components/modals/PostOptionsModal.tsx :: Property 'user_role' does not exist on type 'Post'. x3
-src/components/modals/ReshareModal.tsx :: Property 'avatar_url' does not exist on type 'unknown'.
-src/components/modals/ReshareModal.tsx :: Property 'content' does not exist on type 'unknown'. x2
-src/components/modals/ReshareModal.tsx :: Property 'media_type' does not exist on type 'unknown'.
-src/components/modals/ReshareModal.tsx :: Property 'media_url' does not exist on type 'unknown'. x2
-src/components/modals/ReshareModal.tsx :: Property 'post_id' does not exist on type 'unknown'.
-src/components/modals/ReshareModal.tsx :: Property 'username' does not exist on type 'unknown'.
-src/components/notifications/NotificationRenderer.tsx :: 'List' refers to a value, but is being used as a type here. Did you mean 'typeof List'?
-src/components/notifications/NotificationRenderer.tsx :: Type '({ index, style }: { index: number; style: React.CSSProperties; }) => React.JSX.Element' is not assignable to type 'ReactNode'.
-src/components/notifications/NotificationRenderer.tsx :: Type '{ children: ({ height, width }: { height: any; width: any; }) => Element; }' is not assignable to type 'IntrinsicAttributes & AutoSizerProps'.
-src/components/profile/AestheticProfileCompletionBanner.tsx :: No overload matches this call.
-src/components/profile/ProfileCompletionModal.tsx :: 'useMemo' is declared but its value is never read.
-src/components/stories/StickerRenderer.tsx :: Type '{ children: Element; style: { position: "absolute"; left: string; top: string; x: MotionValue<number>; y: MotionValue<number>; scale: MotionValue<number>; rotate: MotionValue<...>; touchAction: "none"; zIndex: number; opacity: number; }; ... 156 more ...; onTransitionEndCapture?: TransitionEventHandler<...>; }' is not assignable to type 'Omit<HTMLMotionProps<"div">, "ref">'.
-src/features/reels/components/AudienceStages.tsx :: Cannot find name 'isDark'. x10
-src/features/reels/components/CameraStage.tsx :: Property 'hasMicPermission' does not exist on type 'CameraRecorder'.
-src/features/reels/components/ComposeStage.tsx :: 'AUDIENCE_LABELS' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'ExternalLink' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'MAX_HASHTAGS' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'MAX_MENTIONS' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'PINK' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'Settings2' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'onOpenAudience' is declared but its value is never read.
-src/features/reels/components/ComposeStage.tsx :: 'setShareDestination' is declared but its value is never read.
-src/features/reels/components/CreateStage.tsx :: 'Check' is declared but its value is never read.
-src/features/reels/components/CreateStage.tsx :: 'PINK' is declared but its value is never read.
-src/features/reels/components/CreateStage.tsx :: 'onOpenCamera' is declared but its value is never read.
-src/features/reels/services/reelPublishService.ts :: Object literal may only specify known properties, and 'savedToDevice' does not exist in type 'PublishOutcome'.
-src/pages/AdminDashboard.tsx :: Cannot find name 'Activity'.
-src/pages/AdminDashboard.tsx :: Cannot find name 'KeyRound'. x2
-src/pages/AdminDashboard.tsx :: Property 'error' does not exist on type '{ code?: string; message?: string; }'.
-src/pages/AdvancedSettingsDetail.tsx :: 'loading' is declared but its value is never read.
-src/pages/ClubDetail.tsx :: Property 'post_type' is missing in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/types/post").Post' but required in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/components/PostCard").Post'.
-src/pages/CreateStory.tsx :: Argument of type '{ file?: File; url: string; isVideo: boolean; }[]' is not assignable to parameter of type '{ file: File; url: string; isVideo: boolean; }[]'.
-src/pages/CreateStory.tsx :: No overload matches this call.
-src/pages/CreateStory.tsx :: Object literal may only specify known properties, and 'mediaKey' does not exist in type 'Omit<StoryDraftPage, "mediaKey">'.
-src/pages/CreateStory.tsx :: Property 'path' does not exist on type 'FileInfo'. x2
-src/pages/CreateStory.tsx :: This comparison appears to be unintentional because the types '"text"' and '"mention"' have no overlap.
-src/pages/Gallery.tsx :: Property 'type' does not exist on type 'Post'.
-src/pages/Gallery.tsx :: Type 'number | unknown[]' is not assignable to type 'ReactNode'. x2
-src/pages/GroupDetail.tsx :: Module '"../types/group"' has no exported member 'GroupMember'.
-src/pages/GroupDetail.tsx :: Property 'created_at' does not exist on type 'Group'.
-src/pages/GroupDetail.tsx :: Property 'creator_name' does not exist on type 'Group'.
-src/pages/GroupDetail.tsx :: Property 'post_type' is missing in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/types/post").Post' but required in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/components/PostCard").Post'.
-src/pages/Hashtag.tsx :: Property 'post_type' is missing in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/types/post").Post' but required in type 'import("C:/Users/senior/Documents/sparkle-version-003-main/frontend/src/components/PostCard").Post'.
-src/pages/ListingDetail.tsx :: Property 'location_name' does not exist on type 'Listing'.
-src/pages/ListingDetail.tsx :: Property 'media_url' does not exist on type 'Listing'.
-src/pages/MarketplaceSettings.tsx :: 'setViewData' is declared but its value is never read.
-src/pages/MarketplaceSettings.tsx :: 'setViewLoading' is declared but its value is never read.
-src/pages/Memories.tsx :: Type 'number | unknown[]' is not assignable to type 'ReactNode'.
-src/pages/Messages.tsx :: 'e' is declared but its value is never read. x2
-src/pages/Messages.tsx :: 'forwardSearchQuery' is declared but its value is never read.
-src/pages/Messages.tsx :: 'selectedForwardChatIds' is declared but its value is never read.
-src/pages/Messages.tsx :: 'setForwardSearchQuery' is declared but its value is never read.
-src/pages/Messages.tsx :: 'sortMessagesAsc' is declared but its value is never read.
-src/pages/Messages.tsx :: 'uploadItem' is declared but its value is never read.
-src/pages/Messages.tsx :: Property 'expires_at' does not exist on type 'ChatMessage'. Did you mean 'expiresAt'? x5
-src/pages/Moments.tsx :: 'CommentItem' is declared but its value is never read.
-src/pages/Moments.tsx :: 'GiphyResult' is declared but never used.
-src/pages/Moments.tsx :: 'MentionInput' is declared but its value is never read.
-src/pages/Moments.tsx :: 'MessageCircle' is declared but its value is never read.
-src/pages/Moments.tsx :: Argument of type 'unknown[]' is not assignable to parameter of type 'SetStateAction<Moment[]>'.
-src/pages/Moments.tsx :: Property 'comments_count' does not exist on type 'Moment'. Did you mean 'comment_count'?
-src/pages/Moments.tsx :: Property 'follower_count' does not exist on type 'Moment'.
-src/pages/Moments.tsx :: Property 'spark_count' does not exist on type 'Moment'. Did you mean 'share_count'?
-src/pages/Moments.tsx :: Property 'sparks_count' does not exist on type 'Moment'.
-src/pages/Polls.tsx :: 'user' is declared but its value is never read.
-src/pages/PostDetail.tsx :: Argument of type '(m: { url: string; }, i: number) => JSX.Element' is not assignable to parameter of type '(value: string, index: number, array: string[]) => Element'.
-src/pages/ResetPassword.tsx :: Type '(el: HTMLInputElement) => HTMLInputElement' is not assignable to type 'Ref<HTMLInputElement>'.
-src/pages/Search.tsx :: Property 'is_followed' does not exist on type 'SearchResult'.
-src/pages/Search.tsx :: Property 'mutual_connections' does not exist on type 'SearchResult'. x2
-src/pages/Search.tsx :: Property 'suggestion_reason' does not exist on type 'SearchResult'.
-src/pages/Signup.tsx :: 'MessageCircle' is declared but its value is never read.
-src/pages/Signup.tsx :: This comparison appears to be unintentional because the types '2 | 3 | 4 | 5' and '1' have no overlap.
-src/pages/Streams.tsx :: 'streams' is declared but its value is never read.
-src/pages/Verified.tsx :: 'handleSearchSubmit' is declared but its value is never read.
-src/pages/Verified.tsx :: Cannot find name 'SparkleHub'.
-src/pages/Verified.tsx :: Cannot find name 'searchQuery'. x2
-src/pages/Verified.tsx :: Cannot find name 'setShowHub'.
-src/pages/Verified.tsx :: Cannot find name 'showHub'.
-src/pages/admin/AdminUnlock.tsx :: 'FormEvent' is a type and must be imported using a type-only import when 'verbatimModuleSyntax' is enabled.
-src/pages/admin/AdminUnlock.tsx :: Property 'response' does not exist on type 'unknown'.
-src/services/FeedCacheService.ts :: Argument of type '"auto" | "low"' is not assignable to parameter of type '"medium" | "thumbnail" | "high" | "low" | "hd"'. x2
-src/services/OtaService.ts :: Type '"utf8"' is not assignable to type 'Encoding'. x2
-src/services/ServerFailoverManager.ts :: 'Capacitor' is declared but its value is never read.
-src/services/UpdateService.ts :: 'BundleStatus' is declared but its value is never read.
-src/services/__tests__/socketService.test.ts :: A spread argument must either have a tuple type or be passed to a rest parameter. x2
-src/services/socketService.ts :: 'key' is declared but its value is never read.
-src/services/storyDrafts.ts :: Property 'mediaKey' does not exist on type 'Omit<StoryDraftPage, "mediaKey">'.
-src/store/dialogStore.ts :: Type 'Promise<string>' is not assignable to type 'Promise<boolean>'.
-src/store/dialogStore.ts :: Type 'boolean' does not satisfy the constraint 'PendingDialog'.
-src/store/dialogStore.ts :: Type 'string' does not satisfy the constraint 'PendingDialog'.
-src/store/marketplaceStore.ts :: Argument of type '{ searchQuery: string; category: string; location: { lat: number; lng: number; name: string; source: string; }; radiusKm: number; minPrice: any; maxPrice: any; sortBy: "recommended"; activeModal: MarketplaceState["activeModal"]; selectedListing: Listing | null; reportedListings: string[]; }' is not assignable to parameter of type 'MarketplaceState | Partial<MarketplaceState> | ((state: MarketplaceState) => MarketplaceState | Partial<...>)'.
-src/store/marketplaceStore.ts :: Type '{ setFilters: (filters: Partial<MarketplaceState>) => void; setActiveModal: (modal: "sort" | "offer" | "share" | "categories" | "location" | "distance" | "filters" | "inbox" | "more") => void; ... 12 more ...; reportedListings: string[]; }' is not assignable to type 'MarketplaceState'.
-src/utils/seededFeed.ts :: Object literal may only specify known properties, and 'post_type' does not exist in type 'Post'. x4
+src/api/api.ts :: TS6133
+src/audio/managers/SoundManager.ts :: TS2345 x2
+src/components/HlsVideoPlayer.tsx :: TS2540
+src/components/MicrophoneShowcase.tsx :: TS2322
+src/components/MicrophoneShowcase.tsx :: TS2339
+src/components/MicrophoneShowcase.tsx :: TS2554
+src/components/Navbar.tsx :: TS2322
+src/components/Navbar.tsx :: TS2339 x5
+src/components/PostCard.tsx :: TS2339 x7
+src/components/PostCard.tsx :: TS2551 x2
+src/components/ProgressiveImage.tsx :: TS2339
+src/components/SparkleHub.tsx :: TS2304
+src/components/VirtualizedFeed.tsx :: TS2741
+src/components/chat/ChatSearchModal.tsx :: TS2322
+src/components/chat/ChatSettingsModal.tsx :: TS2339
+src/components/chat/ForwardModal.tsx :: TS6133
+src/components/chat/NewChatModal.tsx :: TS2322
+src/components/chat/PinnedMessagesView.tsx :: TS2322
+src/components/chat/ReplyPreview.tsx :: TS2551
+src/components/chat/ReplyPreview.tsx :: TS6133
+src/components/chat/SharedContentExplorer.tsx :: TS2322
+src/components/chat/SparkleHorizontalActionBar.tsx :: TS2339
+src/components/modals/MarketplaceModals.tsx :: TS2345 x2
+src/components/modals/NoteEditorModal.tsx :: TS2339
+src/components/modals/PostCommentsModal.tsx :: TS2554
+src/components/modals/PostOptionsModal.tsx :: TS2339 x3
+src/components/modals/ReshareModal.tsx :: TS2339 x8
+src/components/notifications/NotificationRenderer.tsx :: TS2322 x2
+src/components/notifications/NotificationRenderer.tsx :: TS2749
+src/components/profile/AestheticProfileCompletionBanner.tsx :: TS2769
+src/components/profile/ProfileCompletionModal.tsx :: TS6133
+src/components/stories/StickerRenderer.tsx :: TS2322
+src/features/reels/components/AudienceStages.tsx :: TS2304 x10
+src/features/reels/components/CameraStage.tsx :: TS2339
+src/features/reels/components/ComposeStage.tsx :: TS6133 x8
+src/features/reels/components/CreateStage.tsx :: TS6133 x3
+src/features/reels/services/reelPublishService.ts :: TS2353
+src/pages/AdminDashboard.tsx :: TS2304 x3
+src/pages/AdminDashboard.tsx :: TS2339
+src/pages/AdvancedSettingsDetail.tsx :: TS6133
+src/pages/ClubDetail.tsx :: TS2741
+src/pages/CreateStory.tsx :: TS2339 x2
+src/pages/CreateStory.tsx :: TS2345
+src/pages/CreateStory.tsx :: TS2353
+src/pages/CreateStory.tsx :: TS2367
+src/pages/CreateStory.tsx :: TS2769
+src/pages/Gallery.tsx :: TS2322 x2
+src/pages/Gallery.tsx :: TS2339
+src/pages/GroupDetail.tsx :: TS2305
+src/pages/GroupDetail.tsx :: TS2339 x2
+src/pages/GroupDetail.tsx :: TS2741
+src/pages/Hashtag.tsx :: TS2741
+src/pages/ListingDetail.tsx :: TS2339 x2
+src/pages/MarketplaceSettings.tsx :: TS6133 x2
+src/pages/Memories.tsx :: TS2322
+src/pages/Messages.tsx :: TS2551 x5
+src/pages/Messages.tsx :: TS6133 x7
+src/pages/Moments.tsx :: TS2339 x2
+src/pages/Moments.tsx :: TS2345
+src/pages/Moments.tsx :: TS2551 x2
+src/pages/Moments.tsx :: TS6133 x3
+src/pages/Moments.tsx :: TS6196
+src/pages/Polls.tsx :: TS6133
+src/pages/PostDetail.tsx :: TS2345
+src/pages/ResetPassword.tsx :: TS2322
+src/pages/Search.tsx :: TS2339 x4
+src/pages/Signup.tsx :: TS2367
+src/pages/Signup.tsx :: TS6133
+src/pages/Streams.tsx :: TS6133
+src/pages/Verified.tsx :: TS2304 x5
+src/pages/Verified.tsx :: TS6133
+src/pages/admin/AdminUnlock.tsx :: TS1484
+src/pages/admin/AdminUnlock.tsx :: TS2339
+src/services/FeedCacheService.ts :: TS2345 x2
+src/services/OtaService.ts :: TS2322 x2
+src/services/ServerFailoverManager.ts :: TS6133
+src/services/UpdateService.ts :: TS6133
+src/services/__tests__/socketService.test.ts :: TS2556 x2
+src/services/socketService.ts :: TS6133
+src/services/storyDrafts.ts :: TS2339
+src/store/dialogStore.ts :: TS2322
+src/store/dialogStore.ts :: TS2344 x2
+src/store/marketplaceStore.ts :: TS2322
+src/store/marketplaceStore.ts :: TS2345
+src/utils/seededFeed.ts :: TS2353 x4

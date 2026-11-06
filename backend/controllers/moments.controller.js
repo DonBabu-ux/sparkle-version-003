@@ -33,7 +33,7 @@ const ensureMomentTables = async () => {
                 parent_comment_id CHAR(36) DEFAULT NULL,
                 content TEXT NOT NULL,
                 like_count INT DEFAULT 0,
-                updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                updated_at TIMESTAMP NULL DEFAULT NULL,
                 is_deleted TINYINT(1) DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_mc_moment (moment_id),
@@ -180,7 +180,7 @@ const ensureMomentColumns = async () => {
     const commentCols = [
         { name: 'parent_comment_id', def: 'CHAR(36) DEFAULT NULL' },
         { name: 'like_count', def: 'INT DEFAULT 0' },
-        { name: 'updated_at', def: 'TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP' },
+        { name: 'updated_at', def: 'TIMESTAMP NULL DEFAULT NULL' },
         { name: 'is_deleted', def: 'TINYINT(1) DEFAULT 0' }
     ];
 
@@ -1045,11 +1045,11 @@ const likeComment = async (req, res) => {
         let action = '';
         if (existing.length > 0) {
             await pool.query('DELETE FROM moment_comment_likes WHERE comment_id = ? AND user_id = ?', [id, userId]);
-            await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0) WHERE comment_id = ?', [id]);
+            await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0), updated_at = updated_at WHERE comment_id = ?', [id]);
             action = 'unliked';
         } else {
             await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
-            await pool.query('UPDATE moment_comments SET like_count = like_count + 1 WHERE comment_id = ?', [id]);
+            await pool.query('UPDATE moment_comments SET like_count = like_count + 1, updated_at = updated_at WHERE comment_id = ?', [id]);
             action = 'liked';
         }
 
@@ -1638,7 +1638,7 @@ const editComment = async (req, res) => {
     try {
         const { id } = req.params; // comment_id
         const { content } = req.body;
-        const userId = req.user.user_id;
+        const userId = req.user?.user_id || req.user?.id || req.user?.userId;
         await ensureCommentSchema();
 
         if (!content || !content.trim()) {
@@ -1657,9 +1657,12 @@ const editComment = async (req, res) => {
         }
 
         // 48-hour edit window
-        const ageMs = Date.now() - new Date(comment.created_at).getTime();
-        if (ageMs > 48 * 60 * 60 * 1000) {
-            return res.status(403).json({ error: 'Edit window has closed (48 hours after posting)' });
+        const createdTime = comment.created_at ? new Date(comment.created_at).getTime() : 0;
+        if (!isNaN(createdTime) && createdTime > 0) {
+            const ageMs = Date.now() - createdTime;
+            if (ageMs > 48 * 60 * 60 * 1000) {
+                return res.status(403).json({ error: 'Edit window has closed (48 hours after posting)' });
+            }
         }
 
         await pool.query(
@@ -1735,7 +1738,7 @@ const softDeleteCommentsTx = async (conn, ids, momentId) => {
 const deleteComment = async (req, res) => {
     try {
         const { id } = req.params; // comment_id
-        const userId = req.user.user_id;
+        const userId = req.user?.user_id || req.user?.id || req.user?.userId;
         await ensureCommentSchema();
 
         const [rows] = await pool.query(

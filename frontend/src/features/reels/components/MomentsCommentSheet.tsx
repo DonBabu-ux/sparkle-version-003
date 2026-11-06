@@ -78,26 +78,25 @@ interface EditingTarget {
 /** Server-enforced edit window (mirrors the backend's 48h policy). */
 const EDIT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
-function relativeTime(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const d = Math.floor(h / 24);
-  if (d < 7) return `${d}d`;
-  const w = Math.floor(d / 7);
-  if (w < 52) return `${w}w`;
-  return `${Math.floor(w / 52)}y`;
-}
+import { parseCommentDate, relativeTime } from '../utils/commentFormat';
+export { parseCommentDate, relativeTime };
 
-/** Backend sets updated_at only when a comment is edited. */
-const isEdited = (c: CommentData): boolean => !!c.updated_at;
+/** Backend sets updated_at only when a comment is edited (not on like or other actions). */
+const isEdited = (c: CommentData): boolean => {
+  if (!c.updated_at) return false;
+  const created = parseCommentDate(c.created_at);
+  const updated = parseCommentDate(c.updated_at);
+  if (!updated) return false;
+  if (!created) return true;
+  // If updated_at is at least 2s after created_at, it was genuinely edited
+  return Math.abs(updated.getTime() - created.getTime()) > 2000;
+};
 
-const withinEditWindow = (c: CommentData): boolean =>
-  Date.now() - new Date(c.created_at).getTime() <= EDIT_WINDOW_MS;
+const withinEditWindow = (c: CommentData): boolean => {
+  const date = parseCommentDate(c.created_at);
+  if (!date) return true; // Fail open for author UI check (server strictly re-verifies)
+  return Date.now() - date.getTime() <= EDIT_WINDOW_MS;
+};
 
 const apiError = (err: unknown, fallback: string): string => {
   const e = err as { response?: { data?: { error?: string; message?: string } } };
@@ -249,7 +248,10 @@ const CommentRow: React.FC<CommentRowProps> = ({
           <span className="text-[13px] font-bold text-gray-900 dark:text-white leading-none">
             @{comment.username}
           </span>
-          <span className="text-[11px] text-gray-400 dark:text-zinc-500 leading-none">
+          <span
+            className="text-[11px] text-gray-400 dark:text-zinc-500 leading-none"
+            title={parseCommentDate(comment.created_at)?.toLocaleString() || undefined}
+          >
             {relativeTime(comment.created_at)}
           </span>
           {isEdited(comment) && (
@@ -395,7 +397,7 @@ const MomentsCommentSheet: React.FC<MomentsCommentSheetProps> = ({
   onCommentRemoved,
 }) => {
   const { user } = useUserStore();
-  const currentUserId = String(user?.user_id ?? '');
+  const currentUserId = String(user?.user_id || (user as any)?.id || '');
 
   const [comments, setComments] = useState<CommentData[]>([]);
   const [reelOwnerId, setReelOwnerId] = useState<string | null>(null);
@@ -594,7 +596,8 @@ const MomentsCommentSheet: React.FC<MomentsCommentSheetProps> = ({
   const menuActions = useMemo<CommentActionItem[]>(() => {
     if (!menuTarget) return [];
     const c = menuTarget.comment;
-    const isAuthor = !!c.user_id && c.user_id === currentUserId;
+    const commentAuthorId = String(c.user_id || (c as any)?.userId || '');
+    const isAuthor = !!currentUserId && !!commentAuthorId && commentAuthorId === currentUserId;
     const canModerate = !isAuthor && (isReelOwner || isPlatformModerator);
 
     const items: CommentActionItem[] = [

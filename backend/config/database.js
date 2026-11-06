@@ -22,12 +22,60 @@ const NORMAL_CONNECTION_BUDGET = Math.max(1, TOTAL_CONNECTION_LIMIT - PEAK_RESER
 const QUEUE_LIMIT = 250;
 const SLOW_QUERY_MS = 750;
 
+// ── IPv4 pinning for the database host ─────────────────────────────────────
+// mysql-lilbee.alwaysdata.net is dual-stack: it has both an A and an AAAA
+// record. On this network the IPv6 address is unreachable (ENETUNREACH), and
+// Node's default `verbatim` DNS ordering tries IPv6 first, so every connection
+// costs ~1s of failed dialling — measured 2380ms by hostname versus 1290ms
+// against the IPv4 literal. If the network ever *drops* IPv6 instead of
+// rejecting it, that becomes a full connectTimeout (20s) hang rather than a
+// fast refusal.
+//
+// mysql2 3.24 rejects `family` and `autoSelectFamily` as invalid options
+// ("Ignoring invalid configuration option... in future versions an error will
+// be thrown"), so the family has to be chosen before mysql2 sees the host.
+// Resolve the A record ourselves and hand mysql2 an IPv4 address. The lookup
+// is the synchronous one and runs once at module load, before the pool is
+// built, so no caller waits for it and this file still exports a plain pool.
+//
+// Set DB_ALLOW_IPV6=1 to keep the hostname as-is, e.g. in an IPv6-only
+// environment where IPv4 is the unreachable half.
+const resolveDbHost = () => {
+    // Node has no dns.lookupSync, and blocking on one from the main thread
+    // (Atomics.wait) deadlocks: the event loop is held, so the lookup callback
+    // never runs. Setting the process-wide default result order achieves the
+    // same thing without blocking, and it is what the npm scripts were already
+    // doing via --dns-result-order=ipv4first.
+    try {
+        require('dns').setDefaultResultOrder('ipv4first');
+    } catch (e) {
+        // Older Node: leave the default order alone.
+        console.warn(`[DB] could not set IPv4 DNS order: ${e.message}`);
+    }
+    const hostname = process.env.DB_HOST;
+    if (hostname && process.env.NODE_ENV !== 'production') {
+        console.log(`[DB] using IPv4-first DNS order (set DB_ALLOW_IPV6=1 to override)`);
+    }
+    return hostname;
+};
+
+const _isProd = process.env.NODE_ENV === 'production';
+const DB_HOST = (_isProd
+    ? process.env.DB_HOST_PROD || process.env.DB_HOST
+    : process.env.DB_HOST);
+
+// Set the IPv4-first DNS order unless the operator opted out. Must happen
+// before createPool resolves the host, which it does on the first connection.
+if (process.env.DB_ALLOW_IPV6 !== '1') {
+    resolveDbHost();
+}
+
 const pool = mysql.createPool({
-    host: process.env.NODE_ENV === 'production' ? process.env.DB_HOST_PROD || process.env.DB_HOST : process.env.DB_HOST,
-    user: process.env.NODE_ENV === 'production' ? process.env.DB_USER_PROD || process.env.DB_USER : process.env.DB_USER,
-    password: process.env.NODE_ENV === 'production' ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
-    database: process.env.NODE_ENV === 'production' ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
-    port: process.env.NODE_ENV === 'production' ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
+    host: DB_HOST,
+    user: _isProd ? process.env.DB_USER_PROD || process.env.DB_USER : process.env.DB_USER,
+    password: _isProd ? process.env.DB_PASSWORD_PROD || process.env.DB_PASSWORD : process.env.DB_PASSWORD,
+    database: _isProd ? process.env.DB_NAME_PROD || process.env.DB_NAME : process.env.DB_NAME,
+    port: _isProd ? process.env.DB_PORT_PROD || process.env.DB_PORT : process.env.DB_PORT || 3306,
     waitForConnections: true,
     connectionLimit: TOTAL_CONNECTION_LIMIT, // Hard 10 limit at driver level
     maxIdle: process.env.DB_MAX_IDLE ? parseInt(process.env.DB_MAX_IDLE, 10) : 6,
@@ -39,6 +87,7 @@ const pool = mysql.createPool({
     idleTimeout: 90000,
     timezone: 'Z'
 });
+
 
 // ── Two-Tier Concurrency Gate (8 Normal / 2 Peak Reserve) ─────────────────────
 // Controls concurrency BEFORE checking out or querying on physical MySQL connections.

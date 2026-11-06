@@ -17,7 +17,31 @@ const MIGRATION_RUN = [
     { file: '20261013_advanced_settings_enhancement.js', verify: [] },
     { file: '20261013_data_centre_and_recovery.js', verify: ['data_export_jobs', 'account_recovery_requests', 'account_appeal_cases'] },
     { file: '20261023_messaging_reply_edit_forward_gifts.js', verify: ['canonical_media_assets', 'message_forward_deliveries'] },
-    { file: '20261023_chat_nicknames_and_disappearing.js', verify: ['chat_nicknames'] }
+    { file: '20261023_chat_nicknames_and_disappearing.js', verify: ['chat_nicknames'] },
+    // ── Moments / stories hardening ───────────────────────────────────────────
+    // These four sat in the "no disposition" state, which meant they were
+    // stamped once and never executed again (see reconcileMigrations). Three of
+    // them end in `process.exit()` inside the exported function, which made them
+    // unusable by the runner anyway; they now exit only when self-run.
+    { file: '20261031_add_yours_response_text.js', verify: [] },
+    { file: '20261031_story_audience_privacy.js', verify: [] },
+    { file: '20261031_story_notification_prefs.js', verify: [] },
+    { file: '20261031_story_privacy_unhide.js', verify: ['sticker_quiz_answers'] },
+    // Schema health repairs. All three are idempotent: information_schema probes
+    // plus ALTERs that are no-ops when the column already matches.
+    { file: '20261102_align_collations.js', verify: [] },
+    { file: '20261102_align_table_default_collations.js', verify: [] },
+    { file: '20261102_fix_null_string_defaults.js', verify: [] },
+    // Backfill: WHERE only touches rows with an empty media_type, so re-running
+    // is a no-op once clean.
+    { file: '20261103_backfill_moment_media_type.js', verify: [] },
+    // Adds verified_token_hash, whose absence broke account recovery in
+    // production. Applied by hand once; registering it so a fresh deploy gets it
+    // too instead of silently losing the column again.
+    { file: '20261104_recovery_token_hash.js', verify: [] },
+    // Moments hardening: FKs for moment_hashtags/moment_likes, media_type
+    // backfill, video_url made nullable. Idempotent throughout.
+    { file: '20261106_harden_moments.js', verify: [] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.
@@ -170,6 +194,7 @@ const assertTablesExist = async (tables) => {
 // Apply pending migrations and record a disposition for every file.
 // Throws on failure so the version gate is not marked and the pass retries.
 const reconcileMigrations = async () => {
+    const unreviewed = [];
     for (const f of listMigrationFiles()) {
         const key = `migration:${f}`;
         if (await ledgerHas(key)) continue;
@@ -184,9 +209,34 @@ const reconcileMigrations = async () => {
             await ledgerMark(key, MIGRATION_NOTES[f]);
             logger.info(`[schema] recorded ${f}: ${MIGRATION_NOTES[f]}`);
         } else {
-            logger.warn(`[schema] migration ${f} has no disposition - add it to MIGRATION_RUN or MIGRATION_NOTES in schemaLedger.js`);
-            await ledgerMark(key, 'unreviewed - needs disposition in schemaLedger.js');
+            // Deliberately NOT marking the gate row.
+            //
+            // The previous implementation stamped the gate row with
+            // 'unreviewed - needs disposition'. That turned "I do not know what
+            // this migration is" into a one-way door: ledgerHas() returned true
+            // on the next boot, so the file was skipped forever and looked
+            // handled. Nine migrations sat in that state, four of them stories
+            // work, and the recovery-token column that broke account recovery
+            // was one of them.
+            //
+            // Leave the gate row absent so the file is reconsidered on every
+            // boot until a human gives it a real disposition, and record the
+            // fact under a NON-gate key so the warning stays visible.
+            unreviewed.push(f);
+            logger.error(
+                `[schema] migration ${f} has NO DISPOSITION - it will NOT run. ` +
+                `Add it to MIGRATION_RUN (with a verify list) to execute it, or to ` +
+                `MIGRATION_NOTES with a reason. Every boot repeats this warning until then.`
+            );
+            await ledgerMark(`unreviewed:${key}`, 'no disposition - will not run; add to MIGRATION_RUN or MIGRATION_NOTES');
         }
+    }
+
+    if (unreviewed.length > 0) {
+        logger.error(
+            `[schema] ${unreviewed.length} migration(s) have no disposition and were NOT executed: ` +
+            unreviewed.join(', ')
+        );
     }
 };
 

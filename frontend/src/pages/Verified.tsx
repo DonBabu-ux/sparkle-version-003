@@ -24,6 +24,7 @@ import { getAvatarUrl } from '../utils/imageUtils';
 import Spinner from '../components/ui/Spinner';
 import api from '../api/api';
 import { logger } from '../utils/logger';
+import SparkleHub from '../components/SparkleHub';
 import { showError } from '../utils/toast';
 import { validateFile } from '../utils/fileValidation';
 import './Verified.css';
@@ -52,6 +53,12 @@ export default function Verified() {
   });
 
   const [activeSheet, setActiveSheet] = useState<ActiveSheet>('none');
+  // Search runs through useSearchParams-free navigation: the form handler at
+  // handleSearchSubmit reads these, and the JSX that rendered the input was
+  // removed in an earlier pass, leaving the handler referencing names that no
+  // longer existed.
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showHub, setShowHub] = useState(false);
 
   // Evolution Application form data (accessible when user opens evolution or application)
   const [formData, setFormData] = useState({

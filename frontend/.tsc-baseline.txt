@@ -9,7 +9,6 @@ src/components/Navbar.tsx :: TS2339 x5
 src/components/PostCard.tsx :: TS2339 x7
 src/components/PostCard.tsx :: TS2551 x2
 src/components/ProgressiveImage.tsx :: TS2339
-src/components/SparkleHub.tsx :: TS2304
 src/components/VirtualizedFeed.tsx :: TS2741
 src/components/chat/ChatSearchModal.tsx :: TS2322
 src/components/chat/ChatSettingsModal.tsx :: TS2339
@@ -30,12 +29,10 @@ src/components/notifications/NotificationRenderer.tsx :: TS2749
 src/components/profile/AestheticProfileCompletionBanner.tsx :: TS2769
 src/components/profile/ProfileCompletionModal.tsx :: TS6133
 src/components/stories/StickerRenderer.tsx :: TS2322
-src/features/reels/components/AudienceStages.tsx :: TS2304 x10
 src/features/reels/components/CameraStage.tsx :: TS2339
 src/features/reels/components/ComposeStage.tsx :: TS6133 x8
 src/features/reels/components/CreateStage.tsx :: TS6133 x3
 src/features/reels/services/reelPublishService.ts :: TS2353
-src/pages/AdminDashboard.tsx :: TS2304 x3
 src/pages/AdminDashboard.tsx :: TS2339
 src/pages/AdvancedSettingsDetail.tsx :: TS6133
 src/pages/ClubDetail.tsx :: TS2741
@@ -67,8 +64,7 @@ src/pages/Search.tsx :: TS2339 x4
 src/pages/Signup.tsx :: TS2367
 src/pages/Signup.tsx :: TS6133
 src/pages/Streams.tsx :: TS6133
-src/pages/Verified.tsx :: TS2304 x5
-src/pages/Verified.tsx :: TS6133
+src/pages/Verified.tsx :: TS6133 x2
 src/pages/admin/AdminUnlock.tsx :: TS1484
 src/pages/admin/AdminUnlock.tsx :: TS2339
 src/services/FeedCacheService.ts :: TS2345 x2

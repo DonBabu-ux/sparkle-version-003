@@ -341,6 +341,7 @@ export function AudienceListStage({
   const setExclusions = useReelCreatorStore(s => s.setAudienceExclusions);
   const setAudience = useReelCreatorStore(s => s.setAudience);
   const exclusions = useReelCreatorStore(s => s.audienceExclusions);
+  const { isDark } = useCreateMomentsTheme();
 
   const [selected, setSelected] = useState<Set<string>>(
     new Set(mode === 'hide_from' ? exclusions.hideFrom : exclusions.showOnly),

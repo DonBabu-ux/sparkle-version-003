@@ -34,7 +34,8 @@ import {
   BadgeCheck,
   Shield,
   Settings,
-  Terminal
+  Terminal,
+  Home
 } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import { useChatStore } from '../store/chatStore';

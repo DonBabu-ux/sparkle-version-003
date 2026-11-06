@@ -4,8 +4,8 @@
 
 require('dotenv').config();
 const crypto = require('crypto');
-const pool = require('../config/database');
-const ReferralService = require('../services/referral.service');
+const pool = require('../backend/./config/database');
+const ReferralService = require('../backend/./services/referral.service');
 
 async function runReferralTests() {
   console.log('🧪 Starting Sparkle Referral System Test Suite...\n');

@@ -43,6 +43,17 @@ const createPost = async (req, res) => {
             media = [{ url: mainMediaUrl, type: mainMediaType }];
         }
 
+        // A post with neither text nor media is a row the feed cannot render:
+        // 9 of the 725 posts in production are blank this way, created by a
+        // client that posted nothing. createPostSchema cannot catch it, because
+        // multipart uploads put the media in req.files rather than
+        // req.body.media_url, and by the time validation runs both are known.
+        const hasContent = typeof req.body.content === 'string' && req.body.content.trim() !== '';
+        const hasMedia = media.length > 0;
+        if (!hasContent && !hasMedia) {
+            return res.status(400).json({ error: 'A post needs either text or media.' });
+        }
+
         // SMART ROUTING: If video, redirect to Moments logic
         if (mainMediaType === 'video') {
             const MomentsController = require('./moments.controller');

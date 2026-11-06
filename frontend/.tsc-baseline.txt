@@ -1,0 +1,81 @@
+src/api/api.ts :: TS6133
+src/audio/managers/SoundManager.ts :: TS2345 x2
+src/components/HlsVideoPlayer.tsx :: TS2540
+src/components/MicrophoneShowcase.tsx :: TS2322
+src/components/MicrophoneShowcase.tsx :: TS2339
+src/components/MicrophoneShowcase.tsx :: TS2554
+src/components/Navbar.tsx :: TS2322
+src/components/Navbar.tsx :: TS2339 x5
+src/components/PostCard.tsx :: TS2339 x7
+src/components/PostCard.tsx :: TS2551 x2
+src/components/ProgressiveImage.tsx :: TS2339
+src/components/VirtualizedFeed.tsx :: TS2741
+src/components/chat/ChatSearchModal.tsx :: TS2322
+src/components/chat/ChatSettingsModal.tsx :: TS2339
+src/components/chat/ForwardModal.tsx :: TS6133
+src/components/chat/NewChatModal.tsx :: TS2322
+src/components/chat/PinnedMessagesView.tsx :: TS2322
+src/components/chat/ReplyPreview.tsx :: TS2551
+src/components/chat/ReplyPreview.tsx :: TS6133
+src/components/chat/SharedContentExplorer.tsx :: TS2322
+src/components/chat/SparkleHorizontalActionBar.tsx :: TS2339
+src/components/modals/MarketplaceModals.tsx :: TS2345 x2
+src/components/modals/NoteEditorModal.tsx :: TS2339
+src/components/modals/PostCommentsModal.tsx :: TS2554
+src/components/modals/PostOptionsModal.tsx :: TS2339 x3
+src/components/modals/ReshareModal.tsx :: TS2339 x8
+src/components/notifications/NotificationRenderer.tsx :: TS2322 x2
+src/components/notifications/NotificationRenderer.tsx :: TS2749
+src/components/profile/AestheticProfileCompletionBanner.tsx :: TS2769
+src/components/profile/ProfileCompletionModal.tsx :: TS6133
+src/components/stories/StickerRenderer.tsx :: TS2322
+src/features/reels/components/CameraStage.tsx :: TS2339
+src/features/reels/components/ComposeStage.tsx :: TS6133 x8
+src/features/reels/components/CreateStage.tsx :: TS6133 x3
+src/features/reels/services/reelPublishService.ts :: TS2353
+src/pages/AdminDashboard.tsx :: TS2339
+src/pages/AdvancedSettingsDetail.tsx :: TS6133
+src/pages/ClubDetail.tsx :: TS2741
+src/pages/CreateStory.tsx :: TS2339 x2
+src/pages/CreateStory.tsx :: TS2345
+src/pages/CreateStory.tsx :: TS2353
+src/pages/CreateStory.tsx :: TS2367
+src/pages/CreateStory.tsx :: TS2769
+src/pages/Gallery.tsx :: TS2322 x2
+src/pages/Gallery.tsx :: TS2339
+src/pages/GroupDetail.tsx :: TS2305
+src/pages/GroupDetail.tsx :: TS2339 x2
+src/pages/GroupDetail.tsx :: TS2741
+src/pages/Hashtag.tsx :: TS2741
+src/pages/ListingDetail.tsx :: TS2339 x2
+src/pages/MarketplaceSettings.tsx :: TS6133 x2
+src/pages/Memories.tsx :: TS2322
+src/pages/Messages.tsx :: TS2551 x5
+src/pages/Messages.tsx :: TS6133 x7
+src/pages/Moments.tsx :: TS2339 x2
+src/pages/Moments.tsx :: TS2345
+src/pages/Moments.tsx :: TS2551 x2
+src/pages/Moments.tsx :: TS6133 x3
+src/pages/Moments.tsx :: TS6196
+src/pages/Polls.tsx :: TS6133
+src/pages/PostDetail.tsx :: TS2345
+src/pages/ResetPassword.tsx :: TS2322
+src/pages/Search.tsx :: TS2339 x4
+src/pages/Signup.tsx :: TS2367
+src/pages/Signup.tsx :: TS6133
+src/pages/Streams.tsx :: TS6133
+src/pages/Verified.tsx :: TS6133 x2
+src/pages/admin/AdminUnlock.tsx :: TS1484
+src/pages/admin/AdminUnlock.tsx :: TS2339
+src/services/FeedCacheService.ts :: TS2345 x2
+src/services/OtaService.ts :: TS2322 x2
+src/services/ServerFailoverManager.ts :: TS6133
+src/services/UpdateService.ts :: TS6133
+src/services/__tests__/socketService.test.ts :: TS2556 x2
+src/services/socketService.ts :: TS6133
+src/services/storyDrafts.ts :: TS2339
+src/store/dialogStore.ts :: TS2322
+src/store/dialogStore.ts :: TS2344 x2
+src/store/marketplaceStore.ts :: TS2322
+src/store/marketplaceStore.ts :: TS2345
+src/utils/seededFeed.ts :: TS2353 x4

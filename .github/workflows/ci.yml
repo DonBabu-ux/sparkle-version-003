@@ -1,0 +1,153 @@
+# Continuous integration: every push and PR is checked before it can be merged
+# or released. The release workflow publishes an OTA bundle and an APK to real
+# users, so a build that has never been linted, type-checked or tested cannot be
+# allowed to reach it.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Lint and the tests that need no database. These run on every push and are
+  # the floor: nothing ships without them.
+  backend:
+    name: Backend (lint + unit)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint backend
+        run: npm run lint:backend
+
+      # BACKEND_TEST_SCOPE=pure runs the suites that need no database. The
+      # runner classifies them by scanning for infrastructure imports, so a
+      # new suite is placed correctly without this list needing an update.
+      - name: Backend unit tests (no database required)
+        run: BACKEND_TEST_SCOPE=pure npm test
+
+  # The 15 suites that talk to MySQL/Redis. They need a database and a
+  # JWT_SECRET, supplied as repository secrets. Note there is deliberately no
+  # `if:` on this job referencing secrets: the secrets context is not available
+  # in a job-level condition, and referencing it makes GitHub refuse to create
+  # any job at all (every run fails in zero seconds with no jobs). The check
+  # happens inside the job instead, against a step output, so unused secrets
+  # show up as a skipped step rather than a workflow that never runs.
+  backend-integration:
+    name: Backend (integration)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_PORT: ${{ secrets.DB_PORT || '3306' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Configure backend environment
+        id: db
+        run: |
+          if [ -z "$DB_HOST" ] || [ -z "$JWT_SECRET" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::DB_HOST/JWT_SECRET repository secrets not set — integration suites skipped. Add them in Settings → Secrets and variables → Actions to enable this gate."
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+          cat > backend/.env <<EOF
+          DB_HOST=$DB_HOST
+          DB_USER=$DB_USER
+          DB_PASSWORD=$DB_PASSWORD
+          DB_NAME=$DB_NAME
+          DB_PORT=$DB_PORT
+          JWT_SECRET=$JWT_SECRET
+          EOF
+          echo "backend/.env written from repository secrets (values not printed)"
+
+      - name: Backend integration tests (all suites)
+        if: steps.db.outputs.configured == 'true'
+        run: npm test
+
+  frontend:
+    name: Frontend (lint + types + tests + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            frontend/package-lock.json
+
+      - name: Install root deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      # tsc still reports errors inherited from before this gate existed, so it
+      # would fail on a clean checkout. The baseline gate allows any number of
+      # fixes and blocks every newly introduced error, which is the part that
+      # keeps the type surface from getting worse.
+      - name: Type check (no new errors)
+        working-directory: frontend
+        run: npm run typecheck:gate
+
+      - name: Unit tests
+        working-directory: frontend
+        run: npm run test
+
+      - name: Production build
+        working-directory: frontend
+        run: npm run build
+
+  # Single blocking result for branch protection: require this check on main.
+  # Depending on backend-integration is safe because that job always completes
+  # (only its test step is skipped when no database is configured), so it can
+  # never leave this job hanging.
+  ci-gate:
+    name: CI gate
+    runs-on: ubuntu-latest
+    needs: [backend, backend-integration, frontend]
+    steps:
+      - run: echo "Backend and frontend gates passed."

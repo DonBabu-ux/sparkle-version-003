@@ -2,6 +2,15 @@
 // Core AI endpoints & Sparkly Bot Assistant Engine — with SSE Streaming
 
 const pool = require('../config/database');
+const crypto = require('crypto');
+const { createHash } = crypto;
+const redisService = require('../services/redis.service');
+
+/**
+ * Vision results are deterministic per (url, prompt); 1h is plenty for the
+ * composer to stop re-paying for the same analysis.
+ */
+const AI_VISION_CACHE_TTL_SECONDS = 3600;
 const logger = require('../utils/logger');
 const SparklyService = require('../services/sparkly.service');
 const SparklyModel = require('../models/sparkly.model');
@@ -42,12 +51,30 @@ async function analyzeMedia(req, res) {
             return res.status(400).json({ success: false, message: 'url is required' });
         }
 
-        const result = await LLMService.runVision({
-            imageUrl: url.trim(),
-            prompt: (typeof prompt === 'string' && prompt.trim())
-                ? prompt.trim().slice(0, 500)
-                : 'Describe this image concisely. If it contains text, transcribe it.'
-        });
+const resolvedPrompt = (typeof prompt === 'string' && prompt.trim())
+  ? prompt.trim().slice(0, 500)
+  : 'Describe this image concisely. If it contains text, transcribe it.';
+const imageUrl = url.trim();
+
+// Vision analysis of a given URL + prompt is deterministic and is the most
+// expensive call in this controller (a third-party model round trip). The
+// same media is re-analyzed whenever the composer re-opens it, so cache on
+// the (url, prompt) pair. A Redis failure falls through to the live call.
+let cachedResult = null;
+try {
+  cachedResult = await redisService.get(
+    `ai:vision:${createHash('sha256').update(imageUrl + '\u0000' + resolvedPrompt).digest('hex')}`
+  );
+} catch (_) { /* cache is best-effort */ }
+
+if (cachedResult?.text) {
+  return res.json({ success: true, text: cachedResult.text, provider: cachedResult.provider, model: cachedResult.model, cached: true });
+}
+
+const result = await LLMService.runVision({
+  imageUrl,
+  prompt: resolvedPrompt
+});
 
         if (!result?.success) {
             return res.status(502).json({
@@ -56,7 +83,17 @@ async function analyzeMedia(req, res) {
             });
         }
 
-        res.json({ success: true, text: result.content, provider: result.provider, model: result.model });
+        if (result?.success && result.content) {
+  try {
+    await redisService.set(
+      `ai:vision:${createHash('sha256').update(imageUrl + '\u0000' + resolvedPrompt).digest('hex')}`,
+      { text: result.content, provider: result.provider, model: result.model },
+      { ex: AI_VISION_CACHE_TTL_SECONDS }
+    );
+  } catch (_) { /* best-effort */ }
+}
+
+res.json({ success: true, text: result.content, provider: result.provider, model: result.model });
     } catch (err) {
         logger.error('Analyze media error:', err);
         res.status(500).json({ success: false, message: 'Failed to analyze media' });

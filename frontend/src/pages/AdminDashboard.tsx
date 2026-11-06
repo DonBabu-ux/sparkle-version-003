@@ -2,7 +2,7 @@ import { showInfo, showSuccess, showError } from '../utils/toast';
 import { confirmDialog } from '../store/dialogStore';
 import { useState, useEffect, type FormEvent } from 'react';
 import api, { getAdminSessionExpires, getAdminClockOffset, clearAdminSession } from '../api/api';
-import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag } from 'lucide-react';
+import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag, KeyRound, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
 import { getMediaUrl } from '../utils/imageUtils';

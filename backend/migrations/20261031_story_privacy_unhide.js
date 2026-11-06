@@ -47,11 +47,21 @@ async function runMigration() {
         }
 
         console.log('Migration completed successfully!');
-        process.exit(0);
+        return;
     } catch (err) {
         console.error('Migration failed:', err);
-        process.exit(1);
+        throw err;
     }
 }
 
-runMigration();
+// Runner-compatible entry point. Exit only when invoked directly
+// (`node migrations/20261031_story_privacy_unhide.js`). require()-ing this
+// file from utils/database/schemaLedger.js must not terminate the booting
+// process, which is what the previous bare `runMigration()` + process.exit did.
+if (require.main === module) {
+    runMigration()
+        .then(() => process.exit(0))
+        .catch(() => process.exit(1));
+}
+
+module.exports = runMigration;

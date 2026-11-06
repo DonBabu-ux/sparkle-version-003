@@ -1,6 +1,7 @@
 const winston = require('winston');
 const path = require('path');
 const fs = require('fs');
+const { resolveLogDir } = require('./logDir');
 
 // Detect if we're in a serverless environment (Vercel, AWS Lambda, etc.)
 const isServerless = !!(
@@ -18,8 +19,10 @@ const logFormat = winston.format.combine(
     winston.format.json()
 );
 
-// Determine log directory (use /tmp in serverless environments)
-const logsDir = isServerless ? '/tmp/logs' : path.join(__dirname, '../.logs');
+// Determine log directory. In development this resolves outside backend/, whose
+// directory is watched by `node --watch`, so writing a log would otherwise
+// restart the server. Production keeps backend/.logs. See utils/logDir.js.
+const logsDir = resolveLogDir();
 
 // Create logs directory if it doesn't exist and we're allowed to write files
 let canWriteFiles = false;

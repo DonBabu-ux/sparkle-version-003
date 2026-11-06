@@ -2,16 +2,16 @@
 // Automated test suite covering the 20 required Sparkly production test cases
 
 require('dotenv').config();
-const { SafetyService, PERMISSION_LEVELS } = require('../services/sparkly/safety.service');
-const { IntentService, DOMAIN_TYPES, INTENT_TYPES } = require('../services/sparkly/intent.service');
-const SparkleDataService = require('../services/sparkly/sparkle-data.service');
-const WebSearchService = require('../services/sparkly/web-search.service');
-const ContextService = require('../services/sparkly/context.service');
-const MemoryService = require('../services/sparkly/memory.service');
-const PromptService = require('../services/sparkly/prompt.service');
-const BytezService = require('../services/sparkly/bytez.service');
-const ResponseService = require('../services/sparkly/response.service');
-const SparklyOrchestrator = require('../services/sparkly/sparkly.orchestrator');
+const { SafetyService, PERMISSION_LEVELS } = require('../backend/./services/sparkly/safety.service');
+const { IntentService, DOMAIN_TYPES, INTENT_TYPES } = require('../backend/./services/sparkly/intent.service');
+const SparkleDataService = require('../backend/./services/sparkly/sparkle-data.service');
+const WebSearchService = require('../backend/./services/sparkly/web-search.service');
+const ContextService = require('../backend/./services/sparkly/context.service');
+const MemoryService = require('../backend/./services/sparkly/memory.service');
+const PromptService = require('../backend/./services/sparkly/prompt.service');
+const BytezService = require('../backend/./services/sparkly/bytez.service');
+const ResponseService = require('../backend/./services/sparkly/response.service');
+const SparklyOrchestrator = require('../backend/./services/sparkly/sparkly.orchestrator');
 
 const testUser = {
     user_id: 'test-user-123',

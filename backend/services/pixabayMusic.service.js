@@ -1,4 +1,12 @@
 const axios = require('axios');
+const redisService = require('./redis.service');
+
+/**
+ * Search/trend results are cached this long. Charts change slowly and the
+ * composer search box re-queries on every keystroke, so 10 minutes removes
+ * most upstream calls without serving stale rankings for long.
+ */
+const MUSIC_CACHE_TTL_SECONDS = 600;
 
 // Deezer public API — no key required, returns 30-second MP3 previews.
 // Sparkle uses this as the licensed preview catalogue: we stream the
@@ -94,6 +102,17 @@ async function searchMusic(query = '', page = 1, perPage = 20) {
   const index = (page - 1) * perPage;
   const q = String(query || '').trim().toLowerCase();
   const genreId = GENRE_MAP[q];
+  const cacheKey = `music:search:${q || '_top_'}:${genreId || 0}:${index}`;
+
+  // Deezer is a third-party HTTP call with no SLA and occasional multi-second
+  // responses. Search results for a given term are effectively static, so a
+  // short TTL turns repeat queries — and every keystroke while typing — into a
+  // cache hit. A Redis failure must never fail the search: fall through to the
+  // live call.
+  try {
+    const cached = await redisService.get(cacheKey);
+    if (cached && Array.isArray(cached.tracks)) return cached;
+  } catch (_) { /* cache is best-effort */ }
 
   let hits = [];
   if (!q || (genreId && CHART_GENRES.has(genreId))) {
@@ -107,12 +126,19 @@ async function searchMusic(query = '', page = 1, perPage = 20) {
   }
 
   const tracks = hits.map(normalizeTrack).filter(Boolean);
-  return {
+  const result = {
     tracks,
     total: tracks.length,
     totalPages: 1,
     page,
   };
+
+  // Only cache non-empty results: an upstream hicup should not be remembered.
+  if (tracks.length > 0) {
+    try { await redisService.set(cacheKey, result, { ex: MUSIC_CACHE_TTL_SECONDS }); }
+    catch (_) { /* best-effort */ }
+  }
+  return result;
 }
 
 /**
@@ -124,6 +150,14 @@ async function getTrending({ genre = null, limit = 4 } = {}) {
   const capped = Math.min(Math.max(parseInt(limit, 10) || 4, 1), 25);
   const key = String(genre || '').trim().toLowerCase();
   const genreId = key ? (GENRE_MAP[key] ?? null) : null;
+  const cacheKey = `music:trending:${key || '_all_'}:${genreId ?? 0}:${capped}`;
+
+  // Same rationale as searchMusic: this fires every time the composer opens
+  // and the upstream is a third-party HTTP call.
+  try {
+    const cached = await redisService.get(cacheKey);
+    if (Array.isArray(cached) && cached.length > 0) return cached;
+  } catch (_) { /* cache is best-effort */ }
 
   let hits;
   if (key && genreId == null) {
@@ -132,7 +166,13 @@ async function getTrending({ genre = null, limit = 4 } = {}) {
   } else {
     hits = await fetchChart(genreId ?? 0, capped, 0);
   }
-  return hits.map(normalizeTrack).filter(Boolean);
+  const tracks = hits.map(normalizeTrack).filter(Boolean);
+
+  if (tracks.length > 0) {
+    try { await redisService.set(cacheKey, tracks, { ex: MUSIC_CACHE_TTL_SECONDS }); }
+    catch (_) { /* best-effort */ }
+  }
+  return tracks;
 }
 
 /** Category chips for the music discovery page (stable order for the UI). */

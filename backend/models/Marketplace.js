@@ -4,6 +4,44 @@ const { v4: uuidv4 } = require('uuid');
 const admin = require('../config/firebase-admin');
 const { evaluateOrderPlacement } = require('../utils/marketplaceOrderRules');
 
+/**
+ * Attach the first media item to each listing in a single query.
+ *
+ * Replaces a per-listing SELECT. Each round trip to this database costs
+ * 200-500ms and periodically spikes to several seconds, so a loop over N
+ * listings turned a single-page read into N sequential round trips —
+ * measured at ~20s for 20 listings on /marketplace/listings/recommended.
+ *
+ * Takes the lowest upload_order per listing, matching the previous
+ * `ORDER BY upload_order LIMIT 1` behaviour, and preserves the exact same
+ * fallback chain: media row -> image_url -> default image.
+ *
+ * Mutates the rows in place and returns them, so call sites are unchanged.
+ */
+async function attachListingMedia(listings) {
+    if (!Array.isArray(listings) || listings.length === 0) return listings;
+
+    const ids = listings.map(l => l.listing_id).filter(Boolean);
+    if (ids.length === 0) return listings;
+
+    const [rows] = await pool.query(
+        'SELECT listing_id, media_url FROM listing_media WHERE listing_id IN (?) ORDER BY upload_order',
+        [ids]
+    );
+
+    // First occurrence wins: rows arrive ordered by upload_order, so the
+    // first row per listing is the same one LIMIT 1 used to return.
+    const firstByListing = {};
+    for (const row of rows) {
+        if (!(row.listing_id in firstByListing)) firstByListing[row.listing_id] = row.media_url;
+    }
+
+    for (const listing of listings) {
+        listing.media_url = firstByListing[listing.listing_id] || listing.image_url || '/images/default-listing.jpg';
+    }
+    return listings;
+}
+
 class Marketplace {
     /**
      * Get user counts (favorites, etc.) for the navbar
@@ -669,14 +707,12 @@ class Marketplace {
                 recommendations = [...recommendations, ...fallback];
             }
 
-            // Add media to all recommendations
-            for (let listing of recommendations) {
-                const [media] = await pool.query(
-                    'SELECT media_url FROM listing_media WHERE listing_id = ? ORDER BY upload_order LIMIT 1',
-                    [listing.listing_id]
-                );
-                listing.media_url = media[0]?.media_url || listing.image_url || '/images/default-listing.jpg';
-            }
+            // Add media to all recommendations.
+            // Batched: one query for the whole page instead of one per
+            // listing. The remote DB round trip is 200-500ms with spikes to
+            // multi-second, so the per-listing loop made this endpoint cost
+            // N round trips (measured at ~20s for 20 listings).
+            await attachListingMedia(recommendations);
 
             return recommendations;
         } catch (error) {
@@ -700,14 +736,8 @@ class Marketplace {
 
                 const [listings] = await pool.query(query, params);
 
-                // Add media
-                for (let listing of listings) {
-                    const [media] = await pool.query(
-                        'SELECT media_url FROM listing_media WHERE listing_id = ? ORDER BY upload_order LIMIT 1',
-                        [listing.listing_id]
-                    );
-                    listing.media_url = media[0]?.media_url || listing.image_url || '/images/default-listing.jpg';
-                }
+                // Add media (batched — same reason as the main path)
+                await attachListingMedia(listings);
 
                 return listings;
             } catch (fallbackError) {

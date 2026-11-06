@@ -93,7 +93,11 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token', 'X-Device-Id', 'X-Admin-Session'],
+    // Cache-Control is sent by the frontend's health/failover polling and by
+    // several fetch() callers. Browsers reject a preflight that carries a header
+    // the server has not whitelisted, so omitting it here blocks those requests
+    // outright rather than merely ignoring the header.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cache-Control', 'Pragma', 'X-CSRF-Token', 'X-Device-Id', 'X-Admin-Session'],
     // H26 renewal adoption: without this the browser hides x-refresh-token
     // from JS on cross-origin responses and adoptServerToken() is a no-op
     // in every deployed config (UI_AUDIT P0 #21).
@@ -454,10 +458,12 @@ process.on('SIGTERM', () => shutdown('SIGTERM'));
 //  - heartbeat file: last memory snapshot every 60s (post-mortem OOM evidence)
 //  - exit hook: synchronous last-words with exit code + memory
 //  - uncaughtException: log full stack THEN exit (continuing leaves undefined state)
-const path2 = require('path');
-const fs2 = require('fs');
-const CRASH_DIR = path2.join(__dirname, '.logs');
-const HEARTBEAT_FILE = path2.join(__dirname, '.heartbeat.json');
+    const path2 = require('path');
+    const fs2 = require('fs');
+    const { resolveLogDir } = require('./utils/logDir');
+    // Not backend/.logs in development: the dev script runs this file under
+    // `node --watch --watch-path=.`, so a write in there restarts the server.
+    const CRASH_DIR = resolveLogDir();
 const mb = (n) => Math.round(n / 1024 / 1024);
 
 const writeCrashLine = (line) => {

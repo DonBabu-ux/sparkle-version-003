@@ -455,8 +455,11 @@ const ReelItem = React.memo(({
         </AnimatePresence>
       </div>
 
-      {/* Side Actions (Rationalized for mobile) */}
-      <div className="absolute right-3 bottom-[calc(6rem+env(safe-area-inset-bottom))] md:bottom-24 flex flex-col items-center gap-4 z-20">
+      {/* Side Actions (Rationalized for mobile) — bottom inset uses the
+          authoritative --safe-area-inset-* var (exact px on native) with the
+          env() fallback for the web, so gesture/three-button nav never covers
+          these controls. */}
+      <div className="absolute right-3 bottom-[calc(6rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-24 flex flex-col items-center gap-4 z-20">
         <div className="relative mb-2 group/avatar">
           <img 
             src={getMediaUrl(moment.avatar_url) || '/uploads/avatars/no-profile.png'}
@@ -535,14 +538,14 @@ const ReelItem = React.memo(({
           </button>
         )}
 
-        <button className="w-9 h-9 flex items-center justify-center text-white transition-all mt-2 pointer-events-auto hover:scale-110" onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
-          {muted ? <VolumeX size={18} strokeWidth={2.5} /> : <Volume2 size={18} strokeWidth={2.5} />}
+        <button className="w-11 h-11 flex items-center justify-center text-white transition-all mt-2 pointer-events-auto hover:scale-110 active:scale-90" aria-label={muted ? "Unmute" : "Mute"} onClick={(e) => { e.stopPropagation(); onToggleMute(); }}>
+          {muted ? <VolumeX size={20} strokeWidth={2.5} /> : <Volume2 size={20} strokeWidth={2.5} />}
         </button>
       </div>
 
       {/* Sequential comment overlays (bounded, recent comments) */}
       {active && commentOverlays && commentOverlays.length > 0 && (
-        <div className="absolute left-4 bottom-[calc(11rem+env(safe-area-inset-bottom))] md:bottom-36 max-w-[70%] z-20 pointer-events-none">
+        <div className="absolute left-4 bottom-[calc(11rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-36 max-w-[70%] z-20 pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div
               key={`${moment.moment_id}-c${overlayIdx}`}
@@ -561,7 +564,7 @@ const ReelItem = React.memo(({
       )}
 
       {/* Info Overlay (Rationalized) */}
-      <div className="absolute inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 p-5 pb-8 z-10 flex flex-col gap-2 pointer-events-none">
+      <div className="absolute inset-x-0 bottom-[calc(3.5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-0 p-5 pb-8 z-10 flex flex-col gap-2 pointer-events-none">
         <div className="flex items-center gap-3">
           <div className="text-[17px] font-semibold text-white tracking-tight pointer-events-auto cursor-pointer flex items-center gap-1.5 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)] not-italic normal-case" onClick={(e) => { e.stopPropagation(); navigate(`/profile/${moment.username}`); }}>
             @{moment.username}
@@ -569,7 +572,7 @@ const ReelItem = React.memo(({
           {!moment.is_following && (
             <button 
               onClick={(e) => { e.stopPropagation(); onFollow(moment.user_id || '', moment.moment_id); }}
-              className="bg-primary text-white text-[10px] font-semibold tracking-wide px-3 py-1.5 rounded-full shadow-lg shadow-primary/40 pointer-events-auto active:scale-90 transition-all"
+              className="bg-primary text-white text-[11px] font-semibold tracking-wide px-3.5 py-1.5 min-h-[36px] rounded-full shadow-lg shadow-primary/40 pointer-events-auto active:scale-90 transition-all flex items-center justify-center"
             >
               Follow
             </button>
@@ -596,24 +599,24 @@ const ReelItem = React.memo(({
               if (isOwner) onOpenViewers?.(moment.moment_id);
             }}
             disabled={!isOwner}
-            className={`flex items-center gap-1.5 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5 ${isOwner ? 'pointer-events-auto hover:bg-black/35' : 'cursor-default'}`}
+            className={`flex items-center gap-1.5 bg-black/30 backdrop-blur-md px-2.5 py-1 min-h-[32px] rounded-full border border-white/10 ${isOwner ? 'pointer-events-auto hover:bg-black/45 active:scale-95' : 'cursor-default'}`}
             aria-label={isOwner ? 'See who viewed this reel' : `${moment.view_count || 0} views`}
           >
              <Eye size={12} className="text-white/80" />
              <span className="text-[10px] font-semibold text-white/90 tracking-wide">{moment.view_count || 0} views</span>
           </button>
           {(moment as Moment & { is_pinned?: number | boolean }).is_pinned ? (
-            <span className="flex items-center gap-1 bg-black/20 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/5">
+            <span className="flex items-center gap-1 bg-black/30 backdrop-blur-md px-2.5 py-1 min-h-[32px] rounded-full border border-white/10">
               <Pin size={11} className="text-white/80" />
               <span className="text-[10px] font-semibold text-white/90 tracking-wide">Pinned</span>
             </span>
           ) : null}
           <button 
             onClick={(e) => { e.stopPropagation(); onOpenSearch(); }}
-            className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-all active:scale-95 pointer-events-auto"
+            className="flex items-center gap-1.5 px-2.5 py-1 min-h-[32px] rounded-full bg-white/10 backdrop-blur-md border border-white/10 text-white/80 hover:text-white transition-all active:scale-95 pointer-events-auto"
           >
-            <Search size={10} />
-            <span className="text-[8px] font-bold tracking-wide">Search</span>
+            <Search size={11} />
+            <span className="text-[9px] font-bold tracking-wide">Search</span>
           </button>
         </div>
       </div>
@@ -644,7 +647,7 @@ const ReelItem = React.memo(({
       {/* Draggable Progress / Scrubber Bar */}
       <div
         ref={scrubberRef}
-        className="absolute bottom-[calc(3.5rem+env(safe-area-inset-bottom))] md:bottom-0 left-0 right-0 h-4 z-[30] flex items-end cursor-pointer group/scrub"
+        className="absolute bottom-[calc(3.5rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-0 left-0 right-0 h-4 z-[30] flex items-end cursor-pointer group/scrub"
         onClick={handleScrubberClick}
         onPointerDown={handleScrubberPointerDown}
         onPointerMove={handleScrubberPointerMove}
@@ -1158,6 +1161,17 @@ export default function Moments() {
     } : m));
   };
 
+  // Deletions (self or moderation) report how many rows the server removed
+  // (a thread deletion also removes its replies), so the reel counter stays
+  // in sync without refetching the feed.
+  const handleCommentRemoved = (deletedCount: number) => {
+    const removed = Math.max(deletedCount || 0, 0);
+    if (!removed) return;
+    setMoments(prev => prev.map(m => m.moment_id === activeMomentId ? {
+      ...m, comment_count: Math.max((m.comment_count || 0) - removed, 0)
+    } : m));
+  };
+
   const startDownload = async (moment: Moment) => {
     setMomentToShare(null);
     setDownloadProgress({ id: moment.moment_id, progress: 0 });
@@ -1241,11 +1255,18 @@ export default function Moments() {
           header, action icons to the right. Buttons carry their own opaque
           background so they stay legible over bright frames. */}
       {!isSearchOpen && (
-        <div className="fixed top-0 left-0 right-0 p-4 flex items-center gap-2.5 z-(--z-header) pointer-events-none md:ml-(--rail-w)">
+        <div
+          className="fixed top-0 left-0 right-0 px-4 pb-4 flex items-center gap-2.5 z-(--z-header) pointer-events-none md:ml-(--rail-w)"
+          style={{
+            paddingTop: 'calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+            paddingLeft: 'calc(1rem + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))',
+            paddingRight: 'calc(1rem + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)))',
+          }}
+        >
           <button
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            className="w-10 h-10 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
+            className="w-11 h-11 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
           >
             <X size={20} />
           </button>
@@ -1258,7 +1279,7 @@ export default function Moments() {
               value=""
               placeholder="Search moments"
               aria-label="Search moments"
-              className="w-full h-10 rounded-full bg-black/55 border border-white/10 pl-10 pr-4 text-sm font-medium text-white placeholder-white/50 outline-none focus:border-white/25 transition-colors cursor-pointer"
+              className="w-full h-11 rounded-full bg-black/55 border border-white/10 pl-10 pr-4 text-sm font-medium text-white placeholder-white/50 outline-none focus:border-white/25 transition-colors cursor-pointer"
             />
             <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
           </div>
@@ -1267,7 +1288,7 @@ export default function Moments() {
             <button
               onClick={() => navigate('/moments/studio')}
               aria-label="Moment Studio"
-              className="w-10 h-10 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform"
+              className="w-11 h-11 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform"
             >
               <BarChart3 size={18} />
             </button>
@@ -1284,9 +1305,20 @@ export default function Moments() {
             exit={{ opacity: 0, x: '100%' }}
             className="fixed inset-0 bg-black z-[2000] flex flex-col md:ml-(--rail-w)"
           >
-            {/* Search Header */}
-            <div className="p-4 flex items-center gap-3 border-b border-white/5">
-              <button onClick={() => { setIsSearchOpen(false); setHasSearched(false); }} className="text-white active:scale-90 transition-transform">
+            {/* Search Header — kept clear of the status bar / camera cutout */}
+            <div
+              className="px-4 pb-4 flex items-center gap-3 border-b border-white/5"
+              style={{
+                paddingTop: 'calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+                paddingLeft: 'calc(1rem + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))',
+                paddingRight: 'calc(1rem + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)))',
+              }}
+            >
+              <button
+                onClick={() => { setIsSearchOpen(false); setHasSearched(false); }}
+                aria-label="Close search"
+                className="w-11 h-11 flex items-center justify-center text-white active:scale-90 transition-transform"
+              >
                 <X size={24} />
               </button>
               <div className="flex-1 relative">
@@ -1297,18 +1329,23 @@ export default function Moments() {
                   onChange={(e) => setSearchInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSearch(searchInput)}
                   placeholder="Search moments..."
-                  className="w-full bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium text-white placeholder-white/50 caret-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all"
+                  aria-label="Search moments input"
+                  className="w-full min-h-[44px] bg-white/10 border-none rounded-full py-2.5 px-10 text-sm font-medium text-white placeholder-white/50 caret-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all"
                 />
-                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70" />
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-white/70 pointer-events-none" />
                 {searchInput && (
-                  <button onClick={() => { setSearchInput(''); setSearchQuery(''); setHasSearched(false); }} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/70">
-                    <X size={14} />
+                  <button
+                    onClick={() => { setSearchInput(''); setSearchQuery(''); setHasSearched(false); }}
+                    aria-label="Clear search input"
+                    className="w-10 h-10 flex items-center justify-center absolute right-2 top-1/2 -translate-y-1/2 text-white/70 active:scale-90"
+                  >
+                    <X size={16} />
                   </button>
                 )}
               </div>
               <button 
                 onClick={() => handleSearch(searchInput)}
-                className="text-primary font-bold text-sm px-2 active:opacity-50"
+                className="text-primary font-bold text-sm px-3 min-h-[44px] flex items-center justify-center active:opacity-50"
               >
                 Search
               </button>
@@ -1628,13 +1665,11 @@ export default function Moments() {
         momentId={activeMomentId}
         onClose={() => setShowComments(false)}
         onCommentAdded={handleCommentAdded}
+        onCommentRemoved={handleCommentRemoved}
       />
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        @ke      @ke      .animate-fade-in { animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        
-        @ke      
         .animate-tiktok-dot-1 { animation: tiktok-dot-1 0.6s infinite ease-in-out; }
         .animate-tiktok-dot-2 { animation: tiktok-dot-2 0.6s infinite ease-in-out; }
       `}</style>

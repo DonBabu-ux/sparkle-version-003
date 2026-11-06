@@ -45,6 +45,23 @@ router.get('/:id/share-data', authMiddleware, momentsController.getShareData);
 router.get('/:id/comments', authMiddleware, momentsController.getComments);
 router.post('/:id/comments', authMiddleware, mutationRateLimiter, momentsController.addComment);
 router.post('/comment/:id/like', authMiddleware, mutationRateLimiter, momentsController.likeComment);
+// Edit own comment (PUT) — server-enforced 48h window, owner only
+router.put('/comment/:id', authMiddleware, mutationRateLimiter, momentsController.editComment);
+// Delete own comment (DELETE) — ownership re-verified in the database
+router.delete('/comment/:id', authMiddleware, mutationRateLimiter, momentsController.deleteComment);
+// Reel-owner / platform-moderator removal of someone else's comment:
+// requires a moderation reason, writes an audit record, notifies the author
+router.post('/comment/:id/moderate', authMiddleware, mutationRateLimiter, momentsController.moderateComment);
+// Report a comment to platform moderation (NEVER deletes the comment)
+router.post('/comment/:id/report', authMiddleware, mutationRateLimiter, momentsController.reportComment);
+// Single comment fetch (for edit pre-population / permission checks)
+router.get('/comment/:id', authMiddleware, momentsController.getComment);
+
+// Guarantee the comment schema (is_deleted/updated_at columns, moderation
+// audit log, comment reports) exists before the first comment request lands.
+// prewarm is idempotent and cheap once complete; failures are logged inside
+// and retried on the next call.
+momentsController.prewarm().catch(() => { /* logged by prewarm */ });
 
 // User interaction
 router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);

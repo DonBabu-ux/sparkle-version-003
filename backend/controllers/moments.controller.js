@@ -4,6 +4,8 @@ const sessionInterestService = require('../services/session-interest.service');
 const momentsRankingService = require('../services/moments-ranking.service');
 const visibility = require('../services/reels-visibility.service');
 const NotificationService = require('../services/notification.service');
+const notificationController = require('./notification.controller');
+const { transaction } = require('../utils/database/transaction');
 const { STORY_AUDIENCES } = require('../services/story-audience.service');
 
 const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
@@ -31,9 +33,12 @@ const ensureMomentTables = async () => {
                 parent_comment_id CHAR(36) DEFAULT NULL,
                 content TEXT NOT NULL,
                 like_count INT DEFAULT 0,
+                updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+                is_deleted TINYINT(1) DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 INDEX idx_mc_moment (moment_id),
-                INDEX idx_mc_parent (parent_comment_id)
+                INDEX idx_mc_parent (parent_comment_id),
+                INDEX idx_mc_is_deleted (is_deleted)
             )
         `);
         await pool.query(`
@@ -106,7 +111,41 @@ const ensureMomentTables = async () => {
                         INDEX idx_sh_user (user_id)
                     )
                 `);
-                tablesEnsured = true;
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_comment_moderation_log (
+                id CHAR(36) PRIMARY KEY,
+                reel_id CHAR(36) NOT NULL,
+                comment_id CHAR(36) NOT NULL,
+                reply_id CHAR(36) DEFAULT NULL,
+                moderator_id CHAR(36) NOT NULL,
+                comment_author_id CHAR(36) NOT NULL,
+                moderation_reason VARCHAR(100) NOT NULL,
+                reason_details TEXT DEFAULT NULL,
+                action VARCHAR(50) NOT NULL DEFAULT 'delete',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_mcml_reel (reel_id),
+                INDEX idx_mcml_comment (comment_id),
+                INDEX idx_mcml_moderator (moderator_id),
+                INDEX idx_mcml_author (comment_author_id)
+            )
+        `);
+        // Reporting is separate from creator moderation: reports never delete
+        // content, they only queue it for platform review (admin/moderator).
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS moment_comment_reports (
+                report_id CHAR(36) PRIMARY KEY,
+                comment_id CHAR(36) NOT NULL,
+                moment_id CHAR(36) NOT NULL,
+                reporter_id CHAR(36) NOT NULL,
+                reason VARCHAR(500) NOT NULL,
+                status ENUM('pending','reviewed','resolved','dismissed') NOT NULL DEFAULT 'pending',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY uniq_mcr_comment_reporter (comment_id, reporter_id),
+                INDEX idx_mcr_moment (moment_id),
+                INDEX idx_mcr_status (status)
+            )
+        `);
+        tablesEnsured = true;
                 logger.info('Moment tables and extensions verified/created');
     } catch (e) {
         logger.warn('Could not ensure moment tables: ' + e.message);
@@ -140,7 +179,9 @@ const ensureMomentColumns = async () => {
     // Check 'moment_comments' table
     const commentCols = [
         { name: 'parent_comment_id', def: 'CHAR(36) DEFAULT NULL' },
-        { name: 'like_count', def: 'INT DEFAULT 0' }
+        { name: 'like_count', def: 'INT DEFAULT 0' },
+        { name: 'updated_at', def: 'TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP' },
+        { name: 'is_deleted', def: 'TINYINT(1) DEFAULT 0' }
     ];
 
     const ensureCols = async (table, cols) => {
@@ -156,6 +197,18 @@ const ensureMomentColumns = async () => {
     await ensureCols('moment_comments', commentCols);
 
     columnsEnsured = true;
+};
+
+/**
+ * Idempotent schema guard for the comment feature (soft-delete columns,
+ * moderation audit log, comment reports). Both ensure* helpers short-circuit
+ * on module-level flags after the first successful run, so calling this per
+ * comment request costs nothing at steady state and self-heals if the
+ * boot-time prewarm failed (e.g. DB briefly unavailable).
+ */
+const ensureCommentSchema = async () => {
+    await ensureMomentTables();
+    await ensureMomentColumns();
 };
 
 const getMomentById = async (req, res) => {
@@ -847,6 +900,7 @@ const addComment = async (req, res) => {
         const { id } = req.params;
         const { comment, parentId } = req.body;
         const userId = req.user.user_id;
+        await ensureCommentSchema();
 
         // Enforce visibility + comments_enabled server-side
         const [targetRows] = await pool.query(
@@ -865,7 +919,22 @@ const addComment = async (req, res) => {
         }
 
         const commentId = require('crypto').randomUUID();
-        const pid = parentId || null;
+
+        // Validate the parent server-side: it must exist, belong to this same
+        // reel and still be live. Replies-to-replies flatten onto the thread
+        // root so the single-level tree can never grow orphaned grandchildren.
+        let pid = null;
+        if (parentId) {
+            const [parentRows] = await pool.query(
+                `SELECT comment_id, parent_comment_id FROM moment_comments
+                 WHERE comment_id = ? AND moment_id = ? AND is_deleted = 0`,
+                [parentId, id]
+            );
+            if (!parentRows.length) {
+                return res.status(400).json({ error: 'Parent comment not found' });
+            }
+            pid = parentRows[0].parent_comment_id || parentRows[0].comment_id;
+        }
 
         await pool.query(
             `INSERT INTO moment_comments 
@@ -913,6 +982,7 @@ const getComments = async (req, res) => {
     try {
         const { id } = req.params;
         const currentUserId = req.user.user_id;
+        await ensureCommentSchema();
 
         // Comments are only readable on moments the viewer can see
         const [targetRows] = await pool.query(
@@ -928,7 +998,7 @@ const getComments = async (req, res) => {
                     (SELECT COUNT(*) FROM moment_comment_likes mcl WHERE mcl.comment_id = c.comment_id AND mcl.user_id = ?) as is_liked
             FROM moment_comments c 
             JOIN users u ON c.user_id = u.user_id 
-            WHERE c.moment_id = ? 
+            WHERE c.moment_id = ? AND c.is_deleted = 0
             ORDER BY c.created_at ASC`,
             [currentUserId, id]
         );
@@ -951,7 +1021,10 @@ const getComments = async (req, res) => {
 
         res.json({
             status: 'success',
-            comments: roots.reverse() // Newest on top
+            comments: roots.reverse(), // Newest on top
+            // Used by the client to decide whether the viewer may moderate
+            // (never to authorize anything — the server re-checks every write).
+            reel_owner_id: targetRows[0].user_id || null
         });
     } catch (error) {
         logger.error('Get Comments Error:', error);
@@ -1558,6 +1631,381 @@ const getMomentSuggestions = async (req, res) => {
     }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// EDIT COMMENT — own comment/reply only, within 48h window
+// ─────────────────────────────────────────────────────────────────────────────
+const editComment = async (req, res) => {
+    try {
+        const { id } = req.params; // comment_id
+        const { content } = req.body;
+        const userId = req.user.user_id;
+        await ensureCommentSchema();
+
+        if (!content || !content.trim()) {
+            return res.status(400).json({ error: 'Comment content is required' });
+        }
+
+        const [rows] = await pool.query(
+            'SELECT * FROM moment_comments WHERE comment_id = ? AND is_deleted = 0',
+            [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+
+        const comment = rows[0];
+        if (String(comment.user_id) !== String(userId)) {
+            return res.status(403).json({ error: 'You can only edit your own comments' });
+        }
+
+        // 48-hour edit window
+        const ageMs = Date.now() - new Date(comment.created_at).getTime();
+        if (ageMs > 48 * 60 * 60 * 1000) {
+            return res.status(403).json({ error: 'Edit window has closed (48 hours after posting)' });
+        }
+
+        await pool.query(
+            'UPDATE moment_comments SET content = ?, updated_at = NOW() WHERE comment_id = ?',
+            [content.trim(), id]
+        );
+
+        const [updated] = await pool.query(
+            `SELECT c.*, u.username, u.avatar_url FROM moment_comments c
+             JOIN users u ON c.user_id = u.user_id WHERE c.comment_id = ?`,
+            [id]
+        );
+
+        res.json({ success: true, comment: updated[0] });
+    } catch (error) {
+        logger.error('Edit Comment Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Shared comment-removal helpers (self-delete + owner moderation use the
+// SAME cascade policy so the parent-child rules can never diverge).
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Breadth-first walk of a live thread: the root comment plus every live
+// descendant. Removing a thread removes all of it — no orphaned replies.
+const collectLiveThreadIds = async (conn, rootId) => {
+    const ids = [rootId];
+    let frontier = [rootId];
+    while (frontier.length) {
+        const placeholders = frontier.map(() => '?').join(',');
+        const [children] = await conn.query(
+            `SELECT comment_id FROM moment_comments
+             WHERE is_deleted = 0 AND parent_comment_id IN (${placeholders})`,
+            frontier
+        );
+        frontier = (children || [])
+            .map((r) => r.comment_id)
+            .filter((cid) => !ids.includes(cid));
+        ids.push(...frontier);
+    }
+    return ids;
+};
+
+// Soft-delete inside a transaction and decrement the denormalized reel
+// counter by exactly the rows that transitioned (never counting rows that
+// were already soft-deleted).
+const softDeleteCommentsTx = async (conn, ids, momentId) => {
+    if (!ids.length) return 0;
+    const placeholders = ids.map(() => '?').join(',');
+    const [result] = await conn.query(
+        `UPDATE moment_comments SET is_deleted = 1
+         WHERE is_deleted = 0 AND comment_id IN (${placeholders})`,
+        ids
+    );
+    const affected = Number(result?.affectedRows) || 0;
+    if (affected > 0) {
+        await conn.query(
+            'UPDATE moments SET comment_count = GREATEST(comment_count - ?, 0) WHERE moment_id = ?',
+            [affected, momentId]
+        );
+    }
+    return affected;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DELETE COMMENT — own comment/reply only (self-service deletion).
+// Ownership is verified against the database; reel owners and platform
+// moderators must use POST /comment/:id/moderate so their removals are
+// reasoned, audited and communicated to the author.
+// ─────────────────────────────────────────────────────────────────────────────
+const deleteComment = async (req, res) => {
+    try {
+        const { id } = req.params; // comment_id
+        const userId = req.user.user_id;
+        await ensureCommentSchema();
+
+        const [rows] = await pool.query(
+            `SELECT c.*, m.user_id AS reel_owner_id
+             FROM moment_comments c
+             JOIN moments m ON c.moment_id = m.moment_id
+             WHERE c.comment_id = ? AND c.is_deleted = 0`,
+            [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+
+        const comment = rows[0];
+        if (String(comment.user_id) !== String(userId)) {
+            return res.status(403).json({ error: 'You can only delete your own comments' });
+        }
+
+        const deletedCount = await transaction(async (conn) => {
+            const ids = await collectLiveThreadIds(conn, id);
+            return softDeleteCommentsTx(conn, ids, comment.moment_id);
+        });
+
+        res.json({ success: true, deletedCount });
+    } catch (error) {
+        logger.error('Delete Comment Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// Valid moderation reasons (must stay in sync with the client's reason list)
+const MODERATION_REASONS = new Set([
+    'spam_or_advertising',
+    'harassment_or_bullying',
+    'hate_speech_or_abusive_language',
+    'inappropriate_or_offensive_content',
+    'irrelevant_content',
+    'impersonation_or_suspicious_activity',
+    'other',
+]);
+
+// User-safe labels for the notification body. Never expose the moderator's
+// private notes / reason_details through a notification.
+const REASON_LABELS = {
+    spam_or_advertising: 'Spam or advertising',
+    harassment_or_bullying: 'Harassment or bullying',
+    hate_speech_or_abusive_language: 'Hate speech or abusive language',
+    inappropriate_or_offensive_content: 'Inappropriate or offensive content',
+    irrelevant_content: 'Irrelevant content',
+    impersonation_or_suspicious_activity: 'Impersonation or suspicious activity',
+    other: 'Community guidelines',
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MODERATE COMMENT — removal of ANOTHER user's comment.
+// Authorization (checked server-side, never trusted from the client):
+//   1. the caller owns the Reel under which the comment was posted, OR
+//   2. the caller holds an explicit platform moderation role (admin/moderator).
+// The comment author can never be the moderator here (self-delete route).
+// ─────────────────────────────────────────────────────────────────────────────
+const moderateComment = async (req, res) => {
+    try {
+        const { id } = req.params; // comment_id
+        const { reason, reasonDetails } = req.body;
+        const moderatorId = req.user.user_id;
+        await ensureCommentSchema();
+
+        if (!reason || !MODERATION_REASONS.has(reason)) {
+            return res.status(400).json({ error: 'A valid moderation reason is required' });
+        }
+
+        // ── 1. Load comment + reel, verify the reel still exists ──
+        const [rows] = await pool.query(
+            `SELECT c.*, m.user_id AS reel_owner_id
+             FROM moment_comments c
+             JOIN moments m ON c.moment_id = m.moment_id
+             WHERE c.comment_id = ? AND c.is_deleted = 0 AND m.deleted_at IS NULL`,
+            [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+
+        const comment = rows[0];
+
+        // Own comments go through DELETE (no moderation record, no self-notify).
+        if (String(comment.user_id) === String(moderatorId)) {
+            return res.status(400).json({ error: 'Use self-delete for your own comments' });
+        }
+
+        // ── 2. Authorization: actual Reel ownership from the DB, or a real
+        //        platform moderation role. Never trust ids from the client. ──
+        const isReelOwner = String(comment.reel_owner_id) === String(moderatorId);
+        let isPlatformModerator = false;
+        if (!isReelOwner) {
+            const [roleRows] = await pool.query(
+                'SELECT role FROM users WHERE user_id = ?',
+                [moderatorId]
+            );
+            const role = roleRows[0]?.role;
+            isPlatformModerator = role === 'admin' || role === 'moderator';
+            if (!isPlatformModerator) {
+                return res.status(403).json({
+                    error: 'Only the creator of this Reel can moderate its comments'
+                });
+            }
+        }
+
+        const commentAuthorId = comment.user_id;
+        const isReply = !!comment.parent_comment_id;
+
+        // ── 3. Idempotency: one moderation event per item per moderator.
+        //        Retried requests stop here, before any write or notification. ──
+        const [existingAudit] = await pool.query(
+            `SELECT id FROM moment_comment_moderation_log
+             WHERE moderator_id = ? AND ((reply_id IS NULL AND comment_id = ?) OR reply_id = ?)`,
+            [moderatorId, id, id]
+        );
+        if (existingAudit.length) {
+            return res.status(409).json({ error: 'This comment has already been moderated' });
+        }
+
+        // ── 4. Removal + audit record in ONE transaction ──
+        const auditId = require('crypto').randomUUID();
+        const deletedCount = await transaction(async (conn) => {
+            const ids = await collectLiveThreadIds(conn, id);
+            const affected = await softDeleteCommentsTx(conn, ids, comment.moment_id);
+
+            await conn.query(
+                `INSERT INTO moment_comment_moderation_log
+                 (id, reel_id, comment_id, reply_id, moderator_id, comment_author_id,
+                  moderation_reason, reason_details, action)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    auditId,
+                    comment.moment_id,
+                    // Thread root + the moderated reply (null for top-level).
+                    isReply ? comment.parent_comment_id : id,
+                    isReply ? id : null,
+                    moderatorId,
+                    commentAuthorId,
+                    reason,
+                    reasonDetails ? String(reasonDetails).slice(0, 500) : null,
+                    isReelOwner ? 'delete' : 'platform_delete',
+                ]
+            );
+            return affected;
+        });
+
+        // ── 5. Notify the removed comment's author (after a successful
+        //        commit). Generic, respectful message: no comment text, no
+        //        private notes, no internal audit details. ──
+        try {
+            const [modRows] = await pool.query(
+                'SELECT username FROM users WHERE user_id = ?',
+                [moderatorId]
+            );
+            const moderatorUsername = modRows[0]?.username || 'The creator';
+            const reasonLabel = REASON_LABELS[reason] || reason;
+            const subject = isReply ? 'Your reply' : 'Your comment';
+            const notifContent = isReelOwner
+                ? `${subject} on ${moderatorUsername}'s Reel was removed by the Reel creator. Reason: ${reasonLabel}.`
+                : `${subject} was removed by Sparkle moderation. Reason: ${reasonLabel}.`;
+
+            await notificationController.createNotification({
+                user_id: commentAuthorId,
+                actor_id: moderatorId,
+                actor_name: moderatorUsername,
+                type: 'comment',
+                title: 'Your comment was removed',
+                content: notifContent,
+                related_id: comment.moment_id,
+                related_type: 'moment',
+                action_url: `/moments/${comment.moment_id}`,
+            });
+        } catch (notifErr) {
+            // The removal stands; a failed notification must never roll it back.
+            logger.warn('Moderation notification failed: ' + (notifErr?.message || notifErr));
+        }
+
+        res.json({ success: true, deletedCount, auditId });
+    } catch (error) {
+        logger.error('Moderate Comment Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REPORT COMMENT — platform reporting, strictly separate from creator
+// moderation. A report NEVER deletes, hides or otherwise alters the comment;
+// it only queues the report for the platform moderation team.
+// ─────────────────────────────────────────────────────────────────────────────
+const reportComment = async (req, res) => {
+    try {
+        const { id } = req.params; // comment_id
+        const { reason } = req.body;
+        const reporterId = req.user.user_id;
+        await ensureCommentSchema();
+
+        const trimmed = reason ? String(reason).trim() : '';
+        if (!trimmed) return res.status(400).json({ error: 'A reason is required' });
+        if (trimmed.length > 500) return res.status(400).json({ error: 'Reason is too long' });
+
+        const [rows] = await pool.query(
+            `SELECT c.comment_id, c.moment_id, m.*
+             FROM moment_comments c
+             JOIN moments m ON c.moment_id = m.moment_id
+             WHERE c.comment_id = ? AND c.is_deleted = 0 AND m.deleted_at IS NULL`,
+            [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+
+        const target = rows[0];
+        // A report must not become an existence oracle for hidden reels.
+        if (!(await visibility.canViewMoment(target, reporterId))) {
+            return res.status(404).json({ error: 'Comment not found' });
+        }
+
+        const reportId = require('crypto').randomUUID();
+        try {
+            await pool.query(
+                `INSERT INTO moment_comment_reports
+                 (report_id, comment_id, moment_id, reporter_id, reason)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [reportId, id, target.moment_id, reporterId, trimmed]
+            );
+        } catch (err) {
+            if (err && (err.code === 'ER_DUP_ENTRY' || err.errno === 1062)) {
+                return res.status(400).json({ error: 'You have already reported this comment.' });
+            }
+            throw err;
+        }
+
+        res.status(201).json({ success: true, report_id: reportId });
+    } catch (error) {
+        logger.error('Report Comment Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET COMMENT — single comment fetch (for edit pre-population)
+// ─────────────────────────────────────────────────────────────────────────────
+const getComment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const userId = req.user.user_id;
+        await ensureCommentSchema();
+
+        const [rows] = await pool.query(
+            `SELECT c.*, u.username, u.avatar_url, m.user_id AS reel_owner_id
+             FROM moment_comments c
+             JOIN users u ON c.user_id = u.user_id
+             JOIN moments m ON c.moment_id = m.moment_id
+             WHERE c.comment_id = ? AND c.is_deleted = 0`,
+            [id]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Comment not found' });
+
+        // Only the comment author or reel owner can fetch single comment details
+        const c = rows[0];
+        const isAuthor = String(c.user_id) === String(userId);
+        const isOwner = String(c.reel_owner_id) === String(userId);
+        if (!isAuthor && !isOwner) {
+            return res.status(403).json({ error: 'Not authorized' });
+        }
+
+        res.json({ success: true, comment: c });
+    } catch (error) {
+        logger.error('Get Comment Error:', error);
+        res.status(500).json({ error: error.message });
+    }
+};
+
 module.exports = {
     getMomentsStream,
     getMomentSuggestions,
@@ -1569,6 +2017,11 @@ module.exports = {
     saveMoment,
     addComment,
     getComments,
+    editComment,
+    deleteComment,
+    moderateComment,
+    reportComment,
+    getComment,
     followUser,
     trackShare,
     trackView,

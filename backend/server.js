@@ -93,7 +93,11 @@ app.use(cors({
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'X-CSRF-Token', 'X-Device-Id', 'X-Admin-Session'],
+    // Cache-Control is sent by the frontend's health/failover polling and by
+    // several fetch() callers. Browsers reject a preflight that carries a header
+    // the server has not whitelisted, so omitting it here blocks those requests
+    // outright rather than merely ignoring the header.
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Cache-Control', 'Pragma', 'X-CSRF-Token', 'X-Device-Id', 'X-Admin-Session'],
     // H26 renewal adoption: without this the browser hides x-refresh-token
     // from JS on cross-origin responses and adoptServerToken() is a no-op
     // in every deployed config (UI_AUDIT P0 #21).

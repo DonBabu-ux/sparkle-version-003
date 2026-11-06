@@ -165,6 +165,16 @@ const getReportedContent = async (req, res) => {
                 r.status, r.created_at, u.username as reporter_name
          FROM post_reports r
          JOIN posts p ON r.post_id = p.post_id
+         LEFT JOIN users u ON r.reporter_id = u.user_id`,
+        // Moment (Reel) comments — reported to PLATFORM moderation. Preview is
+        // read live from the comment (never a stored copy); creator moderation
+        // of the same comment is a separate, already-audited action.
+        `SELECT r.report_id, 'moment_comment' as type, r.comment_id as target_id, r.reason,
+                CONCAT('@', COALESCE(u2.username, 'unknown'), ': ', LEFT(COALESCE(c.content, ''), 120)) as content,
+                r.status, r.created_at, u.username as reporter_name
+         FROM moment_comment_reports r
+         LEFT JOIN moment_comments c ON r.comment_id = c.comment_id
+         LEFT JOIN users u2 ON c.user_id = u2.user_id
          LEFT JOIN users u ON r.reporter_id = u.user_id`
     ];
 

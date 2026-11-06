@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Mail, ArrowRight, ArrowLeft, Check, Eye, EyeOff,
@@ -25,6 +25,40 @@ const AFFILIATION_TYPES = [
 ];
 
 const HERO_IMAGE = 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=640&q=80&auto=format';
+
+function GlossyIcon({
+  children,
+  size = 44,
+  radius = 17,
+}: {
+  children: ReactNode;
+  size?: number;
+  radius?: number;
+}) {
+  return (
+    <span
+      className="relative flex items-center justify-center"
+      style={{
+        width: size,
+        height: size,
+        borderRadius: radius,
+        background: 'linear-gradient(145deg, #FF5FB4 0%, #FF008C 46%, #C0006A 100%)',
+        boxShadow:
+          '0 14px 26px rgba(216,0,124,0.42), inset 0 2px 3px rgba(255,255,255,0.72), inset 0 -4px 8px rgba(120,0,70,0.35)',
+      }}
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0"
+        style={{
+          borderRadius: radius,
+          background: 'linear-gradient(150deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.06) 42%, rgba(255,255,255,0) 62%)',
+        }}
+      />
+      <span className="relative z-10 flex items-center justify-center text-white">{children}</span>
+    </span>
+  );
+}
 
 export default function Signup() {
   const [step, setStep] = useState<Step>(1);
@@ -266,269 +300,264 @@ export default function Signup() {
 
   if (step === 1) {
     return (
-      <div className="relative min-h-dvh flex flex-col justify-between overflow-x-hidden bg-[#FFF3F8] dark:bg-zinc-950 font-sans text-[#10112D] dark:text-white selection:bg-[#FF008C] selection:text-white pb-6">
-        {/* ── 1. BACKGROUND DECORATIVE SHAPES & ILLUMINATION ── */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-          {/* Soft Central Pink Illumination */}
+      <div className="relative flex min-h-dvh w-full flex-col overflow-x-hidden bg-[#FFF3F8] font-sans text-[#10112D] selection:bg-[#FF008C] selection:text-white dark:bg-zinc-950 dark:text-white">
+        {/* ── 1. BACKGROUND: blush base, central illumination, corner curves, layered ellipses ── */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+          {/* Soft central pink illumination */}
           <div
-            className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[520px] h-[520px] rounded-full opacity-60 dark:opacity-20 blur-3xl"
+            className="absolute left-1/2 top-[26%] h-[540px] w-[540px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-70 blur-2xl dark:opacity-25"
             style={{
-              background: 'radial-gradient(circle, rgba(255, 0, 140, 0.22) 0%, rgba(255, 140, 195, 0.12) 45%, transparent 70%)',
+              background:
+                'radial-gradient(circle, rgba(255,0,140,0.20) 0%, rgba(255,150,200,0.13) 45%, rgba(255,243,248,0) 72%)',
             }}
           />
 
-          {/* Upper Left Organic Blush Wave */}
-          <div className="absolute -top-20 -left-20 w-80 h-80 rounded-full bg-gradient-to-br from-[#FFA7D3]/40 via-[#FFD2EB]/20 to-transparent blur-2xl" />
-
-          {/* Upper Right Curved Wave */}
-          <div className="absolute -top-16 -right-16 w-88 h-88 rounded-full bg-gradient-to-bl from-[#FF75BA]/35 via-[#FFA9DD]/15 to-transparent blur-2xl" />
-
-          {/* Top Decorative Floating Petal Shapes */}
-          <svg className="absolute top-12 left-6 w-8 h-8 text-[#FF008C]/30 -rotate-12" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C12 2 14 8 19 9C14 10 12 16 12 16C12 16 10 10 5 9C10 8 12 2 12 2Z" />
+          {/* Upper-left large curved band */}
+          <svg className="absolute -left-24 -top-24 h-[300px] w-[300px] -rotate-12" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="86" stroke="#FFC4E5" strokeWidth="30" opacity="0.7" />
           </svg>
-          <svg className="absolute top-24 right-8 w-6 h-6 text-[#FF52AE]/40 rotate-45" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C12 2 14 8 19 9C14 10 12 16 12 16C12 16 10 10 5 9C10 8 12 2 12 2Z" />
+          <div className="absolute -left-14 top-28 h-40 w-40 rounded-full bg-[#FFDDF1] opacity-70" />
+
+          {/* Upper-right large curved band */}
+          <svg className="absolute -right-28 -top-24 h-[290px] w-[290px] rotate-[20deg]" viewBox="0 0 200 200" fill="none">
+            <circle cx="100" cy="100" r="86" stroke="#FFB3DD" strokeWidth="26" opacity="0.65" />
           </svg>
+          <div className="absolute -right-12 top-24 h-32 w-32 rounded-full bg-[#FFD2EB] opacity-75" />
+
+          {/* Layered circular / elliptical shapes behind the hero */}
+          <div className="absolute left-1/2 top-[15%] h-[430px] w-[430px] -translate-x-1/2 rounded-[50%] bg-[#FFE4F3] opacity-75" />
+          <div className="absolute left-1/2 top-[19%] h-[350px] w-[350px] -translate-x-1/2 rounded-[50%] bg-[#FFEDF7] opacity-85" />
         </div>
 
-        {/* ── 2. BRAND HEADER ── */}
-        <header className="relative z-10 pt-7 sm:pt-9 pb-2 px-5 text-center max-w-md mx-auto">
-          <h1 className="text-3xl sm:text-4xl font-black text-[#10112D] dark:text-white tracking-tight leading-none mb-2">
-            Sparkle
-          </h1>
-          <p className="text-xs sm:text-sm font-medium text-[#565177] dark:text-zinc-300 leading-relaxed max-w-xs mx-auto">
-            It's quick and easy. Join the sweetest <span className="font-black text-[#FF008C]">Sparkle</span> network and bloom with your people.
-          </p>
-        </header>
-
-        {/* ── 3. HERO COMPOSITION (WOMAN + 3D SOCIAL ICONS + SOCIAL CARDS) ── */}
-        <div className="relative z-10 w-full max-w-md mx-auto px-4 my-auto flex flex-col items-center">
-          {/* Hero Visual Area Container */}
-          <div className="relative w-full flex items-center justify-center pt-3 pb-2">
-            {/* Concentric Decorative Rings behind Woman */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[280px] h-[280px] sm:w-[320px] sm:h-[320px] rounded-full border border-[#FFBFDE]/60 bg-gradient-to-b from-[#FFE6F3]/70 to-[#FFF0F7]/20" />
-            </div>
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[230px] h-[230px] sm:w-[260px] sm:h-[260px] rounded-full bg-gradient-to-tr from-[#FFD2EB]/80 to-[#FFF4F9]" />
-            </div>
-
-            {/* Central Woman Photograph */}
-            <div className="relative z-10 w-48 h-48 sm:w-56 sm:h-56 rounded-full p-1 bg-gradient-to-tr from-[#FF008C] via-white to-[#FFA0D2] shadow-[0_16px_38px_rgba(255,0,140,0.25)] overflow-hidden">
-              <img
-                src="/signup-hero-woman.jpg"
-                alt="Happy young woman using smartphone on Sparkle"
-                className="w-full h-full rounded-full object-cover"
-              />
-            </div>
-
-            {/* ── Floating Social Media Card: Left (Friends Sunset) ── */}
-            <div className="absolute left-1 sm:left-3 top-10 z-20 -rotate-6 hover:rotate-0 transition-transform duration-300 pointer-events-auto">
-              <div className="w-24 sm:w-28 p-1.5 bg-white dark:bg-zinc-800 rounded-2xl shadow-[0_12px_28px_rgba(0,0,0,0.15)] border border-white/95 dark:border-white/10">
-                <div className="relative w-full h-20 sm:h-24 rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=240&q=80&auto=format"
-                    alt="Friends celebrating sunset"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-1.5 left-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm text-[9px] font-black text-[#10112D] dark:text-white">
-                    <Heart size={9} className="text-[#FF008C]" fill="#FF008C" />
-                    <span>12.4K</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── Floating Social Media Card: Right (City Lifestyle) ── */}
-            <div className="absolute right-1 sm:right-3 top-12 z-20 rotate-6 hover:rotate-0 transition-transform duration-300 pointer-events-auto">
-              <div className="w-24 sm:w-28 p-1.5 bg-white dark:bg-zinc-800 rounded-2xl shadow-[0_12px_28px_rgba(0,0,0,0.15)] border border-white/95 dark:border-white/10">
-                <div className="relative w-full h-20 sm:h-24 rounded-xl overflow-hidden">
-                  <img
-                    src="https://images.unsplash.com/photo-1513002749550-c59d786b8e6c?w=240&q=80&auto=format"
-                    alt="City lifestyle moment"
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute bottom-1.5 left-1.5 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-sm px-1.5 py-0.5 rounded-full flex items-center gap-1 shadow-sm text-[9px] font-black text-[#10112D] dark:text-white">
-                    <Heart size={9} className="text-[#FF008C]" fill="#FF008C" />
-                    <span>8.7K</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* ── 4 Floating 3D Glossy Magenta Icons ── */}
-            {/* 1. Upper-Left: Message Bubble with 3 Dots */}
-            <div
-              className="absolute left-6 sm:left-12 -top-1 z-30 w-11 h-11 rounded-2xl flex items-center justify-center text-white -rotate-12 transition-transform hover:scale-110 shadow-[0_10px_22px_rgba(255,0,140,0.42),inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-2px_4px_rgba(0,0,0,0.15)]"
-              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
-            >
-              <div className="flex items-center gap-0.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
-                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
-                <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs" />
-              </div>
-            </div>
-
-            {/* 2. Upper-Right: Reels / Video Play Icon */}
-            <div
-              className="absolute right-6 sm:right-12 top-0 z-30 w-11 h-11 rounded-2xl flex items-center justify-center text-white rotate-12 transition-transform hover:scale-110 shadow-[0_10px_22px_rgba(255,0,140,0.42),inset_0_2px_4px_rgba(255,255,255,0.7),inset_0_-2px_4px_rgba(0,0,0,0.15)]"
-              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
-            >
-              <Play size={18} fill="white" className="ml-0.5 text-white" />
-            </div>
-
-            {/* 3. Lower-Left: Friends / Group Icon */}
-            <div
-              className="absolute left-10 sm:left-14 bottom-4 z-30 w-10 h-10 rounded-2xl flex items-center justify-center text-white rotate-6 transition-transform hover:scale-110 shadow-[0_8px_18px_rgba(255,0,140,0.38),inset_0_2px_3px_rgba(255,255,255,0.7),inset_0_-2px_3px_rgba(0,0,0,0.15)]"
-              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
-            >
-              <Users size={18} strokeWidth={2.4} />
-            </div>
-
-            {/* 4. Lower-Right: Heart / Like Icon */}
-            <div
-              className="absolute right-10 sm:right-14 bottom-3 z-30 w-10 h-10 rounded-2xl flex items-center justify-center text-white -rotate-6 transition-transform hover:scale-110 shadow-[0_8px_18px_rgba(255,0,140,0.38),inset_0_2px_3px_rgba(255,255,255,0.7),inset_0_-2px_3px_rgba(0,0,0,0.15)]"
-              style={{ background: 'linear-gradient(135deg, #FF2E93 0%, #FF008C 50%, #C9006E 100%)' }}
-            >
-              <Heart size={18} fill="white" className="text-white" />
-            </div>
-          </div>
-
-          {/* ── 4. LARGE CREATE ACCOUNT CARD ── */}
-          <div className="relative z-20 -mt-6 sm:-mt-8 w-full rounded-[36px] sm:rounded-[42px] bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl border border-[#FADCEB] dark:border-white/10 shadow-[0_20px_55px_rgba(255,0,140,0.14)] p-6 sm:p-7">
-            {/* Card Header & 5 Circular Progress Dots */}
-            <div className="flex items-center justify-between mb-4 pb-1">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-black text-[#10112D] dark:text-white tracking-tight">
-                  Create account
-                </h2>
-              </div>
-              <div className="flex flex-col items-end gap-1.5">
-                <span className="text-xs font-bold text-[#656083] dark:text-zinc-400">Step 1 of 5</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#FF008C] shadow-sm shadow-[#FF008C]/40" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-slate-200 dark:bg-zinc-700" />
-                </div>
-              </div>
-            </div>
-
-            {/* 4 Feature Rows */}
-            <div className="space-y-3">
-              {/* Row 1: Connect with friends */}
-              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
-                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
-                  <Users size={20} strokeWidth={2.4} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
-                    Connect with friends
-                  </h4>
-                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
-                    Chat, follow and grow your circle.
-                  </p>
-                </div>
-              </div>
-
-              {/* Row 2: Explore amazing content */}
-              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
-                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
-                  <Play size={19} strokeWidth={2.4} className="ml-0.5" fill="#FF008C" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
-                    Explore amazing content
-                  </h4>
-                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
-                    Short videos, stories and more.
-                  </p>
-                </div>
-              </div>
-
-              {/* Row 3: Buy & sell easily */}
-              <div className="flex items-center gap-3.5 pb-2.5 border-b border-[#F7E6EF] dark:border-white/5">
-                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
-                  <ShoppingBag size={20} strokeWidth={2.4} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
-                    Buy &amp; sell easily
-                  </h4>
-                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
-                    On our marketplace.
-                  </p>
-                </div>
-              </div>
-
-              {/* Row 4: Safe & secure */}
-              <div className="flex items-center gap-3.5">
-                <div className="w-11 h-11 rounded-full bg-[#FFEBF5] text-[#FF008C] flex items-center justify-center shrink-0 shadow-inner">
-                  <ShieldCheck size={20} strokeWidth={2.4} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-black text-[#10112D] dark:text-white leading-tight">
-                    Safe &amp; secure
-                  </h4>
-                  <p className="text-xs font-medium text-[#656083] dark:text-zinc-400 mt-0.5 truncate">
-                    Your privacy, our priority.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Small Dimensional Pink Sparkle Decoration in Lower-Right */}
-            <div className="absolute -bottom-2.5 right-6 text-[#FF008C] pointer-events-none drop-shadow-[0_2px_8px_rgba(255,0,140,0.45)]">
-              <Sparkles size={22} fill="#FF008C" />
-            </div>
-
-            {/* Primary Action Button */}
-            <button
-              onClick={nextStep}
-              className="w-full mt-5 py-3.5 px-6 rounded-full bg-[#FF008C] hover:bg-[#E6007E] active:scale-[0.98] text-white font-extrabold text-sm sm:text-base tracking-wide flex items-center justify-center gap-2 shadow-[0_8px_24px_rgba(255,0,140,0.36)] transition-all cursor-pointer"
-              type="button"
-            >
-              <span>Get started</span>
-              <ArrowRight size={18} strokeWidth={2.8} />
-            </button>
-
-            {/* Sign-in Action */}
-            <p className="mt-3.5 text-center text-xs sm:text-sm font-medium text-[#565177] dark:text-zinc-400">
-              Already have an account?{' '}
-              <Link to="/login" className="font-bold text-[#FF008C] hover:underline">
-                Sign in
-              </Link>
+        {/* ── CONTENT COLUMN ── */}
+        <div className="relative z-10 flex min-h-dvh flex-1 flex-col">
+          {/* ── 2. SPARKLE BRAND HEADER ── */}
+          <header className="px-6 pb-3 pt-7 text-center sm:pt-9">
+            <h1 className="text-[32px] font-black leading-none tracking-tight text-[#10112D] sm:text-4xl dark:text-white">
+              Sparkle
+            </h1>
+            <p className="mx-auto mt-2.5 max-w-[19.5rem] text-xs font-medium leading-relaxed text-[#565177] sm:text-[13.5px] dark:text-zinc-300">
+              It's quick and easy. Join the sweetest{' '}
+              <span className="font-black text-[#FF008C]">Sparkle</span> network and bloom with your people.
             </p>
-          </div>
-        </div>
+          </header>
 
-        {/* ── 5. BOTTOM DECORATIVE WAVES (OVERLAPPING PINK & MAGENTA LAYERS) ── */}
-        <div className="w-full overflow-hidden leading-none pointer-events-none mt-2 relative z-0">
-          <svg
-            viewBox="0 0 1440 120"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-full h-12 sm:h-16 object-cover"
-            preserveAspectRatio="none"
-          >
-            <path
-              d="M0,32L60,42.7C120,53,240,75,360,74.7C480,75,600,53,720,42.7C840,32,960,32,1080,42.7C1200,53,1320,75,1380,85.3L1440,96L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
-              fill="#FFA8D5"
-              fillOpacity="0.4"
-            />
-            <path
-              d="M0,64L48,69.3C96,75,192,85,288,80C384,75,480,53,576,48C672,43,768,53,864,64C960,75,1056,85,1152,80C1248,75,1344,53,1392,42.7L1440,32L1440,120L1392,120C1344,120,1248,120,1152,120C1056,120,960,120,864,120C768,120,672,120,576,120C480,120,384,120,288,120C192,120,96,120,48,120L0,120Z"
-              fill="#FF52AE"
-              fillOpacity="0.35"
-            />
-            <path
-              d="M0,96L60,90.7C120,85,240,75,360,69.3C480,64,600,64,720,69.3C840,75,960,85,1080,85.3C1200,85,1320,75,1380,69.3L1440,64L1440,120L1380,120C1320,120,1200,120,1080,120C960,120,840,120,720,120C600,120,480,120,360,120C240,120,120,120,60,120L0,120Z"
-              fill="#FF008C"
-              fillOpacity="0.25"
-            />
-          </svg>
+          {/* ── HERO + CREATE ACCOUNT CARD ── */}
+          <main className="flex flex-1 flex-col justify-end px-4 pb-1">
+            <div className="relative mx-auto w-full max-w-[372px]">
+              {/* Large pink curved area behind the woman (reaches under the card) */}
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute left-1/2 top-3 bottom-[-76px] w-[132%] -translate-x-1/2 rounded-[999px] bg-gradient-to-b from-[#FFD5EC] via-[#FFEAF6] to-[#FFF7FB]"
+              />
+
+              {/* ── 3. HERO COMPOSITION ── */}
+              <div className="relative h-[292px] sm:h-[332px]">
+                {/* Concentric decorative rings behind the woman */}
+                <div className="pointer-events-none absolute inset-x-0 top-1 mx-auto flex h-[252px] w-[252px] items-center justify-center rounded-full border border-white/70 bg-white/35 sm:h-[286px] sm:w-[286px]" />
+                <div className="pointer-events-none absolute inset-x-0 top-6 mx-auto flex h-[206px] w-[206px] items-center justify-center rounded-full bg-white/55 sm:h-[236px] sm:w-[236px]" />
+
+                {/* Central woman photograph — bottom tucks behind the card */}
+                <div className="absolute left-1/2 top-0 z-10 h-[calc(100%+46px)] w-[76%] -translate-x-1/2 overflow-hidden rounded-[40px] bg-[#FFE9F5] shadow-[0_26px_56px_rgba(176,44,116,0.24)] ring-1 ring-white/75 sm:rounded-[46px]">
+                  <img
+                    src="/signup-hero-woman.jpg"
+                    alt="Happy young woman smiling at her smartphone on Sparkle"
+                    className="h-full w-full object-cover object-top"
+                    draggable={false}
+                    decoding="async"
+                  />
+                </div>
+
+                {/* ── Floating social card: left (friends at sunset) ── */}
+                <div className="absolute left-0 top-[24%] z-20 w-[104px] -rotate-[7deg] transition-transform duration-300 hover:rotate-0 sm:w-[112px]">
+                  <div className="rounded-[20px] border border-white bg-white p-[5px] shadow-[0_16px_32px_rgba(126,24,80,0.22)]">
+                    <div className="relative h-[74px] overflow-hidden rounded-[15px] bg-[#F3E7EE] sm:h-[80px]">
+                      <img
+                        src="/signup-card-friends.jpg"
+                        alt="Friends celebrating together at sunset"
+                        className="h-full w-full object-cover"
+                        draggable={false}
+                        decoding="async"
+                      />
+                      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-white/95 px-1.5 py-[2px] shadow-[0_2px_6px_rgba(0,0,0,0.16)]">
+                        <Heart size={9} className="text-[#FF008C]" fill="#FF008C" strokeWidth={2.5} />
+                        <span className="text-[9px] font-black leading-none text-[#10112D]">12.4K</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── Floating social card: right (city lifestyle) ── */}
+                <div className="absolute right-0 top-[34%] z-20 w-[104px] rotate-[7deg] transition-transform duration-300 hover:rotate-0 sm:w-[112px]">
+                  <div className="rounded-[20px] border border-white bg-white p-[5px] shadow-[0_16px_32px_rgba(126,24,80,0.22)]">
+                    <div className="relative h-[74px] overflow-hidden rounded-[15px] bg-[#F3E7EE] sm:h-[80px]">
+                      <img
+                        src="/signup-card-city.jpg"
+                        alt="City lifestyle moment"
+                        className="h-full w-full object-cover"
+                        draggable={false}
+                        decoding="async"
+                      />
+                      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1 rounded-full bg-white/95 px-1.5 py-[2px] shadow-[0_2px_6px_rgba(0,0,0,0.16)]">
+                        <Heart size={9} className="text-[#FF008C]" fill="#FF008C" strokeWidth={2.5} />
+                        <span className="text-[9px] font-black leading-none text-[#10112D]">8.7K</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── 4 FLOATING 3D GLOSSY MAGENTA ICONS ── */}
+                {/* 1. Upper-left: message bubble with three dots */}
+                <div className="absolute left-[6%] top-[3%] z-30 -rotate-[12deg] transition-transform duration-300 hover:scale-110">
+                  <GlossyIcon size={44} radius={17}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path
+                        d="M19.6 11.4c0 3.5-3.4 6.3-7.6 6.3-.95 0-1.86-.14-2.7-.4L5.1 19.1l1.16-3.02C4.45 14.9 3.6 13.25 3.6 11.4c0-3.53 3.4-6.4 7.6-6.4s8.4 2.87 8.4 6.4Z"
+                        stroke="white"
+                        strokeWidth="1.8"
+                        strokeLinejoin="round"
+                      />
+                      <circle cx="8.4" cy="11.4" r="1.15" fill="white" />
+                      <circle cx="11.6" cy="11.4" r="1.15" fill="white" />
+                      <circle cx="14.8" cy="11.4" r="1.15" fill="white" />
+                    </svg>
+                  </GlossyIcon>
+                </div>
+
+                {/* 2. Upper-right: reels / video play */}
+                <div className="absolute right-[6%] top-0 z-30 rotate-[12deg] transition-transform duration-300 hover:scale-110">
+                  <GlossyIcon size={44} radius={17}>
+                    <svg width="23" height="23" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <rect x="3.6" y="3.6" width="16.8" height="16.8" rx="5.2" stroke="white" strokeWidth="1.8" />
+                      <path d="M10.3 9.1v5.8l4.9-2.9-4.9-2.9Z" fill="white" />
+                    </svg>
+                  </GlossyIcon>
+                </div>
+
+                {/* 3. Lower-left: friends / group */}
+                <div className="absolute bottom-[19%] left-[9%] z-30 rotate-[6deg] transition-transform duration-300 hover:scale-110">
+                  <GlossyIcon size={40} radius={16}>
+                    <Users size={19} strokeWidth={2.4} />
+                  </GlossyIcon>
+                </div>
+
+                {/* 4. Lower-right: heart / like */}
+                <div className="absolute bottom-[17%] right-[9%] z-30 -rotate-[6deg] transition-transform duration-300 hover:scale-110">
+                  <GlossyIcon size={40} radius={16}>
+                    <Heart size={18} fill="white" strokeWidth={2} />
+                  </GlossyIcon>
+                </div>
+              </div>
+
+              {/* ── 5. LARGE CREATE ACCOUNT CARD ── */}
+              <div className="relative z-30 -mt-[46px] w-full overflow-hidden rounded-[34px] border border-[#FBDCEC] bg-gradient-to-b from-white via-white to-[#FFF7FB] p-5 shadow-[0_26px_60px_rgba(190,36,114,0.18)] sm:rounded-[40px] sm:p-6 dark:border-white/10 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-950">
+                {/* Decorative pink curved shapes within the card */}
+                <div aria-hidden="true" className="pointer-events-none absolute -left-20 -top-24 h-52 w-52 rounded-full bg-[#FFE7F4] dark:bg-white/5" />
+                <div aria-hidden="true" className="pointer-events-none absolute -right-24 top-16 h-44 w-44 rounded-full bg-[#FFF1F8] dark:bg-white/[0.03]" />
+
+                {/* Heading + step progress */}
+                <div className="relative mb-4 flex items-start justify-between gap-3">
+                  <h2 className="text-[21px] font-black leading-none tracking-tight text-[#10112D] sm:text-[23px] dark:text-white">
+                    Create account
+                  </h2>
+                  <div className="flex shrink-0 flex-col items-end gap-2">
+                    <span className="text-[11px] font-bold leading-none text-[#6B6688] dark:text-zinc-400">
+                      Step 1 of 5
+                    </span>
+                    <div className="flex items-center gap-1.5" role="progressbar" aria-valuenow={1} aria-valuemin={1} aria-valuemax={5}>
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#FF008C] shadow-[0_0_8px_rgba(255,0,140,0.55)]" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#E7E2EC] dark:bg-zinc-700" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#E7E2EC] dark:bg-zinc-700" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#E7E2EC] dark:bg-zinc-700" />
+                      <span className="h-2.5 w-2.5 rounded-full bg-[#E7E2EC] dark:bg-zinc-700" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* ── 6. FOUR FEATURE ROWS ── */}
+                <div className="relative">
+                  {[
+                    { icon: Users, title: 'Connect with friends', desc: 'Chat, follow and grow your circle.' },
+                    { icon: Play, title: 'Explore amazing content', desc: 'Short videos, stories and more.', solid: true },
+                    { icon: ShoppingBag, title: 'Buy & sell easily', desc: 'On our marketplace.' },
+                    { icon: ShieldCheck, title: 'Safe & secure', desc: 'Your privacy, our priority.' },
+                  ].map(({ icon: Icon, title, desc, solid }, i) => (
+                    <div
+                      key={title}
+                      className={`flex items-center gap-3.5 ${i < 3 ? 'border-b border-[#F7E7F0] pb-3 dark:border-white/5' : ''
+                        } ${i > 0 ? 'pt-3' : ''}`}
+                    >
+                      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[#FFEBF5] text-[#FF008C] shadow-[inset_0_1px_2px_rgba(255,255,255,0.9)] dark:bg-white/10">
+                        <Icon size={20} strokeWidth={2.3} fill={solid ? '#FF008C' : 'none'} className={solid ? 'ml-0.5' : ''} />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <h4 className="text-[13.5px] font-black leading-tight text-[#10112D] dark:text-white">{title}</h4>
+                        <p className="mt-0.5 text-[11.5px] font-medium leading-snug text-[#6B6688] dark:text-zinc-400">{desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Small dimensional pink sparkle decoration (lower-right) */}
+                <span
+                  aria-hidden="true"
+                  className="pointer-events-none absolute bottom-[70px] right-4 flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-[#FF6BB8] to-[#E6007E] text-white shadow-[0_10px_20px_rgba(255,0,140,0.45),inset_0_2px_3px_rgba(255,255,255,0.6),inset_0_-3px_6px_rgba(140,0,80,0.35)]"
+                >
+                  <Sparkles size={17} fill="white" strokeWidth={1.6} />
+                </span>
+
+                {/* ── 7. PRIMARY ACTION BUTTON ── */}
+                <button
+                  onClick={nextStep}
+                  type="button"
+                  className="relative mt-5 flex w-full items-center justify-center gap-2 rounded-full bg-[#FF008C] px-6 py-3.5 text-[15px] font-extrabold tracking-wide text-white shadow-[0_14px_28px_rgba(255,0,140,0.38),inset_0_1px_0_rgba(255,255,255,0.35)] transition-all hover:bg-[#E6007E] active:scale-[0.985] cursor-pointer"
+                >
+                  <span>Get started</span>
+                  <ArrowRight size={18} strokeWidth={2.8} />
+                </button>
+
+                {/* ── 8. SIGN-IN ACTION ── */}
+                <p className="relative mt-3.5 text-center text-xs font-medium text-[#565177] sm:text-[13px] dark:text-zinc-400">
+                  Already have an account?{' '}
+                  <Link to="/login" className="font-bold text-[#FF008C] hover:underline">
+                    Sign in
+                  </Link>
+                </p>
+              </div>
+            </div>
+          </main>
+
+          {/* ── 9. BOTTOM DECORATIVE WAVES (OVERLAPPING PINK & MAGENTA LAYERS) ── */}
+          <div aria-hidden="true" className="relative z-0 mt-3 w-full overflow-hidden leading-none">
+            <svg
+              viewBox="0 0 1440 140"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-14 w-full sm:h-16"
+              preserveAspectRatio="none"
+            >
+              <path
+                d="M0,34C120,10 240,10 360,28C480,46 600,80 720,86C840,92 960,70 1080,52C1200,34 1320,22 1380,18L1440,14L1440,140L0,140Z"
+                fill="#FFC0E2"
+                fillOpacity="0.55"
+              />
+              <path
+                d="M0,62C120,44 240,44 360,58C480,72 600,98 720,104C840,110 960,96 1080,80C1200,64 1320,50 1380,44L1440,38L1440,140L0,140Z"
+                fill="#FF86C6"
+                fillOpacity="0.5"
+              />
+              <path
+                d="M0,88C140,72 280,70 420,82C560,94 700,118 840,122C980,126 1120,110 1260,94C1330,86 1390,80 1440,74L1440,140L0,140Z"
+                fill="#FF4FAE"
+                fillOpacity="0.45"
+              />
+              <path
+                d="M0,112C160,102 320,100 480,108C640,116 800,132 960,134C1120,136 1280,124 1440,112L1440,140L0,140Z"
+                fill="#FF008C"
+                fillOpacity="0.35"
+              />
+            </svg>
+          </div>
         </div>
       </div>
     );

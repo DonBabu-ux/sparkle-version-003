@@ -15,9 +15,18 @@ router.get('/liked', authMiddleware, feedRateLimiter, postController.getLikedPos
 router.get('/saved', authMiddleware, feedRateLimiter, postController.getSavedPosts);
 router.get('/:id', authMiddleware, validate(postIdSchema, 'params'), postController.getPost);
 router.post('/', authMiddleware, mutationRateLimiter, postUpload.array('media', 10), (req, res, next) => {
-    console.log('📬 Post Upload Request Received');
-    console.log('📦 Body:', req.body);
-    console.log('📎 Files:', req.files?.map(f => ({ name: f.originalname, field: f.fieldname, type: f.mimetype, path: f.path })));
+    // Do not log req.body here: it carries the post text a user is about to
+    // publish, and every audit route forwards whatever the client sent. The
+    // shape below is enough to debug an upload failure without writing user
+    // content into the server log on every request.
+    const shape = {
+        keys: Object.keys(req.body || {}).sort(),
+        contentType: (req.headers['content-type'] || '').split(';')[0],
+        files: Array.isArray(req.files)
+            ? req.files.length
+            : 0,
+    };
+    console.log('📬 Post upload received — ' + JSON.stringify(shape));
     next();
 }, validate(createPostSchema), postController.createPost);
 router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(postIdSchema, 'params'), postController.sparkPost);

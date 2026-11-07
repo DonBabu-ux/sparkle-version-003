@@ -34,6 +34,7 @@ const { initializeSocket } = require('./socket');
 const { initializeEmail } = require('./config/email');
 require('./workers/notification.worker'); // Start the background notification worker
 require('./workers/inactivityNotifier'); // Start marketplace inactivity worker
+require('./workers/messageReminder.worker'); // Start unread-message reminder worker (Phase 1a)
 require('./jobs/candidatePool'); // Start feed candidate pool builder
 const { initMediaJobs } = require('./jobs/media-cleanup.job'); // Media lifecycle engine
 initMediaJobs();

@@ -41,7 +41,10 @@ const MIGRATION_RUN = [
     { file: '20261104_recovery_token_hash.js', verify: [] },
     // Moments hardening: FKs for moment_hashtags/moment_likes, media_type
     // backfill, video_url made nullable. Idempotent throughout.
-    { file: '20261106_harden_moments.js', verify: [] }
+    { file: '20261106_harden_moments.js', verify: [] },
+    // Engagement Engine Phase 1a: the ledger the unread-message reminder
+    // worker writes to. Created before the worker's first sweep.
+    { file: '20261107_message_reminders.js', verify: [] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

@@ -52,8 +52,8 @@ const createdEmails = [];
 
 function signupPayload(overrides = {}) {
     const suffix = overrides.suffix || crypto.randomBytes(4).toString('hex');
-    const username = overrides.username || `sgn_${RUN_ID}_${suffix}`;
-    const email = overrides.email || `sgn_${RUN_ID}_${suffix}@example.invalid`;
+    const username = overrides.username || `sgn_${SHORT_ID}_${suffix}`;
+    const email = overrides.email || `sgn_${SHORT_ID}_${suffix}@example.invalid`;
     return {
         name: 'Signup Test',
         username,
@@ -223,7 +223,7 @@ test('two concurrent registrations with the same username cannot both succeed', 
     assert.strictEqual(rows.length, 1);
 });
 
-test('the duplicate key conflict keeps the existing response format', async () => {
+test('a duplicate registration keeps the existing duplicate identity response format', async () => {
     const payload = signupPayload();
     const created = await authService.signup(payload, 'test-device');
     createdUserIds.push(created.user.user_id);
@@ -236,6 +236,10 @@ test('the duplicate key conflict keeps the existing response format', async () =
     }
     assert.ok(caught);
     assert.ok(Array.isArray(caught.validationErrors));
-    assert.strictEqual(caught.validationErrors[0].code, 'DUPLICATE_ENTRY');
-    assert.strictEqual(caught.validationErrors[0].message, 'User with this email or username was registered concurrently.');
+    const emailError = caught.validationErrors.find((e) => e.code === 'EMAIL_TAKEN');
+    const usernameError = caught.validationErrors.find((e) => e.code === 'USERNAME_TAKEN');
+    assert.ok(emailError, 'the duplicate email must be reported');
+    assert.ok(usernameError, 'the duplicate username must be reported');
+    assert.strictEqual(emailError.message, 'Email address is already registered.');
+    assert.strictEqual(usernameError.message, 'Username is already taken.');
 });

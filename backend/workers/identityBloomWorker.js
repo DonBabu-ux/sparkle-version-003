@@ -38,6 +38,10 @@ class IdentityBloomWorker {
         this.started = true;
         logger.info(`[IdentityBloomWorker] Starting identity synchronization worker (interval ${interval}ms, id ${this.workerId})`);
 
+        redisClient.ping(config.timeoutMs).catch((err) => {
+            logger.warn(`[IdentityBloomWorker] Redis warm-up failed: ${err.message}`);
+        });
+
         this.runCycle().catch((err) => {
             logger.error('[IdentityBloomWorker] Initial cycle error:', err.message);
         });

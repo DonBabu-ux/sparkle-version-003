@@ -19,6 +19,7 @@ interface HlsVideoPlayerProps {
   videoClassName?: string;
   onTimeUpdate?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   onLoadedData?: () => void;
+  onLoadedMetadata?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   onQualityChange?: (quality: string) => void;
 }
 
@@ -31,9 +32,10 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   muted = false,
   loop = true,
   className = "",
-  videoClassName = "w-full h-full object-contain drop-shadow-2xl",
+  videoClassName = "w-full h-full object-cover md:object-contain",
   onTimeUpdate,
   onLoadedData,
+  onLoadedMetadata,
   onQualityChange
 }, ref) => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -150,6 +152,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
         onWaiting={() => {}}
         onPlaying={() => {}}
         onLoadedData={onLoadedData}
+        onLoadedMetadata={onLoadedMetadata}
         onError={() => {
           const video = localVideoRef.current;
           if (!video) return;

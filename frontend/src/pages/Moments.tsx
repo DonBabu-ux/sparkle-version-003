@@ -224,8 +224,21 @@ const ReelItem = React.memo(({
   }, [moment]);
   const isMultiImage = imageUrls.length > 1;
   const [carouselIdx, setCarouselIdx] = useState(0);
-  // Reset carousel when moment changes
-  useEffect(() => { setCarouselIdx(0); }, [moment?.moment_id]);
+  const [isLandscape, setIsLandscape] = useState(false);
+  // Reset carousel and landscape mode when moment changes
+  useEffect(() => { 
+    setCarouselIdx(0); 
+    setIsLandscape(false);
+  }, [moment?.moment_id]);
+
+  const handleVideoMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (v.videoWidth && v.videoHeight && v.videoWidth > v.videoHeight * 1.2) {
+      setIsLandscape(true);
+    } else {
+      setIsLandscape(false);
+    }
+  };
   // Carousel swipe handling (horizontal only, no bubble to vertical FYP swipe)
   const carouselTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleCarouselTouchStart = (e: React.TouchEvent) => {
@@ -491,7 +504,7 @@ const ReelItem = React.memo(({
                     key={idx}
                     src={getMediaUrl(url) || url}
                     alt={`Slide ${idx + 1}`}
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-300"
+                    className="absolute inset-0 w-full h-full object-cover md:object-contain pointer-events-none transition-opacity duration-300"
                     style={{ opacity: idx === carouselIdx ? 1 : 0 }}
                     draggable={false}
                   />
@@ -543,21 +556,34 @@ const ReelItem = React.memo(({
               muted={muted}
               onTimeUpdate={onVideoTimeUpdate}
               onQualityChange={onQualityChange}
-              className=""
-              videoClassName="max-w-full max-h-[88vh] w-auto h-auto object-contain drop-shadow-2xl"
+              onLoadedMetadata={handleVideoMetadata}
+              className="w-full h-full"
+              videoClassName={clsx(
+                "w-full h-full transition-all duration-300",
+                isLandscape ? "object-contain" : "object-cover md:object-contain"
+              )}
             />
           ) : (
             <img
               src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
               alt="Moment"
-              className="max-w-full max-h-[88vh] w-auto h-auto object-contain pointer-events-none drop-shadow-2xl rounded-sm"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight && img.naturalWidth > img.naturalHeight * 1.2) {
+                  setIsLandscape(true);
+                }
+              }}
+              className={clsx(
+                "w-full h-full pointer-events-none transition-all duration-300",
+                isLandscape ? "object-contain" : "object-cover md:object-contain"
+              )}
             />
           )}
         </div>
         
         {/* Overlays */}
         <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/80 via-black/20 to-transparent pointer-events-none" />
-        <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/40 to-transparent pointer-events-none" />
+        <div className="absolute inset-x-0 top-0 h-44 bg-gradient-to-b from-black/85 via-black/45 to-transparent pointer-events-none z-10" />
 
         {/* Creator watermark — honors the per-reel composer toggle (default on) */}
         {isWatermarkVisible(moment.watermark) && (
@@ -1429,13 +1455,14 @@ export default function Moments() {
       )}
 
       {/* Top Navigation Bar Overlay — TikTok layout: search inline in the feed
-          header, action icons to the right. Buttons carry their own opaque
-          background so they stay legible over bright frames. */}
+          header, action icons to the right. Carries a smooth dark gradient scrim
+          and high-contrast dark pills so the search bar stays crisp and visible
+          over any media, blending seamlessly without any video edge cutting through. */}
       {!isSearchOpen && (
         <div
-          className="fixed top-0 left-0 right-0 px-4 pb-4 flex items-center gap-2.5 z-(--z-header) pointer-events-none md:ml-(--rail-w)"
+          className="fixed top-0 left-0 right-0 px-4 pb-6 flex items-center gap-2.5 z-(--z-header) pointer-events-none md:ml-(--rail-w) bg-gradient-to-b from-black/90 via-black/60 to-transparent"
           style={{
-            paddingTop: 'calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+            paddingTop: 'calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
             paddingLeft: 'calc(1rem + var(--safe-area-inset-left, env(safe-area-inset-left, 0px)))',
             paddingRight: 'calc(1rem + var(--safe-area-inset-right, env(safe-area-inset-right, 0px)))',
           }}
@@ -1443,12 +1470,12 @@ export default function Moments() {
           <button
             onClick={() => navigate(-1)}
             aria-label="Go back"
-            className="w-11 h-11 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform"
+            className="w-11 h-11 shrink-0 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform shadow-lg"
           >
             <X size={20} />
           </button>
 
-          {/* Inline search — sits in the feed header, not a separate screen */}
+          {/* Inline search — dark visible styling with backdrop-blur */}
           <div className="flex-1 relative min-w-0 pointer-events-auto">
             <input
               readOnly
@@ -1456,16 +1483,16 @@ export default function Moments() {
               value=""
               placeholder="Search moments"
               aria-label="Search moments"
-              className="w-full h-11 rounded-full bg-black/55 border border-white/10 pl-10 pr-4 text-sm font-medium text-white placeholder-white/50 outline-none focus:border-white/25 transition-colors cursor-pointer"
+              className="w-full h-11 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 pl-10 pr-4 text-sm font-medium text-white placeholder-white/60 outline-none focus:border-white/35 shadow-lg transition-colors cursor-pointer"
             />
-            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 pointer-events-none" />
+            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/60 pointer-events-none" />
           </div>
 
           <div className="flex items-center gap-2 pointer-events-auto">
             <button
               onClick={() => navigate('/moments/studio')}
               aria-label="Moment Studio"
-              className="w-11 h-11 shrink-0 rounded-full bg-black/55 border border-white/10 flex items-center justify-center text-white active:scale-90 transition-transform"
+              className="w-11 h-11 shrink-0 rounded-full bg-black/75 backdrop-blur-xl border border-white/20 flex items-center justify-center text-white active:scale-90 transition-transform shadow-lg"
             >
               <BarChart3 size={18} />
             </button>

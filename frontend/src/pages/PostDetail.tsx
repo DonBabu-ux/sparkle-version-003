@@ -54,8 +54,11 @@ export default function PostDetail() {
     const fetchPost = async () => {
       try {
         const postRes = await api.get(`/posts/${id}`);
-        if (postRes.data.status === 'success') {
-          setPost(postRes.data.data);
+        // GET /posts/:id answers res.json(post) - the post row itself, with no
+        // { status, data } envelope. Gating on status was never true, so every
+        // post link in the app landed on "Post not found".
+        if (postRes.data && postRes.data.post_id) {
+          setPost(postRes.data);
         }
       } catch (err) {
         logger.error('Failed to fetch post details:', err);
@@ -74,9 +77,10 @@ export default function PostDetail() {
     setSubmitting(true);
     try {
       const response = await api.post(`/posts/${id}/comments`, { content: commentText.trim() });
-      if (response.data.status === 'success') {
+      // POST /comments answers { message, comment_id } - snake_case, no envelope.
+      if (response.data && response.data.comment_id) {
         const newComment = {
-          comment_id: response.data.data.commentId,
+        comment_id: response.data.comment_id,
           content: commentText.trim(),
           user_id: user?.id || user?.user_id,
           username: user?.username,
@@ -143,13 +147,30 @@ export default function PostDetail() {
 
            <p className="text-[#18181b] dark:text-zinc-100 text-lg leading-relaxed mb-8 whitespace-pre-wrap">{post.content}</p>
 
-           {post.media?.length > 0 && (
-             <div className="grid grid-cols-1 gap-4 mb-8 rounded-2xl overflow-hidden">
-               {post.media.map((m: { url: string }, i: number) => (
-                 <img key={i} src={getOptimizedMediaUrl(m.url, 'hd', 1200)} className="w-full min-h-[320px] max-h-[800px] bg-[#f6eef3] dark:bg-zinc-900 object-cover rounded-2xl border border-[#e6d8e1] dark:border-zinc-700" alt="" />
-               ))}
-             </div>
-           )}
+            {/*
+              The API returns media_files: [{ url, media_type }] built by Post.findById.
+              Reading post.media silently produced undefined, so this block never
+              rendered and multi-image posts showed text only. Fall back to media_url
+              when media_files is empty, matching how the feed renders the same post.
+            */}
+            {(() => {
+              const items = (post.media_files && post.media_files.length > 0)
+                ? post.media_files
+                : (post.media_url ? [{ url: post.media_url, media_type: post.media_type }] : []);
+              if (items.length === 0) return null;
+              return (
+                <div className="grid grid-cols-1 gap-4 mb-8 rounded-2xl overflow-hidden">
+                  {items.map((m: { url: string }, i: number) => (
+                    <img
+                      key={i}
+                      src={getOptimizedMediaUrl(m.url, "hd", 1200)}
+                      alt=""
+                      className="w-full min-h-[320px] max-h-[560px] object-cover"
+                    />
+                  ))}
+                </div>
+              );
+            })()}
 
            <div className="flex items-center gap-8 pt-6 border-t border-[#ede3e9] dark:border-zinc-900">
               <div className="flex items-center gap-2.5">

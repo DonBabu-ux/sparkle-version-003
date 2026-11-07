@@ -2,7 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, BarChart3, Music, MoreVertical, Pin, ChevronRight, ChevronLeft } from 'lucide-react';
+import { Heart, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, BarChart3, Music, MoreVertical, Pin, ChevronRight, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -22,7 +22,6 @@ import { isWatermarkVisible } from '../utils/watermark';
 import { emitHeart } from '../components/TikTokHearts';
 import clsx from 'clsx';
 import ModernOfflineState from '../components/ui/ModernOfflineState';
-import MentionInput from '../components/MentionInput';
 import MentionText from '../components/MentionText';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import StatusBarController from '../components/StatusBarController';
@@ -31,10 +30,6 @@ import { MediaCacheService } from '../services/mediaCacheService';
 import { getMediaLayoutCategory, parseResolutionRatio, type MediaLayoutCategory } from '../utils/aspectRatioLayout';
 export { getMediaLayoutCategory, parseResolutionRatio, type MediaLayoutCategory };
 
-interface GiphyResult {
-  id: string;
-  images: { fixed_height: { url: string } };
-}
 
 // Local utility to avoid import issues
 const formatCount = (num: number): string => {
@@ -85,51 +80,6 @@ interface SuggestedUser {
   score?: number;
 }
 
-const CommentItem = ({ comment, onLike, onReply }: { comment: Comment; onLike: (id: string, e?: React.MouseEvent) => void; onReply?: (username: string) => void }) => {
-  return (
-    <div className="flex gap-3 mb-6 group animate-fade-in items-start">
-      <img 
-        src={getMediaUrl(comment.avatar_url) || '/uploads/avatars/no-profile.png'}
-        className="w-9 h-9 rounded-full object-cover border border-gray-100 dark:border-white/10 shadow-sm shrink-0" 
-        alt={comment.username}
-      />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between mb-1">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-bold text-gray-900">@{comment.username}</span>
-            <span className="text-[10px] font-bold text-gray-400 tracking-tight">
-              {new Date(comment.created_at).toLocaleDateString()}
-            </span>
-          </div>
-          <button 
-            className="text-gray-300 hover:text-primary transition-all active:scale-125" 
-            onClick={(e) => onLike(comment.comment_id, e)}
-          >
-            <Heart size={14} className={comment.is_liked ? "fill-primary stroke-primary" : ""} />
-          </button>
-        </div>
-        
-        <div className="text-[14px] text-gray-700 dark:text-zinc-200 font-medium leading-relaxed break-words">
-           {comment.content.includes('giphy.com') ? (
-             <div className="mt-2 mb-1">
-               <img 
-                 src={comment.content} 
-                 alt="sticker" 
-                 className="w-[140px] h-[140px] object-contain rounded-xl shadow-sm"
-               />
-             </div>
-           ) : (
-             <MentionText content={comment.content} className="text-gray-700 dark:text-zinc-200" />
-           )}
-        </div>
-
-        <div className="flex items-center gap-6 mt-2">
-          <button onClick={() => onReply?.(comment.username)} className="text-[11px] font-semibold text-primary tracking-wide hover:underline active:opacity-50">Reply</button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const TikTokLoader = () => (
   <div className="relative w-10 h-10">
@@ -272,7 +222,6 @@ const ReelItem = React.memo(({
   }, []);
 
   const effectiveRatio = mediaDimensions?.ratio || initialRatio || null;
-  const layoutCategory = getMediaLayoutCategory(effectiveRatio);
   // Carousel swipe handling (horizontal only, no bubble to vertical FYP swipe)
   const carouselTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleCarouselTouchStart = (e: React.TouchEvent) => {

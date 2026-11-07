@@ -6,6 +6,7 @@ export interface Post {
   avatar_url?: string;
   content: string;
   media_url?: string;
+  thumbnail_url?: string;
   spark_count: number;
   comment_count: number;
   is_sparked: boolean;

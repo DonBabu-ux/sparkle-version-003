@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { MediaCacheService } from '../services/mediaCacheService';
 
 describe('MediaCacheService — Stable Media ID & Local Caching Architecture', () => {

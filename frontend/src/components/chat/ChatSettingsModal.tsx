@@ -381,7 +381,13 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
   if (chat?.account_type === 'system' || chat?.is_system_account || chat?.is_system) {
     return (
       <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 bg-black/60 backdrop-blur-sm z-(--z-sheet) flex justify-center animate-fade-in">
-        <div className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#1b1b24] relative select-none">
+        <div
+          className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#1b1b24] relative select-none"
+          style={{
+            paddingTop: 'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+            paddingBottom: 'var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))',
+          }}
+        >
           <div className="p-4 flex items-center justify-between sticky top-0 bg-[#1b1b24]/95 backdrop-blur-xl z-20 border-b border-white/5">
             <button onClick={onClose} className="p-2 text-white/90 hover:bg-white/[0.08] rounded-full transition-colors">
               <ChevronLeft size={24} />
@@ -524,6 +530,10 @@ export default function ChatSettingsModal({ chat, onClose, onNavigateProfile, in
       <div 
         className="w-full max-w-3xl h-full flex flex-col overflow-hidden bg-[#1b1b24] relative" 
         onClick={e => e.stopPropagation()}
+        style={{
+          paddingTop: 'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+          paddingBottom: 'var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))',
+        }}
       >
         <AnimatePresence mode="wait">
           {view === 'main' ? (

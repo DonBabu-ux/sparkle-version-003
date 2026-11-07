@@ -215,7 +215,12 @@ const SideSheet: React.FC<SideSheetProps> = ({ open, onClose, title, children })
         open ? 'translate-x-0' : 'translate-x-full'
       }`}
     >
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 dark:border-white/10">
+      <div
+        className="flex items-center gap-3 px-4 py-4 border-b border-gray-100 dark:border-white/10"
+        style={{
+          paddingTop: 'calc(1rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+        }}
+      >
         <button
           type="button"
           onClick={onClose}
@@ -226,7 +231,14 @@ const SideSheet: React.FC<SideSheetProps> = ({ open, onClose, title, children })
         </button>
         <h2 className="text-sm font-bold text-gray-900">{title}</h2>
       </div>
-      <div className="flex-1 overflow-y-auto">{children}</div>
+      <div
+      className="flex-1 overflow-y-auto"
+      style={{
+        paddingBottom: 'calc(3rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+      }}
+    >
+      {children}
+    </div>
     </div>
   </div>
 );
@@ -243,7 +255,12 @@ interface SubPageProps {
 
 const SubPage: React.FC<SubPageProps> = ({ title, onBack, children }) => (
   <div className="flex flex-col min-h-full">
-    <div className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
+    <div
+      className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs"
+      style={{
+        paddingTop: 'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+      }}
+    >
       <div className="flex items-center gap-3 px-4 py-3.5">
         <button
           type="button"
@@ -256,7 +273,14 @@ const SubPage: React.FC<SubPageProps> = ({ title, onBack, children }) => (
         <h1 className="text-base font-bold text-gray-900 tracking-tight">{title}</h1>
       </div>
     </div>
-    <div className="flex-1 overflow-y-auto">{children}</div>
+    <div
+      className="flex-1 overflow-y-auto"
+      style={{
+        paddingBottom: 'calc(3rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+      }}
+    >
+      {children}
+    </div>
   </div>
 );
 
@@ -812,7 +836,12 @@ export default function MessagesSettings() {
 
   const renderHome = () => (
     <div className="flex flex-col min-h-full">
-      <div className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs">
+      <div
+      className="sticky top-0 bg-white dark:bg-zinc-800 border-b border-gray-100 dark:border-white/10 z-10 shadow-xs"
+      style={{
+        paddingTop: 'var(--safe-area-inset-top, env(safe-area-inset-top, 0px))',
+      }}
+    >
         <div className="flex items-center gap-3 px-4 py-3.5">
           <button
             type="button"
@@ -831,7 +860,12 @@ export default function MessagesSettings() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto pb-24">
+      <div
+        className="flex-1 overflow-y-auto pb-24"
+        style={{
+          paddingBottom: 'calc(6rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+        }}
+      >
         <div className="mt-2">
           <SectionHeader title="Activity" />
           <div className="bg-white dark:bg-zinc-800 rounded-2xl mx-4 shadow-sm border border-gray-100 dark:border-white/10 overflow-hidden mb-3">

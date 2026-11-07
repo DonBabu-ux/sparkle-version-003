@@ -118,7 +118,12 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className="fixed inset-0 z-(--z-modal) bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
       
       {/* Top Search & Filter Bar with Back Button */}
-      <header className="p-4 border-b border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl flex flex-col gap-3 sticky top-0 z-30">
+      <header
+        className="px-4 pb-4 border-b border-white/10 bg-[#0a0a0a]/90 backdrop-blur-xl flex flex-col gap-3 sticky top-0 z-30"
+        style={{
+          paddingTop: 'calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+        }}
+      >
         <div className="flex items-center justify-between">
           <button 
             onClick={onClose}
@@ -204,7 +209,12 @@ export const ChatSearchModal: React.FC<ChatSearchModalProps> = ({
       </header>
 
       {/* Main Full Page Scrollable Results */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 max-w-4xl mx-auto w-full no-scrollbar">
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 max-w-4xl mx-auto w-full no-scrollbar"
+        style={{
+          paddingBottom: 'calc(2rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+        }}
+      >
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-300 gap-2">
             <Spinner size="medium" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />

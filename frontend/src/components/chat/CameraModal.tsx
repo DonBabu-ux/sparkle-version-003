@@ -114,12 +114,25 @@ export default function CameraModal({ isOpen, onClose, partnerName, partnerAvata
   return (
     <div ref={a11yRef} role="dialog" aria-modal="true" tabIndex={-1} className={`fixed inset-0 z-(--z-modal) flex flex-col overflow-hidden ${isDark ? 'bg-black text-white' : 'bg-white text-[#18181b]'}`}>
       {/* Top Bar */}
-      <div className="absolute top-0 left-0 right-0 p-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/50 to-transparent">
-        <button onClick={() => { setCapturedMedia(null); onClose(); }} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors">
-          <X size={24} />
+      <div
+        className="absolute top-0 left-0 right-0 px-6 pb-6 flex items-center justify-between z-50 bg-gradient-to-b from-black/60 to-transparent"
+        style={{
+          paddingTop: 'calc(1.25rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+        }}
+      >
+        <button
+          onClick={() => { setCapturedMedia(null); onClose(); }}
+          className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 active:scale-95 transition-all border border-white/10 shadow-lg"
+          aria-label="Close camera"
+        >
+          <X size={22} strokeWidth={2.5} />
         </button>
-        <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 rounded-full bg-black/20 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/40 transition-colors">
-          {isDark ? <Moon size={22} /> : <Sun size={22} />}
+        <button
+          onClick={() => setIsDark(!isDark)}
+          className="w-11 h-11 rounded-full bg-black/40 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 active:scale-95 transition-all border border-white/10 shadow-lg"
+          aria-label="Toggle brightness"
+        >
+          {isDark ? <Moon size={20} /> : <Sun size={20} />}
         </button>
       </div>
 

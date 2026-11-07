@@ -67,7 +67,8 @@ function getConfig() {
         workerIntervalMs: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_INTERVAL_MS', 5000, 1000, 600000),
         workerBatchSize: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_BATCH_SIZE', 100, 1, 1000),
         workerMaxAttempts: readInt('SPARKLE_IDENTITY_BLOOM_WORKER_MAX_ATTEMPTS', 12, 1, 100),
-        rebuildBatchSize: readInt('SPARKLE_IDENTITY_BLOOM_REBUILD_BATCH_SIZE', 250, 1, 5000)
+        rebuildBatchSize: readInt('SPARKLE_IDENTITY_BLOOM_REBUILD_BATCH_SIZE', 50, 1, 5000),
+        maxIdentitiesPerScript: readInt('SPARKLE_IDENTITY_BLOOM_MAX_IDENTITIES_PER_SCRIPT', 10, 1, 100)
     };
 }
 

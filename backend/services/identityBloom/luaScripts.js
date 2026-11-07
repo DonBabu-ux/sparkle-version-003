@@ -52,11 +52,21 @@ return 1
 `;
 
 const MARK_PENDING = `
-local nowMs = tonumber(ARGV[#KEYS + 1])
-for i = 1, #KEYS do
-  redis.call('ZADD', KEYS[i], nowMs, ARGV[i])
+local keyCount = #KEYS
+local nowMs = tonumber(ARGV[#ARGV])
+local valueIndex = keyCount + 1
+for i = 1, keyCount do
+  local count = tonumber(ARGV[i]) or 0
+  if count > 0 then
+    local members = {}
+    for j = 1, count do
+      members[#members + 1] = ARGV[valueIndex]
+      valueIndex = valueIndex + 1
+    end
+    redis.call('ZADD', KEYS[i], nowMs, unpack(members))
+  end
 end
-return #KEYS
+return keyCount
 `;
 
 const INSERT_BATCH = `

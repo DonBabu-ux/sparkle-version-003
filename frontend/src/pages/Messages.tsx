@@ -3865,13 +3865,6 @@ export default function Messages() {
     if (scrollTop < OLDER_PAGE_THRESHOLD_PX) {
       loadOlderMessages();
     }
-
-    // Mark as scrolling — debounce the stop signal 300ms after last scroll event
-    // This dims header presence text ONLY during active scrolling, then restores it.
-    // No looping timers: purely reactive to user input.
-    setIsScrollingMessages(true);
-    if (scrollStopRef.current) clearTimeout(scrollStopRef.current);
-    scrollStopRef.current = setTimeout(() => setIsScrollingMessages(false), 300);
   };
   // Memoized filtered messages based on search term + local expiry
   const filteredMessages = useMemo(() => {
@@ -4561,10 +4554,13 @@ export default function Messages() {
               }}
             >
               <header
-                className="h-[56px] z-40 relative px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0"
+                className="h-[56px] z-40 sticky top-0 px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0 w-full select-none"
                 style={{
                   backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000',
                   backdropFilter: 'blur(25px)',
+                  WebkitBackdropFilter: 'blur(25px)',
+                  transform: 'translateZ(0)',
+                  willChange: 'transform',
                 }}
               >
                 {(() => {
@@ -4649,10 +4645,7 @@ export default function Messages() {
                               {headerIdentity.subtitle}
                             </p>
                           ) : (
-                            <div
-                              className="mt-1 overflow-hidden transition-opacity duration-300 min-w-0 w-full whitespace-nowrap truncate"
-                              style={{ opacity: isScrollingMessages ? 0.45 : 1 }}
-                            >
+                            <div className="mt-1 overflow-hidden min-w-0 w-full whitespace-nowrap truncate">
                               <AnimatePresence mode="wait">
                                 {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
                                   <motion.p
@@ -4820,7 +4813,7 @@ export default function Messages() {
                 )}
               </AnimatePresence>
 
-              <div ref={messagesListRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
+              <div ref={messagesListRef} className="flex-1 overflow-y-auto overscroll-y-contain min-h-0 p-4 md:p-6 space-y-1 no-scrollbar scroll-smooth relative z-10 w-full max-w-[1200px] mx-auto" onScroll={handleScroll}>
                 {paging?.isLoadingOlder && (
                   <div className="flex justify-center py-2">
                     <Spinner size="medium" className="w-4 h-4 text-purple-400" />

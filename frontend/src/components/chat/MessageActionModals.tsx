@@ -44,7 +44,7 @@ export const MessageActionSheet: React.FC<ActionSheetProps> = ({ isOpen, onClose
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="fixed left-4 right-4 z-(--z-modal) flex flex-col items-center pb-4"
-            style={{ bottom: 'max(16px, env(safe-area-inset-bottom))' }}
+            style={{ bottom: 'max(16px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 16px)))' }}
           >
             {/* Quick Reactions Pill */}
             <div className="bg-[#1e1e1e] rounded-[24px] mb-3 shadow-2xl shadow-black/50 border border-white/10 flex items-center overflow-hidden w-full max-w-[340px]">
@@ -196,6 +196,9 @@ export const FullEmojiPickerModal: React.FC<{
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: "spring", damping: 25, stiffness: 300 }}
             className="msg-emoji-sheet fixed bottom-0 left-0 right-0 h-[75vh] bg-black rounded-t-[20px] z-(--z-modal) overflow-hidden flex flex-col shadow-2xl border-t border-white/10"
+            style={{
+              paddingBottom: 'var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px))',
+            }}
           >
             <div className="w-10 h-1.5 bg-white/20 rounded-full mx-auto my-3 shrink-0" />
             <div className="flex-1 w-full relative bg-black flex justify-center">
@@ -319,8 +322,11 @@ export const ReactionDetailsSheet: React.FC<ReactionDetailsSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-            className="fixed left-0 right-0 z-(--z-modal) bg-[#1a1a2e] rounded-t-[24px] px-5 pt-4 pb-8 border-t border-white/10 shadow-2xl max-w-md mx-auto"
-            style={{ bottom: 0 }}
+            className="fixed left-0 right-0 z-(--z-modal) bg-[#1a1a2e] rounded-t-[24px] px-5 pt-4 border-t border-white/10 shadow-2xl max-w-md mx-auto"
+            style={{
+              bottom: 0,
+              paddingBottom: 'calc(2rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+            }}
           >
             <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
 

@@ -381,7 +381,12 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
       {/* ========================================================
           1. TOP BAR
           ======================================================== */}
-      <div className="relative z-20 flex items-center gap-3 px-4 py-3 bg-[#13131a]/95 border-b border-white/10 backdrop-blur-md shrink-0">
+      <div
+        className="relative z-20 flex items-center gap-3 px-4 py-3 bg-[#13131a]/95 border-b border-white/10 backdrop-blur-md shrink-0"
+        style={{
+          paddingTop: 'calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+        }}
+      >
         {/* Back Button */}
         <button
           onClick={onClose}
@@ -526,7 +531,12 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             </div>
 
             {/* NEARBY PLACES LIST (~30 LOCATIONS) */}
-            <div className="space-y-1.5 pb-6">
+            <div
+              className="space-y-1.5 pb-6"
+              style={{
+                paddingBottom: 'calc(1.5rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+              }}
+            >
               {filteredPlaces.length > 0 ? (
                 filteredPlaces.map((place) => (
                   <button

@@ -5,6 +5,7 @@ const { Redis: UpstashRedis } = require('@upstash/redis');
 const logger = require('../../utils/logger');
 
 const PROVIDER_COOLDOWN_MS = 30000;
+const CONNECT_GRACE_MS = 10000;
 
 class RedisProviderError extends Error {
     constructor(message, cause) {
@@ -72,6 +73,10 @@ function buildTcpProvider(label, url) {
         label,
         kind: 'tcp',
         target: targetHost(url),
+        getTimeoutAllowance() {
+            if (!client) return CONNECT_GRACE_MS;
+            return client.status === 'ready' ? 0 : CONNECT_GRACE_MS;
+        },
         async eval(script, keys, args) {
             const io = await ensureReady();
             const flat = [script, String(keys.length), ...keys, ...args.map((a) => String(a))];
@@ -115,6 +120,9 @@ function buildRestProvider(label, url, token) {
         label,
         kind: 'rest',
         target: targetHost(url),
+        getTimeoutAllowance() {
+            return 0;
+        },
         async eval(script, keys, args) {
             return getClient().eval(script, keys, args.map((a) => String(a)));
         },
@@ -243,8 +251,9 @@ class IdentityBloomRedisClient {
         for (const provider of candidates) {
             const index = this.providers.indexOf(provider);
             if (provider !== primary && (this.cooldownUntil.get(index) || 0) > Date.now()) continue;
+            const allowance = typeof provider.getTimeoutAllowance === 'function' ? provider.getTimeoutAllowance() : 0;
             try {
-                const result = await this.withTimeout(operation(provider), timeoutMs, provider.label);
+                const result = await this.withTimeout(operation(provider), timeoutMs + allowance, provider.label);
                 this.lastError = null;
                 this.activeIndex = index;
                 return result;

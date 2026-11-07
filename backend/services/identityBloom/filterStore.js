@@ -208,19 +208,27 @@ async function insertIdentityBatch(identityType, version, hmacList) {
     const config = getConfig();
     if (!Array.isArray(hmacList) || hmacList.length === 0) return 0;
 
-    const positions = hmacList.map((hmac) => derivePositions(hmac, config.bits, config.hashCount));
-    const args = [String(config.hashCount), String(positions.length)];
-    for (const list of positions) {
-        for (const position of list) args.push(String(position));
+    const chunkSize = Math.max(1, config.maxIdentitiesPerScript);
+    let inserted = 0;
+
+    for (let offset = 0; offset < hmacList.length; offset += chunkSize) {
+        const chunk = hmacList.slice(offset, offset + chunkSize);
+        const positions = chunk.map((hmac) => derivePositions(hmac, config.bits, config.hashCount));
+        const args = [String(config.hashCount), String(positions.length)];
+        for (const list of positions) {
+            for (const position of list) args.push(String(position));
+        }
+
+        const result = await redisClient.eval(
+            scripts.INSERT_BATCH,
+            [filterBitsKey(type, version)],
+            args,
+            Math.max(config.timeoutMs, 10000)
+        );
+        inserted += Number(result) || positions.length;
     }
 
-    const result = await redisClient.eval(
-        scripts.INSERT_BATCH,
-        [filterBitsKey(type, version)],
-        args,
-        Math.max(config.timeoutMs, 10000)
-    );
-    return Number(result) || positions.length;
+    return inserted;
 }
 
 async function markPending(identityType, hmac) {
@@ -229,7 +237,7 @@ async function markPending(identityType, hmac) {
     await redisClient.eval(
         scripts.MARK_PENDING,
         [pendingKey(type)],
-        [hmac, String(Date.now())],
+        ['1', hmac, String(Date.now())],
         config.timeoutMs
     );
 }
@@ -249,7 +257,10 @@ async function markPendingBatch(entries) {
     const args = [];
     for (const [type, hmacs] of byType.entries()) {
         keys.push(pendingKey(type));
-        args.push(...hmacs);
+        args.push(String(hmacs.length));
+    }
+    for (const hmacs of byType.values()) {
+        for (const hmac of hmacs) args.push(hmac);
     }
     args.push(String(Date.now()));
 

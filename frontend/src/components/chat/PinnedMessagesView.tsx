@@ -119,58 +119,70 @@ export const PinnedMessagesView: React.FC<PinnedMessagesViewProps> = ({
   return (
     <div className="fixed inset-0 z-(--z-modal) bg-[#0a0a0a] text-slate-100 flex flex-col w-full h-full animate-in fade-in slide-in-from-right duration-200">
       
-      {/* Top Header Bar with Back Button */}
-      <header className="px-4 py-3 border-b border-white/10 flex items-center justify-between bg-[#0a0a0a]/90 backdrop-blur-xl sticky top-0 z-30">
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-white/90 transition-colors flex items-center gap-1"
-          >
-            <ChevronLeft className="w-6 h-6" />
-            <span className="text-sm font-bold hidden sm:inline">Back</span>
-          </button>
-          <div>
-            <h2 className="text-lg font-bold text-white flex items-center gap-2 leading-tight">
-              Pinned Messages
-              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold border" style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}40`, color: primaryColor }}>
-                {pinnedList.length}
-              </span>
-            </h2>
-            <p className="text-[11px] text-white/50">Quickly access important pinned updates</p>
+      {/* Top Header & Filters Sticky Container */}
+      <div className="sticky top-0 z-30 bg-[#0a0a0a]/95 backdrop-blur-xl border-b border-white/10">
+        <header
+          className="px-4 py-3 flex items-center justify-between"
+          style={{
+            paddingTop: 'calc(0.75rem + var(--safe-area-inset-top, env(safe-area-inset-top, 0px)))',
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-full hover:bg-white/10 text-white/90 transition-colors flex items-center gap-1"
+            >
+              <ChevronLeft className="w-6 h-6" />
+              <span className="text-sm font-bold hidden sm:inline">Back</span>
+            </button>
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2 leading-tight">
+                Pinned Messages
+                <span className="text-xs px-2.5 py-0.5 rounded-full font-bold border" style={{ backgroundColor: `${primaryColor}20`, borderColor: `${primaryColor}40`, color: primaryColor }}>
+                  {pinnedList.length}
+                </span>
+              </h2>
+              <p className="text-[11px] text-white/50">Quickly access important pinned updates</p>
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Filter Controls Row */}
-      <div className="p-4 bg-black/40 border-b border-white/10 flex flex-wrap items-center justify-between gap-3 sticky top-[57px] z-20">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-white/40" />
-          <input 
-            type="text"
-            placeholder="Search pinned messages..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl text-xs pl-10 pr-3 py-2 focus:outline-none text-white placeholder:text-white/40"
-          />
-        </div>
+        {/* Filter Controls Row */}
+        <div className="p-4 bg-black/40 border-t border-white/5 flex flex-wrap items-center justify-between gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 absolute left-3.5 top-2.5 text-white/40" />
+            <input 
+              type="text"
+              placeholder="Search pinned messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-xl text-xs pl-10 pr-3 py-2 focus:outline-none text-white placeholder:text-white/40"
+            />
+          </div>
 
-        <div className="flex items-center gap-2">
-          <ArrowUpDown className="w-3.5 h-3.5 text-white/50" />
-          <select
-            value={sortOption}
-            onChange={(e) => setSortOption(e.target.value as any)}
-            className="bg-white/5 border border-white/10 rounded-xl text-xs px-3 py-2 text-white focus:outline-none"
-          >
-            <option value="newest">Newest Pinned</option>
-            <option value="oldest">Oldest Pinned</option>
-            <option value="me">Pinned by Me</option>
-            <option value="them">Pinned by Them</option>
-          </select>
+          <div className="flex items-center gap-2">
+            <ArrowUpDown className="w-3.5 h-3.5 text-white/50" />
+            <select
+              value={sortOption}
+              onChange={(e) => setSortOption(e.target.value as any)}
+              className="bg-white/5 border border-white/10 rounded-xl text-xs px-3 py-2 text-white focus:outline-none"
+            >
+              <option value="newest">Newest Pinned</option>
+              <option value="oldest">Oldest Pinned</option>
+              <option value="me">Pinned by Me</option>
+              <option value="them">Pinned by Them</option>
+            </select>
+          </div>
         </div>
       </div>
 
       {/* Pinned Messages Main Scroll View */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 no-scrollbar">
+      <div
+        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-8 no-scrollbar"
+        style={{
+          paddingBottom: 'calc(2rem + var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))',
+        }}
+      >
         {loading ? (
           <div className="flex flex-col items-center justify-center py-24 text-slate-500 dark:text-zinc-300 gap-2">
             <Spinner size="medium" style={{ borderColor: `${primaryColor} transparent ${primaryColor} ${primaryColor}` }} />

@@ -44,7 +44,10 @@ const MIGRATION_RUN = [
     { file: '20261106_harden_moments.js', verify: [] },
     // Engagement Engine Phase 1a: the ledger the unread-message reminder
     // worker writes to. Created before the worker's first sweep.
-    { file: '20261107_message_reminders.js', verify: [] }
+    { file: '20261107_message_reminders.js', verify: [] },
+    // Engagement Engine Phase 1b: the story digest ledger, plus the
+    // notifications_stories toggle the digest respects.
+    { file: '20261107_story_digests.js', verify: [] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

@@ -1,6 +1,18 @@
 const db = require('../config/database');
 const crypto = require('crypto');
 
+/**
+ * Columns update() will write.
+ *
+ * The previous version built the SET clause directly from the caller's keys,
+ * which interpolates an arbitrary client-supplied identifier into SQL.
+ * Values were bound, so they were safe; the identifier was not. GroupChannel.js
+ * and SkillMarket.js already used this allowlist pattern — these had not been
+ * converted. Room.update is also called without an ownership check, so an
+ * unlisted column such as creator_id could reassign the row's owner.
+ */
+const UPDATABLE_FIELDS = ['name', 'description', 'avatar_url', 'group_type', 'is_private'];
+
 class GroupChat {
     static async create({ creatorId, name, photoUrl, description, privacy, isPrivate, settings }) {
         const chatId = crypto.randomUUID();
@@ -45,19 +57,22 @@ class GroupChat {
     }
 
     static async update(chatId, updates) {
-        const fields = [];
-        const values = [];
-
-        Object.keys(updates).forEach(key => {
+    const fields = [];
+    const values = [];
+    // Only columns named in the allowlist. Anything else is skipped rather
+    // than interpolated, so a request body cannot add a key or rewrite a
+    // column it should not touch.
+    for (const key of UPDATABLE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(updates, key)) {
             fields.push(`${key} = ?`);
             values.push(updates[key]);
-        });
-
-        if (fields.length === 0) return;
-
-        values.push(chatId);
-        await db.query(`UPDATE group_chats SET ${fields.join(', ')} WHERE chat_id = ?`, values);
+        }
     }
+    if (fields.length === 0) return { status: 'no_fields' };
+    values.push(chatId);
+    await db.query(`UPDATE group_chats SET ${fields.join(', ')} WHERE chat_id = ?`, values);
+    return { status: 'updated', fields: fields.length };
+}
 
     static async updateLastMessage(chatId) {
         await db.query(`UPDATE group_chats SET last_message_at = NOW() WHERE chat_id = ?`, [chatId]);

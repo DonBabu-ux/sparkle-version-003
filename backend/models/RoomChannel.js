@@ -5,6 +5,18 @@
 const db = require('../config/database');
 const crypto = require('crypto');
 
+/**
+ * Columns update() will write.
+ *
+ * The previous version built the SET clause directly from the caller's keys,
+ * which interpolates an arbitrary client-supplied identifier into SQL.
+ * Values were bound, so they were safe; the identifier was not. GroupChannel.js
+ * and SkillMarket.js already used this allowlist pattern — these had not been
+ * converted. Room.update is also called without an ownership check, so an
+ * unlisted column such as creator_id could reassign the row's owner.
+ */
+const UPDATABLE_FIELDS = ['name', 'topic', 'description', 'position', 'is_private'];
+
 class RoomChannel {
   /**
    * Create a new channel within a room.
@@ -72,13 +84,19 @@ class RoomChannel {
   static async update(channelId, updates) {
     const fields = [];
     const values = [];
-    Object.entries(updates).forEach(([key, val]) => {
-      fields.push(`${key} = ?`);
-      values.push(val);
-    });
-    if (fields.length === 0) return;
+    // Only columns named in the allowlist. Anything else is skipped rather
+    // than interpolated, so a request body cannot add a key or rewrite a
+    // column it should not touch.
+    for (const key of UPDATABLE_FIELDS) {
+        if (Object.prototype.hasOwnProperty.call(updates, key)) {
+            fields.push(`${key} = ?`);
+            values.push(updates[key]);
+        }
+    }
+    if (fields.length === 0) return { status: 'no_fields' };
     values.push(channelId);
     await db.query(`UPDATE room_channels SET ${fields.join(', ')} WHERE channel_id = ?`, values);
+    return { status: 'updated', fields: fields.length };
   }
 
   static async delete(channelId) {

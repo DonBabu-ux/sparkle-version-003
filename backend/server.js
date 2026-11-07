@@ -367,7 +367,10 @@ app.use((err, req, res, next) => {
         console.error('🔍 Error Context:', {
             url: req.originalUrl,
             method: req.method,
-            body: req.body,
+            // Never the body itself: plaintext passwords went straight into the
+            // log on /auth/* failures. Keys and size diagnose just as well.
+            bodyKeys: req.body && typeof req.body === 'object' ? Object.keys(req.body) : undefined,
+            bodyBytes: req.rawBody ? req.rawBody.length : undefined,
             user: req.user?.user_id || req.user?.id,
             timestamp: new Date().toISOString()
         });
@@ -375,11 +378,17 @@ app.use((err, req, res, next) => {
     
     // Check if it's an API request
     if (req.originalUrl.startsWith('/api') || req.path.startsWith('/api')) {
-        return res.status(err.status || 500).json({
-            success: false,
-            message: process.env.NODE_ENV === 'development' ? err.message : 'Internal Server Error',
-            error: err.message
-        });
+            // A 4xx is the client's fault and safe to explain; a 5xx is ours and its
+            // message names tables, columns and internals. The 5xx body is the same
+            // in development and production, so a staging deploy cannot leak more
+            // than live does.
+            const isClientError = err.status && err.status < 500;
+            const response = {
+              success: false,
+              message: isClientError ? (err.message || 'Invalid request') : 'Internal Server Error'
+            };
+            if (isClientError && err.code) response.code = String(err.code);
+            return res.status(err.status || 500).json(response);
     }
 
     res.status(err.status || 500).json({
@@ -533,9 +542,21 @@ process.on('exit', (code) => {
     logger.error(line);
 });
 
+// Exit on an unhandled rejection, matching uncaughtException below.
+//
+// This used to log and continue, on the reasoning that a rejected promise
+// somewhere is survivable. It is not: the promise that rejected belongs to a
+// request that is now never answered, and Express 4.22 does not forward async
+// rejections to the error middleware, so nothing responds and the client hangs
+// until its own timeout. Meanwhile the process keeps serving everything else,
+// so the failure is invisible — exactly the "died silently" case this whole
+// forensics block exists for. Render restarts the process, which is the
+// correct outcome, and the breadcrumb above says why.
 process.on('unhandledRejection', (reason) => {
-    logger.error(`Unhandled Promise Rejection: ${reason?.stack || reason?.message || reason}`);
-    writeCrashLine(`unhandledRejection: ${reason?.stack || reason?.message || reason}`);
+    const detail = reason?.stack || reason?.message || String(reason);
+    logger.error(`Unhandled Promise Rejection: ${detail}`);
+    writeCrashLine(`unhandledRejection: ${detail}`);
+    process.exit(1);
 });
 
 process.on('uncaughtException', (err) => {

@@ -150,8 +150,8 @@ export default function Profile() {
               ...p,
               is_pinned: Number(p.is_pinned) === 1 || Boolean(p.is_pinned),
             })).sort((a: Post, b: Post) => {
-              const pinA = Boolean(a.is_pinned) ? 1 : 0;
-              const pinB = Boolean(b.is_pinned) ? 1 : 0;
+              const pinA = a.is_pinned ? 1 : 0;
+              const pinB = b.is_pinned ? 1 : 0;
               if (pinB !== pinA) return pinB - pinA;
               return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
             });
@@ -213,8 +213,8 @@ export default function Profile() {
               const fresh = moments.filter((m) => !seen.has(m.post_id));
               if (fresh.length === 0) return prev;
               return [...prev, ...fresh].sort((a, b) => {
-                const pinA = Boolean(a.is_pinned) ? 1 : 0;
-                const pinB = Boolean(b.is_pinned) ? 1 : 0;
+                const pinA = a.is_pinned ? 1 : 0;
+                const pinB = b.is_pinned ? 1 : 0;
                 if (pinB !== pinA) return pinB - pinA;
                 return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
               });

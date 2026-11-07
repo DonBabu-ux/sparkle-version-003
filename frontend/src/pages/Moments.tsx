@@ -596,7 +596,7 @@ const ReelItem = React.memo(({
             <Heart size={26} fill={moment.is_liked ? "currentColor" : "none"} strokeWidth={2.5} />
           </div>
           <span className="text-[10px] font-bold text-white tracking-wide drop-shadow-md">
-            {formatCount(moment.like_count || moment.spark_count || moment.sparks_count || 0)}
+            {formatCount(moment.like_count || 0)}
           </span>
         </button>
  
@@ -609,7 +609,7 @@ const ReelItem = React.memo(({
             <CommentIcon size={26} className="-scale-x-100" />
           </div>
           <span className="text-[10px] font-bold text-white tracking-wide drop-shadow-md">
-            {formatCount(moment.comment_count || moment.comments_count || 0)}
+            {formatCount(moment.comment_count || 0)}
           </span>
         </button>
  
@@ -794,6 +794,48 @@ function handleMomentVideoError(e: React.SyntheticEvent<HTMLVideoElement>) {
   el.dataset.videoFallbackTried = '1';
   logger.warn('[Moments] safe rendition failed, retrying original:', el.currentSrc || el.src, '->', original);
   el.src = original;
+}
+
+/**
+ * A moment image that fails to load must not leave a broken-image icon in the feed.
+ * The tile reserves its frame, so the fallback is to hide the image and leave that
+ * reserved space intact — the caption, music line and stats stay readable, and nothing
+ * announces that media is missing.
+ *
+ * No second URL to retry: unlike the safe-rendition video path there is no alternative
+ * rendition of the same asset.
+ */
+function handleMomentImageError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const el = e.currentTarget;
+  if (el.dataset.imageFallbackTried === '1') return;
+  el.dataset.imageFallbackTried = '1';
+  logger.warn('[Moments] image failed to load, hiding it:', el.getAttribute('src') || '(no src)');
+  el.style.visibility = 'hidden';
+}
+
+/**
+ * Single source of truth for "is this moment a video".
+ *
+ * There were two, and they disagreed: this file computed a full verdict from
+ * is_video, media_type, video_url, streaming_url and a URL sniff, while the
+ * feed tile recomputed from the URL and media_type alone. A moment flagged
+ * is_video whose URL has no media extension therefore rendered an <img> for a
+ * video — a tile that can never load, showing as "media unavailable" while
+ * scrolling.
+ *
+ * Sniffing the URL last covers legacy rows where media_type was never set,
+ * which is how the six broken tile rows were produced.
+ */
+function isMomentVideo(
+  m: { is_video?: boolean; media_type?: string | null; video_url?: string | null; media_url?: string | null; streaming_url?: string | null }
+): boolean {
+  return !!(
+    m.is_video ||
+    m.media_type === 'video' ||
+    !!m.video_url ||
+    !!m.streaming_url ||
+    isVideoUrl(m.video_url || m.media_url || m.streaming_url)
+  );
 }
 
 export default function Moments() {
@@ -1603,10 +1645,18 @@ export default function Moments() {
                             </>
                           ) : (
                             <>
-                                {isVideoUrl(moment.video_url || moment.media_url) || moment.media_type === 'video' ? (
+{/*
+  One verdict, not two. This branch recomputed isVideo from the URL alone,
+  dropping is_video / video_url / streaming_url, so a moment flagged as a
+  video whose URL has no media extension rendered an <img> for a video: a tile
+  that can never load and reads as "media unavailable" while scrolling. The
+  <img> also had no onError, so a genuinely dead URL showed a broken-image
+  icon instead of the reserved frame's fallback.
+*/}
+                                {isMomentVideo(moment) ? (
                                     <video
-                                    src={getSafeVideoUrl(moment.video_url || moment.media_url) || undefined}
-                                    data-original-src={getMediaUrl(moment.video_url || moment.media_url) || undefined}
+                                    src={getSafeVideoUrl(moment.video_url || moment.media_url || moment.streaming_url) || undefined}
+                                    data-original-src={getMediaUrl(moment.video_url || moment.media_url || moment.streaming_url) || undefined}
                                     onError={handleMomentVideoError}
                                     muted
                                     autoPlay={false}
@@ -1615,7 +1665,11 @@ export default function Moments() {
                                     className="w-full h-full object-cover"
                                     />
                                 ) : (
-                                    <img src={getMediaUrl(moment.media_url) || undefined} className="w-full h-full object-cover" />
+                                    <img
+                                    src={getMediaUrl(moment.media_url) || undefined}
+                                    onError={handleMomentImageError}
+                                    className="w-full h-full object-cover"
+                                    />
                                 )}
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                                 <div className="absolute bottom-2 left-2 flex items-center gap-1.5">

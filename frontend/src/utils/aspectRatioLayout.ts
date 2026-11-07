@@ -33,3 +33,4 @@ export function parseResolutionRatio(resolution?: string | null): number | null 
   }
   return null;
 }
+

@@ -520,7 +520,7 @@ const ReelItem = React.memo(({
           <div className="absolute inset-0 bg-black/35" />
         </div>
 
-        {/* Primary Content Layer — Intelligent Aspect-Ratio Presentation */}
+        {/* Primary Content Layer — Full-Bleed Edge-to-Edge Video Surface */}
         <div className="relative w-full h-full flex items-center justify-center z-10 overflow-hidden">
           {isMultiImage ? (
             /* ── Multi-image swipeable carousel ── */
@@ -531,7 +531,7 @@ const ReelItem = React.memo(({
             >
               {/* Slide strip */}
               <div
-                className="absolute inset-0 overflow-hidden flex items-center justify-center"
+                className="absolute inset-0 overflow-hidden"
                 style={{ touchAction: 'pan-y' }}
               >
                 {imageUrls.map((url, idx) => (
@@ -540,18 +540,8 @@ const ReelItem = React.memo(({
                     src={getMediaUrl(url) || url}
                     alt={`Slide ${idx + 1}`}
                     onLoad={idx === carouselIdx ? handleImageLoad : undefined}
-                    className={clsx(
-                      "transition-all duration-300 pointer-events-none",
-                      layoutCategory === 'landscape'
-                        ? "w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl mx-auto my-auto"
-                        : layoutCategory === 'square'
-                        ? "w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square object-contain shadow-2xl rounded-none md:rounded-2xl mx-auto my-auto"
-                        : "w-full h-full object-cover md:object-contain"
-                    )}
-                    style={{
-                      opacity: idx === carouselIdx ? 1 : 0,
-                      ...(layoutCategory === 'landscape' && effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : {})
-                    }}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity duration-300"
+                    style={{ opacity: idx === carouselIdx ? 1 : 0 }}
                     draggable={false}
                   />
                 ))}
@@ -593,94 +583,32 @@ const ReelItem = React.memo(({
               </div>
             </div>
           ) : isVideo ? (
-            layoutCategory === 'landscape' ? (
-              /* Landscape video: horizontally centred frame in the middle of portrait screen */
-              <div className="relative w-full max-h-[72vh] flex items-center justify-center mx-auto my-auto px-0 md:px-4 z-10">
-                <HlsVideoPlayer
-                  ref={videoRef}
-                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
-                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
-                  poster={moment.thumbnail_url}
-                  active={active && !userPaused}
-                  muted={muted}
-                  onTimeUpdate={onVideoTimeUpdate}
-                  onQualityChange={onQualityChange}
-                  onLoadedMetadata={handleVideoMetadata}
-                  className="w-full flex items-center justify-center"
-                  videoClassName="w-full max-w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300"
-                  videoStyle={effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : { aspectRatio: '16/9' }}
-                />
-              </div>
-            ) : layoutCategory === 'square' ? (
-              /* Square video: 1:1 proportioned, centred in usable viewing area */
-              <div className="relative w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square flex items-center justify-center mx-auto my-auto z-10">
-                <HlsVideoPlayer
-                  ref={videoRef}
-                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
-                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
-                  poster={moment.thumbnail_url}
-                  active={active && !userPaused}
-                  muted={muted}
-                  onTimeUpdate={onVideoTimeUpdate}
-                  onQualityChange={onQualityChange}
-                  onLoadedMetadata={handleVideoMetadata}
-                  className="w-full h-full flex items-center justify-center"
-                  videoClassName="w-full h-full object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300"
-                  videoStyle={{ aspectRatio: effectiveRatio ? `${effectiveRatio}` : '1 / 1' }}
-                />
-              </div>
-            ) : (
-              /* Portrait video: full-screen natural edge-to-edge presentation */
-              <div className="relative w-full h-full flex items-center justify-center z-10">
-                <HlsVideoPlayer
-                  ref={videoRef}
-                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
-                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
-                  poster={moment.thumbnail_url}
-                  active={active && !userPaused}
-                  muted={muted}
-                  onTimeUpdate={onVideoTimeUpdate}
-                  onQualityChange={onQualityChange}
-                  onLoadedMetadata={handleVideoMetadata}
-                  className="w-full h-full"
-                  videoClassName="w-full h-full object-cover md:object-contain transition-all duration-300"
-                />
-              </div>
-            )
+            /* Full-Bleed Edge-to-Edge Video Surface — All Four Edges Covered */
+            <div className="absolute inset-0 flex items-center justify-center">
+              <HlsVideoPlayer
+                ref={videoRef}
+                src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
+                fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
+                poster={moment.thumbnail_url}
+                active={active && !userPaused}
+                muted={muted}
+                onTimeUpdate={onVideoTimeUpdate}
+                onQualityChange={onQualityChange}
+                onLoadedMetadata={handleVideoMetadata}
+                className="w-full h-full"
+                videoClassName="w-full h-full object-cover transition-all duration-300"
+              />
+            </div>
           ) : (
-            layoutCategory === 'landscape' ? (
-              /* Landscape image */
-              <div className="relative w-full max-h-[72vh] flex items-center justify-center mx-auto my-auto px-0 md:px-4 z-10">
-                <img
-                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
-                  alt="Moment"
-                  onLoad={handleImageLoad}
-                  className="w-full max-w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300 pointer-events-none"
-                  style={effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : { aspectRatio: '16/9' }}
-                />
-              </div>
-            ) : layoutCategory === 'square' ? (
-              /* Square image */
-              <div className="relative w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square flex items-center justify-center mx-auto my-auto z-10">
-                <img
-                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
-                  alt="Moment"
-                  onLoad={handleImageLoad}
-                  className="w-full h-full object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300 pointer-events-none"
-                  style={{ aspectRatio: effectiveRatio ? `${effectiveRatio}` : '1 / 1' }}
-                />
-              </div>
-            ) : (
-              /* Portrait image */
-              <div className="relative w-full h-full flex items-center justify-center z-10">
-                <img
-                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
-                  alt="Moment"
-                  onLoad={handleImageLoad}
-                  className="w-full h-full object-cover md:object-contain pointer-events-none transition-all duration-300"
-                />
-              </div>
-            )
+            /* Full-Bleed Edge-to-Edge Image Surface */
+            <div className="absolute inset-0 flex items-center justify-center">
+              <img
+                src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
+                alt="Moment"
+                onLoad={handleImageLoad}
+                className="w-full h-full object-cover pointer-events-none transition-all duration-300"
+              />
+            </div>
           )}
         </div>
         

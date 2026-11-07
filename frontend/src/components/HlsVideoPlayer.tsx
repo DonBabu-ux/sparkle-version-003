@@ -34,7 +34,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   muted = false,
   loop = true,
   className = "",
-  videoClassName = "w-full h-full object-cover md:object-contain",
+  videoClassName = "w-full h-full object-cover",
   style,
   videoStyle,
   onTimeUpdate,
@@ -195,7 +195,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
           }
           logger.warn('[HlsVideoPlayer] playback failed with no usable fallback:', video.currentSrc || video.src);
         }}
-        className={videoClassName || "w-full h-full object-cover md:object-contain"}
+        className={videoClassName || "w-full h-full object-cover"}
         style={videoStyle}
       />
       {/* Buffering overlay removed */}

@@ -25,8 +25,11 @@ import ModernOfflineState from '../components/ui/ModernOfflineState';
 import MentionInput from '../components/MentionInput';
 import MentionText from '../components/MentionText';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
+import StatusBarController from '../components/StatusBarController';
 import { logger } from '../utils/logger';
 import { MediaCacheService } from '../services/mediaCacheService';
+import { getMediaLayoutCategory, parseResolutionRatio, type MediaLayoutCategory } from '../utils/aspectRatioLayout';
+export { getMediaLayoutCategory, parseResolutionRatio, type MediaLayoutCategory };
 
 interface GiphyResult {
   id: string;
@@ -224,21 +227,52 @@ const ReelItem = React.memo(({
   }, [moment]);
   const isMultiImage = imageUrls.length > 1;
   const [carouselIdx, setCarouselIdx] = useState(0);
-  const [isLandscape, setIsLandscape] = useState(false);
-  // Reset carousel and landscape mode when moment changes
+
+  // Initial aspect-ratio hint parsed from moment.resolution (e.g. "1920x1080", "1080x1920")
+  const initialRatio = React.useMemo(() => {
+    return parseResolutionRatio(moment?.resolution);
+  }, [moment?.resolution]);
+
+  const [mediaDimensions, setMediaDimensions] = useState<{
+    width: number;
+    height: number;
+    ratio: number;
+  } | null>(() => (initialRatio ? { width: 0, height: 0, ratio: initialRatio } : null));
+
+  // Reset carousel and media dimensions when moment changes
   useEffect(() => { 
     setCarouselIdx(0); 
-    setIsLandscape(false);
-  }, [moment?.moment_id]);
+    setMediaDimensions(initialRatio ? { width: 0, height: 0, ratio: initialRatio } : null);
+  }, [moment?.moment_id, initialRatio]);
 
-  const handleVideoMetadata = (e: React.SyntheticEvent<HTMLVideoElement>) => {
+  const handleVideoMetadata = useCallback((e: React.SyntheticEvent<HTMLVideoElement>) => {
     const v = e.currentTarget;
-    if (v.videoWidth && v.videoHeight && v.videoWidth > v.videoHeight * 1.2) {
-      setIsLandscape(true);
-    } else {
-      setIsLandscape(false);
+    if (v && v.videoWidth && v.videoHeight && v.videoWidth > 0 && v.videoHeight > 0) {
+      const ratio = v.videoWidth / v.videoHeight;
+      setMediaDimensions((prev) => {
+        if (prev && Math.abs(prev.ratio - ratio) < 0.01 && prev.width === v.videoWidth) {
+          return prev;
+        }
+        return { width: v.videoWidth, height: v.videoHeight, ratio };
+      });
     }
-  };
+  }, []);
+
+  const handleImageLoad = useCallback((e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    if (img && img.naturalWidth && img.naturalHeight && img.naturalWidth > 0 && img.naturalHeight > 0) {
+      const ratio = img.naturalWidth / img.naturalHeight;
+      setMediaDimensions((prev) => {
+        if (prev && Math.abs(prev.ratio - ratio) < 0.01 && prev.width === img.naturalWidth) {
+          return prev;
+        }
+        return { width: img.naturalWidth, height: img.naturalHeight, ratio };
+      });
+    }
+  }, []);
+
+  const effectiveRatio = mediaDimensions?.ratio || initialRatio || null;
+  const layoutCategory = getMediaLayoutCategory(effectiveRatio);
   // Carousel swipe handling (horizontal only, no bubble to vertical FYP swipe)
   const carouselTouchStart = useRef<{ x: number; y: number } | null>(null);
   const handleCarouselTouchStart = (e: React.TouchEvent) => {
@@ -476,17 +510,18 @@ const ReelItem = React.memo(({
       )}
 
       <div className="absolute inset-0">
-        {/* Background Blur Layer — static image only, NEVER a playing video */}
+        {/* Background Layer — full-screen edge-to-edge ambient presentation */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <img 
             src={moment.thumbnail_url || (isVideo ? undefined : mediaSrc) || '/uploads/defaults/no-image.png'}
-            className="w-full h-full object-cover scale-150 blur-3xl opacity-40"
+            className="w-full h-full object-cover scale-150 blur-3xl opacity-40 brightness-75"
             alt=""
           />
+          <div className="absolute inset-0 bg-black/35" />
         </div>
 
-        {/* Primary Content Layer */}
-        <div className="relative w-full h-full flex items-center justify-center z-10">
+        {/* Primary Content Layer — Intelligent Aspect-Ratio Presentation */}
+        <div className="relative w-full h-full flex items-center justify-center z-10 overflow-hidden">
           {isMultiImage ? (
             /* ── Multi-image swipeable carousel ── */
             <div
@@ -496,7 +531,7 @@ const ReelItem = React.memo(({
             >
               {/* Slide strip */}
               <div
-                className="absolute inset-0 overflow-hidden"
+                className="absolute inset-0 overflow-hidden flex items-center justify-center"
                 style={{ touchAction: 'pan-y' }}
               >
                 {imageUrls.map((url, idx) => (
@@ -504,8 +539,19 @@ const ReelItem = React.memo(({
                     key={idx}
                     src={getMediaUrl(url) || url}
                     alt={`Slide ${idx + 1}`}
-                    className="absolute inset-0 w-full h-full object-cover md:object-contain pointer-events-none transition-opacity duration-300"
-                    style={{ opacity: idx === carouselIdx ? 1 : 0 }}
+                    onLoad={idx === carouselIdx ? handleImageLoad : undefined}
+                    className={clsx(
+                      "transition-all duration-300 pointer-events-none",
+                      layoutCategory === 'landscape'
+                        ? "w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl mx-auto my-auto"
+                        : layoutCategory === 'square'
+                        ? "w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square object-contain shadow-2xl rounded-none md:rounded-2xl mx-auto my-auto"
+                        : "w-full h-full object-cover md:object-contain"
+                    )}
+                    style={{
+                      opacity: idx === carouselIdx ? 1 : 0,
+                      ...(layoutCategory === 'landscape' && effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : {})
+                    }}
                     draggable={false}
                   />
                 ))}
@@ -547,37 +593,94 @@ const ReelItem = React.memo(({
               </div>
             </div>
           ) : isVideo ? (
-            <HlsVideoPlayer
-              ref={videoRef}
-              src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
-              fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
-              poster={moment.thumbnail_url}
-              active={active && !userPaused}
-              muted={muted}
-              onTimeUpdate={onVideoTimeUpdate}
-              onQualityChange={onQualityChange}
-              onLoadedMetadata={handleVideoMetadata}
-              className="w-full h-full"
-              videoClassName={clsx(
-                "w-full h-full transition-all duration-300",
-                isLandscape ? "object-contain" : "object-cover md:object-contain"
-              )}
-            />
+            layoutCategory === 'landscape' ? (
+              /* Landscape video: horizontally centred frame in the middle of portrait screen */
+              <div className="relative w-full max-h-[72vh] flex items-center justify-center mx-auto my-auto px-0 md:px-4 z-10">
+                <HlsVideoPlayer
+                  ref={videoRef}
+                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
+                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
+                  poster={moment.thumbnail_url}
+                  active={active && !userPaused}
+                  muted={muted}
+                  onTimeUpdate={onVideoTimeUpdate}
+                  onQualityChange={onQualityChange}
+                  onLoadedMetadata={handleVideoMetadata}
+                  className="w-full flex items-center justify-center"
+                  videoClassName="w-full max-w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300"
+                  videoStyle={effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : { aspectRatio: '16/9' }}
+                />
+              </div>
+            ) : layoutCategory === 'square' ? (
+              /* Square video: 1:1 proportioned, centred in usable viewing area */
+              <div className="relative w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square flex items-center justify-center mx-auto my-auto z-10">
+                <HlsVideoPlayer
+                  ref={videoRef}
+                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
+                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
+                  poster={moment.thumbnail_url}
+                  active={active && !userPaused}
+                  muted={muted}
+                  onTimeUpdate={onVideoTimeUpdate}
+                  onQualityChange={onQualityChange}
+                  onLoadedMetadata={handleVideoMetadata}
+                  className="w-full h-full flex items-center justify-center"
+                  videoClassName="w-full h-full object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300"
+                  videoStyle={{ aspectRatio: effectiveRatio ? `${effectiveRatio}` : '1 / 1' }}
+                />
+              </div>
+            ) : (
+              /* Portrait video: full-screen natural edge-to-edge presentation */
+              <div className="relative w-full h-full flex items-center justify-center z-10">
+                <HlsVideoPlayer
+                  ref={videoRef}
+                  src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
+                  fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
+                  poster={moment.thumbnail_url}
+                  active={active && !userPaused}
+                  muted={muted}
+                  onTimeUpdate={onVideoTimeUpdate}
+                  onQualityChange={onQualityChange}
+                  onLoadedMetadata={handleVideoMetadata}
+                  className="w-full h-full"
+                  videoClassName="w-full h-full object-cover md:object-contain transition-all duration-300"
+                />
+              </div>
+            )
           ) : (
-            <img
-              src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
-              alt="Moment"
-              onLoad={(e) => {
-                const img = e.currentTarget;
-                if (img.naturalWidth && img.naturalHeight && img.naturalWidth > img.naturalHeight * 1.2) {
-                  setIsLandscape(true);
-                }
-              }}
-              className={clsx(
-                "w-full h-full pointer-events-none transition-all duration-300",
-                isLandscape ? "object-contain" : "object-cover md:object-contain"
-              )}
-            />
+            layoutCategory === 'landscape' ? (
+              /* Landscape image */
+              <div className="relative w-full max-h-[72vh] flex items-center justify-center mx-auto my-auto px-0 md:px-4 z-10">
+                <img
+                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
+                  alt="Moment"
+                  onLoad={handleImageLoad}
+                  className="w-full max-w-full max-h-[72vh] object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300 pointer-events-none"
+                  style={effectiveRatio ? { aspectRatio: `${effectiveRatio}` } : { aspectRatio: '16/9' }}
+                />
+              </div>
+            ) : layoutCategory === 'square' ? (
+              /* Square image */
+              <div className="relative w-full max-w-[min(100vw,calc(100dvh-180px))] aspect-square flex items-center justify-center mx-auto my-auto z-10">
+                <img
+                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
+                  alt="Moment"
+                  onLoad={handleImageLoad}
+                  className="w-full h-full object-contain shadow-2xl rounded-none md:rounded-2xl transition-all duration-300 pointer-events-none"
+                  style={{ aspectRatio: effectiveRatio ? `${effectiveRatio}` : '1 / 1' }}
+                />
+              </div>
+            ) : (
+              /* Portrait image */
+              <div className="relative w-full h-full flex items-center justify-center z-10">
+                <img
+                  src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
+                  alt="Moment"
+                  onLoad={handleImageLoad}
+                  className="w-full h-full object-cover md:object-contain pointer-events-none transition-all duration-300"
+                />
+              </div>
+            )
           )}
         </div>
         
@@ -1434,6 +1537,7 @@ export default function Moments() {
 
   return (
     <div className="fixed inset-0 bg-black flex flex-col font-sans overflow-hidden">
+      <StatusBarController style="transparent-dark" />
       <Navbar />
 
       {/* Minimal Toast */}      {/* Pull to Refresh Spinner */}

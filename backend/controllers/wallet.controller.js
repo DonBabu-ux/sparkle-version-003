@@ -123,6 +123,10 @@ exports.initializeDeposit = async (req, res) => {
 
 exports.verifyDeposit = async (req, res) => {
     try {
+        // Scope the confirmation to the caller. Reading the reference straight
+        // from the body without an identity is what let any authenticated user
+        // confirm someone else's transaction.
+        const userId = req.user.user_id;
         const { reference } = req.body;
         if (!reference || typeof reference !== 'string') {
             return res.status(400).json({ success: false, message: 'reference is required' });

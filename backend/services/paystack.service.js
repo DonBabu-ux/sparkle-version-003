@@ -111,8 +111,20 @@ class PaystackService {
             logger.error('[Paystack] Cannot verify webhook: no secret configured');
             return false;
         }
-        const hash = crypto.createHmac('sha512', secret).update(rawBody).digest('hex');
-        return hash === signature;
+        // Constant-time comparison. `hash === signature` short-circuits on the
+        // first differing byte, which is remotely measurable; a successful forge
+        // here lets an attacker enqueue a charge.success event that the wallet
+        // ledger will credit. The live secret key is in play.
+        //
+        // Compare as byte Buffers, and length-check after decoding: a non-hex
+        // string of the right character length decodes to a short/empty buffer
+        // (Buffer.from('zzz', 'hex') is 0 bytes), which would otherwise make
+        // timingSafeEqual throw instead of rejecting.
+        if (typeof signature !== 'string' || typeof rawBody !== 'string') return false;
+        const expected = crypto.createHmac('sha512', secret).update(rawBody).digest();
+        const received = Buffer.from(signature, 'hex');
+        if (received.length !== expected.length) return false;
+        return crypto.timingSafeEqual(expected, received);
     }
 
     /**

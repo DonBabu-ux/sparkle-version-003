@@ -54,6 +54,47 @@ const NOTIFICATION_ICON = 'ic_notification';
 const NOTIFICATION_COLOR = '#FF1493';
 const BRAND_IMAGE_URL = 'https://sparkleweb.app.vercel.app/logo.png';
 
+// FCM error codes that mean "this token is finished" rather than "try again".
+// They are the only ones worth deleting: an expired token, a token registered
+// against a project the server no longer sends as, or a malformed value will
+// never succeed, and leaving it in the table means every future multicast pays
+// for it. Transient codes (UNAVAILABLE, INTERNAL, quota) must NOT be deleted -
+// dropping those loses a working token over a momentary failure.
+const DEAD_TOKEN_CODES = new Set([
+    'messaging/invalid-registration-token',
+    'messaging/registration-token-not-registered',
+    'messaging/invalid-argument',
+]);
+
+const isDeadTokenError = (err) => {
+    const code = err && (err.code || err.errorInfo && err.errorInfo.code);
+    if (typeof code === 'string' && DEAD_TOKEN_CODES.has(code)) return true;
+    // Some v1 responses nest the machine-readable code on errorInfo.
+    const nested = err && err.errorInfo && err.errorInfo.code;
+    return typeof nested === 'string' && DEAD_TOKEN_CODES.has(nested);
+};
+
+// Best-effort purge of dead tokens. A failure here must never stop a
+// notification that otherwise delivered, so it is isolated and logged.
+const deleteDeadTokens = async (tokens) => {
+    if (!tokens || tokens.length === 0) return 0;
+    try {
+        const pool = require('../config/database');
+        let removed = 0;
+        for (const token of tokens) {
+            const [res] = await pool.query('DELETE FROM fcm_tokens WHERE token = ?', [token]);
+            removed += res && typeof res.affectedRows === 'number' ? res.affectedRows : 0;
+        }
+        if (removed > 0) {
+            logger.info(`FCM V1: removed ${removed} dead token(s) from fcm_tokens`);
+        }
+        return removed;
+    } catch (e) {
+        logger.warn(`FCM V1: could not purge dead tokens: ${e.message}`);
+        return 0;
+    }
+};
+
 const sendFcmNotification = async (tokens, title, body, data = {}) => {
     if (!admin) {
         logger.warn('FCM: Cannot send notification. Firebase Admin not initialized (Missing serviceAccountKey.json).');
@@ -100,11 +141,17 @@ const sendFcmNotification = async (tokens, title, body, data = {}) => {
         logger.info(`FCM V1: Sent multicast. Success: ${response.successCount}, Failure: ${response.failureCount}`);
         
         if (response.failureCount > 0) {
+            const dead = [];
             response.responses.forEach((resp, idx) => {
                 if (!resp.success) {
-                    logger.error(`FCM V1 Error for token [${message.tokens[idx]}]:`, resp.error);
+                    const token = message.tokens[idx];
+                    logger.error(`FCM V1 Error for token [${token}]:`, resp.error);
+                    // A dead token is a permanent condition, so retire it rather
+                    // than re-paying for it on every later multicast.
+                    if (isDeadTokenError(resp.error)) dead.push(token);
                 }
             });
+            await deleteDeadTokens(dead);
         }
         return response;
     } catch (error) {

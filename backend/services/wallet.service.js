@@ -366,7 +366,14 @@ class WalletService {
         if (!w.length) {
             return { status: 'not_found' };
         }
-        if (userId !== undefined && w[0].user_id !== userId) {
+        // Owner scope: a verification reference must belong to the signed-in
+        // account. Requiring an identity rather than treating a missing one as
+        // "no opinion" is the difference between an owner check and a bypass —
+        // the controller path once called this with an undeclared userId.
+        if (typeof userId !== 'string' || userId.length === 0) {
+            throw new Error('A signed-in user is required to confirm a deposit.');
+        }
+        if (w[0].user_id !== userId) {
             return { status: 'not_authorized' };
         }
 

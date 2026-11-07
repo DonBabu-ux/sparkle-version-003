@@ -2232,9 +2232,6 @@ export default function Messages() {
   const [typingUsers, setTypingUsers] = useState<{ chatId: string, name: string }[]>([]);
   const [isNearBottom, setIsNearBottom] = useState(true);
   const isNearBottomRef = useRef(true);
-  // Tracks whether the user is actively scrolling — used to subtly dim header presence text
-  const [isScrollingMessages, setIsScrollingMessages] = useState(false);
-  const scrollStopRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingExpiryTimersRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
   const isTypingRef = useRef(false);

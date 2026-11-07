@@ -1907,7 +1907,6 @@ async function ensureSparklyBotUserExists() {
         logger.debug('sparkly bot upsert (expected on duplicate)', e?.message || e);
     }
 }
-}
 
 /**
  * Asynchronously processes @Sparkle mentions in normal chat rooms.

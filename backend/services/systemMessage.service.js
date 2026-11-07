@@ -46,16 +46,27 @@ class SystemMessageService {
     async _ensureSystemUser() {
         try {
             const { OFFICIAL_ECOSYSTEM_ACCOUNTS } = require('../helpers/systemAccount.helper');
+            const identitySync = require('./identityBloom/identitySync');
+            const { transaction } = require('../utils/database/transaction');
             for (const accKey of Object.keys(OFFICIAL_ECOSYSTEM_ACCOUNTS)) {
                 const acc = OFFICIAL_ECOSYSTEM_ACCOUNTS[accKey];
                 const rows = await safeQuery('SELECT user_id FROM users WHERE user_id = ? OR username = ? LIMIT 1', [acc.id, acc.username]);
                 if (rows.length === 0) {
-                    await safeQuery(
-                        `INSERT INTO users
-                           (user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio)
-                         VALUES (?, ?, ?, ?, 'NO_LOGIN', 'system', 'system', 'active', 1, 6, ?)`,
-                        [acc.id, acc.name, acc.username, `${acc.username}@sparkle.app`, acc.bio]
-                    );
+                    const email = `${acc.username}@sparkle.app`;
+                    const identityEntries = [
+                        { identityType: 'username', value: acc.username },
+                        { identityType: 'email', value: email }
+                    ];
+                    await identitySync.markIdentitiesPending(identityEntries);
+                    await transaction(async (conn) => {
+                        await conn.execute(
+                            `INSERT INTO users
+                               (user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio)
+                             VALUES (?, ?, ?, ?, 'NO_LOGIN', 'system', 'system', 'active', 1, 6, ?)`,
+                            [acc.id, acc.name, acc.username, email, acc.bio]
+                        );
+                        await identitySync.enqueueIdentityEventsForUser(conn, acc.id, identityEntries, { entityType: 'system_account' });
+                    });
                 }
             }
             logger.info('[SystemMessage] Official ecosystem users verified.');

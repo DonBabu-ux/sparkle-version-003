@@ -26,6 +26,7 @@ import MentionInput from '../components/MentionInput';
 import MentionText from '../components/MentionText';
 import HlsVideoPlayer from '../components/HlsVideoPlayer';
 import { logger } from '../utils/logger';
+import { MediaCacheService } from '../services/mediaCacheService';
 
 interface GiphyResult {
   id: string;
@@ -254,10 +255,10 @@ const ReelItem = React.memo(({
   }, [active, moment.moment_id, currentUser]);
 
   // Sequential comment overlays: cycle through recent comments every 3s
-  // while this reel is active. Timers are always cleaned up.
+  // only while this reel is active AND viewer is the creator/owner (PART 4).
   const [overlayIdx, setOverlayIdx] = useState(0);
   useEffect(() => {
-    if (!active || !commentOverlays || commentOverlays.length === 0) {
+    if (!active || !isOwner || !commentOverlays || commentOverlays.length === 0) {
       setOverlayIdx(0);
       return;
     }
@@ -266,7 +267,7 @@ const ReelItem = React.memo(({
       setOverlayIdx((i) => (i + 1) % commentOverlays.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [active, commentOverlays]);
+  }, [active, isOwner, commentOverlays]);
 
   const togglePlay = () => {
     const nextPaused = !userPaused;
@@ -418,6 +419,23 @@ const ReelItem = React.memo(({
   const isVideo = moment.is_video || moment.media_type === 'video' || !!moment.video_url || !!moment.streaming_url
     || isVideoUrl(moment.video_url || moment.media_url || moment.streaming_url);
   const music = parseMusicInfo(moment.music_info);
+
+  // Local-first media resolution via MediaCacheService (checks local IndexedDB first)
+  const [cachedMediaUrl, setCachedMediaUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (isNearActive && (moment.video_url || moment.media_url)) {
+      MediaCacheService.getMediaUrl(moment, {
+        autoCache: isOwner || moment.is_liked || moment.is_saved
+      }).then((res) => {
+        if (alive && res.fromCache) {
+          setCachedMediaUrl(res.url);
+        }
+      }).catch(() => {});
+    }
+    return () => { alive = false; };
+  }, [isNearActive, moment, isOwner]);
+
   // NOTE: TikTok iframes cannot be programmatically paused — we never embed them.
   // Treat TikTok URLs as opaque videos (or show a thumbnail). This prevents
   // multiple iframes playing simultaneously with no way to stop them.
@@ -518,8 +536,8 @@ const ReelItem = React.memo(({
           ) : isVideo ? (
             <HlsVideoPlayer
               ref={videoRef}
-              src={safeMediaSrc || mediaSrc || undefined}
-              fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : undefined}
+              src={cachedMediaUrl || safeMediaSrc || mediaSrc || undefined}
+              fallbackSrc={safeMediaSrc && safeMediaSrc !== mediaSrc ? (mediaSrc || undefined) : (cachedMediaUrl ? (safeMediaSrc || mediaSrc || undefined) : undefined)}
               poster={moment.thumbnail_url}
               active={active && !userPaused}
               muted={muted}
@@ -530,7 +548,7 @@ const ReelItem = React.memo(({
             />
           ) : (
             <img
-              src={mediaSrc || moment.thumbnail_url || undefined}
+              src={cachedMediaUrl || mediaSrc || moment.thumbnail_url || undefined}
               alt="Moment"
               className="max-w-full max-h-[88vh] w-auto h-auto object-contain pointer-events-none drop-shadow-2xl rounded-sm"
             />
@@ -653,8 +671,8 @@ const ReelItem = React.memo(({
         </button>
       </div>
 
-      {/* Sequential comment overlays (bounded, recent comments) */}
-      {active && commentOverlays && commentOverlays.length > 0 && (
+      {/* Sequential comment overlays: creator-only floating comments on their own reel (PART 4) */}
+      {active && isOwner && commentOverlays && commentOverlays.length > 0 && (
         <div className="absolute left-4 bottom-[calc(11rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] md:bottom-36 max-w-[70%] z-20 pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div
@@ -1254,6 +1272,9 @@ export default function Moments() {
 
     // Mark as pending
     useInteractionStore.getState().setPending('pendingLikes', momentId, true);
+    if (!wasLiked) {
+      MediaCacheService.cacheMediaInBackground(m, { isLiked: true }).catch(() => {});
+    }
     try {
       await api.post(`/moments/${momentId}/spark`);
     } catch {
@@ -1287,6 +1308,10 @@ export default function Moments() {
     setMoments(prev => prev.map(item => item.moment_id === momentId ? {
       ...item, is_saved: !wasSaved
     } : item));
+
+    if (!wasSaved) {
+      MediaCacheService.cacheMediaInBackground(m, { isSaved: true }).catch(() => {});
+    }
 
     try {
       await api.post(`/moments/${momentId}/save`);
@@ -1823,14 +1848,24 @@ export default function Moments() {
         <MomentPrivacySheet momentId={privacyMomentId} onClose={() => setPrivacyMomentId(null)} />
       )}
 
-      {/* TikTok-style Comments Sheet */}
-      <MomentsCommentSheet
-        open={showComments}
-        momentId={activeMomentId}
-        onClose={() => setShowComments(false)}
-        onCommentAdded={handleCommentAdded}
-        onCommentRemoved={handleCommentRemoved}
-      />
+      {/* Comments Presentation — floating for creator's own Reel, sliding sheet for other users' Reels (PART 4) */}
+      {(() => {
+        const curMoment = moments.find((m) => m.moment_id === activeMomentId);
+        const isCurrentOwner = Boolean(
+          curMoment &&
+          String(curMoment.user_id || '') === String(user?.user_id || (user as any)?.id || '')
+        );
+        return (
+          <MomentsCommentSheet
+            open={showComments}
+            momentId={activeMomentId}
+            onClose={() => setShowComments(false)}
+            onCommentAdded={handleCommentAdded}
+            onCommentRemoved={handleCommentRemoved}
+            isOwner={isCurrentOwner}
+          />
+        );
+      })()}
 
       <style>{`
         .no-scrollbar::-webkit-scrollbar { display: none; }

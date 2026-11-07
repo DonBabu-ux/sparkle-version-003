@@ -51,10 +51,22 @@ const syncSocialUser = async (req, res) => {
             const dummyPassword = crypto.randomBytes(16).toString('hex');
             const hashedPassword = await bcrypt.hash(dummyPassword, 12);
 
-            await query(
-                'INSERT INTO users (user_id, name, username, email, password_hash, avatar_url, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [userId, name, username, email, hashedPassword, avatar_url, 1]
-            );
+            const identitySync = require('../services/identityBloom/identitySync');
+            const { transaction } = require('../utils/database/transaction');
+            await identitySync.markIdentitiesPending([
+                { identityType: 'username', value: username },
+                { identityType: 'email', value: email }
+            ]);
+            await transaction(async (conn) => {
+                await conn.execute(
+                    'INSERT INTO users (user_id, name, username, email, password_hash, avatar_url, email_verified) VALUES (?, ?, ?, ?, ?, ?, ?)',
+                    [userId, name, username, email, hashedPassword, avatar_url, 1]
+                );
+                await identitySync.enqueueIdentityEventsForUser(conn, userId, [
+                    { identityType: 'username', value: username },
+                    { identityType: 'email', value: email }
+                ]);
+            });
             logger.info(`New social user created: ${email}`);
         } else {
             // Existing User Login
@@ -160,7 +172,17 @@ const syncVerifiedOTP = async (req, res) => {
             }
 
             const sql = `INSERT INTO users (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
-            await query(sql, params);
+            const identitySync = require('../services/identityBloom/identitySync');
+            const { transaction } = require('../utils/database/transaction');
+            const identityEntries = [{ identityType: 'username', value: username }];
+            if (type === 'email') {
+                identityEntries.push({ identityType: 'email', value });
+            }
+            await identitySync.markIdentitiesPending(identityEntries);
+            await transaction(async (conn) => {
+                await conn.execute(sql, params);
+                await identitySync.enqueueIdentityEventsForUser(conn, userId, identityEntries);
+            });
         } else {
             // Update flow
             userId = users[0].user_id;

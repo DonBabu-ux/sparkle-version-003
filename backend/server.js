@@ -281,6 +281,42 @@ app.get('/api/debug/pool', poolAuthGuard, (req, res) => {
     res.json({ status: 'success', ...require('./config/database').getPoolMetrics() });
 });
 
+// Identity bloom filter observability - auth guarded like the pool metrics.
+// Never exposes HMAC values, raw identities or Redis credentials.
+app.get('/api/debug/identity-bloom', poolAuthGuard, async (req, res) => {
+    try {
+        const metrics = require('./services/identityBloom/metrics');
+        const filterStore = require('./services/identityBloom/filterStore');
+        const redisClient = require('./services/identityBloom/redisClient');
+        const outbox = require('./services/identityBloom/outbox');
+        const { getConfig } = require('./services/identityBloom/config');
+        const config = getConfig();
+
+        const versions = await filterStore.resolveActiveVersions(true);
+        let backlog = null;
+        try { backlog = await outbox.getBacklog(); } catch (_) { backlog = null; }
+
+        res.json({
+            status: 'success',
+            redis: redisClient.getHealth(),
+            filters: {
+                activeUsernameVersion: versions.username,
+                activeEmailVersion: versions.email,
+                readiness: filterStore.getReadinessSnapshot(),
+                capacity: config.capacity,
+                bits: config.bits,
+                hashCount: config.hashCount,
+                errorRate: config.errorRate,
+                byteLength: config.byteLength
+            },
+            outbox: backlog,
+            metrics: metrics.snapshot()
+        });
+    } catch (error) {
+        res.status(500).json({ status: 'error', message: 'Failed to collect identity bloom metrics' });
+    }
+});
+
 // MASTER API TRACE
 app.use('/api', (req, res, next) => {
     next();
@@ -407,6 +443,11 @@ if (require.main === module || process.env.SPARKLE_ROOT_ENTRY) {
                 startWalletRecoveryScheduler();
             } catch (err) {
                 logger.warn('Failed to start wallet recovery scheduler:', err.message);
+            }
+            try {
+                require('./workers/identityBloomWorker').start();
+            } catch (err) {
+                logger.warn('Failed to start identity bloom worker:', err.message);
             }
         }).catch(err => logger.error('Failed to initialize database:', err));
     });

@@ -111,6 +111,7 @@ router.put('/account/visibility', authMiddleware, userController.setHideFromUser
 
 // Social & Profile Routes — specific subroutes MUST come before /:id catch-all
 router.get('/:id/posts', authMiddleware, userController.getUserPosts);
+router.get('/:id/tagged', authMiddleware, userController.getUserTaggedPosts);
 router.get('/:id/followers', authMiddleware, userController.getFollowers);
 router.get('/:id/following', authMiddleware, userController.getFollowing);
 router.get('/:id/mutual-followers', authMiddleware, userController.getMutualFollowersForProfile);

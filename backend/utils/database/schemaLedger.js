@@ -47,7 +47,10 @@ const MIGRATION_RUN = [
     { file: '20261107_message_reminders.js', verify: [] },
     // Engagement Engine Phase 1b: the story digest ledger, plus the
     // notifications_stories toggle the digest respects.
-    { file: '20261107_story_digests.js', verify: [] }
+    { file: '20261107_story_digests.js', verify: [] },
+    // Identity bloom filter outbox: transactional MySQL -> Redis synchronization
+    // queue for username/email identity membership.
+    { file: '20261107_create_identity_bloom_outbox.js', verify: ['identity_bloom_outbox'] }
 ];
 
 // Dispositions for every other migration file, verified against the live schema.

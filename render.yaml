@@ -68,6 +68,26 @@ services:
       - key: REDIS_L1_TTL_MS
         value: "3000"
 
+      # --- Identity Bloom Filter (username/email availability) ---
+      # HMAC secret shared by every backend instance. Rotating it requires a
+      # controlled filter rebuild; never expose it to the frontend.
+      - key: SPARKLE_IDENTITY_BLOOM_HMAC_SECRET
+        sync: false
+      # Optional explicit pin for the Redis deployment that stores the filters.
+      # Leave unset to reuse REDIS_CACHE_URL / REDIS_URL / Upstash REST.
+      - key: SPARKLE_IDENTITY_BLOOM_REDIS_URL
+        sync: false
+      - key: SPARKLE_IDENTITY_BLOOM_CAPACITY
+        value: "1000000"
+      - key: SPARKLE_IDENTITY_BLOOM_ERROR_RATE
+        value: "0.001"
+      - key: SPARKLE_IDENTITY_BLOOM_VERSION
+        value: "v1"
+      - key: SPARKLE_IDENTITY_BLOOM_TIMEOUT_MS
+        value: "1500"
+      - key: SPARKLE_IDENTITY_BLOOM_WORKER_INTERVAL_MS
+        value: "5000"
+
 # Optional — uncomment to let Render also manage a Redis instance for the
 # cache tier, in the same region as the service above.
 #

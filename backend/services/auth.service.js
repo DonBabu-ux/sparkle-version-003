@@ -254,22 +254,21 @@ class AuthService {
         const normUsername = usernameResult.value || username;
 
         if (emailResult.valid || usernameResult.valid) {
-            const existing = await safeQuery(
-                'SELECT email, username FROM users WHERE email = ? OR username = ? LIMIT 2',
-                [normEmail, normUsername]
-            );
-
-            let emailTaken = false;
-            let usernameTaken = false;
-
-            for (const row of existing) {
-                if (emailResult.valid && row.email.toLowerCase() === normEmail.toLowerCase()) {
-                    emailTaken = true;
-                }
-                if (usernameResult.valid && row.username.toLowerCase() === normUsername.toLowerCase()) {
-                    usernameTaken = true;
-                }
+            const identityLookup = require('./identityBloom/identityLookup');
+            const identityEntries = [];
+            if (usernameResult.valid) {
+                identityEntries.push({ identityType: 'username', value: normUsername });
             }
+            if (emailResult.valid) {
+                identityEntries.push({ identityType: 'email', value: normEmail });
+            }
+
+            const identityResults = await identityLookup.checkIdentities(identityEntries, {
+                reserve: errors.length === 0
+            });
+
+            const emailTaken = emailResult.valid && identityResults.email && identityResults.email.taken;
+            const usernameTaken = usernameResult.valid && identityResults.username && identityResults.username.taken;
 
             if (emailTaken) {
                 errors.push({ field: 'email', code: 'EMAIL_TAKEN', message: 'Email address is already registered.' });
@@ -301,6 +300,25 @@ class AuthService {
                     'INSERT INTO users (user_id, name, username, email, password_hash, campus, major, year_of_study, phone_number, user_type, student_id, onboarding_step) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',
                     [userId, name, normUsername, normEmail, hashedPassword, campus || null, major || null, year || null, phone_number || null, user_type, student_id || null]
                 );
+
+                const identityBloomOutbox = require('./identityBloom/outbox');
+                const identityEvents = identityBloomOutbox.buildIdentityEvents({
+                    entityType: 'user',
+                    entityId: userId,
+                    identities: [
+                        { identityType: 'username', value: normUsername },
+                        { identityType: 'email', value: normEmail }
+                    ]
+                });
+                try {
+                    await identityBloomOutbox.enqueueIdentityEvents(conn, identityEvents);
+                } catch (outboxError) {
+                    if (outboxError && outboxError.code === 'ER_NO_SUCH_TABLE') {
+                        logger.warn('[AuthService] Identity bloom outbox table is unavailable - identity synchronization is degraded for this signup.');
+                    } else {
+                        throw outboxError;
+                    }
+                }
 
                 await conn.execute(
                     'INSERT INTO notifications (notification_id, user_id, type, title, content, action_url, is_read) VALUES (?, ?, ?, ?, ?, ?, ?)',
@@ -396,6 +414,7 @@ class AuthService {
             };
         } catch (dbError) {
             if (dbError.code === 'ER_DUP_ENTRY') {
+                require('./identityBloom/metrics').increment('duplicateKeyConflicts');
                 const err = new Error('Signup validation failed.');
                 err.validationErrors = [{
                     field: 'general',

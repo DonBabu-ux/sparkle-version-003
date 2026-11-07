@@ -1018,12 +1018,23 @@ const checkUsername = async (req, res) => {
         }
 
         const normUsername = validation.value;
-        // Use indexed lookup on username_normalized
-        const existing = await query('SELECT user_id, username, username_normalized FROM users WHERE username_normalized = ? LIMIT 1', [normUsername]);
+        const currentUserId = req.query.current_user_id || (req.user && (req.user.userId || req.user.user_id));
 
-        if (existing.length > 0) {
-            const currentUserId = req.query.current_user_id || (req.user && (req.user.userId || req.user.user_id));
-            if (currentUserId && String(existing[0].user_id) === String(currentUserId)) {
+        let taken = false;
+        let existingUserId = null;
+
+        if (currentUserId) {
+            const existing = await query('SELECT user_id FROM users WHERE username_normalized = ? LIMIT 1', [normUsername]);
+            taken = existing.length > 0;
+            existingUserId = existing.length > 0 ? existing[0].user_id : null;
+        } else {
+            const identityLookup = require('../services/identityBloom/identityLookup');
+            const result = await identityLookup.checkIdentity('username', normUsername);
+            taken = result.taken;
+        }
+
+        if (taken) {
+            if (currentUserId && String(existingUserId) === String(currentUserId)) {
                 return res.json({
                     success: true,
                     available: true,
@@ -1072,9 +1083,10 @@ const checkEmail = async (req, res) => {
         }
 
         const normEmail = validation.value;
-        const existing = await query('SELECT email FROM users WHERE email = ? LIMIT 1', [normEmail]);
+        const identityLookup = require('../services/identityBloom/identityLookup');
+        const result = await identityLookup.checkIdentity('email', normEmail);
 
-        if (existing.length > 0) {
+        if (result.taken) {
             return res.json({
                 success: true,
                 available: false,

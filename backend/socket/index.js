@@ -1883,17 +1883,30 @@ const emitMarketplaceMessage = (chatId, message) => {
 
 async function ensureSparklyBotUserExists() {
     try {
-        await pool.query(`
+        const [result] = await pool.query(`
             INSERT INTO users (
                 user_id, name, username, email, password_hash, user_type, account_type, account_status, is_verified, onboarding_step, bio
             ) VALUES (
                 'sparkly_bot', 'Sparkly AI Assistant', 'sparkly_bot', 'sparkly_bot@sparkle.app', 'NO_LOGIN', 'system', 'system', 'active', 1, 6, 'Official Sparkly AI Assistant on Sparkle'
             ) ON DUPLICATE KEY UPDATE name = VALUES(name)
         `);
+
+        if (result && result.affectedRows === 1) {
+            const identitySync = require('../services/identityBloom/identitySync');
+            const { transaction } = require('../utils/database/transaction');
+            const identityEntries = [
+                { identityType: 'username', value: 'sparkly_bot' },
+                { identityType: 'email', value: 'sparkly_bot@sparkle.app' }
+            ];
+            await identitySync.markIdentitiesPending(identityEntries);
+            await transaction(async (conn) => {
+                await identitySync.enqueueIdentityEventsForUser(conn, 'sparkly_bot', identityEntries, { entityType: 'system_account' });
+            });
+        }
     } catch (e) {
-        // Suppress duplicate/concurrent insertion warning
         logger.debug('sparkly bot upsert (expected on duplicate)', e?.message || e);
     }
+}
 }
 
 /**

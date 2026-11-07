@@ -1181,6 +1181,63 @@ const getUserPosts = async (req, res) => {
     }
 };
 
+const getUserTaggedPosts = async (req, res) => {
+    try {
+        const userId = req.params.id;
+        const currentUserId = req.user.userId || req.user.user_id;
+
+        // Privacy check
+        if (currentUserId && userId !== currentUserId) {
+            const [user] = await User.pool.query('SELECT is_private, profile_visibility FROM users WHERE user_id = ?', [userId]);
+            if (user[0] && (user[0].is_private || user[0].profile_visibility === 'private')) {
+                const [followed] = await User.pool.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [currentUserId, userId]);
+                if (followed.length === 0) {
+                    return res.json([]);
+                }
+            }
+        }
+
+        const [posts] = await User.pool.query(
+            `SELECT p.*, u.username, u.name, u.avatar_url,
+                    COALESCE(p.spark_count, 0) as sparks,
+                    COALESCE(p.comment_count, 0) as comments,
+                    (SELECT JSON_ARRAYAGG(JSON_OBJECT('url', pm.media_url, 'type', pm.media_type)) 
+                     FROM post_media pm WHERE pm.post_id = p.post_id ORDER BY pm.upload_order ASC) as media_files
+             FROM posts p
+             JOIN users u ON p.user_id = u.user_id
+             WHERE (
+                 p.tagged_users LIKE ? OR 
+                 p.tagged_users LIKE ? OR
+                 p.content LIKE ?
+             )
+             AND p.deleted_at IS NULL
+             ORDER BY p.created_at DESC LIMIT 30`,
+            [`%"user_id":"${userId}"%`, `%"${userId}"%`, `%@${userId}%`]
+        );
+
+        const mappedPosts = (posts || []).map(post => {
+            let files = post.media_files;
+            if (typeof files === 'string') {
+                try { files = JSON.parse(files); } catch { files = null; }
+            }
+            return {
+                ...post,
+                id: post.post_id,
+                spark_count: Number(post.sparks) || 0,
+                comment_count: Number(post.comments) || 0,
+                likes_count: Number(post.sparks) || 0,
+                comments_count: Number(post.comments) || 0,
+                media_files: files
+            };
+        });
+
+        res.json(mappedPosts);
+    } catch (error) {
+        logger.error('Get user tagged posts error:', error);
+        res.json([]);
+    }
+};
+
 // return a small batch of users that the current user might want to follow
 const getSuggestions = async (req, res) => {
     try {
@@ -1722,6 +1779,7 @@ module.exports = {
     getFollowing,
     getUserProfile,
     getUserPosts,
+    getUserTaggedPosts,
     getSuggestions,
     getUsernameSuggestions,
     dismissSuggestion,

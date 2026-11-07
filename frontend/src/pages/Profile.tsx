@@ -10,7 +10,7 @@ import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
-List, FileText, MoreHorizontal, Pin
+List, FileText, MoreHorizontal, Pin, Layers
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,6 +25,7 @@ import DraftPreview from '../features/reels/components/DraftPreview';
 import PendingReelTile from '../features/reels/components/PendingReelTile';
 import { listDrafts, formatBytes, type DraftListItem } from '../features/reels/services/draftService';
 import HighlightEditModal from '../components/modals/HighlightEditModal';
+import { MediaCacheService } from '../services/mediaCacheService';
 
 export default function Profile() {
   const { username } = useParams();
@@ -42,6 +43,7 @@ export default function Profile() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reels, setReels] = useState<Post[]>([]);
   const [savedPosts, setSavedPosts] = useState<Post[]>([]);
+  const [taggedPosts, setTaggedPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged'>(
     reelsTabParamRef.current ? 'reels' : 'posts',
@@ -206,6 +208,14 @@ export default function Profile() {
             })
           );
           if (moments.length > 0) {
+            moments.forEach((m) => {
+              if (m.media_url) {
+                MediaCacheService.cacheMediaInBackground(
+                  { moment_id: m.post_id, video_url: m.media_url, thumbnail_url: m.avatar_url, media_type: m.media_type },
+                  { isOwned: isOwnProfile }
+                ).catch(() => {});
+              }
+            });
             setReels((prev) => {
               // Dedupe by post_id so a double-invocation (or a moment that is
               // also a video post) never produces duplicate React keys.
@@ -251,9 +261,28 @@ export default function Profile() {
   const fetchSaved = useCallback(async () => {
     try {
       const res = await api.get('/posts/saved');
-      setSavedPosts(res.data || []);
+      const saved = res.data || [];
+      setSavedPosts(saved);
+      saved.forEach((p: Post) => {
+        if (p.media_url && (p.media_type === 'video' || p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))) {
+          MediaCacheService.cacheMediaInBackground(
+            { post_id: p.post_id, video_url: p.media_url, thumbnail_url: p.image_url, media_type: 'video' },
+            { isSaved: true }
+          ).catch(() => {});
+        }
+      });
     } catch (err) {
       logger.error('Failed to fetch saved posts:', err);
+    }
+  }, []);
+
+  const fetchTagged = useCallback(async (userId: string) => {
+    try {
+      const res = await api.get(`/users/${userId}/tagged`);
+      setTaggedPosts(res.data || []);
+    } catch (err) {
+      logger.error('Failed to fetch tagged posts:', err);
+      setTaggedPosts([]);
     }
   }, []);
 
@@ -307,7 +336,10 @@ export default function Profile() {
     if (activeTab === 'saved' && ownProfile) {
       fetchSaved();
     }
-  }, [activeTab, currentUser, profile, fetchSaved]);
+    if (activeTab === 'tagged' && profileId) {
+      fetchTagged(String(profileId));
+    }
+  }, [activeTab, currentUser, profile, fetchSaved, fetchTagged]);
 
   useEffect(() => {
     const handleProfileUpdated = (e: Event) => {
@@ -387,7 +419,7 @@ export default function Profile() {
   const isOwnProfile = !!currentId && !!profileId && String(currentId) === String(profileId);
   const isMeAlias = username === 'me';
   const showOwnerActions = isOwnProfile || isMeAlias;
-  const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : [];
+  const gridItems = activeTab === 'posts' ? posts : activeTab === 'reels' ? reels : activeTab === 'saved' ? savedPosts : activeTab === 'tagged' ? taggedPosts : [];
   const showDraftsTile = showOwnerActions && (activeTab === 'posts' || activeTab === 'reels');
   const showPendingReels = showOwnerActions && activeTab === 'reels' && pendingMomentJobs.length > 0;
 
@@ -938,46 +970,74 @@ export default function Profile() {
                     role="button"
                     tabIndex={0}
                 >
-                  <div className="w-full h-full relative">
-                    {post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)) ? (
-                      <video src={post.media_url} className="w-full h-full object-cover" muted playsInline preload="metadata" />
-                    ) : (post.media_url || post.image_url) ? (
-                      <img src={post.media_url || post.image_url} className="w-full h-full object-cover" alt={post.content || "Post image"} />
-                    ) : (
-                      <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-[#18181b] dark:text-white">
-                         <p className="font-medium text-[11px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
-                           {post.content || 'No Media'}
-                         </p>
-                      </div>
-                    )}
+                  {(() => {
+                    const isVideo = Boolean(post.is_moment || post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i)));
+                    const isMultiImage = Boolean((Array.isArray(post.media_files) && post.media_files.length > 1) || (Array.isArray(post.media) && post.media.length > 1));
+                    const previewImageUrl = (Array.isArray(post.media_files) && post.media_files.length > 0 && post.media_files[0]?.url)
+                      ? post.media_files[0].url
+                      : (post.thumbnail_url || post.image_url || (!isVideo ? post.media_url : null));
 
-                    {/* Pinned Badge */}
-                    {Boolean(post.is_pinned) && (
-                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-md text-[10px] font-bold pointer-events-none">
-                        <Pin size={11} className="fill-primary text-primary rotate-45" />
-                        <span className="hidden sm:inline">Pinned</span>
-                      </div>
-                    )}
-                    
-                    {/* Media Badge */}
-                    {(post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i))) && (
-                       <div className="absolute top-2 right-2 z-10 flex items-center justify-center text-white drop-shadow-md pointer-events-none">
-                          <Clapperboard size={16} fill="white" className="text-white" />
-                       </div>
-                    )}
+                    return (
+                      <div className="w-full h-full relative">
+                        {previewImageUrl ? (
+                          <img
+                            src={previewImageUrl}
+                            className="w-full h-full object-cover"
+                            alt={post.content || "Post thumbnail"}
+                            loading="lazy"
+                          />
+                        ) : isVideo && post.media_url ? (
+                          <video
+                            src={post.media_url}
+                            className="w-full h-full object-cover"
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex flex-col justify-center items-center p-4 text-center text-[#18181b] dark:text-white bg-slate-100 dark:bg-zinc-800/60">
+                             <p className="font-medium text-[11px] md:text-xs italic opacity-60 leading-snug break-words line-clamp-4">
+                               {post.content || 'No Media'}
+                             </p>
+                          </div>
+                        )}
 
-                    {/* Bottom Preview Metrics (Likes & Comments) — Always visible on touch and desktop */}
-                    <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-1.5 sm:p-2 pt-6 flex items-center justify-between text-white text-[11px] sm:text-xs font-semibold pointer-events-none drop-shadow">
-                      <div className="flex items-center gap-1">
-                        <Heart size={12} className="fill-white text-white shrink-0" />
-                        <span>{formatCount(post.spark_count ?? (post.sparks as number) ?? 0)}</span>
+                        {/* Pinned Badge */}
+                        {Boolean(post.is_pinned) && (
+                          <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-md text-[10px] font-bold pointer-events-none">
+                            <Pin size={11} className="fill-primary text-primary rotate-45" />
+                            <span className="hidden sm:inline">Pinned</span>
+                          </div>
+                        )}
+
+                        {/* Multi-image indicator badge */}
+                        {isMultiImage && (
+                          <div className="absolute top-2 right-2 z-10 flex items-center justify-center text-white drop-shadow-md pointer-events-none bg-black/50 backdrop-blur-sm p-1 rounded-md">
+                            <Layers size={14} className="text-white" />
+                          </div>
+                        )}
+                        
+                        {/* Video / Reel Badge (if not multi-image) */}
+                        {isVideo && !isMultiImage && (
+                           <div className="absolute top-2 right-2 z-10 flex items-center justify-center text-white drop-shadow-md pointer-events-none bg-black/50 backdrop-blur-sm p-1 rounded-md">
+                              <Clapperboard size={14} fill="white" className="text-white" />
+                           </div>
+                        )}
+
+                        {/* Bottom Preview Metrics (Likes & Comments) — Always visible on touch and desktop */}
+                        <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-1.5 sm:p-2 pt-6 flex items-center justify-between text-white text-[11px] sm:text-xs font-semibold pointer-events-none drop-shadow">
+                          <div className="flex items-center gap-1">
+                            <Heart size={12} className="fill-white text-white shrink-0" />
+                            <span>{formatCount(post.spark_count ?? (post.sparks as number) ?? 0)}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MessageSquare size={12} className="fill-white text-white shrink-0" />
+                            <span>{formatCount(post.comment_count ?? (post.comments as number) ?? 0)}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1">
-                        <MessageSquare size={12} className="fill-white text-white shrink-0" />
-                        <span>{formatCount(post.comment_count ?? (post.comments as number) ?? 0)}</span>
-                      </div>
-                    </div>
-                  </div>
+                    );
+                  })()}
                   
                   {/* Desktop Hover Overlay */}
                   <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white z-10 hidden md:flex pointer-events-none">
@@ -996,14 +1056,14 @@ export default function Profile() {
             <div className="col-span-full py-12">
                 <ModernOfflineState 
                   type="empty"
-                  title={activeTab === 'posts' ? 'No posts yet' : activeTab === 'reels' ? 'No reels yet' : activeTab === 'saved' ? 'Nothing saved' : 'Tagged posts unavailable'}
+                  title={activeTab === 'posts' ? 'No posts yet' : activeTab === 'reels' ? 'No reels yet' : activeTab === 'saved' ? 'Nothing saved' : 'No tagged posts yet'}
                   message={activeTab === 'posts'
                     ? showOwnerActions ? 'Create your first post to get started!' : 'This profile has not shared any posts yet.'
                     : activeTab === 'reels'
                       ? showOwnerActions ? 'Record your first reel to share moments.' : 'This profile has not shared any reels yet.'
                       : activeTab === 'saved'
                         ? 'Save posts you love to see them here.'
-                        : 'Tagged posts are not currently available on profiles.'
+                        : 'When other users tag this profile in posts or reels, they will appear here.'
                   }
                   primaryAction={showOwnerActions && (activeTab === 'posts' || activeTab === 'reels') ? {
                     label: 'Create post',

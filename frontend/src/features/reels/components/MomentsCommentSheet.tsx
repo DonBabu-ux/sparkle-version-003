@@ -59,6 +59,7 @@ interface MomentsCommentSheetProps {
   onCommentAdded?: () => void;
   /** Called after a deletion with how many rows the server removed. */
   onCommentRemoved?: (deletedCount: number) => void;
+  isOwner?: boolean;
 }
 
 interface MenuTarget {
@@ -395,12 +396,14 @@ const MomentsCommentSheet: React.FC<MomentsCommentSheetProps> = ({
   onClose,
   onCommentAdded,
   onCommentRemoved,
+  isOwner: isOwnerProp,
 }) => {
   const { user } = useUserStore();
   const currentUserId = String(user?.user_id || (user as any)?.id || '');
 
   const [comments, setComments] = useState<CommentData[]>([]);
   const [reelOwnerId, setReelOwnerId] = useState<string | null>(null);
+  const isOwner = Boolean(isOwnerProp || (reelOwnerId && currentUserId && String(reelOwnerId) === String(currentUserId)));
   const [loading, setLoading] = useState(false);
   const [sort, setSort] = useState<SortOption>('Top');
   const [showSortMenu, setShowSortMenu] = useState(false);
@@ -828,8 +831,12 @@ const MomentsCommentSheet: React.FC<MomentsCommentSheetProps> = ({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 28, stiffness: 280, mass: 0.9 }}
-            className="fixed bottom-0 left-0 lg:left-72 right-0 z-(--z-sheet) flex flex-col bg-white dark:bg-[#1c1c1e] rounded-t-[24px] shadow-[0_-8px_60px_rgba(0,0,0,0.25)] overflow-hidden"
-            style={{ maxHeight: '72vh', minHeight: '40vh' }}
+            className={clsx(
+              "fixed z-(--z-sheet) flex flex-col bg-white dark:bg-[#1c1c1e] shadow-[0_-8px_60px_rgba(0,0,0,0.35)] overflow-hidden transition-all",
+              isOwner
+                ? "bottom-20 left-4 right-4 md:left-auto md:right-8 md:w-[440px] rounded-[28px] border border-white/20 dark:border-white/10 max-h-[65vh] min-h-[35vh] backdrop-blur-xl bg-white/95 dark:bg-zinc-900/95"
+                : "bottom-0 left-0 lg:left-72 right-0 rounded-t-[24px] max-h-[72vh] min-h-[40vh]"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Drag pill */}
@@ -840,10 +847,17 @@ const MomentsCommentSheet: React.FC<MomentsCommentSheetProps> = ({
             {/* Header */}
             <div className="flex items-center justify-between px-4 pb-3 shrink-0 border-b border-gray-100 dark:border-zinc-800">
               <div className="flex items-center gap-2">
-                <span className="text-[15px] font-bold text-gray-900 dark:text-white">Comments</span>
+                <span className="text-[15px] font-bold text-gray-900 dark:text-white">
+                  {isOwner ? 'Floating Comments' : 'Comments'}
+                </span>
                 <span className="px-2 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-[11px] font-bold text-gray-500 dark:text-zinc-400">
                   {totalCount}
                 </span>
+                {isOwner && (
+                  <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-bold tracking-tight">
+                    Creator
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-2">

@@ -151,20 +151,30 @@ class User {
      */
     static async create(userData) {
         const userId = crypto.randomUUID();
-        await pool.query(
-            `INSERT INTO users (user_id, name, username, email, password_hash, campus, major, avatar_url) 
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-                userId,
-                userData.name,
-                userData.username,
-                userData.email,
-                userData.password_hash,
-                userData.affiliation || userData.campus || null,
-                userData.interests || userData.major || null,
-                userData.avatar_url || '/uploads/avatars/no-profile.png'
-            ]
-        );
+        const identitySync = require('../services/identityBloom/identitySync');
+        const { transaction } = require('../utils/database/transaction');
+        const identityEntries = [
+            { identityType: 'username', value: userData.username },
+            { identityType: 'email', value: userData.email }
+        ];
+        await identitySync.markIdentitiesPending(identityEntries);
+        await transaction(async (conn) => {
+            await conn.execute(
+                `INSERT INTO users (user_id, name, username, email, password_hash, campus, major, avatar_url)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                [
+                    userId,
+                    userData.name,
+                    userData.username,
+                    userData.email,
+                    userData.password_hash,
+                    userData.affiliation || userData.campus || null,
+                    userData.interests || userData.major || null,
+                    userData.avatar_url || '/uploads/avatars/no-profile.png'
+                ]
+            );
+            await identitySync.enqueueIdentityEventsForUser(conn, userId, identityEntries);
+        });
         return userId;
     }
 
@@ -185,6 +195,28 @@ class User {
         if (fields.length === 0) return false;
 
         values.push(userId);
+
+        const identityEntries = [];
+        if (Object.prototype.hasOwnProperty.call(updates, 'username') && updates.username !== undefined && updates.username !== null) {
+            identityEntries.push({ identityType: 'username', value: updates.username });
+        }
+        if (Object.prototype.hasOwnProperty.call(updates, 'email') && updates.email !== undefined && updates.email !== null) {
+            identityEntries.push({ identityType: 'email', value: updates.email });
+        }
+
+        if (identityEntries.length > 0) {
+            const identitySync = require('../services/identityBloom/identitySync');
+            const { transaction } = require('../utils/database/transaction');
+            await identitySync.markIdentitiesPending(identityEntries);
+            await transaction(async (conn) => {
+                await conn.execute(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`, values);
+                await identitySync.enqueueIdentityEventsForUser(conn, userId, identityEntries, {
+                    entityType: 'user_identity_change'
+                });
+            });
+            return true;
+        }
+
         await pool.query(
             `UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`,
             values

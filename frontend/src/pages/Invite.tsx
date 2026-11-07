@@ -146,7 +146,7 @@ export default function Invite() {
       {/* ==================================================
           1. HEADER
           ================================================== */}
-      <header className="sticky top-0 z-40 bg-[#fcfcfd]/90 dark:bg-[#0a0a0c]/90 backdrop-blur-md border-b border-slate-100 dark:border-zinc-900">
+      <header className="sticky top-0 z-40 bg-[#fcfcfd]/90 dark:bg-[#0a0a0c]/90 backdrop-blur-md border-b border-slate-100 dark:border-zinc-900 pt-[var(--safe-area-inset-top,env(safe-area-inset-top,0px))]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button 

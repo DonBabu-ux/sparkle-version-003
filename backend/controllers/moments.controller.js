@@ -301,6 +301,7 @@ const getMomentsStream = async (req, res) => {
                         streaming_url: item.streaming_url,
                         thumbnail_url: item.thumbnail_url,
                         media_type:    item.media_type,
+                        clips_info:    item.clips_info || null,
                         like_count:    item.like_count || 0,
                         comment_count: item.comment_count || 0,
                         share_count:   item.share_count || 0,

@@ -27,7 +27,7 @@ export default function LegalViewer() {
       </div>
 
       {/* Header */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 px-4 lg:px-8 py-3.5 flex items-center justify-between transition-all">
+      <header className="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 px-4 lg:px-8 pb-3.5 pt-[calc(0.875rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center justify-between transition-all">
         <div className="flex items-center gap-3">
           <button
             onClick={() => isDocumentSelected ? navigate('/legal') : navigate(-1)}

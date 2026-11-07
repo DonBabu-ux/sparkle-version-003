@@ -67,7 +67,7 @@ export default function AccountsCenter() {
   return (
     <div className="flex flex-col bg-white dark:bg-zinc-950 min-h-dvh text-marketplace-text font-sans overflow-x-hidden pb-[env(safe-area-inset-bottom)]">
 
-      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-marketplace-border px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-950/80 backdrop-blur-xl border-b border-marketplace-border px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
           aria-label="Go back"

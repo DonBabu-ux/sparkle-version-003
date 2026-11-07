@@ -209,7 +209,7 @@ export default function Marketplace() {
         {/* 1. FB Style Header */}
         <header className="sticky top-0 z-40 bg-[#fdf8fa] dark:bg-zinc-800 flex flex-col transition-all">
           {/* Top Row */}
-          <div className="flex items-center justify-between px-3 pt-[env(safe-area-inset-top)] pb-2.5 min-h-[60px]">
+          <div className="flex items-center justify-between px-3 pt-[calc(0.5rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] pb-2.5 min-h-[60px]">
             <AnimatePresence mode="wait">
               {!isSearching ? (
                 <motion.div 

@@ -80,7 +80,7 @@ export default function MarketplaceSafety() {
   return (
     <div className="min-h-dvh bg-[#0A0A0A] text-white flex flex-col font-sans selection:bg-[#1877F2]/30">
       {/* Ultra-Minimal Header */}
-      <header className="px-6 h-20 flex items-center justify-between sticky top-0 z-50 bg-[#0A0A0A]/50 backdrop-blur-xl border-b border-white/5">
+      <header className="px-6 flex items-center justify-between sticky top-0 z-50 bg-[#0A0A0A]/50 backdrop-blur-xl border-b border-white/5 pb-4 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] min-h-[5rem]">
         <button 
           onClick={() => navigate(-1)}
           className="w-10 h-10 flex items-center justify-center bg-white/5 rounded-full hover:bg-white/10 transition-all active:scale-90"

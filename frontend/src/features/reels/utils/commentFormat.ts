@@ -60,3 +60,4 @@ export function relativeTime(iso: unknown): string {
     ...(sameYear ? {} : { year: 'numeric' }),
   });
 }
+

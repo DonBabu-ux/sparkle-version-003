@@ -96,14 +96,14 @@ class MomentsRankingService {
             const SCORE_ENRICHED = `(${SCORE} * IFNULL(m.completion_rate, 1.0) * IFNULL(m.quality_score, 1.0))`;
             const COLS = `m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                            m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                           m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
+                           m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark, m.clips_info,
                            m.created_at, m.completion_rate, m.quality_score,
                            u.username, u.name as user_name, u.avatar_url`;
             // Outer projections must use bare column names (no m./u. aliases —
             // those only exist inside the derived table).
             const COLS_OUTER = `moment_id, user_id, caption, media_url, streaming_url, thumbnail_url, media_type,
                                 category, resolution, bitrate, like_count, comment_count, share_count, view_count,
-                                audience, hide_from_user_ids, show_only_user_ids, watermark,
+                                audience, hide_from_user_ids, show_only_user_ids, watermark, clips_info,
                                 created_at, completion_rate, quality_score, username, user_name, avatar_url`;
 
             // ── 2 queries instead of 19 (single scan each, fits pool of 3) ─────
@@ -202,7 +202,7 @@ class MomentsRankingService {
             const queryPromise = safeQuery(`
                 SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                        m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark,
+                       m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.watermark, m.clips_info,
                        m.created_at, m.completion_rate, m.quality_score,
                        u.username, u.name as user_name, u.avatar_url, 0.7 as base_score
                 FROM moments m
@@ -379,7 +379,7 @@ class MomentsRankingService {
         return safeQuery(`
             SELECT m.moment_id, m.user_id, m.caption, m.media_url, m.streaming_url, m.thumbnail_url, m.media_type,
                    m.category, m.resolution, m.bitrate, m.like_count, m.comment_count, m.share_count, m.view_count,
-                   m.audience, m.hide_from_user_ids, m.show_only_user_ids,
+                   m.audience, m.hide_from_user_ids, m.show_only_user_ids, m.clips_info,
                    m.created_at, m.completion_rate, m.quality_score,
                    u.username, u.name as user_name, u.avatar_url, 0.4 as base_score
             FROM moments m JOIN users u ON m.user_id = u.user_id

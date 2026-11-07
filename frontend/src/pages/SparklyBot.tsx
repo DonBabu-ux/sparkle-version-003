@@ -734,7 +734,7 @@ export default function SparklyBot() {
       <main className="flex-1 flex flex-col h-full bg-[#111116] relative min-w-0 overflow-hidden">
         
         {/* Header Bar */}
-        <header className="h-16 border-b border-white/10 bg-[#17171e] px-4 flex items-center justify-between shrink-0 z-10">
+        <header className="border-b border-white/10 bg-[#17171e] px-4 flex items-center justify-between shrink-0 z-10 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] min-h-[4rem]">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowSidebar(true)}

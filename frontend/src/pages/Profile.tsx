@@ -10,7 +10,7 @@ import { useModalStore } from '../store/modalStore';
 import type { User } from '../types/user';
 import type { Post } from '../types/post';
 import { Grid, Bookmark, UserSquare, Clapperboard, Link as LinkIcon, MessageSquare, Heart, Plus, History, Image as ImageIcon, Zap, TrendingUp, ChevronDown, LayoutDashboard, Camera, ShieldCheck, LayoutGrid,
-List, FileText, MoreHorizontal
+List, FileText, MoreHorizontal, Pin
 } from 'lucide-react';
 import { getAvatarUrl } from '../utils/imageUtils';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -146,7 +146,15 @@ export default function Profile() {
           const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
           if (seq !== fetchSeqRef.current) return;
           if (postsRes.data && Array.isArray(postsRes.data)) {
-            const allPosts = postsRes.data.sort((a: Post, b: Post) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0));
+            const allPosts = postsRes.data.map((p: any) => ({
+              ...p,
+              is_pinned: Number(p.is_pinned) === 1 || Boolean(p.is_pinned),
+            })).sort((a: Post, b: Post) => {
+              const pinA = Boolean(a.is_pinned) ? 1 : 0;
+              const pinB = Boolean(b.is_pinned) ? 1 : 0;
+              if (pinB !== pinA) return pinB - pinA;
+              return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            });
             setPosts(allPosts);
             setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
           }
@@ -177,6 +185,7 @@ export default function Profile() {
               comment_count?: string | number | null;
               is_liked?: number | boolean | null;
               is_saved?: number | boolean | null;
+              is_pinned?: number | boolean | null;
               created_at?: string;
             }) => ({
               post_id: String(m.moment_id),
@@ -191,6 +200,7 @@ export default function Profile() {
               comment_count: Number(m.comment_count) || 0,
               is_sparked: !!m.is_liked,
               is_saved: !!m.is_saved,
+              is_pinned: Number(m.is_pinned) === 1 || Boolean(m.is_pinned),
               created_at: String(m.created_at || ''),
               is_moment: true,
             })
@@ -202,9 +212,12 @@ export default function Profile() {
               const seen = new Set(prev.map((p) => p.post_id));
               const fresh = moments.filter((m) => !seen.has(m.post_id));
               if (fresh.length === 0) return prev;
-              return [...prev, ...fresh].sort(
-                (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
-              );
+              return [...prev, ...fresh].sort((a, b) => {
+                const pinA = Boolean(a.is_pinned) ? 1 : 0;
+                const pinB = Boolean(b.is_pinned) ? 1 : 0;
+                if (pinB !== pinA) return pinB - pinA;
+                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+              });
             });
           }
         } catch (err) {
@@ -379,7 +392,7 @@ export default function Profile() {
   const showPendingReels = showOwnerActions && activeTab === 'reels' && pendingMomentJobs.length > 0;
 
   return (
-    <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-20">
+    <div className="flex bg-white dark:bg-zinc-900 min-h-dvh text-[#18181b] dark:text-white overflow-x-hidden font-sans pt-[calc(var(--header-h,72px)+0.75rem)] md:pt-4">
 
       {/* Top Navigation Bar */}
       <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-zinc-900/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top)))] pb-4 transition-all">
@@ -937,24 +950,44 @@ export default function Profile() {
                          </p>
                       </div>
                     )}
+
+                    {/* Pinned Badge */}
+                    {Boolean(post.is_pinned) && (
+                      <div className="absolute top-2 left-2 z-10 flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/60 backdrop-blur-md text-white border border-white/20 shadow-md text-[10px] font-bold pointer-events-none">
+                        <Pin size={11} className="fill-primary text-primary rotate-45" />
+                        <span className="hidden sm:inline">Pinned</span>
+                      </div>
+                    )}
                     
                     {/* Media Badge */}
                     {(post.media_type === 'video' || (post.media_url && post.media_url.match(/\.(mp4|webm|ogg|mov)$/i))) && (
-                       <div className="absolute top-2 right-2 flex items-center justify-center text-white drop-shadow-md">
+                       <div className="absolute top-2 right-2 z-10 flex items-center justify-center text-white drop-shadow-md pointer-events-none">
                           <Clapperboard size={16} fill="white" className="text-white" />
                        </div>
                     )}
+
+                    {/* Bottom Preview Metrics (Likes & Comments) — Always visible on touch and desktop */}
+                    <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/85 via-black/40 to-transparent p-1.5 sm:p-2 pt-6 flex items-center justify-between text-white text-[11px] sm:text-xs font-semibold pointer-events-none drop-shadow">
+                      <div className="flex items-center gap-1">
+                        <Heart size={12} className="fill-white text-white shrink-0" />
+                        <span>{formatCount(post.spark_count ?? (post.sparks as number) ?? 0)}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <MessageSquare size={12} className="fill-white text-white shrink-0" />
+                        <span>{formatCount(post.comment_count ?? (post.comments as number) ?? 0)}</span>
+                      </div>
+                    </div>
                   </div>
                   
-                  {/* Hover Overlay */}
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white z-10 hidden md:flex">
-                     <div className="flex items-center gap-2 font-bold text-base">
+                  {/* Desktop Hover Overlay */}
+                  <div className="absolute inset-0 bg-black/35 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6 text-white z-10 hidden md:flex pointer-events-none">
+                     <div className="flex items-center gap-2 font-bold text-base drop-shadow-md">
                           <Heart size={20} fill="currentColor" strokeWidth={0} />
-                          <span>{formatCount(post.spark_count || 0)}</span>
+                          <span>{formatCount(post.spark_count ?? (post.sparks as number) ?? 0)}</span>
                      </div>
-                     <div className="flex items-center gap-2 font-bold text-base">
+                     <div className="flex items-center gap-2 font-bold text-base drop-shadow-md">
                           <MessageSquare size={20} fill="currentColor" strokeWidth={0} />
-                          <span>{formatCount(post.comment_count || 0)}</span>
+                          <span>{formatCount(post.comment_count ?? (post.comments as number) ?? 0)}</span>
                      </div>
                   </div>
                 </div>

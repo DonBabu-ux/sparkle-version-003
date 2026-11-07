@@ -24,4 +24,7 @@ export interface Moment {
   watermark?: string | number | boolean | null;
   /** JSON string (or object) from the composer: { id, title, artist, thumbnail }. */
   music_info?: string | { id?: string; title?: string; artist?: string; thumbnail?: string } | null;
+  clips_info?: string | any[] | null;
+  images?: string[] | null;
+  media_urls?: string[] | string | null;
 }

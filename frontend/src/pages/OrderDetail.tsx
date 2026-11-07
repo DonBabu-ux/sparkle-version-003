@@ -145,7 +145,7 @@ export default function OrderDetail() {
 
   return (
     <div className="min-h-dvh bg-white dark:bg-zinc-800 text-marketplace-text font-sans pb-24">
-      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 py-3 flex items-center gap-4">
+      <header className="sticky top-0 z-[1100] bg-white/90 backdrop-blur-md border-b border-marketplace-border px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center gap-4">
         <button onClick={() => navigate('/marketplace/orders')} className="w-10 h-10 flex items-center justify-center hover:bg-marketplace-bg rounded-full">
           <ChevronLeft size={24} strokeWidth={2.5} />
         </button>

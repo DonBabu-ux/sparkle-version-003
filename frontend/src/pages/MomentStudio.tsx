@@ -119,7 +119,7 @@ export default function MomentStudio() {
 
   return (
     <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-[#18181b] dark:text-white pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-[1100] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl border-b border-black/5 dark:border-white/10 px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center gap-3">
         <button
           onClick={() => navigate(-1)}
           aria-label="Go back"

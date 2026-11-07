@@ -476,7 +476,7 @@ const MarketplaceChat = () => {
 
   return (
     <div className="flex flex-col h-dvh bg-gray-100 dark:bg-zinc-800 max-w-2xl mx-auto shadow-xl relative">
-      <header className="bg-white dark:bg-zinc-800 border-b px-4 py-3 flex items-center justify-between sticky top-0 z-30 shadow-sm">
+      <header className="bg-white dark:bg-zinc-800 border-b px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center justify-between sticky top-0 z-30 shadow-sm">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <ArrowLeft size={20} className="text-gray-700 dark:text-zinc-200" />

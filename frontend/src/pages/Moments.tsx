@@ -2,7 +2,7 @@ import { showError } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import React from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, BarChart3, Music, MoreVertical, Pin, ChevronRight } from 'lucide-react';
+import { Heart, MessageCircle, MessageCircle as CommentIcon, Share2, BookmarkCheck, Play, X, Search, History, Volume2, VolumeX, Eye, BarChart3, Music, MoreVertical, Pin, ChevronRight, ChevronLeft } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';
 import { motion, AnimatePresence } from 'framer-motion';
 import Navbar from '../components/Navbar';
@@ -190,6 +190,56 @@ const ReelItem = React.memo(({
   const [speedFlash, setSpeedFlash] = useState(false);
   const scrubberRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+
+  // ── Multi-image carousel ────────────────────────────────────────────────────
+  // Derive an ordered list of image URLs from clips_info, media_urls, or media_url.
+  const imageUrls: string[] = React.useMemo(() => {
+    if (!moment) return [];
+    // 1. clips_info JSON array: [{previewUrl, media_url, url, ...}, ...]
+    if (moment.clips_info) {
+      try {
+        const clips = typeof moment.clips_info === 'string' ? JSON.parse(moment.clips_info) : moment.clips_info;
+        if (Array.isArray(clips) && clips.length > 1) {
+          const urls = clips.map((c: any) => c.previewUrl || c.media_url || c.url || c.src || '').filter(Boolean);
+          if (urls.length > 1) return urls;
+        }
+      } catch { /* ignore parse errors */ }
+    }
+    // 2. images array field
+    if (Array.isArray(moment.images) && moment.images.length > 1) return moment.images;
+    // 3. media_urls JSON / comma-separated
+    if (moment.media_urls) {
+      try {
+        const parsed = typeof moment.media_urls === 'string' ? JSON.parse(moment.media_urls) : moment.media_urls;
+        if (Array.isArray(parsed) && parsed.length > 1) return parsed;
+      } catch {
+        if (typeof moment.media_urls === 'string') {
+          const split = moment.media_urls.split(',').map(u => u.trim()).filter(Boolean);
+          if (split.length > 1) return split;
+        }
+      }
+    }
+    return [];
+  }, [moment]);
+  const isMultiImage = imageUrls.length > 1;
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  // Reset carousel when moment changes
+  useEffect(() => { setCarouselIdx(0); }, [moment?.moment_id]);
+  // Carousel swipe handling (horizontal only, no bubble to vertical FYP swipe)
+  const carouselTouchStart = useRef<{ x: number; y: number } | null>(null);
+  const handleCarouselTouchStart = (e: React.TouchEvent) => {
+    carouselTouchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+  };
+  const handleCarouselTouchEnd = (e: React.TouchEvent) => {
+    if (!carouselTouchStart.current) return;
+    const dx = e.changedTouches[0].clientX - carouselTouchStart.current.x;
+    const dy = e.changedTouches[0].clientY - carouselTouchStart.current.y;
+    carouselTouchStart.current = null;
+    if (Math.abs(dx) < 30 || Math.abs(dx) < Math.abs(dy)) return; // not horizontal
+    e.stopPropagation();
+    if (dx < 0) setCarouselIdx(i => Math.min(i + 1, imageUrls.length - 1));
+    else setCarouselIdx(i => Math.max(i - 1, 0));
+  };
 
   // Playback control is now handled primarily via the 'active' prop in HlsVideoPlayer
   useEffect(() => {
@@ -406,7 +456,66 @@ const ReelItem = React.memo(({
 
         {/* Primary Content Layer */}
         <div className="relative w-full h-full flex items-center justify-center z-10">
-          {isVideo ? (
+          {isMultiImage ? (
+            /* ── Multi-image swipeable carousel ── */
+            <div
+              className="relative w-full h-full flex items-center justify-center select-none"
+              onTouchStart={handleCarouselTouchStart}
+              onTouchEnd={handleCarouselTouchEnd}
+            >
+              {/* Slide strip */}
+              <div
+                className="absolute inset-0 overflow-hidden"
+                style={{ touchAction: 'pan-y' }}
+              >
+                {imageUrls.map((url, idx) => (
+                  <img
+                    key={idx}
+                    src={getMediaUrl(url) || url}
+                    alt={`Slide ${idx + 1}`}
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none transition-opacity duration-300"
+                    style={{ opacity: idx === carouselIdx ? 1 : 0 }}
+                    draggable={false}
+                  />
+                ))}
+              </div>
+
+              {/* Prev / Next tap zones */}
+              {carouselIdx > 0 && (
+                <button
+                  className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white active:scale-90 transition-transform"
+                  onClick={(e) => { e.stopPropagation(); setCarouselIdx(i => Math.max(i - 1, 0)); }}
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+              )}
+              {carouselIdx < imageUrls.length - 1 && (
+                <button
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-10 h-10 flex items-center justify-center rounded-full bg-black/30 backdrop-blur-sm text-white active:scale-90 transition-transform"
+                  onClick={(e) => { e.stopPropagation(); setCarouselIdx(i => Math.min(i + 1, imageUrls.length - 1)); }}
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={22} />
+                </button>
+              )}
+
+              {/* Position badge (top-right) */}
+              <div className="absolute top-3 right-10 z-20 px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-white text-[11px] font-bold pointer-events-none">
+                {carouselIdx + 1}/{imageUrls.length}
+              </div>
+
+              {/* Dot indicators */}
+              <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-20 flex gap-1.5 pointer-events-none">
+                {imageUrls.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`rounded-full transition-all duration-300 ${idx === carouselIdx ? 'w-4 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-white/50'}`}
+                  />
+                ))}
+              </div>
+            </div>
+          ) : isVideo ? (
             <HlsVideoPlayer
               ref={videoRef}
               src={safeMediaSrc || mediaSrc || undefined}
@@ -416,13 +525,14 @@ const ReelItem = React.memo(({
               muted={muted}
               onTimeUpdate={onVideoTimeUpdate}
               onQualityChange={onQualityChange}
-              className="w-full h-full object-cover"
+              className=""
+              videoClassName="max-w-full max-h-[88vh] w-auto h-auto object-contain drop-shadow-2xl"
             />
           ) : (
-            <img 
-              src={mediaSrc || moment.thumbnail_url || undefined} 
-              alt="Moment" 
-              className="w-full h-full object-cover pointer-events-none"
+            <img
+              src={mediaSrc || moment.thumbnail_url || undefined}
+              alt="Moment"
+              className="max-w-full max-h-[88vh] w-auto h-auto object-contain pointer-events-none drop-shadow-2xl rounded-sm"
             />
           )}
         </div>

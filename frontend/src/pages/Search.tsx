@@ -286,7 +286,7 @@ export default function Search() {
       <main className="flex-1 flex flex-col relative z-10">
         
         {/* Sleek Search Header */}
-        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-zinc-800/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 py-4 md:py-6">
+        <header className="sticky top-0 z-[100] bg-white/95 dark:bg-zinc-800/95 backdrop-blur-3xl border-b border-black/5 dark:border-white/10 px-4 pb-4 md:pb-6 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))]">
           <div className="max-w-3xl mx-auto flex items-center gap-4">
                 <button 
                   onClick={() => navigate(-1)} 

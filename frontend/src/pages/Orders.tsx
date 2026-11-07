@@ -49,7 +49,7 @@ export default function Orders() {
   return (
     <div className="min-h-dvh bg-[#f8e7ed] dark:bg-zinc-900 text-marketplace-text font-sans pb-[env(safe-area-inset-bottom)]">
       {/* Sticky Header */}
-      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-[1100] bg-white dark:bg-zinc-800 border-b border-marketplace-border px-4 pb-3 pt-[calc(0.75rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button onClick={() => navigate('/marketplace')} className="w-11 h-11 flex items-center justify-center text-marketplace-text hover:bg-marketplace-bg rounded-full transition-colors">
             <ChevronLeft size={24} strokeWidth={2.5} />

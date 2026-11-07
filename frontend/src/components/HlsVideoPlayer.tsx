@@ -16,6 +16,7 @@ interface HlsVideoPlayerProps {
   muted?: boolean;
   loop?: boolean;
   className?: string;
+  videoClassName?: string;
   onTimeUpdate?: (e: React.SyntheticEvent<HTMLVideoElement>) => void;
   onLoadedData?: () => void;
   onQualityChange?: (quality: string) => void;
@@ -30,6 +31,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   muted = false,
   loop = true,
   className = "",
+  videoClassName = "w-full h-full object-contain drop-shadow-2xl",
   onTimeUpdate,
   onLoadedData,
   onQualityChange
@@ -134,7 +136,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
   }, [active]);
 
   return (
-    <div className={`relative w-full h-full ${className}`}>
+    <div className={`relative w-full h-full flex items-center justify-center overflow-hidden ${className}`}>
       <video
         ref={localVideoRef}
         poster={poster}
@@ -186,7 +188,7 @@ const HlsVideoPlayer = forwardRef<HTMLVideoElement, HlsVideoPlayerProps>(({
           }
           logger.warn('[HlsVideoPlayer] playback failed with no usable fallback:', video.currentSrc || video.src);
         }}
-        className={`w-full h-full object-cover`}
+        className={videoClassName || "w-full h-full object-contain drop-shadow-2xl"}
       />
       {/* Buffering overlay removed */}
     </div>

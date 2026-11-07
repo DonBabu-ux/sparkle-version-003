@@ -79,7 +79,7 @@ export default function SearchHistory() {
       <main className="flex-1 flex flex-col relative z-10">
         
         {/* Sleek Header */}
-        <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 py-4 md:py-8">
+        <header className="sticky top-0 z-[100] bg-white/80 backdrop-blur-3xl border-b border-black/[0.03] px-4 md:px-6 pb-4 md:pb-8 pt-[calc(1rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))]">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
             <div className="flex items-center gap-3 md:gap-6 min-w-0">
               <button 

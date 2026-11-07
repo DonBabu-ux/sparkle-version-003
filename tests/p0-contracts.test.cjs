@@ -230,13 +230,22 @@ test('login/session tokens are rotated and revoked on logout', () => {
 });
 
 test('wallet deposit verification is owner-scoped and uses safe-integer minor units', () => {
-    const controller = read('backend/controllers/wallet.controller.js');
-    assert.match(controller, /processDepositConfirmation\(reference, userId\)/);
-    assert.match(controller, /cents !== Math\.round\(cents\)/);
-    assert.match(controller, /Number\.MAX_SAFE_INTEGER/);
-    const service = read('backend/services/wallet.service.js');
-    assert.match(service, /async processDepositConfirmation\(reference, userId\)/);
-    assert.match(service, /status: 'not_authorized'/);
+  const controller = read('backend/controllers/wallet.controller.js');
+  assert.match(controller, /processDepositConfirmation\(reference, userId\)/);
+  assert.match(controller, /cents !== Math\.round\(cents\)/);
+  assert.match(controller, /Number\.MAX_SAFE_INTEGER/);
+  const service = read('backend/services/wallet.service.js');
+  // Owner scoping must be explicit about which path carries an identity. The
+  // controller path passes a user id; the Paystack webhook passes an explicit
+  // { viaWebhook: true } marker. Asserting on the signature alone once passed
+  // while the code was vulnerable — an undeclared userId read as "skip the
+  // check" — so the test now checks the marker and the guard as well.
+  assert.match(service, /async processDepositConfirmation\(reference, actor = \{\}\)/);
+  assert.match(service, /viaWebhook === true/);
+  assert.match(service, /if \(!viaWebhook\)/);
+  assert.match(service, /status: 'not_authorized'/);
+  // The webhook must call the machine path, not the user path.
+  assert.match(service, /processDepositConfirmation\(event\.paystack_ref, \{ viaWebhook: true \}\)/);
 });
 
 test('Sell item categories are all valid on the server', () => {

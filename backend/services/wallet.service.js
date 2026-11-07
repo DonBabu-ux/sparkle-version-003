@@ -348,8 +348,14 @@ class WalletService {
      * @param {string} reference  Paystack transaction reference
      * @returns {object} { status, walletSummary }
      */
-    async processDepositConfirmation(reference, userId) {
-        // Find the deposit record
+async processDepositConfirmation(reference, actor = {}) {
+    // actor is either a user id string (user-initiated confirmation from
+    // POST /api/wallet/verify) or { viaWebhook: true } from the Paystack
+    // callback. An explicit marker, so "no identity" can never be read as
+    // "identity check waived".
+    const userId = typeof actor === 'string' ? actor : actor.userId;
+    const viaWebhook = !!(actor && typeof actor === 'object' && actor.viaWebhook === true);
+    // Find the deposit record
         const [deposits] = await pool.query(
             'SELECT * FROM wallet_deposits WHERE paystack_ref = ? LIMIT 1',
             [reference]
@@ -370,11 +376,20 @@ class WalletService {
         // account. Requiring an identity rather than treating a missing one as
         // "no opinion" is the difference between an owner check and a bypass —
         // the controller path once called this with an undeclared userId.
-        if (typeof userId !== 'string' || userId.length === 0) {
-            throw new Error('A signed-in user is required to confirm a deposit.');
-        }
-        if (w[0].user_id !== userId) {
-            return { status: 'not_authorized' };
+        //
+        // The webhook is the exception, and it is explicit rather than implied:
+        // processDepositConfirmation(ref, { viaWebhook: true }) from
+        // processWebhookEvent. Paystack callbacks carry no user session, and the
+        // webhook is the authoritative confirmation path, so an absent identity
+        // is expected there and ownership is instead enforced by the amount
+        // reconciliation below. Anything else must name a user.
+        if (!viaWebhook) {
+            if (typeof userId !== 'string' || userId.length === 0) {
+                throw new Error('A signed-in user is required to confirm a deposit.');
+            }
+            if (w[0].user_id !== userId) {
+                return { status: 'not_authorized' };
+            }
         }
 
         // Idempotency: already processed
@@ -578,7 +593,7 @@ class WalletService {
             let result = { status: 'ignored' };
 
             if (event.event_type === 'charge.success') {
-                result = await this.processDepositConfirmation(event.paystack_ref);
+                result = await this.processDepositConfirmation(event.paystack_ref, { viaWebhook: true });
                 if (result.status === 'pending') {
                     throw new Error('Provider still reports the deposit as pending');
                 }

@@ -5,6 +5,7 @@ import api, { getAdminSessionExpires, getAdminClockOffset, clearAdminSession } f
 import { Shield, Eye, Users, AlertCircle, BarChart3, Clock, Ban, Trash2, CheckCircle, ArrowLeft, Database, Mail, X, Search, Flag, ShoppingBag, KeyRound, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Spinner from '../components/ui/Spinner';
+import { Skeleton } from '../components/ui/Skeleton';
 import { getMediaUrl } from '../utils/imageUtils';
 import { logger } from '../utils/logger';
 import { BarSeries, LineSeries } from '../components/admin/AdminCharts';
@@ -595,12 +596,12 @@ export default function AdminDashboard() {
           ))}
         </div>
 
-        {loading ? (
-          <div className="py-20 flex flex-col items-center justify-center bg-[#f6eef3] dark:bg-zinc-800 border-2 border-dashed border-[#e6d8e1] dark:border-zinc-700 rounded-3xl mb-8">
-             <Spinner size="large" color="text-primary" />
-             <p className="text-xs font-semibold text-slate-600 dark:text-zinc-300 mt-3">Loading…</p>
-          </div>
-        ) : activeTab === 'overview' ? (
+        {/*
+          No whole-page loading gate here. The dashboard shell renders at once
+          and the individual stats carry their own skeletons, so numbers settle
+          in instead of the screen blanking out and then showing 0 values.
+        */}
+        {activeTab === 'overview' ? (
           <div className="space-y-5">
             {/* Stats */}
             <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -621,9 +622,13 @@ export default function AdminDashboard() {
                       <s.icon size={15} />
                     </div>
                   </div>
-                  <div className={`text-2xl font-black leading-none ${s.urgent ? 'text-primary' : 'text-[#18181b] dark:text-zinc-100'}`}>
-                    {s.value > 9999 ? `${(s.value / 1000).toFixed(1)}k` : s.value.toLocaleString()}
-                  </div>
+                  {loading ? (
+                    <Skeleton className="h-7 w-16" />
+                  ) : (
+                    <div className={`text-2xl font-black leading-none ${s.urgent ? 'text-primary' : 'text-[#18181b] dark:text-zinc-100'}`}>
+                      {s.value > 9999 ? `${(s.value / 1000).toFixed(1)}k` : s.value.toLocaleString()}
+                    </div>
+                  )}
                 </button>
               ))}
             </section>
@@ -645,7 +650,13 @@ export default function AdminDashboard() {
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-bold text-[#18181b] dark:text-zinc-100">Moderation queue</p>
-                  <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">{stats?.reports?.pending || 0} reports waiting for review</p>
+                  <p className="text-xs text-slate-600 dark:text-zinc-300 truncate">
+                    {loading ? (
+                      <Skeleton className="h-3 w-32" />
+                    ) : (
+                      `${stats?.reports?.pending || 0} reports waiting for review`
+                    )}
+                  </p>
                 </div>
               </button>
             </div>
@@ -702,7 +713,13 @@ export default function AdminDashboard() {
               ].map(k => (
                 <div key={k.label} className="p-4 rounded-2xl border border-[#e6d8e1] dark:border-zinc-700 bg-[#fdf8fa] dark:bg-zinc-800">
                   <p className="text-xs text-slate-600 dark:text-zinc-300">{k.label}</p>
-                  <p className="text-2xl font-black text-[#18181b] dark:text-zinc-100 leading-none mt-2">{k.value.toLocaleString()}</p>
+                  {loading ? (
+                    <div className="mt-2.5"><Skeleton className="h-7 w-20" /></div>
+                  ) : (
+                    <p className="text-2xl font-black text-[#18181b] dark:text-zinc-100 leading-none mt-2.5">
+                      {k.value.toLocaleString()}
+                    </p>
+                  )}
                   <p className="text-[11px] text-slate-600 dark:text-zinc-300 mt-1">{k.hint}</p>
                 </div>
               ))}

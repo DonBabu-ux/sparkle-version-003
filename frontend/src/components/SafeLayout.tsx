@@ -104,8 +104,31 @@ export const ScreenContentWrapper: React.FC<{
 
 /**
  * 5. KeyboardSafeContainer & KeyboardAwareChatLayout
- * Uses VisualViewport API to dynamically resize the container so that
- * virtual keyboard opens without pushing or obscuring the input bar.
+ *
+ * Architecture for keyboard-safe chat layout (Android edge-to-edge):
+ *
+ *   AndroidManifest: windowSoftInputMode="adjustNothing"
+ *   SparkleInsetsPlugin: pads WebView bottom by IME inset height
+ *
+ * When the IME opens, the WebView's CSS layout viewport shrinks from the
+ * bottom (via the native padding set by SparkleInsetsPlugin).  The flex
+ * column inside KeyboardSafeContainer compresses:
+ *
+ *   ┌──────────────────────────────┐  ← stable (not affected by IME)
+ *   │  Conversation Header         │  shrink-0, NO sticky, outside gesture
+ *   ├──────────────────────────────┤
+ *   │  Message List (flex-1)       │  compresses when keyboard opens  ↕
+ *   ├──────────────────────────────┤
+ *   │  Composer / ChatInputDock    │  shrink-0, sits above keyboard  ↕
+ *   └──────────────────────────────┘  ← keyboard sits here
+ *
+ * Critical invariants:
+ *   • The conversation header MUST be a direct flex child of the main column
+ *     with shrink-0 — NOT inside a scroll container or gesture wrapper.
+ *   • No transform/translate is applied to any ancestor of the header.
+ *   • adjustNothing prevents the system from panning/resizing the window.
+ *   • ChatInputDock adjusts its own paddingBottom via visualViewport to drop
+ *     the safe-area pad when the keyboard is open (no double-adjustment).
  */
 export const KeyboardSafeContainer: React.FC<{
   children: React.ReactNode;

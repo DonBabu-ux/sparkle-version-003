@@ -4313,8 +4313,10 @@ export default function Messages() {
         // Paint the status-bar/cutout zone with the active view's theme color so
         // the Sparkle background reaches the physical top edge of the screen.
         backgroundColor: selectedChat
-          ? (currentChatTheme?.colors?.backgroundDark || '#000000')
-          : '#13131a'
+          ? (appThemeMode === 'dark'
+              ? (currentChatTheme?.colors?.backgroundDark || '#000000')
+              : (currentChatTheme?.colors?.backgroundLight || '#fdf8fa'))
+          : (appThemeMode === 'dark' ? '#13131a' : '#f8e7ed')
       }}
     >
       <Navbar />
@@ -4545,18 +4547,17 @@ export default function Messages() {
           {selectedChat && <ChatBackground theme={currentChatTheme} mode={appThemeMode === 'dark' ? 'dark' : 'light'} />}
 
           {selectedChat ? (
-            <PullUpDisappearingGesture
-              chatId={selectedChat.chat_id}
-              disappearingDuration={selectedChat.disappearing_duration || 0}
-              onDurationChanged={(newDur) => {
-                setSelectedChat(prev => prev ? { ...prev, disappearing_duration: newDur } : null);
-                useChatStore.getState().updateConversation(selectedChat.chat_id, { disappearing_duration: newDur });
-              }}
-            >
+            <>
+              {/* ── Conversation header — lives OUTSIDE the gesture/scroll
+                  region so the keyboard can never move, translate, or resize
+                  it.  shrink-0 prevents it from compressing when the flex
+                  column shrinks as the IME inset is applied to the WebView. */}
               <header
-                className="h-[56px] z-40 sticky top-0 px-3.5 flex items-center justify-between border-b border-white/5 shadow-xl shrink-0 w-full select-none"
+                className="h-[56px] z-40 shrink-0 px-3.5 flex items-center justify-between border-b border-black/5 dark:border-white/5 shadow-xl w-full select-none"
                 style={{
-                  backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000',
+                  backgroundColor: appThemeMode === 'dark'
+                    ? (currentChatTheme?.colors?.backgroundDark || '#000000')
+                    : (currentChatTheme?.colors?.backgroundLight || '#fdf8fa'),
                   backdropFilter: 'blur(25px)',
                   WebkitBackdropFilter: 'blur(25px)',
                   transform: 'translateZ(0)',
@@ -4585,7 +4586,7 @@ export default function Messages() {
                             }
                           }}
                           aria-label="Back to chat list"
-                          className="text-white hover:opacity-70 transition-opacity p-2 -ml-1 shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                          className="text-[#18181b] dark:text-white hover:opacity-70 transition-opacity p-2 -ml-1 shrink-0 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60"
                         >
                           <ArrowLeft size={20} strokeWidth={2.5} />
                         </button>
@@ -4623,25 +4624,25 @@ export default function Messages() {
                         <button
                           type="button"
                           onClick={() => setShowChatSettings(true)}
-                          className="ml-2 flex-1 min-w-0 flex flex-col justify-center text-left cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                          className="ml-2 flex-1 min-w-0 flex flex-col justify-center text-left cursor-pointer rounded-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/40"
                           aria-label="Chat info"
                           title="Chat info"
                         >
-                          <h3 className="text-[14.5px] font-extrabold tracking-tight leading-none text-white flex items-center gap-1.5 truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                          <h3 className="text-[14.5px] font-extrabold tracking-tight leading-none text-[#18181b] dark:text-white flex items-center gap-1.5 truncate whitespace-nowrap overflow-hidden text-ellipsis">
                             {headerDisplayName}
                             {(selectedChat?.is_group || selectedChat?.chat_type === 'group') && (
-                              <Users size={13} strokeWidth={2.5} className="text-white/50 shrink-0" aria-label="Group chat" />
+                              <Users size={13} strokeWidth={2.5} className="text-[#18181b]/50 dark:text-white/50 shrink-0" aria-label="Group chat" />
                             )}
                             {!isSelfHeader && (
                               <VerifiedBadge accountType={headerIdentity.accountType} isVerified={headerIdentity.badge.show} color={headerIdentity.badge.color} size="xs" />
                             )}
                           </h3>
                           {isSelfHeader ? (
-                            <p className="text-[11px] font-medium text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
+                            <p className="text-[11px] font-medium text-zinc-500 dark:text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
                               Personal Notes & Media
                             </p>
                           ) : headerIdentity.subtitle ? (
-                            <p className="text-[11px] font-semibold text-rose-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
+                            <p className="text-[11px] font-semibold text-rose-500 dark:text-rose-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight mt-1">
                               {headerIdentity.subtitle}
                             </p>
                           ) : (
@@ -4654,21 +4655,27 @@ export default function Messages() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -3 }}
                                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="text-[11px] font-medium lowercase text-emerald-500 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                    className="text-[11px] font-medium lowercase chat-header-presence chat-header-group-online truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                                   >
                                     {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count ?? 0} online
                                   </motion.p>
                                 ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
-                                  <motion.p
+                                  <motion.div
                                     key="online"
                                     initial={{ opacity: 0, y: 4 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -3 }}
                                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="text-[11px] font-semibold lowercase text-emerald-400 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                    className="flex items-center gap-1.5 leading-tight"
                                   >
-                                    online
-                                  </motion.p>
+                                    <span
+                                      className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0"
+                                      aria-hidden="true"
+                                    />
+                                    <span className="text-[11px] font-bold lowercase chat-header-presence chat-header-online truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                                      online
+                                    </span>
+                                  </motion.div>
                                 ) : (showLastSeen && selectedChat.last_seen_at) ? (
                                   <motion.p
                                     key="lastseen"
@@ -4676,7 +4683,7 @@ export default function Messages() {
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, y: -3 }}
                                     transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="text-[11px] font-medium lowercase text-white/50 truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
+                                    className="text-[11px] font-medium lowercase chat-header-presence truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
                                   >
                                     last seen {formatLastSeenChat(selectedChat.last_seen_at)}
                                   </motion.p>
@@ -4689,8 +4696,8 @@ export default function Messages() {
                       <div className="flex items-center gap-0.5 relative z-10 shrink-0">
                         {!isSystemChat && !(selectedChat?.is_group || selectedChat?.chat_type === 'group') && (
                           <>
-                            <button aria-label="Start voice call" title="Voice call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
-                            <button aria-label="Start video call" title="Video call" className="text-white/80 hover:text-white p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-white/60" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
+                            <button aria-label="Start voice call" title="Voice call" className="p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60 hover:bg-black/5 dark:hover:bg-white/5" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'voice', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Phone size={17} strokeWidth={2.2} /></button>
+                            <button aria-label="Start video call" title="Video call" className="p-2.5 transition-all active:scale-90 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff1493]/60 hover:bg-black/5 dark:hover:bg-white/5" style={{ color: currentChatTheme?.colors?.primary || '#ff1493' }} onClick={() => selectedChat && startCall(selectedChat.partner_id, 'video', sanitizePartnerName(selectedChat.partner_name, selectedChat.partner_username), selectedChat.partner_avatar)}><Video size={18} strokeWidth={2.2} /></button>
                           </>
                         )}
                       </div>
@@ -4707,6 +4714,18 @@ export default function Messages() {
                 sublabel="Messages will send automatically"
                 variant="translucent"
               />
+
+              {/* ── Scrollable message viewport + composer — wrapped in the
+                  gesture detector.  ONLY this region compresses when the
+                  keyboard opens.  The header above is completely outside. */}
+              <PullUpDisappearingGesture
+                chatId={selectedChat.chat_id}
+                disappearingDuration={selectedChat.disappearing_duration || 0}
+                onDurationChanged={(newDur) => {
+                  setSelectedChat(prev => prev ? { ...prev, disappearing_duration: newDur } : null);
+                  useChatStore.getState().updateConversation(selectedChat.chat_id, { disappearing_duration: newDur });
+                }}
+              >
 
               {/* Top load progress is the global PageLoadBar (App-level): it is
                   driven by real request completion, so the chat's first-messages
@@ -5849,8 +5868,8 @@ export default function Messages() {
                       animate={{ height: 36, opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.2 }}
-                      className="flex items-center gap-2 px-5 overflow-hidden border-t border-white/5 shrink-0 select-none"
-                      style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#000000' }}
+                      className="flex items-center gap-2 px-5 overflow-hidden border-t border-black/5 dark:border-white/5 shrink-0 select-none"
+                      style={{ backgroundColor: appThemeMode === 'dark' ? (currentChatTheme?.colors?.backgroundDark || '#000000') : (currentChatTheme?.colors?.backgroundLight || '#fdf8fa') }}
                     >
                       <div className="flex items-center gap-1.5 py-1">
                         <motion.div animate={{ y: [0, -4, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0 }} className="w-1.5 h-1.5 bg-[#ff1493] rounded-full" />
@@ -5871,15 +5890,15 @@ export default function Messages() {
                   animate={{ y: 0, opacity: 1 }}
                   exit={{ y: 20, opacity: 0 }}
                   transition={{ duration: 0.2, ease: 'easeOut' }}
-                  className="shrink-0 border-t border-white/5 px-4 pt-3 pb-[calc(0.75rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] flex items-center justify-between gap-3 z-30"
-                  style={{ backgroundColor: currentChatTheme?.colors?.backgroundDark || '#0a0a12' }}
+                  className="shrink-0 border-t border-black/5 dark:border-white/5 px-4 pt-3 pb-[calc(0.75rem+var(--safe-area-inset-bottom,env(safe-area-inset-bottom,0px)))] flex items-center justify-between gap-3 z-30"
+                  style={{ backgroundColor: appThemeMode === 'dark' ? (currentChatTheme?.colors?.backgroundDark || '#0a0a12') : (currentChatTheme?.colors?.backgroundLight || '#fdf8fa') }}
                 >
                   <button
                     onClick={() => {
                       setIsSelectionMode(false);
                       setSelectedMessageIds(new Set());
                     }}
-                    className="px-4 py-2.5 rounded-xl text-[13px] font-semibold text-white/70 hover:text-white hover:bg-white/5 transition-all active:scale-95"
+                    className="px-4 py-2.5 rounded-xl text-[13px] font-semibold text-[#18181b]/70 dark:text-white/70 hover:text-[#18181b] dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5 transition-all active:scale-95"
                   >
                     Cancel
                   </button>
@@ -5956,6 +5975,7 @@ export default function Messages() {
                 />
               )}
             </PullUpDisappearingGesture>
+            </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-12 bg-transparent relative overflow-hidden group">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-black/[0.03] dark:text-white/[0.02] pointer-events-none" aria-hidden>

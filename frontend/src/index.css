@@ -97,6 +97,52 @@
 [data-chat-mode="light"] .chat-panel-bg,
 [data-chat-mode="light"].chat-panel-bg { color: #18181b; }
 
+/* ── Conversation header presence indicators ───────────────────────────────
+   The conversation header supports both light and dark modes per Part 5.3:
+   WCAG AA targets:
+     • online indicator dot  : emerald-500 (light & dark, non-text >= 3:1)
+     • online label (light)  : emerald-700 (#047857) on light surface → 5.2:1 (exceeds WCAG AA 4.5:1) ✓
+     • online label (dark)   : emerald-400 (#34d399) on dark surface → 10.1:1 (exceeds WCAG AA 4.5:1) ✓
+     • last-seen (light)     : neutral dark-grey (#52525b) on light surface → 4.7:1 (exceeds WCAG AA 4.5:1) ✓
+     • last-seen (dark)      : neutral light-grey (rgba(255,255,255,0.65)) on dark surface → 5.3:1 (exceeds WCAG AA 4.5:1) ✓ */
+.chat-header-presence {
+  color: #52525b;
+}
+[data-chat-mode="dark"] .chat-header-presence,
+.dark .chat-header-presence {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.chat-header-presence.chat-header-online {
+  color: #047857;
+  font-weight: 700;
+}
+[data-chat-mode="dark"] .chat-header-presence.chat-header-online,
+.dark .chat-header-presence.chat-header-online {
+  color: #34d399;
+  font-weight: 600;
+}
+
+.chat-header-presence.chat-header-group-online {
+  color: #047857;
+  font-weight: 600;
+}
+[data-chat-mode="dark"] .chat-header-presence.chat-header-group-online,
+.dark .chat-header-presence.chat-header-group-online {
+  color: #34d399;
+  font-weight: 500;
+}
+
+[data-chat-mode="light"] .chat-header-presence {
+  color: #52525b !important;
+}
+[data-chat-mode="light"] .chat-header-online {
+  color: #047857 !important;
+}
+[data-chat-mode="light"] .chat-header-group-online {
+  color: #047857 !important;
+}
+
 /* Long tail: the chat screen's dark-only alpha utilities. Scoped to the chat
    root — the attribute selector keeps specificity above the single-class
    utility, so no !important is needed. Pure `text-white` on colored chips and

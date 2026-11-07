@@ -26,6 +26,17 @@ public class SparkleInsetsPlugin extends Plugin {
     private static final int INSET_TYPES =
             WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout();
 
+    /**
+     * windowSoftInputMode is "adjustNothing" so the Android window does NOT
+     * pan or resize when the IME appears.  This plugin instead pads the WebView
+     * bottom by the IME height so the CSS layout viewport shrinks from the
+     * bottom only — the flex chat layout compresses the message list while the
+     * header remains completely stationary.  On Android 11+ edge-to-edge
+     * "adjustResize" is a no-op anyway; "adjustNothing" makes it explicit and
+     * ensures the same behaviour on Android 10 and below (where "adjustResize"
+     * used to pan/resize the entire window, shifting the header upward).
+     */
+
     private String lastSentJson = "";
 
     @Override

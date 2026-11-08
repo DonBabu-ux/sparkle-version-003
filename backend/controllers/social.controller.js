@@ -2,6 +2,7 @@ const User = require('../models/User');
 const pool = require('../config/database');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
+const logger = require('../utils/logger');
 
 // Profile logic helper
 const getSafeAvatarUrl = (url) => {
@@ -181,14 +182,61 @@ module.exports = {
             res.status(500).json({ error: error.message });
         }
     },
-    muteUser: async (req, res) => {
-        const { isSystemAccount } = require('../helpers/systemAccount.helper');
-        if (isSystemAccount(req.params.id)) {
-            return res.status(403).json({ error: 'Cannot mute official Sparkle accounts' });
-        }
-        return res.json({ success: true, message: 'User muted (Placeholder)' });
-    },
-    unmuteUser: async (req, res) => res.json({ success: true, message: 'User unmuted (Placeholder)' }),
+        /**
+         * Mute another user: their content stops surfacing for this user.
+         *
+         * This used to reply { success: true } without touching the database —
+         * the UI confirmed a mute that never happened. The user_mutes table, the
+         * system-account guard and the route all already existed; only the write
+         * was missing.
+         */
+        muteUser: async (req, res) => {
+            try {
+                const currentUserId = req.user?.user_id || req.user?.userId;
+                const targetId = req.params.id;
+                const { isSystemAccount } = require('../helpers/systemAccount.helper');
+                if (isSystemAccount(targetId)) {
+                    return res.status(403).json({ error: 'Cannot mute official Sparkle accounts' });
+                }
+                // Self-mute is a no-op rather than an error: the user is already
+                // only ever shown their own content by their own choice.
+                if (currentUserId === targetId) {
+                    return res.json({ success: true, message: 'User muted', muted: false, noop: true });
+                }
+                const muteId = uuidv4();
+                // ON DUPLICATE KEY rather than a pre-SELECT: a double-tap or two
+                // devices must not 500 on the unique key, and the outcome the user
+                // cares about (muted) is the same either way.
+                await pool.query(
+                    `INSERT INTO user_mutes (mute_id, muter_id, muted_id) VALUES (?, ?, ?)
+                     ON DUPLICATE KEY UPDATE mute_id = user_mutes.mute_id`,
+                    [muteId, currentUserId, targetId]
+                );
+                res.json({ success: true, message: 'User muted', muted: true });
+            } catch (error) {
+                logger.error('[social] muteUser failed:', error.message);
+                res.status(500).json({ success: false, error: "Could not mute this user." });
+            }
+        },
+
+        /**
+         * Remove a mute. Idempotent: muting someone twice unmuting once leaves
+         * them unmuted, which is the state the user asked for.
+         */
+        unmuteUser: async (req, res) => {
+            try {
+                const currentUserId = req.user?.user_id || req.user?.userId;
+                const targetId = req.params.id;
+                await pool.query(
+                    'DELETE FROM user_mutes WHERE muter_id = ? AND muted_id = ?',
+                    [currentUserId, targetId]
+                );
+                res.json({ success: true, message: 'User unmuted', muted: false });
+            } catch (error) {
+                logger.error('[social] unmuteUser failed:', error.message);
+                res.status(500).json({ success: false, error: "Could not unmute this user." });
+            }
+        },
     reportUser: async (req, res) => {
         try {
             const reporterId = req.user?.user_id || req.user?.userId;

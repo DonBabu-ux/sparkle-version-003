@@ -62,17 +62,24 @@ public class SparkleInsetsPlugin extends Plugin {
                 // window for the keyboard. The observed behavior was the whole window
                 // panning up (top cut off) and the composer ending up under the keys.
                 //
-                // Padding the WebView by the IME height shrinks the CSS layout viewport
-                // instead: the flex chat layout compresses, the input dock stays pinned
-                // just above the keyboard, and window.visualViewport (used by
-                // ChatInputDock to drop the safe-area pad) reports the shrink. When the
-                // keyboard closes the IME inset is 0, so nothing changes.
+                // The height is reported to JS as `imeHeight` and JS applies it as a
+                // CSS variable, so the layout adapts to whatever the keyboard really
+                // is rather than to a constant.
+                //
+                // The WebView is deliberately NOT padded any more. setPadding does not
+                // reliably shrink the CSS layout viewport — on some devices it clips
+                // the content instead, which is exactly the "keyboard covers the input
+                // box" symptom — and combined with a CSS height it shrinks twice.
+                // Both mechanisms were live at once, so only this one is kept.
                 Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
-                int targetBottom = ime.bottom > 0 ? ime.bottom : 0;
-                if (view.getPaddingBottom() != targetBottom) {
-                    view.setPadding(view.getPaddingLeft(), view.getPaddingTop(), view.getPaddingRight(), targetBottom);
+                // Kept only so the value is read for logging if needed; the layout
+                // is driven entirely by the `imeHeight` CSS variable on the JS side.
+                int imePx = ime.bottom > 0 ? ime.bottom : 0;
+                if (imePx > 0 && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    android.util.Log.d("SparkleInsets", "IME visible: " + imePx + "px (reported to JS)");
                 }
 
+                // No setPadding here — see the note above.
                 return windowInsets;
             });
             ViewCompat.requestApplyInsets(webView);
@@ -108,6 +115,21 @@ public class SparkleInsetsPlugin extends Plugin {
         ret.put("bottomPx", insets.bottom);
         ret.put("leftPx", insets.left);
         ret.put("rightPx", insets.right);
+
+        // The keyboard's real height, in CSS pixels, straight from the IME
+        // inset. This is what makes the layout adaptive rather than hardcoded:
+        // the OS reports whatever the active keyboard is actually occupying, so
+        // Gboard, SwiftKey, a landscape split keyboard, a tablet, and a hardware
+        // keyboard all produce a different value and all lay out correctly.
+        //
+        // Padding the WebView was the previous approach and it is not reliable:
+        // on some devices WebView padding clips content instead of shrinking the
+        // CSS layout viewport, which left the composer under the keys. The JS
+        // layer only needs the number.
+        Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+        double imeHeight = ime.bottom > 0 ? dp(ime.bottom, density) : 0;
+        ret.put("imeHeight", imeHeight);
+        ret.put("imeVisible", ime.bottom > 0);
         return ret;
     }
 

@@ -136,10 +136,18 @@ export const KeyboardSafeContainer: React.FC<{
   style?: React.CSSProperties;
   'data-chat-mode'?: 'light' | 'dark';
 }> = ({ children, className = '', style, 'data-chat-mode': chatMode }) => {
-  // Use static full viewport height to allow browser to handle keyboard overlays.
+  // Height is the viewport minus whatever keyboard the OS reports. --ime-height
+  // is set from the native IME inset, so this tracks the real keyboard on every
+  // device instead of a hardcoded value: a phone keyboard, a landscape split
+  // keyboard and a tablet keyboard all resolve differently and all fit.
+  //
+  // The previous value was height: '100%' with a comment about letting the
+  // browser handle the keyboard. With windowSoftInputMode=adjustNothing the
+  // browser does not resize anything, so the container stayed full-height and
+  // the keyboard drew straight over the composer.
   const containerStyle: React.CSSProperties = {
-    height: '100%',
-    maxHeight: '100%',
+    height: 'calc(100% - var(--ime-height, 0px))',
+    maxHeight: 'calc(100% - var(--ime-height, 0px))',
     overflow: 'hidden',
     position: 'relative',
     ...style,

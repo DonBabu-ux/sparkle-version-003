@@ -592,9 +592,14 @@ SELECT p.*,
                         : null,
                     needPool
                         ? pool.query(`
-                            SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus, 
-                                   p.group_id, p.location, p.created_at, p.category, p.is_seed,
-                                   u.username, u.name as user_name, u.avatar_url,
+                SELECT p.post_id, p.user_id, p.content, p.media_url, p.media_type, p.post_type, p.campus,
+                p.group_id, p.location, p.created_at, p.category, p.is_seed,
+                -- Raw counters alongside the aliased ones. The feed consumer reads spark_count /
+                -- comment_count / reshare_count / share_count, and this SELECT only ever exposed the
+                -- `sparks` / `comments` / `shares` aliases, so every post in the feed rendered 0
+                -- likes and 0 shares even when the rows had real counts.
+                p.spark_count, p.comment_count, p.reshare_count, p.share_count,
+                u.username, u.name as user_name, u.avatar_url,
                                    u.campus as user_affiliation, u.is_private, u.profile_visibility,
                                    COALESCE(p.spark_count, 0) as sparks,
                                    COALESCE(p.comment_count, 0) as comments,

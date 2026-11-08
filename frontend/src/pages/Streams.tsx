@@ -46,36 +46,6 @@ export default function Streams() {
     }
   };
 
-  // Mock streams with real image references for high fidelity
-  const mockStreams = [
-    {
-      id: 1,
-      title: 'Late Night Study Session 📚',
-      streamer_name: 'Tech_Ninja',
-      viewer_count: 342,
-      category: 'Study',
-      thumbnail_url: 'https://images.unsplash.com/photo-1541339907198-e08756ebafe3?w=800',
-      avatar_url: '/uploads/avatars/no-profile.png'
-    },
-    {
-      id: 2,
-      title: 'Sparkle DJ Set LIVE 🎧',
-      streamer_name: 'DJ_Sparkle',
-      viewer_count: 1205,
-      category: 'Music',
-      thumbnail_url: 'https://images.unsplash.com/photo-1516280440502-a2fe018c6426?w=800',
-      avatar_url: '/uploads/avatars/no-profile.png'
-    },
-    {
-      id: 3,
-      title: 'Hackathon Prep & Coding',
-      streamer_name: 'DevSquad',
-      viewer_count: 89,
-      category: 'Tech',
-      thumbnail_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800',
-      avatar_url: '/uploads/avatars/no-profile.png'
-    }
-  ];
 
   useEffect(() => {
     // Simulate loading for the premium transition feel
@@ -238,14 +208,14 @@ export default function Streams() {
           </div>
         </motion.div>
 
-        {mockStreams.length > 0 ? (
+        {streams.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockStreams.map(stream => (
+            {streams.map(stream => (
               <motion.div 
                 key={stream.id} 
                 whileHover={{ y: -4 }}
                 className="bg-white/[0.02] backdrop-blur-xl border border-white/5 rounded-[24px] overflow-hidden flex flex-col hover:border-[#ff008a]/20 transition-all duration-300 cursor-pointer"
-                onClick={() => showInfo(`Connecting to ${stream.streamer_name}'s live channel...`)}
+                onClick={() => showInfo(`Connecting to ${stream.username}'s live channel...`)}
               >
                 
                 {/* Thumbnail Area */}
@@ -271,7 +241,7 @@ export default function Streams() {
                     <img src={stream.avatar_url} className="w-12 h-12 rounded-xl border-4 border-[#120b22] shadow-lg object-cover bg-white dark:bg-zinc-800" alt="streamer" />
                     <div className="pb-1 min-w-0 flex-1">
                       <h3 className="font-bold text-white text-sm leading-tight truncate">{stream.title}</h3>
-                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-tight mt-0.5">@{stream.streamer_name}</div>
+                      <div className="text-[10px] font-bold text-white/40 uppercase tracking-tight mt-0.5">@{stream.username}</div>
                     </div>
                   </div>
 

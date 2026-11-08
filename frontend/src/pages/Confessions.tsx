@@ -301,7 +301,7 @@ export default function Confessions() {
         {/* ── Sticky Header ── */}
         <div className="sticky top-0 z-50 bg-[#fdf8fa]/80 dark:bg-zinc-800/80 backdrop-blur-3xl transition-all border-b border-[#ede3e9] dark:border-zinc-700">
           {/* Top row */}
-          <div className="flex items-center justify-between px-4 pt-[env(safe-area-inset-top)] pb-3">
+          <div className="flex items-center justify-between px-4 pt-[var(--safe-area-inset-top)] pb-3">
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate(-1)}

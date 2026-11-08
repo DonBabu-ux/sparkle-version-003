@@ -336,7 +336,7 @@ export default function CameraStage({
   if (phase === "preview") {
     return (
       <div className="fixed inset-0 z-[var(--z-modal,60)] bg-black flex flex-col" role="dialog" aria-modal="true" aria-label="Clip preview">
-        <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
+        <div style={{ paddingTop: "var(--safe-area-inset-top)" }} />
         <div className="flex items-center justify-between px-4 py-3">
           <button type="button" onClick={handleRetake} aria-label="Retake clip" className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: "rgba(0,0,0,0.55)", color: "#fff" }}>
             <RotateCcw size={18} />
@@ -376,7 +376,7 @@ export default function CameraStage({
 
   return (
     <div className="fixed inset-0 z-[var(--z-modal,60)] bg-black flex flex-col" role="dialog" aria-modal="true" aria-label="Camera">
-      <div style={{ paddingTop: "env(safe-area-inset-top)" }} />
+      <div style={{ paddingTop: "var(--safe-area-inset-top)" }} />
       <div className="h-1.5 w-full" style={{ background: "rgba(255,255,255,0.15)" }} role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(progressPct)} aria-label="Recording progress">
         <div className="h-full" style={{ width: `${progressPct}%`, background: `linear-gradient(90deg, ${PINK}, #FF6B8B)`, transition: "width 0.12s linear" }} />
       </div>

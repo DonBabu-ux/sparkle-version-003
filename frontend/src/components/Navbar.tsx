@@ -89,7 +89,7 @@ export default function Navbar() {
 
       {/* Mobile Top Navigation Bar — Glass Header */}
       {!MOBILE_HEADERLESS_PREFIXES.some(path => location.pathname.startsWith(path)) && (
-        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-zinc-900/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 transition-all">
+        <header className="md:hidden fixed top-0 left-0 w-full bg-white/40 dark:bg-zinc-900/80 backdrop-blur-3xl flex justify-between items-center z-(--z-header) px-5 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4 transition-all">
           <Link to="/dashboard" className="flex items-center gap-2.5 active:scale-95 transition-transform">
             <span className="font-heading font-black text-xl tracking-tighter text-[#18181b] dark:text-white">Sparkle</span>
           </Link>

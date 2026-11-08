@@ -195,7 +195,7 @@ export default function Explore() {
       {/* Main Content Area */}
       <div className="flex-1 w-full">
         {/* Sticky Header with Search & Filters */}
-        <div className="sticky top-0 z-40 bg-[#fdf8fa]/80 dark:bg-zinc-800/80 backdrop-blur-3xl border-b border-[#ede3e9] dark:border-zinc-700 px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-4 md:px-8 transition-all">
+        <div className="sticky top-0 z-40 bg-[#fdf8fa]/80 dark:bg-zinc-800/80 backdrop-blur-3xl border-b border-[#ede3e9] dark:border-zinc-700 px-4 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4 md:px-8 transition-all">
           <div className="max-w-5xl mx-auto flex flex-col gap-4">
              <div className="flex items-center gap-3">
               <div className="relative flex-1 group">

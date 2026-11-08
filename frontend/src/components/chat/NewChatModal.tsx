@@ -398,7 +398,7 @@ export const NewChatModal: React.FC<NewChatModalProps> = ({
           className="w-full lg:max-w-xl h-full bg-white dark:bg-[#111118] text-[#18181b] dark:text-white flex flex-col shadow-2xl relative overflow-hidden select-none"
         >
           {/* Header */}
-          <header className="px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 border-b border-black/10 dark:border-white/[0.08] flex items-center justify-between bg-white dark:bg-[#13131a] sticky top-0 z-20">
+          <header className="px-4 pt-[max(0.75rem,var(--safe-area-inset-top))] pb-3 border-b border-black/10 dark:border-white/[0.08] flex items-center justify-between bg-white dark:bg-[#13131a] sticky top-0 z-20">
             <div className="flex items-center gap-3">
               <button
                 type="button"

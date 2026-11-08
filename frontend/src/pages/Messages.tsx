@@ -6340,7 +6340,7 @@ export default function Messages() {
             className="fixed inset-0 bg-black z-(--z-modal) flex flex-col"
           >
             {/* Top Bar */}
-            <div className="flex items-center justify-between px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-4">
+            <div className="flex items-center justify-between px-5 pt-[calc(1rem+var(--safe-area-inset-top))] pb-4">
               <div className="flex items-center gap-3">
                 {viewingNote.initials ? (
                   <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-black" style={{ background: viewingNote.color }}>{viewingNote.initials}</div>

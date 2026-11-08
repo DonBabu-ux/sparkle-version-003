@@ -107,7 +107,7 @@ export default function TextOverlayEditor({ onDone }: { onDone: () => void }) {
   return (
     <div className="fixed inset-0 z-[var(--z-modal,60)] flex flex-col" style={{ background: 'rgba(0,0,0,0.92)' }} role="dialog" aria-modal="true" aria-label="Add text">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 h-14 shrink-0" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
+      <div className="flex items-center justify-between px-4 h-14 shrink-0" style={{ paddingTop: 'var(--safe-area-inset-top)' }}>
         <button
           type="button"
           onClick={clearEditing}

@@ -29,7 +29,7 @@ export function StageShell({
       className={`fixed inset-0 z-[var(--z-modal,60)] flex flex-col ${effectiveDark ? 'text-white' : 'text-gray-900'}`}
       style={{
         background: effectiveDark ? '#0B070C' : '#FFFFFF',
-        paddingTop: 'env(safe-area-inset-top)',
+        paddingTop: 'var(--safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
       role="dialog"

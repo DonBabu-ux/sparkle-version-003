@@ -1712,6 +1712,10 @@ export default function Messages() {
 
   // --- State ---
   const conversations = useChatStore(state => state.conversations);
+  // Tracks a failed inbox load separately from an empty one. conversations is
+  // store state cleared by the catch, so without this the error path renders
+  // the "No chats yet" empty copy.
+  const [inboxError, setInboxError] = useState(false);
   const setConversations = useChatStore(state => state.setConversations);
   // Keep conversationsRef in sync with the latest conversations on every render.
   // This lets socket/navigation effects read the current list without declaring
@@ -2686,7 +2690,15 @@ export default function Messages() {
       // the canonical read-receipt path is the message-read-ack effect below.
       store.markRead(selectedChat.chat_id, user?.id || user?.user_id || '');
       store.refreshConversation(selectedChat.chat_id);
-      fetchMessages(selectedChat.chat_id);
+      // A brand-new conversation carries a client-side temp_ id that has no
+      // server row yet. Fetching it used to 404 (or 500), which set
+      // messagesError and rendered "Couldn't load messages / Check your
+      // connection and try again" above an otherwise fine, empty chat. The
+      // privacy and nickname effects below already guard on this; this one
+      // did not.
+      if (!selectedChat.chat_id.startsWith('temp_')) {
+        fetchMessages(selectedChat.chat_id);
+      }
     } else {
       store.setActiveConversationId(null);
     }
@@ -2817,9 +2829,15 @@ export default function Messages() {
       const res = await api.get('/messages/inbox');
       const list = Array.isArray(res.data?.data) ? res.data.data : Array.isArray(res.data) ? res.data : [];
       setConversations(list);
+      setInboxError(false);
     } catch (err: any) {
       logger.error('Failed to fetch inbox', err.response?.data || err);
+      // Clearing the list here made a network failure indistinguishable from
+      // "you have no chats": the catch wiped it, and the render then showed the
+      // cheerful empty-copy state. Track the failure separately so the UI can
+      // say the load failed rather than implying the inbox is empty.
       setConversations([]);
+      setInboxError(true);
     } finally {
       setLoading(false);
     }
@@ -4465,16 +4483,16 @@ export default function Messages() {
             onScroll={handleScroll}
             className="flex-1 overflow-y-auto pb-24 md:pb-6 no-scrollbar scroll-smooth chat-panel-bg"
           >
-            {Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
-              <div className="py-12 px-4">
-                <ModernOfflineState
-                  type="empty"
-                  title="No chats yet"
-                  message="When you start a conversation, it'll show up here."
-                  onRetry={() => fetchInbox()}
-                />
-              </div>
-            ) : loading && (!Array.isArray(filteredConversations) || filteredConversations.length === 0) ? (
+{Array.isArray(filteredConversations) && filteredConversations.length === 0 && !loading ? (
+  <div className="py-12 px-4">
+    <ModernOfflineState
+      type={inboxError ? "error" : "empty"}
+      title={inboxError ? "Couldn't load your chats" : "No chats yet"}
+      message={inboxError ? "Check your connection and try again." : "When you start a conversation, it'll show up here."}
+      onRetry={() => fetchInbox()}
+    />
+  </div>
+) : loading && (!Array.isArray(filteredConversations) || filteredConversations.length === 0) ? (
               <div className="py-4 px-2 flex flex-col gap-3" aria-hidden>
                 {[0, 1, 2, 3, 4, 5].map(i => (
                   <div key={i} className="flex items-center gap-3 px-2">

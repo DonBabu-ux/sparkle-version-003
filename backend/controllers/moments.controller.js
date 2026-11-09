@@ -379,7 +379,7 @@ const getUserMoments = async (req, res) => {
                     (SELECT COUNT(*) FROM saved_moments WHERE moment_id = m.moment_id AND user_id = ?) as is_saved,
                     (SELECT COUNT(*) FROM follows WHERE follower_id = ? AND following_id = m.user_id) as is_following
              FROM moments m
-             JOIN users u ON m.user_id = u.user_id
+             LEFT JOIN users u ON m.user_id = u.user_id
              WHERE m.user_id = ? AND m.deleted_at IS NULL
              ORDER BY m.is_pinned DESC, m.created_at DESC
              LIMIT ?`,
@@ -387,6 +387,7 @@ const getUserMoments = async (req, res) => {
         );
 
         const visible = await visibility.filterVisible(rows || [], currentUserId);
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.json({
             moments: visible,
             pagination: { limit, total: visible.length, hasMore: (rows || []).length === limit },

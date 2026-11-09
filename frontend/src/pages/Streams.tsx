@@ -1,8 +1,8 @@
-import { showInfo, showSuccess, showError } from '../utils/toast';
+import { showInfo, showError } from '../utils/toast';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Eye, Video, ArrowLeft, Radio, Award } from 'lucide-react';
+import { Eye, Video, ArrowLeft, Radio, Award, AlertCircle } from 'lucide-react';
 import { useUserStore } from '../store/userStore';
 import api from '../api/api';
 import LockedLivePage from './LockedLivePage';
@@ -11,19 +11,35 @@ import Spinner from '../components/ui/Spinner';
 export default function Streams() {
   const navigate = useNavigate();
   const user = useUserStore(state => state.user);
-  const followers = user?.followers_count ?? 0;
+  const [followers, setFollowers] = useState(() => user?.followers_count ?? 0);
+  // followers_count is not part of the login payload and nothing hydrates it
+  // into the store, so reading it straight off the user always gave 0 and every
+  // user was shown the locked view. Fetch the authoritative record once.
+  useEffect(() => {
+    let cancelled = false;
+    if (user?.followers_count !== undefined) { setFollowers(user.followers_count); return; }
+    api.get('/users/me')
+      .then(res => { if (!cancelled && res.data?.followers_count !== undefined) setFollowers(res.data.followers_count); })
+      .catch(() => { /* leave the fallback in place; the locked view still explains the requirement */ });
+    return () => { cancelled = true; };
+  }, [user?.followers_count]);
   const [loading, setLoading] = useState(true);
   const [goLiveOpen, setGoLiveOpen] = useState(false);
   const [liveTitle, setLiveTitle] = useState('');
   const [creating, setCreating] = useState(false);
   const [streams, setStreams] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState(false);
 
   const loadStreams = async () => {
     try {
       setLoading(true);
+      setLoadError(false);
       const { data } = await api.get('/streams');
       setStreams(Array.isArray(data) ? data : (data.streams || []));
     } catch (err) {
+      // The catch only toasted and left streams as [], so a failed load rendered
+      // the same "No active streams" empty state as a genuinely empty platform.
+      setLoadError(true);
       showError('Could not load live streams.');
     } finally {
       setLoading(false);
@@ -31,14 +47,14 @@ export default function Streams() {
   };
 
   const goLive = async () => {
-    const title = liveTitle.trim() || 'Untitled live';
     setCreating(true);
     try {
-      await api.post('/streams', { title, stream_url: null });
-      setGoLiveOpen(false);
-      setLiveTitle('');
-      showSuccess('You are live!');
-      loadStreams();
+      // stream_url was sent as null and the backend substituted a deterministic
+      // fake URL, after which this showed "You are live!" and rendered a tile
+      // that did nothing when tapped. There is no capture pipeline, no viewer
+      // and no caller for /streams/:id/end, so there is nothing to go live with
+      // yet. Say that instead of confirming a stream that does not exist.
+      showError('Going live is not available yet. Broadcasting is still being built.');
     } catch (err: any) {
       showError(err?.response?.data?.error || 'Could not start your live stream.');
     } finally {
@@ -47,12 +63,11 @@ export default function Streams() {
   };
 
 
-  useEffect(() => {
-    // Simulate loading for the premium transition feel
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
-
+  // The artificial 800ms "premium transition" timer is gone. It cleared the
+  // spinner on a fixed schedule regardless of the fetch, so a request slower
+  // than 800ms (or a failed one) rendered the "No active streams" empty state
+  // while data was still in flight. loading is now owned entirely by
+  // loadStreams.
   useEffect(() => {
     loadStreams();
   }, []);
@@ -78,11 +93,10 @@ export default function Streams() {
     );
   }
 
-  // Accounts that bypass the follower gate unconditionally
-  const LIVE_BYPASS_EMAILS = ['lewismwangi990@gmail.com'];
-  const hasLiveAccess =
-    followers >= 1000 ||
-    LIVE_BYPASS_EMAILS.includes((user?.email ?? '').toLowerCase());
+  // The follower threshold is the gate; the hardcoded email bypass is gone. It
+  // let one personal address skip a check that applied to everyone else, which
+  // also hid the fact that the gate was reading a permanently-zero count.
+  const hasLiveAccess = followers >= 1000;
 
   // Render locked view if user does not meet the live access requirement
   if (!hasLiveAccess) {
@@ -139,7 +153,7 @@ export default function Streams() {
                 On Air
               </span>
               <span className="bg-white/5 border border-white/10 px-2 py-0.5 rounded-full text-[9px] font-bold text-white/50">
-                128 live now
+                {streams.length} live now
               </span>
             </div>
           </div>
@@ -229,7 +243,7 @@ export default function Streams() {
                   </div>
                   <div className="absolute top-3 right-3 bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded text-[9px] font-bold tracking-wider flex items-center gap-1">
                     <Eye size={10} className="text-[#ff4db8]" /> 
-                    {stream.viewer_count.toLocaleString()}
+                    {(stream.viewer_count ?? 0).toLocaleString()}
                   </div>
                   
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent opacity-80" />
@@ -257,6 +271,20 @@ export default function Streams() {
 
               </motion.div>
             ))}
+          </div>
+        ) : loadError ? (
+          <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-red-500/5 border border-red-500/10 rounded-3xl">
+            <AlertCircle size={48} className="text-red-400 mb-4" />
+            <h4 className="text-lg font-bold text-white mb-1">Couldn't load live streams</h4>
+            <p className="text-white/45 text-xs max-w-sm leading-relaxed mb-4">
+              This isn't the same as no one streaming — the request failed.
+            </p>
+            <button
+              onClick={() => loadStreams()}
+              className="px-4 py-2 rounded-full bg-[#ff008a] text-white text-xs font-bold"
+            >
+              Try again
+            </button>
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-white/[0.01] border border-white/5 border-dashed rounded-3xl">

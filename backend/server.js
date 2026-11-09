@@ -13,6 +13,11 @@ const cookieParser = require('cookie-parser');
 const morgan = require('morgan');
 const compression = require('compression');
 require('dotenv').config();
+// Validate the environment before anything else runs, so a missing or
+// placeholder key stops the boot rather than surfacing as a mid-request
+// failure (SPARKLE_IDENTITY_BLOOM_HMAC_SECRET was absent until now and
+// surfaced inside accountLifecycle.test.js).
+require('./utils/envGuard');
 
 const { PORT } = require('./config/constants');
 const { initDB } = require('./utils/database/init');

@@ -1,15 +1,18 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Post } from '../types/post';
-import { SEEDED_POSTS } from '../utils/seededFeed';
 
-// Initialize with seed posts
+// The feed used to open with four fabricated posts (campus_explorer with 124
+// sparks, sparkle_official with 1420, tech_guru with 85, athletics_star with
+// 310). They carried seed_post_N ids, which are not UUIDs, so nothing in the
+// database matched them: tapping one landed on "Post not found". They also
+// interleaved with real posts on every cold start and never got cleared, so a
+// user saw invented accounts and engagement counts sitting inside their real
+// feed indefinitely.
+//
+// The feed starts empty and fills from the API like every other list in the app.
 const initialPostsById: Record<string, Post> = {};
 const initialOrderedPostIds: string[] = [];
-SEEDED_POSTS.forEach(post => {
-  initialPostsById[post.post_id] = post;
-  initialOrderedPostIds.push(post.post_id);
-});
 
 /**
  * Production-grade Home Feed Store with Normalized State (Batch 4 Rebuild)

@@ -173,10 +173,18 @@ export default function Marketplace() {
       logger.error('Failed to fetch marketplace:', err);
       setError(true);
     } finally {
-      // The expanded-radius retry owns the spinner from here (its own call
-      // keeps loading=true until it finishes) — clearing here caused a flash
-      // of the empty grid mid-retry.
-      if (!isRetry && !recursed) setLoading(false);
+      // Clear unless THIS call handed off to the radius-expanded retry, which
+      // owns the spinner from that point.
+      //
+      // The old guard was `if (!isRetry && !recursed)`, which meant the retry
+      // itself never cleared it. Every path the retry can take — the global
+      // fallback at the top of the fn, or the normal setListings below — ends
+      // in this finally with isRetry === true, so the spinner was never
+      // cleared for any user whose local radius came back empty. That is the
+      // default state for someone with no listings near the Nairobi origin,
+      // and it rendered six pulsing tiles permanently instead of the global
+      // feed it had just fetched.
+      if (!recursed) setLoading(false);
     }
   }, [searchQuery, categoryId, filterLocation, radiusKm, sortBy, minPrice, maxPrice, setIsFallbackTracked, page]);
 

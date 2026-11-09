@@ -24,9 +24,12 @@ export default function MarketplaceModals() {
   const [offerPrice, setOfferPrice] = useState<string>('');
   const [isSending, setIsSending] = useState(false);
   const [jobStatus, setJobStatus] = useState<'IDLE' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'>('IDLE');
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  // The job-tracking block below only ever activated from the offer POST,
+  // which now routes to /marketplace/order instead. currentJobId is therefore
+  // permanently null and those effects are inert; the setters are dropped
+  // rather than kept as unused state.
+  const [currentJobId] = useState<string | null>(null);
   const [lastSequence, setLastSequence] = useState<number>(0);
-  const [ , setLoadState ] = useState<'NORMAL' | 'DEGRADED' | 'CRITICAL'>('NORMAL');
   const a11yRef = useModalA11y(!!activeModal, () => setActiveModal(null));
 
   useEffect(() => {
@@ -87,28 +90,21 @@ export default function MarketplaceModals() {
     return () => { socket.off('marketplace:job_status', handleStatus); };
   }, [socket, currentJobId, lastSequence, setActiveModal]);
 
-  const handleSendOffer = async () => {
-    if (!selectedListing || !offerPrice) return;
-    setIsSending(true);
-    setJobStatus('PENDING');
-    setLastSequence(0);
-    try {
-      const res = await api.post(`/marketplace/listings/${selectedListing.listing_id}/offer`, { 
-        amount: offerPrice 
-      });
-      if (res.data.jobId) {
-        setCurrentJobId(res.data.jobId);
-        setLoadState(res.data.loadState || 'NORMAL');
-      }
-    } catch (err: any) {
-      if (err.response?.status === 530) {
-        showError("SYSTEM PEAK: Sparkle is serving too many people right now. Please try in 30 seconds.");
-      } else {
-        showError('Failed to submit offer. Please try again.');
-      }
-      setIsSending(false);
-      setJobStatus('IDLE');
-    }
+  const handleSendOffer = () => {
+    // This used to POST /marketplace/listings/:id/offer, which does not exist —
+    // the route has never been implemented, so every submission 404'd and the
+    // user got "Failed to submit offer. Please try again." The price they typed
+    // was never sent anywhere.
+    //
+    // The order flow that DOES exist is /marketplace/order
+    // (MarketplaceOrder.tsx, routed at App.tsx), which takes the same
+    // agreed-price input and posts to a real endpoint. Send the buyer there
+    // instead of pretending to submit.
+    if (!selectedListing) return;
+    const params = new URLSearchParams({ listingId: selectedListing.listing_id });
+    if (offerPrice) params.set('offerPrice', offerPrice);
+    setActiveModal(null);
+    navigate(`/marketplace/order?${params.toString()}`);
   };
 
   if (!activeModal) return null;

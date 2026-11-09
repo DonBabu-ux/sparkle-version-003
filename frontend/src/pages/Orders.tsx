@@ -7,6 +7,7 @@ import { motion } from 'framer-motion';
 import Spinner from '../components/ui/Spinner';
 import { logger } from '../utils/logger';
 import ErrorRetry from '../components/ui/ErrorRetry';
+import { useUserStore } from '../store/userStore';
 
 interface Order {
   order_id: string;
@@ -18,12 +19,17 @@ interface Order {
   agreed_price?: number;
   currency?: string;
   other_username?: string;
+  buyer_id?: string;
+  seller_id?: string;
+  buyer_username?: string;
+  seller_username?: string;
   status?: string;
   created_at: string;
 }
 
 export default function Orders() {
   const navigate = useNavigate();
+  const user = useUserStore((state) => state.user);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -109,7 +115,12 @@ export default function Orders() {
                   <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-bold text-marketplace-muted">
                     <span className="flex items-center gap-1.5"><CreditCard size={14} className="text-marketplace-text" /> {order.currency || 'KES'} {parseFloat((order.agreed_price ?? order.price_at_time ?? order.amount ?? order.price ?? 0).toString()).toLocaleString()}</span>
                     <span className="flex items-center gap-1.5"><Clock size={14} /> {new Date(order.created_at).toLocaleDateString()}</span>
-                    {order.other_username && <span>With @{order.other_username}</span>}
+                    {/* The API never returns other_username (only the dead legacy model computed it). Derive the counterparty from buyer/seller and pick the one that is not me. */}
+                    {(() => {
+                      const myId = user?.user_id || user?.id;
+                      const other = order.buyer_id === myId ? order.seller_username : order.buyer_username;
+                      return other ? <span>With @{other}</span> : null;
+                    })()}
                   </div>
                 </div>
 

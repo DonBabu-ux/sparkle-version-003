@@ -124,14 +124,16 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
       <div className="w-full sm:max-w-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
         <div className="px-5 py-4 border-b border-zinc-200 dark:border-zinc-800 flex items-center justify-between bg-zinc-50 dark:bg-zinc-900/80">
-          <div className="flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-zinc-900 dark:text-zinc-100" />
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-pink-50 dark:bg-pink-950/50 flex items-center justify-center text-pink-600 dark:text-pink-400">
+              <HelpCircle className="w-4 h-4" />
+            </div>
             <div>
               <h2 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 leading-tight">
                 Legal Clarification &amp; Support
               </h2>
               <p className="text-[11px] text-zinc-500">
-                Official Sparkle Kenya Legal Inquiries Portal
+                Official Sparkle Legal Inquiries &amp; Review Pipeline
               </p>
             </div>
           </div>
@@ -151,7 +153,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
             onClick={() => setActiveTab('submit')}
             className={`py-2.5 px-3 border-b-2 transition-colors ${
               activeTab === 'submit'
-                ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+                ? 'border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 font-bold'
                 : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
@@ -161,12 +163,12 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
             onClick={() => setActiveTab('track')}
             className={`py-2.5 px-3 border-b-2 transition-colors flex items-center gap-1.5 ${
               activeTab === 'track'
-                ? 'border-zinc-900 text-zinc-900 dark:border-zinc-100 dark:text-zinc-100'
+                ? 'border-pink-600 text-pink-600 dark:border-pink-500 dark:text-pink-400 font-bold'
                 : 'border-transparent text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200'
             }`}
           >
             <Search className="w-3.5 h-3.5" />
-            Track Inquiry
+            <span>Track Inquiry</span>
           </button>
         </div>
 
@@ -186,13 +188,13 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                   </p>
                 </div>
 
-                <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-lg inline-flex items-center gap-3 border border-zinc-200 dark:border-zinc-700">
-                  <span className="font-mono text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                <div className="p-3 bg-pink-50 dark:bg-pink-950/40 rounded-xl inline-flex items-center gap-3 border border-pink-200 dark:border-pink-800/60 shadow-xs">
+                  <span className="font-mono text-sm font-bold text-pink-700 dark:text-pink-300">
                     {submittedReference}
                   </span>
                   <button
                     onClick={() => copyRefToClipboard(submittedReference)}
-                    className="p-1 hover:text-zinc-900 dark:hover:text-white transition-colors text-zinc-500"
+                    className="p-1 hover:text-pink-800 dark:hover:text-pink-200 transition-colors text-pink-600 dark:text-pink-400"
                     title="Copy reference number"
                   >
                     <Copy className="w-4 h-4" />
@@ -211,7 +213,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                   </button>
                   <button
                     onClick={onClose}
-                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 hover:opacity-90 transition-opacity"
+                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-pink-600 text-white hover:bg-pink-700 transition-colors shadow-sm shadow-pink-600/30"
                   >
                     Close Window
                   </button>
@@ -222,13 +224,13 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
               <form onSubmit={handleSubmit} className="space-y-4 text-xs">
                 {/* Document Selector */}
                 <div>
-                  <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                  <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
                     Applicable Legal Document
                   </label>
                   <select
                     value={documentId}
                     onChange={(e) => setDocumentId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 font-medium"
                   >
                     {ALL_LEGAL_DOCUMENTS.map((doc) => (
                       <option key={doc.id} value={doc.id}>
@@ -240,7 +242,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
 
                 {/* Section / Provision Reference */}
                 <div>
-                  <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                  <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
                     Referenced Section or Clause (Optional)
                   </label>
                   <input
@@ -248,19 +250,19 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                     value={sectionReference}
                     onChange={(e) => setSectionReference(e.target.value)}
                     placeholder="e.g. Section 6 (Clause 6.02) or Clause 14"
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
                   />
                 </div>
 
                 {/* Category Selector (All 6 Required Categories) */}
                 <div>
-                  <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                  <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
                     Concern Category
                   </label>
                   <select
                     value={category}
                     onChange={(e) => setCategory(e.target.value as LegalConcernCategory)}
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100 font-medium"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500 font-medium"
                   >
                     <option value="clarification">Request clarification</option>
                     <option value="interpretation">Request interpretation</option>
@@ -274,7 +276,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                 {/* Question / Description */}
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="font-semibold text-zinc-700 dark:text-zinc-300">
+                    <label className="font-bold text-zinc-700 dark:text-zinc-300">
                       Description / Specific Question
                     </label>
                     <span className="text-[10px] text-zinc-400">
@@ -286,14 +288,14 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     placeholder="Detail your question, perceived contradiction, suggested amendment, or compliance inquiry..."
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
                     required
                   />
                 </div>
 
                 {/* Contact Email */}
                 <div>
-                  <label className="block font-semibold text-zinc-700 dark:text-zinc-300 mb-1">
+                  <label className="block font-bold text-zinc-700 dark:text-zinc-300 mb-1">
                     Contact Email (Optional for updates)
                   </label>
                   <input
@@ -301,13 +303,13 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                     value={contactEmail}
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="your.email@example.com"
-                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                    className="w-full px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
                   />
                 </div>
 
                 {/* Notice */}
                 <p className="text-[11px] text-zinc-500 leading-normal">
-                  Inquiries are logged in the Sparkle Legal Audit Ledger. You will receive an official reference number (<code className="font-mono">LC-YYYYMMDD-XXXXX</code>) to monitor compliance review.
+                  Inquiries are logged in the Sparkle Legal Audit Ledger. You will receive an official reference number (<code className="font-mono text-pink-600 dark:text-pink-400 font-bold">LC-YYYYMMDD-XXXXX</code>) to monitor compliance review.
                 </p>
 
                 {/* Submit Action */}
@@ -315,7 +317,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-semibold flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all text-xs"
+                    className="w-full py-2.5 px-4 rounded-lg bg-pink-600 text-white font-bold flex items-center justify-center gap-2 hover:bg-pink-700 disabled:opacity-50 transition-colors shadow-sm shadow-pink-600/30 text-xs"
                   >
                     <Send className="w-3.5 h-3.5" />
                     <span>{submitting ? 'Submitting...' : 'Submit Legal Inquiry'}</span>
@@ -332,12 +334,12 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                   value={trackRefInput}
                   onChange={(e) => setTrackRefInput(e.target.value)}
                   placeholder="Enter reference (e.g. LC-20261109-12345)"
-                  className="flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-zinc-900 dark:focus:ring-zinc-100"
+                  className="flex-1 px-3 py-2 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
                 />
                 <button
                   type="submit"
                   disabled={trackingLoading || !trackRefInput.trim()}
-                  className="px-4 py-2 rounded-lg bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-950 font-semibold hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  className="px-4 py-2 rounded-lg bg-pink-600 text-white font-bold hover:bg-pink-700 disabled:opacity-50 transition-colors shadow-sm shadow-pink-600/30"
                 >
                   {trackingLoading ? 'Checking...' : 'Track'}
                 </button>
@@ -347,7 +349,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                 <div className="p-4 bg-zinc-50 dark:bg-zinc-800/60 border border-zinc-200 dark:border-zinc-700 rounded-xl space-y-3">
                   <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-700 pb-2">
                     <div>
-                      <span className="font-mono font-bold text-zinc-900 dark:text-zinc-100 block">
+                      <span className="font-mono font-bold text-pink-600 dark:text-pink-400 block text-sm">
                         {trackedRecord.referenceNumber}
                       </span>
                       <span className="text-[10px] text-zinc-500">
@@ -359,7 +361,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                       trackedRecord.status === 'Resolved'
                         ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/60 dark:text-emerald-300'
                         : trackedRecord.status === 'Under Review'
-                        ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300'
+                        ? 'bg-pink-100 text-pink-800 border-pink-300 dark:bg-pink-950/60 dark:text-pink-300'
                         : 'bg-zinc-200 text-zinc-800 border-zinc-300 dark:bg-zinc-700 dark:text-zinc-200'
                     }`}>
                       {trackedRecord.status}
@@ -387,11 +389,11 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
 
                   {trackedRecord.adminResponse ? (
                     <div className="space-y-1 pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <span className="text-[10px] uppercase font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="text-[10px] uppercase font-bold text-pink-600 dark:text-pink-400 flex items-center gap-1">
                         <ShieldCheck className="w-3.5 h-3.5" />
                         Official Sparkle Legal Response:
                       </span>
-                      <p className="text-zinc-800 dark:text-zinc-100 leading-relaxed bg-emerald-50/50 dark:bg-emerald-950/20 p-2.5 rounded border border-emerald-200 dark:border-emerald-800/50">
+                      <p className="text-zinc-800 dark:text-zinc-100 leading-relaxed bg-pink-50/50 dark:bg-pink-950/20 p-2.5 rounded border border-pink-200 dark:border-pink-800/50">
                         {trackedRecord.adminResponse}
                       </p>
                       {trackedRecord.respondedAt && (
@@ -402,7 +404,7 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
                     </div>
                   ) : (
                     <div className="flex items-center gap-2 text-[11px] text-zinc-500 pt-2 border-t border-zinc-200 dark:border-zinc-700">
-                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <Clock className="w-3.5 h-3.5 text-pink-500" />
                       <span>Currently pending evaluation by Sparkle Legal &amp; Compliance.</span>
                     </div>
                   )}
@@ -415,4 +417,3 @@ export const LegalClarificationModal: React.FC<LegalClarificationModalProps> = (
     </div>
   );
 };
-

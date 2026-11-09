@@ -60,7 +60,7 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
         toast.success('Document link copied to clipboard');
       }
     } catch {
-      // User cancelled or share failed
+      // User cancelled
     }
   };
 
@@ -71,20 +71,20 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <button
             onClick={() => isIndex ? navigate(-1) : navigate('/legal')}
-            className="p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors border border-zinc-200/80 dark:border-zinc-800"
+            className="p-2 rounded-lg text-zinc-600 dark:text-zinc-300 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40 transition-colors border border-zinc-200/80 dark:border-zinc-800 hover:border-pink-300 dark:hover:border-pink-800"
             aria-label="Back"
             title={isIndex ? 'Go back' : 'Back to Legal Centre'}
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
 
-          <Link to="/legal" className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 hover:opacity-85 transition-opacity">
-            <div className="w-7 h-7 rounded-md bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-950 flex items-center justify-center font-bold text-xs">
+          <Link to="/legal" className="flex items-center gap-2 text-zinc-900 dark:text-zinc-100 hover:opacity-90 transition-opacity">
+            <div className="w-7 h-7 rounded-lg bg-pink-600 text-white flex items-center justify-center font-bold text-xs shadow-sm shadow-pink-600/30">
               <Shield className="w-3.5 h-3.5 fill-current" />
             </div>
             <div className="hidden xs:block">
               <span className="font-bold text-sm tracking-tight block leading-tight">Sparkle</span>
-              <span className="text-[10px] text-zinc-500 dark:text-zinc-400 font-medium tracking-wide uppercase">Legal Centre</span>
+              <span className="text-[10px] text-pink-600 dark:text-pink-400 font-bold tracking-wider uppercase">Legal Centre</span>
             </div>
           </Link>
         </div>
@@ -103,10 +103,10 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
           {!isIndex && onOpenClarification && (
             <button
               onClick={onOpenClarification}
-              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-zinc-100 bg-zinc-100 dark:bg-zinc-900 hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors border border-zinc-200 dark:border-zinc-800"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/60 transition-colors border border-pink-200 dark:border-pink-800/60 shadow-xs"
               title="Question or clarify a provision"
             >
-              <HelpCircle className="w-3.5 h-3.5 text-zinc-500" />
+              <HelpCircle className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
               <span className="hidden sm:inline">Clarify</span>
             </button>
           )}
@@ -114,7 +114,7 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
           {!isIndex && (
             <button
               onClick={handleShare}
-              className="p-1.5 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900 transition-colors"
+              className="p-1.5 rounded-lg text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-950/40 transition-colors"
               title="Share or copy document link"
               aria-label="Share document link"
             >
@@ -128,7 +128,7 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
               download
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-zinc-900 hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-zinc-200 transition-colors shadow-sm"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-pink-600 hover:bg-pink-700 transition-colors shadow-sm shadow-pink-600/30"
               title="Download official PDF copy"
             >
               <Download className="w-3.5 h-3.5" />
@@ -140,4 +140,3 @@ export const LegalHeader: React.FC<LegalHeaderProps> = ({
     </header>
   );
 };
-

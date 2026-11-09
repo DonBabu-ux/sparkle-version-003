@@ -46,21 +46,21 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
   return (
     <article
       id={section.id}
-      className="scroll-mt-24 mb-10 pb-8 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 text-zinc-800 dark:text-zinc-200"
+      className="scroll-mt-24 mb-12 pb-10 border-b border-zinc-200/80 dark:border-zinc-800/80 last:border-b-0 text-zinc-800 dark:text-zinc-200"
     >
-      {/* Section Header */}
-      <div className="flex items-start justify-between gap-3 mb-4 group">
-        <h2 className="text-lg sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-baseline gap-2">
-          <span className="font-mono text-zinc-400 dark:text-zinc-500 font-semibold text-base sm:text-lg">
-            {section.number}.
+      {/* Section Header with Neat Index Badge */}
+      <div className="flex items-start justify-between gap-3 mb-5 group">
+        <h2 className="text-lg sm:text-xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 flex items-center gap-2.5">
+          <span className="inline-flex items-center justify-center px-2.5 py-0.5 rounded-md font-mono text-xs sm:text-sm font-bold bg-pink-50 text-pink-600 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200/80 dark:border-pink-800/80 shrink-0 select-none">
+            § {section.number}
           </span>
-          <span>{section.title}</span>
+          <span className="leading-snug">{section.title}</span>
         </h2>
 
         {onQuestionSection && (
           <button
             onClick={() => onQuestionSection(sectionRefString)}
-            className="opacity-70 group-hover:opacity-100 transition-opacity p-1.5 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 shrink-0"
+            className="opacity-70 group-hover:opacity-100 transition-all p-1.5 rounded-lg hover:bg-pink-50 dark:hover:bg-pink-950/50 text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 shrink-0 border border-transparent hover:border-pink-200 dark:hover:border-pink-800/60"
             title={`Question or clarify ${sectionRefString}`}
             aria-label={`Question ${sectionRefString}`}
           >
@@ -71,7 +71,7 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
 
       {/* Summary if present */}
       {section.summary && (
-        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-4 italic">
+        <p className="text-sm font-medium text-zinc-600 dark:text-zinc-400 mb-5 italic border-l-2 border-pink-400 dark:border-pink-600 pl-3">
           {section.summary}
         </p>
       )}
@@ -79,20 +79,20 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
       {/* Important Legal Callout */}
       {section.callout && (
         <div
-          className={`my-4 p-4 rounded-lg border-l-4 text-xs sm:text-sm leading-relaxed flex items-start gap-3 ${
+          className={`my-5 p-4 rounded-xl border-l-4 text-xs sm:text-sm leading-relaxed flex items-start gap-3 shadow-xs ${
             section.callout.type === 'warning'
               ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-500 text-amber-900 dark:text-amber-200'
               : section.callout.type === 'statutory'
-              ? 'bg-red-50 dark:bg-red-950/30 border-red-500 text-red-900 dark:text-red-200'
-              : 'bg-zinc-100 dark:bg-zinc-900/60 border-zinc-900 dark:border-zinc-200 text-zinc-900 dark:text-zinc-100'
+              ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-500 text-rose-900 dark:text-rose-200'
+              : 'bg-pink-50/50 dark:bg-pink-950/20 border-pink-600 text-zinc-900 dark:text-zinc-100'
           }`}
         >
           {section.callout.type === 'warning' ? (
             <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
           ) : section.callout.type === 'statutory' ? (
-            <ShieldAlert className="w-5 h-5 text-red-600 dark:text-red-400 shrink-0 mt-0.5" />
+            <ShieldAlert className="w-5 h-5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
           ) : (
-            <Info className="w-5 h-5 text-zinc-700 dark:text-zinc-300 shrink-0 mt-0.5" />
+            <Info className="w-5 h-5 text-pink-600 dark:text-pink-400 shrink-0 mt-0.5" />
           )}
           <div>
             {section.callout.title && (
@@ -107,7 +107,7 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
 
       {/* Main Paragraphs */}
       {section.paragraphs && section.paragraphs.length > 0 && (
-        <div className="space-y-3 mb-4">
+        <div className="space-y-3.5 mb-5">
           {section.paragraphs.map((p, pIdx) => (
             <p
               key={pIdx}
@@ -119,55 +119,68 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
         </div>
       )}
 
-      {/* Bulleted Lists */}
+      {/* Bulleted Lists with Neat Pink Markers */}
       {section.bullets && section.bullets.length > 0 && (
-        <ul className="list-disc pl-5 space-y-2 mb-4 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">
+        <ul className="space-y-2.5 mb-5 pl-2 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">
           {section.bullets.map((b, bIdx) => (
-            <li key={bIdx}>{b}</li>
+            <li key={bIdx} className="flex items-start gap-2.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 shrink-0 mt-2.5" />
+              <span>{b}</span>
+            </li>
           ))}
         </ul>
       )}
 
-      {/* Numbered Lists */}
+      {/* Numbered Lists with Crisp Numbered Index Badges */}
       {section.numberedList && section.numberedList.length > 0 && (
-        <ol className="list-decimal pl-5 space-y-2 mb-4 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">
+        <ol className="space-y-2.5 mb-5 pl-1 text-sm sm:text-base text-zinc-700 dark:text-zinc-300 leading-relaxed">
           {section.numberedList.map((item, nIdx) => (
-            <li key={nIdx}>{item}</li>
+            <li key={nIdx} className="flex items-start gap-3">
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-md font-mono text-[11px] font-bold bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700 shrink-0 mt-0.5 select-none">
+                {nIdx + 1}
+              </span>
+              <span>{item}</span>
+            </li>
           ))}
         </ol>
       )}
 
-      {/* Subsections / Clauses */}
+      {/* Subsections & Clauses: Neatly Indexed with Left Guide Border */}
       {section.subsections && section.subsections.length > 0 && (
-        <div className="mt-5 space-y-4 pl-0 sm:pl-3 sm:border-l-2 border-zinc-200 dark:border-zinc-800">
+        <div className="mt-6 space-y-4 pl-0 sm:pl-4 sm:border-l-2 border-pink-200 dark:border-pink-900/50">
           {section.subsections.map((sub) => {
             const clauseRef = `${sectionRefString} (Clause ${sub.number || sub.title})`;
             return (
-              <div key={sub.id} className="group/clause text-xs sm:text-sm">
-                <div className="flex items-center justify-between gap-2 mb-1.5">
-                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-baseline gap-1.5">
+              <div
+                key={sub.id}
+                className="group/clause text-xs sm:text-sm bg-zinc-50/50 dark:bg-zinc-900/40 hover:bg-zinc-50 dark:hover:bg-zinc-900/80 p-3 sm:p-3.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <h3 className="font-semibold text-zinc-800 dark:text-zinc-200 flex items-center gap-2">
                     {sub.number && (
-                      <span className="font-mono text-zinc-500 font-medium text-xs">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded font-mono font-bold text-[11px] text-pink-700 bg-pink-100/80 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800/80 shrink-0 select-none">
                         {sub.number}
                       </span>
                     )}
-                    <span>{sub.title}</span>
+                    <span className="text-xs sm:text-sm font-bold text-zinc-900 dark:text-zinc-100">
+                      {sub.title}
+                    </span>
                   </h3>
 
                   {onQuestionSection && (
                     <button
                       onClick={() => onQuestionSection(clauseRef)}
-                      className="opacity-0 group-hover/clause:opacity-100 transition-opacity text-[11px] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 flex items-center gap-1"
+                      className="opacity-0 group-hover/clause:opacity-100 transition-opacity text-[11px] font-medium text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-pink-50 dark:hover:bg-pink-950/50"
                       title={`Clarify ${clauseRef}`}
                     >
-                      <HelpCircle className="w-3 h-3" />
+                      <HelpCircle className="w-3.5 h-3.5" />
                       <span className="hidden sm:inline">Clarify</span>
                     </button>
                   )}
                 </div>
 
                 {sub.content && (
-                  <div className="space-y-2 text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                  <div className="space-y-2 text-zinc-600 dark:text-zinc-400 leading-relaxed pl-0.5">
                     {sub.content.map((c, cIdx) => (
                       <p key={cIdx}>{c}</p>
                     ))}
@@ -175,9 +188,12 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
                 )}
 
                 {sub.bullets && (
-                  <ul className="list-disc pl-5 mt-2 space-y-1 text-zinc-600 dark:text-zinc-400">
+                  <ul className="space-y-1.5 mt-2.5 pl-1 text-zinc-600 dark:text-zinc-400">
                     {sub.bullets.map((sb, sbIdx) => (
-                      <li key={sbIdx}>{sb}</li>
+                      <li key={sbIdx} className="flex items-start gap-2">
+                        <span className="w-1 h-1 rounded-full bg-pink-500 shrink-0 mt-2" />
+                        <span>{sb}</span>
+                      </li>
                     ))}
                   </ul>
                 )}
@@ -189,12 +205,12 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
 
       {/* Structured Table */}
       {section.table && (
-        <div className="my-4 overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
+        <div className="my-5 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 shadow-xs">
           <table className="w-full text-xs text-left text-zinc-800 dark:text-zinc-200">
-            <thead className="bg-zinc-100 dark:bg-zinc-900 font-semibold text-zinc-900 dark:text-zinc-100">
+            <thead className="bg-pink-50/60 dark:bg-pink-950/30 font-semibold text-zinc-900 dark:text-zinc-100 border-b border-zinc-200 dark:border-zinc-800">
               <tr>
                 {section.table.headers.map((th, thIdx) => (
-                  <th key={thIdx} className="px-3.5 py-2.5 border-b border-zinc-200 dark:border-zinc-800">
+                  <th key={thIdx} className="px-4 py-3 font-bold text-zinc-900 dark:text-zinc-100">
                     {th}
                   </th>
                 ))}
@@ -202,9 +218,9 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
             </thead>
             <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
               {section.table.rows.map((row, rIdx) => (
-                <tr key={rIdx} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40">
+                <tr key={rIdx} className="hover:bg-zinc-50 dark:hover:bg-zinc-900/40 transition-colors">
                   {row.map((cell, cIdx) => (
-                    <td key={cIdx} className="px-3.5 py-2">
+                    <td key={cIdx} className="px-4 py-2.5">
                       {cell}
                     </td>
                   ))}
@@ -217,4 +233,3 @@ export const LegalSectionRenderer: React.FC<LegalSectionRendererProps> = ({
     </article>
   );
 };
-

@@ -48,12 +48,12 @@ export const LegalWatermark: React.FC<LegalWatermarkProps> = ({
       className="pointer-events-none select-none fixed inset-0 z-0 overflow-hidden flex items-center justify-center"
       aria-hidden="true"
     >
-      {/* Repeating Diagonal Watermark Grid */}
-      <div className="absolute inset-0 flex flex-col justify-around opacity-[0.032] dark:opacity-[0.042] transform -rotate-12 scale-110">
+      {/* Repeating Diagonal Watermark Grid with Subtle Sparkle Pink Tint */}
+      <div className="absolute inset-0 flex flex-col justify-around opacity-[0.038] dark:opacity-[0.048] transform -rotate-12 scale-110 text-pink-900 dark:text-pink-300">
         {[0, 1, 2, 3, 4].map((row) => (
           <div
             key={row}
-            className="flex justify-around items-center whitespace-nowrap text-zinc-900 dark:text-zinc-100 font-sans tracking-widest font-black"
+            className="flex justify-around items-center whitespace-nowrap font-sans tracking-widest font-black"
           >
             {[0, 1, 2].map((col) => (
               <div key={col} className="flex flex-col items-center mx-12 my-8">
@@ -68,7 +68,7 @@ export const LegalWatermark: React.FC<LegalWatermarkProps> = ({
                 <span className="text-xl sm:text-2xl font-extrabold uppercase">
                   SPARKLE LEGAL DOCUMENT
                 </span>
-                <span className="text-xs font-semibold tracking-wider text-current opacity-80 mt-1">
+                <span className="text-xs font-bold tracking-wider text-current opacity-85 mt-1">
                   OFFICIAL PUBLICATION • {documentId.toUpperCase()} v{version} {hashPrefix ? `• ${hashPrefix}...` : ''}
                 </span>
               </div>
@@ -79,4 +79,3 @@ export const LegalWatermark: React.FC<LegalWatermarkProps> = ({
     </div>
   );
 };
-

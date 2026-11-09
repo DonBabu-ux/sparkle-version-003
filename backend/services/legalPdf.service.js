@@ -55,7 +55,7 @@ function generateLegalPdf(docData, outputStream) {
   doc
     .fontSize(10)
     .font('Helvetica-Bold')
-    .fillColor('#71717a')
+    .fillColor('#db2777')
     .text('SPARKLE LEGAL CENTRE  •  OFFICIAL PUBLICATION', { tracking: 1.5 });
 
   doc.moveDown(0.5);
@@ -163,7 +163,7 @@ function generateLegalPdf(docData, outputStream) {
       doc
         .moveTo(48, doc.y + 2)
         .lineTo(547, doc.y + 2)
-        .strokeColor('#e4e4e7')
+        .strokeColor('#fbcfe8')
         .lineWidth(0.75)
         .stroke();
 
@@ -271,7 +271,7 @@ function generateLegalPdf(docData, outputStream) {
         { width: 499, align: 'right' }
       );
 
-    // Subtle Authenticity Watermark (Centered, 45 degree angle)
+    // Subtle Authenticity Watermark with Sparkle Pink tone (Centered, 45 degree angle)
     doc.save();
     doc.opacity(0.045);
     doc.translate(297, 420);
@@ -279,13 +279,13 @@ function generateLegalPdf(docData, outputStream) {
     doc
       .fontSize(38)
       .font('Helvetica-Bold')
-      .fillColor('#18181b')
+      .fillColor('#be185d')
       .text('SPARKLE LEGAL DOCUMENT', -240, -20, { align: 'center', width: 480 });
 
     doc
       .fontSize(14)
       .font('Helvetica')
-      .fillColor('#18181b')
+      .fillColor('#be185d')
       .text(
         `AUTHENTIC OFFICIAL COPY  •  ${docData.id.toUpperCase()} v${docData.version}  •  ${docData.sha256Hash ? docData.sha256Hash.slice(0, 16) : ''}...`,
         -240,

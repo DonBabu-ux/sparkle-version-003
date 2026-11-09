@@ -2567,7 +2567,24 @@ export default function MessagesSettings() {
         confirmDanger
         onConfirm={() => {
           setClearHistoryModal(false);
-          showSuccess('Message cache cleared');
+          // The copy promises "conversations saved on this device" are
+          // cleared. The handler used to close the modal and toast success
+          // without touching storage, so nothing changed on disk.
+          try {
+            const keys = Object.keys(localStorage).filter(k =>
+              k.startsWith('sparkle-chat-storage') ||
+              k.startsWith('sparkle_deleted_msg_ids') ||
+              k.startsWith('sparkle_expired_msg_ids') ||
+              k.startsWith('sparkle_privacy_cache_') ||
+              k.startsWith('sparkle_nickname_cache_')
+            );
+            keys.forEach(k => localStorage.removeItem(k));
+            showSuccess(keys.length > 0
+              ? `Message cache cleared (${keys.length} local ${keys.length === 1 ? 'entry' : 'entries'} removed)`
+              : 'Message cache cleared - nothing was stored on this device');
+          } catch {
+            showError("Couldn't clear the cache. Storage may be unavailable.");
+          }
         }}
         onCancel={() => setClearHistoryModal(false)}
       />

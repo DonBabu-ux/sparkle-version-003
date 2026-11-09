@@ -63,7 +63,7 @@ describe('SPARKLE — Messaging Keyboard Layout & Presence Contract Tests', () =
 
     it('renders a distinct green indicator dot alongside the online label in Messages.tsx', () => {
       const messagesTsx = fs.readFileSync(messagesTsxPath, 'utf8');
-      expect(messagesTsx).toContain('w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0');
+      expect(messagesTsx).toContain('w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shrink-0');
       expect(messagesTsx).toContain('chat-header-online');
     });
 
@@ -127,6 +127,53 @@ describe('SPARKLE — Messaging Keyboard Layout & Presence Contract Tests', () =
       const lightLastSeenContrast = getContrast(lightLastSeenGrey, headerLight);
       expect(lightOnlineContrast).toBeGreaterThanOrEqual(4.5);
       expect(lightLastSeenContrast).toBeGreaterThanOrEqual(4.5);
+    });
+  });
+
+  describe('Part D: Presence In-Place Stability (No Periodic Sliding Animation)', () => {
+    it('does not wrap presence in AnimatePresence with sliding motion offsets in Messages.tsx', () => {
+      const messagesTsx = fs.readFileSync(messagesTsxPath, 'utf8');
+      // Presence area should use stable div/p elements rather than motion.p with y offsets
+      const headerAreaMatch = messagesTsx.match(/chat-header-online[\s\S]{1,500}chat-header-presence/);
+      expect(headerAreaMatch).not.toBeNull();
+      // Ensure no motion.p or AnimatePresence sliding is inside the presence status container
+      expect(messagesTsx).not.toContain('<AnimatePresence mode="wait">\n                        {renderPresence()}');
+      expect(messagesTsx).not.toContain('exit={{ opacity: 0, y: -3 }}');
+    });
+
+    it('uses readable text size for last seen while preserving hierarchy', () => {
+      const messagesTsx = fs.readFileSync(messagesTsxPath, 'utf8');
+      expect(messagesTsx).toContain('text-xs md:text-[13px] font-medium');
+    });
+  });
+
+  describe('Part A: Profile Reels Retrieval & Visibility Pipeline', () => {
+    const profileTsxPath = path.join(__dirname, '../pages/Profile.tsx');
+    const momentsControllerPath = path.join(rootDir, 'backend/controllers/moments.controller.js');
+    const momentWorkerPath = path.join(__dirname, '../services/workers/MomentUploadWorker.ts');
+
+    it('resolves targetUserId for "me", usernames, and user IDs in backend moments controller', () => {
+      const momentsController = fs.readFileSync(momentsControllerPath, 'utf8');
+      expect(momentsController).toContain("targetParam === 'me'");
+      expect(momentsController).toContain('SELECT user_id FROM users WHERE user_id = ? OR username = ? LIMIT 1');
+      expect(momentsController).toContain("currentUserId = req.user?.user_id || req.user?.userId || req.user?.id || null");
+    });
+
+    it('emits type MOMENT on upload completion in MomentUploadWorker', () => {
+      const worker = fs.readFileSync(momentWorkerPath, 'utf8');
+      expect(worker).toContain("type: 'MOMENT'");
+    });
+
+    it('maps thumbnail_url and derived video poster in Profile.tsx', () => {
+      const profileTsx = fs.readFileSync(profileTsxPath, 'utf8');
+      expect(profileTsx).toContain('derivedThumb = m.thumbnail_url || (m.media_url ? m.media_url.replace(/\\.[^/.]+$/, \'.jpg\') : undefined)');
+      expect(profileTsx).toContain('thumbnail_url: derivedThumb');
+    });
+
+    it('does not forcibly reset activeTab to posts on profile refetch in Profile.tsx', () => {
+      const profileTsx = fs.readFileSync(profileTsxPath, 'utf8');
+      // Ensure fetchProfile doesn't do setActiveTab('posts') unconditionally
+      expect(profileTsx).not.toContain("setProfile(data);\n      setActiveTab('posts');");
     });
   });
 });

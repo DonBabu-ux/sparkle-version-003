@@ -132,7 +132,10 @@ export default function Profile() {
     // appended twice (duplicate React keys in the grid).
     const seq = ++fetchSeqRef.current;
     setLoading(true);
-    setActiveTab(reelsTabParamRef.current ? 'reels' : 'posts'); 
+    // Only set initial tab from search param if activeTab has not been established yet
+    if (reelsTabParamRef.current) {
+      setActiveTab('reels');
+    }
     try {
       const endpoint = username === 'me' ? '/users/me' : `/users/${encodeURIComponent(username || '')}`;
       const profileRes = await api.get(endpoint);
@@ -183,52 +186,54 @@ export default function Profile() {
               caption?: string | null;
               media_url?: string | null;
               media_type?: string | null;
+              thumbnail_url?: string | null;
               like_count?: string | number | null;
               comment_count?: string | number | null;
               is_liked?: number | boolean | null;
               is_saved?: number | boolean | null;
               is_pinned?: number | boolean | null;
               created_at?: string;
-            }) => ({
-              post_id: String(m.moment_id),
-              user_id: m.user_id ? String(m.user_id) : undefined,
-              username: m.username || '',
-              name: m.user_name || '',
-              avatar_url: m.avatar_url || undefined,
-              content: m.title || m.caption || '',
-              media_url: m.media_url || undefined,
-              media_type: m.media_type || 'video',
-              spark_count: Number(m.like_count) || 0,
-              comment_count: Number(m.comment_count) || 0,
-              is_sparked: !!m.is_liked,
-              is_saved: !!m.is_saved,
-              is_pinned: Number(m.is_pinned) === 1 || Boolean(m.is_pinned),
-              created_at: String(m.created_at || ''),
-              is_moment: true,
-            })
+            }) => {
+              const derivedThumb = m.thumbnail_url || (m.media_url ? m.media_url.replace(/\.[^/.]+$/, '.jpg') : undefined);
+              return {
+                post_id: String(m.moment_id),
+                user_id: m.user_id ? String(m.user_id) : undefined,
+                username: m.username || '',
+                name: m.user_name || '',
+                avatar_url: m.avatar_url || undefined,
+                content: m.title || m.caption || '',
+                media_url: m.media_url || undefined,
+                media_type: m.media_type || 'video',
+                thumbnail_url: derivedThumb,
+                image_url: derivedThumb,
+                spark_count: Number(m.like_count) || 0,
+                comment_count: Number(m.comment_count) || 0,
+                is_sparked: !!m.is_liked,
+                is_saved: !!m.is_saved,
+                is_pinned: Number(m.is_pinned) === 1 || Boolean(m.is_pinned),
+                created_at: String(m.created_at || ''),
+                is_moment: true,
+              };
+            }
           );
           if (moments.length > 0) {
             moments.forEach((m) => {
               if (m.media_url) {
                 MediaCacheService.cacheMediaInBackground(
-                  { moment_id: m.post_id, video_url: m.media_url, thumbnail_url: m.avatar_url, media_type: m.media_type },
+                  { moment_id: m.post_id, video_url: m.media_url, thumbnail_url: m.thumbnail_url || m.image_url || m.avatar_url, media_type: m.media_type },
                   { isOwned: isOwnProfile }
                 ).catch(() => {});
               }
             });
-            setReels((prev) => {
-              // Dedupe by post_id so a double-invocation (or a moment that is
-              // also a video post) never produces duplicate React keys.
-              const seen = new Set(prev.map((p) => p.post_id));
-              const fresh = moments.filter((m) => !seen.has(m.post_id));
-              if (fresh.length === 0) return prev;
-              return [...prev, ...fresh].sort((a, b) => {
-                const pinA = a.is_pinned ? 1 : 0;
-                const pinB = b.is_pinned ? 1 : 0;
-                if (pinB !== pinA) return pinB - pinA;
-                return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
-              });
-            });
+            setReels(moments.sort((a, b) => {
+              const pinA = a.is_pinned ? 1 : 0;
+              const pinB = b.is_pinned ? 1 : 0;
+              if (pinB !== pinA) return pinB - pinA;
+              return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            }));
+          } else {
+            // Keep empty or fallback to video posts only if user has no moments
+            setReels([]);
           }
         } catch (err) {
           if (seq !== fetchSeqRef.current) return;
@@ -301,7 +306,8 @@ export default function Profile() {
     if (!owner) return;
     const off = UploadEventBus.on('UPLOAD_COMPLETED', (data) => {
       const job = useUploadStore.getState().jobs.find((j) => j.uploadId === data?.uploadId);
-      if (job?.type !== 'MOMENT') return;
+      const isMoment = data?.type === 'MOMENT' || job?.type === 'MOMENT';
+      if (!isMoment) return;
       const tab = activeTabRef.current;
       void fetchProfile().then(() => setActiveTab(tab));
     });

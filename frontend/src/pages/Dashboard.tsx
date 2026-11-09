@@ -184,7 +184,12 @@ const posts = orderedPostIds.map(id => postsById[id]);
         setPosts(newPosts);
         lastSyncTime.current = Date.now();
         if (suggestionsRes.data.suggestions) setSuggestions(suggestionsRes.data.suggestions);
-        const realTrending = Array.isArray(trendingRes.data) ? trendingRes.data : [];
+        // GET /search/trending answers { status: 'success', data: [...] }
+      // (search.controller.js). The previous check was Array.isArray(res.data),
+      // which is never true for an object, so "Hot right now" always showed
+      // "No trending tags yet" even when hashtags existed.
+      const trendingRows = trendingRes.data?.data ?? trendingRes.data;
+      const realTrending = Array.isArray(trendingRows) ? trendingRows : [];
         if (realTrending.length > 0) {
           setTrendingTags(realTrending.map((t: any) => ({
             tag: t.name?.replace(/^#/, '') || t.tag || t.name,

@@ -1472,6 +1472,7 @@ export default function SecurityCentre() {
   const navigate = useNavigate();
 
   const [status, setStatus] = useState<SecurityStatus | null>(null);
+  const [statusError, setStatusError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isPinConfigured, setIsPinConfigured] = useState(false);
   const [lockTimeout, setLockTimeout] = useState<number>(0); // Default: 0 (Immediately)
@@ -1483,12 +1484,17 @@ export default function SecurityCentre() {
 
   const fetchStatus = useCallback(async () => {
     try {
+      setStatusError(false);
       const res = await api.get('/security/status');
       if (res.data?.status === 'success') {
         setStatus(res.data.data);
       }
     } catch {
-      // Non-fatal
+      // Non-fatal, but NOT indistinguishable from "no 2FA". status staying
+      // null made a failed request render the account as password-only and
+      // unsecured, which is the wrong instruction to give someone who is
+      // actually protected and simply offline.
+      setStatusError(true);
     } finally {
       setLoading(false);
     }
@@ -1628,9 +1634,21 @@ export default function SecurityCentre() {
           </div>
         </div>
 
-        {/* Feedback */}
-        {success && <FeedbackBanner type="success" message={success} onClose={() => setSuccess(null)} />}
-        {error && <FeedbackBanner type="error" message={error} onClose={() => setError(null)} />}
+      {/* Feedback */}
+      {success && <FeedbackBanner type="success" message={success} onClose={() => setSuccess(null)} />}
+      {error && <FeedbackBanner type="error" message={error} onClose={() => setError(null)} />}
+
+      {/* A failed status fetch must not read as "you have no 2FA". Without
+          this, an offline visit sees the password-only banner and the SMS row
+          disabled as "not available on this server", on an account that is in
+          fact protected. */}
+      {statusError && !loading && !status && (
+        <FeedbackBanner
+          type="error"
+          message="We couldn't load your security settings. Check your connection and tap Back, then reopen this screen — don't read your two-factor settings from it."
+          onClose={() => setStatusError(false)}
+        />
+      )}
 
         {/* Loading skeleton */}
         {loading && (

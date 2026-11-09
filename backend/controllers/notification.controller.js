@@ -237,6 +237,21 @@ const notificationController = {
                     is_read: n.is_read ? 1 : 0,
                     createdAt: n.created_at,
 
+                    // The related entity, under both names the frontend reads.
+                    // The SELECT already aliases related_id AS related_post_id
+                    // (line 131), but this mapper never copied either name into
+                    // the response, so the client's target-resolution fallback
+                    // always saw undefined and navigation fell through to the
+                    // actor's profile. Any notification created without an
+                    // action_url — mention rows at Post.js:1225/1249/1265/1485
+                    // and share rows at Post.js:1461 — therefore opened the
+                    // wrong page.
+                    related_id: n.related_id ?? n.related_post_id ?? null,
+                    related_post_id: n.related_post_id ?? null,
+                    target: n.related_id || n.related_post_id
+                      ? { entity_id: n.related_id ?? n.related_post_id, entity_type: 'post' }
+                      : null,
+
                     // Backwards compatibility keys
                     notification_id: n.notification_id,
                     content: n.content,

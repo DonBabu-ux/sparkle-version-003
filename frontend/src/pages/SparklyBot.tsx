@@ -9,6 +9,7 @@ import Spinner from '../components/ui/Spinner';
 import { SparklyListingCard, type SparklyListingItem } from '../components/marketplace/SparklyListingCard';
 import { SparklyAvatar, SparklyTypingDots } from '../components/sparkly/SparklyAvatar';
 import { SparklyMarkdown } from '../components/sparkly/SparklyMarkdown';
+import { ExpandableMessageText } from '../components/chat/ExpandableMessageText';
 import { logger } from '../utils/logger';
 
 export interface WebSource {
@@ -846,7 +847,11 @@ export default function SparklyBot() {
                       ) : (
                         <>
                           {msg.content ? (
-                            <SparklyMarkdown content={msg.content} streaming={isCurrentlyStreaming} />
+                            isCurrentlyStreaming ? (
+                              <SparklyMarkdown content={msg.content} streaming={isCurrentlyStreaming} />
+                            ) : (
+                              <ExpandableMessageText text={msg.content} isSparkly={true} />
+                            )
                           ) : isCurrentlyStreaming ? (
                             <div className="flex items-center gap-2 text-slate-400 text-xs py-1">
                               <SparklyTypingDots />

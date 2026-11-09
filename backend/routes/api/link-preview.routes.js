@@ -56,7 +56,92 @@ async function isSafeUrl(urlStr) {
     }
 }
 
+// Known safe domains — immediately classified as SAFE
+const KNOWN_SAFE_DOMAINS = new Set([
+    'google.com', 'youtube.com', 'twitter.com', 'x.com', 'instagram.com',
+    'github.com', 'wikipedia.org', 'facebook.com', 'linkedin.com',
+    'reddit.com', 'amazon.com', 'apple.com', 'microsoft.com',
+    'stackoverflow.com', 'medium.com', 'tiktok.com', 'whatsapp.com',
+    'telegram.org', 't.me', 'discord.com', 'twitch.tv', 'netflix.com',
+    'spotify.com', 'dropbox.com', 'drive.google.com', 'docs.google.com',
+]);
+
+function isKnownSafe(hostname) {
+    const stripped = hostname.replace(/^www\./, '');
+    if (KNOWN_SAFE_DOMAINS.has(stripped)) return true;
+    // Check if ends with any known safe domain (subdomains)
+    for (const safe of KNOWN_SAFE_DOMAINS) {
+        if (stripped === safe || stripped.endsWith('.' + safe)) return true;
+    }
+    return false;
+}
+
+// Suspicious / bad TLDs combined with short domain
+const BAD_TLDS = ['.tk', '.ml', '.cf', '.ga', '.gq'];
+
+// GET /api/link-preview/safety?url=<encoded url>
+async function checkLinkSafety(req, res) {
+    const { url } = req.query;
+
+    if (!url) {
+        return res.status(400).json({ safe: false, risk: 'DANGEROUS', reason: 'No URL provided' });
+    }
+
+    let parsed;
+    try {
+        const normalised = url.startsWith('http') ? url : 'https://' + url;
+        parsed = new URL(normalised);
+    } catch {
+        return res.status(200).json({ safe: false, risk: 'DANGEROUS', reason: 'Malformed URL' });
+    }
+
+    const hostname = parsed.hostname.toLowerCase();
+
+    // 1. Reject dangerous schemes
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return res.status(200).json({ safe: false, risk: 'DANGEROUS', reason: 'Dangerous URL scheme' });
+    }
+
+    // 2. Reject private/local IPs
+    const privateIpRegex = /^(127\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|192\.168\.|169\.254\.|::1|fe80:|0\.0\.0\.0)/i;
+    if (privateIpRegex.test(hostname) || hostname === 'localhost') {
+        return res.status(200).json({ safe: false, risk: 'DANGEROUS', reason: 'Private or local network address blocked' });
+    }
+
+    // 3. Known safe domains → immediately SAFE
+    if (isKnownSafe(hostname)) {
+        return res.status(200).json({ safe: true, risk: 'SAFE', reason: 'Known trusted domain' });
+    }
+
+    // 4. Homograph / Punycode detection
+    if (hostname.includes('xn--')) {
+        return res.status(200).json({ safe: false, risk: 'SUSPICIOUS', reason: 'Internationalized domain name (possible homograph attack)' });
+    }
+
+    // 5. Bad TLDs
+    for (const tld of BAD_TLDS) {
+        if (hostname.endsWith(tld)) {
+            return res.status(200).json({ safe: false, risk: 'SUSPICIOUS', reason: `Suspicious TLD: ${tld}` });
+        }
+    }
+
+    // 6. HTTP (not HTTPS) → SUSPICIOUS
+    if (parsed.protocol === 'http:') {
+        return res.status(200).json({ safe: false, risk: 'SUSPICIOUS', reason: 'Unencrypted HTTP connection' });
+    }
+
+    // 7. .xyz TLD alone is suspicious
+    if (hostname.endsWith('.xyz')) {
+        return res.status(200).json({ safe: false, risk: 'SUSPICIOUS', reason: 'Commonly abused TLD (.xyz)' });
+    }
+
+    // Default: SAFE (conservative to avoid false positives)
+    return res.status(200).json({ safe: true, risk: 'SAFE', reason: 'No threats detected' });
+}
+
 // GET /api/link-preview?url=<encoded-url>
+router.get('/safety', authMiddleware, checkLinkSafety);
+
 router.get('/', authMiddleware, async (req, res) => {
     const { url } = req.query;
 

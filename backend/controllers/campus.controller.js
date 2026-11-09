@@ -163,19 +163,28 @@ const getPolls = async (req, res) => {
 };
 
 const getEvents = async (req, res) => {
-    try {
-        const affiliation = req.query.affiliation || req.query.campus;
-        let query = 'SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE e.is_public = TRUE';
-        const params = [];
-        if (affiliation && affiliation !== 'all') {
-            query += ' AND e.campus = ?';
-            params.push(affiliation);
-        }
-        const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
-        res.json(events);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
+  try {
+    const affiliation = req.query.affiliation || req.query.campus;
+    // filter=managed scopes to the caller's own events. It was requested by the
+    // Events admin screen and silently ignored — `filter` was never read — so
+    // that screen listed every public event on the platform and offered Pause
+    // and Delete buttons against strangers' events.
+    const managedOnly = req.query.filter === 'managed';
+    let query = 'SELECT e.*, u.username FROM campus_events e JOIN users u ON e.creator_id = u.user_id WHERE 1=1';
+    const params = [];
+    if (affiliation && affiliation !== 'all') {
+      query += ' AND e.campus = ?';
+      params.push(affiliation);
     }
+    if (managedOnly) {
+      query += ' AND e.creator_id = ?';
+      params.push(req.user?.userId || req.user?.user_id);
+    }
+    const [events] = await pool.query(query + ' ORDER BY e.start_time ASC', params);
+    res.json(events);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
 
 // Helper for media - prioritizes internal uploads, fallbacks for broken external

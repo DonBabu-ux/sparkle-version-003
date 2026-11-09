@@ -16,7 +16,10 @@
 
   --color-marketplace-bg: #FFFFFF;
   --color-marketplace-text: #18181B;
-  --color-marketplace-muted: #d4d4d8;
+  /* #d4d4d8 is the old value: on a white card that is 1.48:1 contrast, i.e.
+     invisible. It was used for order amounts, dates, campus and distance
+     across every marketplace page. Zinc-500 is readable on white. */
+  --color-marketplace-muted: #71717A;
   --color-marketplace-border: #E4E4E7;
   --color-secondary: #00C9A7;
 
@@ -248,6 +251,15 @@
   --color-surface-bg: var(--color-surface-bg-dark);
   --color-text-primary: var(--color-text-primary-dark);
   --color-glass-surface: rgba(255, 255, 255, 0.05);
+
+  /* Marketplace tokens were never overridden here, so dark mode resolved
+     --color-marketplace-text to #18181B: 1.19:1 contrast on a zinc-900 page,
+     i.e. invisible. These four are used in 317 places across 14 marketplace
+     files. */
+  --color-marketplace-bg: #18181B;
+  --color-marketplace-text: #F4F4F5;
+  --color-marketplace-muted: #A1A1AA;
+  --color-marketplace-border: #3F3F46;
 }
 
 @layer utilities {

@@ -347,8 +347,30 @@ const getMomentsStream = async (req, res) => {
  */
 const getUserMoments = async (req, res) => {
     try {
-        const targetUserId = req.params.userId;
-        const currentUserId = req.user.user_id;
+        const currentUserId = req.user?.user_id || req.user?.userId || req.user?.id || null;
+        let targetParam = req.params.userId;
+        if (targetParam === 'me') {
+            targetParam = currentUserId;
+        }
+
+        if (!targetParam) {
+            return res.status(400).json({ error: 'User identifier is required' });
+        }
+
+        // Canonical user resolution: supports numeric/UUID user_id or username
+        const [userLookup] = await pool.query(
+            'SELECT user_id FROM users WHERE user_id = ? OR username = ? LIMIT 1',
+            [targetParam, targetParam]
+        );
+
+        if (!userLookup || userLookup.length === 0) {
+            return res.json({
+                moments: [],
+                pagination: { limit: 30, total: 0, hasMore: false },
+            });
+        }
+
+        const resolvedUserId = userLookup[0].user_id;
         const limit = Math.min(parseInt(req.query.limit, 10) || 30, 50);
 
         const [rows] = await pool.query(
@@ -361,7 +383,7 @@ const getUserMoments = async (req, res) => {
              WHERE m.user_id = ? AND m.deleted_at IS NULL
              ORDER BY m.is_pinned DESC, m.created_at DESC
              LIMIT ?`,
-            [currentUserId, currentUserId, currentUserId, targetUserId, limit]
+            [currentUserId, currentUserId, currentUserId, resolvedUserId, limit]
         );
 
         const visible = await visibility.filterVisible(rows || [], currentUserId);

@@ -1183,14 +1183,38 @@ const getUserPosts = async (req, res) => {
 
 const getUserTaggedPosts = async (req, res) => {
     try {
-        const userId = req.params.id;
-        const currentUserId = req.user.userId || req.user.user_id;
+        let userId = req.params.id;
+        const currentUserId = req.user?.userId || req.user?.user_id || null;
+
+        if (userId === 'me') {
+            userId = currentUserId;
+        }
+
+        if (!userId) {
+            return res.json([]);
+        }
+
+        // Canonical user resolution: support user_id or username
+        const [userLookup] = await User.pool.query(
+            'SELECT user_id, username, is_private, profile_visibility FROM users WHERE user_id = ? OR username = ? LIMIT 1',
+            [userId, userId]
+        );
+
+        if (!userLookup || userLookup.length === 0) {
+            return res.json([]);
+        }
+
+        const targetUser = userLookup[0];
+        const targetUserId = targetUser.user_id;
+        const targetUsername = targetUser.username;
 
         // Privacy check
-        if (currentUserId && userId !== currentUserId) {
-            const [user] = await User.pool.query('SELECT is_private, profile_visibility FROM users WHERE user_id = ?', [userId]);
-            if (user[0] && (user[0].is_private || user[0].profile_visibility === 'private')) {
-                const [followed] = await User.pool.query('SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?', [currentUserId, userId]);
+        if (currentUserId && targetUserId !== currentUserId) {
+            if (targetUser.is_private || targetUser.profile_visibility === 'private') {
+                const [followed] = await User.pool.query(
+                    'SELECT 1 FROM follows WHERE follower_id = ? AND following_id = ?',
+                    [currentUserId, targetUserId]
+                );
                 if (followed.length === 0) {
                     return res.json([]);
                 }
@@ -1208,11 +1232,20 @@ const getUserTaggedPosts = async (req, res) => {
              WHERE (
                  p.tagged_users LIKE ? OR 
                  p.tagged_users LIKE ? OR
+                 p.tagged_users LIKE ? OR
+                 p.content LIKE ? OR
                  p.content LIKE ?
              )
-             AND p.deleted_at IS NULL
+             AND (p.status IS NULL OR p.status != 'removed')
+             AND p.group_id IS NULL
              ORDER BY p.created_at DESC LIMIT 30`,
-            [`%"user_id":"${userId}"%`, `%"${userId}"%`, `%@${userId}%`]
+            [
+                `%"user_id":"${targetUserId}"%`,
+                `%"${targetUserId}"%`,
+                `%"${targetUsername}"%`,
+                `%@${targetUsername}%`,
+                `%@${targetUserId}%`
+            ]
         );
 
         const mappedPosts = (posts || []).map(post => {

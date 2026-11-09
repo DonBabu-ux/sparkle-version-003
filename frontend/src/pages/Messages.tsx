@@ -4685,48 +4685,25 @@ export default function Messages() {
                             </p>
                           ) : (
                             <div className="mt-1 overflow-hidden min-w-0 w-full whitespace-nowrap truncate">
-                              <AnimatePresence mode="wait">
-                                {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
-                                  <motion.p
-                                    key="group-online"
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -3 }}
-                                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="text-[11px] font-medium lowercase chat-header-presence chat-header-group-online truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
-                                  >
-                                    {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count ?? 0} online
-                                  </motion.p>
-                                ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
-                                  <motion.div
-                                    key="online"
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -3 }}
-                                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="flex items-center gap-1.5 leading-tight"
-                                  >
-                                    <span
-                                      className="inline-block w-2 h-2 rounded-full bg-emerald-500 shadow-sm shrink-0"
-                                      aria-hidden="true"
-                                    />
-                                    <span className="text-[11px] font-bold lowercase chat-header-presence chat-header-online truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                      online
-                                    </span>
-                                  </motion.div>
-                                ) : (showLastSeen && selectedChat.last_seen_at) ? (
-                                  <motion.p
-                                    key="lastseen"
-                                    initial={{ opacity: 0, y: 4 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -3 }}
-                                    transition={{ duration: 0.18, ease: 'easeOut' }}
-                                    className="text-[11px] font-medium lowercase chat-header-presence truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight"
-                                  >
-                                    last seen {formatLastSeenChat(selectedChat.last_seen_at)}
-                                  </motion.p>
-                                ) : null}
-                              </AnimatePresence>
+                              {(selectedChat.is_group || selectedChat.chat_type === 'group') ? (
+                                <p className="text-xs md:text-[13px] font-medium lowercase chat-header-presence chat-header-group-online truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+                                  {selectedChat.member_count ? `${selectedChat.member_count} members • ` : ''}{selectedChat.group_online_count ?? 0} online
+                                </p>
+                              ) : (selectedChat.partner_online || selectedChat.is_online === 1 || selectedChat.is_online === true) ? (
+                                <div className="flex items-center gap-1.5 leading-tight">
+                                  <span
+                                    className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm shrink-0"
+                                    aria-hidden="true"
+                                  />
+                                  <span className="text-xs md:text-[13px] font-bold lowercase chat-header-presence chat-header-online truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                                    online
+                                  </span>
+                                </div>
+                              ) : (showLastSeen && selectedChat.last_seen_at) ? (
+                                <p className="text-xs md:text-[13px] font-medium lowercase chat-header-presence truncate whitespace-nowrap overflow-hidden text-ellipsis leading-tight">
+                                  last seen {formatLastSeenChat(selectedChat.last_seen_at)}
+                                </p>
+                              ) : null}
                             </div>
                           )}
                         </button>

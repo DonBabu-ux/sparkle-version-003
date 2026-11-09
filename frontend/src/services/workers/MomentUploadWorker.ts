@@ -77,7 +77,7 @@ export async function runMomentUploadWorker(job: UploadJob): Promise<string> {
             }
 
             updateJob(job.uploadId, { status: 'PUBLISHED', progress: 100, serverMomentId: momentId });
-            UploadEventBus.emit('UPLOAD_COMPLETED', { uploadId: job.uploadId, momentId, serverMomentId: momentId });
+            UploadEventBus.emit('UPLOAD_COMPLETED', { uploadId: job.uploadId, momentId, serverMomentId: momentId, type: 'MOMENT' });
 
             // Optional save-to-device — publish already succeeded; a failure
             // here is best-effort and never rolls back the reel.

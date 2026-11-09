@@ -1010,6 +1010,12 @@ export default function Moments() {
       FeedPaginationAudit.logResponse(allData.length, nextHasMore);
     } catch (err) {
       logger.error('Moments fetch error:', err);
+      // The empty state already renders a "Network Hiccup" error variant keyed on
+      // isFallback, but nothing ever set it, so a failed fetch showed the cheerful
+      // "caught up with everything" copy. Set the flag the render already reads.
+      // Only on the first page: a failed "load more" must not replace a feed the
+      // user is looking at with the error screen.
+      if (pageNum === 0) setIsFallback(true);
     } finally {
       setLoading(false);
       setFetchingMore(false);

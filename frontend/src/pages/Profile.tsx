@@ -147,6 +147,7 @@ export default function Profile() {
         setIsRequested(profileData.is_requested_by_me);
 
         // Posts are secondary: a failure here must not wipe the loaded profile
+        let videoPosts: Post[] = [];
         try {
           const postsRes = await api.get(`/users/${profileData.id || profileData.user_id}/posts`);
           if (seq !== fetchSeqRef.current) return;
@@ -160,8 +161,9 @@ export default function Profile() {
               if (pinB !== pinA) return pinB - pinA;
               return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
             });
+            videoPosts = allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i)));
             setPosts(allPosts);
-            setReels(allPosts.filter((p: Post) => p.media_type === 'video' || (p.media_url && p.media_url.match(/\.(mp4|webm|ogg|mov)$/i))));
+            setReels(videoPosts);
           }
         } catch (err) {
           if (seq !== fetchSeqRef.current) return;
@@ -173,7 +175,7 @@ export default function Profile() {
         // Reels live in the moments table, not posts — fetch them separately
         // for the REELS tab. The endpoint enforces audience server-side.
         try {
-          const reelsRes = await api.get(`/moments/users/${profileData.id || profileData.user_id}/moments`);
+          const reelsRes = await api.get(`/moments/users/${profileData.id || profileData.user_id}/moments?_t=${Date.now()}`);
           if (seq !== fetchSeqRef.current) return;
           const moments: Post[] = (Array.isArray(reelsRes.data?.moments) ? reelsRes.data.moments : []).map(
             (m: {
@@ -225,14 +227,21 @@ export default function Profile() {
                 ).catch(() => {});
               }
             });
-            setReels(moments.sort((a, b) => {
+            const combinedReels = [...moments];
+            for (const vp of videoPosts) {
+              if (!combinedReels.some(item => item.post_id === vp.post_id)) {
+                combinedReels.push(vp);
+              }
+            }
+            setReels(combinedReels.sort((a, b) => {
               const pinA = a.is_pinned ? 1 : 0;
               const pinB = b.is_pinned ? 1 : 0;
               if (pinB !== pinA) return pinB - pinA;
               return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
             }));
+          } else if (videoPosts.length > 0) {
+            setReels(videoPosts);
           } else {
-            // Keep empty or fallback to video posts only if user has no moments
             setReels([]);
           }
         } catch (err) {

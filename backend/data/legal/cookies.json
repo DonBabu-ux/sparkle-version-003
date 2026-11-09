@@ -1,0 +1,149 @@
+{
+  "id": "cookies",
+  "title": "Sparkle Cookie & Tracking Technologies Policy",
+  "shortTitle": "Cookie Policy",
+  "category": "cookies",
+  "description": "Detailed disclosures on cookies, local storage, SDKs, analytics tracking, and user consent controls.",
+  "version": "1.0",
+  "effectiveDate": "2026-08-23",
+  "lastUpdatedDate": "2026-08-23",
+  "jurisdiction": "Kenya Edition",
+  "publisher": "Sparkle Technologies (Kenya)",
+  "status": "Official",
+  "officialReference": "SPK-LEG-2026-CK-001",
+  "downloadUrl": "/api/legal/documents/cookies/download",
+  "relatedDocumentIds": [
+    "privacy",
+    "terms"
+  ],
+  "versionHistory": [
+    {
+      "version": "1.0",
+      "effectiveDate": "2026-08-23",
+      "lastUpdated": "2026-08-23",
+      "status": "Official",
+      "summary": "Initial official publication of the standalone Sparkle Cookie Policy.",
+      "sha256Hash": "9b9f8d46b0ac94880e16c694d8b2896bf551065f936aa8d07e3b7a98aaabf7fa"
+    }
+  ],
+  "sections": [
+    {
+      "id": "section-1",
+      "number": "1",
+      "title": "What Are Cookies and Local Storage Technologies",
+      "paragraphs": [
+        "Cookies are small text files placed on your device by websites that you visit. Mobile applications use analogous local storage mechanisms, including HTML5 localStorage, IndexedDB, and Capacitor native preference storage.",
+        "Sparkle uses these storage technologies to provide, secure, and improve our services, authenticate users, remember preferences, and analyze how features are utilized across web and mobile applications in Kenya."
+      ],
+      "subsections": [
+        {
+          "id": "sec-1-1",
+          "number": "1.1",
+          "title": "Session vs. Persistent Storage",
+          "content": [
+            "Session cookies and temporary storage entries operate only during your active browsing session and expire when you close the application or browser. Persistent cookies remain stored on your device until their designated expiration date or until manually cleared via application or browser settings."
+          ]
+        },
+        {
+          "id": "sec-1-2",
+          "number": "1.2",
+          "title": "First-Party vs. Third-Party Technologies",
+          "content": [
+            "First-party technologies are placed directly by Sparkle domains (sparkleweb.app, api.sparkleweb.app). Third-party technologies may be deployed by verified partners, such as Cloudinary for media delivery optimization, Turnstile or reCAPTCHA for anti-bot challenge verification, and Mapbox or Leaflet for location-based campus mapping."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-2",
+      "number": "2",
+      "title": "Categories of Cookies Used by Sparkle",
+      "paragraphs": [
+        "We categorize all tracking and storage technologies used across Sparkle into four distinct categories:"
+      ],
+      "subsections": [
+        {
+          "id": "sec-2-1",
+          "number": "2.1",
+          "title": "Strictly Necessary Cookies",
+          "content": [
+            "Essential for core platform functionality, security, and authentication. Without these technologies, basic services like logging in, session persistence, CSRF protection, and account switching cannot function. Under applicable Kenyan data protection regulations, strictly necessary storage does not require prior consent."
+          ]
+        },
+        {
+          "id": "sec-2-2",
+          "number": "2.2",
+          "title": "Functional & Preference Cookies",
+          "content": [
+            "Allow Sparkle to remember user configurations, including dark/light mode preference, language selection, media volume levels, muted conversations, and customized tab arrangements."
+          ]
+        },
+        {
+          "id": "sec-2-3",
+          "number": "2.3",
+          "title": "Performance & Analytics Cookies",
+          "content": [
+            "Help us measure platform performance, identify slow API endpoints, calculate error rates, and monitor core Web Vitals. All analytical data is aggregated and anonymized wherever feasible."
+          ]
+        },
+        {
+          "id": "sec-2-4",
+          "number": "2.4",
+          "title": "Security & Fraud Prevention Storage",
+          "content": [
+            "Critical for detecting suspicious login attempts, rate-limiting brute force attacks, validating device fingerprints for identity bloom verification, and shielding accounts from account takeover."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-3",
+      "number": "3",
+      "title": "Mobile App Storage & Capacitor Preferences",
+      "paragraphs": [
+        "On native mobile applications (Android APK and iOS), Sparkle relies on native device storage (@capacitor/preferences, localforage, SQLite) rather than traditional HTTP cookie headers.",
+        "Mobile tokens, offline cache entries, and temporary media drafts are saved securely in app sandbox storage and are wiped upon account logout or application uninstall."
+      ]
+    },
+    {
+      "id": "section-4",
+      "number": "4",
+      "title": "User Consent and Storage Management",
+      "paragraphs": [
+        "You have direct control over non-essential cookies and local storage technologies:",
+        "• You can adjust your cookie and analytics preferences directly within Sparkle Settings > Privacy & Security > Tracking Preferences.",
+        "• You can configure your browser to block or alert you about cookies. Note that blocking strictly necessary cookies will prevent login and basic messaging features from functioning correctly.",
+        "• On Android, you can clear application storage or reset advertising identifiers at any time through system Settings > Apps > Sparkle > Storage."
+      ]
+    },
+    {
+      "id": "section-5",
+      "number": "5",
+      "title": "Storage Lifetimes and Expiration",
+      "paragraphs": [
+        "Authentication tokens (sparkleToken, JWT) persist for up to 30 days unless revoked earlier through explicit logout, security step-up invalidation, or session revocation.",
+        "CSRF protection tokens are tied to single active sessions and expire automatically upon session closure.",
+        "Performance cache and local media blobs are automatically pruned every 7 days through local storage garbage collection."
+      ]
+    },
+    {
+      "id": "section-6",
+      "number": "6",
+      "title": "Compliance with Kenya Data Protection Act, 2019",
+      "paragraphs": [
+        "Sparkle's cookie deployment adheres strictly to the Kenya Data Protection Act, 2019 and guidelines issued by the Office of the Data Protection Commissioner (ODPC).",
+        "We do not sell personal browsing profiles or cross-site tracking dossiers to third-party data brokers."
+      ]
+    },
+    {
+      "id": "section-7",
+      "number": "7",
+      "title": "Inquiries, Policy Changes & Contact",
+      "paragraphs": [
+        "We may update this Cookie Policy from time to time to reflect operational or legal updates. Material revisions will be notified via in-app banner or notification.",
+        "If you have inquiries regarding cookie practices, contact our Data Protection Liaison at privacy@sparkleweb.app or submit a legal clarification request directly through this portal."
+      ]
+    }
+  ],
+  "sha256Hash": "9b9f8d46b0ac94880e16c694d8b2896bf551065f936aa8d07e3b7a98aaabf7fa"
+}

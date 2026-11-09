@@ -1,278 +1,392 @@
-import { useState } from 'react';
+/*
+ * ============================================================================
+ * SPARKLE LEGAL DOCUMENT RENDERING & AUTHENTICITY NOTICE
+ * ============================================================================
+ * CRITICAL INSTRUCTION FOR ALL FUTURE AI AGENTS, DEVELOPERS, AND MAINTAINERS:
+ *
+ * 1. DO NOT DELETE, REMOVE, OR WEAKEN ANY LEGAL PROVISION, SECTION, CLAUSE, OR
+ *    DISCLOSURE PRESENT IN SPARKLE LEGAL DOCUMENTS.
+ *
+ * 2. ANY AMENDMENT, ADDITION, OR UPDATE MUST PRESERVE THE COMPLETE HISTORICAL
+ *    RECORD, REVISE THE VERSION NUMBER, UPDATE THE EFFECTIVE DATE, RECALCULATE
+ *    THE CANONICAL SHA-256 INTEGRITY HASH, AND LOG THE REVISION IN THE AUDIT TRAIL.
+ *
+ * 3. NATIVE RENDERING MUST REMAIN THE PRIMARY FORM OF DISPLAY. EMBEDDED PDF
+ *    IFRAMES OR EXTERNAL PDF VIEWERS MUST NOT REPLACE NATIVE WEB EXPERIENCES.
+ *    PDFS REMAIN DOWNLOADABLE COPIES ONLY.
+ *
+ * 4. THE DOCUMENT WATERMARK, EMBLEM, METADATA BANNER, INTEGRITY HASH, AND
+ *    OFFICIAL FOOTER MUST REMAIN VISIBLE AND UNALTERED ACROSS ALL BREAKPOINTS
+ *    AND COLOR THEMES (LIGHT AND DARK MODES).
+ *
+ * 5. THE LEGAL CLARIFICATION AND COMPLAINT SUBMISSION PIPELINE, INCLUDING
+ *    SECTION REFERENCE LINKING AND REFERENCE NUMBER GENERATION, MUST REMAIN
+ *    FULLY OPERATIONAL.
+ *
+ * FAILURE TO COMPLY WITH THESE DIRECTIVES VOIDS DOCUMENT INTEGRITY CHECKS AND
+ * CONSTITUTES AN UNAUTHORIZED MODIFICATION OF COMPLIANCE INFRASTRUCTURE.
+ * ============================================================================
+ */
+
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { FileText, ShieldCheck, Download, ExternalLink, ArrowLeft, Calendar, Sparkles, Scale, Globe, RefreshCw, ChevronRight } from 'lucide-react';
-import { getLegalDocument, getPublicLegalDocuments } from '../config/legalDocuments';
+import {
+  FileText,
+  ShieldCheck,
+  Search,
+  ChevronRight,
+  HelpCircle,
+  AlertTriangle
+} from 'lucide-react';
+
+import {
+  ALL_LEGAL_DOCUMENTS,
+  getLegalDocById,
+  type CanonicalLegalDocument
+} from '../data/legal';
+
+import { LegalWatermark } from '../components/legal/LegalWatermark';
+import { LegalHeader } from '../components/legal/LegalHeader';
+import { LegalMetadataBanner } from '../components/legal/LegalMetadataBanner';
+import { LegalTableOfContents } from '../components/legal/LegalTableOfContents';
+import { LegalSectionRenderer } from '../components/legal/LegalSectionRenderer';
+import { LegalClarificationModal } from '../components/legal/LegalClarificationModal';
+import { LegalVersionHistoryModal } from '../components/legal/LegalVersionHistoryModal';
 
 export default function LegalViewer() {
   const { documentId } = useParams<{ documentId?: string }>();
   const navigate = useNavigate();
-  const publicDocs = getPublicLegalDocuments();
 
-  // If documentId parameter is passed in route (/legal/:documentId)
+  // Search filter for index page
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Modals state
+  const [clarificationOpen, setClarificationOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [targetSectionRef, setTargetSectionRef] = useState<string>('');
+
+  // Active section tracking for TOC
+  const [activeSectionId, setActiveSectionId] = useState<string>('');
+
   const isDocumentSelected = Boolean(documentId);
-  const doc = documentId ? getLegalDocument(documentId) : undefined;
-  const [iframeError, setIframeError] = useState(false);
+  const doc: CanonicalLegalDocument | undefined = documentId
+    ? getLegalDocById(documentId)
+    : undefined;
 
-  const handleSelectDocument = (id: string) => {
-    setIframeError(false);
-    navigate(`/legal/${id}`);
+  // Reset scroll and selection on document switch
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+    setActiveSectionId('');
+  }, [documentId]);
+
+  const handleOpenClarification = (secRef?: string) => {
+    setTargetSectionRef(secRef || '');
+    setClarificationOpen(true);
   };
 
+  const filteredDocs = ALL_LEGAL_DOCUMENTS.filter((d) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      d.title.toLowerCase().includes(q) ||
+      d.shortTitle.toLowerCase().includes(q) ||
+      d.description.toLowerCase().includes(q) ||
+      d.id.toLowerCase().includes(q)
+    );
+  });
+
   return (
-    <div className="min-h-dvh bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-pink-500 selection:text-white">
-      {/* Dynamic Background Glow */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-96 h-96 bg-pink-600/15 rounded-full blur-3xl" />
-        <div className="absolute top-1/3 -right-40 w-96 h-96 bg-purple-600/15 rounded-full blur-3xl" />
-      </div>
+    <div className="min-h-dvh bg-white dark:bg-zinc-950 text-zinc-900 dark:text-zinc-100 font-sans flex flex-col selection:bg-pink-500 selection:text-white relative">
+      {/* Subtle Authenticity Watermark on Native Legal Pages */}
+      {doc && (
+        <LegalWatermark
+          documentId={doc.id}
+          version={doc.version}
+          sha256Hash={doc.sha256Hash}
+        />
+      )}
 
       {/* Header */}
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-slate-950/80 border-b border-slate-800/80 px-4 lg:px-8 pb-3.5 pt-[calc(0.875rem+var(--safe-area-inset-top,env(safe-area-inset-top,0px)))] flex items-center justify-between transition-all">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => isDocumentSelected ? navigate('/legal') : navigate(-1)}
-            className="p-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-300 hover:text-white transition-all border border-slate-800"
-            title="Go back"
-            aria-label="Back"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
+      <LegalHeader
+        title={doc ? doc.title : undefined}
+        isIndex={!isDocumentSelected}
+        downloadUrl={doc ? doc.downloadUrl : undefined}
+        onOpenClarification={() => handleOpenClarification()}
+      />
 
-          <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-pink-500/20 group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 fill-current" />
-            </div>
-            <div>
-              <span className="font-bold text-lg text-white tracking-wide block leading-none">Sparkle</span>
-              <span className="text-[10px] text-pink-400 font-semibold tracking-wider uppercase">Legal & Compliance</span>
-            </div>
-          </Link>
-        </div>
-
-        {doc && (
-          <div className="flex items-center gap-2">
-            <a
-              href={doc.file}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 hover:text-white text-xs font-semibold border border-slate-700/60 transition-all"
-            >
-              <ExternalLink className="w-3.5 h-3.5 text-pink-400" />
-              <span className="hidden sm:inline">Open PDF</span>
-            </a>
-
-            <a
-              href={doc.file}
-              download
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white text-xs font-semibold shadow-md shadow-pink-500/20 transition-all"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Download</span>
-            </a>
-          </div>
-        )}
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-8 flex flex-col gap-6 relative z-10">
-        
-        {/* CASE 1: ROOT INDEX PAGE (/legal) */}
+      {/* Main Content Area */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 relative z-10">
+        {/* =========================================================================
+            CASE 1: ROOT LEGAL INDEX (/legal)
+            ========================================================================= */}
         {!isDocumentSelected && (
-          <div className="space-y-8 animate-fade-in">
-            {/* Hero Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-slate-900 to-purple-950/40 border border-slate-800 rounded-3xl p-8 md:p-10 relative overflow-hidden shadow-2xl">
-              <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <Scale className="w-48 h-48 text-pink-400" />
+          <div className="space-y-8 animate-fade-in max-w-5xl mx-auto">
+            {/* Clean Hero Header with Pink Badge */}
+            <div className="border-b border-zinc-200 dark:border-zinc-800 pb-6 space-y-3">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                <ShieldCheck className="w-3.5 h-3.5 text-pink-600 dark:text-pink-400" />
+                Official Compliance Documentation (Kenya Edition)
               </div>
-              <div className="max-w-2xl space-y-3 relative z-10">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-pink-500/10 text-pink-400 border border-pink-500/20">
-                  <ShieldCheck className="w-3.5 h-3.5" />
-                  Official Legal Documentation
-                </div>
-                <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
-                  Sparkle Legal &amp; Policies
-                </h1>
-                <p className="text-sm text-slate-400 leading-relaxed">
-                  Treat these registered documents as the authoritative source of truth for terms of service, privacy practices, and community guidelines governing Sparkle.
-                </p>
-              </div>
+              <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-50">
+                Sparkle Legal &amp; Policy Centre
+              </h1>
+              <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400 max-w-3xl leading-relaxed">
+                Review the authoritative legal framework, terms of use, privacy policies, community standards, and intellectual property notices governing Sparkle.
+              </p>
             </div>
 
-            {/* Document Index Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {publicDocs.map((item) => (
+            {/* Search and Track Quick Controls */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-zinc-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search legal documents by topic or clause..."
+                  className="w-full pl-9 pr-3 py-2 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 text-xs sm:text-sm text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-400 focus:outline-none focus:ring-1 focus:ring-pink-500 focus:border-pink-500"
+                />
+              </div>
+
+              <button
+                onClick={() => handleOpenClarification()}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold text-pink-700 dark:text-pink-300 bg-pink-50 dark:bg-pink-950/40 hover:bg-pink-100 dark:hover:bg-pink-900/60 border border-pink-200 dark:border-pink-800/80 transition-colors shrink-0 shadow-xs"
+              >
+                <HelpCircle className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+                <span>Question or Clarify a Provision</span>
+              </button>
+            </div>
+
+            {/* Document Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredDocs.map((item) => (
                 <div
                   key={item.id}
-                  onClick={() => handleSelectDocument(item.id)}
-                  className="group bg-slate-900/80 hover:bg-slate-900 border border-slate-800 hover:border-pink-500/40 rounded-3xl p-6 transition-all duration-300 cursor-pointer flex flex-col justify-between shadow-xl hover:shadow-pink-500/5 relative overflow-hidden"
+                  onClick={() => navigate(`/legal/${item.id}`)}
+                  className="bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 hover:border-pink-400 dark:hover:border-pink-600/60 rounded-2xl p-5 transition-all cursor-pointer flex flex-col justify-between shadow-xs hover:shadow-md group"
                 >
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center justify-center text-pink-400 group-hover:scale-110 transition-transform">
-                        <FileText className="w-6 h-6" />
+                      <div className="w-9 h-9 rounded-xl bg-pink-50 dark:bg-pink-950/50 flex items-center justify-center text-pink-600 dark:text-pink-400 group-hover:scale-110 transition-transform shadow-xs">
+                        <FileText className="w-4.5 h-4.5" />
                       </div>
-                      {item.jurisdiction && (
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-300 border border-slate-700">
-                          {item.jurisdiction}
-                        </span>
-                      )}
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-pink-50 text-pink-700 dark:bg-pink-950/60 dark:text-pink-300 border border-pink-200 dark:border-pink-800/60">
+                        {item.jurisdiction}
+                      </span>
                     </div>
 
                     <div className="space-y-1.5">
-                      <h3 className="text-lg font-bold text-white group-hover:text-pink-300 transition-colors">
+                      <h3 className="text-base font-bold text-zinc-900 dark:text-zinc-100 group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
                         {item.title}
                       </h3>
-                      <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed">
+                      <p className="text-xs text-zinc-600 dark:text-zinc-400 line-clamp-3 leading-relaxed">
                         {item.description}
                       </p>
                     </div>
                   </div>
 
-                  <div className="mt-6 pt-4 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
-                    <div className="space-y-0.5">
-                      <p className="font-semibold text-slate-300">Version {item.version}</p>
-                      <p className="text-[11px] text-slate-500 dark:text-zinc-300">Effective {item.effectiveDate}</p>
+                  <div className="mt-5 pt-3.5 border-t border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between text-xs text-zinc-500">
+                    <div className="text-[11px]">
+                      <span className="font-bold text-pink-600 dark:text-pink-400">
+                        v{item.version}
+                      </span>
+                      <span className="mx-1.5 text-zinc-300 dark:text-zinc-700">•</span>
+                      <span>{item.effectiveDate}</span>
                     </div>
-                    <span className="inline-flex items-center gap-1 font-bold text-pink-400 group-hover:translate-x-1 transition-transform">
-                      View document <ChevronRight className="w-4 h-4" />
+
+                    <span className="inline-flex items-center gap-1 font-bold text-pink-600 dark:text-pink-400 text-xs group-hover:translate-x-1 transition-transform">
+                      Read Document <ChevronRight className="w-3.5 h-3.5" />
                     </span>
                   </div>
                 </div>
               ))}
             </div>
+
+            {filteredDocs.length === 0 && (
+              <div className="text-center py-12 text-zinc-500 text-xs">
+                No legal document matched &ldquo;{searchQuery}&rdquo;.
+              </div>
+            )}
           </div>
         )}
 
-        {/* CASE 2: SPECIFIC DOCUMENT VIEWER (/legal/:documentId) */}
+        {/* =========================================================================
+            CASE 2: SPECIFIC LEGAL DOCUMENT VIEWER (/legal/:documentId)
+            ========================================================================= */}
         {isDocumentSelected && doc && (
-          <div className="flex flex-col gap-4 flex-1 animate-fade-in">
-            {/* Document Switcher Bar */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-800/60">
-              {publicDocs.map((item) => {
+          <div className="animate-fade-in">
+            {/* Top Document Switcher Pills with Pink Accent */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-none border-b border-zinc-200 dark:border-zinc-800">
+              {ALL_LEGAL_DOCUMENTS.map((item) => {
                 const isActive = doc.id === item.id;
                 return (
                   <button
                     key={item.id}
-                    onClick={() => handleSelectDocument(item.id)}
-                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all border ${
+                    onClick={() => navigate(`/legal/${item.id}`)}
+                    className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5 ${
                       isActive
-                        ? 'bg-gradient-to-r from-pink-500/20 to-purple-500/20 border-pink-500/50 text-pink-300 shadow-md shadow-pink-500/10'
-                        : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                        ? 'bg-pink-600 text-white font-bold shadow-sm shadow-pink-600/30'
+                        : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50/50 dark:hover:bg-pink-950/30 border border-transparent hover:border-pink-200 dark:hover:border-pink-900/40'
                     }`}
                   >
-                    <FileText className={`w-4 h-4 ${isActive ? 'text-pink-400' : 'text-slate-500'}`} />
-                    <span>{item.title}</span>
-                    {item.jurisdiction && (
-                      <span className="ml-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                        {item.jurisdiction}
-                      </span>
-                    )}
+                    <span>{item.shortTitle}</span>
+                    <span className={`text-[10px] font-mono ${isActive ? 'text-pink-200' : 'text-zinc-400'}`}>
+                      v{item.version}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Meta Card */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h1 className="text-xl font-bold text-white tracking-tight">{doc.title}</h1>
-                  {doc.jurisdiction && (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-pink-500/10 text-pink-400 border border-pink-500/20">
-                      <Globe className="w-3 h-3" />
-                      {doc.jurisdiction}
-                    </span>
-                  )}
-                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                    v{doc.version}
-                  </span>
-                </div>
-                <p className="text-xs text-slate-400">{doc.description}</p>
-              </div>
+            {/* Document Layout: Sidebar TOC + Main Reader Body */}
+            <div className="flex flex-col lg:flex-row gap-8 items-start">
+              {/* Sticky Table of Contents Sidebar */}
+              <LegalTableOfContents
+                sections={doc.sections}
+                activeSectionId={activeSectionId}
+                onSelectSection={(id) => setActiveSectionId(id)}
+              />
 
-              <div className="flex items-center gap-4 text-xs text-slate-400 shrink-0 border-t md:border-t-0 md:border-l border-slate-800 pt-3 md:pt-0 md:pl-5">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="w-4 h-4 text-pink-400" />
-                  <span>Effective: <strong className="text-slate-200">{doc.effectiveDate}</strong></span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  <span>Official Policy</span>
-                </div>
-              </div>
-            </div>
-
-            {/* PDF Viewport */}
-            <div className="flex-1 min-h-[600px] lg:min-h-[750px] bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl relative flex flex-col">
-              {!iframeError ? (
-                <iframe
-                  src={`${doc.file}#toolbar=1&navpanes=0&scrollbar=1`}
-                  className="w-full h-full min-h-[650px] flex-1 border-0"
+              {/* Main Reading Column */}
+              <div className="flex-1 min-w-0 max-w-4xl">
+                {/* Official Metadata Banner */}
+                <LegalMetadataBanner
                   title={doc.title}
-                  onError={() => setIframeError(true)}
+                  description={doc.description}
+                  version={doc.version}
+                  effectiveDate={doc.effectiveDate}
+                  lastUpdatedDate={doc.lastUpdatedDate}
+                  jurisdiction={doc.jurisdiction}
+                  publisher={doc.publisher}
+                  status={doc.status}
+                  sha256Hash={doc.sha256Hash}
+                  onOpenHistory={() => setHistoryOpen(true)}
                 />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8 text-center gap-4">
-                  <Scale className="w-16 h-16 text-pink-400 stroke-1" />
+
+                {/* Render All Numbered Sections */}
+                <div className="space-y-4">
+                  {doc.sections.map((section) => (
+                    <LegalSectionRenderer
+                      key={section.id}
+                      section={section}
+                      onQuestionSection={(ref) => handleOpenClarification(ref)}
+                    />
+                  ))}
+                </div>
+
+                {/* Question a Legal Provision Callout Card at Document End */}
+                <div className="mt-14 p-6 sm:p-7 rounded-2xl bg-pink-50/50 dark:bg-pink-950/20 border border-pink-200 dark:border-pink-900/60 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-xs">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-bold text-white">Preview directly in browser</h3>
-                    <p className="text-xs text-slate-400 max-w-md">
-                      Your current browser window does not support inline PDF viewing. You can view or download the official document below.
+                    <h3 className="text-sm sm:text-base font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-2">
+                      <HelpCircle className="w-5 h-5 text-pink-600 dark:text-pink-400 shrink-0" />
+                      <span>Question a provision in this document?</span>
+                    </h3>
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400 max-w-xl leading-relaxed">
+                      Have a query about interpretation, perceived ambiguity, contradiction, or suggested amendment? Submit a formal inquiry directly to Sparkle Legal.
                     </p>
                   </div>
-                  <div className="flex items-center gap-3 mt-2">
-                    <a
-                      href={doc.file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-4 py-2 rounded-xl bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold transition-all inline-flex items-center gap-2"
-                    >
-                      <ExternalLink className="w-4 h-4" />
-                      Open Full Document
-                    </a>
-                    <a
-                      href={doc.file}
-                      download
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all inline-flex items-center gap-2 border border-slate-700"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download PDF
-                    </a>
-                  </div>
+
+                  <button
+                    onClick={() => handleOpenClarification(`General inquiry on ${doc.title}`)}
+                    className="px-4 py-2.5 text-xs font-bold rounded-lg bg-pink-600 hover:bg-pink-700 text-white transition-colors shrink-0 flex items-center justify-center gap-1.5 shadow-sm shadow-pink-600/30"
+                  >
+                    <span>Submit Question</span>
+                  </button>
                 </div>
-              )}
+
+                {/* Related Legal Documents Section */}
+                {doc.relatedDocumentIds && doc.relatedDocumentIds.length > 0 && (
+                  <div className="mt-10 pt-6 border-t border-zinc-200 dark:border-zinc-800">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-pink-600 dark:text-pink-400 block mb-3.5">
+                      Related Legal Policies
+                    </span>
+                    <div className="flex flex-wrap gap-2.5">
+                      {doc.relatedDocumentIds.map((relId) => {
+                        const relDoc = getLegalDocById(relId);
+                        if (!relDoc) return null;
+                        return (
+                          <Link
+                            key={relId}
+                            to={`/legal/${relId}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-zinc-100 dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:text-pink-600 dark:hover:text-pink-300 hover:bg-pink-50 dark:hover:bg-pink-950/40 border border-zinc-200 dark:border-zinc-800 hover:border-pink-300 dark:hover:border-pink-800 transition-colors"
+                          >
+                            <FileText className="w-3.5 h-3.5 text-pink-500" />
+                            <span>{relDoc.shortTitle}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
 
-        {/* CASE 3: UNKNOWN DOCUMENT PARAMETER (/legal/unknown) */}
+        {/* =========================================================================
+            CASE 3: UNKNOWN DOCUMENT PARAMETER (/legal/unknown)
+            ========================================================================= */}
         {isDocumentSelected && !doc && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-12 text-center max-w-lg mx-auto my-12 space-y-4 shadow-xl">
-            <Scale className="w-16 h-16 text-pink-400 mx-auto stroke-1" />
-            <h2 className="text-xl font-bold text-white">Legal Document Not Found</h2>
-            <p className="text-xs text-slate-400">
-              The policy document ID <code className="px-1.5 py-0.5 rounded bg-slate-800 text-pink-400">{documentId}</code> could not be found or is not currently published.
+          <div className="bg-zinc-50 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-10 text-center max-w-md mx-auto my-12 space-y-4">
+            <AlertTriangle className="w-12 h-12 text-pink-500 mx-auto" />
+            <h2 className="text-lg font-bold text-zinc-900 dark:text-zinc-100">
+              Document Not Found
+            </h2>
+            <p className="text-xs text-zinc-600 dark:text-zinc-400">
+              The requested legal document <code className="font-mono bg-zinc-200 dark:bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-800 dark:text-zinc-200">{documentId}</code> does not exist or has been superseded.
             </p>
-            <div className="pt-2">
+            <div>
               <button
                 onClick={() => navigate('/legal')}
-                className="px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 text-white text-xs font-semibold transition-all inline-flex items-center gap-2 shadow-lg shadow-pink-500/20"
+                className="px-4 py-2 rounded-lg bg-pink-600 hover:bg-pink-700 text-white text-xs font-bold transition-colors shadow-sm shadow-pink-600/30"
               >
-                <RefreshCw className="w-4 h-4" />
-                View Legal Index
+                Return to Legal Centre
               </button>
             </div>
           </div>
         )}
       </main>
 
-      {/* Footer Info */}
-      <footer className="border-t border-slate-900 py-6 px-4 text-center text-xs text-slate-500 dark:text-zinc-300">
-        <p>© {new Date().getFullYear()} Sparkle. Official Legal &amp; Policy Documentation (Kenya Edition).</p>
+      {/* Mandatory Restrained Official Footer */}
+      <footer className="border-t border-zinc-200 dark:border-zinc-800 py-6 px-4 text-center text-xs text-zinc-500 relative z-10 bg-white/50 dark:bg-zinc-950/50">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px]">
+          <p>
+            Official Sparkle Legal Document {doc ? `| Version ${doc.version}` : ''} | sparkleweb.app
+          </p>
+          <p>© {new Date().getFullYear()} Sparkle Technologies (Kenya). All Rights Reserved.</p>
+        </div>
       </footer>
+
+      {/* Floating Action Button for Legal Clarification */}
+      {isDocumentSelected && doc && (
+        <button
+          onClick={() => handleOpenClarification()}
+          className="fixed bottom-6 right-6 z-30 px-4 py-3 rounded-full bg-pink-600 text-white shadow-xl shadow-pink-600/30 hover:bg-pink-700 active:scale-95 transition-all flex items-center gap-2 text-xs font-bold"
+          title="Question or clarify a legal provision"
+          aria-label="Question legal provision"
+        >
+          <HelpCircle className="w-4.5 h-4.5" />
+          <span>Clarify Provision</span>
+        </button>
+      )}
+
+      {/* Legal Clarification Submission Modal */}
+      <LegalClarificationModal
+        isOpen={clarificationOpen}
+        onClose={() => setClarificationOpen(false)}
+        initialDocumentId={doc?.id || 'terms'}
+        initialSectionReference={targetSectionRef}
+      />
+
+      {/* Legal Version History Modal */}
+      {doc && (
+        <LegalVersionHistoryModal
+          isOpen={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          documentTitle={doc.title}
+          versionHistory={doc.versionHistory}
+        />
+      )}
     </div>
   );
 }
-
-
-

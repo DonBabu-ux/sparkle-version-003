@@ -98,5 +98,6 @@ router.use('/media', require('./media.routes'));
 router.use('/security', require('./security.routes'));
 router.use('/referral', require('./referral.routes'));
 router.use('/referrals', require('./referral.routes'));
+router.use('/legal', require('./legal.routes'));
 
 module.exports = router;

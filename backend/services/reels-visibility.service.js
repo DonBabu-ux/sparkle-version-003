@@ -141,7 +141,7 @@ async function getViewerContext(viewerId) {
         // direction that gates visibility of audience=close_friends moments.
         pool.query('SELECT user_id FROM close_friends WHERE friend_id = ?', [viewerId]).catch(() => [[]]),
         pool.query(
-            'SELECT blocked_user_id AS id FROM user_blocks WHERE user_id = ? UNION SELECT user_id AS id FROM user_blocks WHERE blocked_user_id = ?',
+            'SELECT blocked_id AS id FROM user_blocks WHERE blocker_id = ? UNION SELECT blocker_id AS id FROM user_blocks WHERE blocked_id = ?',
             [viewerId, viewerId]
         ).catch(() => [[]]),
     ]);

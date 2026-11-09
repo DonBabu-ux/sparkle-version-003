@@ -3399,6 +3399,29 @@ export default function Messages() {
     }
   };
 
+  /**
+   * Map a client-side message kind to the type the server accepts.
+   *
+   * Giphy sends 'gif' and stickers send 'sticker'; the messages ENUM in
+   * backend/utils/database/init.js and migrations/20261021_extend_message_types.sql
+   * has neither, so the INSERT was rejected every time. The optimistic bubble
+   * spun for 10s and then showed "Message not delivered" with no server error
+   * surfaced — only a logger.warn. GIF and sticker payloads are images, and
+   * presenting them as such is what the receiver already renders.
+   */
+  const toServerMessageType = (kind?: string): string => {
+    switch (kind) {
+      case 'gif':
+      case 'gift':
+      case 'sticker':
+        return 'image';
+      case 'live_location':
+        return 'location';
+      default:
+        return kind || 'text';
+    }
+  };
+
   const handleSendMessage = async (e?: React.FormEvent, contentOverride?: string, specialType?: string, mediaUrl?: string, metadataPayload?: string) => {
     if (e) e.preventDefault();
     const currentChatId = selectedChat?.chat_id || '';
@@ -3448,7 +3471,7 @@ export default function Messages() {
       sent_at: new Date().toISOString(),
       created_at: new Date().toISOString(),
       is_read: false,
-      type: specialType || 'text',
+      type: toServerMessageType(specialType),
       media_url: mediaUrl,
       mediaUrl: mediaUrl,
       metadata: metadataPayload
@@ -3492,7 +3515,7 @@ export default function Messages() {
       chatId: selectedChat.chat_id,
       partnerId: selectedChat.partner_id,
       content: content || (specialType ? `Shared ${specialType}` : ''),
-      type: specialType || 'text',
+      type: toServerMessageType(specialType),
       mediaUrl: mediaUrl,
       metadata: metadataPayload
     };
@@ -3513,7 +3536,7 @@ export default function Messages() {
       recipientId: selectedChat.partner_id,
       senderId: user?.id || user?.user_id || '',
       content: content || (specialType ? `Shared ${specialType}` : ''),
-      type: specialType || 'text',
+      type: toServerMessageType(specialType),
       mediaUrl: mediaUrl,
       replyToId: currentReplyTo?.message_id,
       context: 'chat'

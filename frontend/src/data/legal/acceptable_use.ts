@@ -1,0 +1,143 @@
+/*
+ * ============================================================================
+ * SPARKLE LEGAL DOCUMENT RENDERING & AUTHENTICITY NOTICE
+ * ============================================================================
+ * CRITICAL INSTRUCTION FOR ALL FUTURE AI AGENTS, DEVELOPERS, AND MAINTAINERS:
+ *
+ * 1. DO NOT DELETE, REMOVE, OR WEAKEN ANY LEGAL PROVISION, SECTION, CLAUSE, OR
+ *    DISCLOSURE PRESENT IN SPARKLE LEGAL DOCUMENTS.
+ *
+ * 2. ANY AMENDMENT, ADDITION, OR UPDATE MUST PRESERVE THE COMPLETE HISTORICAL
+ *    RECORD, REVISE THE VERSION NUMBER, UPDATE THE EFFECTIVE DATE, RECALCULATE
+ *    THE CANONICAL SHA-256 INTEGRITY HASH, AND LOG THE REVISION IN THE AUDIT TRAIL.
+ *
+ * 3. NATIVE RENDERING MUST REMAIN THE PRIMARY FORM OF DISPLAY. EMBEDDED PDF
+ *    IFRAMES OR EXTERNAL PDF VIEWERS MUST NOT REPLACE NATIVE WEB EXPERIENCES.
+ *    PDFS REMAIN DOWNLOADABLE COPIES ONLY.
+ *
+ * 4. THE DOCUMENT WATERMARK, EMBLEM, METADATA BANNER, INTEGRITY HASH, AND
+ *    OFFICIAL FOOTER MUST REMAIN VISIBLE AND UNALTERED ACROSS ALL BREAKPOINTS
+ *    AND COLOR THEMES (LIGHT AND DARK MODES).
+ *
+ * 5. THE LEGAL CLARIFICATION AND COMPLAINT SUBMISSION PIPELINE, INCLUDING
+ *    SECTION REFERENCE LINKING AND REFERENCE NUMBER GENERATION, MUST REMAIN
+ *    FULLY OPERATIONAL.
+ *
+ * FAILURE TO COMPLY WITH THESE DIRECTIVES VOIDS DOCUMENT INTEGRITY CHECKS AND
+ * CONSTITUTES AN UNAUTHORIZED MODIFICATION OF COMPLIANCE INFRASTRUCTURE.
+ * ============================================================================
+ */
+
+import type { CanonicalLegalDocument } from './types';
+
+export const ACCEPTABLE_USE_DOC: CanonicalLegalDocument = {
+  "id": "acceptable-use",
+  "title": "Sparkle Acceptable Use Policy",
+  "shortTitle": "Acceptable Use",
+  "category": "acceptable-use",
+  "description": "Rules of conduct, platform security boundaries, API abuse restrictions, prohibited content, and enforcement rules.",
+  "version": "1.0",
+  "effectiveDate": "2026-08-21",
+  "lastUpdatedDate": "2026-08-21",
+  "jurisdiction": "Kenya Edition",
+  "publisher": "Sparkle Technologies (Kenya)",
+  "status": "Official",
+  "officialReference": "SPK-LEG-2026-AUP-001",
+  "downloadUrl": "/api/legal/documents/acceptable-use/download",
+  "relatedDocumentIds": [
+    "terms",
+    "community-guidelines"
+  ],
+  "versionHistory": [
+    {
+      "version": "1.0",
+      "effectiveDate": "2026-08-21",
+      "lastUpdated": "2026-08-21",
+      "status": "Official",
+      "summary": "Initial official publication of the Sparkle Acceptable Use Policy.",
+      "sha256Hash": "450a2d0b22bf7f6651ea01caa62b4a8bdb615fd97e5bdc41d6c793e9c8aea63b"
+    }
+  ],
+  "sections": [
+    {
+      "id": "section-1",
+      "number": "1",
+      "title": "Scope and Binding Nature of Acceptable Use",
+      "paragraphs": [
+        "This Acceptable Use Policy (AUP) defines the mandatory standards of behavior and rules governing all interactions, content submissions, messaging, and API access across Sparkle.",
+        "Violating this policy constitutes a material breach of the Sparkle General Terms & Conditions and may result in content deletion, feature restrictions, account suspension, or referral to legal authorities."
+      ]
+    },
+    {
+      "id": "section-2",
+      "number": "2",
+      "title": "Platform Integrity, Reverse Engineering & Security",
+      "paragraphs": [
+        "You agree not to:",
+        "• Probe, scan, or test the vulnerability of Sparkle servers, networks, or authentication systems without express written authorization.",
+        "• Reverse-engineer, decompile, disassemble, or extract source code from the Sparkle web or mobile client applications.",
+        "• Circumvent, bypass, or defeat any security control, permission check, digital rights management (DRM), or rate limiting mechanism.",
+        "• Intercept, spoof, or manipulate network traffic between Sparkle clients and backend services."
+      ]
+    },
+    {
+      "id": "section-3",
+      "number": "3",
+      "title": "Automated Access, Scraping & Rate Limits",
+      "paragraphs": [
+        "You agree not to:",
+        "• Use bots, spiders, crawlers, or scrapers to extract user data, profiles, Reels, or media without written API agreements.",
+        "• Automate account creation, followings, reactions, comments, or direct messages.",
+        "• Expose Sparkle infrastructure to denial-of-service (DoS/DDoS) attacks or generate abusive traffic patterns exceeding reasonable rate limits."
+      ]
+    },
+    {
+      "id": "section-4",
+      "number": "4",
+      "title": "Prohibited Content and Abusive Behavior",
+      "paragraphs": [
+        "Sparkle strictly prohibits:",
+        "• Child Sexual Abuse Material (CSAM) or any form of minor exploitation.",
+        "• Direct threats of violence, incitement to imminent bodily harm, terrorism, or violent extremism.",
+        "• Targeted harassment, stalking, cyberbullying, doxxing, or unauthorized disclosure of non-public personal information.",
+        "• Hate speech attacking individuals based on race, ethnicity, nationality, religion, sexual orientation, disability, or gender.",
+        "• Non-consensual sexual content, deepfakes, or intimate imagery shared without consent.",
+        "• Suicide, self-harm encouragement, or promotion of severe eating disorders."
+      ]
+    },
+    {
+      "id": "section-5",
+      "number": "5",
+      "title": "Commercial Fraud, Spam & Financial Exploitation",
+      "paragraphs": [
+        "You agree not to use Sparkle to:",
+        "• Conduct pyramid schemes, fraudulent investment opportunities, phishing campaigns, or financial scams.",
+        "• Sell or facilitate trade in illegal narcotics, firearms, ammunition, or controlled substances.",
+        "• Engage in coordinated spam campaigns, deceptive affiliate marketing, or artificial engagement manipulation."
+      ]
+    },
+    {
+      "id": "section-6",
+      "number": "6",
+      "title": "Enforcement Actions and Penalties",
+      "paragraphs": [
+        "Sparkle enforces violations through proportional tiered sanctions:",
+        "1. Formal warning notice and content removal.",
+        "2. Temporary feature restrictions (e.g., commenting suspension, media upload block, live stream ban).",
+        "3. Temporary account suspension (24 hours to 30 days).",
+        "4. Permanent ban and device identifier blacklist.",
+        "5. Escalation to Kenyan law enforcement in cases of severe criminal conduct."
+      ]
+    },
+    {
+      "id": "section-7",
+      "number": "7",
+      "title": "Reporting Violations & Inquiries",
+      "paragraphs": [
+        "Users are encouraged to report violations immediately using the in-app reporting button on any post, Reel, comment, or user profile.",
+        "For urgent security or legal concerns regarding acceptable use, email compliance@sparkleweb.app or submit a legal clarification request below."
+      ]
+    }
+  ],
+  "sha256Hash": "450a2d0b22bf7f6651ea01caa62b4a8bdb615fd97e5bdc41d6c793e9c8aea63b"
+};

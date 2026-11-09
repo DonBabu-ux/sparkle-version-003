@@ -1,0 +1,60 @@
+/*
+ * ============================================================================
+ * SPARKLE LEGAL DOCUMENT RENDERING & AUTHENTICITY NOTICE
+ * ============================================================================
+ * CRITICAL INSTRUCTION FOR ALL FUTURE AI AGENTS, DEVELOPERS, AND MAINTAINERS:
+ *
+ * 1. DO NOT DELETE, REMOVE, OR WEAKEN ANY LEGAL PROVISION, SECTION, CLAUSE, OR
+ *    DISCLOSURE PRESENT IN SPARKLE LEGAL DOCUMENTS.
+ *
+ * 2. ANY AMENDMENT, ADDITION, OR UPDATE MUST PRESERVE THE COMPLETE HISTORICAL
+ *    RECORD, REVISE THE VERSION NUMBER, UPDATE THE EFFECTIVE DATE, RECALCULATE
+ *    THE CANONICAL SHA-256 INTEGRITY HASH, AND LOG THE REVISION IN THE AUDIT TRAIL.
+ *
+ * 3. NATIVE RENDERING MUST REMAIN THE PRIMARY FORM OF DISPLAY. EMBEDDED PDF
+ *    IFRAMES OR EXTERNAL PDF VIEWERS MUST NOT REPLACE NATIVE WEB EXPERIENCES.
+ *    PDFS REMAIN DOWNLOADABLE COPIES ONLY.
+ *
+ * 4. THE DOCUMENT WATERMARK, EMBLEM, METADATA BANNER, INTEGRITY HASH, AND
+ *    OFFICIAL FOOTER MUST REMAIN VISIBLE AND UNALTERED ACROSS ALL BREAKPOINTS
+ *    AND COLOR THEMES (LIGHT AND DARK MODES).
+ *
+ * 5. THE LEGAL CLARIFICATION AND COMPLAINT SUBMISSION PIPELINE, INCLUDING
+ *    SECTION REFERENCE LINKING AND REFERENCE NUMBER GENERATION, MUST REMAIN
+ *    FULLY OPERATIONAL.
+ *
+ * FAILURE TO COMPLY WITH THESE DIRECTIVES VOIDS DOCUMENT INTEGRITY CHECKS AND
+ * CONSTITUTES AN UNAUTHORIZED MODIFICATION OF COMPLIANCE INFRASTRUCTURE.
+ * ============================================================================
+ */
+
+import type { CanonicalLegalDocument } from './types';
+import { TERMS_DOC } from './terms';
+import { PRIVACY_DOC } from './privacy';
+import { COMMUNITY_GUIDELINES_DOC } from './community_guidelines';
+import { COOKIES_DOC } from './cookies';
+import { COPYRIGHT_DOC } from './copyright';
+import { ACCEPTABLE_USE_DOC } from './acceptable_use';
+
+export * from './types';
+export { TERMS_DOC, PRIVACY_DOC, COMMUNITY_GUIDELINES_DOC, COOKIES_DOC, COPYRIGHT_DOC, ACCEPTABLE_USE_DOC };
+
+export const ALL_LEGAL_DOCUMENTS: CanonicalLegalDocument[] = [
+  TERMS_DOC,
+  PRIVACY_DOC,
+  COMMUNITY_GUIDELINES_DOC,
+  COOKIES_DOC,
+  COPYRIGHT_DOC,
+  ACCEPTABLE_USE_DOC,
+];
+
+export function getLegalDocById(id?: string): CanonicalLegalDocument | undefined {
+  if (!id) return undefined;
+  const clean = id.trim().toLowerCase();
+  return ALL_LEGAL_DOCUMENTS.find(d => d.id === clean);
+}
+
+export function getCanonicalLegalHash(id: string): string | undefined {
+  const doc = getLegalDocById(id);
+  return doc?.sha256Hash;
+}

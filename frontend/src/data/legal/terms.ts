@@ -1,0 +1,1358 @@
+/*
+ * ============================================================================
+ * SPARKLE LEGAL DOCUMENT RENDERING & AUTHENTICITY NOTICE
+ * ============================================================================
+ * CRITICAL INSTRUCTION FOR ALL FUTURE AI AGENTS, DEVELOPERS, AND MAINTAINERS:
+ *
+ * 1. DO NOT DELETE, REMOVE, OR WEAKEN ANY LEGAL PROVISION, SECTION, CLAUSE, OR
+ *    DISCLOSURE PRESENT IN SPARKLE LEGAL DOCUMENTS.
+ *
+ * 2. ANY AMENDMENT, ADDITION, OR UPDATE MUST PRESERVE THE COMPLETE HISTORICAL
+ *    RECORD, REVISE THE VERSION NUMBER, UPDATE THE EFFECTIVE DATE, RECALCULATE
+ *    THE CANONICAL SHA-256 INTEGRITY HASH, AND LOG THE REVISION IN THE AUDIT TRAIL.
+ *
+ * 3. NATIVE RENDERING MUST REMAIN THE PRIMARY FORM OF DISPLAY. EMBEDDED PDF
+ *    IFRAMES OR EXTERNAL PDF VIEWERS MUST NOT REPLACE NATIVE WEB EXPERIENCES.
+ *    PDFS REMAIN DOWNLOADABLE COPIES ONLY.
+ *
+ * 4. THE DOCUMENT WATERMARK, EMBLEM, METADATA BANNER, INTEGRITY HASH, AND
+ *    OFFICIAL FOOTER MUST REMAIN VISIBLE AND UNALTERED ACROSS ALL BREAKPOINTS
+ *    AND COLOR THEMES (LIGHT AND DARK MODES).
+ *
+ * 5. THE LEGAL CLARIFICATION AND COMPLAINT SUBMISSION PIPELINE, INCLUDING
+ *    SECTION REFERENCE LINKING AND REFERENCE NUMBER GENERATION, MUST REMAIN
+ *    FULLY OPERATIONAL.
+ *
+ * FAILURE TO COMPLY WITH THESE DIRECTIVES VOIDS DOCUMENT INTEGRITY CHECKS AND
+ * CONSTITUTES AN UNAUTHORIZED MODIFICATION OF COMPLIANCE INFRASTRUCTURE.
+ * ============================================================================
+ */
+
+import type { CanonicalLegalDocument } from './types';
+
+export const TERMS_DOC: CanonicalLegalDocument = {
+  "id": "terms",
+  "title": "Sparkle General Terms & Conditions",
+  "shortTitle": "Terms of Service",
+  "category": "terms",
+  "description": "General platform terms of use, account rights, service conditions, and binding legal agreement governing Sparkle.",
+  "version": "1.0",
+  "effectiveDate": "2026-08-21",
+  "lastUpdatedDate": "2026-08-21",
+  "jurisdiction": "Kenya Edition",
+  "publisher": "Sparkle Technologies (Kenya)",
+  "status": "Official",
+  "officialReference": "SPK-LEG-2026-TOS-001",
+  "downloadUrl": "/docs/Sparkle_Kenya_General_Terms_and_Conditions_2026-08-21.pdf",
+  "relatedDocumentIds": [
+    "privacy",
+    "community-guidelines",
+    "cookies",
+    "copyright",
+    "acceptable-use"
+  ],
+  "versionHistory": [
+    {
+      "version": "1.0",
+      "effectiveDate": "2026-08-21",
+      "lastUpdated": "2026-08-21",
+      "status": "Official",
+      "summary": "Initial official release of Sparkle General Terms and Conditions (Kenya Edition).",
+      "sha256Hash": "279a8233608344a303f4e1d7d7890c11e4516c4ddf3052214df238031f4daa2e"
+    }
+  ],
+  "sections": [
+    {
+      "id": "section-1",
+      "number": "1",
+      "title": "Agreement, Acceptance and Scope",
+      "paragraphs": [
+        "These Terms govern access to and use of Sparkle, including mobile applications, websites, APIs, messaging, media, profiles, discovery, creator features, premium services, payments and other features made available by Sparkle."
+      ],
+      "subsections": [
+        {
+          "id": "sec-1-1-01",
+          "number": "1.01",
+          "title": "Clause 1.01",
+          "content": [
+            "By creating an account, tapping an acceptance control, or using Sparkle after being shown these Terms, you agree to be bound by them to the extent permitted by applicable law."
+          ]
+        },
+        {
+          "id": "sec-1-1-02",
+          "number": "1.02",
+          "title": "Clause 1.02",
+          "content": [
+            "If you do not agree, do not create an account or continue using Sparkle. You may stop using the service and request deletion where applicable."
+          ]
+        },
+        {
+          "id": "sec-1-1-03",
+          "number": "1.03",
+          "title": "Clause 1.03",
+          "content": [
+            "These Terms apply to individual users, creators, organizations, advertisers, developers and other persons using Sparkle, except where a separate written agreement expressly overrides them."
+          ]
+        },
+        {
+          "id": "sec-1-1-04",
+          "number": "1.04",
+          "title": "Clause 1.04",
+          "content": [
+            "Feature-specific rules may supplement these Terms. A feature rule controls only the feature-specific subject matter and does not replace the rest of these Terms."
+          ]
+        },
+        {
+          "id": "sec-1-1-05",
+          "number": "1.05",
+          "title": "Clause 1.05",
+          "content": [
+            "If a translated version conflicts with the English version, the version designated as legally controlling by Sparkle will govern, subject to mandatory Kenyan law and consumer rights."
+          ]
+        },
+        {
+          "id": "sec-1-1-06",
+          "number": "1.06",
+          "title": "Clause 1.06",
+          "content": [
+            "Sparkle may require additional confirmations for high-risk features, payments, age-restricted experiences, identity verification, or legal compliance."
+          ]
+        },
+        {
+          "id": "sec-1-1-07",
+          "number": "1.07",
+          "title": "Clause 1.07",
+          "content": [
+            "Use of Sparkle after a material update takes effect constitutes acceptance only to the extent legally permitted; where consent is legally required, Sparkle will obtain it."
+          ]
+        },
+        {
+          "id": "sec-1-1-08",
+          "number": "1.08",
+          "title": "Clause 1.08",
+          "content": [
+            "Nothing in these Terms removes or limits rights that cannot lawfully be excluded, including mandatory consumer, privacy, constitutional or statutory rights."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-2",
+      "number": "2",
+      "title": "Who May Use Sparkle",
+      "paragraphs": [
+        "Sparkle is intended for genuine persons and organizations that can lawfully use the service in their jurisdiction."
+      ],
+      "subsections": [
+        {
+          "id": "sec-2-2-09",
+          "number": "2.09",
+          "title": "Clause 2.09",
+          "content": [
+            "You must provide information that is reasonably accurate for the purpose for which it is requested."
+          ]
+        },
+        {
+          "id": "sec-2-2-10",
+          "number": "2.10",
+          "title": "Clause 2.10",
+          "content": [
+            "You must not create an account using another person's identity, credentials, SIM information, payment instrument, or private information without authorization."
+          ]
+        },
+        {
+          "id": "sec-2-2-11",
+          "number": "2.11",
+          "title": "Clause 2.11",
+          "content": [
+            "Where Sparkle sets a minimum age for a feature, you must satisfy that age requirement before accessing the feature."
+          ]
+        },
+        {
+          "id": "sec-2-2-12",
+          "number": "2.12",
+          "title": "Clause 2.12",
+          "content": [
+            "Age-gated features may require additional age assurance or parental/guardian controls where applicable."
+          ]
+        },
+        {
+          "id": "sec-2-2-13",
+          "number": "2.13",
+          "title": "Clause 2.13",
+          "content": [
+            "You must not assist a child in bypassing age restrictions or safety controls."
+          ]
+        },
+        {
+          "id": "sec-2-2-14",
+          "number": "2.14",
+          "title": "Clause 2.14",
+          "content": [
+            "Organizations and brands must use authorized representatives and must not misrepresent affiliation with Sparkle."
+          ]
+        },
+        {
+          "id": "sec-2-2-15",
+          "number": "2.15",
+          "title": "Clause 2.15",
+          "content": [
+            "If you are legally prohibited from using an online service, you must not use Sparkle."
+          ]
+        },
+        {
+          "id": "sec-2-2-16",
+          "number": "2.16",
+          "title": "Clause 2.16",
+          "content": [
+            "Sparkle may restrict access in jurisdictions where providing a feature would violate applicable law or create unacceptable regulatory risk."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-3",
+      "number": "3",
+      "title": "Account Creation and Identity",
+      "paragraphs": [
+        "Sparkle may offer fast, local-first onboarding, background synchronization and progressive profile completion."
+      ],
+      "subsections": [
+        {
+          "id": "sec-3-3-17",
+          "number": "3.17",
+          "title": "Clause 3.17",
+          "content": [
+            "Sparkle may create a permanent internal user identifier at the earliest reliable account-creation step; the internal identifier is not ordinarily transferable or user-rotatable."
+          ]
+        },
+        {
+          "id": "sec-3-3-18",
+          "number": "3.18",
+          "title": "Clause 3.18",
+          "content": [
+            "A local onboarding draft may temporarily store profile information before synchronization, but local storage does not by itself create a completed Sparkle account."
+          ]
+        },
+        {
+          "id": "sec-3-3-19",
+          "number": "3.19",
+          "title": "Clause 3.19",
+          "content": [
+            "A successful server-side account creation may issue authentication credentials before slower profile operations such as media upload, indexing or recommendations finish."
+          ]
+        },
+        {
+          "id": "sec-3-3-20",
+          "number": "3.20",
+          "title": "Clause 3.20",
+          "content": [
+            "Background synchronization may continue after the application becomes usable, and you authorize Sparkle to complete the requested operations necessary to provide the selected feature."
+          ]
+        },
+        {
+          "id": "sec-3-3-21",
+          "number": "3.21",
+          "title": "Clause 3.21",
+          "content": [
+            "If synchronization fails, Sparkle may retry, queue, request reauthentication, or ask you to resolve the issue."
+          ]
+        },
+        {
+          "id": "sec-3-3-22",
+          "number": "3.22",
+          "title": "Clause 3.22",
+          "content": [
+            "You remain responsible for reviewing your profile after asynchronous synchronization and correcting inaccurate information."
+          ]
+        },
+        {
+          "id": "sec-3-3-23",
+          "number": "3.23",
+          "title": "Clause 3.23",
+          "content": [
+            "A username, display name, profile picture and biography are distinct from the immutable internal user identifier."
+          ]
+        },
+        {
+          "id": "sec-3-3-24",
+          "number": "3.24",
+          "title": "Clause 3.24",
+          "content": [
+            "Sparkle may reserve, reclaim, restrict or change usernames where necessary for security, impersonation prevention, trademark disputes, inactivity or platform integrity."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-4",
+      "number": "4",
+      "title": "Authentication and Account Security",
+      "paragraphs": [
+        "Account security is a shared responsibility between Sparkle and the user."
+      ],
+      "subsections": [
+        {
+          "id": "sec-4-4-25",
+          "number": "4.25",
+          "title": "Clause 4.25",
+          "content": [
+            "You must protect passwords, OTPs, recovery codes, session tokens and other authentication credentials."
+          ]
+        },
+        {
+          "id": "sec-4-4-26",
+          "number": "4.26",
+          "title": "Clause 4.26",
+          "content": [
+            "You must not request another person's authentication code or encourage another person to disclose one."
+          ]
+        },
+        {
+          "id": "sec-4-4-27",
+          "number": "4.27",
+          "title": "Clause 4.27",
+          "content": [
+            "You must notify Sparkle promptly if you suspect unauthorized access, credential theft or account takeover."
+          ]
+        },
+        {
+          "id": "sec-4-4-28",
+          "number": "4.28",
+          "title": "Clause 4.28",
+          "content": [
+            "Sparkle may revoke sessions, require reauthentication, impose temporary locks or require additional verification where account security is at risk."
+          ]
+        },
+        {
+          "id": "sec-4-4-29",
+          "number": "4.29",
+          "title": "Clause 4.29",
+          "content": [
+            "Do not use automation to harvest authentication tokens, bypass login controls or create fraudulent sessions."
+          ]
+        },
+        {
+          "id": "sec-4-4-30",
+          "number": "4.30",
+          "title": "Clause 4.30",
+          "content": [
+            "You are responsible for activity performed through your account to the extent caused by your failure to secure your credentials, subject to applicable law."
+          ]
+        },
+        {
+          "id": "sec-4-4-31",
+          "number": "4.31",
+          "title": "Clause 4.31",
+          "content": [
+            "Sparkle may retain security logs necessary to investigate account compromise, fraud, abuse and legal requests."
+          ]
+        },
+        {
+          "id": "sec-4-4-32",
+          "number": "4.32",
+          "title": "Clause 4.32",
+          "content": [
+            "Security measures may include rate limits, device signals, suspicious-login detection, token rotation, abuse detection and other controls."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-5",
+      "number": "5",
+      "title": "Platform Availability and Changes",
+      "paragraphs": [
+        "Sparkle is a developing service and may change, pause or discontinue features."
+      ],
+      "subsections": [
+        {
+          "id": "sec-5-5-33",
+          "number": "5.33",
+          "title": "Clause 5.33",
+          "content": [
+            "Sparkle does not guarantee uninterrupted, error-free or permanently available service."
+          ]
+        },
+        {
+          "id": "sec-5-5-34",
+          "number": "5.34",
+          "title": "Clause 5.34",
+          "content": [
+            "Maintenance, infrastructure failures, network outages, third-party failures, security incidents and legal requirements may temporarily affect availability."
+          ]
+        },
+        {
+          "id": "sec-5-5-35",
+          "number": "5.35",
+          "title": "Clause 5.35",
+          "content": [
+            "Sparkle may add, modify, remove, limit or retire features, including free and premium features."
+          ]
+        },
+        {
+          "id": "sec-5-5-36",
+          "number": "5.36",
+          "title": "Clause 5.36",
+          "content": [
+            "A feature may behave differently across Android, iOS, web, device models, network conditions or geographic markets."
+          ]
+        },
+        {
+          "id": "sec-5-5-37",
+          "number": "5.37",
+          "title": "Clause 5.37",
+          "content": [
+            "Sparkle may conduct experiments, staged rollouts, A/B tests or safety pilots."
+          ]
+        },
+        {
+          "id": "sec-5-5-38",
+          "number": "5.38",
+          "title": "Clause 5.38",
+          "content": [
+            "Experimental features may have separate warnings and may be withdrawn without being treated as a breach of these Terms, subject to mandatory rights."
+          ]
+        },
+        {
+          "id": "sec-5-5-39",
+          "number": "5.39",
+          "title": "Clause 5.39",
+          "content": [
+            "Where a paid feature is materially discontinued, Sparkle will apply the refund or credit rules required by applicable law and the relevant purchase terms."
+          ]
+        },
+        {
+          "id": "sec-5-5-40",
+          "number": "5.40",
+          "title": "Clause 5.40",
+          "content": [
+            "You are responsible for maintaining a compatible device, operating system, internet connection and any third-party service required to access Sparkle."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-6",
+      "number": "6",
+      "title": "User Content and Ownership",
+      "paragraphs": [
+        "Users retain ownership of content they lawfully own, while granting Sparkle the operational rights needed to host and provide the service."
+      ],
+      "subsections": [
+        {
+          "id": "sec-6-6-41",
+          "number": "6.41",
+          "title": "Clause 6.41",
+          "content": [
+            "You retain ownership of original photographs, videos, writing, audio and other content that you own."
+          ]
+        },
+        {
+          "id": "sec-6-6-42",
+          "number": "6.42",
+          "title": "Clause 6.42",
+          "content": [
+            "You represent that you have the rights, permissions and lawful authority necessary to upload, share or otherwise use content through Sparkle."
+          ]
+        },
+        {
+          "id": "sec-6-6-43",
+          "number": "6.43",
+          "title": "Clause 6.43",
+          "content": [
+            "You grant Sparkle a non-exclusive, worldwide, limited, revocable where legally required, royalty-free license to host, store, reproduce, process, adapt technically, transmit and display your content solely as reasonably necessary to operate, secure, improve and provide the features you select."
+          ]
+        },
+        {
+          "id": "sec-6-6-44",
+          "number": "6.44",
+          "title": "Clause 6.44",
+          "content": [
+            "The operational license may include creating thumbnails, transcoding video, generating previews, extracting technical metadata, caching content and distributing it to users according to your settings."
+          ]
+        },
+        {
+          "id": "sec-6-6-45",
+          "number": "6.45",
+          "title": "Clause 6.45",
+          "content": [
+            "Sparkle will not acquire ownership of your original content merely because you upload it."
+          ]
+        },
+        {
+          "id": "sec-6-6-46",
+          "number": "6.46",
+          "title": "Clause 6.46",
+          "content": [
+            "Deleting content may not instantly remove technical copies from backups, caches or legal records, but Sparkle will apply its retention and deletion policies."
+          ]
+        },
+        {
+          "id": "sec-6-6-47",
+          "number": "6.47",
+          "title": "Clause 6.47",
+          "content": [
+            "You must not upload content that infringes copyright, trademarks, privacy rights, publicity rights, contractual rights or other third-party rights."
+          ]
+        },
+        {
+          "id": "sec-6-6-48",
+          "number": "6.48",
+          "title": "Clause 6.48",
+          "content": [
+            "Sparkle may restrict or remove content where necessary to comply with law, these Terms, Community Guidelines, safety obligations or valid legal process."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-7",
+      "number": "7",
+      "title": "Copyright, Trademarks and Intellectual Property",
+      "paragraphs": [
+        "Sparkle and its software, branding, interfaces, databases and original platform materials are protected by intellectual-property laws."
+      ],
+      "subsections": [
+        {
+          "id": "sec-7-7-49",
+          "number": "7.49",
+          "title": "Clause 7.49",
+          "content": [
+            "Sparkle's name, logos, marks, visual identity, interface elements and official account identifiers belong to Sparkle or their respective rights holders."
+          ]
+        },
+        {
+          "id": "sec-7-7-50",
+          "number": "7.50",
+          "title": "Clause 7.50",
+          "content": [
+            "You may not copy, reproduce, sell, sublicense, distribute or create derivative products from Sparkle's proprietary software except as expressly permitted."
+          ]
+        },
+        {
+          "id": "sec-7-7-51",
+          "number": "7.51",
+          "title": "Clause 7.51",
+          "content": [
+            "You may not use the Sparkle name or logo in a way that implies sponsorship, endorsement or official status without authorization."
+          ]
+        },
+        {
+          "id": "sec-7-7-52",
+          "number": "7.52",
+          "title": "Clause 7.52",
+          "content": [
+            "You may not register confusingly similar domains, usernames, applications or trademarks intended to impersonate Sparkle."
+          ]
+        },
+        {
+          "id": "sec-7-7-53",
+          "number": "7.53",
+          "title": "Clause 7.53",
+          "content": [
+            "Third-party trademarks displayed on Sparkle remain the property of their respective owners."
+          ]
+        },
+        {
+          "id": "sec-7-7-54",
+          "number": "7.54",
+          "title": "Clause 7.54",
+          "content": [
+            "You may submit feedback, suggestions or bug reports; Sparkle may use them without obligation to compensate you, subject to applicable law."
+          ]
+        },
+        {
+          "id": "sec-7-7-55",
+          "number": "7.55",
+          "title": "Clause 7.55",
+          "content": [
+            "Copyright complaints should identify the relevant work, the allegedly infringing material, the complainant's authority and a reliable contact method."
+          ]
+        },
+        {
+          "id": "sec-7-7-56",
+          "number": "7.56",
+          "title": "Clause 7.56",
+          "content": [
+            "Sparkle may disable access to content or accounts where credible infringement claims or repeat-infringer evidence require action."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-8",
+      "number": "8",
+      "title": "Prohibited Uses and Platform Integrity",
+      "paragraphs": [
+        "Users must not misuse Sparkle or attempt to defeat its technical, safety or governance controls."
+      ],
+      "subsections": [
+        {
+          "id": "sec-8-8-57",
+          "number": "8.57",
+          "title": "Clause 8.57",
+          "content": [
+            "Do not access accounts, systems, endpoints or data without authorization."
+          ]
+        },
+        {
+          "id": "sec-8-8-58",
+          "number": "8.58",
+          "title": "Clause 8.58",
+          "content": [
+            "Do not probe, scan or attack Sparkle infrastructure except under an authorized security program."
+          ]
+        },
+        {
+          "id": "sec-8-8-59",
+          "number": "8.59",
+          "title": "Clause 8.59",
+          "content": [
+            "Do not distribute malware, ransomware, spyware, credential stealers or destructive code through Sparkle."
+          ]
+        },
+        {
+          "id": "sec-8-8-60",
+          "number": "8.60",
+          "title": "Clause 8.60",
+          "content": [
+            "Do not interfere with service availability, including denial-of-service activity, abusive automation or deliberate resource exhaustion."
+          ]
+        },
+        {
+          "id": "sec-8-8-61",
+          "number": "8.61",
+          "title": "Clause 8.61",
+          "content": [
+            "Do not reverse engineer, decompile or circumvent technical protections except where a non-waivable legal right permits the activity."
+          ]
+        },
+        {
+          "id": "sec-8-8-62",
+          "number": "8.62",
+          "title": "Clause 8.62",
+          "content": [
+            "Do not scrape personal data, contact lists, private messages or protected profile information at scale without authorization."
+          ]
+        },
+        {
+          "id": "sec-8-8-63",
+          "number": "8.63",
+          "title": "Clause 8.63",
+          "content": [
+            "Do not manipulate engagement using fake accounts, bot networks, purchased interactions or coordinated deceptive activity."
+          ]
+        },
+        {
+          "id": "sec-8-8-64",
+          "number": "8.64",
+          "title": "Clause 8.64",
+          "content": [
+            "Do not use Sparkle to facilitate unlawful transactions, fraud, extortion, impersonation or other criminal conduct."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-9",
+      "number": "9",
+      "title": "Public Posts, Comments, Stories and Media",
+      "paragraphs": [
+        "Public-facing content must comply with the Community Guidelines and applicable law."
+      ],
+      "subsections": [
+        {
+          "id": "sec-9-9-65",
+          "number": "9.65",
+          "title": "Clause 9.65",
+          "content": [
+            "You are responsible for the legality and accuracy of content you publish."
+          ]
+        },
+        {
+          "id": "sec-9-9-66",
+          "number": "9.66",
+          "title": "Clause 9.66",
+          "content": [
+            "Public content may be visible beyond the audience you initially expect because users may share, quote, screenshot or otherwise redistribute it."
+          ]
+        },
+        {
+          "id": "sec-9-9-67",
+          "number": "9.67",
+          "title": "Clause 9.67",
+          "content": [
+            "Sparkle may apply automated safety checks to text, images, audio and video before or after publication."
+          ]
+        },
+        {
+          "id": "sec-9-9-68",
+          "number": "9.68",
+          "title": "Clause 9.68",
+          "content": [
+            "Media may be delayed while being processed, transcoded, scanned or moderated."
+          ]
+        },
+        {
+          "id": "sec-9-9-69",
+          "number": "9.69",
+          "title": "Clause 9.69",
+          "content": [
+            "Sensitive content, where permitted, may receive reduced recommendation, search, discovery, trending or notification distribution."
+          ]
+        },
+        {
+          "id": "sec-9-9-70",
+          "number": "9.70",
+          "title": "Clause 9.70",
+          "content": [
+            "Explicit, exploitative, non-consensual, child sexual, or otherwise prohibited content is subject to immediate restriction or removal under the Community Guidelines."
+          ]
+        },
+        {
+          "id": "sec-9-9-71",
+          "number": "9.71",
+          "title": "Clause 9.71",
+          "content": [
+            "A post's popularity, number of likes or revenue potential does not exempt it from policy enforcement."
+          ]
+        },
+        {
+          "id": "sec-9-9-72",
+          "number": "9.72",
+          "title": "Clause 9.72",
+          "content": [
+            "Sparkle may preserve moderation metadata and case records needed for appeals, safety, fraud prevention and legal compliance."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-10",
+      "number": "10",
+      "title": "Messaging and Communications",
+      "paragraphs": [
+        "Sparkle messaging is a user-controlled communication service with privacy, safety and abuse-prevention controls."
+      ],
+      "subsections": [
+        {
+          "id": "sec-10-10-73",
+          "number": "10.73",
+          "title": "Clause 10.73",
+          "content": [
+            "You may communicate only with users and recipients you are permitted to contact under their settings and Sparkle's rules."
+          ]
+        },
+        {
+          "id": "sec-10-10-74",
+          "number": "10.74",
+          "title": "Clause 10.74",
+          "content": [
+            "Recipients may block, restrict or report you; a blocked recipient's decision may limit further communication."
+          ]
+        },
+        {
+          "id": "sec-10-10-75",
+          "number": "10.75",
+          "title": "Clause 10.75",
+          "content": [
+            "Messages may be processed by technical systems for delivery, spam prevention, security, abuse detection and features you explicitly use, subject to the Privacy Notice and applicable law."
+          ]
+        },
+        {
+          "id": "sec-10-10-76",
+          "number": "10.76",
+          "title": "Clause 10.76",
+          "content": [
+            "Sparkle does not promise that a message is confidential against the recipient, screenshots, device compromise, forwarding or lawful disclosure."
+          ]
+        },
+        {
+          "id": "sec-10-10-77",
+          "number": "10.77",
+          "title": "Clause 10.77",
+          "content": [
+            "Do not use messages for threats, harassment, fraud, sexual exploitation, non-consensual intimate material or other prohibited conduct."
+          ]
+        },
+        {
+          "id": "sec-10-10-78",
+          "number": "10.78",
+          "title": "Clause 10.78",
+          "content": [
+            "Message deletion may remove the message from your interface while copies held by recipients, backups, reports or legal records may remain subject to applicable retention rules."
+          ]
+        },
+        {
+          "id": "sec-10-10-79",
+          "number": "10.79",
+          "title": "Clause 10.79",
+          "content": [
+            "Voice notes, calls, files, links and other message attachments are subject to the same safety and account rules as text messages."
+          ]
+        },
+        {
+          "id": "sec-10-10-80",
+          "number": "10.80",
+          "title": "Clause 10.80",
+          "content": [
+            "Sparkle may impose messaging limits, invitation controls, spam friction or temporary communication restrictions to protect users."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-11",
+      "number": "11",
+      "title": "Ghost Mode and Privacy Features",
+      "paragraphs": [
+        "Ghost features allow a user to reduce public discoverability or conceal selected social activity without changing the underlying account identity."
+      ],
+      "subsections": [
+        {
+          "id": "sec-11-11-81",
+          "number": "11.81",
+          "title": "Clause 11.81",
+          "content": [
+            "Ghost Mode does not change or rotate the permanent internal user identifier."
+          ]
+        },
+        {
+          "id": "sec-11-11-82",
+          "number": "11.82",
+          "title": "Clause 11.82",
+          "content": [
+            "Ghost Mode may hide a user from search, recommendations, discovery, follower suggestions or other public surfaces according to the selected settings."
+          ]
+        },
+        {
+          "id": "sec-11-11-83",
+          "number": "11.83",
+          "title": "Clause 11.83",
+          "content": [
+            "Ghost comments, reactions, story views or other anonymous interactions remain attributable internally to the account for safety, abuse prevention and legal compliance."
+          ]
+        },
+        {
+          "id": "sec-11-11-84",
+          "number": "11.84",
+          "title": "Clause 11.84",
+          "content": [
+            "Ghost messaging may be limited by frequency, recipient settings, safety controls and premium-plan limits where applicable."
+          ]
+        },
+        {
+          "id": "sec-11-11-85",
+          "number": "11.85",
+          "title": "Clause 11.85",
+          "content": [
+            "A Ghost identity is not a promise of anonymity from Sparkle, recipients, lawful authorities, device owners or third-party services involved in delivery."
+          ]
+        },
+        {
+          "id": "sec-11-11-86",
+          "number": "11.86",
+          "title": "Clause 11.86",
+          "content": [
+            "Sparkle may disable or limit Ghost functionality for abuse, harassment, fraud, evasion of enforcement or legal compliance."
+          ]
+        },
+        {
+          "id": "sec-11-11-87",
+          "number": "11.87",
+          "title": "Clause 11.87",
+          "content": [
+            "Premium features may offer longer Ghost durations, additional Ghost interactions or enhanced privacy controls, but premium status does not override safety or legal obligations."
+          ]
+        },
+        {
+          "id": "sec-11-11-88",
+          "number": "11.88",
+          "title": "Clause 11.88",
+          "content": [
+            "Sparkle will not represent that Ghost activity can never be inferred from contextual information such as timing, conversation content, screenshots or recipient behavior."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-12",
+      "number": "12",
+      "title": "Search, Discovery and Recommendations",
+      "paragraphs": [
+        "Sparkle may rank, index and recommend content or accounts using technical and behavioral signals."
+      ],
+      "subsections": [
+        {
+          "id": "sec-12-12-89",
+          "number": "12.89",
+          "title": "Clause 12.89",
+          "content": [
+            "Search results are not guaranteed to be complete, chronological or permanent."
+          ]
+        },
+        {
+          "id": "sec-12-12-90",
+          "number": "12.90",
+          "title": "Clause 12.90",
+          "content": [
+            "Users may control discoverability settings, including whether their account appears in selected search or recommendation surfaces."
+          ]
+        },
+        {
+          "id": "sec-12-12-91",
+          "number": "12.91",
+          "title": "Clause 12.91",
+          "content": [
+            "Sparkle may exclude sensitive, unsafe, spammy, manipulated or policy-risk content from recommendations even when the content remains available to an eligible audience."
+          ]
+        },
+        {
+          "id": "sec-12-12-92",
+          "number": "12.92",
+          "title": "Clause 12.92",
+          "content": [
+            "Engagement metrics may be filtered to remove suspected artificial or abusive activity."
+          ]
+        },
+        {
+          "id": "sec-12-12-93",
+          "number": "12.93",
+          "title": "Clause 12.93",
+          "content": [
+            "Sparkle may personalize feeds based on interactions, interests, follows, device settings and other permitted signals."
+          ]
+        },
+        {
+          "id": "sec-12-12-94",
+          "number": "12.94",
+          "title": "Clause 12.94",
+          "content": [
+            "Personalization does not guarantee that a user will see every post from an account they follow."
+          ]
+        },
+        {
+          "id": "sec-12-12-95",
+          "number": "12.95",
+          "title": "Clause 12.95",
+          "content": [
+            "Creators must not artificially manipulate ranking through coordinated fake engagement or deceptive tactics."
+          ]
+        },
+        {
+          "id": "sec-12-12-96",
+          "number": "12.96",
+          "title": "Clause 12.96",
+          "content": [
+            "Search and recommendation systems may make mistakes; users can report content, accounts or ranking problems through available channels."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-13",
+      "number": "13",
+      "title": "Advertising and Sponsored Content",
+      "paragraphs": [
+        "Sparkle may display advertising, sponsored posts, creator promotions or commercial content."
+      ],
+      "subsections": [
+        {
+          "id": "sec-13-13-97",
+          "number": "13.97",
+          "title": "Clause 13.97",
+          "content": [
+            "Advertisers must comply with applicable advertising, consumer-protection and platform rules."
+          ]
+        },
+        {
+          "id": "sec-13-13-98",
+          "number": "13.98",
+          "title": "Clause 13.98",
+          "content": [
+            "Sponsored content may be labeled so users can distinguish it from ordinary user content."
+          ]
+        },
+        {
+          "id": "sec-13-13-99",
+          "number": "13.99",
+          "title": "Clause 13.99",
+          "content": [
+            "Sparkle may reject or restrict advertisements that are misleading, unlawful, unsafe, discriminatory or otherwise incompatible with platform policy."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "section-14",
+      "number": "14",
+      "title": "Creators, Pages and Professional Accounts",
+      "paragraphs": [
+        "Creators may publish, build audiences and use professional features subject to additional rules. 14.105 Creators are responsible for rights to music, images, performances, trademarks and other material used in their content. 14.106 Creator verification does not guarantee accuracy of every statement or endorsement made by the creator. 14.107 Sparkle may verify identity or organization status for selected professional features. 14.108 Creator tools may include analytics, subscriptions, promotions, monetization, live features or other tools when available. 14.109 Monetization may be withheld for policy violations, invalid traffic, fraud, chargebacks, tax issues or incomplete verification. 14.110 Creators must disclose commercial relationships when required by law or Sparkle policy. 14.111 Creators must not encourage followers to evade safety systems, platform restrictions or payment controls. 14.112 Creator migration tools, where offered, do not automatically transfer followers without the required user choice and platform eligibility."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-15",
+      "number": "15",
+      "title": "Premium Services and Subscriptions",
+      "paragraphs": [
+        "Sparkle may offer paid subscriptions or premium features, including privacy, creator, storage or other benefits. 15.113 Premium features are available only where Sparkle offers them and the user's plan, payment method and jurisdiction support them. 15.114 Prices, billing periods, taxes and renewal terms are shown at purchase or in the applicable store or payment interface. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 9 15.115 A subscription may renew automatically if the purchase flow and applicable law permit automatic renewal and the user has agreed to it. 15.116 Cancellation normally stops future renewal and does not necessarily create an automatic refund for a period already consumed, except where required by law or the applicable purchase terms. 15.117 Feature limits, including Ghost interactions, may be stated in the plan description and may change prospectively. 15.118 Sparkle may suspend premium access for fraud, chargebacks, payment disputes, abuse or violations of these Terms. 15.119 Third-party app stores may impose additional billing, cancellation and refund rules. 15.120 Where a payment intermediary processes the transaction, its terms may also apply to the payment transaction."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-16",
+      "number": "16",
+      "title": "Payments, Sparkle Pay and Transactions",
+      "paragraphs": [
+        "If Sparkle offers wallets, marketplace, escrow, payments, purchases or money-transfer features, additional terms and regulated-partner requirements apply. 16.121 A Sparkle balance, wallet or displayed amount is not automatically a bank deposit, electronic-money account or regulated financial product unless Sparkle expressly states that status and operates through the required legal structure. 16.122 Payment services may be provided by licensed or regulated third-party partners rather than directly by Sparkle. 16.123 Users must provide accurate transaction information and must not use payment features for fraud, laundering, sanctions evasion or unlawful commerce. 16.124 Sparkle may place holds, limits, reversals or reviews on transactions to prevent fraud and comply with law. 16.125 Marketplace sellers are responsible for lawful goods, truthful descriptions, delivery and applicable consumer obligations. 16.126 Escrow or buyer-protection features apply only when expressly enabled for the transaction. 16.127 Fees must be disclosed before or at the point required for the transaction, subject to technical and legal requirements. 16.128 Transaction disputes should first use the applicable in-product resolution mechanism, without removing any mandatory legal remedies."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-17",
+      "number": "17",
+      "title": "Refunds, Cancellations and Consumer Rights",
+      "paragraphs": [
+        "Sparkle will provide purchase disclosures and remedies required by applicable law. 17.129 Nothing in these Terms is intended to exclude mandatory consumer rights under Kenyan law. 17.130 If a product or service is defective or materially different from what was promised, the user may have statutory remedies depending on the transaction. 17.131 Refund eligibility may differ between direct Sparkle purchases and purchases made through third-party app stores. 17.132 Chargebacks should not be used as a substitute for ordinary cancellation or support processes where a genuine support route exists. 17.133 Sparkle may investigate suspicious refund patterns, repeated chargebacks or payment abuse. 17.134 If a refund is approved, it may be returned through the original payment method or another lawful method. 17.135 Digital content may be subject to special rules concerning immediate performance and cancellation rights; Sparkle will present required disclosures at purchase. 17.136 Users should retain receipts, transaction IDs and purchase confirmations when requesting payment support."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-18",
+      "number": "18",
+      "title": "User Conduct, Safety and Community Rules",
+      "paragraphs": [
+        "The Community Guidelines are incorporated by reference for conduct, content and enforcement. 18.137 Users must follow the current Sparkle Community Guidelines in addition to these Terms. 18.138 The Community Guidelines may prohibit content even when that content is not criminal, where restrictions are reasonably necessary for safety, privacy or platform integrity. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 10 18.139 Sparkle may apply warnings, content restrictions, feature restrictions, strikes, temporary suspension or permanent termination depending on severity and history. 18.140 Report counts alone do not automatically establish a violation; Sparkle may consider evidence, context, credibility, coordinated reporting and prior confirmed violations. 18.141 Serious risks may justify immediate restriction before a full review. 18.142 Users may appeal eligible enforcement actions through available channels. 18.143 Abuse of reporting or appeals systems may itself violate the rules. 18.144 Sparkle may preserve evidence and relevant case metadata when necessary for safety, appeals or legal compliance."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-19",
+      "number": "19",
+      "title": "Automated Systems, AI and Human Review",
+      "paragraphs": [
+        "Sparkle may use automated tools and third-party safety services to operate and protect the platform. 19.145 Automated systems may classify text, images, audio, video, spam, fraud signals or account behavior. 19.146 Automated decisions may be imperfect and may be reviewed, corrected or reversed. 19.147 Sparkle may use a risk score or multiple signals rather than a simple report-count threshold. 19.148 High-risk or uncertain cases may be placed in a review queue. 19.149 Human review may be used for appeals, severe safety matters, legal requests or system-quality audits. 19.150 Where legally required, Sparkle will provide appropriate information about automated decision-making and available rights. 19.151 Third-party AI or moderation vendors may process content or metadata as service providers subject to contractual and privacy controls. 19.152 Sparkle may disable a third-party automated system temporarily and apply fallback controls such as rate limits, manual queues or conservative publishing rules."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-20",
+      "number": "20",
+      "title": "Privacy and Personal Data",
+      "paragraphs": [
+        "Sparkle's Privacy Notice explains how personal data is collected, used, shared, retained and protected. 20.153 Sparkle will process personal data on lawful bases applicable to the processing purpose, which may include consent, contract, legal obligation, legitimate interests or other lawful bases recognized by applicable law. 20.154 Users should read the Privacy Notice before using features that require location, contacts, media, biometric verification or other personal data. 20.155 Sparkle may process account, device, security, usage, communication and content metadata necessary to provide and secure the service. 20.156 Location access is subject to device permissions and feature settings; refusing optional location access may limit location-dependent features. 20.157 Contacts access, where offered, should be optional unless a feature cannot lawfully function without it and the legal basis is explained. 20.158 Users may have rights to access, correction, deletion, objection, restriction or other rights under applicable data-protection law. 20.159 Sparkle may retain information for security, fraud prevention, disputes, backups, legal obligations and legitimate operational needs after an account is deleted. 20.160 Personal data may be processed or transferred across borders where legally permitted and with appropriate safeguards."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-21",
+      "number": "21",
+      "title": "Children and Age-Sensitive Users",
+      "paragraphs": [
+        "Sparkle applies heightened safety standards to children and age-sensitive features. 21.161 Users must provide truthful age information where age is requested for safety or eligibility. 21.162 Sparkle may use age assurance, age gates, feature restrictions or parental controls where appropriate. 21.163 Adult users must not solicit sexual content, exploit, groom, manipulate or otherwise abuse minors. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 11 21.164 Content involving child sexual exploitation or other prohibited child abuse is subject to immediate action and may be escalated as required by law. 21.165 Sparkle may restrict direct messaging, discovery, live features or mature content around younger users. 21.166 Users must not encourage minors to evade age restrictions. 21.167 Parents or guardians should use available safety controls and report suspected exploitation promptly. 21.168 Where children's personal data is processed, Sparkle will apply safeguards required by applicable Kenyan data-protection law."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-22",
+      "number": "22",
+      "title": "Privacy of Communications and Confidentiality Limits",
+      "paragraphs": [
+        "Sparkle aims to protect communications while recognizing that digital communications have practical and legal limits. 22.169 Private messaging does not mean that the recipient cannot copy, screenshot, forward or disclose a message. 22.170 Sparkle may access or process limited data where required to deliver, secure, troubleshoot or enforce the service, subject to the Privacy Notice and law. 22.171 Lawful requests from competent authorities may require disclosure of information Sparkle lawfully holds. 22.172 Sparkle may preserve relevant records where required for security, legal process, disputes or safety investigations. 22.173 End-to-end encryption, if offered for a particular feature, will be described specifically; users should not assume that every Sparkle communication is end-to-end encrypted. 22.174 Users must not use alleged confidentiality to justify unlawful activity. 22.175 Reports may cause relevant content or metadata to be submitted to Sparkle's safety systems. 22.176 Sparkle will not intentionally sell private communications to advertisers as a general advertising product; any processing is governed by the Privacy Notice and applicable law."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-23",
+      "number": "23",
+      "title": "Reporting, Appeals and Enforcement",
+      "paragraphs": [
+        "Sparkle provides reporting and review processes designed to balance safety, due process and operational capacity. 23.177 Users may report content, accounts, impersonation, privacy violations, scams, harassment and other policy concerns using available tools. 23.178 Sparkle may temporarily hide or restrict reported content when risk is high while review is pending. 23.179 A report does not guarantee removal, suspension or disclosure of another user's identity. 23.180 Sparkle may notify an affected user of an enforcement action, the applicable policy category and available appeal route, subject to safety and legal constraints. 23.181 Appeals should identify the action being challenged and provide relevant context or evidence. 23.182 Repeated frivolous or abusive reports may result in reporting restrictions or enforcement against the reporter. 23.183 Enforcement may consider severity, intent, reach, repetition, evasion, vulnerability of targets, evidence quality and prior confirmed violations. 23.184 Sparkle may apply different remedies to content, accounts and features independently."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-24",
+      "number": "24",
+      "title": "Suspension, Termination and Account Closure",
+      "paragraphs": [
+        "Sparkle may restrict or terminate accounts where permitted by law and these Terms. 24.185 Sparkle may suspend an account temporarily to address safety, fraud, security, legal or repeated policy concerns. 24.186 Sparkle may permanently terminate an account for severe or repeated violations, serious abuse, illegal conduct, fraud, security attacks or enforcement evasion. 24.187 Where appropriate and legally permissible, Sparkle may give notice and an opportunity to appeal. 24.188 Immediate restriction may occur without advance notice when delay could create significant risk. 24.189 Deleting an account does not erase records that Sparkle is legally or operationally required to retain. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 12 24.190 Users may request account deletion through available controls or support channels. 24.191 If an account is terminated, you must not create replacement accounts to evade the termination unless Sparkle authorizes the new account. 24.192 Termination does not automatically cancel debts, payment obligations, licenses, dispute rights or other provisions that logically survive termination."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-25",
+      "number": "25",
+      "title": "Account Migration and User Identity",
+      "paragraphs": [
+        "Sparkle may support voluntary account migration while protecting platform integrity. 25.193 The permanent internal user identifier should remain stable throughout ordinary account use. 25.194 A username change does not create a new legal or technical identity. 25.195 Voluntary migration may allow eligible followers to receive a recommendation or notification rather than silently moving their follow relationship. 25.196 A follower should normally choose whether to follow a new account rather than being forcibly transferred. 25.197 Sparkle may restrict migration tools where they could facilitate ban evasion, impersonation or fraud. 25.198 Suspended or permanently terminated accounts do not receive an automatic right to transfer enforcement status or audiences to a replacement account. 25.199 Where Sparkle offers data export, the scope and format depend on technical capability, privacy rights and applicable law. 25.200 Identity verification may be required before sensitive migration or recovery actions."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-26",
+      "number": "26",
+      "title": "Intellectual Property Complaints and Rights Management",
+      "paragraphs": [
+        "Sparkle respects lawful intellectual-property rights and provides processes for credible complaints. 26.201 Rights holders should provide sufficient information to identify the protected work and the allegedly infringing material. 26.202 A complaint should be made in good faith and should not knowingly contain materially false statements. 26.203 Sparkle may remove, restrict or disable access to allegedly infringing content while investigating, subject to applicable law and available counter-notice processes. 26.204 Repeat infringement may lead to account restrictions. 26.205 A user whose content is removed may appeal where a process is available. 26.206 Sparkle may use technical fingerprinting or content-matching systems to reduce repeat infringement where lawful. 26.207 Users remain responsible for licensing music, images, clips, fonts and other third-party assets used in their content. 26.208 Nothing in this section transfers ownership of user content to Sparkle."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-27",
+      "number": "27",
+      "title": "Third-Party Services and Integrations",
+      "paragraphs": [
+        "Sparkle may integrate external services for authentication, storage, payments, media processing, analytics, messaging or other functions. 27.209 Third-party services may have separate terms and privacy policies. 27.210 Sparkle is not responsible for independent third-party services to the extent permitted by law. 27.211 A third-party outage may prevent a Sparkle feature from working even if Sparkle's systems are operational. 27.212 You must not use a third-party integration in a way that violates that provider's terms or Sparkle's rules. 27.213 Sparkle may replace third-party providers to improve reliability, cost, security or compliance. 27.214 Payment processors, app stores and telecom operators may impose additional transaction or network rules. 27.215 Links to external websites are provided for convenience and do not automatically constitute endorsement. 27.216 If a third-party service receives personal data, the applicable disclosure and legal basis are addressed in Sparkle's Privacy Notice or feature disclosure. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 13"
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-28",
+      "number": "28",
+      "title": "Open-Source Software",
+      "paragraphs": [
+        "Sparkle may include open-source components governed by their own licenses. 28.217 Open-source licenses remain applicable to the relevant components. 28.218 Where required, Sparkle will provide required notices, license texts or source-code access. 28.219 Open-source components are not necessarily covered by Sparkle's proprietary licensing terms. 28.220 You may not remove required copyright or license notices from distributed copies. 28.221 Security updates to open-source dependencies may be applied without separate user approval. 28.222 A dependency may be replaced when it becomes unsupported, vulnerable or incompatible. 28.223 Nothing in these Terms overrides rights granted by an applicable open-source license. 28.224 Third-party open-source software is not necessarily a statement that the entire Sparkle application is open source."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-29",
+      "number": "29",
+      "title": "Security, Vulnerabilities and Responsible Disclosure",
+      "paragraphs": [
+        "Security researchers may report vulnerabilities through a designated channel once configured. 29.225 Do not exploit a security issue against real users, steal data, persist access or disrupt production. 29.226 A good-faith security report should minimize data access and provide enough technical detail to reproduce the issue. 29.227 Sparkle may establish a bug-bounty or vulnerability-disclosure program with separate eligibility and reward rules. 29.228 Reports involving active exploitation, stolen credentials or user data should be escalated through the emergency security channel when available. 29.229 Sparkle may temporarily disable features or accounts while containing a security incident. 29.230 Users must not threaten public disclosure as leverage for payment or other demands. 29.231 Sparkle may credit security researchers where they consent and where disclosure is safe. 29.232 Nothing in this section authorizes conduct that would otherwise violate applicable law."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-30",
+      "number": "30",
+      "title": "Fraud, Scams, Financial Abuse and Deceptive Conduct",
+      "paragraphs": [
+        "Sparkle may restrict accounts and transactions associated with deception or financial abuse. 30.233 Do not impersonate a bank, mobile-money provider, government agency, company, celebrity or another user to obtain money or credentials. 30.234 Do not solicit passwords, OTPs, PINs, recovery codes or payment credentials. 30.235 Do not create fake investment, loan, giveaway, scholarship or employment schemes. 30.236 Do not manipulate marketplace ratings, reviews or transaction history. 30.237 Do not use stolen payment instruments or compromised accounts. 30.238 Sparkle may delay or hold suspicious transactions for verification. 30.239 Users should independently verify payment recipients before sending funds. 30.240 Sparkle may cooperate with lawful investigations concerning fraud and financial crime."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-31",
+      "number": "31",
+      "title": "Marketplace, Commerce and Creator Sales",
+      "paragraphs": [
+        "Where Sparkle enables commerce, sellers and buyers must comply with applicable law and feature rules. 31.241 Sellers must accurately describe goods or services, pricing, availability and material conditions. 31.242 Prohibited or regulated goods may not be listed unless Sparkle expressly permits the category and the seller meets required legal conditions. 31.243 Sellers are responsible for taxes, permits, warranties, delivery and consumer obligations applicable to their business. 31.244 Buyers must not use false claims, chargeback abuse or fraudulent disputes to obtain goods or refunds. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 14 31.245 Sparkle may remove listings that create legal, safety or consumer-protection risk. 31.246 Commercial transactions may be subject to separate seller agreements. 31.247 Sparkle does not guarantee the quality, legality, authenticity or availability of every third-party product. 31.248 Disputes between independent buyers and sellers may require resolution through the seller, marketplace mechanism or applicable law."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-32",
+      "number": "32",
+      "title": "Live, Audio, Video and Real-Time Features",
+      "paragraphs": [
+        "Live features create additional safety and moderation risks and may be subject to stricter controls. 32.249 Live hosts are responsible for content broadcast through their session. 32.250 Sparkle may apply real-time or near-real-time automated detection, user reporting, moderator intervention or delayed publishing controls. 32.251 Sparkle may end a live session immediately where severe safety or legal risks arise. 32.252 Live comments and interactions remain subject to the Community Guidelines. 32.253 Hosts must not encourage viewers to perform dangerous, criminal or abusive acts. 32.254 Live gifts, subscriptions or monetization may have separate eligibility, payout and refund rules. 32.255 Recording, clipping or redistributing a live session may be subject to rights and privacy restrictions. 32.256 Sparkle may limit live access based on age, account history, verification or geographic availability."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-33",
+      "number": "33",
+      "title": "Notifications, Emails, SMS and Push Messages",
+      "paragraphs": [
+        "Sparkle may send service and safety communications necessary to operate the account. 33.257 Service messages may include login alerts, security warnings, transaction receipts, moderation notices and important policy updates. 33.258 Marketing communications may be subject to separate consent and unsubscribe controls where required. 33.259 You may disable optional push notifications through Sparkle or device settings. 33.260 Disabling notifications does not necessarily stop critical security or legal notices. 33.261 SMS or email delivery depends on network and third-party providers and may be delayed. 33.262 You are responsible for maintaining a reachable recovery method if you choose one. 33.263 Sparkle may use notification preferences to reduce unwanted communications. 33.264 A notification does not itself prove that a user viewed the underlying content or message."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-34",
+      "number": "34",
+      "title": "Data Retention, Deletion and Backups",
+      "paragraphs": [
+        "Deletion is designed around practical storage, safety and legal constraints. 34.265 Sparkle may retain account and transaction records for periods necessary to provide services, comply with law, resolve disputes, prevent fraud or maintain security. 34.266 Deleted content may remain temporarily in backups, caches or disaster-recovery systems before scheduled deletion. 34.267 Reported or enforcement-related content may be retained longer where necessary for appeals, safety or legal obligations. 34.268 Aggregated or de-identified information may be retained where it is no longer reasonably linked to an identifiable person and lawful to retain. 34.269 Users may request deletion subject to legal exceptions and technical limitations. 34.270 Deleting an account may not delete content that another user lawfully possesses, has reposted, or that must be retained under legal process. 34.271 Sparkle may preserve a legal hold that prevents ordinary deletion of specified records. 34.272 Retention schedules should be documented internally and reviewed periodically. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 15"
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-35",
+      "number": "35",
+      "title": "Law Enforcement, Legal Process and Emergency",
+      "paragraphs": [
+        "Requests Sparkle may respond to lawful requests and urgent safety matters. 35.273 Sparkle may disclose information where required by a valid legal obligation, court order, warrant, statutory process or other lawful authority. 35.274 Sparkle may challenge or narrow requests where appropriate and legally permissible. 35.275 Sparkle may preserve records in response to valid preservation requests. 35.276 Sparkle may disclose limited information to prevent imminent serious harm where legally permitted or required. 35.277 The existence of a request may be kept confidential where lawfully required. 35.278 Sparkle will not treat an ordinary user request as equivalent to a legal demand. 35.279 Users may be notified of certain legal requests when permitted, but notification is not guaranteed. 35.280 Law-enforcement handling should follow a documented internal procedure and authorized contacts."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-36",
+      "number": "36",
+      "title": "Indemnity and User Responsibility",
+      "paragraphs": [
+        "To the extent permitted by law, users are responsible for their conduct, content and misuse of Sparkle. 36.281 You are responsible for claims arising from content you knowingly upload or conduct you intentionally perform in violation of these Terms. 36.282 You agree to cooperate reasonably with investigations concerning your account. 36.283 Where lawful, you may be responsible for losses caused by your fraud, intentional misuse or material breach. 36.284 This section does not require you to indemnify Sparkle for Sparkle's own unlawful conduct or rights that cannot lawfully be waived. 36.285 Sparkle may notify you of a third-party claim where appropriate. 36.286 Sparkle may control the defense of a claim where indemnity applies, while considering the user's lawful interests. 36.287 You must not settle a claim in a way that admits liability for Sparkle without Sparkle's consent where that admission would materially prejudice Sparkle. 36.288 The scope of indemnity is subject to applicable law and any limits stated in these Terms."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-37",
+      "number": "37",
+      "title": "Disclaimers",
+      "paragraphs": [
+        "Sparkle is provided on an evolving basis and cannot guarantee every outcome. 37.289 To the extent permitted by law, Sparkle is provided without guarantees that every feature will be uninterrupted or error-free. 37.290 Sparkle does not guarantee that user-generated content is accurate, lawful, safe or trustworthy. 37.291 Sparkle does not guarantee that recommendations, search results or engagement metrics are complete or unbiased. 37.292 Sparkle does not guarantee the identity, qualifications, intentions or reliability of another user. 37.293 Sparkle does not provide professional legal, medical, financial, investment or emergency advice through ordinary platform features. 37.294 Users should independently verify important claims and seek qualified professional advice where appropriate. 37.295 Third-party products, services, links and offers are subject to the third party's own terms. 37.296 Nothing in this section excludes warranties or remedies that cannot lawfully be excluded."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-38",
+      "number": "38",
+      "title": "Limitation of Liability",
+      "paragraphs": [
+        "This section is intended to allocate risk fairly while preserving mandatory legal rights. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 16 38.297 To the maximum extent permitted by applicable law, Sparkle will not be liable for indirect, incidental, special, consequential or punitive losses arising from use of the service. 38.298 To the maximum extent permitted by law, Sparkle will not be responsible for losses caused solely by user misconduct, third-party conduct, device compromise, unsupported software or unavailable networks. 38.299 Where liability cannot be excluded, any contractual cap will apply only to the extent legally enforceable and will not remove non-waivable statutory rights. 38.300 Nothing in these Terms excludes liability for matters that applicable law prohibits from being excluded or limited. 38.301 Any limitation should be interpreted consistently with Kenyan consumer-protection and other mandatory rules. 38.302 The existence of a limitation does not prevent a court or regulator from applying a remedy required by law. 38.303 Users should maintain independent backups of important personal content where practical. 38.304 The limitation framework does not authorize Sparkle to disregard security, privacy or statutory duties."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-39",
+      "number": "39",
+      "title": "Dispute Resolution and Governing Law",
+      "paragraphs": [
+        "These Terms are intended primarily for users in Kenya but may interact with mandatory laws of other jurisdictions. 39.305 These Terms are governed by the laws of Kenya to the extent Kenyan law applies and subject to mandatory rights of the user's jurisdiction. 39.306 Courts of competent jurisdiction in Kenya may hear disputes concerning Sparkle, subject to any mandatory consumer forum or jurisdictional right. 39.307 Before litigation, the parties should ordinarily attempt to resolve an issue through Sparkle support or an applicable formal complaint channel, unless urgent relief is required. 39.308 Nothing requires a user to waive mandatory statutory complaints, regulatory remedies or access to a competent court. 39.309 A dispute about another user's content may be handled through reporting and moderation channels rather than a direct dispute with that user. 39.310 Sparkle may maintain separate procedures for payment disputes, privacy requests and intellectual-property complaints. 39.311 The applicable law does not prevent a court from applying mandatory rules of another jurisdiction where required. 39.312 The dispute provisions survive termination only to the extent necessary to resolve a dispute arising from prior use."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-40",
+      "number": "40",
+      "title": "Constitutional Compatibility and Rights",
+      "paragraphs": [
+        "Sparkle's rules should be applied consistently with Kenya's constitutional framework and applicable statutes. 40.313 Sparkle recognizes that users have lawful rights to expression, privacy, dignity and equality, subject to lawful limitations. 40.314 Platform rules may be stricter than criminal law where reasonably necessary for user safety, privacy or platform integrity. 40.315 Restrictions should be connected to a legitimate platform purpose and applied proportionately where the relevant law requires proportionality. 40.316 Sparkle should avoid discriminatory enforcement based on protected characteristics and should apply rules consistently. 40.317 Privacy settings should not be interpreted as eliminating mandatory safety or legal duties. 40.318 Users should have a meaningful route to challenge mistaken enforcement where practical. 40.319 The Community Guidelines and these Terms should be interpreted together rather than as independent systems. 40.320 Nothing in these Terms claims to override the Constitution, statute, court order or regulator's lawful authority."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-41",
+      "number": "41",
+      "title": "Changes to These Terms",
+      "paragraphs": [
+        "Sparkle may update these Terms as the platform, law and features evolve. 41.321 Sparkle may update these Terms to reflect new features, security needs, legal requirements, business changes or corrections. 41.322 Material changes should be communicated through an appropriate notice where required. 41.323 The effective date at the beginning of the document identifies the version currently intended to govern. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 17 41.324 Where law requires affirmative consent to a change, Sparkle will request it. 41.325 If you continue using Sparkle after an effective update, the updated Terms apply to the extent legally permitted. 41.326 If you reject a material change, your remedy may include stopping use of the service and requesting deletion where applicable. 41.327 Historical versions may be retained for audit and dispute purposes. 41.328 Sparkle should not use a retroactive change to impose a new obligation for past conduct where doing so would be unlawful or unfair."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-42",
+      "number": "42",
+      "title": "Notices and Electronic Communications",
+      "paragraphs": [
+        "Sparkle may deliver legal and service notices electronically. 42.329 You agree that notices may be delivered through in-app messages, account email, push notification, SMS or other contact method you provide, where lawful. 42.330 A notice is considered delivered according to the method and applicable legal requirements governing that notice. 42.331 You must keep your contact information reasonably current. 42.332 Legal notices to Sparkle should use the configured legal contact rather than a personal employee account. 42.333 Official Sparkle announcements should be verified through the official account or authenticated platform channels. 42.334 Sparkle is not responsible for scams that impersonate Sparkle outside official channels, although it may assist with reporting and enforcement. 42.335 Users should not rely on unverified social-media accounts claiming to represent Sparkle. 42.336 The official account currently designated for product communications is @sparkleofficialaccount, subject to verification and platform availability."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-43",
+      "number": "43",
+      "title": "Severability, Waiver and Entire Agreement",
+      "paragraphs": [
+        "These clauses govern how the Terms operate as a contract. 43.337 If a court or competent authority finds one provision invalid or unenforceable, the remaining provisions continue to the extent permitted. 43.338 A failure to enforce a provision immediately is not necessarily a permanent waiver. 43.339 A waiver should be interpreted narrowly and should not waive future violations unless expressly stated. 43.340 These Terms, together with incorporated policies and feature terms, form the principal agreement governing ordinary Sparkle use. 43.341 Prior informal statements do not override these Terms unless Sparkle expressly confirms them in writing. 43.342 Feature-specific purchase terms may supplement these Terms without replacing the general agreement. 43.343 No employee or community moderator may promise to waive a legal term unless authorized to do so. 43.344 Headings are for navigation and do not control the legal meaning of a clause."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-44",
+      "number": "44",
+      "title": "Assignment and Corporate Changes",
+      "paragraphs": [
+        "Sparkle may reorganize its business while preserving user protections. 44.345 Sparkle may assign or transfer rights and obligations as part of a merger, acquisition, restructuring, financing, sale of assets or corporate reorganization. 44.346 Users may not transfer an account to another person without an authorized migration mechanism. 44.347 A transfer must not be used to evade privacy, consumer or other mandatory legal obligations. 44.348 If ownership of Sparkle changes, applicable user rights remain governed by the then-effective legal documents. 44.349 Sparkle may use affiliates or contractors to operate services. 44.350 An affiliate's involvement does not automatically make it the contracting party unless the applicable document says so. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 18 44.351 Users remain responsible for obligations that accrued before an authorized account transfer. 44.352 Sparkle should provide legally required notice of material corporate changes affecting the agreement."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-45",
+      "number": "45",
+      "title": "Contact, Complaints and Support",
+      "paragraphs": [
+        "Sparkle should maintain clear channels for account, privacy, safety, legal and payment matters. 45.353 General support should use the official support channel published inside the application or official website. 45.354 Privacy requests should use the designated privacy or data-protection contact once configured. 45.355 Legal requests should be directed to Sparkle's configured legal contact and should include sufficient information to identify the matter. 45.356 Safety reports should use the in-product report tool where possible because it preserves relevant context. 45.357 Payment disputes should include the transaction reference, amount, date and relevant purchase channel. 45.358 Security reports should avoid sending credentials, passwords or unnecessary personal data. 45.359 Users should not publish private support correspondence publicly as a substitute for the formal complaint process. 45.360 Sparkle should publish replacement contact details before removing any current legal contact channel."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-46",
+      "number": "46",
+      "title": "Definitions and Interpretation",
+      "paragraphs": [
+        "The following terms help interpret these Terms consistently. 46.361 “Sparkle,” “we,” “us” or “our” means the Sparkle service and the legal operator identified in the final published version of these Terms. 46.362 “User,” “you” or “your” means the person or entity accessing or using Sparkle. 46.363 “Content” includes text, images, video, audio, links, comments, stories, profile materials and other material submitted through Sparkle. 46.364 “User Content” means content submitted or transmitted by a user. 46.365 “Premium” means a paid Sparkle feature, plan or subscription made available to an eligible user. 46.366 “Ghost” or “Ghost Mode” means a privacy/discoverability feature that can reduce the visibility of selected activity without changing the underlying account identity. 46.367 “Community Guidelines” means Sparkle's separate conduct and content rules incorporated into these Terms by reference. 46.368 Words in the singular include the plural where the context requires, and references to applicable law include amendments and replacement legislation."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-47",
+      "number": "47",
+      "title": "Feature-Specific Rules Matrix",
+      "paragraphs": [
+        "This matrix is a practical interpretation guide. It does not replace the full policy text. 47.369 Account: one person should not operate multiple deceptive identities; legitimate creator, business, testing or recovery accounts may be allowed under Sparkle controls. 47.370 Profile: users control permitted profile information but may not impersonate another person or organization. 47.371 Posts: public posts must follow Community Guidelines and may be subject to moderation before or after publication. 47.372 Stories: stories are temporary in user presentation but may be retained in reports, backups, safety systems or legal records as permitted. 47.373 Comments: comments inherit the rules of the content surface and may be moderated independently from the parent post. 47.374 Messages: direct communications are subject to recipient controls, abuse prevention and applicable legal processes. 47.375 Ghost: Ghost features hide selected public identity signals but do not make the account unknown to Sparkle. 47.376 Search: search can be limited by discoverability settings, safety rules, indexing decisions and technical availability. 47.377 Premium: paid features do not override law, safety rules, moderation, age restrictions or security controls. 47.378 Payments: payment and marketplace features require additional transaction-specific rules and may use licensed partners. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 19 47.379 Live: real-time content can be terminated or restricted immediately when severe risk is detected. 47.380 Verification: a verified badge, if granted, confirms only the scope stated by Sparkle and is not a guarantee of a user's statements. 47.381 Notifications: notification content may be minimized where possible to reduce privacy leakage on lock screens. 47.382 Exports: data export availability depends on legal rights, technical feasibility and the privacy of other people whose data appears in the export."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-48",
+      "number": "48",
+      "title": "Enforcement Decision Framework",
+      "paragraphs": [
+        "Sparkle should apply enforcement using evidence and risk rather than a simplistic raw-report threshold. 48.383 Low-risk issue: provide education, warning, friction or no action when evidence does not establish a violation. 48.384 Moderate-risk issue: restrict distribution, remove the item, apply a strike or limit a feature depending on context. 48.385 High-risk issue: temporarily suspend the account or feature while investigation proceeds. 48.386 Critical issue: immediately restrict the content/account and escalate to specialized review where safety or legal risk is severe. 48.387 Report volume is an input, not proof. Coordinated reporting, brigading and retaliation should be considered. 48.388 Prior confirmed violations may increase enforcement severity, while successful appeals should reduce the reliability of the underlying history. 48.389 Enforcement should distinguish the content, the account, the target, and the reporter so that one person's misconduct does not automatically punish unrelated users. 48.390 A user should receive an understandable reason for an enforcement action when doing so is safe and legally permissible. 48.391 Appeals should be recorded with the original action, reason, evidence class, reviewer decision and final outcome. 48.392 Repeated evasion through new accounts may result in linked enforcement, subject to false-positive controls and appeal mechanisms."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-49",
+      "number": "49",
+      "title": "Privacy-by-Design Requirements",
+      "paragraphs": [
+        "These are engineering-oriented contractual commitments to align the product with the privacy promises in the Privacy Notice. 49.393 Collect only data reasonably necessary for a stated feature or lawful purpose. 49.394 Separate authentication identifiers from public usernames and display names. 49.395 Do not expose internal user IDs through public URLs when a safer public identifier is available. 49.396 Apply access controls to every service that reads profile, message, media, location or moderation data. 49.397 Cache invalidation must honor privacy and account-state changes. 49.398 Search indexes must honor blocked, private, invisible and deleted states. 49.399 Notification services must not disclose Ghost identities through previews. 49.400 Analytics systems should use aggregation or minimization where individual-level detail is not needed. 49.401 Administrative access should be logged and limited by role. 49.402 Sensitive moderation evidence should have stricter access controls than ordinary content. 49.403 Data exports should avoid exposing another user's private data unless legally permitted. 49.404 Backups should be protected with appropriate access controls and retention schedules. 49.405 Third-party processors should be governed by contracts and security/privacy requirements appropriate to the processing. 49.406 Security incidents involving personal data should follow Sparkle's documented breach-response procedure and applicable law."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-50",
+      "number": "50",
+      "title": "Operational Rules for Account Recovery",
+      "paragraphs": [
+        "Account recovery is a high-risk process because it can transfer control of identity and personal data. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 20 50.407 Recovery should use trusted factors such as verified phone/email, approved device signals, recovery codes or other configured mechanisms. 50.408 Support agents should not request a full password or one-time code. 50.409 High-risk recovery should require additional verification rather than relying solely on a public profile. 50.410 Recovery changes should generate security notifications where appropriate. 50.411 Recent high-risk actions may trigger a temporary cooling-off period before account recovery information can be changed. 50.412 Recovery requests should be rate-limited to reduce social engineering and brute-force attacks. 50.413 A verified phone number does not prove legal ownership of every piece of profile information. 50.414 Account recovery should preserve the permanent internal user ID rather than creating an accidental duplicate identity. 50.415 Fraudulent recovery attempts may result in security restrictions and evidence preservation. 50.416 A user who regains access should be able to review active sessions and revoke suspicious devices."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-51",
+      "number": "51",
+      "title": "Operational Rules for Content Processing",
+      "paragraphs": [
+        "Sparkle may process media asynchronously so the user can continue using the platform without waiting for every background task. 51.417 Uploads may first enter a processing state before they become publicly visible. 51.418 Media processors may generate thumbnails, dimensions, duration, codecs, previews and other technical metadata. 51.419 Moderation may inspect representative frames or other signals for videos where supported. 51.420 A processing failure does not automatically mean a policy violation; the user may be asked to retry. 51.421 A moderation failure should fail closed for high-risk categories when required by Sparkle's safety policy. 51.422 Content that passes one classifier may still be restricted by another safety rule or by user reports. 51.423 Human review may override an automated decision. 51.424 Automated moderation should record the model/service version or policy version needed to explain a decision where feasible. 51.425 Media that is never published may still have temporary technical copies during processing and should be subject to retention controls. 51.426 Users should not assume that uploading and immediately deleting content prevents all processing or legal retention."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-52",
+      "number": "52",
+      "title": "Premium and Monetization Risk Controls",
+      "paragraphs": [
+        "Paid features increase consumer, payment, fraud and reputational risks. 52.427 Premium plan descriptions should state material limits before purchase. 52.428 A premium badge or feature should not imply safety, verification or legal immunity. 52.429 Premium users remain subject to the same Community Guidelines. 52.430 Premium status must not suppress reports, moderation or lawful requests. 52.431 Subscription cancellations should be possible through the relevant purchase channel. 52.432 Refund decisions should be documented and consistently applied. 52.433 Fraudulent payment activity may result in immediate suspension of monetization. 52.434 Creator payouts may require identity, tax or payment verification. 52.435 Sparkle may delay payout while investigating fraud or chargebacks, subject to applicable law and the relevant payout agreement. 52.436 Monetization eligibility can be changed prospectively when Sparkle changes its program rules."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-53",
+      "number": "53",
+      "title": "Record-Keeping and Audit Controls",
+      "paragraphs": [
+        "Operational records support appeals, security, compliance and reliable enforcement. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 21 53.437 Sparkle should maintain timestamps in a consistent time standard internally, preferably UTC. 53.438 Moderation events should identify the relevant account, content, policy version and action. 53.439 Audit records should be protected against ordinary user modification. 53.440 Access to audit records should be role-based and logged. 53.441 Appeal outcomes should be linked to the original enforcement case. 53.442 Security events should be retained according to a documented security-retention schedule. 53.443 Payment records should be retained according to applicable financial and legal requirements. 53.444 Records should not be retained indefinitely without a documented purpose. 53.445 Aggregated reporting may be used to measure moderation quality without exposing individual identities. 53.446 Periodic audits should test false positives, false negatives, disparate impact, appeal reversals and enforcement consistency."
+      ],
+      "subsections": null
+    },
+    {
+      "id": "section-54",
+      "number": "54",
+      "title": "Launch Readiness and Governance",
+      "paragraphs": [
+        "The following controls should be completed before the Terms are published as a final legal document. 54.447 Insert the exact legal entity name and registration details. 54.448 Insert registered office/address where legally required. 54.449 Configure official support, privacy, legal, security and law-enforcement contact channels. 54.450 Publish the final Privacy Notice and ensure it matches actual data flows. 54.451 Publish the final Community Guidelines and ensure enforcement logic matches the written rules. 54.452 Confirm data-controller/processor registration requirements and compliance position with Kenyan counsel/ODPC guidance. 54.453 Document vendor relationships for hosting, media processing, analytics, authentication, messaging and payments. 54.454 Implement an appeal mechanism before launching automated enforcement. 54.455 Implement an emergency child-safety and non-consensual intimate-media escalation process. 54.456 Implement account deletion and data-subject request workflows. 54.457 Implement a breach-response plan and incident log. 54.458 Review consumer purchase, subscription, refund and cancellation flows. 54.459 Review age gating and child-safety controls. 54.460 Review Ghost Mode for privacy leaks through search, recommendations, notifications, analytics and caches. 54.461 Conduct penetration testing and security review before processing significant user data at scale. 54.462 Have Kenyan counsel review the final Terms, Privacy Notice, Community Guidelines and commercial/payment terms together. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 22 Legal & Regulatory Reference Framework The following sources were checked for this 21 August 2026 draft. They are included as navigation references, not as a claim that every clause of these Terms is required by each statute. The final agreement should be reviewed against the current law at publication time. Constitution of Kenya, 2010 — Kenya Law Articles 24, 27, 28, 31 and 33 are especially relevant to proportionality, equality, dignity, privacy and expression. https://new.kenyalaw.org/akn/ke/act/2010/constitution Data Protection Act, 2019 — Kenya Law Framework for personal-data processing, data-subject rights and controller/processor obligations. https://new.kenyalaw.org/akn/ke/act/2019/24/eng@2019-11-15 Data Protection (General) Regulations — Kenya Law Includes rules concerning consent, lawful bases and data-subject rights. https://new.kenyalaw.org/akn/ke/act/ln/2021/263/eng@2022-12-31 Data Protection (Registration of Data Controllers and Data Processors) Regulations — Kenya Law Registration framework for controllers and processors. https://new.kenyalaw.org/akn/ke/act/ln/2021/265/eng@2022-12-31 Data Protection (Complaints Handling Procedure and Enforcement) Regulations — Kenya Law Complaints and enforcement framework under the data-protection regime. https://new.kenyalaw.org/akn/ke/act/ln/2021/264/eng@2022-12-31 Computer Misuse and Cybercrimes Act — Kenya Law Cybercrime, unauthorized access, identity theft, service-provider and related provisions. https://new.kenyalaw.org/akn/ke/act/2018/5/eng@2025-11-04 Computer Misuse and Cybercrimes (Amendment) Act, 2025 — Kenya Law 2025 amendment to the Computer Misuse and Cybercrimes Act; commenced 4 November 2025. https://new.kenyalaw.org/akn/ke/act/2025/17 Computer Misuse and Cybercrime Management Regulations, 2024 — Kenya Law Related regulations concerning cybercrime and critical-information infrastructure. https://new.kenyalaw.org/akn/ke/act/ln/2024/44/eng@2024-02-16 Consumer Protection Act — Kenya Law Consumer and transaction protections relevant to paid digital services. https://new.kenyalaw.org/akn/ke/act/2012/46/eng@2022-12-31 Office of the Data Protection Commissioner — Kenya Official regulator information and data-subject rights resources. https://www.odpc.go.ke/ Legal-source caution: URLs are provided for navigation. Laws and regulations can be amended, replaced or interpreted by courts and regulators. Sparkle should verify the current text immediately before publication and obtain legal advice for its exact corporate structure, processing activities, commercial model and user base. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 23 Publication Configuration — Required Before Release ■ Exact contracting legal entity name: ________________________________________________ ■ Company registration number: _____________________________________________________ ■ Registered office / service address: _______________________________________________ ■ Official Sparkle website: _________________________________________________________ ■ General support email: ____________________________________________________________ ■ Privacy / data-subject request channel: ____________________________________________ ■ Legal notices email: ______________________________________________________________ ■ Security / vulnerability disclosure: ______________________________________________ ■ Law-enforcement request channel: _________________________________________________ ■ DPO / privacy officer name and contact, if applicable: ______________________________ ■ Official app-store publisher identity: ______________________________________________ ■ Payment provider / merchant-of-record details: ____________________________________ ■ Premium subscription cancellation instructions: ___________________________________ ■ Refund policy URL / in-app route: _________________________________________________ ■ Community Guidelines URL / in-app route: __________________________________________ ■ Privacy Notice URL / in-app route: _________________________________________________ ■ Cookie / tracking notice URL / in-app route: _______________________________________ ■ Data retention schedule approved: YES / NO ■ Child-safety escalation procedure approved: YES / NO ■ Incident-response plan approved: YES / NO ■ Kenyan counsel review completed: YES / NO Do not publish this document as a final legal agreement while material placeholders remain unresolved. The product may display a short-form acceptance summary in-app, but the full version should remain accessible to users. SPARKLE  GENERAL TERMS & CONDITIONS  KENYA 24 Approval & Version Control Document Sparkle General Terms & Conditions Version 1.0 Effective date 21 August 2026 Prepared for Sparkle Team Founder / CEO designation Don Babu Official account @sparkleofficialaccount Jurisdictional focus Kenya Status Production legal-policy draft — counsel review required Next scheduled review At least annually and whenever a material feature, law, regulator requirement or processing activity changes Sparkle Team Founder / CEO: Don Babu Official account: @sparkleofficialaccount Signature / approval: ______________________________________ Date: __________________ Legal counsel review: _______________________________________ Date: __________________ Final publication statement: The published version should identify the actual contracting legal entity and provide functioning official contact channels. If Sparkle later changes its operator, corporate structure, payment model or data-processing purposes, this document must be reviewed and republished as appropriate."
+      ],
+      "subsections": null
+    }
+  ],
+  "sha256Hash": "279a8233608344a303f4e1d7d7890c11e4516c4ddf3052214df238031f4daa2e"
+};

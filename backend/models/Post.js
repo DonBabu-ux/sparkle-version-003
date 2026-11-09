@@ -596,7 +596,7 @@ SELECT p.*,
                 p.group_id, p.location, p.created_at, p.category, p.is_seed,
                 -- Raw counters alongside the aliased ones. The feed consumer reads spark_count /
                 -- comment_count / reshare_count / share_count, and this SELECT only ever exposed the
-                -- `sparks` / `comments` / `shares` aliases, so every post in the feed rendered 0
+                -- Sparks / Comments / Shares aliases, so every post in the feed rendered 0
                 -- likes and 0 shares even when the rows had real counts.
                 p.spark_count, p.comment_count, p.reshare_count, p.share_count,
                 u.username, u.name as user_name, u.avatar_url,
@@ -609,8 +609,13 @@ SELECT p.*,
                             WHERE (p.created_at > NOW() - INTERVAL 30 DAY OR p.is_seed = 1 OR u.username LIKE 'seed_user_%')
                             AND (p.scheduled_at IS NULL OR p.scheduled_at <= NOW())
                             AND p.group_id IS NULL
+                            -- Muted authors never enter the feed. The mute write
+                            -- has existed since social.controller.js but nothing
+                            -- read user_mutes on this path, so muting someone
+                            -- persisted a row that changed nothing.
+                            AND p.user_id NOT IN (SELECT muted_id FROM user_mutes WHERE muter_id = ?)
                             ORDER BY p.created_at DESC LIMIT 500
-                        `).then(([r]) => r).catch(() => [])
+                        `, [currentUserId]).then(([r]) => r).catch(() => [])
                         : null,
                 ]);
                 if (needRecent) {
@@ -817,11 +822,13 @@ SELECT p.*,
             // FAIL-SAFE: Return recent public posts
             try {
                 const [fallback] = await pool.query(
-                    `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 
-                            p.spark_count as sparks, p.comment_count as comments
-                     FROM posts p JOIN users u ON p.user_id = u.user_id 
-                     WHERE p.post_type = 'public' ORDER BY p.created_at DESC LIMIT ?`,
-                    [Number(limit) || 20]
+                     `SELECT p.*, u.username, u.name as user_name, u.avatar_url, 
+                             p.spark_count as sparks, p.comment_count as comments
+                      FROM posts p JOIN users u ON p.user_id = u.user_id 
+                      WHERE p.post_type = 'public'
+                      AND p.user_id NOT IN (SELECT muted_id FROM user_mutes WHERE muter_id = ?)
+                      ORDER BY p.created_at DESC LIMIT ?`,
+                     [currentUserId, Number(limit) || 20]
                 );
                 
                 return (fallback || []).map(p => ({

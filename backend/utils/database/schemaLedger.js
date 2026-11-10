@@ -43,8 +43,10 @@ const MIGRATION_RUN = [
     // too instead of silently losing the column again.
     { file: '20261104_recovery_token_hash.js', verify: ['account_recovery_requests.verified_token_hash'] },
     // Moments hardening: FKs for moment_hashtags/moment_likes, media_type
-    // backfill, video_url made nullable. Idempotent throughout.
-    { file: '20261106_harden_moments.js', verify: ['moments.media_type', 'fk_moment_hashtags_moment', 'fk_moment_likes_moment'] },
+    // backfill, video_url made nullable. Idempotent throughout. Only the backfill
+    // is a guaranteed artifact — the foreign keys are best-effort inside that
+    // migration, so they are deliberately not asserted here.
+    { file: '20261106_harden_moments.js', verify: ['moments.media_type'] },
     // Engagement Engine Phase 1a: the ledger the unread-message reminder
     // worker writes to. Created before the worker's first sweep.
     { file: '20261107_message_reminders.js', verify: [] },
@@ -212,7 +214,11 @@ const assertTablesExist = async (tables) => {
 };
 
 /**
- * Artifacts a migration declares, as `table` or `table.column`.
+ * Artifacts a migration declares, in one of three forms:
+ *
+ *   table              - the table exists
+ *   table.column        - the column exists
+ *   constraint:name    - the named constraint exists
  *
  * The runner used to skip a migration on its ledger row alone. That row
  * recorded a claim, not a completion: `20261102_align_collations.js` carries an
@@ -222,10 +228,25 @@ const assertTablesExist = async (tables) => {
  *
  * Checking the artifacts instead of trusting the row means a stamp that lies
  * costs one extra idempotent run, not a silent gap.
+ *
+ * List only what the migration actually guarantees. 20261106_harden_moments
+ * creates its foreign keys best-effort and logs failures, so they are not
+ * required artifacts — asserting them would make every subsequent run re-run it
+ * forever.
  */
 const assertArtifactsExist = async (artifacts) => {
     for (const spec of artifacts) {
-        if (spec.includes('.')) {
+        if (spec.startsWith('constraint:')) {
+            const name = spec.slice('constraint:'.length);
+            const [rows] = await pool.query(
+                `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+                 WHERE CONSTRAINT_SCHEMA = DATABASE() AND CONSTRAINT_NAME = ?`,
+                [name]
+            );
+            if (Number(rows[0].n) === 0) {
+                throw new Error(`migration verification failed: constraint ${name} missing after run`);
+            }
+        } else if (spec.includes('.')) {
             const [table, column] = spec.split('.');
             const [rows] = await pool.query(
                 `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.COLUMNS

@@ -265,6 +265,15 @@ function exclusionSets(row, ownerLists) {
  */
 function canView(row, viewerId, ctx) {
     if (!row) return false;
+    // A taken-down reel is not visible to anyone but its owner, regardless of
+    // audience. This is defence in depth: the pool SQL filters on deleted_at at
+    // write time, but the ranked-feed cache lives 30s and the following pool
+    // 60s, so a stale entry could otherwise keep serving a takedown until it
+    // expires. The owner still sees their own taken-down moment so they can
+    // restore it.
+    if (row.deleted_at && !(viewerId && String(row.user_id) === String(viewerId))) {
+        return false;
+    }
     if (viewerId && String(row.user_id) === String(viewerId)) return true;
 
     const audience = row.audience || 'public';

@@ -4,6 +4,8 @@ const momentsController = require('../../controllers/moments.controller');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { upload, momentsUpload } = require('../../middleware/upload.middleware');
 const { mutationRateLimiter } = require('../../middleware/security.middleware');
+const { validate } = require('../../middleware/validation.middleware');
+const mv = require('../../validators/moment.validator');
 
 
 // Stream endpoints
@@ -18,44 +20,45 @@ router.get('/suggestions', authMiddleware, momentsController.getMomentSuggestion
 
 // Saved stickers (created from the caller's own reels) — also above '/:id'
 router.get('/stickers', authMiddleware, momentsController.listStickers);
-router.post('/stickers', authMiddleware, mutationRateLimiter, momentsController.saveSticker);
-router.delete('/stickers/:id', authMiddleware, momentsController.deleteSticker);
+router.post('/stickers', authMiddleware, mutationRateLimiter, validate(mv.saveStickerSchema, 'body'), momentsController.saveSticker);
+router.delete('/stickers/:id', authMiddleware, validate(mv.idParam, 'params'), momentsController.deleteSticker);
 
 // CRUD operations
-router.get('/:id', authMiddleware, momentsController.getMomentById);
+router.get('/:id', authMiddleware, validate(mv.idParam, 'params'), momentsController.getMomentById);
 router.post('/',
     authMiddleware,
     mutationRateLimiter,
     momentsUpload.single('media'),
+    validate(mv.createMomentSchema, 'body'),
     momentsController.createMoment
 );
 
 // Interaction endpoints
-router.put('/:id', authMiddleware, momentsController.updateMomentPrivacy);
-router.post('/:id/pin', authMiddleware, momentsController.toggleMomentPin);
-router.post('/:id/spark', authMiddleware, mutationRateLimiter, momentsController.sparkMoment);
-router.post('/:id/save', authMiddleware, mutationRateLimiter, momentsController.saveMoment);
+router.put('/:id', authMiddleware, validate(mv.updatePrivacySchema, 'body'), momentsController.updateMomentPrivacy);
+router.post('/:id/pin', authMiddleware, validate(mv.idParam, 'params'), momentsController.toggleMomentPin);
+router.post('/:id/spark', authMiddleware, mutationRateLimiter, validate(mv.idParam, 'params'), momentsController.sparkMoment);
+router.post('/:id/save', authMiddleware, mutationRateLimiter, validate(mv.idParam, 'params'), momentsController.saveMoment);
 router.post('/:id/share', authMiddleware, momentsController.trackShare);
-router.post('/:id/view', authMiddleware, momentsController.trackView);
-router.get('/:id/viewers', authMiddleware, momentsController.getMomentViewers);
-router.post('/:id/engagement', authMiddleware, momentsController.trackEngagement);
-router.get('/:id/share-data', authMiddleware, momentsController.getShareData);
+router.post('/:id/view', authMiddleware, validate(mv.idParam, 'params'), momentsController.trackView);
+router.get('/:id/viewers', authMiddleware, validate(mv.idParam, 'params'), momentsController.getMomentViewers);
+router.post('/:id/engagement', authMiddleware, validate(mv.trackEngagementSchema, 'body'), momentsController.trackEngagement);
+router.get('/:id/share-data', authMiddleware, validate(mv.idParam, 'params'), momentsController.getShareData);
 
 // Comment endpoints
-router.get('/:id/comments', authMiddleware, momentsController.getComments);
-router.post('/:id/comments', authMiddleware, mutationRateLimiter, momentsController.addComment);
-router.post('/comment/:id/like', authMiddleware, mutationRateLimiter, momentsController.likeComment);
+router.get('/:id/comments', authMiddleware, validate(mv.idParam, 'params'), momentsController.getComments);
+router.post('/:id/comments', authMiddleware, mutationRateLimiter, validate(mv.addCommentSchema, 'body'), momentsController.addComment);
+router.post('/comment/:id/like', authMiddleware, mutationRateLimiter, validate(mv.commentIdParam, 'params'), momentsController.likeComment);
 // Edit own comment (PUT) — server-enforced 48h window, owner only
-router.put('/comment/:id', authMiddleware, mutationRateLimiter, momentsController.editComment);
+router.put('/comment/:id', authMiddleware, mutationRateLimiter, validate(mv.editCommentSchema, 'body'), momentsController.editComment);
 // Delete own comment (DELETE) — ownership re-verified in the database
-router.delete('/comment/:id', authMiddleware, mutationRateLimiter, momentsController.deleteComment);
+router.delete('/comment/:id', authMiddleware, validate(mv.commentIdParam, 'params'), momentsController.deleteComment);
 // Reel-owner / platform-moderator removal of someone else's comment:
 // requires a moderation reason, writes an audit record, notifies the author
-router.post('/comment/:id/moderate', authMiddleware, mutationRateLimiter, momentsController.moderateComment);
+router.post('/comment/:id/moderate', authMiddleware, mutationRateLimiter, validate(mv.moderateCommentSchema, 'body'), momentsController.moderateComment);
 // Report a comment to platform moderation (NEVER deletes the comment)
-router.post('/comment/:id/report', authMiddleware, mutationRateLimiter, momentsController.reportComment);
+router.post('/comment/:id/report', authMiddleware, mutationRateLimiter, validate(mv.reportSchema, 'body'), momentsController.reportComment);
 // Single comment fetch (for edit pre-population / permission checks)
-router.get('/comment/:id', authMiddleware, momentsController.getComment);
+router.get('/comment/:id', authMiddleware, validate(mv.commentIdParam, 'params'), momentsController.getComment);
 
 // Guarantee the comment schema (is_deleted/updated_at columns, moderation
 // audit log, comment reports) exists before the first comment request lands.
@@ -64,13 +67,13 @@ router.get('/comment/:id', authMiddleware, momentsController.getComment);
 momentsController.prewarm().catch(() => { /* logged by prewarm */ });
 
 // User interaction
-router.post('/user/:userId/follow', authMiddleware, momentsController.followUser);
+router.post('/user/:userId/follow', authMiddleware, validate(mv.userIdParam, 'params'), momentsController.followUser);
 
 // Creator dashboard (own moments + takedown)
-router.delete('/:id', authMiddleware, momentsController.deleteMoment);
-router.post('/:id/restore', authMiddleware, momentsController.restoreMoment);
+router.delete('/:id', authMiddleware, validate(mv.idParam, 'params'), momentsController.deleteMoment);
+router.post('/:id/restore', authMiddleware, validate(mv.idParam, 'params'), momentsController.restoreMoment);
 
 // DashboardAPI Compatibility — profile REELS grid (audience-enforced)
-router.get('/users/:userId/moments', authMiddleware, momentsController.getUserMoments);
+router.get('/users/:userId/moments', authMiddleware, validate(mv.userIdParam, 'params'), momentsController.getUserMoments);
 
 module.exports = router;

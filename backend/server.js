@@ -85,15 +85,22 @@ app.use(cors({
             'https://sparkle-version-003-1-f4v3.onrender.com',
             'https://sparkle-app-backup.onrender.com'
         ];
-        
-        // Allow requests with no origin (like mobile apps or curl requests)
+
+        // Allow requests with no origin (mobile apps, curl, server-to-server).
         if (!origin) return callback(null, true);
-        
-        // Robust check for localhost and Capacitor origins
-        const isLocalhost = origin.includes('localhost') || origin.startsWith('capacitor://');
+
+        // Exact match only. `origin.includes('localhost')` allowed any host
+        // containing that substring — http://localhost.evil.com and
+        // https://localhost.attacker.io both passed, and with credentials: true
+        // below that is a credentialed cross-origin request from a page the
+        // attacker controls, riding a logged-in user's cookies.
+        // The NODE_ENV escape hatch was equally wide: NODE_ENV is unset unless
+        // someone sets it, so a deploy with a typo allowed every origin with
+        // credentials. Development opt-in is now an explicit variable.
         const isAllowed = allowedOrigins.indexOf(origin) !== -1;
-        
-        if (isLocalhost || isAllowed || process.env.NODE_ENV !== 'production') {
+        const devOpen = process.env.CORS_ALLOW_ALL === '1' && process.env.NODE_ENV !== 'production';
+
+        if (isAllowed || devOpen) {
             return callback(null, true);
         }
         return callback(new Error(`CORS not allowed for origin: ${origin}`), false);

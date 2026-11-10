@@ -109,14 +109,19 @@ const CATEGORY_MANIFEST = {
     },
     marketplace: {
         title: 'Marketplace Listings',
-        query: `SELECT item_id, title, price, currency, category, condition_type, status, created_at
-                FROM marketplace_items WHERE seller_id = ? ORDER BY created_at DESC LIMIT 100`,
+        // Was `marketplace_items` with item_id/currency/condition_type. That
+        // table does not exist — the live schema has marketplace_listings keyed
+        // on listing_id, with `condition` rather than condition_type and no
+        // currency column at all (Sparkle is single-currency KES). This section
+        // threw ER_NO_SUCH_TABLE on every data-export request.
+        query: `SELECT listing_id, title, price, category, condition, status, created_at
+                FROM marketplace_listings WHERE seller_id = ? ORDER BY created_at DESC LIMIT 100`,
         formatters: (rows) => rows.map(r => ({
-            'Item ID': r.item_id,
+            'Listing ID': r.listing_id,
             'Title': r.title,
-            'Price': `${r.currency || 'USD'} ${r.price}`,
+            'Price': `KES ${r.price}`,
             'Category': r.category || 'General',
-            'Condition': r.condition_type || '',
+            'Condition': r.condition || '',
             'Status': r.status || 'active',
             'Listed At': r.created_at ? new Date(r.created_at).toISOString() : ''
         }))

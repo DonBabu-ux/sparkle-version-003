@@ -365,12 +365,31 @@ const verify2FA = async (req, res) => {
         if (Array.isArray(otpRecords)) {
             for (const rec of otpRecords) {
                 if (rec.seconds_left > 0) {
+                    // A 6-digit CSPRNG code against a 10-minute window. The
+                    // column existed and was read, but never incremented or
+                    // checked, so an attacker with an IP pool could brute-force
+                    // the 10^6 space until they hit. Cap at 5 attempts, then
+                    // void the code. No voided_at column exists, so verified_at
+                    // is reused as the dead marker: the query above already
+                    // filters on `verified_at IS NULL`, which means a voided
+                    // code is already excluded from every later attempt.
+                    if (Number(rec.attempts || 0) >= 5) {
+                        await query(
+                            'UPDATE otp_verifications SET verified_at = NOW() WHERE verification_id = ?',
+                            [rec.verification_id]
+                        );
+                        continue;
+                    }
                     const match = await bcrypt.compare(cleanCode, rec.code_hash);
                     if (match) {
                         verified = true;
                         await query('UPDATE otp_verifications SET verified_at = NOW() WHERE verification_id = ?', [rec.verification_id]);
                         break;
                     }
+                    await query(
+                        'UPDATE otp_verifications SET attempts = attempts + 1 WHERE verification_id = ?',
+                        [rec.verification_id]
+                    );
                 }
             }
         }

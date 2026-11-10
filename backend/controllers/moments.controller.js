@@ -1072,9 +1072,25 @@ const likeComment = async (req, res) => {
             await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0), updated_at = updated_at WHERE comment_id = ?', [id]);
             action = 'unliked';
         } else {
-            await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
-            await pool.query('UPDATE moment_comments SET like_count = like_count + 1, updated_at = updated_at WHERE comment_id = ?', [id]);
-            action = 'liked';
+            // The EXISTS check above is racy: two fast taps on a comment that
+            // was never liked can both find no row and both try to INSERT,
+            // and the composite PRIMARY KEY (comment_id, user_id) makes the
+            // second one fail with ER_DUP_ENTRY, which used to 500.
+            //
+            // Treat losing that race as already-liked and finish the unlike,
+            // which is what the user asked for by tapping twice. This follows
+            // the same ER_DUP_ENTRY handling as campus.controller.js:596.
+            try {
+                await pool.query('INSERT INTO moment_comment_likes (comment_id, user_id) VALUES (?, ?)', [id, userId]);
+                await pool.query('UPDATE moment_comments SET like_count = like_count + 1, updated_at = updated_at WHERE comment_id = ?', [id]);
+                action = 'liked';
+            } catch (error) {
+                const dup = error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'));
+                if (!dup) throw error;
+                await pool.query('DELETE FROM moment_comment_likes WHERE comment_id = ? AND user_id = ?', [id, userId]);
+                await pool.query('UPDATE moment_comments SET like_count = GREATEST(like_count - 1, 0), updated_at = updated_at WHERE comment_id = ?', [id]);
+                action = 'unliked';
+            }
         }
 
         const [updated] = await pool.query('SELECT like_count FROM moment_comments WHERE comment_id = ?', [id]);
@@ -1089,10 +1105,14 @@ const likeComment = async (req, res) => {
 };
 
 const followUser = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const currentUserId = req.user.user_id;
+    // These two are read from the catch block below, which is a SIBLING block
+    // of the try, not nested inside it: a const declared inside the try is
+    // scoped to the try block and is simply not visible in the catch. Keeping
+    // them here makes the duplicate-key recovery reachable.
+    const { userId } = req.params;
+    const currentUserId = req.user.user_id;
 
+    try {
         if (userId === currentUserId) {
             return res.status(400).json({ error: 'Cannot follow yourself' });
         }
@@ -1116,8 +1136,8 @@ const followUser = async (req, res) => {
 
             // Create notification
             await pool.query(
-                `INSERT INTO notifications 
-                (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url) 
+                `INSERT INTO notifications
+                (notification_id, user_id, type, title, content, related_id, related_type, actor_id, action_url)
                 VALUES (UUID(), ?, 'follow', 'New Follower', 'Someone started following you.', ?, 'user', ?, '/connect')`,
                 [userId, currentUserId, currentUserId]
             );
@@ -1125,6 +1145,22 @@ const followUser = async (req, res) => {
             res.json({ status: 'success', action: 'followed' });
         }
     } catch (error) {
+        // Tapping follow twice fast can win the EXISTS check above twice and
+        // both try to INSERT, so the second hits the unique key on
+        // follows and used to 500. Same handling as campus.controller.js:596 and
+        // this file's likeComment: losing that race means the follow already
+        // exists, so finish the unfollow the user asked for.
+        if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'))) {
+            try {
+                await pool.query(
+                    'DELETE FROM follows WHERE follower_id = ? AND following_id = ?',
+                    [currentUserId, userId]
+                );
+                return res.json({ status: 'success', action: 'unfollowed' });
+            } catch (cleanupError) {
+                logger.error('Follow User cleanup failed:', cleanupError);
+            }
+        }
         logger.error('Follow User Error:', error);
         res.status(500).json({ error: error.message });
     }

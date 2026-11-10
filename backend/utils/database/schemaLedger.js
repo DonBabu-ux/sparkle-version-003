@@ -7,6 +7,9 @@ const logger = require('../logger');
 const LEDGER_TABLE = 'schema_migrations';
 const MIGRATIONS_DIR = path.join(__dirname, '../../migrations');
 
+// Stamps that never meant "the work happened".
+const NOT_APPLIED = /unreviewed|needs disposition|not applied|no-op/i;
+
 // Files whose objects are verified missing and are executed by the runner.
 // `verify`: tables that must exist after the run (some .js migrations swallow errors).
 const MIGRATION_RUN = [
@@ -38,10 +41,10 @@ const MIGRATION_RUN = [
     // Adds verified_token_hash, whose absence broke account recovery in
     // production. Applied by hand once; registering it so a fresh deploy gets it
     // too instead of silently losing the column again.
-    { file: '20261104_recovery_token_hash.js', verify: [] },
+    { file: '20261104_recovery_token_hash.js', verify: ['account_recovery_requests.verified_token_hash'] },
     // Moments hardening: FKs for moment_hashtags/moment_likes, media_type
     // backfill, video_url made nullable. Idempotent throughout.
-    { file: '20261106_harden_moments.js', verify: [] },
+    { file: '20261106_harden_moments.js', verify: ['moments.media_type', 'fk_moment_hashtags_moment', 'fk_moment_likes_moment'] },
     // Engagement Engine Phase 1a: the ledger the unread-message reminder
     // worker writes to. Created before the worker's first sweep.
     { file: '20261107_message_reminders.js', verify: [] },
@@ -110,6 +113,14 @@ const ensureLedgerTable = async () => {
 const ledgerHas = async (name) => {
     const [rows] = await pool.query(`SELECT 1 FROM ${LEDGER_TABLE} WHERE name = ? LIMIT 1`, [name]);
     return rows.length > 0;
+};
+
+const ledgerNote = async (name) => {
+    const [rows] = await pool.query(
+        `SELECT note FROM ${LEDGER_TABLE} WHERE name = ? LIMIT 1`,
+        [name]
+    );
+    return rows.length ? (rows[0].note || '') : null;
 };
 
 const ledgerMark = async (name, note) => {
@@ -200,45 +211,113 @@ const assertTablesExist = async (tables) => {
     }
 };
 
+/**
+ * Artifacts a migration declares, as `table` or `table.column`.
+ *
+ * The runner used to skip a migration on its ledger row alone. That row
+ * recorded a claim, not a completion: `20261102_align_collations.js` carries an
+ * "unreviewed" stamp on the live database, and the recovery-token migration
+ * carried an "applied" stamp while its column was still absent. Both were
+ * skipped forever, which is how the account-recovery column went missing.
+ *
+ * Checking the artifacts instead of trusting the row means a stamp that lies
+ * costs one extra idempotent run, not a silent gap.
+ */
+const assertArtifactsExist = async (artifacts) => {
+    for (const spec of artifacts) {
+        if (spec.includes('.')) {
+            const [table, column] = spec.split('.');
+            const [rows] = await pool.query(
+                `SELECT COUNT(*) AS n FROM INFORMATION_SCHEMA.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?`,
+                [table, column]
+            );
+            if (Number(rows[0].n) === 0) {
+                throw new Error(`migration verification failed: column ${spec} missing after run`);
+            }
+        } else {
+            await assertTablesExist([spec]);
+        }
+    }
+};
+
 // Apply pending migrations and record a disposition for every file.
 // Throws on failure so the version gate is not marked and the pass retries.
 const reconcileMigrations = async () => {
     const unreviewed = [];
+    const repaired = [];
     for (const f of listMigrationFiles()) {
         const key = `migration:${f}`;
-        if (await ledgerHas(key)) continue;
         const runSpec = MIGRATION_RUN.find(r => r.file === f);
-        if (runSpec) {
-            logger.info(`[schema] running migration ${f}`);
-            await runMigration(f);
-            await assertTablesExist(runSpec.verify || []);
-            await ledgerMark(key, 'applied by schema runner');
-            logger.info(`[schema] applied ${f}`);
-        } else if (MIGRATION_NOTES[f]) {
-            await ledgerMark(key, MIGRATION_NOTES[f]);
-            logger.info(`[schema] recorded ${f}: ${MIGRATION_NOTES[f]}`);
-        } else {
-            // Deliberately NOT marking the gate row.
-            //
-            // The previous implementation stamped the gate row with
-            // 'unreviewed - needs disposition'. That turned "I do not know what
-            // this migration is" into a one-way door: ledgerHas() returned true
-            // on the next boot, so the file was skipped forever and looked
-            // handled. Nine migrations sat in that state, four of them stories
-            // work, and the recovery-token column that broke account recovery
-            // was one of them.
-            //
-            // Leave the gate row absent so the file is reconsidered on every
-            // boot until a human gives it a real disposition, and record the
-            // fact under a NON-gate key so the warning stays visible.
-            unreviewed.push(f);
-            logger.error(
-                `[schema] migration ${f} has NO DISPOSITION - it will NOT run. ` +
-                `Add it to MIGRATION_RUN (with a verify list) to execute it, or to ` +
-                `MIGRATION_NOTES with a reason. Every boot repeats this warning until then.`
-            );
-            await ledgerMark(`unreviewed:${key}`, 'no disposition - will not run; add to MIGRATION_RUN or MIGRATION_NOTES');
+        if (!runSpec) {
+            if (MIGRATION_NOTES[f]) {
+                if (!(await ledgerHas(key))) {
+                    await ledgerMark(key, MIGRATION_NOTES[f]);
+                    logger.info(`[schema] recorded ${f}: ${MIGRATION_NOTES[f]}`);
+                }
+            } else {
+                // Deliberately NOT marking the gate row.
+                //
+                // The previous implementation stamped the gate row with
+                // 'unreviewed - needs disposition'. That turned "I do not know what
+                // this migration is" into a one-way door: ledgerHas() returned true
+                // on the next boot, so the file was skipped forever and looked
+                // handled. Nine migrations sat in that state, four of them stories
+                // work, and the recovery-token column that broke account recovery
+                // was one of them.
+                //
+                // Leave the gate row absent so the file is reconsidered on every
+                // boot until a human gives it a real disposition, and record the
+                // fact under a NON-gate key so the warning stays visible.
+                unreviewed.push(f);
+                logger.error(
+                    `[schema] migration ${f} has NO DISPOSITION - it will NOT run. ` +
+                    `Add it to MIGRATION_RUN (with a verify list) to execute it, or to ` +
+                    `MIGRATION_NOTES with a reason. Every boot repeats this warning until then.`
+                );
+                await ledgerMark(`unreviewed:${key}`, 'no disposition - will not run; add to MIGRATION_RUN or MIGRATION_NOTES');
+            }
+            continue;
         }
+
+        // This file runs. Decide whether it needs to, by looking at what it is
+        // supposed to have done rather than at the row claiming it did.
+        const artifacts = runSpec.verify || [];
+        const stamped = await ledgerNote(key);
+        const neverRan = stamped === null || NOT_APPLIED.test(stamped);
+        let missing = false;
+        if (!neverRan && artifacts.length > 0) {
+            try {
+                await assertArtifactsExist(artifacts);
+            } catch (_) {
+                missing = true;
+            }
+        }
+
+        if (stamped !== null && !neverRan && !missing) {
+            continue; // genuinely applied
+        }
+
+        if (stamped !== null && (neverRan || missing)) {
+            repaired.push(f);
+            logger.warn(
+                `[schema] ${f} is stamped "${String(stamped).slice(0, 60)}" but its ` +
+                `${missing ? 'artifacts are missing' : 'stamp never meant applied'} — re-running (idempotent).`
+            );
+        }
+
+        logger.info(`[schema] running migration ${f}`);
+        await runMigration(f);
+        await assertArtifactsExist(artifacts);
+        await ledgerMark(key, 'applied by schema runner');
+        logger.info(`[schema] applied ${f}`);
+    }
+
+    if (repaired.length > 0) {
+        logger.warn(
+            `[schema] re-ran ${repaired.length} migration(s) whose ledger stamp did not match the database: ` +
+            repaired.join(', ')
+        );
     }
 
     if (unreviewed.length > 0) {

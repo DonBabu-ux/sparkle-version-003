@@ -6,6 +6,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 import OtaService from './services/OtaService';
 import { initSafeAreaInsets } from './services/safeAreaInsets';
+import { initKeyboardHeight } from './services/keyboardHeight';
 import { defineCustomElements } from '@ionic/pwa-elements/loader';
 import { ToastProvider } from './utils/toast';
 import realtimeLogger from './utils/realtimeTrace';
@@ -92,6 +93,14 @@ import { ServerFailoverManager } from './services/ServerFailoverManager';
     // SparkleInsets plugin resolves exact system-bar/cutout padding and keeps
     // --safe-area-inset-* live (chat header jump / cutout overlap fix).
     initSafeAreaInsets();
+
+    // Publish the measured keyboard height as --ime-height. Separate from the
+    // inset pipeline above, which handles the system bars: this one reads
+    // keyboardWillShow/keyboardWillHide from @capacitor/keyboard, and is what
+    // keeps the composer above the keyboard on any device. It used to rely on
+    // the SparkleInsets plugin reporting the IME inset, which was never verified
+    // and appears not to fire — the insets that do work come from env().
+    initKeyboardHeight();
 
     ReactDOM.createRoot(document.getElementById('root')!).render(
       <React.StrictMode>

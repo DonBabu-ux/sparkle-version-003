@@ -8,10 +8,11 @@
 	},
 	"plugins": {
 		"Keyboard": {
-			"resize": "body",
+			"resize": "none",
 			"style": "DARK",
 			"resizeOnFullScreen": true
 		},
+		"_comment": "@capacitor/keyboard is installed and its events drive the layout. An earlier comment here claimed keyboard handling was done by the SparkleInsets native plugin padding the WebView by the IME inset — that padding was removed from SparkleInsetsPlugin.java, so it described a mechanism that no longer existed, and the plugin was not installed either. resize is 'none' rather than 'body' because this app sizes its shell in dvh in 45 places (AppScreen.tsx, PullToRefreshProvider.tsx, and the modals), and dvh is viewport-relative: shrinking <body> would not reach any of them, so resize:body would look configured while doing nothing. The keyboard height is instead taken from keyboardWillShow/keyboardWillHide and applied to --ime-height, which is the device-independent signal; see frontend/src/services/keyboardHeight.ts. The SparkleInsets plugin is retained only for the status and navigation bar insets.",
 		"StatusBar": {
 			"overlaysWebView": true,
 			"style": "DARK",

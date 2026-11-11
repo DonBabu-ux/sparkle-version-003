@@ -33,6 +33,26 @@ const clampPage = (value, fallback = 0) => {
     return Math.min(Math.max(parsed, 0), MAX_PAGE);
 };
 
+/**
+ * Answer a 500 without echoing internals to the client.
+ *
+ * 23 handlers here did `res.status(500).json({ error: error.message })`, which
+ * returns the driver's raw message to the caller: SQL fragments, table and
+ * column names, path fragments, and in the case of a failed connection
+ * sometimes the DSN. That is a free description of the schema for anyone who
+ * can provoke an error, which is precisely the situation where the message is
+ * most interesting and most public.
+ *
+ * Six of those handlers did not log the error either, so the detail was lost as
+ * well as leaked. Passing the error object (not `.message`) keeps the stack
+ * trace, which pins the exact call site, so a single generic response label
+ * costs no debuggability.
+ */
+const serverError = (res, err) => {
+    logger.error('[Moments] unhandled 500:', err);
+    res.status(500).json({ error: 'Something went wrong. Please try again.' });
+};
+
 let tablesEnsured = false;
 
 const ensureMomentTables = async () => {
@@ -362,7 +382,7 @@ const getMomentsStream = async (req, res) => {
 
     } catch (error) {
         logger.error('Moments Stream Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -443,7 +463,7 @@ const toggleMomentPin = async (req, res) => {
         res.json({ status: 'success', is_pinned: next });
     } catch (error) {
         logger.error('Toggle Moment Pin Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -523,7 +543,7 @@ const sparkMoment = async (req, res) => {
         });
     } catch (error) {
         logger.error('Spark Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -850,7 +870,7 @@ const createMoment = async (req, res) => {
             } catch (_) { /* fall through to generic error */ }
         }
         logger.error('Create Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -905,7 +925,7 @@ const updateMomentPrivacy = async (req, res) => {
         });
     } catch (error) {
         logger.error('Update Moment Privacy Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -942,7 +962,7 @@ const saveMoment = async (req, res) => {
         }
     } catch (error) {
         logger.error('Save Moment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1025,7 +1045,7 @@ const addComment = async (req, res) => {
         });
     } catch (error) {
         logger.error('Add Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1079,7 +1099,7 @@ const getComments = async (req, res) => {
         });
     } catch (error) {
         logger.error('Get Comments Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1127,7 +1147,7 @@ const likeComment = async (req, res) => {
             likes: updated[0]?.like_count || 0 
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1189,7 +1209,7 @@ const followUser = async (req, res) => {
             }
         }
         logger.error('Follow User Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1202,7 +1222,7 @@ const trackShare = async (req, res) => {
         );
         res.json({ status: 'success' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1235,7 +1255,7 @@ const getShareData = async (req, res) => {
             type: 'video.moment'
         });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1294,7 +1314,7 @@ const trackView = async (req, res) => {
 
         res.json({ status: 'success', counted: true });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1332,7 +1352,7 @@ const getMomentViewers = async (req, res) => {
         );
         res.json({ status: 'success', viewers });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1377,7 +1397,7 @@ const saveSticker = async (req, res) => {
         });
     } catch (error) {
         logger.error('Save Sticker Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1396,7 +1416,7 @@ const listStickers = async (req, res) => {
         res.json({ status: 'success', stickers });
     } catch (error) {
         logger.error('List Stickers Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1415,7 +1435,7 @@ const deleteSticker = async (req, res) => {
         res.json({ status: 'success' });
     } catch (error) {
         logger.error('Delete Sticker Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1437,7 +1457,7 @@ const trackEngagement = async (req, res) => {
 
         res.json({ status: 'success' });
     } catch (error) {
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1766,7 +1786,7 @@ const editComment = async (req, res) => {
         res.json({ success: true, comment: updated[0] });
     } catch (error) {
         logger.error('Edit Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1850,7 +1870,7 @@ const deleteComment = async (req, res) => {
         res.json({ success: true, deletedCount });
     } catch (error) {
         logger.error('Delete Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -2005,7 +2025,7 @@ const moderateComment = async (req, res) => {
         res.json({ success: true, deletedCount, auditId });
     } catch (error) {
         logger.error('Moderate Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -2058,7 +2078,7 @@ const reportComment = async (req, res) => {
         res.status(201).json({ success: true, report_id: reportId });
     } catch (error) {
         logger.error('Report Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 
@@ -2092,7 +2112,7 @@ const getComment = async (req, res) => {
         res.json({ success: true, comment: c });
     } catch (error) {
         logger.error('Get Comment Error:', error);
-        res.status(500).json({ error: error.message });
+        serverError(res, error);
     }
 };
 

@@ -650,7 +650,14 @@ socket.on('get-rooms', () => {
                 const recipientId = data.recipientId || data.partnerId;
                 let context = data.context || 'chat';
 
-                const metadata = attachment ? JSON.stringify({ attachment }) : null;
+                // The client sends its metadata blob as `metadata`, this handler only
+                // ever read `attachment`, so every metadata payload the app sent was
+                // silently discarded: voice notes lost duration, fileName, fileSize and
+                // mimeType, and forwarded media lost its descriptor, with no error on
+                // either side because the field simply went unread.
+                const metadata = attachment
+                    ? JSON.stringify({ attachment })
+                    : (data.metadata || data.metadata_json || null);
 
                 // --- Moderation & Group Access Enforcement ---
                 if (chatId) {
@@ -1256,10 +1263,10 @@ socket.on('get-rooms', () => {
                             INSERT INTO messages (
                                 message_id, chat_id, conversation_id, personal_chat_id, 
                                 sender_id, recipient_id, content, type, media_url, 
-                                status, is_read, sent_at, context,
+                                metadata, status, is_read, sent_at, context,
                                 forwarded, forwarded_from, source_message_id, forward_lineage_id, forward_count,
                                 server_sequence
-                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?, ?, ?, ?, ?)
+                            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'sent', 0, ?, 'chat', 1, ?, ?, ?, ?, ?)
                         `, [
                             newMsgId,
                             groupChatId,
@@ -1270,6 +1277,7 @@ socket.on('get-rooms', () => {
                             originalMsg.content,
                             originalMsg.type,
                             originalMsg.media_url,
+                            originalMsg.metadata,
                             sentAt,
                             socket.user?.username || socket.user?.name || 'user',
                             rootMessageId,

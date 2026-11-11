@@ -954,7 +954,7 @@ const followUser = async (req, res) => {
         });
     } catch (error) {
         logger.error('Follow user error:', error);
-        res.status(500).json({ error: error.message || 'Failed to follow user' });
+        res.status(500).json({ error: 'Failed to follow user' });
     }
 };
 

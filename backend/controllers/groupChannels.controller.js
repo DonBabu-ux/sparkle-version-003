@@ -5,6 +5,7 @@ const GroupChannel = require('../models/GroupChannel');
 const GroupMember = require('../models/GroupMember');
 const GroupChat = require('../models/GroupChat');
 const { getIO } = require('../socket');
+const { statusError: serverError } = require('../utils/serverError');
 
 // Helper to check user permissions inside a group chat
 async function checkManagePermission(chatId, userId) {
@@ -46,7 +47,7 @@ module.exports = {
       res.json({ status: 'success', data: channels });
     } catch (err) {
       console.error('List group channels error:', err);
-      res.status(500).json({ status: 'error', error: err.message });
+      serverError(res, err);
     }
   },
 
@@ -90,7 +91,7 @@ module.exports = {
       res.status(201).json({ status: 'success', data: newChannel });
     } catch (err) {
       console.error('Create group channel error:', err);
-      res.status(500).json({ status: 'error', error: err.message });
+      serverError(res, err);
     }
   },
 
@@ -125,7 +126,7 @@ module.exports = {
       res.json({ status: 'success', data: updatedChannel });
     } catch (err) {
       console.error('Update group channel error:', err);
-      res.status(500).json({ status: 'error', error: err.message });
+      serverError(res, err);
     }
   },
 
@@ -168,7 +169,7 @@ module.exports = {
       res.json({ status: 'success', message: 'Channel deleted successfully' });
     } catch (err) {
       console.error('Delete group channel error:', err);
-      res.status(500).json({ status: 'error', error: err.message });
+      serverError(res, err);
     }
   },
 };

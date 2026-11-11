@@ -60,8 +60,7 @@ class SparklyController {
             logger.error('[SparklyController] chat error:', error);
             return res.status(500).json({
                 success: false,
-                message: "I'm having trouble reaching Sparkly's AI service right now. Please try again in a moment.",
-                error: error.message
+                message: "I'm having trouble reaching Sparkly's AI service right now. Please try again in a moment."
             });
         }
     }

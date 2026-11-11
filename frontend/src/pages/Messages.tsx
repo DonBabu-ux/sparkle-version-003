@@ -3146,14 +3146,20 @@ export default function Messages() {
       useChatStore.getState().updateMessage(selectedChat.chat_id, msgId, { status: 'failed' });
     });
 
-    const payload: any = {
-      messageId: msgId,  // same UUID — server deduplicates
-      chatId: selectedChat.chat_id,
-      partnerId: selectedChat.partner_id,
-      content: failedMsg.content,
-      type: failedMsg.type || 'text',
-      mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
-    };
+            const payload: any = {
+                messageId: msgId,  // same UUID — server deduplicates
+                chatId: selectedChat.chat_id,
+                partnerId: selectedChat.partner_id,
+                content: failedMsg.content,
+                type: failedMsg.type || 'text',
+                mediaUrl: failedMsg.media_url || failedMsg.mediaUrl,
+                // The original send carried metadata (duration, fileName, fileSize,
+                // mimeType for voice notes; a descriptor for stickers and GIFs) and
+                // this rebuild dropped it, so a resent media message arrived at the
+                // recipient in a degraded state compared to the first attempt.
+                metadata: failedMsg.metadata,
+                replyToId: failedMsg.reply_to_message_id
+            };
     if (failedMsg.reply_to_message_id) payload.replyToId = failedMsg.reply_to_message_id;
 
     if (socket?.connected) {

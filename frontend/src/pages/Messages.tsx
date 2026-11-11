@@ -1,12 +1,12 @@
 import { showError, showInfo, showSuccess } from '../utils/toast';
 import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
-import { registerPlugin } from '@capacitor/core';
 
 import { formatMessageGroupDate, isSameCalendarDay, formatLastSeenChat } from '../utils/format';
 import { useUserStore } from '../store/userStore';
 import { useChatStore, sortMessagesChronologically } from '../store/chatStore';
 import toast from 'react-hot-toast';
 import { ReplyPreview } from '../components/chat/ReplyPreview';
+import { PrivacyProtection } from '../services/privacyProtection';
 import LiveRecordingBar from '../components/chat/LiveRecordingBar';
 import VoiceNotePlayer from '../components/chat/VoiceNotePlayer';
 import ChatBackground from '../components/chat/ChatBackground';
@@ -60,7 +60,6 @@ import { voiceRecordingService } from '../services/VoiceRecordingService';
 import { AudioPreviewModal } from '../components/modals/AudioPreviewModal';
 
 // Hoist Capacitor plugin registration to module scope to avoid duplicate registration warnings
-const PrivacyProtection = registerPlugin<any>('PrivacyProtection');
 
 import { Search, Plus, Phone, Video, Send, Paperclip, Smile, ArrowLeft, ArrowDown, ArrowUp, ArrowUpRight, GripVertical, Bookmark, ImageIcon, FileText, MapPin, Check, RotateCw, AlertCircle, Flag, Trash2, X, User, Palette, Pin, Ban, BellOff, Users, Download, Clock, Shield, Lock, ShieldAlert, Sparkles, SquarePen, MessageSquarePlus, Zap, Camera, Mic, Forward, Settings, Reply, ChevronLeft, ChevronRight } from 'lucide-react';
 import Spinner from '../components/ui/Spinner';

@@ -919,9 +919,14 @@ const generateSecurityToken = async (req, res) => {
 };
 
 const followUser = async (req, res) => {
+    // These two are read from the catch block below, which is a SIBLING of the
+    // try rather than nested in it: a const declared inside the try is scoped
+    // to the try block and invisible in the catch. Declared here so the
+    // duplicate-key recovery can actually reach them.
+    const followerId = req.user.userId || req.user.user_id;
+    const followingId = req.params.id;
+
     try {
-        const followerId = req.user.userId || req.user.user_id;
-        const followingId = req.params.id;
         const SYSTEM_USER_ID = 'd75fe3b5-7a45-4581-ab13-91934d8b54de';
 
         if (followingId === SYSTEM_USER_ID) {
@@ -955,6 +960,25 @@ const followUser = async (req, res) => {
             message: result.status === 'requested' ? 'Follow request sent' : 'User followed' 
         });
     } catch (error) {
+        // Tapping follow twice fast can both win the EXISTS check above and both
+        // try to INSERT, so the second hits the unique key on `follows` and used
+        // to surface as a 500. Losing that race means the follow already exists,
+        // which is what the second tap was asking to undo, so finish the
+        // unfollow. Same handling as moments.controller.js and
+        // campus.controller.js.
+        if (error && (error.code === 'ER_DUP_ENTRY' || String(error.message).includes('Duplicate entry'))) {
+            try {
+                await User.unfollow(followerId, followingId);
+                return res.json({
+                    success: true,
+                    status: 'unfollowed',
+                    is_following: false,
+                    message: 'User unfollowed'
+                });
+            } catch (cleanupError) {
+                logger.error('Follow User cleanup failed:', cleanupError);
+            }
+        }
         logger.error('Follow user error:', error);
         res.status(500).json({ error: 'Failed to follow user' });
     }

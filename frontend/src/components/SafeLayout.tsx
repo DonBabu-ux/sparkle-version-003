@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useUserStore } from '../store/userStore';
+import { getKeyboardHeight } from '../services/safeAreaInsets';
 
 /**
  * 1. EdgeBackgroundLayer
@@ -198,12 +199,44 @@ export const ChatInputDock: React.FC<{
 
       // Keyboard is open when the viewport shrank meaningfully below the
       // keyboard-closed baseline (150px covers URL-bar jitter, not keyboards).
-      const shrink = baseHeightRef.current - height;
-      if (shrink > 150) {
-        setIsKeyboardOpen(true);
+      const shrink = Math.max(0, baseHeightRef.current - height);
+
+      // The native SparkleInsets plugin already writes --ime-height from the
+      // real IME inset (see services/safeAreaInsets.ts). When it is live its
+      // number is authoritative and this handler must not compete with it, so
+      // defer to it entirely rather than letting the two fight over one variable.
+      //
+      // This handler exists for the case the plugin cannot cover: on the web,
+      // and on any device where the insets listener never fired. There the
+      // shrink used to be collapsed into a boolean that only moved this dock's
+      // own padding, while KeyboardSafeContainer kept subtracting a --ime-height
+      // of 0 -- so the composer stayed under the keys. Publishing the measured
+      // shrink here gives the layout the number it actually needs.
+      let nativeKeyboardHeight = 0;
+      try {
+        nativeKeyboardHeight = getKeyboardHeight() || 0;
+      } catch {
+        // The insets service is a no-op on web; treat a failure the same as 0.
+        nativeKeyboardHeight = 0;
+      }
+
+      const root = document.documentElement;
+      const open = shrink > 150;
+      setIsKeyboardOpen(open);
+
+      if (nativeKeyboardHeight > 0) {
+        // Native owns the variable. Only drop the class so CSS can branch.
+        root.classList.toggle('sparkle-keyboard-open', open);
+        return;
+      }
+
+      if (open) {
+        root.style.setProperty('--ime-height', `${Math.round(shrink)}px`);
+        root.classList.add('sparkle-keyboard-open');
       } else {
         baseHeightRef.current = height;
-        setIsKeyboardOpen(false);
+        root.style.setProperty('--ime-height', '0px');
+        root.classList.remove('sparkle-keyboard-open');
       }
     };
 

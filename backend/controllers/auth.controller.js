@@ -540,7 +540,7 @@ const request2FARecovery = async (req, res) => {
         }
 
         const recoveryDestination = user.security_recovery_email || user.email;
-        const recoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+        const recoveryCode = crypto.randomInt(100000, 999999).toString();
 
         await query(
             'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at, created_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 15 MINUTE), NOW()) ON DUPLICATE KEY UPDATE code = VALUES(code), expires_at = DATE_ADD(NOW(), INTERVAL 15 MINUTE), verified_at = NULL, created_at = NOW()',
@@ -745,7 +745,7 @@ const forgotPassword = async (req, res) => {
             });
         }
 
-        const token = Math.floor(100000 + Math.random() * 900000).toString();
+        const token = crypto.randomInt(100000, 999999).toString();
 
         // Clear previous resets for this user to avoid confusion/collisions
         await query('DELETE FROM password_resets WHERE email = ?', [email]);
@@ -853,7 +853,7 @@ const resendVerification = async (req, res) => {
         const user = users[0];
 
         if (type === 'sms') {
-            const code = Math.floor(100000 + Math.random() * 900000).toString();
+            const code = crypto.randomInt(100000, 999999).toString();
             await sendSMS(user.phone_number, code);
             return res.json({ status: 'success', message: 'SMS verification code resent!' });
         }
@@ -894,7 +894,7 @@ const resendVerification = async (req, res) => {
         if (user.email_verified) return res.status(400).json({ status: 'error', message: 'Email already verified' });
 
 
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const code = crypto.randomInt(100000, 999999).toString();
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
         await query(

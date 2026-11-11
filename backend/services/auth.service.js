@@ -325,7 +325,10 @@ class AuthService {
                     [crypto.randomUUID(), userId, 'system_welcome', 'Welcome to Sparkle', 'Discover trends, follow creators, and share your first spark.', '/explore', 0]
                 );
 
-                const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+                // crypto.randomInt, not Math.random: this is a security code, and
+                // Math.random() is a seeded PRNG whose output is predictable. See
+                // accountRecovery.service.js, which already does this correctly.
+                const verificationCode = crypto.randomInt(100000, 999999).toString();
                 await conn.execute(
                     'INSERT INTO email_verifications (verification_id, user_id, email, code, expires_at) VALUES (?, ?, ?, ?, DATE_ADD(NOW(), INTERVAL 24 HOUR)) ON DUPLICATE KEY UPDATE code = ?, expires_at = DATE_ADD(NOW(), INTERVAL 24 HOUR)',
                     [crypto.randomUUID(), userId, normEmail, verificationCode, verificationCode]

@@ -7,6 +7,7 @@ const RoomMember = require('../models/RoomMember');
 const Room = require('../models/Room');
 const db = require('../config/database');
 const { getIO } = require('../socket');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 // Helper to check if a user is a member of a room
 async function getRoomMembership(roomId, userId) {
@@ -187,8 +188,8 @@ module.exports = {
     try {
       const { channelId } = req.params;
       const userId = req.user.user_id || req.user.userId || req.user.id;
-      const limit = parseInt(req.query.limit) || 50;
-      const offset = parseInt(req.query.offset) || 0;
+            const limit = clampLimit(req.query.limit, { max: 100, fallback: 50 });
+            const offset = clampOffset(req.query.offset);
 
       const channel = await RoomChannel.findById(channelId);
       if (!channel) {

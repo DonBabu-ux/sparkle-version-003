@@ -2,6 +2,7 @@ const pool = require('../config/database');
 const { v4: uuidv4 } = require('uuid');
 const webpush = require('web-push');
 const logger = require('../utils/logger');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
     webpush.setVapidDetails(
@@ -91,8 +92,8 @@ const notificationController = {
     getNotifications: async (req, res) => {
         try {
             const userId = req.user.userId || req.user.user_id;
-            const page = parseInt(req.query.page) || 1;
-            const limit = parseInt(req.query.limit) || 20;
+            const page = clampPage(req.query.page);
+            const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
             const offset = (page - 1) * limit;
 
             const unreadOnly = req.query.unreadOnly === 'true' || req.query.unreadOnly === '1';

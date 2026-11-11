@@ -10,6 +10,7 @@ const path = require('path');
 const speakeasy = require('speakeasy');
 const QRCode = require('qrcode');
 const accountLifecycleService = require('../services/accountLifecycle.service');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 
 
@@ -1275,8 +1276,8 @@ const getUserTaggedPosts = async (req, res) => {
 // return a small batch of users that the current user might want to follow
 const getSuggestions = async (req, res) => {
     try {
-        const limit = parseInt(req.query.limit) || 20;
-        const offset = parseInt(req.query.offset) || 0;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
+        const offset = clampOffset(req.query.offset);
         const currentUserId = req.user.userId || req.user.user_id;
         const { tab = 'suggested', filter = null, q = null, force, seed: clientSeed = '' } = req.query;
         

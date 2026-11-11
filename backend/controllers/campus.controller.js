@@ -4,6 +4,7 @@ const { getIO } = require('../socket');
 const PollEngagementService = require('../services/poll-engagement.service');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const { clampPage, clampLimit, clampOffset } = require('../utils/pagination');
 
 /**
  * Answer a 500 without echoing internals to the client.
@@ -38,8 +39,8 @@ const getPolls = async (req, res) => {
         const affiliation = req.query.affiliation || req.query.campus;
         const currentUserId = req.user?.user_id || req.user?.userId || null;
         const filter = req.query.filter || 'for_you'; // 'for_you', 'trending', 'friends', 'new'
-        const limit = Math.min(parseInt(req.query.limit) || 20, 50);
-        const offset = parseInt(req.query.offset) || 0;
+        const limit = clampLimit(req.query.limit, { max: 50, fallback: 20 });
+        const offset = clampOffset(req.query.offset);
         // creator=me returns the caller's own polls regardless of what the
         // browse feed happens to contain. A creator's own polls must never be
         // dependent on landing on the right page of somebody else's feed.

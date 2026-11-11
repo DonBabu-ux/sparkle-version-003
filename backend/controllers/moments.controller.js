@@ -10,6 +10,29 @@ const { STORY_AUDIENCES } = require('../services/story-audience.service');
 
 const VALID_AUDIENCES = new Set(['public', 'friends', 'close_friends', 'only_me']);
 
+// Hard ceiling on any pagination offset this controller will ask MySQL for.
+// Past this the query is pathological: the server still has to walk every row
+// it skips, and the caller is paging far beyond anything the UI can show.
+const MAX_PAGE = 1000;
+
+/**
+ * Read a `page` (or any integer) query param into a usable, non-negative index.
+ *
+ * req.query is unvalidated user input, so this must be defensive in all three
+ * directions:
+ *   - non-numeric ("abc", "", undefined) -> the default, not NaN, because NaN
+ *     propagates into OFFSET and errors
+ *   - negative -> 0, because `LIMIT 12 OFFSET -24` is a SQL syntax error and a
+ *     500 on a bad request rather than a 400
+ *   - absurdly large -> MAX_PAGE, so an unbounded OFFSET cannot be used to make
+ *     the database count rows it will never return
+ */
+const clampPage = (value, fallback = 0) => {
+    const parsed = parseInt(value, 10);
+    if (!Number.isFinite(parsed)) return fallback;
+    return Math.min(Math.max(parsed, 0), MAX_PAGE);
+};
+
 let tablesEnsured = false;
 
 const ensureMomentTables = async () => {
@@ -255,7 +278,11 @@ const getMomentsStream = async (req, res) => {
         const { page = 0, limit = 8, query, type, refresh } = req.query;
         const limitNum = Math.min(parseInt(limit, 10) || 8, 20);
         const currentUserId = req.user.user_id;
-        const pageNum = parseInt(page, 10) || 0;
+        // page came straight from the query string with no bound at all, so
+        // page=-1 made offset negative and MySQL rejected the query (ER_PARSE_ERROR,
+        // a 500 on a bad request), and a large page pushed an unbounded OFFSET into
+        // a query that still has to count every row it skips.
+        const pageNum = clampPage(req.query.page);
         const offset = pageNum * limitNum;
         // refresh=true bypasses the 30s per-user cache → full reshuffle
         const forceRefresh = refresh === 'true' || refresh === '1';
@@ -1424,7 +1451,7 @@ const getMyMoments = async (req, res) => {
         const userId = req.user.user_id || req.user.userId;
         if (!userId) return res.status(401).json({ error: 'Unauthorized' });
 
-        const page = Math.max(parseInt(req.query.page, 10) || 0, 0);
+        const page = clampPage(req.query.page);
         const limit = Math.min(parseInt(req.query.limit, 10) || 12, 50);
         const offset = page * limit;
 

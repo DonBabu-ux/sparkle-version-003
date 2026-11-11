@@ -3972,21 +3972,53 @@ export default function Messages() {
     return messages.filter(m => m.pinned);
   }, [messages]);
 
-  const startNewChat = (contact: any) => {
+  const startNewChat = async (contact: any) => {
     const existing = conversations.find(c => c.partner_id === contact.user_id);
     if (existing) {
       setSelectedChat(existing);
-    } else {
-      setSelectedChat({
-        chat_id: 'temp_' + Date.now(),
-        partner_id: contact.user_id,
-        partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
-        partner_avatar: contact.avatar_url,
-        unread_count: 0,
-        last_message_time: new Date().toISOString()
-      });
+      setShowNewChatModal(false);
+      return;
     }
-    setShowNewChatModal(false);
+
+    // The old code set a client-only `chat_id: 'temp_' + Date.now()` here. That id
+    // has no row on the server, so every send against it emitted send-message
+    // with a chat the server cannot resolve: no error, no feedback, the bubble
+    // sat on 'sending' until the 10s timeout flipped it to 'failed', and the
+    // recipient never received anything. That is the reported "user message is
+    // apparently not going through".
+    //
+    // Open the real conversation instead, exactly as handleStartChatFromPicker
+    // does. Only select a chat we can actually deliver to.
+    const partnerId = contact.user_id;
+    const newConv = {
+      chat_id: '',
+      partner_id: partnerId,
+      partner_name: sanitizePartnerName(contact.name || contact.username, contact.username),
+      partner_username: contact.username,
+      partner_avatar: contact.avatar_url,
+      unread_count: 0,
+      last_message_time: new Date().toISOString()
+    };
+
+    try {
+      const res = await api.post('/messages/open', { partnerId });
+      const conversationId = res.data?.data?.conversationId || res.data?.data?.chatId;
+      if (conversationId) {
+        const conv = { ...newConv, chat_id: conversationId };
+        setConversations((prev: any[]) => [conv, ...prev.filter(c => c.chat_id !== conversationId)]);
+        setSelectedChat(conv);
+        navigate(`/messages?chat=${conversationId}`);
+        setShowNewChatModal(false);
+        return;
+      }
+      logger.warn('[Messages] /messages/open returned no conversation id');
+    } catch (err) {
+      logger.error('[Messages] Failed to open a new conversation:', err);
+    }
+
+    // No real conversation: say so rather than opening a chat that discards
+    // everything the user types into it.
+    showError('Could not start this conversation. Check your connection and try again.');
   };
 
   const handleStartChatFromPicker = async (selectedContacts: ContactUser[]) => {

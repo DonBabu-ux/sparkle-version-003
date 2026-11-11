@@ -29,3 +29,24 @@ module.exports = {
     /** `{ success: false, error }` — media. */
     apiError: (res, err, status = 500) => answer(res, err, status, { success: false }),
 };
+
+/**
+ * Answer a 400 with the caller's reason only when it is one a user may see.
+ *
+ * A service that throws `new Error(message)` gives the controller no way to
+ * tell a domain rejection from a database failure, so a handler that echoes
+ * `error.message` on a 400 either leaks internals or hides the reason. Services
+ * mark their user-facing rejections with `isOperational` (see
+ * services/accountLifecycle.service.js domainError), and this responds with that
+ * reason when the marker is present and the fallback when it is not.
+ *
+ * The status is a parameter because callers use it for both 400 and 409.
+ */
+function clientError(res, err, fallback, status = 400) {
+    if (err && err.isOperational === true) {
+        return res.status(status).json({ error: err.message });
+    }
+    logger.error('[api] rejected request with an unmapped error:', err);
+    return res.status(status).json({ error: fallback });
+}
+module.exports.clientError = clientError;

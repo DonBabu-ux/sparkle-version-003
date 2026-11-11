@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Post = require('../models/Post');
 const logger = require('../utils/logger');
+const { clientError } = require('../utils/serverError');
 const bcrypt = require('bcryptjs');
 const { downloadExternalImage, processImage } = require('../utils/media.utils');
 const notificationController = require('./notification.controller');
@@ -700,7 +701,7 @@ const cancelDeletion = async (req, res) => {
         return res.json(result);
     } catch (error) {
         logger.error('Cancel deletion error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
+        return clientError(res, error, 'Failed to cancel deletion');
     }
 };
 

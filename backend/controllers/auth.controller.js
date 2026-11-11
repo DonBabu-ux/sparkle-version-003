@@ -8,6 +8,7 @@ const { JWT_SECRET } = require('../config/constants');
 const crypto = require('crypto');
 const { downloadExternalImage } = require('../utils/media.utils');
 const logger = require('../utils/logger');
+const { clientError } = require('../utils/serverError');
 const { sendEmail, templates } = require('../config/email');
 const { sendSMS } = require('../utils/sms');
 const authService = require('../services/auth.service');
@@ -1181,7 +1182,7 @@ const reactivateAccount = async (req, res) => {
         });
     } catch (error) {
         logger.error('Reactivate account error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to reactivate account' });
+        return clientError(res, error, 'Failed to reactivate account');
     }
 };
 

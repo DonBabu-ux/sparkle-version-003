@@ -20,6 +20,28 @@ function safeDisconnectSockets(userId, reason) {
 }
 
 // Audit logger helper
+
+/**
+ * A rejection the caller is meant to be able to show a user.
+ *
+ * Two controllers (auth.controller.js: reactivate, user.controller.js: cancel
+ * deletion) answer a 400 with `error.message`. That is correct for a domain
+ * rejection like "Cannot reactivate account with status 'suspended'" — it is
+ * the reason, and masking it leaves the user with nothing to act on.
+ *
+ * It is wrong when the failure is a database one, because then the message is
+ * a SQL fragment or a DSN. A plain `new Error` cannot tell those two apart at
+ * the call site, so domain rejections are tagged here and controllers pass
+ * through only tagged errors. Everything untagged is treated as internal.
+ *
+ * `isOperational` follows the convention already used elsewhere in this
+ * codebase for exactly this purpose.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
 async function recordAudit(conn, { userId, action, previousStatus, newStatus, initiatedBy, actorRole, reason, ipAddress, userAgent, metadata }) {
     try {
         const auditId = crypto.randomUUID();
@@ -51,11 +73,11 @@ class AccountLifecycleService {
      * Suspend Account (Reversible temporary restriction)
      */
     async suspendAccount({ userId, reason = 'Taking a break', expiresAt = null, actorId = 'self', actorRole = 'user', req = null }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, account_status, suspended_by FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
@@ -73,10 +95,10 @@ class AccountLifecycleService {
 
         // Cannot suspend terminated or deleted accounts
         if (currentStatus === 'terminated') {
-            throw new Error('Cannot suspend an account that has already been terminated');
+            throw domainError('Cannot suspend an account that has already been terminated');
         }
         if (currentStatus === 'deleted') {
-            throw new Error('Cannot suspend a deleted account');
+            throw domainError('Cannot suspend a deleted account');
         }
 
         const conn = await pool.getConnection();
@@ -154,11 +176,11 @@ class AccountLifecycleService {
      * Reactivate Account (Lift suspension)
      */
     async reactivateAccount({ userId, actorId = 'self', actorRole = 'user', req = null }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, account_status, suspended_by FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
@@ -169,13 +191,13 @@ class AccountLifecycleService {
         }
 
         if (currentStatus !== 'suspended') {
-            throw new Error(`Cannot reactivate account with status '${currentStatus}'`);
+            throw domainError(`Cannot reactivate account with status '${currentStatus}'`);
         }
 
         // If suspension was by admin/moderator, ordinary users cannot lift it
         if (user.suspended_by && user.suspended_by !== 'self' && user.suspended_by !== userId) {
             if (actorRole !== 'admin' && actorRole !== 'moderator') {
-                throw new Error('This account was suspended by administration. If this waas a mistake..Please contact support to appeal.');
+                throw domainError('This account was suspended by administration. If this waas a mistake..Please contact support to appeal.');
             }
         }
 
@@ -227,11 +249,11 @@ class AccountLifecycleService {
      * Terminate Account (Permanent access revocation under normal product policy)
      */
     async terminateAccount({ userId, reason = 'Account termination requested', actorId = 'self', actorRole = 'user', req = null }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, account_status FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
@@ -248,7 +270,7 @@ class AccountLifecycleService {
         }
 
         if (currentStatus === 'deleted') {
-            throw new Error('Account has already been permanently deleted');
+            throw domainError('Account has already been permanently deleted');
         }
 
         const conn = await pool.getConnection();
@@ -321,18 +343,18 @@ class AccountLifecycleService {
      * Request Account Deletion (30-day grace period pending deletion)
      */
     async requestDeletion({ userId, reason = 'User requested deletion', actorId = 'self', actorRole = 'user', exportData = false, req = null }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, account_status FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
         const currentStatus = (user.account_status || 'active').toLowerCase();
 
         if (currentStatus === 'deleted') {
-            throw new Error('Account has already been permanently deleted');
+            throw domainError('Account has already been permanently deleted');
         }
 
         // Calculate 30-day scheduled date
@@ -409,11 +431,11 @@ class AccountLifecycleService {
      * Cancel Deletion Request (During 30-day grace period)
      */
     async cancelDeletion({ userId, actorId = 'self', actorRole = 'user', req = null }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, account_status FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) {
-            throw new Error('User not found');
+            throw domainError('User not found');
         }
 
         const user = users[0];
@@ -424,7 +446,7 @@ class AccountLifecycleService {
         }
 
         if (currentStatus !== 'pending_deletion') {
-            throw new Error(`Cannot cancel deletion for account with status '${currentStatus}'`);
+            throw domainError(`Cannot cancel deletion for account with status '${currentStatus}'`);
         }
 
         const conn = await pool.getConnection();
@@ -476,7 +498,7 @@ class AccountLifecycleService {
      * Process Hard Delete (Executed by background worker after grace period expires)
      */
     async processHardDelete(userId) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         const [users] = await pool.query('SELECT user_id, name, email, username, account_status, deletion_scheduled_at FROM users WHERE user_id = ?', [userId]);
         if (users.length === 0) return { success: false, reason: 'not_found' };

@@ -3,6 +3,7 @@ const pool = require('../config/database');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 
 // Profile logic helper
 const getSafeAvatarUrl = (url) => {
@@ -92,7 +93,7 @@ module.exports = {
             res.json({ isBlockedByMe, amIBlocked });
         } catch (error) {
             console.error('[Social] Get block status failed:', error);
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     unblockUser: async (req, res) => {
@@ -127,7 +128,7 @@ module.exports = {
 
             res.json({ success: true, message: 'User unblocked' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     getBlockedUsers: async (req, res) => {
@@ -136,7 +137,7 @@ module.exports = {
             const blocks = await User.getBlockedUsers(currentUserId);
             res.json(blocks);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     getFollowRequests: async (req, res) => {
@@ -145,7 +146,7 @@ module.exports = {
             const requests = await User.getPendingFollowRequests(currentUserId);
             res.json(requests);
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     respondToFollowRequest: async (req, res) => {
@@ -159,7 +160,7 @@ module.exports = {
             }
             res.json({ success: true, status });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     acceptRequest: async (req, res) => {
@@ -169,7 +170,7 @@ module.exports = {
             await User.acceptFollowRequest(requestId, currentUserId);
             res.json({ success: true, message: 'Request accepted' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
     rejectRequest: async (req, res) => {
@@ -179,7 +180,7 @@ module.exports = {
             await User.rejectFollowRequest(requestId, currentUserId);
             res.json({ success: true, message: 'Request rejected' });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            serverError(res, error);
         }
     },
         /**
@@ -264,7 +265,11 @@ module.exports = {
             res.json({ success: true, message: 'Report submitted successfully' });
         } catch (error) {
             console.error('[Social] Report failed:', error);
-            res.status(500).json({ error: error.message || 'Report operation failed' });
+            // This handler returns its domain errors as literal early returns
+            // above ("Cannot report official Sparkle accounts", "Missing user ID"),
+            // so nothing here routes on error.message and it is safe to stop
+            // echoing the driver's message on the 500 path.
+            res.status(500).json({ error: 'Report operation failed' });
         }
     },
     

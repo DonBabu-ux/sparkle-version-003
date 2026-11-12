@@ -54,8 +54,11 @@ describe('2. Reply Preview in Composer', () => {
   });
 
   it('ChatInput integrates ReplyPreview with clear callback', () => {
-    const messagesCode = read('frontend/src/pages/Messages.tsx');
-    assert.match(messagesCode, /<ReplyPreview[\s\S]*?messageId=\{replyToMessage\.message_id\}/, 'ReplyPreview mounted above composer');
+    // The composer moved out of Messages.tsx into components/chat/ChatInput.tsx,
+    // so the ReplyPreview mount moved with it — assert against the file that
+    // actually renders it rather than the page that only mounts ChatInput.
+    const chatInputCode = read('frontend/src/components/chat/ChatInput.tsx');
+    assert.match(chatInputCode, /<ReplyPreview[\s\S]*?messageId=\{replyToMessage\.message_id\}/, 'ReplyPreview mounted above composer');
   });
 });
 
@@ -255,8 +258,13 @@ describe('22. Feature B — Authoritative Disappearing Messages', () => {
   });
 
   it('dotted input bar and interactive in-chat Change notification are implemented', () => {
+    // Split across the extraction boundary: the composer's dotted border lives
+    // in ChatInput.tsx now, while the in-chat system notification that reads
+    // 'disappearing_messages_change' and renders the Change action is still in
+    // Messages.tsx.
+    const chatInputCode = read('frontend/src/components/chat/ChatInput.tsx');
+    assert.match(chatInputCode, /border-dashed border-\[#ff1493\]/, 'dotted input bar applied when disappearing active');
     const messagesCode = read('frontend/src/pages/Messages.tsx');
-    assert.match(messagesCode, /border-dashed border-\[#ff1493\]/, 'dotted input bar applied when disappearing active');
     assert.match(messagesCode, /disappearing_messages_change/, 'detects disappearing messages system notice');
     assert.match(messagesCode, />\s*Change\s*<\/button>/, 'provides interactive Change action in system notification');
   });

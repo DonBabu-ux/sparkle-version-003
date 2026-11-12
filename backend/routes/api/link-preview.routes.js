@@ -1,5 +1,6 @@
 const express = require('express');
 const logger = require('../../utils/logger');
+const { apiError } = require('../../utils/serverError');
 const router = express.Router();
 const fetch = require('node-fetch');
 const dns = require('dns').promises;
@@ -106,7 +107,10 @@ router.get('/', authMiddleware, async (req, res) => {
             siteName:    meta.siteName || 'External Link',
         });
     } catch (err) {
-        return res.status(500).json({ success: false, message: 'Preview fetch failed', error: err.message });
+        // This catch covers both an unreachable remote host and a parse failure.
+        // `err.message` carries the target URL and often the request path, so it
+        // turns a link preview into an SSRF probe report.
+        apiError(res, err);
     }
 });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
+const logger = require('../../utils/logger');
 const authRoutes = require('./auth.routes');
 
 const userRoutes = require('./user.routes');
@@ -45,7 +46,11 @@ router.get('/health', async (req, res) => {
         await pool.query('SELECT 1');
         res.json({ status: 'success', database: 'connected', pool: poolStatus, timestamp: new Date() });
     } catch (error) {
-        res.status(503).json({ status: 'error', database: 'disconnected', pool: poolStatus, error: error.message });
+        // Same as the health probe in server.js: the driver message carries the
+        // database username and host, and neither an uptime monitor nor the
+        // failover manager reads this field — both key off the status code.
+        logger.error('[health] database probe failed:', error);
+        res.status(503).json({ status: 'error', database: 'disconnected', pool: poolStatus, error: 'Database query failed' });
     }
 });
 router.use('/users', userRoutes);

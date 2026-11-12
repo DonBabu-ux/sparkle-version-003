@@ -1,6 +1,7 @@
 const SkillMarket = require('../models/SkillMarket');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 
 const getOffers = async (req, res) => {
     try {
@@ -19,7 +20,7 @@ const getOffers = async (req, res) => {
     } catch (error) {
         console.error('CRITICAL ERROR in getOffers:', error);
         logger.error('Get Skill Offers error:', error);
-        res.status(500).json({ error: 'Failed to fetch offers', details: error.message });
+        serverError(res, error);
     }
 };
 

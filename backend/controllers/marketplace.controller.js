@@ -4,6 +4,7 @@ const SkillMarket = require('../models/SkillMarket');
 const marketplaceSchemas = require('../schemas/marketplace.schemas');
 const { validate } = require('../middleware/validation.middleware');
 const logger = require('../utils/logger');
+const { apiError } = require('../utils/serverError');
 const { upload, marketplaceUpload } = require('../utils/fileUpload');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
@@ -753,10 +754,23 @@ const confirmMeetup = async (req, res) => {
         }
 
         res.json({ success: true, ...result });
-    } catch (error) {
-        logger.error('Confirm meetup error:', error);
-        res.status(400).json({ success: false, message: error.message });
-    }
+        } catch (error) {
+            logger.error('Confirm meetup error:', error);
+            // The model throws opaque codes (ORDER_NOT_FOUND / UNAUTHORIZED /
+            // INVALID_TRANSITION). Same map updateOrderStatus uses — never echo
+            // error.message, which for any other failure is a SQL fragment.
+            const messages = {
+                ORDER_NOT_FOUND: 'Order not found.',
+                UNAUTHORIZED: 'You are not allowed to confirm this meetup.',
+                INVALID_TRANSITION: 'This meetup cannot be confirmed in its current state.'
+            };
+            const msg = error.message;
+            res.status(msg === 'ORDER_NOT_FOUND' ? 404 : msg === 'UNAUTHORIZED' ? 403 : 409).json({
+                success: false,
+                message: messages[msg] || 'Could not confirm this meetup.',
+                code: msg
+            });
+        }
 };
 
 const disputeOrder = [
@@ -1111,7 +1125,7 @@ const createReview = [
             res.json({ success: true, message: result.updated ? 'Review updated' : 'Review submitted' });
         } catch (error) {
             logger.error('Create review error:', error);
-            res.status(500).json({ success: false, message: error.message });
+            apiError(res, error);
         }
     }
 ];
@@ -1131,8 +1145,12 @@ const replyToReview = [
             res.json({ success: true, message: 'Reply posted' });
         } catch (error) {
             logger.error('Reply to review error:', error);
-            const status = error.message === 'Review not found or not yours' ? 404 : 400;
-            res.status(status).json({ success: false, message: error.message || 'Failed to post reply' });
+            // replyToReview in the model re-throws whatever the driver raised, so
+            // this message is a SQL fragment. The old 404 check compared it
+            // against 'Review not found or not yours', a string the model never
+            // throws, so it never matched and every failure fell through to 400
+            // with the driver text attached.
+            apiError(res, error);
         }
     }
 ];
@@ -1249,7 +1267,7 @@ const blockUser = [
             res.json({ success: true, message: 'User blocked' });
         } catch (error) {
             logger.error('Block user error:', error);
-            res.status(500).json({ success: false, message: error.message });
+            apiError(res, error);
         }
     }
 ];
@@ -1328,7 +1346,7 @@ const relistItem = async (req, res) => {
         res.json({ success: true, listingId: newId });
     } catch (error) {
         logger.error('Relist item error:', error);
-        res.status(500).json({ success: false, message: error.message });
+        apiError(res, error);
     }
 };
 

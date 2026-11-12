@@ -10,17 +10,33 @@ const emailService = require('./email.service');
 const accountLifecycleService = require('./accountLifecycle.service');
 const dataExportService = require('./dataExport.service');
 
+/**
+ * Mark a rejection as one the caller may be told about.
+ *
+ * Every throw in this service is a domain rejection — a missing field, a bad
+ * code, an expired challenge — and the recovery routes answer with the reason
+ * because the user needs it to act. A database or Redis failure reaching the
+ * same catch block is not, and echoing it would hand the caller a SQL fragment
+ * or the DSN. `clientError` (utils/serverError.js) routes on this flag, so a
+ * single marker keeps the user-facing reasons and drops the internal ones.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
 class AccountRecoveryService {
     /**
      * Step 1: Initiate a recovery challenge (Non-authenticated public endpoint)
      * Generic responses to mitigate account enumeration
      */
     async initiateChallenge({ contactIdentifier, actionType, ipAddress = '' }) {
-        if (!contactIdentifier) throw new Error('Contact identifier (email or phone) is required');
+        if (!contactIdentifier) throw domainError('Contact identifier (email or phone) is required');
         const contact = String(contactIdentifier).trim().toLowerCase();
 
         const validActions = ['CANCEL_DELETION', 'APPEAL_TERMINATION', 'DATA_EXPORT', 'STATUS_CHECK'];
-        if (!validActions.includes(actionType)) throw new Error('Invalid recovery action specified');
+        if (!validActions.includes(actionType)) throw domainError('Invalid recovery action specified');
 
         // Rate limiting check via Redis (soft-fail if remote Redis latency spikes)
         try {
@@ -28,7 +44,7 @@ class AccountRecoveryService {
             const count = await redisService.incr(rateKey);
             if (count === 1) await redisService.expire(rateKey, 600);
             if (count > 8) {
-                throw new Error('Too many recovery requests. Please wait a few minutes before trying again.');
+                throw domainError('Too many recovery requests. Please wait a few minutes before trying again.');
             }
         } catch (rErr) {
             if (rErr.message?.includes('Too many recovery')) throw rErr;
@@ -125,7 +141,7 @@ class AccountRecoveryService {
      * Step 2: Verify challenge code and obtain short-lived scoped recovery action token
      */
     async verifyChallenge({ requestId, code }) {
-        if (!requestId || !code) throw new Error('Request ID and code are required');
+        if (!requestId || !code) throw domainError('Request ID and code are required');
 
         const [requests] = await pool.query(`
             SELECT * FROM account_recovery_requests
@@ -133,20 +149,20 @@ class AccountRecoveryService {
         `, [requestId]);
 
         if (requests.length === 0) {
-            throw new Error('Recovery challenge expired or invalid. Please request a new one.');
+            throw domainError('Recovery challenge expired or invalid. Please request a new one.');
         }
 
         const reqRecord = requests[0];
 
         if (reqRecord.attempts >= 5) {
             await pool.query('UPDATE account_recovery_requests SET status = "FAILED" WHERE request_id = ?', [requestId]);
-            throw new Error('Too many incorrect verification attempts. Challenge voided.');
+            throw domainError('Too many incorrect verification attempts. Challenge voided.');
         }
 
         const codeMatch = await bcrypt.compare(String(code).trim(), reqRecord.challenge_code);
         if (!codeMatch) {
             await pool.query('UPDATE account_recovery_requests SET attempts = attempts + 1 WHERE request_id = ?', [requestId]);
-            throw new Error('Incorrect verification code. Please check and try again.');
+            throw domainError('Incorrect verification code. Please check and try again.');
         }
 
         // Issue single-use scoped verification token valid for 15 minutes. Store only a hash.
@@ -186,7 +202,7 @@ class AccountRecoveryService {
         `, [verifiedTokenHash]);
 
         if (requests.length === 0) {
-            throw new Error('Invalid, consumed, or expired recovery session token.');
+            throw domainError('Invalid, consumed, or expired recovery session token.');
         }
 
         const r = requests[0];
@@ -197,7 +213,7 @@ class AccountRecoveryService {
             [r.request_id]
         );
         if (consumeResult.affectedRows !== 1) {
-            throw new Error('Invalid, consumed, or expired recovery session token.');
+            throw domainError('Invalid, consumed, or expired recovery session token.');
         }
 
         // Authoritatively restore account via AccountLifecycleService
@@ -238,11 +254,11 @@ class AccountRecoveryService {
               AND r.verified_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
         `, [verifiedTokenHash]);
 
-        if (requests.length === 0) throw new Error('Invalid or expired appeal session token.');
+        if (requests.length === 0) throw domainError('Invalid or expired appeal session token.');
         const r = requests[0];
 
         if (!explanation || explanation.trim().length < 20) {
-            throw new Error('Please provide a substantive explanation for your appeal (at least 20 characters).');
+            throw domainError('Please provide a substantive explanation for your appeal (at least 20 characters).');
         }
 
         // Consume verification token
@@ -251,7 +267,7 @@ class AccountRecoveryService {
             [r.request_id]
         );
         if (consumeResult.affectedRows !== 1) {
-            throw new Error('Invalid or expired appeal session token.');
+            throw domainError('Invalid or expired appeal session token.');
         }
 
         // Generate Appeal Case Reference: SPK-APL-XXXXXX (CSPRNG)
@@ -307,7 +323,7 @@ class AccountRecoveryService {
               AND r.verified_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
         `, [verifiedTokenHash]);
 
-        if (requests.length === 0) throw new Error('Invalid or expired recovery session token.');
+        if (requests.length === 0) throw domainError('Invalid or expired recovery session token.');
         const r = requests[0];
 
         const [consumeResult] = await pool.query(
@@ -315,7 +331,7 @@ class AccountRecoveryService {
             [r.request_id]
         );
         if (consumeResult.affectedRows !== 1) {
-            throw new Error('Invalid or expired recovery session token.');
+            throw domainError('Invalid or expired recovery session token.');
         }
 
         const exportResult = await dataExportService.requestExport({
@@ -337,7 +353,7 @@ class AccountRecoveryService {
      */
     async checkAppealStatus(referenceNumber, contactIdentifier) {
         if (!referenceNumber || !contactIdentifier) {
-            throw new Error('Case reference number and contact identifier are required.');
+            throw domainError('Case reference number and contact identifier are required.');
         }
 
         const [cases] = await pool.query(`
@@ -347,7 +363,7 @@ class AccountRecoveryService {
         `, [referenceNumber.trim(), contactIdentifier.trim().toLowerCase()]);
 
         if (cases.length === 0) {
-            throw new Error('No appeal case found matching that reference and email.');
+            throw domainError('No appeal case found matching that reference and email.');
         }
 
         const c = cases[0];

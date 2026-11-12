@@ -1014,7 +1014,7 @@ const refreshToken = async (req, res) => {
         });
     } catch (error) {
         logger.error('Token refresh failed:', error.message);
-        res.status(401).json({ status: 'error', message: error.message });
+        clientError(res, error, 'Invalid or expired refresh token', 401);
     }
 };
 
@@ -1243,7 +1243,7 @@ const cancelDeletion = async (req, res) => {
         });
     } catch (error) {
         logger.error('Cancel deletion error: ' + error.message);
-        res.status(400).json({ error: error.message || 'Failed to cancel deletion' });
+        clientError(res, error, 'Failed to cancel deletion');
     }
 };
 

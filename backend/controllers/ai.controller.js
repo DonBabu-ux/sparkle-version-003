@@ -12,6 +12,7 @@ const redisService = require('../services/redis.service');
  */
 const AI_VISION_CACHE_TTL_SECONDS = 3600;
 const logger = require('../utils/logger');
+const { apiError } = require('../utils/serverError');
 const SparklyService = require('../services/sparkly.service');
 const SparklyModel = require('../models/sparkly.model');
 const IntentService = require('../services/intent.service');
@@ -317,7 +318,7 @@ async function branchConversation(req, res) {
         res.json({ success: true, conversation: newConv });
     } catch (err) {
         logger.error('Branch Sparkly conversation error:', err);
-        res.status(500).json({ success: false, message: err.message || 'Failed to branch conversation' });
+        apiError(res, err);
     }
 }
 

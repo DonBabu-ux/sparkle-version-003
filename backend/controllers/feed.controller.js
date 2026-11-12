@@ -2,6 +2,7 @@ const Post = require('../models/Post');
 const User = require('../models/User');
 const pool = require('../config/database');
 const logger = require('../utils/logger');
+const { serverError } = require('../utils/serverError');
 const crypto = require('crypto');
 const notificationController = require('./notification.controller');
 const MediaService = require('../services/media.service');
@@ -1001,7 +1002,7 @@ const createStory = async (req, res) => {
     } catch (error) {
         console.error('❌ Create Story Error:', error);
         logger.error('Create Story Error:', error);
-        res.status(500).json({ error: 'Failed to create story', details: error.message });
+        serverError(res, error);
     }
 };
 
@@ -1105,7 +1106,7 @@ const likeStory = async (req, res) => {
     } catch (error) {
         if (connection) await connection.rollback();
         logger.error('Like story error:', error);
-        res.status(500).json({ error: 'Failed to toggle like', details: error.message });
+        serverError(res, error);
     } finally {
         if (connection) connection.release();
     }
@@ -1304,7 +1305,7 @@ const shareStory = async (req, res) => {
         if (connection) await connection.rollback();
         logger.error('Share Story Error:', error);
         console.error('❌ Share story error details:', error.message);
-        res.status(500).json({ error: 'Failed to record share', details: error.message });
+        serverError(res, error);
     } finally {
         if (connection) connection.release();
     }

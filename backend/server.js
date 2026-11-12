@@ -155,7 +155,11 @@ app.get('/health/db', async (req, res) => {
         await pool.query('SELECT 1');
         res.json({ status: 'ok', database: 'connected', pool_open_connections: pool.getPoolStatus(), timestamp: new Date().toISOString() });
     } catch (error) {
-        res.status(503).json({ status: 'error', database: 'down', error: error.message });
+        // A failed `SELECT 1` is an auth or DNS failure, and MySQL puts the
+        // database username and host in that message. The status code and
+        // `database: 'down'` already tell an operator what they need.
+        logger.error('[health] database probe failed:', error);
+        res.status(503).json({ status: 'error', database: 'down', error: 'Database query failed' });
     }
 });
 

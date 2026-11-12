@@ -73,8 +73,14 @@ module.exports = {
             res.json({ success: true, message: 'User blocked' });
         } catch (error) {
             console.error('[Social] Block failed:', error);
-            const status = error.message.includes('cannot block yourself') ? 400 : 500;
-            res.status(status).json({ error: error.message || 'Block operation failed' });
+            // Routing the status code off the message is fine — reading it is
+            // not a disclosure. Echoing it is: the 500 branch here is a driver
+            // failure, and its text is a SQL fragment. Only the domain branch
+            // (a 400 the user caused) gets the message back.
+            if (error.message.includes('cannot block yourself')) {
+                return res.status(400).json({ error: error.message });
+            }
+            res.status(500).json({ error: 'Block operation failed' });
         }
     },
     getBlockStatus: async (req, res) => {

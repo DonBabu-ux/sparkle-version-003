@@ -250,7 +250,7 @@ class MessageController {
             res.json({ status: 'success', data: mapped });
         } catch (error) {
             console.error('getInbox Error:', error);
-            res.status(500).json({ status: 'error', error: 'Server error', details: error.message });
+            serverError(res, error);
         }
     }
 
@@ -383,7 +383,7 @@ class MessageController {
                     error: error.message
                 });
             }
-            res.status(500).json({ status: 'error', error: 'Failed to send message', details: error.message });
+            serverError(res, error);
         }
     }
 

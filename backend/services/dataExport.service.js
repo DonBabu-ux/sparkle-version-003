@@ -10,6 +10,22 @@ const pool = require('../config/database');
 const logger = require('../utils/logger');
 const emailService = require('./email.service');
 
+/**
+ * Mark a rejection as one the caller may be told about.
+ *
+ * All five throws in this service are domain rejections a user can act on
+ * ("User not found", "Download link has expired"). The routes that call it
+ * answer with the reason, so without this marker they cannot tell one of those
+ * from a database failure reaching the same catch — and a raw driver message
+ * handed to the caller is a free description of the schema. `clientError`
+ * (utils/serverError.js) routes on this flag.
+ */
+const domainError = (message) => {
+    const err = new Error(message);
+    err.isOperational = true;
+    return err;
+};
+
 const EXPORTS_DIR = path.join(__dirname, '../exports_storage');
 if (!fs.existsSync(EXPORTS_DIR)) {
     fs.mkdirSync(EXPORTS_DIR, { recursive: true, mode: 0o700 });
@@ -150,11 +166,11 @@ class DataExportService {
      * Create an Export Job Request
      */
     async requestExport({ userId, requestedCategories, format = 'pdf', deliveryEmail, isAlternate = false }) {
-        if (!userId) throw new Error('User ID is required');
+        if (!userId) throw domainError('User ID is required');
 
         // Check account existence and eligibility
         const [users] = await pool.query('SELECT user_id, email, name, account_status FROM users WHERE user_id = ?', [userId]);
-        if (users.length === 0) throw new Error('User not found');
+        if (users.length === 0) throw domainError('User not found');
         const user = users[0];
 
         // Valid categories selection
@@ -497,15 +513,15 @@ class DataExportService {
             WHERE download_token = ?
         `, [token]);
 
-        if (jobs.length === 0) throw new Error('Invalid or non-existent download token.');
+        if (jobs.length === 0) throw domainError('Invalid or non-existent download token.');
         const job = jobs[0];
 
         if (job.status !== 'READY' || !job.file_path || !fs.existsSync(job.file_path)) {
-            throw new Error('Requested file is not available or has been purged.');
+            throw domainError('Requested file is not available or has been purged.');
         }
 
         if (new Date(job.token_expires_at) <= new Date()) {
-            throw new Error('Download link has expired.');
+            throw domainError('Download link has expired.');
         }
 
         await pool.query('UPDATE data_export_jobs SET download_count = download_count + 1 WHERE job_id = ?', [job.job_id]);

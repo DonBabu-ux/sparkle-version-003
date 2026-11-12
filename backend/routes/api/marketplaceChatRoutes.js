@@ -3,6 +3,7 @@ const router = express.Router();
 const pool = require('../../config/database');
 const { authMiddleware } = require('../../middleware/auth.middleware');
 const { v4: uuidv4 } = require('uuid');
+const { serverError } = require('../../utils/serverError');
 
 // Helper to robustly extract user ID across different token payload shapes
 const getUserId = (req) => req.user?.user_id || req.user?.id || req.user?.userId;
@@ -78,7 +79,7 @@ router.post('/conversations', async (req, res) => {
         res.status(201).json({ id: convId, buyer_id, seller_id, listing_id });
     } catch (err) {
         console.error("Failed to create conversation:", err);
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -136,7 +137,7 @@ router.get('/conversations', async (req, res) => {
         res.json(combined);
     } catch (err) {
         console.error('Error fetching marketplace conversations:', err);
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -188,7 +189,7 @@ router.get('/conversations/:id', async (req, res) => {
         res.json(convs[0]);
     } catch (err) {
         console.error('Error fetching single conversation:', err);
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -244,7 +245,7 @@ router.get('/messages/:conversation_id', async (req, res) => {
         messages.forEach(m => m.reactions = typeof m.reactions === 'string' ? JSON.parse(m.reactions) : (m.reactions || []));
         res.json(messages);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -259,7 +260,7 @@ router.put('/messages/:message_id', async (req, res) => {
         await pool.query(`UPDATE marketplace_messages SET message_text = ?, is_edited = TRUE WHERE id = ?`, [text, req.params.message_id]);
         res.json({ success: true, message: 'Message updated' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -273,7 +274,7 @@ router.delete('/messages/:message_id', async (req, res) => {
         await pool.query(`DELETE FROM marketplace_message_status WHERE message_id = ?`, [req.params.message_id]);
         res.json({ success: true, message: 'Message deleted' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -284,7 +285,7 @@ router.post('/messages/upload', messageUpload.single('media'), async (req, res) 
         if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
         res.json({ success: true, url: req.file.path, type: req.file.mimetype.startsWith('video') ? 'video' : 'image' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -299,7 +300,7 @@ router.post('/messages/:message_id/react', async (req, res) => {
         await pool.query(`INSERT INTO marketplace_message_reactions (reaction_id, message_id, user_id, emoji) VALUES (?, ?, ?, ?)`, [id, req.params.message_id, userId, reaction]);
         res.json({ success: true, message: 'Reacted' });
     } catch(err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -326,7 +327,7 @@ router.get('/settings', async (req, res) => {
 
         res.json(settings[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -353,7 +354,7 @@ router.put('/settings', async (req, res) => {
 
         res.json({ success: true, message: 'Settings updated' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -382,7 +383,7 @@ router.patch('/conversations/:id/toggle', async (req, res) => {
 
         res.json({ success: true, field, value: !!newValue });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -421,7 +422,7 @@ router.get('/conversations/:id/status', async (req, res) => {
             opponentId
         });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
@@ -448,7 +449,7 @@ router.delete('/conversations/:id', async (req, res) => {
 
         res.json({ success: true, message: 'Conversation deleted' });
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        serverError(res, err);
     }
 });
 
